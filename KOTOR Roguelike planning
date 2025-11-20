@@ -1,0 +1,99 @@
+Todo
+
+Now that we are dealing dice, we need to:
+- Create the dice bag full of 8 generic d4s, 2 specific d4s per style (for attacking, blocking, healing) and then 1 1d6 per style as well.
+	- Colour code these dice red for attack, blue for block, green for heal, grey for generic.
+- Add discard functionality where we can drag dice to the discard bag, and create more action queue slots for every dice discarded (1 dice for 1st, 2 dice for 2nd and so on). 
+	- Depending on the dice you discard, depends what that slot can be.
+	- Discarding an attack and blocking die means that die can be either, and will default do a 1d4 without having dice in that slot.
+	- Discarding a generic die means that slot can be anything, but will be empty
+	- Colour code each slot with a thin bar at the bottom to denote what that slot can do
+- Add toggle functionality to slots depending on its icons underneath (create these icons, sword, shield, plus, circle)
+- Add drag and drop into slots functionality.
+	- First of all, check compatability with the slot.
+		- Any dice can go in a generic slot
+		- 
+
+
+6/11/2025
+- Need to add preventing playing turn if they don't have any actions queued
+
+For swapping out discard with consuming at the last action slot:
+- Add last action slot hovering
+- Current discard functionality can just be duplicated for last action slot, without adding it to discard pile
+- Show possibility circles underneath when we have consumed some of the dice required to create a new slot.
+- 
+
+7/11/2025
+- When I add a grey tile to an earlier slot, the final slots base dice can become temporary?? Let's implement the latest feature from Chat GPT conversation.
+- 
+
+9/11/2025
+- Need to reset bag when we exit combat rooms so that its reset for next combat.
+- Need to make sure that when empty dice are used to create a slot, when they are ejected they are removed from the sacrifice history
+
+10/11/2025
+- Smoother transitions between screens
+- Rewards screen after successful combat
+- Fix player HP reducing after the player attacks the enemy
+- Add skip rewards btn
+- Ensure you can't click events beyond the next one
+- Add credits animation when taken
+- Stop two dice being dragged & hovered at the same time
+- Plan new theme
+
+12/11/2025
+- Need to make it so bonus amounts only get added to the slot, not to each dice within it.
+
+13/11/2025
+- Multiple enemies in a fight
+- Debuffs from enemies
+- Debuffs from player
+- How to make each turn interesting, right now its always just plug in dice and pray, there's not too many interesing decisions
+- Adding a "keyword" system
+- Adding enemy "keywords"/"debuffs"
+
+14/11/2025
+- Fixes from playtesting:
+	- Corsair gunner order feels off as they block ahead of the turn you want to defend as well
+	- All debuffs should only reduce their duration when they trigger, not at a specific point in the turn. Mock can then only last 1 turn.
+	- Starting slot should not exist imo, make players sacrifice die to play at all. Sacrificing 3 generic die to make a blank slot is unfun, as they all become temporary, perhaps generic dice can be base dice, but they will just become empty every turn if not added to with a color?
+	- Is only 2 dice a turn interesting? Should that increase every act?
+- Come up with 10 relics
+	- Make a specific slot more powerful
+	- If you use 3 of the same action name in a row
+	- Odd number slots gain +1 
+	- Stowaway dice gain +1 to their effects
+- Come up with 5 provisions
+- Come up with 10 new dice types
+	- Gain +2 block [if not used]
+	- Draw an extra dice next turn [if not used] 
+	- Tidal Slash: 2d4 attack but only if [previous slot] is a block
+	- Saltwater Surge: Heals 2d4 but [sacrifices] the die
+	- Anchor Die: +4 bonus to this slots block, but [subsequent slots] have -1d4.
+	- When ejected, grants +1 dice to play next turn
+	- [Favourite] always draw this die in your first roll
+	- [Partner] if paired with a certain possible_type, does XYZ.
+	- Ambitious dice - 1d4 attack, this dice's minimum roll is equal to its slot number.
+- Add provisions usable from top bar?
+- Add the shop which features 2x relics, 3x dice, 3x provisions
+
+- Need to fix coins
+	- Need to be able to apply to any slot
+- Need to fix multitpe
+	- When sacrificing, make sure it pulls from the dices potential type, not its action type
+	- Make it so dice in the rewards screen show their name, not their roll type. Add roll type to the description.
+
+15/11/2025
+- Find some future use for manually discarding (maybe a keyword that when discarded manually ejects a new dice).
+- Need to add some oRunManager functionality:
+	Showing which act we are in
+	Showing how many pages we've turned
+- Future debuffs
+	- Barnacle bind - limit dice played next turn
+	- Salt spray - block dice capped at max roll next turn
+	- Mock - change to just attacking dice - DONE
+	- undertow - reorder the player slot queue
+	- encumbered - must play a block or heal before an attack
+	- Rust - dice played this turn lose 1 from their max roll for the rest of combat (restored at the end of combat)
+	- Frozen - can't change slot types this turn

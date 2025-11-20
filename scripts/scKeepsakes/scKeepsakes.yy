@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scKeepsakes",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scKeepsakes",
+  "parent":{
+    "name":"scripts",
+    "path":"folders/scripts.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

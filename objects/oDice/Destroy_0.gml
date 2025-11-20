@@ -1,0 +1,1 @@
+global.hovered_dice_id = noone;
