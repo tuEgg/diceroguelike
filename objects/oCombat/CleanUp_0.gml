@@ -23,5 +23,3 @@ if (ds_exists(global.discard_pile, ds_type_list)) ds_list_destroy(global.discard
 if (ds_exists(global.sacrifice_list, ds_type_list)) ds_list_destroy(global.sacrifice_list);
 if (ds_exists(global.sacrifice_history, ds_type_list)) ds_list_destroy(global.sacrifice_history);
 if (ds_exists(reward_options, ds_type_list)) ds_list_destroy(reward_options);
-if (ds_exists(enemy_debuffs, ds_type_list)) ds_list_destroy(enemy_debuffs);
-if (ds_exists(player_debuffs, ds_type_list)) ds_list_destroy(player_debuffs);

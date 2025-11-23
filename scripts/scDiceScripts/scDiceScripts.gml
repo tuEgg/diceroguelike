@@ -1,28 +1,30 @@
 // Script assets have changed for v2.3.0 see
 // https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
 function deal_single_die() {
-    // --- Reshuffle if empty ---
-    if (ds_list_size(global.dice_bag) == 0) {
-        if (ds_list_size(global.discard_pile) > 0) {
-            show_debug_message("Dice bag empty — reshuffling discard pile!");
-            for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
-                var discard_die = global.discard_pile[| i];
-                var die_copy = clone_die(discard_die, "temporary");
-                ds_list_add(global.dice_bag, die_copy);
-            }
-            ds_list_clear(global.discard_pile);
-        } else {
-            show_debug_message("No dice left to deal — GAME OVER.");
-            game_end();
-            return;
-        }
-    }
+	if (room == rmCombat) {
+	    // --- Reshuffle if empty ---
+	    if (ds_list_size(global.dice_bag) == 0) {
+	        if (ds_list_size(global.discard_pile) > 0) {
+	            show_debug_message("Dice bag empty — reshuffling discard pile!");
+	            for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
+	                var discard_die = global.discard_pile[| i];
+	                var die_copy = clone_die(discard_die, "temporary");
+	                ds_list_add(global.dice_bag, die_copy);
+	            }
+	            ds_list_clear(global.discard_pile);
+	        } else {
+	            show_debug_message("No dice left to deal — GAME OVER.");
+	            game_end();
+	            return;
+	        }
+	    }
 
-    if (ds_list_size(global.dice_bag) == 0) {
-        show_debug_message("No dice available even after reshuffle — GAME OVER.");
-        game_end();
-        return;
-    }
+	    if (ds_list_size(global.dice_bag) == 0) {
+	        show_debug_message("No dice available even after reshuffle — GAME OVER.");
+	        game_end();
+	        return;
+	    }
+	}
 
     // --- Draw one die ---
 	var trigger_data = {
@@ -85,17 +87,17 @@ function generate_dice_bag() {
 	// Define dice structs
 	global.dice_all = make_die_struct(1, 4,"None", "All", "", "Multicolor die", "Counts as anything");
 	global.dice_d4_none = make_die_struct(1, 4,"None", "None", "", "Generic die", "Upgrades slots 1d4");
-	//ds_list_add(global.master_dice_list, global.dice_d4_none);
+	//ds_list_add(global.master_dice_list, clone_die(global.dice_d4_none, ""));
 	global.dice_d6_atk = make_die_struct(1, 6,"ATK", "ATK", "", "Attack", "Deals 1d6 damage");
-	ds_list_add(global.master_dice_list, global.dice_d6_atk);
+	ds_list_add(global.master_dice_list, clone_die(global.dice_d6_atk, ""));
 	global.dice_d4_atk = make_die_struct(1, 4,"ATK", "ATK", "", "Attack", "Deals 1d4 damage");
-	//ds_list_add(global.master_dice_list, global.dice_d4_atk);
+	//ds_list_add(global.master_dice_list, clone_die(global.dice_d4_atk, ""));
 	global.dice_d6_blk = make_die_struct(1, 6,"BLK", "BLK", "", "Block", "Blocks 1d6 damage");
-	ds_list_add(global.master_dice_list, global.dice_d6_blk);
+	ds_list_add(global.master_dice_list, clone_die(global.dice_d6_blk, ""));
 	global.dice_d4_blk = make_die_struct(1, 4,"BLK", "BLK", "", "Block", "Blocks 1d4 damage");
-	//ds_list_add(global.master_dice_list, global.dice_d4_blk);
+	//ds_list_add(global.master_dice_list, clone_die(global.dice_d4_blk, ""));
 	global.dice_d4_heal = make_die_struct(1, 4,"HEAL", "HEAL", "", "Heal", "Heals 1d4 damage");
-	ds_list_add(global.master_dice_list, global.dice_d4_heal);
+	ds_list_add(global.master_dice_list, clone_die(global.dice_d4_heal, ""));
 	
 	// Anchor Die: Gain +3 block if not used
 	global.die_anchor = make_die_struct(
@@ -110,7 +112,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
-	ds_list_add(global.master_dice_list, global.die_anchor);
+	ds_list_add(global.master_dice_list, clone_die(global.die_anchor, ""));
 	
 	// Anchor Die: Gain +3 block if not used
 	global.die_slipstream = make_die_struct(
@@ -120,12 +122,12 @@ function generate_dice_bag() {
 	        {
 	            trigger: "on_not_used",
 	            modify: function(_context) {
-	                apply_buff(oCombat.player_debuffs, oRunManager.buff_reserve, 1);
+	                apply_buff(global.player_debuffs, oRunManager.buff_reserve, 1);
 	            }
 	        }
 	    ]
 	);
-	ds_list_add(global.master_dice_list, global.die_slipstream);
+	ds_list_add(global.master_dice_list, clone_die(global.die_slipstream, ""));
 	
 	// Anchor Die: Gain +3 block if not used
 	global.die_defensive = make_die_struct(
@@ -140,7 +142,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
-	ds_list_add(global.master_dice_list, global.die_defensive);
+	ds_list_add(global.master_dice_list, clone_die(global.die_defensive, ""));
 	
 	// Anchor Die: Gain +3 block if not used
 	global.die_tidebreaker = make_die_struct(
@@ -155,10 +157,9 @@ function generate_dice_bag() {
 	                }
 	            }
 	        }
-	    ],
-		"loaded"
+	    ]
 	);
-	ds_list_add(global.master_dice_list, global.die_tidebreaker);
+	ds_list_add(global.master_dice_list, clone_die(global.die_tidebreaker, ""));
 	
 	// Anchor Die: Gain +3 block if not used
 	global.die_pretty_penny = make_die_struct(
@@ -175,16 +176,16 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
-	ds_list_add(global.master_dice_list, global.die_pretty_penny);
+	ds_list_add(global.master_dice_list, clone_die(global.die_pretty_penny, ""));
 	
 
 	// Add to bag
-	repeat(3)		{ ds_list_add(global.dice_bag, global.dice_d4_atk); }
-	repeat(3)		{ ds_list_add(global.dice_bag, global.dice_d4_blk); }
-	repeat(0)		{ ds_list_add(global.dice_bag, global.die_defensive); }
-	repeat(0)		{ ds_list_add(global.dice_bag, global.die_pretty_penny); }
+	repeat(3)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_atk, "")); }
+	repeat(3)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_blk, "")); }
+	repeat(0)		{ ds_list_add(global.dice_bag, clone_die(global.die_defensive, "")); }
+	repeat(0)		{ ds_list_add(global.dice_bag, clone_die(global.die_pretty_penny, "")); }
 	
-	do { ds_list_add(global.dice_bag, global.dice_d4_none); }
+	do { ds_list_add(global.dice_bag, clone_die(global.dice_d4_none, "")); }
 	until (ds_list_size(global.dice_bag) == global.bag_size);
 }
 
@@ -256,11 +257,27 @@ function make_die_struct(_amount, _value, _action, _poss, _perm, _name, _desc, _
 }
 
 /// @func clone_die(_die_struct, _perm)
-function clone_die(_die_struct, _perm)
+function clone_die(_src, _perm)
 {
-    var copy = variable_clone(_die_struct);
-    copy.permanence = _perm;
-    return copy;
+    var c = variable_clone(_src); // shallow clone of base-level fields
+
+    // --- Ensure nested arrays are deep copies ---
+    if (is_array(c.effects)) {
+        var new_arr = array_create(array_length(c.effects));
+        for (var i = 0; i < array_length(c.effects); i++) {
+            if (is_struct(c.effects[i])) {
+                new_arr[i] = variable_clone(c.effects[i]); // clone effect struct
+            } else {
+                new_arr[i] = c.effects[i];
+            }
+        }
+        c.effects = new_arr;
+    }
+
+    // If you add other array-type fields later, clone them in the same way.
+
+    c.permanence = _perm;
+    return c;
 }
 
 /// @func get_dice_name(_die)

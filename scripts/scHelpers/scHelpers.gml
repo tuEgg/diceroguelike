@@ -245,13 +245,20 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
     if (_icon != undefined) {
         icon_w = sprite_get_width(_icon) + padding + padding;
         _width += icon_w;
-    }
+    } else if (_dice != undefined) {
+		if (_dice.distribution != "") {
+			icon_w = sprite_get_width(sCores);
+			_width += icon_w;
+		}
+	}
 
     // -------------------------------------------------------
     // DISTRIBUTION BARS
     // -------------------------------------------------------
 	if (_dice != undefined) {
-		draw_dice_distribution(_dice, xx, yy);
+		if (_dice.distribution != "") {
+			draw_dice_distribution(_dice, xx, yy);
+		}
 	}
 
     // -------------------------------------------------------
@@ -279,7 +286,31 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
             1, 1, 0, c_white, 1
         );
         xx += sprite_get_width(_icon) + padding;
-    }
+    } else if (_dice != undefined) {
+		// Draw core icon
+		if (_dice.distribution != "") {
+			var core_index = 0;
+			switch (_dice.distribution) {
+				case "weighted":	core_index = 0;		break;
+				case "loaded":		core_index = 1;		break;
+				case "edge":		core_index = 2;		break;
+				case "binary":		core_index = 3;		break;
+				case "bell":		core_index = 4;		break;
+				case "dome":		core_index = 5;		break;
+				case "odd":			core_index = 6;		break;
+				case "even":		core_index = 7;		break;
+				case "dual":		core_index = 8;		break;
+				case "tower":		core_index = 9;		break;
+			}
+			draw_sprite_ext(
+	            sCores, core_index,
+	            xx + sprite_get_width(sCores)/2 + padding - 5,
+	            yy + padding - 20 + sprite_get_height(sCores)/2,
+	            0.75, 0.75, 0, c_white, 1
+	        );
+	        xx += sprite_get_width(sCores)*0.75 + padding;
+		}
+	}
 
     // -------------------------------------------------------
     // NAME

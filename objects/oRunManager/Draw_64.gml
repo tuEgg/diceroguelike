@@ -47,29 +47,38 @@ for (var i = 0; i < array_length(items); i++) {
 	var sprite_x;
 	var sprite_y;
 	
-	if (!items[i].dragging) {
-		sprite_x = core_x + 5 + i_x + sprite_get_width(sTopBarSlot)/2;
-		sprite_y = core_y + sprite_get_height(sTopBarSlot)/2;
-	} else {
-		sprite_x = mouse_x;
-		sprite_y = mouse_y;
+	if (items[i] != undefined) {
+		if (items[i].dragging) {
+			sprite_x = mouse_x;
+			sprite_y = mouse_y;
+		} else {
+			sprite_x = core_x + 5 + i_x + sprite_get_width(sTopBarSlot)/2;
+			sprite_y = core_y + sprite_get_height(sTopBarSlot)/2;
+		}
 	}
 	
 	draw_sprite(sTopBarSlot, 1, core_x + 5 + i_x, core_y);
 	
-	draw_sprite(items[i].sprite, items[i].index, sprite_x, sprite_y);
+	if (items[i] != undefined) {
+		draw_sprite(items[i].sprite, items[i].index, sprite_x, sprite_y);
+		
 	//draw_outline_text(items[i].quantity, c_black, c_white, 2, core_x + 70 + 5 + i_x, 25, 1, 1, 0);
-	items_hover[i] = mouse_hovering(core_x + 5 + i_x, core_y, sprite_get_width(sTopBarSlot), sprite_get_height(sTopBarSlot), false);
-	if (items_hover[i]) queue_tooltip(mouse_x, mouse_y, items[i].name, items[i].description, undefined, 0, undefined);
+		
+		items_hover[i] = mouse_hovering(core_x + 5 + i_x, core_y, sprite_get_width(sTopBarSlot), sprite_get_height(sTopBarSlot), false);
+		if (oRunManager.holding_item) items_hover[i] = false;
+		
+		if (items_hover[i]) queue_tooltip(mouse_x, mouse_y, items[i].name, items[i].description, undefined, 0, undefined);
 	
-	if (room == rmWorkbench) {
-		if (items[i].type == "core") {
-			if (items_hover[i] && mouse_check_button(mb_left)) {
-				items[i].dragging = true;
-			}
-			
-			if (items[i].dragging and mouse_check_button_released(mb_left)) {
-				items[i].dragging = false;
+		if (room == rmWorkbench) {
+			if (items[i].type == "core") {
+				// drag the core
+				if (items_hover[i] && mouse_check_button(mb_left)) {
+					items[i].dragging = true;
+				}
+				// release the core
+				if (items[i].dragging and mouse_check_button_released(mb_left)) {
+					items[i].dragging = false;
+				}
 			}
 		}
 	}

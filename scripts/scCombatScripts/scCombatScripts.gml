@@ -27,9 +27,6 @@ function deal_damage(_target, _dice_amount, _dice_value, _bonus_amount, _source,
 			_max_roll = dice_output.max_roll;
 			_keepsake_dice_bonus_amount = dice_output.keepsake_dice_bonus_amount;
 			
-			show_debug_message("This dice min value is " + string(_min_roll));
-			show_debug_message("This dice max value is " + string(_max_roll));
-			
 			// Create our array for weighted rolling
 			var distribution_array = [];
 		
@@ -63,12 +60,9 @@ function deal_damage(_target, _dice_amount, _dice_value, _bonus_amount, _source,
 			for (var d = 0; d < array_length(distribution_array); d++) {
 				weight_max += distribution_array[d];
 			}
-			
-			show_debug_message("Weighted max value is" + string(weight_max));
 		
 			// Roll between all the values in the array
 			var weighted_roll = irandom_range(weight_min, weight_max);
-			show_debug_message("Weighted roll is " + string(weighted_roll));
 		
 			// Assign a value to that rolled weighted value, 1,2,3 = 1; 4,5,6,7 = 2; 8,9,10,11,12 = 3; 13,14,15,16,17,18 = 4; for a d4
 			for (var d = 0; d < array_length(distribution_array); d++) {
@@ -119,14 +113,12 @@ function deal_damage(_target, _dice_amount, _dice_value, _bonus_amount, _source,
                 var num = spawn_floating_number("enemy", block_used, -1, c_aqua, -1, -1, _num);
 				num.x += 20;
 				num.y += 20;
-                add_feed_entry("Enemy blocks " + string(block_used) + " damage!");
             }
 
             // Deal any remaining damage
             if (final_damage > 0) {
                 enemy_hp = max(0, enemy_hp - final_damage);
                 spawn_floating_number("enemy", final_damage, -1, c_red, -1, -1, _num);
-                add_feed_entry(string_upper(_source) + " dealt " + string(final_damage) + " damage to Enemy!");
             }
 
             inst_color = c_red;
@@ -142,13 +134,12 @@ function deal_damage(_target, _dice_amount, _dice_value, _bonus_amount, _source,
                 var num = spawn_floating_number("player", block_used, -1, c_aqua, -1, -1, _num);
 				num.x += 20;
 				num.y += 20;
-                add_feed_entry("You block " + string(block_used) + " damage!");
             }
 
             if (final_damage > 0) {
                 global.player_hp = max(0, global.player_hp - final_damage);
                 spawn_floating_number("player", final_damage, -1, c_red, -1, -1, _num);
-                add_feed_entry("Enemy dealt " + string(final_damage) + " damage to You!");
+				
             }
 
             inst_color = c_red;
@@ -186,7 +177,7 @@ function deal_damage(_target, _dice_amount, _dice_value, _bonus_amount, _source,
 	
 	else if (_type == "DEBUFF") {
 		if (_target == "player") {
-		    apply_buff(oCombat.player_debuffs, enemy_intent.debuff, enemy_intent.debuff.duration);
+		    apply_buff(global.player_debuffs, enemy_intent.debuff, enemy_intent.debuff.duration);
 		}
 	}
 }
@@ -345,7 +336,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 
                 stats.amount += die_copy.dice_amount;
                 stats.value   = max(die_copy.dice_value, stats.value);
-                show_debug_message("Adding coloured dice to coloured slot.");
+                //show_debug_message("Adding coloured dice to coloured slot.");
             } else {
                 reject_dice = true;
             }
@@ -407,8 +398,7 @@ function is_mouse_over_discard_button() {
     return (mx > btn_x && mx < btn_x + btn_w && my > btn_y && my < btn_y + btn_h);
 }
 
-function discard_dice(_die)
-{
+function discard_dice(_die) {
     var die = _die;
 
     // --- 1. Determine which struct this die uses
@@ -429,8 +419,29 @@ function discard_dice(_die)
     instance_destroy(die);
 
     // --- 5. Combat feed + reset state
-    oCombat.is_discarding = false;
-    with (oCombat) add_feed_entry("You discarded a dice!");
+    if (instance_exists(oCombat)) oCombat.is_discarding = false;
+    //with (oCombat) add_feed_entry("You discarded a dice!");
+}
+
+function add_dice_to_bag(_die) {
+	var die = _die;
+
+    // --- 1. Determine which struct this die uses
+    var die_struct;
+    if (variable_instance_exists(die, "die_struct")) {
+        die_struct = die.die_struct;
+    } else {
+        die_struct = die.struct;
+    }
+
+    // --- 2. Clone the struct before adding to discard pile
+    var die_copy = clone_die(die_struct, "temporary");
+
+    // --- 3. Add to discard pile
+    ds_list_add(global.dice_bag, die_copy);
+
+    // --- 4. Cleanup visuals
+    instance_destroy(die);
 }
 
 
@@ -443,6 +454,7 @@ function sacrifice_die(_die) {
 			return;
 		}
 	}
+	
 	if (!string_has_keyword(_die.struct.description, "coin")) dice_played++;
 	dice_played_scale = 1.2;
 	dice_played_color = c_green;
@@ -454,18 +466,20 @@ function sacrifice_die(_die) {
 	var _perm = "temporary";
 	if (die_struct.action_type == "None") {
 		_perm = "temporary none"; // used for tracking sacrificed history of dice used to create slots that become temporary
-		show_debug_message("Added TEMPORARY NONE to sac history");
+		//show_debug_message("Added TEMPORARY NONE to sack history");
 	}
 	var die_copy = clone_die(die_struct, _perm);
     ds_list_add(global.sacrifice_list, die_copy);
+	//show_debug_message("Added dice to list, new length is: "+string(ds_list_size(global.sacrifice_list)));
 	
     var history_copy  = clone_die(die_struct, _perm);
 	ds_list_add(global.sacrifice_history, history_copy ); // persistent record
 	
     instance_destroy(die);
-    add_feed_entry("You sacrificed a dice!");
 
     sacrificies_til_new_action_tile--;
+	
+	update_sacrificed_type_array();
 
     if (sacrificies_til_new_action_tile > 0) return;
 
@@ -558,9 +572,30 @@ function sacrifice_die(_die) {
     var slot = ds_list_size(action_queue) + 1;
 	sacrificies_til_new_action_tile = global.fib_lookup[slot];
 
-
     ds_list_destroy(type_list);
     ds_list_clear(global.sacrifice_list);
+	//show_debug_message("New slot created");
+	type_array = [];
+}
+
+function update_sacrificed_type_array() {
+	type_array = [];
+	// Build unique types from global.sacrifice_list (as before)
+	for (var s = 0; s < ds_list_size(global.sacrifice_list); s++) {
+		var die_struct = global.sacrifice_list[| s];
+			
+		var poss_types = string_split(die_struct.possible_type, " ");
+		var total = array_length(poss_types);
+			
+		for (var t = 0; t < total; t++) {
+			if (!array_contains(type_array, poss_types[t])) {
+				array_push(type_array, poss_types[t]);
+				//show_debug_message("Possible slot types for last slot: "+string(total));
+				//show_debug_message("Possible type size "+string(ds_list_size(global.sacrifice_list)));
+				//show_debug_message("Sacrifice list size "+string(ds_list_size(global.sacrifice_list)));
+			}
+		}
+	}
 }
 
 /// @func get_slot_stats(_slot, _num)
@@ -756,7 +791,7 @@ function win_fight() {
 			    var idx = indices[| i];
 			    var die_struct = global.master_dice_list[| idx];
 
-			    ds_list_add(reward_options, die_struct);
+			    ds_list_add(reward_options, clone_die(die_struct, ""));
 			    ds_list_add(reward_scale, 0.1);
 			}
 
@@ -898,8 +933,13 @@ function discard_dice_in_play() {
 	    // Assign particle data BEFORE destroying the dice
 	    p.die_struct = clone_die(d_struct, d_struct.permanence);
 	    p.color_main = col;
-	    p.target_x = oCombat.gui_w - 150;  // discard button position
-	    p.target_y = oCombat.gui_h - 130;
+		if (room == rmCombat) {
+		    p.target_x = oCombat.gui_w - 150;  // discard button position
+		    p.target_y = oCombat.gui_h - 130;
+		} else if (room == rmWorkbench) {
+			p.target_x = 60;
+			p.target_y = 1040;
+		}
 
 	    // Finally destroy the dice instance
 	    instance_destroy();
@@ -920,10 +960,10 @@ function combat_trigger_effects(_event, _ctx, _die_struct = undefined) {
     runmanager_trigger_keepsakes(_event, _ctx);
 
     // 3) player debuffs
-    trigger_debuff_list(oCombat.player_debuffs, _event, _ctx);
+    trigger_debuff_list(global.player_debuffs, _event, _ctx);
 
     // 4) enemy debuffs
-    trigger_debuff_list(oCombat.enemy_debuffs, _event, _ctx);
+    trigger_debuff_list(global.enemy_debuffs, _event, _ctx);
 }
 
 function trigger_debuff_list(_list, _event, _ctx)
@@ -940,7 +980,7 @@ function trigger_debuff_list(_list, _event, _ctx)
 				
 				// when it comes to triggering things on dice rolls, we need this to only decrease on the final dice roll
 				if (eff.trigger != "on_roll_die") {
-					show_debug_message("Lowering debuff duration for non on_roll_die events");
+					//show_debug_message("Lowering debuff duration for non on_roll_die events");
 					inst.remaining--;
 				    if (inst.remaining <= 0) {
 				        ds_list_delete(_list, i);
@@ -961,7 +1001,7 @@ function decrease_debuff_duration(_list, _event, _ctx)
             var eff = debuff.effects[e];
 
             if (eff.trigger == _event) {
-				show_debug_message("Lowering debuff duration for on_roll_die events");
+				//show_debug_message("Lowering debuff duration for on_roll_die events");
 				// when it comes to triggering things on dice rolls, we need this to only decrease on the final dice roll
 				inst.remaining--;
 				if (inst.remaining <= 0) {

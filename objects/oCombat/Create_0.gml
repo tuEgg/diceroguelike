@@ -110,18 +110,12 @@ grabbed_amount = 0;
 grabbed_value  = 0;
 grabbed_type   = "";
 
-global.dice_safe_area_x1 = 4*(room_width/11);
-global.dice_safe_area_x2 = 7*(room_width/11);
-global.dice_safe_area_y1 = 3*(room_height/4);
-global.dice_safe_area_y2 = room_height - 100;
-
-/// oCombat Create Event
-global.hovered_dice_id = noone;
-
 dice_to_deal = 0;
 dice_deal_timer = 0;
 dice_deal_delay = 10; // frames between dice (at 60fps ~0.17s)
 is_dealing_dice = false;
+ejected_dice = false;
+type_array = [];
 
 enemy = oWorldManager.room_enemy;
 
@@ -160,6 +154,3 @@ dice_allowed_per_turn = dice_allowed_per_turn_original;
 dice_allowed_this_turn_bonus = 0;
 dice_played_scale = 1;
 dice_played_color = c_white;
-
-player_debuffs = ds_list_create();
-enemy_debuffs = ds_list_create();

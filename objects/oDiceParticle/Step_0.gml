@@ -6,8 +6,6 @@ switch (phase) {
 
         // Once we've started falling (y_speed > 5), begin homing
         if (y_speed > 2) {
-            var dx = target_x - x;
-            var dy = target_y - y;
             var dist = point_distance(x, y, target_x, target_y);
             var dir = point_direction(x, y, target_x, target_y);
 
@@ -27,7 +25,6 @@ switch (phase) {
 
             // --- Check if we've reached the discard button ---
             if (dist < 64 || y > target_y + 50) {
-                discard_dice(id);
                 phase = "done";
             }
         } else {

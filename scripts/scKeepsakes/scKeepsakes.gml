@@ -9,7 +9,6 @@ function define_keepsakes() {
 	    trigger: function(event, data) {
 	        if (event == "on_roll_die") {
 	            if (data.min_roll == 1) data.min_roll = 2;
-				show_debug_message("Rolls can't be lower than 2.");
 	        }
 	    }
 	};

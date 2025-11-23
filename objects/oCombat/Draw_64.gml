@@ -84,8 +84,7 @@ draw_set_valign(fa_middle);
 draw_outline_text(label_text, c_black, c_white, 2, btn_x + sprite_get_width(sEndTurn)/2 - 40, btn_y + sprite_get_height(sEndTurn)/2, btn_scale, btn_scale, 0);
 
 // Click handling
-if (play_btn.click && state == CombatState.PLAYER_INPUT) {
-    add_feed_entry("You clicked PLAY!");
+if (play_btn.click && state == CombatState.PLAYER_INPUT && !is_dealing_dice) {
     state = CombatState.RESOLVE_ROUND;
 }
 
@@ -357,23 +356,7 @@ for (var i = 0; i < aq_list_size; i++) {
 		draw_set_font(ftDefault);
 		draw_outline_text("Sacrifice \n" + string(sacrificies_til_new_action_tile)+" dice", c_black, c_white, 2, last_x + last_w / 2, last_y + last_h / 2, 1, 1, 0);
 		
-		// Build unique types from global.sacrifice_list (as before)
-		var type_array = [];
-		
-		for (var s = 0; s < ds_list_size(global.sacrifice_list); s++) {
-		    var die_struct = global.sacrifice_list[| s];
-			
-			var poss_types = string_split(die_struct.possible_type, " ");
-			var total = array_length(poss_types);
-			
-			for (var t = 0; t < total; t++) {
-				if (!array_contains(type_array, poss_types[t])) {
-					array_push(type_array, poss_types[t]);
-				}
-			}
-		}
-		
-		draw_action_type_bars(last_x, last_y + last_h + 30, last_w, type_array, action_queue[| i].current_action_type);
+		draw_action_type_bars(last_x, last_y + last_h + 30, last_w, type_array, "None");
 	}
 	
 	// === Draw icons ABOVE each slot for number of dice loaded ===
@@ -547,8 +530,8 @@ draw_outline_text(string_format(global.player_hp, 0, 0) + " / " + string(global.
 var d_x = 0;
 var d_padding = 10;
 
-for (var d = 0; d < ds_list_size(player_debuffs); d++) {
-	var _debuff = player_debuffs[| d];
+for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
+	var _debuff = global.player_debuffs[| d];
 	var col = c_green;
 	if (_debuff.template.debuff) col = c_red;
 	draw_sprite_ext(sDebuffIcon, _debuff.template.icon_index, p_bar_x + d_x, p_bar_y + p_bar_h + 20, 1, 1, 0, col, 1.0);

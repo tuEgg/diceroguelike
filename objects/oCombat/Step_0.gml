@@ -21,6 +21,7 @@ switch (state) {
 		dice_played = 0;
 		player_block_amount = 0;
 		dice_allowed_this_turn_bonus = 0;
+		ejected_dice = false;
 		
 		// Modify dice allowed this turn
 		var turn_start_data = {
@@ -39,26 +40,26 @@ switch (state) {
 
         add_feed_entry("The enemy will "+string(enemy_intent.action_type)+".");
 		
-			// Show enemy intent
-			if (enemy_intent.action_type == "DEBUFF") {
-				enemy_intent_text = "DEBUFF";
-			} else if (enemy_intent.action_type == "NONE") {
-				enemy_intent_text = "Recharging";
-			} else {
-				enemy_intent_text = string(enemy_intent.dice_amount + enemy_intent.bonus_amount) + "-" + string((enemy_intent.dice_amount * enemy_intent.dice_value) + enemy_intent.bonus_amount);
-			}
+		// Show enemy intent
+		if (enemy_intent.action_type == "DEBUFF") {
+			enemy_intent_text = "DEBUFF";
+		} else if (enemy_intent.action_type == "NONE") {
+			enemy_intent_text = "Recharging";
+		} else {
+			enemy_intent_text = string(enemy_intent.dice_amount + enemy_intent.bonus_amount) + "-" + string((enemy_intent.dice_amount * enemy_intent.dice_value) + enemy_intent.bonus_amount);
+		}
 			
-	        // Color by type
-	        switch (enemy_intent.action_type) {
-	            case "ATK":  enemy_intent_color = c_red; break;
-	            case "BLK":  enemy_intent_color = c_aqua; break;
-	            case "HEAL": enemy_intent_color = c_lime; break;
-				default: enemy_intent_color = c_white;
-	        }
+	    // Color by type
+	    switch (enemy_intent.action_type) {
+	        case "ATK":  enemy_intent_color = c_red; break;
+	        case "BLK":  enemy_intent_color = c_aqua; break;
+	        case "HEAL": enemy_intent_color = c_lime; break;
+			default: enemy_intent_color = c_white;
+	    }
 
-	        // Animate in
-	        enemy_intent_alpha = lerp(enemy_intent_alpha, 1, 0.2);
-	        enemy_intent_scale = lerp(enemy_intent_scale, 1.2, 0.3);
+	    // Animate in
+	    enemy_intent_alpha = lerp(enemy_intent_alpha, 1, 0.2);
+	    enemy_intent_scale = lerp(enemy_intent_scale, 1.2, 0.3);
 		
         state = CombatState.PLAYER_INPUT;
         break;
@@ -127,7 +128,7 @@ switch (state) {
 				state = CombatState.END_OF_ROUND;
 			} else {
 				// This is a TEMPORARY WORKAROUND for removing debuffs at the end of the player turn, other events may need to end here as well
-				decrease_debuff_duration(oCombat.player_debuffs, "on_roll_die", {});
+				decrease_debuff_duration(global.player_debuffs, "on_roll_die", {});
 				
 				var _target = "player";
 				var _source = "enemy";
@@ -168,85 +169,97 @@ switch (state) {
 		first_turn = false;
 		
 		// Eject temporary dice
-	    for (var i = 0; i < ds_list_size(action_queue); i++) {
-	        var slot = action_queue[| i];
-	        var slot_pos = slot_positions[| i]; // from Draw GUI
-			slot.possible_type = "";
+		if (!ejected_dice) {
+		    for (var i = 0; i < ds_list_size(action_queue); i++) {
+		        var slot = action_queue[| i];
+		        var slot_pos = slot_positions[| i]; // from Draw GUI
+				slot.possible_type = "";
 
-	        var j = 0;
-	        while (j < ds_list_size(slot.dice_list)) {
-	            var die = slot.dice_list[| j];
+		        var j = 0;
+		        while (j < ds_list_size(slot.dice_list)) {
+		            var die = slot.dice_list[| j];
 				
-				die.rolled_value = -1;
+					die.rolled_value = -1;
 
-	            if (string_pos("temporary", die.permanence) > 0) {
+		            if (string_pos("temporary", die.permanence) > 0) {
 					
-					//// THIS COULD SIT IN A HELPER -- EJECT DICE
-					// Clean up sacrifice history
-					if (ds_exists(global.sacrifice_history, ds_type_list)) {
-					    for (var s = ds_list_size(global.sacrifice_history) - 1; s >= 0; s--) {
-					        var die_struct = global.sacrifice_history[| s];
+						//// THIS COULD SIT IN A HELPER -- EJECT DICE
+						// Clean up sacrifice history
+						if (ds_exists(global.sacrifice_history, ds_type_list)) {
+						    for (var s = ds_list_size(global.sacrifice_history) - 1; s >= 0; s--) {
+						        var die_struct = global.sacrifice_history[| s];
 
-					        if (is_struct(die_struct)) {
-					            if (die_struct.permanence == "temporary none") {
-					                ds_list_delete(global.sacrifice_history, s);
-					            }
-					        }
-					    }
-					}
-					
-	                // Use stored GUI coords for particle spawn
-	                var start_x = slot_pos.x + (slot_pos.w / 2);
-	                var start_y = slot_pos.y + (slot_pos.h / 2);
-
-	                // Spawn particle
-					var p = instance_create_layer(start_x, start_y, "Instances", oDiceParticle);
-					p.target_x = gui_w - 150;  // discard button target
-					p.target_y = gui_h - 130;
-					p.color_main = die.color;
-
-					// Clone the die struct so the particle has its own independent copy
-					p.die_struct = clone_die(die, "");
-
-	                // Remove from slot
-	                ds_list_delete(slot.dice_list, j);
-					
-					//// END OF HELPER
-					
-	            } else {
-	                j++;
-	            }
-	        }
-			
-			for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
-				var die = slot.dice_list[| d];
-				
-				// only add new unique types
-				var parts = string_split(die.possible_type, " ");
-				var total = array_length(parts);
-
-				for (var p = 0; p < total; p++) {
-					if (string_pos(string(parts[p]), slot.possible_type) > 0) {
-					} else {
-						if (slot.possible_type == "") {
-							slot.possible_type = parts[p];
-						} else {
-							slot.possible_type = string_concat(slot.possible_type, " ", parts[p]);
+						        if (is_struct(die_struct)) {
+						            if (die_struct.permanence == "temporary none") {
+						                ds_list_delete(global.sacrifice_history, s);
+						            }
+						        }
+						    }
 						}
-					}
-				}	
-			}
-						
-			// change the type if this action type isn't contained within the possible type
-			if (!string_pos(slot.current_action_type, slot.possible_type)) {
-				var parts = string_split(slot.possible_type, " ");
-				var total = array_length(parts);
-				
-				slot.current_action_type = parts[0];
-			}
+					
+		                // Use stored GUI coords for particle spawn
+		                var start_x = slot_pos.x + (slot_pos.w / 2);
+		                var start_y = slot_pos.y + (slot_pos.h / 2);
+
+		                // Spawn particle
+						var p = instance_create_layer(start_x, start_y, "Instances", oDiceParticle);
+						p.target_x = gui_w - 150;  // discard button target
+						p.target_y = gui_h - 130;
+						p.color_main = die.color;
+
+						// Clone the die struct so the particle has its own independent copy
+						p.die_struct = clone_die(die, "");
+
+		                // Remove from slot
+		                ds_list_delete(slot.dice_list, j);
+					
+						//// END OF HELPER
+					
+		            } else {
+		                j++;
+		            }
+		        }
 			
-			if (ds_list_size(slot.dice_list) == 0) slot.possible_type = "None";
-	    }
+				for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
+					var die = slot.dice_list[| d];
+				
+					// only add new unique types
+					var parts = string_split(die.possible_type, " ");
+					var total = array_length(parts);
+
+					for (var p = 0; p < total; p++) {
+						if (string_pos(string(parts[p]), slot.possible_type) > 0) {
+						} else {
+							if (slot.possible_type == "") {
+								slot.possible_type = parts[p];
+								//show_debug_message(string(i)+" slot, setting possible type to "+string(parts[p]));
+							} else {
+								slot.possible_type = string_concat(slot.possible_type, " ", parts[p]);
+								//show_debug_message(string(i)+" slot, adding possible types"+string(parts[p]));
+							}
+						}
+					}	
+				}
+			
+				if (ds_list_size(slot.dice_list) == 0) {
+					slot.possible_type = "None";
+				}
+						
+				// change the type if this action type isn't contained within the possible type
+				if (slot.possible_type != "") {
+					//show_debug_message(string(i)+" slot possible type is not empty");
+					if (!string_pos(slot.current_action_type, slot.possible_type)) {
+						var parts = string_split(slot.possible_type, " ");
+						var total = array_length(parts);
+				
+						slot.current_action_type = parts[0];
+						//show_debug_message(string(i)+" slot resetting action type to "+string(parts[0]));
+					}
+				}
+		    }
+			
+			ejected_dice = true;
+		}
 
 		if (instance_number(oDiceParticle) == 0) {
 			if (enemy_hp <= 0) {

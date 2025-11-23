@@ -97,3 +97,9 @@ For swapping out discard with consuming at the last action slot:
 	- encumbered - must play a block or heal before an attack
 	- Rust - dice played this turn lose 1 from their max roll for the rest of combat (restored at the end of combat)
 	- Frozen - can't change slot types this turn
+
+21/11/2025
+- Known issues with workbench:
+	- Seems to remove 5 dice from bag but deal 4?
+	- Dragging dice over dice or cores over cores is buggy
+	- Need to add exit button that moves you on.
