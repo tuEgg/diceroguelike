@@ -1,30 +1,27 @@
 if (room == rmMap && pages_turned > 0) {
 	
 	// generate a new set of pages
-	var _num = irandom_range(1, 3);
+	var _number_of_pages = 3;
 	
-	if (pages_turned > 9) _num = 1;
-	
-	for (var i = 0; i < _num; i++) {
-		_page = page_combat;
+	do {
+		// Combat should always appear for the first instance
+		// Then it should be an equal chance of events and combat for the next 2-3 rounds
+		// By round 4 we should be seeing at least a workbench or a shop
+		// By round 6 we should be seeing the other of the above
+		// By round 9 we should have had 3 of: workshop and shop
+		// Can never have workbenches back to back, or shops back to back
+		_page = choose(node_combat, node_event);
 		
-		if (pages_turned <= 9) {
-			if (page_previous == rmCombat) {
-				if (i == 1) {
-					var n = irandom(2);
-					if (n == 0) _page = choose(page_shop, page_workbench);
-				}
-				if (i == 2) {
-					var n = irandom(1);
-					if (n == 0) _page = choose(page_shop, page_workbench);
-				}
-			}
-		} else {
+		if (pages_turned mod 12 == 0) {
 			_page = page_boss;
 		}
-	
-		ds_list_add(pages_shown, _page);
-	}
+		
+		if (_page.linked_room == page_previous) {
+			continue;
+		} else {
+			ds_list_add(pages_shown, _page);
+		}
+	} until (ds_list_size(pages_shown) == _number_of_pages);
 	
 	// eventual plan here would be have each region have 12 sets of pages offered.
 	// 1st offering is always combat

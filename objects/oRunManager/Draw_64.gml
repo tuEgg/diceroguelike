@@ -28,18 +28,19 @@ if (voyage_hover) queue_tooltip(mouse_x, mouse_y, "Voyages Sailed", "You are on 
 
 // Draw pages turned
 draw_set_halign(fa_center);
+draw_set_valign(fa_top);
 draw_sprite(sTopBarIcons, 0, 280 + 5, 15);
-draw_outline_text(string(oWorldManager.pages_turned), c_black, c_white, 2, 350 + 5, 25, 1, 1, 0);
+draw_outline_text(string(oWorldManager.pages_turned), c_black, c_white, 2, 350 + 5, 30, 1, 1, 0);
 var pages_hover = mouse_hovering(280 + 5, 15, sprite_get_width(sTopBarIcons), sprite_get_height(sTopBarIcons), false);
 if (pages_hover) queue_tooltip(mouse_x, mouse_y, "Pages Turned", "You have turned " + string(oWorldManager.pages_turned) + " pages of the Captain's logbook", undefined, 0, undefined);
 
 // Draw money
 draw_sprite(sTopBarIcons, 1, 400 + 5, 15);
-draw_outline_text(string(credits), c_black, c_white, 2, 470 + 5, 25, 1, 1, 0);
+draw_outline_text(string(credits), c_black, c_white, 2, 470 + 5, 30, 1, 1, 0);
 var credits_hover = mouse_hovering(400 + 5, 15, sprite_get_width(sTopBarIcons), sprite_get_height(sTopBarIcons), false);
 if (credits_hover) queue_tooltip(mouse_x, mouse_y, "Gold Doubloons", "You have " + string(credits) + " gold doubloons", undefined, 0, undefined);
 
-// Draw cores
+// Draw cores and consumables
 var core_x = 800;
 var core_y = 18;
 for (var i = 0; i < array_length(items); i++) {
@@ -60,15 +61,30 @@ for (var i = 0; i < array_length(items); i++) {
 	draw_sprite(sTopBarSlot, 1, core_x + 5 + i_x, core_y);
 	
 	if (items[i] != undefined) {
-		draw_sprite(items[i].sprite, items[i].index, sprite_x, sprite_y);
+		var default_scale = 1.0;
+		var default_angle = 0;
+		if (items[i].type == "consumable") {
+			default_scale = 1.2;
+			default_angle = -30;
+		}
+		draw_sprite_ext(items[i].sprite, items[i].index, sprite_x, sprite_y, items_hover_scale[i], items_hover_scale[i], default_angle, c_white, 1.0);
 		
-	//draw_outline_text(items[i].quantity, c_black, c_white, 2, core_x + 70 + 5 + i_x, 25, 1, 1, 0);
+		//draw_outline_text(items[i].quantity, c_black, c_white, 2, core_x + 70 + 5 + i_x, 25, 1, 1, 0);
 		
 		items_hover[i] = mouse_hovering(core_x + 5 + i_x, core_y, sprite_get_width(sTopBarSlot), sprite_get_height(sTopBarSlot), false);
-		if (oRunManager.holding_item) items_hover[i] = false;
 		
-		if (items_hover[i]) queue_tooltip(mouse_x, mouse_y, items[i].name, items[i].description, undefined, 0, undefined);
+		items_hover_scale[i] = lerp(items_hover_scale[i], items_hover[i] ? default_scale * 1.2 : default_scale, 0.2);
+		
+		if (items_hover[i]) {
+			var die = undefined;
+			if (string_pos("Core", items[i].name) > 0) {
+				die = clone_die(global.dice_d6_atk, "");
+				die.distribution = items[i].distribution;
+			}
+			queue_tooltip(mouse_x, mouse_y, items[i].name, items[i].description, undefined, 0, die);
+		}
 	
+		// Add core dragging functionality
 		if (room == rmWorkbench) {
 			if (items[i].type == "core") {
 				// drag the core
@@ -79,6 +95,30 @@ for (var i = 0; i < array_length(items); i++) {
 				if (items[i].dragging and mouse_check_button_released(mb_left)) {
 					items[i].dragging = false;
 				}
+			}
+		}
+		
+		// Add potion dragging functionality
+		if (items[i].type == "consumable") {
+
+			if (items_hover[i] && mouse_check_button(mb_left)) {
+				items[i].dragging = true;
+			}
+
+			if (items[i].dragging and mouse_check_button_released(mb_left)) {
+				items[i].dragging = false;
+			}
+			
+			if (items[i].dragging && mouse_check_button_pressed(mb_left)) {
+				if (room == rmCombat && !oCombat.show_rewards && items[i].effects.trigger == "on_clicked") {
+					var ctx = {};
+					trigger_item_effects(items[i], "on_clicked", ctx);
+					items[i] = undefined;
+				}
+			}
+
+			if (items_hover[i] && mouse_check_button(mb_right)) {
+				items[i] = undefined;
 			}
 		}
 	}
@@ -109,7 +149,7 @@ for (var k = 0; k < ds_list_size(keepsakes); k++) {
 
 // Draw draw bag (discard bag in oCombat)
 draw_sprite(sDiceBag, 0, 60, gui_h - 40);
-draw_set_font(ftBag);
+draw_set_font(ftBigger);
 draw_set_valign(fa_bottom)
 draw_set_halign(fa_left);
 draw_outline_text(room = rmCombat ? "DRAW" : "BAG", c_black, c_white, 2, 110, gui_h - 33, 1, 1, 0);
@@ -130,7 +170,7 @@ draw_circle(70, gui_h - 55, 20, false);
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
 draw_set_color(c_white);
-draw_set_font(ftBagInfo);
+draw_set_font(ftBig);
 draw_text(70, gui_h - 55, string(ds_list_size(global.dice_bag)));
 
 if (bag_hover) {
@@ -160,22 +200,10 @@ if (bag_hover) {
         var yy = start_y + (row * dice_spacing);
 
         // Choose color based on action type
-        var colr;
-        switch (die_struct.action_type) {
-            case "ATK":  colr = c_red; break;
-            case "HEAL": colr = c_lime; break;
-            case "BLK":  colr = c_aqua; break;
-            default:     colr = c_white; break;
-        }
+        var colr = get_dice_color(die_struct.action_type);
 
         // Choose image index based on dice type
-        var frame = 0;
-        switch (die_struct.dice_value) {
-            case 2: frame = 2; break;
-            case 4: frame = 0; break;
-            case 6: frame = 1; break;
-            default: frame = 0; break;
-        }
+        var frame = get_dice_index(die_struct.dice_value);
 
         // Draw dice sprite
         draw_set_alpha(1);

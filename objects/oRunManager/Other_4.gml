@@ -1,0 +1,12 @@
+// need to shuffle bag every time we enter a new room
+ds_list_shuffle(global.dice_bag);
+
+for (var i = 0; i < ds_list_size(global.dice_bag); i++) {
+	var die = global.dice_bag[| i];
+	
+	if (die.reset_at_end_combat != false) {
+		die.reset_at_end_combat(die);
+		die.reset_at_end_combat = false;
+		show_debug_message("Resetting at the end of combat");
+	}
+}

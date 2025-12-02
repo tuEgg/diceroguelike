@@ -1,7 +1,9 @@
 // Script assets have changed for v2.3.0 see
 // https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
 function define_keepsakes() {
-	var ks_lucky_coin = {
+	global.master_keepsake_list = ds_list_create();
+
+	ks_lucky_coin = {
 	    _id: "lucky_coin",
 	    name: "Lucky Coin",
 	    desc: "Your dice can never roll a 1.",
@@ -12,9 +14,9 @@ function define_keepsakes() {
 	        }
 	    }
 	};
-	ds_list_add(oRunManager.keepsakes_master, ks_lucky_coin);
+	ds_list_add(global.master_keepsake_list, ks_lucky_coin);
 	
-	var ks_message_in_a_bottle = {
+	ks_message_in_a_bottle = {
 	    _id: "message_in_a_bottle",
 	    name: "Message in a Bottle",
 	    desc: "Discover a random dice at the start of combat.",
@@ -29,9 +31,9 @@ function define_keepsakes() {
 	        }
 	    }
 	};
-	ds_list_add(oRunManager.keepsakes_master, ks_message_in_a_bottle);
+	ds_list_add(global.master_keepsake_list, ks_message_in_a_bottle);
 	
-	var ks_eye_patch = {
+	ks_eye_patch = {
 	    _id: "eye_patch",
 	    name: "Eye patch",
 	    desc: "Not yet defined.",
@@ -46,9 +48,9 @@ function define_keepsakes() {
 	        }
 	    }
 	};
-	ds_list_add(oRunManager.keepsakes_master, ks_eye_patch);
+	ds_list_add(global.master_keepsake_list, ks_eye_patch);
 	
-	var ks_anchor = {
+	ks_anchor = {
 	    _id: "anchor",
 	    name: "Anchor",
 	    desc: "Not yet defined.",
@@ -63,9 +65,9 @@ function define_keepsakes() {
 	        }
 	    }
 	};
-	ds_list_add(oRunManager.keepsakes_master, ks_anchor);
+	ds_list_add(global.master_keepsake_list, ks_anchor);
 	
-	var ks_ghost_lantern = {
+	ks_ghost_lantern = {
 	    _id: "ghost_lantern",
 	    name: "Ghost Lantern",
 	    desc: "Not yet defined.",
@@ -80,7 +82,7 @@ function define_keepsakes() {
 	        }
 	    }
 	};
-	ds_list_add(oRunManager.keepsakes_master, ks_ghost_lantern);
+	ds_list_add(global.master_keepsake_list, ks_ghost_lantern);
 	
 	//var ks_message_in_a_bottle = {
 	//    _id: "message_in_a_bottle",

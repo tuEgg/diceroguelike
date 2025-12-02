@@ -1,4 +1,4 @@
-/// deal_damage(_target, _dice_amount, _dice_value, _bonus_amount, _source, _type, _slot_number, _slot_die, _num)
+/// process_action(_target, _dice_amount, _dice_value, _bonus_amount, _source, _type, _slot_number, _slot_die, _num, _flat_damage)
 /// _target: "enemy" or "player"
 /// _dice_amount: base amount of dice
 /// _dice_value: highest roll of dice
@@ -6,7 +6,8 @@
 /// _source: "enemy" or "player" (attacker or caster)
 /// _type: "atk" or "heal"
 
-function deal_damage(_target, _dice_amount, _dice_value, _bonus_amount, _source, _type, _slot_number = -1, _slot_die = undefined, _num = 0) {
+function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _source, _type, _slot_number = -1, _slot_die = undefined, _num = 0) {
+	show_debug_message("this dice has a value of: "+string(_dice_value));
 
     // --- Roll total amount ---
     var amount = 0;
@@ -21,38 +22,21 @@ function deal_damage(_target, _dice_amount, _dice_value, _bonus_amount, _source,
 		
 		// Player tweaks numbers differently from enemy
 		if (_source == "player") {
-			var dice_output = get_dice_output(_slot_die, _slot_number);
+			var dice_output = get_dice_output(_slot_die, _slot_number, false);
 			
-			_min_roll = dice_output.min_roll;
+			_min_roll = dice_output.min_roll;			
 			_max_roll = dice_output.max_roll;
 			_keepsake_dice_bonus_amount = dice_output.keepsake_dice_bonus_amount;
+			var _prev_slot_type = dice_output.previous_slot_type;
 			
 			// Create our array for weighted rolling
 			var distribution_array = [];
 		
 			// depending on distribution, use the array or not
-			switch (_slot_die.distribution) {
-				case "":		
-				// by default each array is [1, 1, 1, 1] for a d4 for example
-				for (var d = _min_roll; d <= _max_roll; d++) {
-					array_push(distribution_array, 1);
-				}
-				break;
-				
-				case "weighted":		
-				// by default each array is [3, 4, 5, 6] for a d4 for example
-				for (var d = _min_roll; d <= _max_roll; d++) {
-					array_push(distribution_array, _max_roll - 2 + d);
-				}
-				break;
-				
-				case "loaded":		
-				// by default each array is [1, 2, 3, 4] for a d4 for example
-				for (var d = _min_roll; d <= _max_roll; d++) {
-					array_push(distribution_array, d);
-				}
-				break;
-			}
+			define_dice_distributions(_slot_die.distribution, _min_roll, _max_roll, distribution_array);
+			show_debug_message("---" + string(_min_roll));
+			show_debug_message("dice MINIMUM roll is " + string(_min_roll));
+			show_debug_message("---" + string(_min_roll));
 			
 			// Our new weighted roll values, will be a range from 1 to the sum of the entire distribution array
 			var weight_min = 1;
@@ -63,27 +47,56 @@ function deal_damage(_target, _dice_amount, _dice_value, _bonus_amount, _source,
 		
 			// Roll between all the values in the array
 			var weighted_roll = irandom_range(weight_min, weight_max);
+			
+			// used for determining which numbers can actually be rolled when taking into account distribution
+			var actual_possible_numbers = [];
 		
 			// Assign a value to that rolled weighted value, 1,2,3 = 1; 4,5,6,7 = 2; 8,9,10,11,12 = 3; 13,14,15,16,17,18 = 4; for a d4
 			for (var d = 0; d < array_length(distribution_array); d++) {
 				// remove this arrays value
 				weighted_roll -= distribution_array[d];
-				//show_debug_message("--- ");
+				
+				// add to our actual possible numbers array any entry that isn't empty (aka its a number that can be rolled)
+				if (distribution_array[d] != 0)	{
+					array_push(actual_possible_numbers, d + _min_roll );
+					show_debug_message("Adding  " + string( d + _min_roll ) + " to the list of actual possible numbers for this die");
+				}
+				
+				//show_debug_message("---");
 				//show_debug_message("Current array iteration index  " + string(d));
 				//show_debug_message("Current array iteration value  " + string(distribution_array[d]));
 				//show_debug_message("Weighted roll after subtraction is " + string(weighted_roll));
 			
 				// once we reach our number, assign the final roll value
 				if (weighted_roll <= 0) {
-					final_roll = d+1;
-					//show_debug_message("Final roll is " + string(final_roll));
+					final_roll = d + _min_roll;
+					
+					var ctx = {
+						_d_amount: final_roll,
+						_p_slot_type: _prev_slot_type,
+						die: _slot_die,
+						min_roll: actual_possible_numbers[0], // first row in distribution array that isn't zero,
+						//max_roll: actual_possible_numbers[ array_length(actual_possible_numbers) - 1] // first row in distribution array that isn't zero -- THIS isn't possible yet because we need to continue looping through the numbers after we find our actual number to check for what our real max is
+					}
+					
+					combat_trigger_effects("after_roll_die", ctx, _slot_die);
+					
+					final_roll = ctx._d_amount;
+					
+					// die statistics
+					_slot_die.statistics.times_played_this_combat++;
+					
+					ds_list_add(_slot_die.statistics.roll_history, final_roll);
+					
 					break;
 				}
 			}
+		} else {
+			final_roll = irandom_range( _min_roll, _max_roll );
 		}
 		
 		amount = final_roll + slot_bonus_amount + _keepsake_dice_bonus_amount; // add the roll, the slot bonus and the keepsake/dice bonus to create the final amount.
-	    
+		
 		// Set the rolled value of this dice to 
 		if (_slot_die != undefined) {
 			_slot_die.rolled_value = amount;
@@ -94,91 +107,106 @@ function deal_damage(_target, _dice_amount, _dice_value, _bonus_amount, _source,
 		//	spawn_floating_number("slot", amount, -1, c_white, -1, _slot_number, _dice_amount);
 		//}
 	}
+	
+	// used for flat damage
+	if (_dice_amount == 0) {
+		amount = _dice_value;
+		show_debug_message("dice amount is zero - this is for flat damage - setting value to "+string(_dice_value));
+	}
 
     var inst_color = c_red; // default color for damage
 
     // --- DAMAGE ---
-    if (_type == "ATK") {
-        var block_used = 0;
-        var final_damage = amount;
+    switch (_type) {
+		case "ATK":
+        
+			var block_used = 0;
+	        var final_damage = amount;
 
-        // Player attacking enemy
-        if (_target == "enemy") {
-            // If the enemy has block
-            if (enemy_block_amount > 0) {
-                block_used = min(enemy_block_amount, amount);
-                enemy_block_amount -= block_used;
-                final_damage -= block_used;
+	        // Player attacking enemy
+	        if (_target == "enemy") {
+			
+	            // If the enemy has block
+	            if (enemy_block_amount > 0) {
+	                block_used = min(enemy_block_amount, amount);
+	                enemy_block_amount -= block_used;
+	                final_damage -= block_used;
 
-                var num = spawn_floating_number("enemy", block_used, -1, c_aqua, -1, -1, _num);
-				num.x += 20;
-				num.y += 20;
-            }
+	                var num = spawn_floating_number("enemy", block_used, -1, c_aqua, -1, -1, _num);
+					num.x += 20;
+					num.y += 20;
+	            }
 
-            // Deal any remaining damage
-            if (final_damage > 0) {
-                enemy_hp = max(0, enemy_hp - final_damage);
-                spawn_floating_number("enemy", final_damage, -1, c_red, -1, -1, _num);
-            }
+	            // Deal any remaining damage
+	            if (final_damage > 0) {
+	                enemy_hp = max(0, enemy_hp - final_damage);
+	                spawn_floating_number("enemy", final_damage, -1, c_red, -1, -1, _num);
+	            }
 
-            inst_color = c_red;
-        }
+	            inst_color = c_red;
+	        }
 
-        // Enemy attacking player
-        else if (_target == "player") {
-            if (player_block_amount > 0) {
-                block_used = min(player_block_amount, amount);
-                player_block_amount -= block_used;
-                final_damage -= block_used;
+	        // Enemy attacking player
+	        else if (_target == "player") {
+	            if (player_block_amount > 0) {
+	                block_used = min(player_block_amount, amount);
+	                player_block_amount -= block_used;
+	                final_damage -= block_used;
 
-                var num = spawn_floating_number("player", block_used, -1, c_aqua, -1, -1, _num);
-				num.x += 20;
-				num.y += 20;
-            }
+	                var num = spawn_floating_number("player", block_used, -1, c_aqua, -1, -1, _num);
+					num.x += 20;
+					num.y += 20;
+	            }
 
-            if (final_damage > 0) {
-                global.player_hp = max(0, global.player_hp - final_damage);
-                spawn_floating_number("player", final_damage, -1, c_red, -1, -1, _num);
+	            if (final_damage > 0) {
+	                global.player_hp = max(0, global.player_hp - final_damage);
+	                spawn_floating_number("player", final_damage, -1, c_red, -1, -1, _num);
 				
-            }
+	            }
 
-            inst_color = c_red;
-        }
-    }
+	            inst_color = c_red;
+	        }
+		break;
 
-    // --- BLOCK ---
-    else if (_type == "BLK") {
-        if (_target == "enemy") {
-			enemy_turns_since_last_block = 0;
-            enemy_block_amount += amount;
-            add_feed_entry("Enemy gains " + string(amount) + " block!");
-        } else if (_target == "player") {
-            player_block_amount += amount;
-            add_feed_entry("You gain " + string(amount) + " block!");
-        }
+	    // --- BLOCK ---
+	    case "BLK":
+	        if (_target == "enemy") {
+				enemy_turns_since_last_block = 0;
+	            enemy_block_amount += amount;
+	        } else if (_target == "player") {
+	            player_block_amount += amount;
+	        }
 
-        spawn_floating_number(_target, amount, -1, c_aqua, 1, -1, _num);
-        inst_color = c_aqua;
-    }
+	        spawn_floating_number(_target, amount, -1, c_aqua, 1, -1, _num);
+	        inst_color = c_aqua;
+		break;
 
-    // --- HEAL ---
-    else if (_type == "HEAL") {
-        if (_target == "enemy") {
-            enemy_hp = min(enemy_max_hp, enemy_hp + amount);
-            add_feed_entry("Enemy heals " + string(amount) + " HP!");
-        } else if (_target == "player") {
-            global.player_hp = min(global.player_max_hp, global.player_hp + amount);
-            add_feed_entry("You heal " + string(amount) + " HP!");
-        }
+	    // --- HEAL ---
+	    case "HEAL":
+	        if (_target == "enemy") {
+	            enemy_hp = min(enemy_max_hp, enemy_hp + amount);
+	            add_feed_entry("Enemy heals " + string(amount) + " HP!");
+	        } else if (_target == "player") {
+	            global.player_hp = min(global.player_max_hp, global.player_hp + amount);
+	            add_feed_entry("You heal " + string(amount) + " HP!");
+	        }
 
-        spawn_floating_number(_target, amount, -1, c_lime, 1);
-        inst_color = c_lime;
-    }
-	
-	else if (_type == "DEBUFF") {
-		if (_target == "player") {
-		    apply_buff(global.player_debuffs, enemy_intent.debuff, enemy_intent.debuff.duration);
-		}
+	        spawn_floating_number(_target, amount, -1, c_lime, 1);
+	        inst_color = c_lime;
+		break;
+		
+		case "DEBUFF":
+			if (_target == "player") {
+			    apply_buff(global.player_debuffs, enemy_intent.debuff, enemy_intent.debuff.duration, 1);
+			}
+		break;
+		
+		case "INTEL":
+			apply_buff(global.player_debuffs, oRunManager.buff_intel, 1, amount);
+			var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, _num);
+			num.x += 20;
+			num.y -= 20;
+		break;
 	}
 }
 
@@ -265,6 +293,8 @@ function apply_dice_to_slot(_die, _slot_i) {
     var is_queue_all  = (slot.possible_type == "All");
     var is_queue_none = (slot.possible_type == "None");
     var is_dice_none  = (die.struct.possible_type == "None");
+	var is_dice_exclusive = string_has_keyword(die.struct.description, "Exclusive");
+	var is_slot_exclusive = string_has_keyword(die.struct.description, "Exclusive");
 	var is_dice_coin = false;
 	if (die.struct.dice_value == 2) is_dice_coin = true;
 	var dice_keyword_list = string_split(die.struct.possible_type, " ");
@@ -295,82 +325,91 @@ function apply_dice_to_slot(_die, _slot_i) {
     //-----------------------------------------
     // CASE 1: Dice has a specific colour/type
     //-----------------------------------------
-    if (!is_dice_none) {
-        if (is_queue_none) {
-            // --- Empty slot, becomes colored slot
+	
+	if (!is_dice_none) {
+	    if (is_queue_none) {
+	        // --- Empty slot, becomes colored slot
 			slot.current_action_type = die.struct.action_type;
-            slot.possible_type = die.struct.possible_type;
+	        slot.possible_type = die.struct.possible_type;
 
-            var die_copy = clone_die(die.struct, "base"); // coloured dice added to empty slots become base die
-            ds_list_add(slot.dice_list, die_copy);
+	        var die_copy = clone_die(die.struct, "base"); // coloured dice added to empty slots become base die
+	        ds_list_add(slot.dice_list, die_copy);
 			
-		    var history_copy  = clone_die(die.struct, "temporary");
+			var history_copy = clone_die(die.struct, "temporary");
 			ds_list_add(global.sacrifice_history, history_copy ); // persistent record
-        }
-        else if (is_queue_all) {
-            reject_dice = true;
-        }
-        else if (dice_has_match_with_slot) {
-            // Only accept dice as strong or stronger
-            if (die.struct.dice_value >= stats.value || is_dice_coin) {
-                var die_copy = clone_die(die.struct, "temporary");
-                ds_list_add(slot.dice_list, die_copy);
+	    }
+	    else if (is_queue_all) {
+	        reject_dice = true;
+	    }
+	    else if (dice_has_match_with_slot) {
+			if (is_dice_exclusive || is_slot_exclusive) {
+				reject_dice = true;
+			} else {
+		        // Only accept dice as strong or stronger
+		        if (die.struct.dice_value >= stats.value || is_dice_coin) {
+		            var die_copy = clone_die(die.struct, string_has_keyword(die.struct.description, "sticky") ? "base" : "temporary");
+		            ds_list_add(slot.dice_list, die_copy);
 				
-				// Add possible type if this slot does not have it
-				if (dice_has_more_than_one_type) {
+					// Add possible type if this slot does not have it
+					if (dice_has_more_than_one_type) {
 					
-					// only add new unique types
-					var parts = string_split(die.possible_type, " ");
-					var total = array_length(parts);
-					//show_debug_message("This slot has types "+string(slot.possible_type));
+						// only add new unique types
+						var parts = string_split(die.possible_type, " ");
+						var total = array_length(parts);
+						//show_debug_message("This slot has types "+string(slot.possible_type));
 
-					for (var i = 0; i < total; i++) {
-						if (string_pos(string(parts[i]), slot.possible_type) > 0) {
-							//show_debug_message("This slot already has "+string(parts[i]));
-						} else {
-							slot.possible_type = string_concat(slot.possible_type, " ", parts[i]);
-							//show_debug_message("This slot doesn't have "+string(parts[i])+" so we added it.");
+						for (var i = 0; i < total; i++) {
+							if (string_pos(string(parts[i]), slot.possible_type) > 0) {
+								//show_debug_message("This slot already has "+string(parts[i]));
+							} else {
+								slot.possible_type = string_concat(slot.possible_type, " ", parts[i]);
+								//show_debug_message("This slot doesn't have "+string(parts[i])+" so we added it.");
+							}
 						}
 					}
-				}
 
-                stats.amount += die_copy.dice_amount;
-                stats.value   = max(die_copy.dice_value, stats.value);
-                //show_debug_message("Adding coloured dice to coloured slot.");
-            } else {
-                reject_dice = true;
-            }
-        }
-        else {
-            reject_dice = true;
-        }
-    }
+		            stats.amount += die_copy.dice_amount;
+		            stats.value   = max(die_copy.dice_value, stats.value);
+		            //show_debug_message("Adding coloured dice to coloured slot.");
+		        } else {
+		            reject_dice = true;
+		        }
+			}
+	    }
+	    else {
+	        reject_dice = true;
+	    }
+	}
 
-    //-----------------------------------------
-    // CASE 2: Dice is generic (no color)
-    //-----------------------------------------
-    else {
-        if (is_queue_all) {
-            var die_copy = clone_die(die.struct, "temporary");
-            ds_list_add(slot.dice_list, die_copy);
+	//-----------------------------------------
+	// CASE 2: Dice is generic (no color)
+	//-----------------------------------------
+	else {
+	    if (is_queue_all) {
+	        var die_copy = clone_die(die.struct, string_has_keyword(die.struct.description, "sticky") ? "base" : "temporary");
+	        ds_list_add(slot.dice_list, die_copy);
 
-            stats.amount += die_copy.dice_amount;
-            stats.value   = max(die_copy.dice_value, stats.value);
-        }
-        else if (!is_queue_none) {
-            if (die.struct.dice_value >= stats.value) {
-                var die_copy = clone_die(die.struct, "temporary");
-                ds_list_add(slot.dice_list, die_copy);
+	        stats.amount += die_copy.dice_amount;
+	        stats.value   = max(die_copy.dice_value, stats.value);
+	    }
+	    else if (!is_queue_none) {
+			if (is_dice_exclusive || is_slot_exclusive) {
+				reject_dice = true;
+			} else {
+		        if (die.struct.dice_value >= stats.value) {
+		            var die_copy = clone_die(die.struct, string_has_keyword(die.struct.description, "sticky") ? "base" : "temporary");
+		            ds_list_add(slot.dice_list, die_copy);
 
-                stats.amount += die_copy.dice_amount;
-            } else {
-                reject_dice = true;
-            }
-        }
-        else {
-            reject_dice = true;
-        }
-    }
+		            stats.amount += die_copy.dice_amount;
+		        } else {
+		            reject_dice = true;
+		        }
+			}
+	    }
+	    else {
+	        reject_dice = true;
+	    }
+	}
 
     //-----------------------------------------
     // Result
@@ -380,7 +419,14 @@ function apply_dice_to_slot(_die, _slot_i) {
 		if (!string_has_keyword(die.struct.description, "coin")) dice_played++;
 		dice_played_scale = 1.2;
 		dice_played_color = c_green;
-        instance_destroy(die);
+		
+		// Let keepsakes/dice adjust roll range
+		combat_trigger_effects("on_die_played", { dice_object: die }, die.struct);
+		
+		// die statistics
+		die.struct.statistics.times_played_this_combat++;
+        
+		instance_destroy(die);
     }
 }
 
@@ -552,7 +598,9 @@ function sacrifice_die(_die) {
 	    dice_list: ds_list_create(),
 	    current_action_type: starting_action_type,
 	    possible_type: possible_type_str,
-		bonus_amount: 0						// bonus dice, on top of rolled dice - 1d4 + 2 for example
+		bonus_amount: 0,						// bonus dice, on top of rolled dice - 1d4 + 2 for example
+		buffed: 0,								// Whether or not this slot is buffed and if so, for how many turns, this decreases by 1 at the end of each round
+		pre_buff_amount: 0						// Used to keep track of bonus_amount before we get buffed
 	};
 
 
@@ -610,7 +658,7 @@ function get_slot_stats(_slot, _num) {
     for (var i = 0; i < ds_list_size(_slot.dice_list); i++) {
         var die_struct = _slot.dice_list[| i];
 		
-		var dice_values = get_dice_output(die_struct, _num);
+		var dice_values = get_dice_output(die_struct, _num, true);
 		
 		low += dice_values.min_roll + dice_values.keepsake_dice_bonus_amount;
 		high += dice_values.max_roll + dice_values.keepsake_dice_bonus_amount;
@@ -671,29 +719,17 @@ function draw_action_type_bars(_x, _y, _width, _types, _current_type)
 
     for (var i = 0; i < count; i++) {
         var type = types[i];
-        var col;
-		var index;
 		var outline = false;
 
         // Color by type
-        switch (type) {
-            case "ATK":
-			col = make_color_rgb(255, 80, 80); 
-			index = 1;
-			break;
-            case "HEAL": 
-			col = make_color_rgb(80, 255, 100); 
-			index = 3;
-			break;
-            case "BLK":  
-			col = make_color_rgb(100, 180, 255); 
-			index = 2;
-			break;
-            default:    
-			col = make_color_rgb(160, 160, 160); 
-			index = 0;
-			break;
-        }
+        var col = get_dice_color(type);
+		var index = 0;
+		switch (type) {
+			case "ATK": index = 1; break;
+			case "BLK": index = 2; break;
+			case "HEAL": index = 3; break;
+			case "INTEL": index = 4; break;
+		}
 
         // ✅ If this type matches the current slot type, make it taller
         if (type == current_type && current_type != "None") {
@@ -761,8 +797,8 @@ function can_place_dice_in_slot(_die_struct, _slot, _num)
     }
 }
 
-/// @function win_fight(_credits);
-function win_fight() {	
+/// @function win_fight();
+function win_fight() {
 	// show enemy fading out
 	enemy_alpha = lerp(enemy_alpha, 0.0, 0.1);
 	enemy_intent_alpha = lerp(enemy_intent_alpha, 0, 0.1);
@@ -770,38 +806,32 @@ function win_fight() {
 	if (enemy_alpha <= 0.2) {
 			
 		if (!show_rewards) {
+			// Earn some credits, regardless of secondary rewards
+			oRunManager.credits += enemy.bounty;
+				
 			// pop up rewards screen - dice reward - offered 3 dice, choose 1 to keep and credits
-			reward_options = ds_list_create();
-		
-			var total_dice = ds_list_size(global.master_dice_list);
-			var indices = ds_list_create();
-
-			// fill list with all possible indices
-			for (var i = 0; i < total_dice; i++) {
-			    ds_list_add(indices, i);
+			reward_dice_options = ds_list_create();
+			reward_consumable_options = ds_list_create();
+			
+			generate_dice_rewards(reward_dice_options, global.master_dice_list, 3);
+			generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
+			
+			repeat(3) ds_list_add(reward_scale, 0.1);
+			
+			// Show dice every combat, show consumables at a 40% chance, gaining 10% chance every time they don't appear, losing 10% when they do.
+			ds_list_add(reward_list, "dice");
+			
+			// Add consumables starting at a chance
+			var con_chance = irandom_range(1, 100);
+			if (con_chance <= oRunManager.show_consumables_chance) {
+				ds_list_add(reward_list, "consumables");
+				oRunManager.show_consumables_chance -= 30;
+			} else {
+				oRunManager.show_consumables_chance += 20;
 			}
-
-			// shuffle to randomize order
-			ds_list_shuffle(indices);
-
-			// pick up to 3 unique entries
-			var num_rewards = min(3, total_dice);
-
-			for (var i = 0; i < num_rewards; i++) {
-			    var idx = indices[| i];
-			    var die_struct = global.master_dice_list[| idx];
-
-			    ds_list_add(reward_options, clone_die(die_struct, ""));
-			    ds_list_add(reward_scale, 0.1);
-			}
-
-			ds_list_destroy(indices);
-
 		}
-	
+		
 		show_rewards = true;
-	
-		if (rewards_dice_taken && rewards_credits_taken) rewards_all_taken = true;
 		
 		if (rewards_all_taken) {
 			// wait for all rewards to be taken and/or button skipped and then fade transition back to the main room
@@ -832,6 +862,8 @@ function get_action_name(_slot, _num) {
 		                case 2: label = "Twin Strike"; break;
 		                case 3: label = "Flurry\nof Blades"; break;
 		                case 4: label = "Master\nDuelist"; break;
+		                case 5: label = "Blade\nTornado"; break;
+		                case 6: label = "Death\nby a thousand\ncuts"; break;
 		            }
 		        break;
         
@@ -841,6 +873,8 @@ function get_action_name(_slot, _num) {
 		                case 2: label = "Double Tap"; break;
 		                case 3: label = "Volley Fire"; break;
 		                case 4: label = "Broadside\nBarrage"; break;
+		                case 5: label = "Cannon\nBombardment"; break;
+		                case 6: label = "Armada\nOnslaught"; break;
 		            }
 		        break;
         
@@ -866,6 +900,8 @@ function get_action_name(_slot, _num) {
 		                case 2: label = "Quick Parry"; break;
 		                case 3: label = "Riposte"; break;
 		                case 4: label = "Duelist's\nGuard"; break;
+		                case 5: label = "Captain's\nShuffle"; break;
+		                case 6: label = "Stand\nFirm"; break;
 		            }
 		        break;
         
@@ -875,6 +911,8 @@ function get_action_name(_slot, _num) {
 		                case 2: label = "Raise Guard"; break;
 		                case 3: label = "Hold\nthe Line"; break;
 		                case 4: label = "Iron\nDefense"; break;
+		                case 5: label = "Blockade"; break;
+		                case 6: label = "Barricade"; break;
 		            }
 		        break;
         
@@ -902,6 +940,16 @@ function get_action_name(_slot, _num) {
 		break;
 
 		
+		case "INTEL":
+		    switch (highest_value) {
+		        case 4: label = "Sleuth"; break;
+		        case 6: label = "Gather intel"; break;
+		        case 8: label = "Build a case"; break;
+		        default: label = "Sleuth"; break;
+		    }
+		break;
+
+		
 		default:
 			label = "No action";
 	}
@@ -911,45 +959,43 @@ function get_action_name(_slot, _num) {
 
 function discard_dice_in_play() {
 	with (oDice) {
-	    // Cache everything before we destroy the dice
-	    var start_x = x;
-	    var start_y = y;
-	    var d_struct = struct; // local reference to the die’s struct
+		if (can_discard) {
+		    // Cache everything before we destroy the dice
+		    var start_x = x;
+		    var start_y = y;
+		    var d_struct = struct; // local reference to the die’s struct
 		
-		trigger_die_effects_single(d_struct, "on_not_used", {});
+			if (room == rmCombat) {
+				trigger_die_effects_single(d_struct, "on_not_used", {});
+			}
 
-	    // Pick color by action type
-	    var col;
-	    switch (d_struct.action_type) {
-	        case "ATK":  col = make_color_rgb(255, 80, 80); break;
-	        case "HEAL": col = make_color_rgb(80, 255, 100); break;
-	        case "BLK":  col = make_color_rgb(100, 180, 255); break;
-	        default:     col = make_color_rgb(160, 160, 160); break;
-	    }
+		    // Pick color by action type
+		    var col = get_dice_color(d_struct.action_type);
 
-	    // --- Spawn a particle before destroying the dice instance ---
-	    var p = instance_create_layer(start_x, start_y, "Instances", oDiceParticle);
+		    // --- Spawn a particle before destroying the dice instance ---
+		    var p = instance_create_layer(start_x, start_y, "Instances", oDiceParticle);
 
-	    // Assign particle data BEFORE destroying the dice
-	    p.die_struct = clone_die(d_struct, d_struct.permanence);
-	    p.color_main = col;
-		if (room == rmCombat) {
-		    p.target_x = oCombat.gui_w - 150;  // discard button position
-		    p.target_y = oCombat.gui_h - 130;
-		} else if (room == rmWorkbench) {
-			p.target_x = 60;
-			p.target_y = 1040;
+		    // Assign particle data BEFORE destroying the dice
+		    p.die_struct = clone_die(d_struct, d_struct.permanence);
+		    p.color_main = col;
+			if (room == rmCombat) {
+			    p.target_x = oCombat.gui_w - 150;  // discard button position
+			    p.target_y = oCombat.gui_h - 130;
+			} else {
+				p.target_x = 60;
+				p.target_y = 1040;
+			}
+
+		    // Finally destroy the dice instance
+		    instance_destroy();
 		}
-
-	    // Finally destroy the dice instance
-	    instance_destroy();
 	}
 }
-	
+
+/// @func combat_trigger_effects(_event, _ctx, _die_struct)
 function combat_trigger_effects(_event, _ctx, _die_struct = undefined) {
 
-    // 1) dice effects
-	
+    // 1) dice effects	
 	if (_die_struct == undefined) {
 		dice_trigger_effects(_event, _ctx);
 	} else {
@@ -966,9 +1012,10 @@ function combat_trigger_effects(_event, _ctx, _die_struct = undefined) {
     trigger_debuff_list(global.enemy_debuffs, _event, _ctx);
 }
 
-function trigger_debuff_list(_list, _event, _ctx)
-{
-    for (var i = 0; i < ds_list_size(_list); i++) {
+function trigger_debuff_list(_list, _event, _ctx) {
+	var list_size = ds_list_size(_list); 
+	
+    for (var i = list_size - 1; i >= 0 ; i--) {
         var inst = _list[| i];
         var debuff = inst.template; // <-- reference to original
 
@@ -976,6 +1023,11 @@ function trigger_debuff_list(_list, _event, _ctx)
             var eff = debuff.effects[e];
 
             if (eff.trigger == _event && is_callable(eff.modify)) {
+				
+				// pass the amount through to the context
+				_ctx.buff_amount = inst.amount;
+				
+				// run the event
                 eff.modify(_ctx);
 				
 				// when it comes to triggering things on dice rolls, we need this to only decrease on the final dice roll
@@ -983,6 +1035,10 @@ function trigger_debuff_list(_list, _event, _ctx)
 					//show_debug_message("Lowering debuff duration for non on_roll_die events");
 					inst.remaining--;
 				    if (inst.remaining <= 0) {
+						if (inst.template == oRunManager.buff_intel) {
+							// Update intel when this is destroyed
+							oCombat.player_intel = inst.amount;
+						}
 				        ds_list_delete(_list, i);
 				    }
 				}
@@ -991,9 +1047,12 @@ function trigger_debuff_list(_list, _event, _ctx)
     }
 }
 
-function decrease_debuff_duration(_list, _event, _ctx)
-{
-    for (var i = 0; i < ds_list_size(_list); i++) {
+function decrease_debuff_duration(_list, _event, _ctx) {
+	show_debug_message("Debuff list size: "+string(ds_list_size(_list)));
+	
+	var list_size = ds_list_size(_list);
+	
+    for (var i = list_size - 1; i >= 0 ; i--) {
         var inst = _list[| i];
         var debuff = inst.template; // <-- reference to original
 
@@ -1001,13 +1060,98 @@ function decrease_debuff_duration(_list, _event, _ctx)
             var eff = debuff.effects[e];
 
             if (eff.trigger == _event) {
-				//show_debug_message("Lowering debuff duration for on_roll_die events");
+				show_debug_message("Lowering debuff duration for on_roll_die events");
 				// when it comes to triggering things on dice rolls, we need this to only decrease on the final dice roll
 				inst.remaining--;
+				
 				if (inst.remaining <= 0) {
 				    ds_list_delete(_list, i);
 				}
             }
         }
     }
+}
+
+function eject_dice_in_slot(_slot, _slot_pos, _all) {
+	
+	var j = 0;
+	while (j < ds_list_size(_slot.dice_list)) {
+		var die = _slot.dice_list[| j];		
+		die.rolled_value = -1;
+
+		if (string_pos("temporary", die.permanence) > 0 || (string_has_keyword(die.description, "Loose")) || _all == true) {
+					
+			//// THIS COULD SIT IN A HELPER -- EJECT DICE
+			// Clean up sacrifice history
+			if (ds_exists(global.sacrifice_history, ds_type_list)) {
+				for (var s = ds_list_size(global.sacrifice_history) - 1; s >= 0; s--) {
+					var die_struct = global.sacrifice_history[| s];
+
+					if (is_struct(die_struct)) {
+						if (die_struct.permanence == "temporary none") {
+							ds_list_delete(global.sacrifice_history, s);
+						}
+					}
+				}
+			}
+					
+			// Use stored GUI coords for particle spawn
+			var start_x = _slot_pos.x + (_slot_pos.w / 2);
+			var start_y = _slot_pos.y + (_slot_pos.h / 2);
+
+			// Spawn particle
+			var p = instance_create_layer(start_x, start_y, "Instances", oDiceParticle);
+			p.target_x = oCombat.gui_w - 150;  // discard button target
+			p.target_y = oCombat.gui_h - 130;
+			p.color_main = die.color;
+
+			// Clone the die struct so the particle has its own independent copy
+			p.die_struct = clone_die(die, "");
+
+			// Remove from slot
+			ds_list_delete(_slot.dice_list, j);
+					
+			//// END OF HELPER
+					
+		} else {
+			j++;
+		}
+	}
+	
+	for (var d = 0; d < ds_list_size(_slot.dice_list); d++) {
+		var die = _slot.dice_list[| d];
+				
+		// only add new unique types
+		var parts = string_split(die.possible_type, " ");
+		var total = array_length(parts);
+
+		for (var p = 0; p < total; p++) {
+			if (string_pos(string(parts[p]), _slot.possible_type) > 0) {
+			} else {
+				if (_slot.possible_type == "") {
+					_slot.possible_type = parts[p];
+					//show_debug_message(string(i)+" slot, setting possible type to "+string(parts[p]));
+				} else {
+					_slot.possible_type = string_concat(_slot.possible_type, " ", parts[p]);
+					//show_debug_message(string(i)+" slot, adding possible types"+string(parts[p]));
+				}
+			}
+		}	
+	}
+			
+	if (ds_list_size(_slot.dice_list) == 0) {
+		_slot.possible_type = "None";
+	}
+						
+	// change the type if this action type isn't contained within the possible type
+	if (_slot.possible_type != "") {
+		//show_debug_message(string(i)+" slot possible type is not empty");
+		if (!string_pos(_slot.current_action_type, _slot.possible_type)) {
+			var parts = string_split(_slot.possible_type, " ");
+			var total = array_length(parts);
+				
+			_slot.current_action_type = parts[0];
+			//show_debug_message(string(i)+" slot resetting action type to "+string(parts[0]));
+		}
+	}
 }

@@ -19,3 +19,12 @@ bang_timer = 15;
 exit_scale = 1.0;
 
 exiting = false;
+
+with (oRunManager) {
+	if (!dice_dealt) {
+		first_turn = true;
+		dice_to_deal = global.hand_size;
+		is_dealing_dice = true;
+		dice_dealt = true;
+	}
+}

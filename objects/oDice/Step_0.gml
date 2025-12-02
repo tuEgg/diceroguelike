@@ -10,20 +10,7 @@ if (!still) {
 	}
 }
 
-
-switch (dice_value) {
-	case 2:
-	image_index = 2;
-	break;
-	
-	case 4:
-	image_index = 0;
-	break;
-	
-	case 6:
-	image_index = 1;
-	break;
-}
+image_index = get_dice_index(dice_value);
 
 // Get mouse position
 var mx = device_mouse_x(0);
@@ -70,6 +57,7 @@ if (!is_dragging && hovered && mouse_check_button_pressed(mb_left)) {
 	    drag_offset_x = mx - x;
 	    drag_offset_y = my - y;
 	} else if (room == rmWorkbench) {
+		oWorkbenchManager.workbench_slot[2].dice = undefined;
 		discard_dice_in_play();
 	}
 }
@@ -108,14 +96,21 @@ if (is_dragging) {
 	        is_dragging = false;
 		
 			with (oWorkbenchManager) { 
-				if (hovered_slot_1) {
-					workbench_slot[0].dice = other.struct;
-					other.x = workbench_slot[0].xx;
-					other.y = workbench_slot[0].yy;
-					other.in_slot = true;
+				if (workbench_slot[0].dice == undefined) {
+					if (hovered_slot_1) {
+						workbench_slot[0].dice = other.struct;
+						other.x = workbench_slot[0].xx;
+						other.y = workbench_slot[0].yy;
+						other.in_slot = true;
+					} else {
+						other.in_slot = false;
+						workbench_slot[0].dice = undefined;
+					}
 				} else {
-					other.in_slot = false;
-					workbench_slot[0].dice = undefined;
+					if (other.in_slot) {
+						other.in_slot = false;
+						workbench_slot[0].dice = undefined;
+					}
 				}
 			}
 	    }

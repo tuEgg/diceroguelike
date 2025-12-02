@@ -22,10 +22,12 @@ if (!ds_exists(global.sacrifice_history, ds_type_list)) {
 action_queue = ds_list_create();
 
 var new_slot1 = {
-    dice_list: ds_list_create(),		// all dice currently in the slot
-    current_action_type: "None",         // the slot's selected type
-    possible_type: "None",				// allowed types,
-	bonus_amount: 0				// bonus dice, on top of rolled dice - 1d4 + 2 for example
+    dice_list: ds_list_create(),			// all dice currently in the slot
+    current_action_type: "None",			// the slot's selected type
+    possible_type: "None",					// allowed types,
+	bonus_amount: 0,						// bonus dice, on top of rolled dice - 1d4 + 2 for example
+	buffed: 0,								// Whether or not this slot is buffed and if so, for how many turns, this decreases by 1 at the end of each round
+	pre_buff_amount: 0						// Used to keep track of bonus_amount before we get buffed
 };
 
 //ds_list_add(new_slot1.dice_list, clone_die(global.dice_d4_none, "base"));
@@ -39,7 +41,7 @@ sacrificies_til_new_action_tile = ds_list_size(action_queue);
 tile_scale = ds_list_create();
 reward_scale = ds_list_create();
 reward_credits_hover = 1.0;
-reward_skip_hover = 1.0;
+reward_next_hover = 1.0;
 btn_scale = 1.0; // play button hover animation 
 disc_btn_scale = 1.0; // discard button hover animation
 last_action_scale = 1.0;
@@ -54,19 +56,6 @@ enum CombatState {
 }
 
 state = CombatState.START_TURN;
-
-enum GUI_LAYOUT {
-    ACTION_TILE_W           = 120,
-    ACTION_TILE_PADDING     = 20,
-    PLAY_W					= 200,
-    PLAY_H					= 100,
-    DISCARD_W				= 200,
-    DISCARD_H				= 220,
-	BAG_W					= 120,
-	BAG_H					= 130,
-	BAG_X					= 60,
-	BAG_Y					= 40,
-}
 
 combat_feed = ds_list_create();
 feed_queue  = ds_list_create();
@@ -102,6 +91,10 @@ global.player_x = display_get_gui_width() / 2 - 650;
 global.player_y = global.enemy_y;
 
 player_block_amount = 0;
+player_intel = 0;
+intel_level = 0;
+intel_scale = 1.0;
+intel_alpha = 1.0;
 enemy_block_amount = 0;
 is_discarding = false;
 is_placing = false;
@@ -128,6 +121,7 @@ enemy_intent_color = c_white;
 enemy_intent_text = "";     // current intent text
 enemy_turns_since_last_block = 1;
 move_number = -1;
+enemy_move_history = ds_list_create();
 
 // Enemy stats
 enemy_max_hp = enemy.max_hp;
@@ -141,8 +135,14 @@ enemy_alpha = 1.0;
 //show_debug_message("Sacrifice history: " + string(ds_list_size(global.sacrifice_history)));
 
 show_rewards = false;
-reward_options = undefined;
+rewards_stage = 1;
+reward_list = ds_list_create();
+reward_dice_options = undefined;
+reward_consumable_options = undefined;
 rewards_dice_taken = false;
+rewards_consumables_first_taken = -1;
+rewards_consumables_second_taken = false;
+rewards_consumables_locked = -1;
 rewards_credits_taken = false;
 rewards_keepsake_taken = false;
 reward_credits = enemy.bounty;

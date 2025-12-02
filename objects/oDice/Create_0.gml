@@ -4,6 +4,7 @@ action_type = "None";
 struct = "";
 image_speed = 0;
 has_rolled = false;
+can_discard = true;
 
 // Hover animation settings
 scale = 1.0;

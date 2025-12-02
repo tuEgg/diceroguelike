@@ -104,23 +104,31 @@ function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _f
     };
 }
 
-/// @function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x, _y, _scale, _alpha, _angle)
-function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x, _y, _scale, _alpha, _angle = 0) {
-	
+/// @function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x, _y, _scale, _alpha, _angle, _max_length)
+function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x, _y, _scale, _alpha, _angle = 0, _max_length = -1) {
 	// Outline
     draw_set_alpha(_alpha * 0.6);
     draw_set_color(_outline_col);
     for (var ox = -_outline_width; ox <= _outline_width; ox++) {
         for (var oy = -_outline_width; oy <= _outline_width; oy++) {
-            if (ox != 0 || oy != 0)
-                draw_text_transformed(_x + ox, _y + oy, _string, _scale, _scale, _angle);
+            if (ox != 0 || oy != 0) {
+				if (_max_length == -1) {
+					draw_text_transformed(_x + ox, _y + oy, _string, _scale, _scale, _angle);
+				} else {
+					draw_text_ext_transformed(_x + ox, _y + oy, _string, 25, _max_length, _scale, _scale, _angle);
+				}
+			}
         }
     }
 
     // Main text
     draw_set_alpha(_alpha);
     draw_set_color(_fill_col);
-    draw_text_transformed(_x, _y, _string, _scale, _scale, _angle);
+	if (_max_length == -1) {
+		draw_text_transformed(_x, _y, _string, _scale, _scale, _angle);
+	} else {
+		draw_text_ext_transformed(_x, _y, _string, 25, _max_length, _scale, _scale, _angle);
+	}
 
     draw_set_alpha(1);
 }
@@ -199,7 +207,7 @@ function draw_all_tooltips() {
         //--------------------------
         for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
             var kw = global.tooltip_keywords[i];
-            draw_single_tooltip(kw.x, kw.y, kw.name, kw.desc, kw.icon, kw.index);
+            draw_single_tooltip(kw.x + 10, kw.y + 20, kw.name, kw.desc, kw.icon, kw.index);
         }
     }
 
@@ -217,7 +225,8 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
 
     // Offset tooltip if hovering directly on the mouse
     if (_y == mouse_y) {
-        yy = _y + 20;
+		xx = _x + 15;
+        yy = _y + 30;
     }
 
     // -------------------------------------------------------
@@ -257,7 +266,7 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
     // -------------------------------------------------------
 	if (_dice != undefined) {
 		if (_dice.distribution != "") {
-			draw_dice_distribution(_dice, xx, yy);
+			draw_dice_distribution(_dice, xx + 50, yy + 7);
 		}
 	}
 
@@ -266,14 +275,19 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
     // -------------------------------------------------------
     var col = make_color_rgb(20, 50, 80);
     draw_set_alpha(1);
+	draw_set_color(c_black);
+	var thickness = 3;
+	draw_rectangle(xx - thickness, yy - thickness, xx + _width + thickness, yy + _height + thickness, false);
+	draw_set_color(col);
+	draw_rectangle(xx, yy, xx+_width, yy+_height, false);
 
-    draw_sprite_ext(
-        sHoverBG, 0,
-        xx, yy,
-        _width / sprite_get_width(sHoverBG),
-        _height / sprite_get_height(sHoverBG),
-        0, col, 1
-    );
+    //draw_sprite_ext(
+    //    sHoverBG, 0,
+    //    xx, yy,
+    //    _width / sprite_get_width(sHoverBG),
+    //    _height / sprite_get_height(sHoverBG),
+    //    0, col, 1
+    //);
 
     // -------------------------------------------------------
     // ICON
@@ -344,10 +358,43 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
 function string_has_keyword(str, keyword) {
     if (is_undefined(str) || is_undefined(keyword)) return false;
 
-    var haystack = string_upper(str);
+    // --- NORMALISE INPUTS ---
+    var haystack = str;
     var needle   = string_upper(keyword);
 
-    // string_pos returns 0 if not found, 1+ if found
+    // --- 1. EXTRACT PREFIX BEFORE FIRST COLON ---
+    var colon_pos = string_pos(":", haystack);
+    if (colon_pos > 0) {
+        haystack = string_copy(haystack, 1, colon_pos - 1);
+    } 
+    else 
+    {
+        // --- 2. NO COLON: REMOVE FINAL SENTENCE IF MULTIPLE ---
+        var parts = string_split(haystack, ".");
+        var count = array_length(parts);
+
+        // Trim trailing empty parts from final period
+        while (count > 0 && string_length(string_trim(parts[count - 1])) == 0) {
+            count -= 1;
+        }
+
+        if (count > 1) {
+            var prefix = "";
+            for (var i = 0; i < count - 1; i++) {
+                var p = string_trim(parts[i]);
+                if (string_length(p) > 0) {
+                    if (prefix != "") prefix += ". ";
+                    prefix += p;
+                }
+            }
+            haystack = prefix;
+        }
+    }
+
+    // --- NORMALISE FOR SEARCH ---
+    haystack = string_upper(haystack);
+
+    // --- FINAL CHECK ---
     return (string_pos(needle, haystack) > 0);
 }
 
@@ -363,7 +410,7 @@ function get_keywords_in_string(str) {
         var key = key_array[k];
         var upper_key = string_upper(key);
 
-        if (string_pos(upper_key, upper_str) > 0) {
+        if ((string_pos(upper_key, upper_str) > 0) && upper_key != "COIN" && upper_key != "MULTITYPE") {
             array_push(list, key);
         }
     }
@@ -374,14 +421,16 @@ function get_keywords_in_string(str) {
 
 /// @function mouse_hovering(_x, _y, _width, _height, _centered)
 function mouse_hovering(_x, _y, _width, _height, _centered) {
-	var mx = device_mouse_x(0);
-	var my = device_mouse_y(0);
+	var mx = device_mouse_x_to_gui(0);
+	var my = device_mouse_y_to_gui(0);
 	
 	if (!_centered) {
 		if (mx < _x + _width && mx > _x && my < _y + _height && my > _y) return true;
 	} else {
 		if (mx < _x + _width/2 && mx > _x - _width/2 && my < _y + _height/2 && my > _y - _height/2) return true;
 	}
+	
+	return false;
 }
 
 function parse_text(str) {

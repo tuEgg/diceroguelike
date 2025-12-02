@@ -1,7 +1,7 @@
 switch (state) {
     case CombatState.START_TURN:
 		// Pick a random move struct from the enemy's move list
-		if (enemy.move_order = "random") {
+		if (enemy.move_order = "true_random") {
 			move_number = irandom(ds_list_size(enemy.moves) - 1);
 		} else if (enemy.move_order = "order") {
 			if (move_number < ds_list_size(enemy.moves) - 1) {
@@ -9,12 +9,70 @@ switch (state) {
 			} else {
 				move_number = 0;
 			}
+		} else if (enemy.move_order = "random") {
+			// look through three latest moves, don't allow for 4 in a row, and weight odds to something else after every move
+			var latest_moves = [];
+			var move_index_avoid = -1;
+			var move_index_completely_avoid = -1;
+			var move_index = irandom(ds_list_size(enemy.moves) - 1);
+				
+			// Add last 3 moves name to array; NEED TO FIX SO THAT IT FLEXES TO LIST SIZE
+			var num_previous_moves = ds_list_size(enemy_move_history);
+			for (var m = num_previous_moves; m > max(0, num_previous_moves - 3); m--) {
+				var move = enemy_move_history[| m - 1];
+				
+				array_push(latest_moves, move);
+			}
+			
+			if (array_length(latest_moves) > 0) {
+				var all_same = false;
+				
+				for (var o = 0; o < array_length(latest_moves); o++) {
+					if (latest_moves[o] != latest_moves[0]) {
+						all_same = false;
+					} else {
+						all_same = true;
+					}
+				}
+				// If all three moves are the same
+				if (all_same) {
+					for (var i = 0; i < ds_list_size(enemy.moves); i++) {
+						if (latest_moves[0].move_name == enemy.moves[| i].move_name) move_index_completely_avoid = i;
+					}
+				} else {
+					// just avoid the last move
+					for (var i = 0; i < ds_list_size(enemy.moves); i++) {
+						if (latest_moves[0].move_name == enemy.moves[| i].move_name) move_index_avoid = i;
+					}
+				}
+			
+				// If we are avoiding a move
+				if (move_index_completely_avoid != -1) {
+					// Randomise until we don't get that index
+					do {
+						var rand_index = irandom(ds_list_size(enemy.moves) - 1);
+					} until (rand_index != move_index_completely_avoid);
+					move_index = rand_index;
+				// otherwise
+				} else if (move_index_avoid != -1) {
+					// randomise twice and if the first one is our index, take the second regardless
+					var rand_1 = irandom(ds_list_size(enemy.moves) - 1);
+					var rand_2 = irandom(ds_list_size(enemy.moves) - 1);
+				
+					if (rand_1 == move_index_avoid) {
+						move_index = rand_2;
+					} else {
+						move_index = rand_1;
+					}
+				}
+			}
+			
+			move_number = move_index;
 		}
 		enemy_intent = enemy.moves[| move_number];
 
         add_feed_entry("=== Start of Turn ===");
         add_feed_entry("You draw 3 dice.");
-		
 		
 		// Reset player stats every turn
 		dice_played_scale = 1.2;
@@ -29,12 +87,18 @@ switch (state) {
 		};
 		combat_trigger_effects("on_turn_start", turn_start_data);
 		
-		dice_allowed_this_turn_bonus = turn_start_data.bonus_dice;
+		dice_allowed_this_turn_bonus = turn_start_data.bonus_dice + (intel_level div 4 > 0);
 		
-		dice_allowed_per_turn = dice_allowed_per_turn_original + dice_allowed_this_turn_bonus;
+		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
+			if (player_intel >= global.player_intel_data[| i].requirement) {
+				intel_level = i;
+			}
+		}
+		//show_debug_message("Player intel amount: "+string(player_intel));
+		//show_debug_message("Player intel level: "+string(intel_level));
 			
 		// Deal 3 dice first turn, then 2 every turn after that
-		dice_to_deal = first_turn ? 5 : 4;
+		dice_to_deal = first_turn ? global.hand_size : global.hand_size - 1 + (intel_level div 3 > 0);
 		dice_deal_timer = 0;
 		is_dealing_dice = true;
 
@@ -68,6 +132,11 @@ switch (state) {
 
         // Pretend to wait for player input
         if (actions_submitted) {
+	
+			// Reset player intel just before we process actions
+			player_intel = 0;
+			show_debug_message("Player intel set to 0, new player intel is: "+string(player_intel));
+			
             state = CombatState.RESOLVE_ROUND;
         }
 		
@@ -106,9 +175,9 @@ switch (state) {
 			
 	        while (j < ds_list_size(slot.dice_list)) {
 	            var die = slot.dice_list[| j];
-				if (current_action == "BLK" || current_action == "HEAL") _target = _source;
+				if (current_action == "BLK" || current_action == "HEAL" || current_action == "INTEL") _target = _source;
 
-	            deal_damage(_target, die.dice_amount, die.dice_value, slot.bonus_amount, _source, current_action, action_index, die, j);
+	            process_action(_target, die.dice_amount, die.dice_value, slot.bonus_amount, _source, current_action, action_index, die, j);
 				j++;
 			}
 
@@ -126,16 +195,14 @@ switch (state) {
 			if (enemy_hp <= 0) {
 				
 				state = CombatState.END_OF_ROUND;
-			} else {
-				// This is a TEMPORARY WORKAROUND for removing debuffs at the end of the player turn, other events may need to end here as well
-				decrease_debuff_duration(global.player_debuffs, "on_roll_die", {});
-				
-				var _target = "player";
+			} else {var _target = "player";
 				var _source = "enemy";
 				
 	            add_feed_entry("Enemy uses " + string(enemy_intent.action_type) + ".");
+				ds_list_add(enemy_move_history, enemy_intent);
+				
 				if (enemy_intent.action_type == "BLK" || enemy_intent.action_type == "HEAL") _target = _source;
-	            deal_damage(_target, enemy_intent.dice_amount, enemy_intent.dice_value, enemy_intent.bonus_amount, _source, enemy_intent.action_type);
+	            process_action(_target, enemy_intent.dice_amount, enemy_intent.dice_value, enemy_intent.bonus_amount, _source, enemy_intent.action_type);
 
 
 	            enemy_turn_done = true;			
@@ -153,6 +220,9 @@ switch (state) {
 	    enemy_intent_scale = lerp(enemy_intent_scale, 0.8, 0.1);
 			
         if (action_timer <= 0) {
+			// This is a TEMPORARY WORKAROUND for removing debuffs at the end of the player turn, other events may need to end here as well
+			decrease_debuff_duration(global.player_debuffs, "on_roll_die", {});
+				
             state = CombatState.END_OF_ROUND;
 	
         } else {
@@ -168,92 +238,22 @@ switch (state) {
         actions_submitted = false;
 		first_turn = false;
 		
-		// Eject temporary dice
+		// Eject temporary dice and remove buffed timers
 		if (!ejected_dice) {
 		    for (var i = 0; i < ds_list_size(action_queue); i++) {
 		        var slot = action_queue[| i];
 		        var slot_pos = slot_positions[| i]; // from Draw GUI
 				slot.possible_type = "";
 
-		        var j = 0;
-		        while (j < ds_list_size(slot.dice_list)) {
-		            var die = slot.dice_list[| j];
+				// Eject dice in slot, but not ALL of them (just the temporary or loose ones)
+		        eject_dice_in_slot(slot, slot_pos, false);
 				
-					die.rolled_value = -1;
-
-		            if (string_pos("temporary", die.permanence) > 0) {
+				// Count down buff timers
+				if (slot.buffed > 0) {
+					slot.buffed -= 1;
 					
-						//// THIS COULD SIT IN A HELPER -- EJECT DICE
-						// Clean up sacrifice history
-						if (ds_exists(global.sacrifice_history, ds_type_list)) {
-						    for (var s = ds_list_size(global.sacrifice_history) - 1; s >= 0; s--) {
-						        var die_struct = global.sacrifice_history[| s];
-
-						        if (is_struct(die_struct)) {
-						            if (die_struct.permanence == "temporary none") {
-						                ds_list_delete(global.sacrifice_history, s);
-						            }
-						        }
-						    }
-						}
-					
-		                // Use stored GUI coords for particle spawn
-		                var start_x = slot_pos.x + (slot_pos.w / 2);
-		                var start_y = slot_pos.y + (slot_pos.h / 2);
-
-		                // Spawn particle
-						var p = instance_create_layer(start_x, start_y, "Instances", oDiceParticle);
-						p.target_x = gui_w - 150;  // discard button target
-						p.target_y = gui_h - 130;
-						p.color_main = die.color;
-
-						// Clone the die struct so the particle has its own independent copy
-						p.die_struct = clone_die(die, "");
-
-		                // Remove from slot
-		                ds_list_delete(slot.dice_list, j);
-					
-						//// END OF HELPER
-					
-		            } else {
-		                j++;
-		            }
-		        }
-			
-				for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
-					var die = slot.dice_list[| d];
-				
-					// only add new unique types
-					var parts = string_split(die.possible_type, " ");
-					var total = array_length(parts);
-
-					for (var p = 0; p < total; p++) {
-						if (string_pos(string(parts[p]), slot.possible_type) > 0) {
-						} else {
-							if (slot.possible_type == "") {
-								slot.possible_type = parts[p];
-								//show_debug_message(string(i)+" slot, setting possible type to "+string(parts[p]));
-							} else {
-								slot.possible_type = string_concat(slot.possible_type, " ", parts[p]);
-								//show_debug_message(string(i)+" slot, adding possible types"+string(parts[p]));
-							}
-						}
-					}	
-				}
-			
-				if (ds_list_size(slot.dice_list) == 0) {
-					slot.possible_type = "None";
-				}
-						
-				// change the type if this action type isn't contained within the possible type
-				if (slot.possible_type != "") {
-					//show_debug_message(string(i)+" slot possible type is not empty");
-					if (!string_pos(slot.current_action_type, slot.possible_type)) {
-						var parts = string_split(slot.possible_type, " ");
-						var total = array_length(parts);
-				
-						slot.current_action_type = parts[0];
-						//show_debug_message(string(i)+" slot resetting action type to "+string(parts[0]));
+					if (slot.buffed == 0) {
+						slot.bonus_amount = slot.pre_buff_amount;
 					}
 				}
 		    }
@@ -265,6 +265,7 @@ switch (state) {
 			if (enemy_hp <= 0) {
 				win_fight();
 			} else {
+				
 				// END OF TURN VARIABLES TO SET
 				enemy_turns_since_last_block ++;
 				if (enemy_turns_since_last_block > 1) {
@@ -275,12 +276,16 @@ switch (state) {
 				var turn_end_data = {};
 				combat_trigger_effects("on_turn_end", turn_end_data);
 
+				with (oDice) can_discard = true;
+
 				state = CombatState.START_TURN;
 			}
 		}
 	break;
 
 }
+		
+dice_allowed_per_turn = dice_allowed_per_turn_original + dice_allowed_this_turn_bonus;
 
 if (is_dealing_dice) {
 	if (dice_deal_timer > 0) {

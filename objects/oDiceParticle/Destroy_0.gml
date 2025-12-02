@@ -6,7 +6,6 @@ if (room == rmCombat) {
 		//show_debug_message("Dice Discarded");
 	}
 	
-}
-if (room == rmWorkbench) {
+} else {
 	add_dice_to_bag(id);
 }

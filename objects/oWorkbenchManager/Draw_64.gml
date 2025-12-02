@@ -35,10 +35,12 @@ for (var i = 0; i < wb_list_size; i++) {
 			if (oRunManager.items[n] != undefined) {
 				if (oRunManager.items[n].dragging) {
 					if (mouse_check_button_released(mb_left)) {
-						if (i == 1 && oRunManager.items[n].type = "core") {
-							workbench_slot[i].core = oRunManager.items[n];
-							oRunManager.items[n] = undefined;
-							core_prev_item_slot = n;
+						if (workbench_slot[1].core == undefined) {
+							if (i == 1 && oRunManager.items[n].type = "core") {
+								workbench_slot[i].core = oRunManager.items[n];
+								oRunManager.items[n] = undefined;
+								core_prev_item_slot = n;
+							}
 						}
 					}
 				}
@@ -67,6 +69,7 @@ for (var i = 0; i < wb_list_size; i++) {
 		if (oRunManager.items[t] != undefined) {
 			if (oRunManager.items[t].dragging) {
 				if (i == 0 || i == 2) slot_alpha = 0.5;
+				if (oRunManager.items[t].type != "core" && i == 1) slot_alpha = 0.5;
 			}
 		}
 	}
@@ -99,10 +102,27 @@ for (var i = 0; i < wb_list_size; i++) {
 	}
 	
 	// Draw name underneath
-	draw_set_font(ftBag);
+	draw_set_font(ftBigger);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
 	draw_outline_text(string(workbench_slot[i].name), c_black, c_white, 2, slot_x, slot_y + wb_tile_size / 2 + 30, 1, 1.0, 0);
+
+	// Draw distribution
+	if (i == 0 || i == 2) {
+		if (workbench_slot[i].dice != undefined && workbench_slot[i].dice.dice_value != 2) {
+			draw_dice_distribution(workbench_slot[i].dice, slot_x, slot_y - wb_tile_size/2, true);
+		}
+	}
+	
+	if (workbench_slot[1].core != undefined && i == 1) {
+		var d = clone_die(global.dice_d6_atk, "");
+		d.distribution = workbench_slot[i].core.distribution;
+		
+		draw_dice_distribution(d, slot_x, slot_y - wb_tile_size/2, true);
+	}
+	
+	// Draw output preview
+	// NEED TO ADD THIS
 }
 
 // Draw craft button

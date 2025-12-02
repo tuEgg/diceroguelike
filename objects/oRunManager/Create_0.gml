@@ -1,14 +1,29 @@
+enum GUI_LAYOUT {
+    ACTION_TILE_W           = 120,
+    ACTION_TILE_PADDING     = 20,
+    PLAY_W					= 200,
+    PLAY_H					= 100,
+    DISCARD_W				= 200,
+    DISCARD_H				= 220,
+	BAG_W					= 120,
+	BAG_H					= 130,
+	BAG_X					= 60,
+	BAG_Y					= 40,
+}
+
 randomise();
 credits = 0;
 generate_dice_bag();
 define_buffs_and_debuffs();
 enemy_definitions();
+define_items();
 
 global.player_max_hp = 30;
 global.player_hp = global.player_max_hp;
+global.player_alignment = 50;
+global.hand_size = 5;
 keepsakes = ds_list_create();
 keepsake_scale = ds_list_create();
-keepsakes_master = ds_list_create();
 voyage = 0; // voyage act I to start with
 depth = -100;
 
@@ -17,13 +32,13 @@ define_keepsakes();
 global.keywords = {
     "Stowaway": {
         colour: c_aqua,
-        desc: "Bonus effect when dice is left unplayed",
+        desc: "Bonus effect when dice is left unplayed.",
 		index: 0
     },
 
     "Favourite": {
         colour: c_lime,
-        desc: "Always appears in your starting hand",
+        desc: "Always appears in your starting hand.",
 		index: 1
     },
 
@@ -35,14 +50,44 @@ global.keywords = {
 
     "Multitype": {
         colour: c_silver,
-        desc: "Has more than one action type",
+        desc: "Has more than one action type.",
 		index: 3
     },
 
     "Followthrough": {
         colour: c_red,
-        desc: "Bonus effects dependent on previous slot type",
+        desc: "Bonus effects when dice is rolled dependent on previous slots.",
 		index: 4
+    },
+
+    "Exclusive": {
+        colour: c_teal,
+        desc: "This die cannot be played into a slot with other dice, or have other dice played into it.",
+		index: 5
+    },
+
+    "Loose": {
+        colour: c_ltgray,
+        desc: "This die always ejects from its slot, regardless of permanence.",
+		index: 6
+    },
+
+    "Sticky": {
+        colour: c_dkgray,
+        desc: "This die becomes permanent to the slot it is played.",
+		index: 7
+    },
+
+    "Might": {
+        colour: c_white,
+        desc: "Boost Attacks by 1 per point of Might",
+		index: 8
+    },
+
+    "Balance": {
+        colour: c_white,
+        desc: "Boost Blocks by 1 per point of Balance",
+		index: 9
     }
 };
 
@@ -57,34 +102,14 @@ global.tooltip_main = undefined; // main tooltip struct (only one allowed)
 global.tooltip_keywords = [];    // list of keyword tooltip structs
 
 max_items = 3;
-items = [];
+items = [undefined, undefined, undefined];
 items_hover = [];
-
-var test_item1 = {
-	sprite: sCores,
-	index: 0,
-	name: "Weighted Core",
-	description: "A core that increases the odds of rolling higher numbers",
-	type: "core",
-	dragging: false,
-	distribution: "weighted"
-}
-
-var test_item2 = {
-	sprite: sCores,
-	index: 1,
-	name: "Loaded Core",
-	description: "A core that greatly increases the odds of rolling higher numbers",
-	type: "core",
-	dragging: false,
-	distribution: "loaded"
-} 
-
-array_push(items, test_item1);
-array_push(items, test_item2);
+items_hover_scale = [];
+has_space_for_item = true;
 	
 for (var i = 0; i < max_items; i++) {
-	array_push(items_hover, 1.0);
+	array_push(items_hover, 0);
+	array_push(items_hover_scale, 1.0);
 }
 
 global.dice_safe_area_x1 = 4*(room_width/11);
@@ -106,3 +131,51 @@ is_dealing_dice = false;
 dice_dealt = false;
 
 holding_item = false; // used for holding the hammer in the workbench, will eventually change cursor type, right now just blocks inputs in that room. Could also do it for dice.
+show_consumables_chance = 30; // percentage chance to show consumables after any given fight
+
+// color definitions
+global.color_intel = make_color_rgb(210, 210, 0);
+global.color_attack = c_red;
+global.color_block = c_aqua;
+global.color_heal = c_lime;
+global.color_debuff = c_white;
+global.color_unknown = c_dkgray;
+
+// player intel 
+global.player_intel_data = ds_list_create();
+ds_list_add(global.player_intel_data, {
+	requirement: 0,
+	name: "-",
+	description: "No information revealed.",
+	index: 0,
+});
+ds_list_add(global.player_intel_data, {
+	requirement: 3,
+	name: "I",
+	description: "Single enemy intent revealed.",
+	index: 1,
+});
+ds_list_add(global.player_intel_data, {
+	requirement: 6,
+	name: "II",
+	description: "All enemy intents revealed.",
+	index: 2,
+});
+ds_list_add(global.player_intel_data, {
+	requirement: 9,
+	name: "III",
+	description: "All enemy intents revealed and drew an extra die this turn.",
+	index: 3,
+});
+ds_list_add(global.player_intel_data, {
+	requirement: 12,
+	name: "IV",
+	description: "All enemy intents revealed, drew an extra die and able to play 1 more this turn.",
+	index: 4,
+});
+
+show_dice_list = false; // used for displaying all the dice in the master list
+scroll_y = 0;
+m_grab_y = 0;
+s_grab_y = 0;
+filtered_list = ds_list_create();

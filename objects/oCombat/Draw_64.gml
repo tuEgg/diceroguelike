@@ -32,7 +32,7 @@ if (!variable_instance_exists(id, "slot_positions")) {
 }
 ds_list_clear(slot_positions);
 
-draw_set_font(ftBagInfo);
+draw_set_font(ftBig);
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
 dice_played_scale = lerp(dice_played_scale, 1.0, 0.05);
@@ -85,7 +85,7 @@ draw_outline_text(label_text, c_black, c_white, 2, btn_x + sprite_get_width(sEnd
 
 // Click handling
 if (play_btn.click && state == CombatState.PLAYER_INPUT && !is_dealing_dice) {
-    state = CombatState.RESOLVE_ROUND;
+    actions_submitted = true;
 }
 
 for (var i = 0; i < aq_list_size; i++) {
@@ -126,19 +126,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	var action_queue_type = action_queue[| i].current_action_type;
 	
 	// Tile colours based on action type
-	switch (action_queue_type) {
-		case "ATK":
-		draw_col = make_colour_rgb(255, 15, 0);
-		break;
-		case "BLK":
-		draw_col = c_aqua;
-		break;
-		case "HEAL":
-		draw_col = c_lime;
-		break;
-		default:
-		draw_col = c_white;
-	}
+	draw_col = get_dice_color(action_queue_type);
 	
 	// --- Determine alpha for this slot ---
 	var draw_alpha_val = 0.5;
@@ -302,6 +290,9 @@ for (var i = 0; i < aq_list_size; i++) {
 				case "HEAL":
 				tooltip = string(slot_amount) + "d" + string(slot_value) + _bonus + " Heal";
 				break;
+				case "INTEL":
+				tooltip = string(slot_amount) + "d" + string(slot_value) + _bonus + " Intel";
+				break;
 				case "None":
 					if (slot_possible_type != "All") {
 						tooltip = "Drag dice here to change action type";
@@ -323,6 +314,25 @@ for (var i = 0; i < aq_list_size; i++) {
 	    draw_set_valign(fa_middle);
 		draw_set_font(ftDefault);
 		draw_text(draw_x + draw_w / 2, draw_y - draw_h / 2, string(tooltip));
+	}
+	
+	// Apply potions that trigger on_played_to_slot
+	if (hover) {
+		for (var c = 0; c < array_length(oRunManager.items); c++) {
+			var item = oRunManager.items[c];
+			if (item != undefined) {
+				if (item.type == "consumable" && item.dragging && item.effects.trigger == "on_played_to_slot") {
+					if (mouse_check_button_released(mb_left)) {
+						var context = {
+							_slot: action_queue[| i],
+							_ind: i
+						}
+						trigger_item_effects(item, "on_played_to_slot", context);
+						oRunManager.items[c] = undefined;
+					}
+				}
+			}
+		}
 	}
 	
 	// Draw "make new action" tile after the last action slot
@@ -379,14 +389,13 @@ for (var i = 0; i < aq_list_size; i++) {
 	            case "ATK":  _col = make_color_rgb(255, 80, 80); break;   // red
 	            case "HEAL": _col = make_color_rgb(80, 255, 100); break;  // green
 	            case "BLK":  _col = make_color_rgb(100, 180, 255); break; // blue
+				case "INTEL": _col = make_color_rgb(210, 210, 0); break;
 	            default:     _col = make_color_rgb(160, 160, 160); break; // grey (generic)
 	        }
 
 	        draw_set_alpha(1.0);
-			
-			var _index = 0;
-			if (die_struct.dice_value == 2) _index = 2;
-			if (die_struct.dice_value == 6) _index = 1;
+
+			var _index = get_dice_index(die_struct.dice_value);
 
 	        // Outline ones that are permanent
 			if (die_struct.permanence == "base") {
@@ -404,11 +413,29 @@ for (var i = 0; i < aq_list_size; i++) {
 			
 			// Draw keyword icons above
 			draw_dice_keywords(die_struct, xx_top + 3, yy_top - 34, 1);
+			
 			// Draw rolled value
 			if (die_struct.rolled_value != -1) {
 				draw_set_font(ftSmall);
 				draw_set_color(c_black);
-				draw_text(xx_top - 3, yy_top + 2, string(die_struct.rolled_value));
+				
+				var off_x = -3;
+				var off_y = 3;
+				
+				switch (_index) {
+					case 1:
+					off_y = 2;
+					break;
+					case 2:
+					off_x = -2;
+					off_y = 1;
+					break;
+					case 3:
+					off_x = 0;
+					off_y = -1;
+					break;
+				}
+				draw_text(xx_top + off_x, yy_top + off_y, string(die_struct.rolled_value));
 			}
 	    }
 	}
@@ -462,8 +489,13 @@ disc_btn_scale = disc_btn.scale;
 
 // Show enemy intent
 if (enemy_intent_alpha > 0.05) {
-    var text = enemy_intent_text;
-    var col  = enemy_intent_color;
+	var reveal_intent_single = false;
+	var reveal_intent_all = false;
+	if (intel_level >= 1) reveal_intent_single = true;
+	if (intel_level >= 2) reveal_intent_all = true;
+	
+    var text = reveal_intent_single || reveal_intent_all ? enemy_intent_text : "???";
+    var col  = reveal_intent_single || reveal_intent_all ? enemy_intent_color : c_dkgray;
 
     var xx = global.enemy_x; // enemy position on screen
     var yy = global.enemy_y - 200;  // slightly above their head
@@ -475,26 +507,33 @@ if (enemy_intent_alpha > 0.05) {
 	draw_set_font(ftTopBar);
 	var text_w = string_width(text);
 	var index = 0;
-	switch (enemy_intent_color) {
+	switch (col) {
 		
 	    case c_red: index = 0; break;
 	    case c_aqua: index = 1;  break;
 	    case c_lime: index = 2;  break;
-		default: index = 3; 
+	    case c_white: index = 3;  break;
+	    case c_dkgray: index = 4;  break;
+		default: index = 4; 
 	}
 	
 	draw_sprite_ext(sIntentIcons, index, xx - text_w/2, yy, enemy_intent_scale, enemy_intent_scale, 0, col, enemy_intent_alpha);
     draw_outline_text(text, c_black, c_white, 2, xx + text_w/2, yy, enemy_intent_scale, enemy_intent_alpha);
 	
 	// Draw attack name
-	draw_set_font(ftBag);
-	draw_outline_text(string(enemy_intent.move_name), c_black, c_white, 2, xx, yy - 50, enemy_intent_scale, enemy_intent_alpha);
+	draw_set_font(ftBigger);
+	var move_name = reveal_intent_single || reveal_intent_all ? string(enemy_intent.move_name) : "???";
+	draw_outline_text(move_name, c_black, c_white, 2, xx, yy - 50, enemy_intent_scale, enemy_intent_alpha);
 	
 	if (mouse_hovering(xx, yy - 20, 200, 70, true) && !show_rewards) {
 		if (enemy_intent.action_type == "DEBUFF") {
 			queue_tooltip(mouse_x, mouse_y, enemy_intent.debuff.name, enemy_intent.debuff.desc, undefined, 0, undefined);
 		} else {
-			queue_tooltip(mouse_x, mouse_y, get_dice_name_and_bonus(enemy_intent, enemy_intent.bonus_amount), string(enemy_intent.move_name), undefined, 0, undefined);
+			if (reveal_intent_single || reveal_intent_all) {
+				queue_tooltip(mouse_x, mouse_y, get_dice_name_and_bonus(enemy_intent, enemy_intent.bonus_amount), move_name, undefined, 0, undefined);
+			} else {
+				queue_tooltip(mouse_x, mouse_y, "???", "Enemy intentions not revealed", undefined, 0, undefined);
+			}
 		}
 	}
 }
@@ -523,24 +562,25 @@ draw_sprite_ext(sHealthBar, 0, p_bar_x, p_bar_y, 1, 1, 0, c_white, enemy_alpha);
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
 draw_set_color(c_white);
-draw_set_font(ftBagInfo);
+draw_set_font(ftBig);
 draw_outline_text(string_format(global.player_hp, 0, 0) + " / " + string(global.player_max_hp), c_black, c_white, 2, p_bar_x + p_bar_w / 2, p_bar_y + p_bar_h / 2, 1, 1.0, 0);
 
 // Draw debuffs
-var d_x = 0;
+var d_x = 10;
+var d_y = p_bar_y + p_bar_h + 5;
 var d_padding = 10;
 
 for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
 	var _debuff = global.player_debuffs[| d];
-	var col = c_green;
-	if (_debuff.template.debuff) col = c_red;
-	draw_sprite_ext(sDebuffIcon, _debuff.template.icon_index, p_bar_x + d_x, p_bar_y + p_bar_h + 20, 1, 1, 0, col, 1.0);
+	var col = _debuff.template.color;
+	draw_sprite_ext(sDebuffIcon, _debuff.template.icon_index, p_bar_x + d_x, d_y, 1, 1, 0, col, 1.0);
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
-	draw_outline_text(string(_debuff.remaining), c_black, c_white, 2, p_bar_x + d_x + sprite_get_width(sDebuffIcon), p_bar_y + p_bar_h + 20 + sprite_get_height(sDebuffIcon), 1, 1, 0);
+	draw_outline_text(string(_debuff.remaining), c_black, c_white, 2, p_bar_x + d_x + sprite_get_width(sDebuffIcon), d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
+	draw_outline_text(string(_debuff.amount), c_black, c_red, 2, p_bar_x + d_x, d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
 	
-	if (mouse_hovering(p_bar_x + d_x, p_bar_y + p_bar_h + 20, sprite_get_width(sDebuffIcon), sprite_get_height(sDebuffIcon), false)) {
+	if (mouse_hovering(p_bar_x + d_x, d_y, sprite_get_width(sDebuffIcon), sprite_get_height(sDebuffIcon), false)) {
 		queue_tooltip(mouse_x, mouse_y, _debuff.template.name, _debuff.template.desc, undefined, 0, undefined);
 	}
 	
@@ -610,6 +650,19 @@ if (player_block_amount > 0) {
 	draw_outline_text(string(player_block_amount), c_black, c_white, 2, block_x, block_y - 4, 1, 1.0, 0);
 }
 
+// Draw intel level
+draw_sprite_ext(sIntelEye, global.player_intel_data[| intel_level].index, global.player_x, global.player_y - 180, intel_scale, intel_scale, 0, c_white, intel_alpha);
+draw_outline_text(string(global.player_intel_data[| intel_level].name), c_black, global.color_intel, 2, global.player_x, global.player_y - 220, intel_scale, 1.0, 0);
+var intel_hover = mouse_hovering(global.player_x, global.player_y - 170, sprite_get_width(sIntelEye), sprite_get_height(sIntelEye), true);
+
+intel_scale = intel_hover ? lerp(intel_scale, 1.2, 0.2) : lerp(intel_scale, 1.0, 0.2);
+
+if (player_intel > 0) {
+	draw_outline_text(string(player_intel), c_black, c_white, 2, global.player_x + 30, global.player_y - 170, intel_scale, 1.0, 0);
+}
+
+if (intel_hover) queue_tooltip(mouse_x, mouse_y, "Intel level: "+string(global.player_intel_data[| intel_level].name), "Resets each turn. " + string(global.player_intel_data[| intel_level].description), undefined, 0, undefined);
+
 /// DEBUG
 if (debug_mode) {
 	if (keyboard_check(vk_control)) {
@@ -637,161 +690,333 @@ if (show_rewards) {
 	var reward_width = 1200;
 	var reward_height = 550;
 	
-	draw_set_alpha(0.1);
-	draw_set_color(c_white);
-	draw_rectangle(gui_w/2 - reward_width/2, gui_h/2 - reward_height/2, gui_w/2 + reward_width/2, gui_h/2 + reward_height/2, false);
 	draw_set_alpha(1.0);
 	
 	draw_set_alpha(1.0);
 	draw_set_color(c_white);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
-	draw_set_font(ftBagInfo);
-	draw_text(gui_w/2, gui_h/2 - (reward_height/2) + 50, "Rewards!");
-	
+	draw_set_font(ftBigger);
+	draw_outline_text("Rewards!", c_black, c_white, 2, gui_w/2, gui_h/2 - 350, 1, 1, 0);
 	draw_set_font(ftDefault);
-	draw_text(gui_w/2, gui_h/2 - (reward_height/2) + 150, "Choose a dice to add");
+	draw_outline_text(string(rewards_stage) + "/" + string(ds_list_size(reward_list)), c_black, c_white, 2, gui_w/2, gui_h/2 - 300, 1, 1, 0);
 	
-	for (var r = 0; r < ds_list_size(reward_options); r++) {
-	    var die = reward_options[| r];
+	switch(reward_list[| rewards_stage - 1 ]) {
+		case "dice":
+			draw_set_font(ftDefault);
+			draw_outline_text("Choose one die", c_black, c_white, 2, gui_w/2, gui_h/2 - 100, 1, 1, 0);
+	
+			for (var r = 0; r < ds_list_size(reward_dice_options); r++) {
+			    var die = reward_dice_options[| r];
 
-	    // --- Layout ---
-	    var reward_w = 120;
-	    var reward_h = 70;
-	    var reward_padding = 120;
-	    var reward_total_w = (ds_list_size(reward_options) * reward_w) + ((ds_list_size(reward_options) - 1) * reward_padding);
-	    var reward_x = gui_w / 2 - (reward_total_w / 2);
-	    var base_x = reward_x + (r * (reward_w + reward_padding));
-	    var base_y = gui_h/2 - (reward_height/2) + 200;
-	    var base_w = reward_w;
-	    var base_h = reward_h;
+			    // --- Layout ---
+			    var reward_w = 120;
+			    var reward_h = 70;
+			    var reward_padding = 120;
+			    var reward_total_w = (ds_list_size(reward_dice_options) * reward_w) + ((ds_list_size(reward_dice_options) - 1) * reward_padding);
+			    var reward_x = gui_w / 2 - (reward_total_w / 2);
+			    var base_x = reward_x + (r * (reward_w + reward_padding));
+			    var base_y = gui_h/2;
+			    var base_w = reward_w;
+			    var base_h = reward_h;
+				
+				// Draw background sprite
+				var btn_col = make_colour_rgb(52, 55, 73);
+				switch (die.rarity) {
+					case "uncommon":
+					btn_col = make_colour_rgb(42, 90, 85);
+					break;
+					
+					case "rare":
+					btn_col = make_colour_rgb(85, 42, 90);
+					break;
+				}
+				var wobble = sin(((current_time / 1000) + r) * 3) * 3;
+				draw_sprite_ext(sRewardFrame, 0, base_x + base_w/2, base_y + base_w/2 - 10, reward_scale[| r] * 0.95, reward_scale[| r] * 0.95, wobble, btn_col, 1.0);
 
-	    // --- Draw dice sprite using hoverable scaling ---
-	    var btn = draw_gui_button(
-	        base_x, base_y,
-	        base_w, base_h,
-	        reward_scale[| r],
-	        "", // no text (we’ll draw sprite manually)
-	        die.color,
-	        ftDefault,
-	        !rewards_dice_taken,         // active
-			false
-	    );
+			    // --- Draw dice sprite using hoverable scaling ---
+			    var btn = draw_gui_button(
+			        base_x, base_y,
+			        base_w, base_h,
+			        reward_scale[| r],
+			        "", // no text (we’ll draw sprite manually)
+			        die.color,
+			        ftDefault,
+			        !rewards_dice_taken,         // active
+					false
+			    );
 
-	    // Update scale for animation
-	    reward_scale[| r] = btn.scale;
+			    // Update scale for animation
+			    reward_scale[| r] = btn.scale;
 
-	    // --- Choose sprite index based on dice value ---
-	    var spr_index = 0
-		if (die.dice_value == 6) spr_index = 1;
-		if (die.dice_value == 2) spr_index = 2;
+			    // --- Choose sprite index based on dice value ---
+			    var spr_index = 0
+				if (die.dice_value == 6) spr_index = 1;
+				if (die.dice_value == 2) spr_index = 2;
 
-	    // --- Draw the dice sprite ---
-	    var alpha = rewards_dice_taken ? 0.2 : 1.0;
-	    draw_sprite_ext(
-	        sDice,
-	        spr_index,
-	        btn.x + btn.w / 2,
-	        btn.y + btn.h / 2,
-	        btn.scale,
-	        btn.scale,
-	        0,
-	        die.color,
-	        alpha
-	    );
+			    // --- Draw the dice sprite ---
+			    var alpha = rewards_dice_taken ? 0.2 : 1.0;
+			    draw_sprite_ext(
+			        sDice,
+			        spr_index,
+			        btn.x + btn.w / 2,
+			        btn.y + btn.h / 2,
+			        btn.scale,
+			        btn.scale,
+			        0,
+			        die.color,
+			        alpha
+			    );
 		
-		draw_dice_keywords(die, btn.x + btn.w / 2, btn.y + btn.h / 2, 1);
+				draw_dice_keywords(die, btn.x + btn.w / 2, btn.y + btn.h / 2, 1, alpha);
 
-	    // --- Draw name ---
-	    var label = string(die.name);
-	    draw_set_color(c_white);
-	    draw_set_alpha(alpha);
-	    draw_set_halign(fa_center);
-	    draw_set_valign(fa_middle);
-	    draw_set_font(ftDefault);
-	    draw_text(btn.x + btn.w / 2, btn.y + btn.h + 20, label);
-
-	    //// --- Draw description ---
-		//draw_set_font(ftSmall);
-		//draw_set_halign(fa_left);
-	    //var desc = die.description;
-		//var xx = btn.x + btn.w/2;
-		//var _description_parsed = parse_text_with_keywords(desc);
-		//for (var i = 0; i < array_length(_description_parsed); i++) {
-		//    draw_set_colour(_description_parsed[i].colour);
-		//    draw_text(xx - string_width(desc)/2, btn.y + btn.h + 40, _description_parsed[i].text);
-		//    xx += string_width(_description_parsed[i].text);
-		//}
+			    // --- Draw name ---
+			    var label = string(die.name);
+			    draw_set_color(c_white);
+			    draw_set_alpha(alpha);
+			    draw_set_halign(fa_center);
+			    draw_set_valign(fa_middle);
+			    draw_set_font(ftDefault);
+			    draw_text(btn.x + btn.w / 2, btn.y + btn.h + 20, label);
 		
-		if (btn.hover) {
-			queue_tooltip( mouse_x, mouse_y, die.name, die.description, undefined, 0, die);
+				if (btn.hover) {
+					queue_tooltip( mouse_x, mouse_y, die.name, die.description, undefined, 0, die);
+				}
+
+			    // --- Click logic: Take reward ---
+			    if (!rewards_dice_taken && btn.click) {
+			        var p = instance_create_layer(btn.x + btn.w / 2, btn.y + btn.h / 2, "Instances", oDiceParticle);
+			        p.target_x = GUI_LAYOUT.PLAY_W;
+			        p.target_y = gui_h - GUI_LAYOUT.PLAY_H / 2;
+			        p.color_main = die.color;
+			        p.die_struct = clone_die(die, "");
+
+			        rewards_dice_taken = true;
+			        global.bag_size++;
+			    }
+		
+				// Need to add keepsake rewards on some fights, certainly on boss fights
+		
+				// Below code adds keepsakes
+				//ds_list_add(keepsakes, get_keepsake_by_id("lucky_coin"));
+			}
+		break;
+		
+		case "consumables":
+			draw_set_font(ftDefault);
+			draw_outline_text("Choose two items", c_black, c_white, 2, gui_w/2, gui_h/2 - 100, 1, 1, 0);
+	
+			for (var r = 0; r < ds_list_size(reward_consumable_options); r++) {
+			    var consumable = reward_consumable_options[| r];
+
+			    // --- Layout ---
+			    var reward_w = 120;
+			    var reward_h = 70;
+			    var reward_padding = 120;
+			    var reward_total_w = (ds_list_size(reward_consumable_options) * reward_w) + ((ds_list_size(reward_consumable_options) - 1) * reward_padding);
+			    var reward_x = gui_w / 2 - (reward_total_w / 2);
+			    var base_x = reward_x + (r * (reward_w + reward_padding));
+			    var base_y = gui_h/2;
+			    var base_w = reward_w;
+			    var base_h = reward_h;
+				
+				// Draw background sprite
+				
+				// Draw background sprite
+				var btn_col = make_colour_rgb(52, 55, 73);
+				switch (consumable.rarity) {
+					case "uncommon":
+					btn_col = make_colour_rgb(42, 90, 85);
+					break;
+					
+					case "rare":
+					btn_col = make_colour_rgb(85, 42, 90);
+					break;
+				}
+				
+				var wobble = sin(((current_time / 1000) + r) * 3) * 3;
+				draw_sprite_ext(sRewardFrame, 0, base_x + base_w/2, base_y + base_w/2 - 10, reward_scale[| r] * 0.95, reward_scale[| r] * 0.95, wobble, btn_col, 1.0);
+
+			    // --- Draw dice sprite using hoverable scaling ---
+			    var btn = draw_gui_button(
+			        base_x, base_y,
+			        base_w, base_h,
+			        reward_scale[| r],
+			        "", // no text (we’ll draw sprite manually)
+			        c_white,
+			        ftDefault,
+			        !consumable.taken,         // active
+					false
+			    );
+
+			    // Update scale for animation
+			    reward_scale[| r] = btn.scale;
+
+			    // --- Draw the dice sprite ---
+			    var alpha = 1.0
+				if (consumable.taken) alpha = 0.2;
+				
+				var col = c_white;
+				if (rewards_consumables_locked == r) col = c_black;
+				
+				// Draw consumable sprite
+				
+			    draw_sprite_ext(
+			        consumable.sprite,
+			        consumable.index,
+			        btn.x + btn.w / 2,
+			        btn.y + btn.h / 2,
+			        btn.scale,
+			        btn.scale,
+			        0,
+			        col,
+			        alpha
+			    );
+
+			    // --- Draw name ---
+			    var label = string(consumable.name);
+			    draw_set_halign(fa_center);
+			    draw_set_valign(fa_middle);
+			    draw_set_font(ftDefault);
+			    draw_outline_text(label, c_black, col, 2, btn.x + btn.w / 2, btn.y + btn.h + 20, 1, alpha, 0);
+				
+				// Draw chains over locked item
+				
+				if (rewards_consumables_locked == r) {
+					draw_sprite_ext(
+				        sRewardChain,
+				        consumable.index,
+				        btn.x + btn.w / 2,
+				        btn.y + btn.h / 2 + 10,
+				        btn.scale,
+				        btn.scale,
+				        wobble,
+				        c_white,
+				        1.0
+				    );
+				}
+				
+				// Draw quantity
+				if (consumable.amount > 1) {
+					draw_set_font(ftBig);
+					draw_outline_text(consumable.amount, c_black, col, 2, btn.x + btn.w - 20, btn.y + btn.h - 20, 1, alpha, 0);
+				}
+		
+				if (btn.hover) {
+					var die = undefined;
+					if (string_pos("Core", consumable.name) > 0) {
+						die = clone_die(global.dice_d6_atk, "");
+						die.distribution = consumable.distribution;
+					}
+					queue_tooltip( mouse_x, mouse_y, consumable.name, consumable.description, undefined, 0, die);
+				}
+
+			    // Take first reward
+			    if (rewards_consumables_first_taken == -1 && btn.click) {
+					if (consumable.name != "Coins") {
+						var gained_item = gain_item(consumable);
+						if (gained_item) {
+							rewards_consumables_first_taken = r;
+						}
+					} else {
+						oRunManager.credits += consumable.amount;
+						consumable.taken = true;
+						rewards_consumables_first_taken = r;
+					}
+					
+			    }
+
+			    // Take second reward
+			    if (rewards_consumables_first_taken != -1 && !rewards_consumables_second_taken && btn.click && r != rewards_consumables_locked && !consumable.taken) {
+					if (consumable.name != "Coins") {
+						var first_free_slot = -1;
+						for (var n = 0; n < array_length(oRunManager.items); n++) {
+							if (oRunManager.items[n] == undefined) {
+								first_free_slot = n;
+								break;
+							}
+						}
+						if (first_free_slot != -1) {
+							oRunManager.items[n] = clone_item(consumable);
+							oRunManager.items_hover_scale[n] = 1.2;
+							consumable.taken = true;
+							rewards_consumables_second_taken = true;
+						}
+					} else {
+						oRunManager.credits += consumable.amount;
+						consumable.taken = true;
+						rewards_consumables_second_taken = true;
+					}
+					
+					
+			    }
+			}
+				
+			// After taking the first consumable reward
+			if (rewards_consumables_first_taken != -1) {
+				
+				// Lock a random slot
+				if (rewards_consumables_locked == -1) {	
+					var available_items = [];
+					
+					// By looping through the rewards
+					for (var r = 0; r < ds_list_size(reward_consumable_options); r++) {
+						if (r != rewards_consumables_first_taken) {
+							array_push(available_items, r);
+						}
+					}
+					
+					// and choosing a random one
+					rewards_consumables_locked = available_items[choose(0,1)];
+				}
+			}
+		break;
+	}
+	
+	var next_x = gui_w - 300;
+	var next_y = gui_h/2;
+	
+	var next_hover = mouse_hovering(next_x, next_y, sprite_get_width(sButtonSmall), sprite_get_height(sButtonSmall), true);
+	
+	var next_btn_col = c_lime;
+	if (rewards_stage == ds_list_size(reward_list)) next_btn_col = c_red;
+	if (instance_number(oDiceParticle) > 0) next_btn_col = c_dkgray;
+	
+	draw_sprite_ext(
+		sButtonSmall,
+		0,
+	    next_x,                 // x
+	    next_y,                 // y
+	    reward_next_hover * 0.65,                      
+	    reward_next_hover * 0.65,          // current scale
+	    0,
+	    next_btn_col,
+	    1.0
+	);
+	
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_outline_text(rewards_stage == ds_list_size(reward_list) ? "Exit" : "Next", c_black, c_white, 2, next_x, next_y, reward_next_hover, 1.0, 0);
+
+	// Update animation
+	reward_next_hover = lerp(reward_next_hover, next_hover && !instance_exists(oDiceParticle) ? 1.2 : 1.0, 0.2);
+	
+	if (next_hover && mouse_check_button_pressed(mb_left) && instance_number(oDiceParticle) == 0) {
+		if (rewards_stage < ds_list_size(reward_list)) {
+			if (reward_list[| rewards_stage] == "dice") rewards_dice_taken = true;
+			rewards_stage++;
+			for (var s = 0; s < ds_list_size(reward_scale); s++) {
+				reward_scale[| s] = 0.1;
+			}
+		} else {
+			rewards_all_taken = true;
 		}
-
-	    // --- Click logic: Take reward ---
-	    if (!rewards_dice_taken && btn.click) {
-	        var p = instance_create_layer(btn.x + btn.w / 2, btn.y + btn.h / 2, "Instances", oDiceParticle);
-	        p.target_x = GUI_LAYOUT.PLAY_W;
-	        p.target_y = gui_h - GUI_LAYOUT.PLAY_H / 2;
-	        p.color_main = die.color;
-	        p.die_struct = clone_die(die, "");
-
-	        rewards_dice_taken = true;
-	        global.bag_size++;
-	    }
-		
-		// Need to add keepsake rewards on some fights, certainly on boss fights
-		
-		// Below code adds keepsakes
-		//ds_list_add(keepsakes, get_keepsake_by_id("lucky_coin"));
-	}
-	
-	draw_set_color(c_white);
-	draw_set_font(ftDefault);
-	draw_set_valign(fa_top);
-	draw_set_halign(fa_center);
-	draw_text(gui_w/2, gui_h/2 - (reward_height/2) + 400, "Bounty reward");
-	
-	var credits_btn = draw_gui_button(
-	    gui_w/2 - 100,                 // x
-	    gui_h/2 - (reward_height/2) + 450,                 // y
-	    200, 50,                       // base size
-	    reward_credits_hover,          // current scale
-	    "Doubloons: " + string(reward_credits),
-	    make_color_rgb(200, 200, 0), ftTopBar,
-	    !rewards_credits_taken,         // active
-		true
-	);
-
-	// Update animation
-	reward_credits_hover = credits_btn.scale;
-		
-	if (!rewards_credits_taken && credits_btn.click) {
-		oRunManager.credits += enemy.bounty;
-		rewards_credits_taken = true;
-	}
-	
-	var skip_btn = draw_gui_button(
-	    gui_w/2 - 100,                 // x
-	    gui_h/2 + (reward_height/2) + 50,                 // y
-	    200, 50,                       // base size
-	    reward_skip_hover,          // current scale
-	    "Skip",
-	    make_color_rgb(125, 125, 125), ftTopBar,
-	    !rewards_all_taken && !instance_exists(oDiceParticle),         // active
-		true
-	);
-
-	// Update animation
-	reward_skip_hover = skip_btn.scale;
-		
-	if (!rewards_all_taken && skip_btn.click) {
-		rewards_all_taken = true;
 	}
 }
 
 // Draw discard bag either side (draw bag in oRunManager)
 draw_sprite(sDiceBag, 1, gui_w - 60 - sprite_get_width(sDiceBag), gui_h - 40);
-draw_set_font(ftBag);
+draw_set_font(ftBigger);
 draw_set_valign(fa_bottom)
 draw_set_halign(fa_right);
 draw_outline_text("DISCARD", c_black, c_white, 2, gui_w - 10 - sprite_get_width(sDiceBag), gui_h - 33, 1, 1, 0);
@@ -803,7 +1028,7 @@ draw_set_color(c_white);
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
 draw_set_color(c_white);
-draw_set_font(ftBagInfo);
+draw_set_font(ftBig);
 draw_text(gui_w - 70, gui_h - 55, string(ds_list_size(global.discard_pile)));
 
 // Draw discard preview
@@ -840,22 +1065,10 @@ if (disc_bag_hover) {
         var yy = start_y + (row * dice_spacing);
 
         // Choose color based on action type
-        var colr;
-        switch (die_struct.action_type) {
-            case "ATK":  colr = c_red; break;
-            case "HEAL": colr = c_lime; break;
-            case "BLK":  colr = c_aqua; break;
-            default:     colr = c_white; break;
-        }
+        var colr = get_dice_color(die_struct.action_type);
 
         // Choose image index based on dice type
-        var frame = 0;
-        switch (die_struct.dice_value) {
-            case 2: frame = 2; break;
-            case 4: frame = 0; break;
-            case 6: frame = 1; break;
-            default: frame = 0; break;
-        }
+        var frame = get_dice_index(die_struct.dice_value);
 
         // Draw dice sprite
         draw_set_alpha(1);
