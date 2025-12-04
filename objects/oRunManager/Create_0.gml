@@ -24,6 +24,7 @@ global.player_alignment = 50;
 global.hand_size = 5;
 keepsakes = ds_list_create();
 keepsake_scale = ds_list_create();
+credits_scale = 1.0;
 voyage = 0; // voyage act I to start with
 depth = -100;
 
@@ -106,6 +107,9 @@ items = [undefined, undefined, undefined];
 items_hover = [];
 items_hover_scale = [];
 has_space_for_item = true;
+
+items[0] = item_consumable_crows_nest_clarity;
+items[1] = item_consumable_navigators_brew;
 	
 for (var i = 0; i < max_items; i++) {
 	array_push(items_hover, 0);
@@ -129,6 +133,8 @@ dice_deal_timer = 0;
 dice_deal_delay = 10; // frames between dice (at 60fps ~0.17s)
 is_dealing_dice = false;
 dice_dealt = false;
+
+bonus_dice_next_combat = 0;
 
 holding_item = false; // used for holding the hammer in the workbench, will eventually change cursor type, right now just blocks inputs in that room. Could also do it for dice.
 show_consumables_chance = 30; // percentage chance to show consumables after any given fight
@@ -179,3 +185,7 @@ scroll_y = 0;
 m_grab_y = 0;
 s_grab_y = 0;
 filtered_list = ds_list_create();
+
+error_timer = 0;
+error_message = "";
+error_description = "";

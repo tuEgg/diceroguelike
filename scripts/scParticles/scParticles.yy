@@ -1,9 +1,9 @@
 {
   "$GMScript":"v1",
-  "%Name":"scDiceScripts",
+  "%Name":"scParticles",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scDiceScripts",
+  "name":"scParticles",
   "parent":{
     "name":"scripts",
     "path":"folders/scripts.yy",

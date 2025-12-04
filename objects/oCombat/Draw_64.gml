@@ -321,14 +321,16 @@ for (var i = 0; i < aq_list_size; i++) {
 		for (var c = 0; c < array_length(oRunManager.items); c++) {
 			var item = oRunManager.items[c];
 			if (item != undefined) {
-				if (item.type == "consumable" && item.dragging && item.effects.trigger == "on_played_to_slot") {
+				if (item.type == "consumable" && item.dragging && item.effects.trigger == "on_played_to_slot" && !show_rewards) {
 					if (mouse_check_button_released(mb_left)) {
 						var context = {
 							_slot: action_queue[| i],
 							_ind: i
 						}
-						trigger_item_effects(item, "on_played_to_slot", context);
-						oRunManager.items[c] = undefined;
+						if (item.effects.flags(context)) {
+							trigger_item_effects(item, "on_played_to_slot", context);
+							oRunManager.items[c] = undefined;
+						}
 					}
 				}
 			}
@@ -919,7 +921,7 @@ if (show_rewards) {
 							rewards_consumables_first_taken = r;
 						}
 					} else {
-						oRunManager.credits += consumable.amount;
+						gain_coins(mouse_x, mouse_y, consumable.amount);
 						consumable.taken = true;
 						rewards_consumables_first_taken = r;
 					}
@@ -943,7 +945,7 @@ if (show_rewards) {
 							rewards_consumables_second_taken = true;
 						}
 					} else {
-						oRunManager.credits += consumable.amount;
+						gain_coins(mouse_x, mouse_y, consumable.amount);
 						consumable.taken = true;
 						rewards_consumables_second_taken = true;
 					}

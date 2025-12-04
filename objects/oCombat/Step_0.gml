@@ -285,7 +285,7 @@ switch (state) {
 
 }
 		
-dice_allowed_per_turn = dice_allowed_per_turn_original + dice_allowed_this_turn_bonus;
+dice_allowed_per_turn = dice_allowed_per_turn_original + dice_allowed_this_turn_bonus + oRunManager.bonus_dice_next_combat;
 
 if (is_dealing_dice) {
 	if (dice_deal_timer > 0) {

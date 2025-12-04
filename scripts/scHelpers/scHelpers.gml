@@ -613,3 +613,9 @@ function parse_text_with_keywords(str) {
 
     return out;
 }
+
+function throw_error(_error_msg, _error_desc) {
+	oRunManager.error_timer = 90;
+	oRunManager.error_message = _error_msg;
+	oRunManager.error_description = _error_desc;
+}

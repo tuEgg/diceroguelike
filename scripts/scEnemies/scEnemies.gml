@@ -32,7 +32,7 @@ function enemy_definitions() {
 	    { dice_amount: 1, dice_value: 6, action_type: "ATK", bonus_amount: 3, move_name: "Slash" }, // Slash
 	    { dice_amount: 1, dice_value: 4, action_type: "BLK", bonus_amount: 4, move_name: "Duck" }  // Duck
 	];
-	var deckhand = enemy_create("Deckhand", 42, 5, deckhand_moves, "random");
+	var deckhand = enemy_create("Deckhand", 29, 15, deckhand_moves, "random");
 	ds_list_add(global.enemy_list, deckhand);
 
 
@@ -41,7 +41,7 @@ function enemy_definitions() {
 	    { dice_amount: 1, dice_value: 3, action_type: "DEBUFF", bonus_amount: 0, move_name: "Mock", debuff: debuff_mock }, // Mock
 	    { dice_amount: 1, dice_value: 4, action_type: "BLK", bonus_amount: 4, move_name: "Parry" }  // Duck
 	];
-	var thug = enemy_create("Thug", 36, 8, thug_moves, "random");
+	var thug = enemy_create("Thug", 36, 17, thug_moves, "random");
 	ds_list_add(global.enemy_list, thug);
 
 
@@ -50,7 +50,7 @@ function enemy_definitions() {
 	    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 6, move_name: "Volley Fire" }, // Volley Fire
 	    { dice_amount: 0, dice_value: 0, action_type: "NONE", bonus_amount: 0, move_name: "Reload" } // Reload
 	];
-	var gunner = enemy_create("Corsair Gunner", 30, 12, gunner_moves, "order");
+	var gunner = enemy_create("Corsair Gunner", 30, 19, gunner_moves, "order");
 	ds_list_add(global.enemy_list, gunner);
 
 
@@ -59,7 +59,7 @@ function enemy_definitions() {
 	    { dice_amount: 1, dice_value: 6, action_type: "BLK", bonus_amount: 3 }, // Parry
 	    { dice_amount: 2, dice_value: 4, action_type: "ATK", bonus_amount: 3 } // Pistol Shot
 	];
-	var captain = enemy_create("Buccaneer Captain", 35, 20, captain_moves, "random");
+	var captain = enemy_create("Buccaneer Captain", 35, 24, captain_moves, "random");
 	ds_list_add(global.enemy_list, captain);
 
 
@@ -100,7 +100,7 @@ function enemy_definitions() {
 	    { dice_amount: 2, dice_value: 8, action_type: "BLK", bonus_amount: 5, move_name: "Harden Shell" }, // Harden Shell
 	    { dice_amount: 1, dice_value: 6, action_type: "DEBUFF", bonus_amount: 0, move_name: "Barnacle Bind", debuff: debuff_bind } // Mock
 	];
-	var titan = enemy_create("Barnacle Titan", 125, 30, titan_moves, "random");
+	var titan = enemy_create("Barnacle Titan", 125, 151, titan_moves, "random");
 	ds_list_add(global.enemy_list, titan);
 
 

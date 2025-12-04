@@ -1,1 +1,0 @@
-if ds_exists(node_list, ds_type_list) ds_list_destroy(node_list);

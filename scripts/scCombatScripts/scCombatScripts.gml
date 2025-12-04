@@ -425,7 +425,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 		
 		// die statistics
 		die.struct.statistics.times_played_this_combat++;
-        
+		
 		instance_destroy(die);
     }
 }
@@ -520,6 +520,8 @@ function sacrifice_die(_die) {
 	
     var history_copy  = clone_die(die_struct, _perm);
 	ds_list_add(global.sacrifice_history, history_copy ); // persistent record
+	
+	particle_emit( die.x, die.y, choose("burst"), die.struct.color);
 	
     instance_destroy(die);
 
@@ -807,7 +809,7 @@ function win_fight() {
 			
 		if (!show_rewards) {
 			// Earn some credits, regardless of secondary rewards
-			oRunManager.credits += enemy.bounty;
+			gain_coins(global.enemy_x, global.enemy_y, enemy.bounty);
 				
 			// pop up rewards screen - dice reward - offered 3 dice, choose 1 to keep and credits
 			reward_dice_options = ds_list_create();

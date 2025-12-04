@@ -5,4 +5,5 @@ if (room == rmWorkbench || room = rmEvent) {
 
 if (room == rmCombat) {
 	ds_list_clear(global.player_debuffs);
+	bonus_dice_next_combat = 0;
 }

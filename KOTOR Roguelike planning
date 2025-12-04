@@ -103,3 +103,17 @@ For swapping out discard with consuming at the last action slot:
 	- Seems to remove 5 dice from bag but deal 4?
 	- Dragging dice over dice or cores over cores is buggy
 	- Need to add exit button that moves you on.
+
+3/12/2025
+- Fix page hovering
+- Fix trail of ship
+- Fix dotted line ahead of ship when selecting new pages (apart from first time)
+- Find a way to draw a prettier path between chosen nodes
+- Begin balancing generation to weight for combats, shops, workbenchs etc.
+- Starter dice shouldn't show their name
+
+4/12/2025
+ - Add particles to consumed potions, sacrificed die
+ - Add spacing between animations, build in more time, to improve game feel
+ - Add coin particles
+ - Make more weak enemies up front, make first fight have like, 25 hp

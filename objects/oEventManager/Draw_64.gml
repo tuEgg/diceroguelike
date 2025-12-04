@@ -62,7 +62,6 @@ if (chosen_event != undefined) {
 		if (options_hover[| i]) {
 			if (mouse_check_button_pressed(mb_left) && !event_selected) {
 				option.effect();
-				event_selected = true;
 			}
 		}
 		

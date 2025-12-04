@@ -54,3 +54,15 @@ for (var i = 0; i < array_length(items); i++) {
 		break;
 	}
 }
+
+if (error_timer > 0) {
+	error_timer--;
+	queue_tooltip(mouse_x, mouse_y, error_message, error_description, undefined, 0, undefined);
+} else {
+	error_message = "";
+	error_description = "";
+}
+
+//if (mouse_check_button_pressed(mb_left)) {
+//	particle_emit( mouse_x, mouse_y, choose("rise"), c_red);
+//}

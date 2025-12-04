@@ -74,7 +74,9 @@ draw_sprite_ext(
 draw_set_font(ftDefault);
 draw_set_halign(fa_center);
 draw_set_valign(fa_top);
-draw_outline_text(struct.name, c_black, c_white, 2, x, y + sprite_height/2 + 3, scale, image_alpha, 0);
+if (struct.rarity != "starter") {
+	draw_outline_text(struct.name, c_black, c_white, 2, x, y + sprite_height/2 + 3, scale, image_alpha, 0);
+}
 
 // --- Draw effect keyword icons ---
 draw_dice_keywords(struct, x, y, 1);

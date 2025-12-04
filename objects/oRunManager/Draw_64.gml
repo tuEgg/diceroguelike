@@ -35,10 +35,12 @@ var pages_hover = mouse_hovering(280 + 5, 15, sprite_get_width(sTopBarIcons), sp
 if (pages_hover) queue_tooltip(mouse_x, mouse_y, "Pages Turned", "You have turned " + string(oWorldManager.pages_turned) + " pages of the Captain's logbook", undefined, 0, undefined);
 
 // Draw money
-draw_sprite(sTopBarIcons, 1, 400 + 5, 15);
+draw_sprite_ext(sTopBarSlot, 1, 400 + 5, 18, 1, 1, 0, c_white, 1.0);
+draw_sprite_ext(sCoin, 1, 400 + 5 + sprite_get_width(sTopBarSlot)/2, 18 + sprite_get_height(sTopBarSlot)/2, credits_scale, credits_scale, 0, c_white, 1.0);
 draw_outline_text(string(credits), c_black, c_white, 2, 470 + 5, 30, 1, 1, 0);
 var credits_hover = mouse_hovering(400 + 5, 15, sprite_get_width(sTopBarIcons), sprite_get_height(sTopBarIcons), false);
 if (credits_hover) queue_tooltip(mouse_x, mouse_y, "Gold Doubloons", "You have " + string(credits) + " gold doubloons", undefined, 0, undefined);
+credits_scale = lerp(credits_scale, 1.0, 0.05);
 
 // Draw cores and consumables
 var core_x = 800;
@@ -63,10 +65,12 @@ for (var i = 0; i < array_length(items); i++) {
 	if (items[i] != undefined) {
 		var default_scale = 1.0;
 		var default_angle = 0;
+		
 		if (items[i].type == "consumable") {
 			default_scale = 1.2;
 			default_angle = -30;
 		}
+		
 		draw_sprite_ext(items[i].sprite, items[i].index, sprite_x, sprite_y, items_hover_scale[i], items_hover_scale[i], default_angle, c_white, 1.0);
 		
 		//draw_outline_text(items[i].quantity, c_black, c_white, 2, core_x + 70 + 5 + i_x, 25, 1, 1, 0);
@@ -110,7 +114,7 @@ for (var i = 0; i < array_length(items); i++) {
 			}
 			
 			if (items[i].dragging && mouse_check_button_pressed(mb_left)) {
-				if (room == rmCombat && !oCombat.show_rewards && items[i].effects.trigger == "on_clicked") {
+				if (items[i].effects.trigger == "on_clicked" && items[i].effects.flags() ) {
 					var ctx = {};
 					trigger_item_effects(items[i], "on_clicked", ctx);
 					items[i] = undefined;

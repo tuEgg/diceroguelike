@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"scDice",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"scDice",
+  "parent":{
+    "name":"scripts",
+    "path":"folders/scripts.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

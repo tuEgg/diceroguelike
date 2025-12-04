@@ -1,5 +1,10 @@
 /// @func generate_pages
 function generate_pages() {
+	var num_combat = 0; // generate no more than 5 across all 3 pages
+	var num_event = 0; // generate no more than 3 across all 3 pages
+	var num_workbench = 0; // generate no more than 2 across all 3 pages
+	var num_shop = 0; // generate no more than 2 across all 3 pages
+	
 	repeat (3) {
 		var _index = irandom(5);
 		var _num_nodes = choose(1,2,2);
@@ -42,7 +47,7 @@ function generate_pages() {
 			index: _index,
 			num_nodes: _num_nodes,
 			nodes: ds_list_create(),
-			layout: _num_nodes == 1 ? "single" : choose("vertical", "diagonal-down"),
+			layout: _num_nodes == 1 ? "single" : choose("horizontal", "diagonal-down"),
 			map_connection_in: { x: 0, y: 0 },
 			map_connection_out: { x: 0, y: 0 },
 			margin: {
@@ -55,41 +60,103 @@ function generate_pages() {
 			y: 0,
 			y_offset: 0,
 			chosen: false,
-			locked: false
+			locked: false,
+			cleared: false
 		}
 		
 		switch (_page.layout) {
 			case "vertical":
 				_page.map_connection_in.x = sprite_get_height(sMapParchment)/2;
 			break;
-			case "diagonal-down":
-				_page.map_connection_in.x = sprite_get_height(sMapParchment)/4;
+			case "horizontal":
+				_page.map_connection_in.x = sprite_get_height(sMapParchment)/2;
 			break;
 			default: _page.map_connection_in.x = sprite_get_height(sMapParchment)/2;
 		}
+		
+		var page_num_combat = 0;
+		var page_num_event = 0;
+		var page_num_workbench = 0; // generate no more than 1 per page
+		var page_num_shop = 0; // generate no more than 1 per page
 	
 		// Need to add weighting here
-		repeat(_page.num_nodes) ds_list_add(_page.nodes, clone_node(choose(node_combat, node_event, node_shop, node_workbench)));
+		do {
+			var chosen_node = node_combat;
+			var page_num = ds_list_size(pages_shown); // 0, 1 or 2
+			
+			//combat_chance = 60; node_combat, node_event, node_shop, node_workbench
+			//event_chance = 30;
+			//workbench_chance = 5;
+			//shop_chance = 5;
+			
+			var rand = irandom_range(1,100);
+			
+			if (rand <= combat_chance) {
+				if (num_combat < 5) {
+					num_combat++;
+					page_num_combat++;
+					chosen_node = node_combat;
+					combat_chance -= 5;
+					
+					var rand_inc = (irandom(2));
+					
+					switch (rand_inc) {
+						case 0: event_chance += 5; break;
+						case 1: workbench_chance += 5; break;
+						case 2: shop_chance += 5; break;
+					}
+					
+				} else {
+					continue;
+				}
+			} else if (rand <= combat_chance + event_chance) {
+				if (num_event < 3) {
+					num_event++;
+					page_num_event++;
+					chosen_node = node_event;
+					event_chance -= 5;
+					
+					var rand_inc = (irandom(2));
+					
+					switch (rand_inc) {
+						case 0: combat_chance += 5; break;
+						case 1: workbench_chance += 5; break;
+						case 2: shop_chance += 5; break;
+					}
+				} else {
+					continue;
+				}
+			} else if (rand <= combat_chance + event_chance + workbench_chance) {
+				if (num_workbench < 1) {
+					num_workbench++;
+					page_num_workbench++;
+					chosen_node = node_workbench;
+					workbench_chance -= 5;
+					shop_chance += 5;
+				} else {
+					continue;
+				}
+			} else if (rand <= combat_chance + event_chance + workbench_chance + shop_chance) {
+				if (num_shop < 1) {
+					num_shop++;
+					page_num_shop++;
+					chosen_node = node_shop;
+					shop_chance -= 5;
+					workbench_chance += 5;
+				} else {
+					continue;
+				}
+			} 
+			
+			if (oWorldManager.pages_turned == 0) && (ds_list_size(_page.nodes) == 0) {
+				chosen_node = node_combat;
+			}
+			
+			ds_list_add(_page.nodes, clone_node_static(chosen_node));
+		} until (ds_list_size(_page.nodes) == _page.num_nodes);
 	
 		ds_list_add(pages_shown, _page);
 	}
-}
-
-/// @function create_node(_id, _type, _pos_x, _pos_y, _room, _enemy)
-function create_node(_id, _type, _pos_x, _pos_y, _room, _enemy) {
-    return {
-        node_id: _id,                    // unique identifier (e.g. "dan_01")
-        node_type: _type,                // "combat", "shop", "event", etc.
-        pos_x: _pos_x,                   // map position for drawing
-        pos_y: _pos_y,
-        connections: ds_list_create(),   // connected node IDs
-        visited: false,                  // player visited?
-        cleared: false,                  // encounter completed?
-		scale: 1.0,						 // used for HUD scale
-        data: undefined,                  // optional encounter-specific data (enemy set, rewards, etc.)
-		room_link: _room,
-		enemy: _enemy,
-    };
 }
 
 /// @function node_find_by_id(_id)
@@ -110,25 +177,26 @@ function enemy_find_by_name(_name) {
     return undefined;
 }
 
-function enter_node(_page) {
-	if (_page.type = NODE_TYPE.COMBAT) {
-		_page.enemy = enemy_find_by_name("Deckhand"); // Should be Deckhand 
-		if (_page.type == NODE_TYPE.COMBAT) { 
+function enter_node(_node) {
+	if (_node.type == NODE_TYPE.COMBAT) {
+		_node.enemy = enemy_find_by_name("Deckhand"); // Should be Deckhand 
+		if (_node.type == NODE_TYPE.COMBAT) { 
 			if (pages_turned >= 1 && pages_turned <= 2) {
-				_page.enemy = enemy_find_by_name(choose("Thug", "Deckhand"));
+				_node.enemy = enemy_find_by_name(choose("Thug", "Deckhand"));
 			}
 			if (pages_turned >= 3 && pages_turned <= 4) {
-				_page.enemy = enemy_find_by_name(choose("Thug", "Corsair Gunner", "Deckhand"));
+				_node.enemy = enemy_find_by_name(choose("Thug", "Corsair Gunner", "Deckhand"));
 			}
 			if (pages_turned >= 5) {
-				_page.enemy = enemy_find_by_name(choose("Thug", "Corsair Gunner"));
+				_node.enemy = enemy_find_by_name(choose("Thug", "Corsair Gunner"));
 			}
 		} else if (_page.type == NODE_TYPE.BOSS) {
-			_page.enemy = enemy_find_by_name("Barnacle Titan");
+			_node.enemy = enemy_find_by_name("Barnacle Titan");
 		}
-		room_enemy = _page.enemy;
+		room_enemy = _node.enemy;
 	}
-	room_goto(_page.linked_room);
+	if (last_node != undefined) last_node.disappeared = true;
+	room_goto(_node.linked_room);
 }
 
 function draw_dotted_path(page, n, num_nodes, node_x, node_y) {
@@ -171,11 +239,19 @@ function draw_dotted_path(page, n, num_nodes, node_x, node_y) {
 
 	/// Measure total path length
 	var len = path_get_length(_path);
+	
+	var all_nodes_cleared = true;
+	for (var c = 0; c < page.num_nodes; c++) {
+		if (page.nodes[| c].cleared == false) {
+			all_nodes_cleared = false;
+			break;
+		}
+	}
 
 	/// Dot spacing
-	var spacing = 11;
-	var radius  = 3;
-	var color   = choices_locked ? c_white : c_black;
+	var spacing = 12;
+	var radius  = 4;
+	var color   = choices_locked || all_nodes_cleared ? c_white : c_black;
 
 
 	/// March along actual distance
@@ -186,7 +262,7 @@ function draw_dotted_path(page, n, num_nodes, node_x, node_y) {
 	    var yy = path_get_y(_path, t);
     
 	    draw_set_color(color);
-	    draw_circle(xx, yy, radius, false);
+		if (xx > boat_data.x) draw_circle(xx, yy, radius, false);
 	}
 	
 	//// For debugging
@@ -209,16 +285,46 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	} else {
 		_scale = page_scale[| _index];
 	}
+	
+	/// at the top of draw_page, right after you receive _page
+	if (!is_struct(_page) || !variable_struct_exists(_page, "num_nodes")) {
+	    show_debug_message("BAD PAGE: missing num_nodes");
+
+	    show_debug_message("TYPE: " + typeof(_page));
+    
+	    if (is_struct(_page)) {
+	        var keys = variable_struct_get_names(_page);
+	        show_debug_message("FIELDS: " + string(keys));
+	    } else {
+	        show_debug_message("VALUE: " + string(_page));
+	    }
+
+	    show_debug_message("FULL PAGE LIST: " + ds_list_write(pages_shown));
+
+	    return false; // or exit; but don't fall through to the for-loop
+	}
+
+	
+	var all_nodes_cleared = true;
+	for (var n = 0; n < _page.num_nodes; n++) {
+		if (_page == undefined || _page.nodes == undefined) {
+		} else {
+			if (_page.nodes[| n].cleared == false) {
+				all_nodes_cleared = false;
+				break;
+			}
+		}
+	}
 		
 	var _sprite = _locked ? sMapParchmentEmpty : sMapParchment;
-	var _alpha = choices_locked ? 0.0 : 1.0;
-	var _blend = page.chosen ? c_black : c_white;
+	var _alpha = choices_locked || all_nodes_cleared ? 0.0 : 1.0;
+	var _blend = !page.chosen || all_nodes_cleared ? c_white : c_black;
 	
 	var page_width = sprite_get_width(_sprite);
 	var page_height = sprite_get_height(_sprite);
 		
-	var pages_hover = !_locked * !page.chosen * mouse_hovering(page_x, page_y, page_width, page_height, true);
-	_scale = lerp(_scale, pages_hover ? 1.1 : 1.0, 0.2);
+	var pages_hover = (!_locked * !page.chosen * mouse_hovering(page_x, page_y, page_width, page_height, true));
+	_scale = lerp(_scale, pages_hover ? 1.2 : 1.0, 0.2);
 		
 	if (_shadow) draw_sprite_ext(_sprite, page.index, page_x + 20, page_y + 20, _scale * 0.98,  _scale * 0.98, 0, c_black, 0.5);
 	draw_sprite_ext(_sprite, page.index, page_x, page_y, _scale,  _scale, 0, _blend, _alpha);
@@ -237,9 +343,9 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 		var num_nodes = ds_list_size(page.nodes);
 			
 		switch (page.layout) {
-			case "vertical":
-				node_x[n+1] = page_x;
-				node_y[n+1] = node_y[n] + paper_h/(num_nodes*1.5);
+			case "horizontal":
+				node_x[n+1] = node_x[n] + paper_w/(num_nodes*1.75) - (n == 0 ? page.margin.left/2 : 0);
+				node_y[n+1] = page_y + (3-n * paper_h/5);
 			break;
 			case "diagonal-down":
 				node_x[n+1] = node_x[n] + paper_w/(num_nodes*1.75) - (n == 0 ? page.margin.left/2 : 0);
@@ -262,38 +368,57 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 			page.map_connection_out.y = node_y[num_nodes + 1];
 		}
 			
-		draw_dotted_path(page, n, num_nodes, node_x, node_y);
-			
+		if (!choices_locked) {
+			draw_dotted_path(page, n, num_nodes, node_x, node_y);
+		}
 	}
 		
 	// Draw icons on top
 	for (var n = 0; n < ds_list_size(page.nodes); n++) {
 		var node = page.nodes[| n];
-		//draw_set_color(make_colour_rgb(248, 226, 199));
-		//draw_set_alpha(1.0);
-		//draw_circle(node_x[n+1], node_y[n+1], sprite_get_width(sMapIcon) * 0.6, false);
-		if (!choices_locked) {
-			if (!_locked) {
-				draw_sprite_ext(sMapIcon, node.subimg, node_x[n+1], node_y[n+1], _scale, _scale, 0, _blend, 1.0);
-			} else if _locked {
-				draw_sprite_ext(sMapIcon, node.subimg, node_x[n+1], node_y[n+1], 1, 1, 0, _blend, 1.0);
-			}
-		} else {
-			var _alph = node.cleared ? 0.2 : 1.0;
-			var node_hover = !node.cleared * mouse_hovering( node_x[n+1], node_y[n+1], sprite_get_width(sMapIcon) * node.scale, sprite_get_height(sMapIcon) * node.scale, true);
-			node.scale = lerp(node.scale, node_hover ? 1.5 : 1.0, 0.2);
-			draw_sprite_ext(sMapIcon, node.subimg, node_x[n+1], node_y[n+1], node.scale, node.scale, 0, _blend, _alph);
+		
+		node.x = node_x[n+1] + (node_drift * node.cleared);
+		node.y = node_y[n+1];
+		
+		if (node.x < -30) node.disappeared = true;
+	
+		if (!node.disappeared) {
+			var _alph = !choices_locked || node == next_node ? 1.0 : (node.cleared ? 1.0 : 0.75);
+			if (!choices_locked) {
+				if (!_locked) {
+					draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, _scale, _scale, 0, _blend, _alph);
+				} else if _locked {
+					draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, 1, 1, 0, _blend, _alph);
+				}
+			} else {
+				var node_hover = node == next_node ? mouse_hovering( node.x, node.y, sprite_get_width(sMapIcon) * node.scale, sprite_get_height(sMapIcon) * node.scale, true) : false;
 			
-			if (node_hover) {
-				if (mouse_check_button_pressed(mb_left)) {
-					enter_node(node);
-					node.cleared = true;
+				draw_set_color(c_black);
+				draw_set_halign(fa_left);
+				draw_set_font(ftDefault);
+			
+				node.scale = lerp(node.scale, node_hover ? 1.5 : 1.0, 0.2);
+				draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale, node.scale, 0, _blend, _alph);
+			
+				if (node_hover) {
+					if (mouse_check_button_pressed(mb_left) && node_to_move_to == undefined) {
+						node_to_move_to = node;
+						node_to_move_to.y += 10;
+						map_offset.x += boat_data.x - node_to_move_to.x;
+						map_offset.y += boat_data.y - node_to_move_to.y;
+					}
 				}
 			}
+		
+			if (node.cleared) draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale*1.2, node.scale*1.2, 0, c_green, _alph);
 		}
 	}
 	
 	if (page.locked) draw_sprite_ext(sRewardChain, 0, page_x, page_y, 1.4, 1.4, 0, c_white, 1.0);
+	
+	if (_index != -1) {
+	    page_scale[| _index] = _scale;
+	}
 	
 	return pages_hover;
 }
@@ -301,14 +426,57 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 
 /// @func clone_page(_page_struct)
 function clone_page(_src) {
-    var c = variable_clone(_src); // shallow clone of base-level fields
+    var c = {
+        index: _src.index,
+        num_nodes: _src.num_nodes,
+        nodes: ds_list_create(),
+        layout: _src.layout,
+        map_connection_in: { x: _src.map_connection_in.x, y: _src.map_connection_in.y },
+        map_connection_out: { x: _src.map_connection_out.x, y: _src.map_connection_out.y },
+        margin: {
+            left: _src.margin.left,
+            right: _src.margin.right,
+            top: _src.margin.top,
+            bottom: _src.margin.bottom
+        },
+        chosen: false,
+        locked: false,
+        cleared: false,
+        x: _src.x,
+        y: _src.y,
+        y_offset: _src.y_offset,
+    };
+
+    // Deep clone nodes (struct only)
+    for (var i = 0; i < _src.num_nodes; i++) {
+        var old_node = _src.nodes[| i];
+        var new_node = clone_node_static(old_node); // important
+        ds_list_add(c.nodes, new_node);
+    }
 
     return c;
 }
 
-/// @func clone_node(_node_struct)
-function clone_node(_src) {
-    var c = variable_clone(_src); // shallow clone of base-level fields
+/// @func clone_node_static(_src)
+/// Creates a safe node copy for map storage.
+/// Does NOT clone nested combat data.
+function clone_node_static(_src) {
 
-    return c;
+    return {
+        type: _src.type,
+        subimg: _src.subimg,
+        text: _src.text,
+
+        // Keep room link so we know where to go
+        linked_room: _src.linked_room,
+
+        // Visual state
+        scale: 1.0,        // reset to sane default
+        cleared: false,    // reset for overworld logic
+        disappeared: false,
+
+        // Position set later by draw_page
+        x: 0,
+        y: 0,
+    };
 }

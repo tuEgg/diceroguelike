@@ -181,7 +181,17 @@ function define_items() {
 		rarity: "common",
 		effects: {
 			trigger: "on_played_to_slot",
-			flags: true, // true means no flags, otherwise it's a function
+			flags: function() {
+				var dice_exist = true;
+				if (room != rmCombat) {
+					dice_exist = false;
+				} else if (room == rmCombat && oCombat.show_rewards) {
+					dice_exist = false;
+				} else {
+					dice_exist = true;
+				}
+				return dice_exist;
+			},
 			modify: function(_context) {
 				// give this specific slot +1 to all rolls next turn
 				_context._slot.pre_buff_amount = _context._slot.bonus_amount;
@@ -197,7 +207,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 1,
 		name: "Bilge-Purge Flask",
-		description: "Completely empty a slot, ejecting and discarding all dice within it",
+		description: "Completely empty a slot, ejecting and discarding all dice within it and gaining that many dice to play this turn.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -206,10 +216,21 @@ function define_items() {
 		rarity: "common",
 		effects: {
 			trigger: "on_played_to_slot",
-			flags: true, // true means no flags, otherwise it's a function
+			flags: function(_context) {
+				var dice_exist = true;
+				if (ds_list_size(_context._slot.dice_list) == 0) {
+					dice_exist = false;
+					throw_error("This slot is empty", "Try playing this to a slot with dice in it");
+				}
+				return dice_exist;
+			},
 			modify: function(_context) {
 				// eject dice in this slot
+				var num_dice = ds_list_size(_context._slot.dice_list);
 				eject_dice_in_slot(_context._slot, oCombat.slot_positions[| _context._ind], true);
+				oCombat.dice_allowed_this_turn_bonus = num_dice;
+				
+				particle_emit( mouse_x, mouse_y, "burst", c_aqua);
 			}
 		},
 		price: 25
@@ -232,7 +253,13 @@ function define_items() {
 			flags: function() {
 				var dice_exist = true;
 				if (instance_number(oDice) == 0) dice_exist = false;
-				
+				if (room != rmCombat) {
+					dice_exist = false;
+				} else if (room == rmCombat && oCombat.show_rewards) {
+					dice_exist = false;
+				} else {
+					dice_exist = true;
+				}
 				return dice_exist;
 			},
 			modify: function(_context) {
@@ -270,7 +297,17 @@ function define_items() {
 		rarity: "uncommon",
 		effects: {
 			trigger: "on_clicked",
-			flags: true,
+			flags: function() {
+				var dice_exist = true;
+				if (room != rmCombat) {
+					dice_exist = false;
+				} else if (room == rmCombat && oCombat.show_rewards) {
+					dice_exist = false;
+				} else {
+					dice_exist = true;
+				}
+				return dice_exist;
+			},
 			modify: function(_context) {
 				// select a random die in play and upgrade it
 				oCombat.dice_allowed_this_turn_bonus += 1;
@@ -300,7 +337,13 @@ function define_items() {
 			flags: function() {
 				var dice_exist = true;
 				if (instance_number(oDice) == 0) dice_exist = false;
-				
+				if (room != rmCombat) {
+					dice_exist = false;
+				} else if (room == rmCombat && oCombat.show_rewards) {
+					dice_exist = false;
+				} else {
+					dice_exist = true;
+				}
 				return dice_exist;
 			},
 			modify: function(_context) {
@@ -343,7 +386,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 5,
 		name: "Crow's Nest Clarity",
-		description: "Instantly gain 12 Intel",
+		description: "Gain 12 Intel for next turn",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -352,7 +395,17 @@ function define_items() {
 		rarity: "common",
 		effects: {
 			trigger: "on_clicked",
-			flags: true,
+			flags: function() {
+				var dice_exist = true;
+				if (room != rmCombat) {
+					dice_exist = false;
+				} else if (room == rmCombat && oCombat.show_rewards) {
+					dice_exist = false;
+				} else {
+					dice_exist = true;
+				}
+				return dice_exist;
+			},
 			modify: function(_context) {
 				with (oCombat) {
 					var num = 12;
@@ -380,7 +433,17 @@ function define_items() {
 		rarity: "common",
 		effects: {
 			trigger: "on_clicked",
-			flags: true,
+			flags: function() {
+				var dice_exist = true;
+				if (room != rmCombat) {
+					dice_exist = false;
+				} else if (room == rmCombat && oCombat.show_rewards) {
+					dice_exist = false;
+				} else {
+					dice_exist = true;
+				}
+				return dice_exist;
+			},
 			modify: function(_context) {
 				apply_buff(global.player_debuffs, oRunManager.buff_might, 1, 1);
 			}
@@ -402,7 +465,17 @@ function define_items() {
 		rarity: "common",
 		effects: {
 			trigger: "on_clicked",
-			flags: true,
+			flags: function() {
+				var dice_exist = true;
+				if (room != rmCombat) {
+					dice_exist = false;
+				} else if (room == rmCombat && oCombat.show_rewards) {
+					dice_exist = false;
+				} else {
+					dice_exist = true;
+				}
+				return dice_exist;
+			},
 			modify: function(_context) {
 				apply_buff(global.player_debuffs, oRunManager.buff_balance, 1, 1);
 			}
@@ -410,6 +483,44 @@ function define_items() {
 		price: 35
 	}
 	ds_list_add(global.master_item_list, clone_item(item_consumable_captains_brew));
+	
+	item_consumable_navigators_brew = {
+		sprite: sConsumables,
+		index: 8,
+		name: "Navigator's Brew",
+		description: "Draw 3 dice",
+		type: "consumable",
+		dragging: false,
+		distribution: "",
+		taken: false,
+		amount: 1,
+		rarity: "common",
+		effects: {
+			trigger: "on_clicked",
+			flags: function() {
+				var dice_exist = true;
+				if (room != rmCombat && room != rmWorkbench) {
+					dice_exist = false;
+					if (room == rmEvent && instance_number(oDice) != 0) {
+						dice_exist = true;
+					}
+				} else if (room == rmCombat && oCombat.show_rewards) {
+					dice_exist = false;
+				} else {
+					dice_exist = true;
+				}
+				return dice_exist;
+			},
+			modify: function(_context) {
+				with (oRunManager) {
+					dice_to_deal = 3;
+					is_dealing_dice = true;
+				}
+			}
+		},
+		price: 35
+	}
+	ds_list_add(global.master_item_list, clone_item(item_consumable_navigators_brew));
 }
 
 /// @func clone_item(_item_struct)
@@ -422,8 +533,6 @@ function clone_item(_src)
 
 function trigger_item_effects(_item, _event, _data) {
     if (is_undefined(_item.effects)) return;
-	
-	if (!_item.effects.flags) return;
 
     if (is_array(_item.effects)) {
         for (var e = 0; e < array_length(_item.effects); e++) {
