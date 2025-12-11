@@ -2,10 +2,10 @@ draw_set_alpha(1);
 draw_set_color(c_white);
 
 attack_type_colours = {
-    "ATK":  c_red,
-    "BLK":  c_aqua,
-    "HEAL": c_lime,
-	"INTEL": make_colour_rgb(210, 210, 0),
+    "ATK":  global.color_attack,
+    "BLK":  global.color_block,
+    "HEAL": global.color_heal,
+	"INTEL": global.color_intel,
 };
 
 // --- Split the incoming type string

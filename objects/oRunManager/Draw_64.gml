@@ -105,12 +105,14 @@ for (var i = 0; i < array_length(items); i++) {
 		// Add potion dragging functionality
 		if (items[i].type == "consumable") {
 
-			if (items_hover[i] && mouse_check_button(mb_left)) {
+			if (items_hover[i] && mouse_check_button(mb_left) && !holding_item) {
 				items[i].dragging = true;
+				holding_item = true;
 			}
 
 			if (items[i].dragging and mouse_check_button_released(mb_left)) {
 				items[i].dragging = false;
+				holding_item = false;
 			}
 			
 			if (items[i].dragging && mouse_check_button_pressed(mb_left)) {
@@ -122,6 +124,7 @@ for (var i = 0; i < array_length(items); i++) {
 			}
 
 			if (items_hover[i] && mouse_check_button(mb_right)) {
+				// delete item - need to add confirmation window to this
 				items[i] = undefined;
 			}
 		}

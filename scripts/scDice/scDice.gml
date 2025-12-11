@@ -107,7 +107,7 @@ function generate_dice_bag() {
 	    1, 6, "BLK", "BLK", "", "Anchor die",
 	    "Stowaway: +4 block if not used.",
 		"common",
-		80,
+		60,
 	    [
 	        {
 	            trigger: "on_not_used",
@@ -124,12 +124,12 @@ function generate_dice_bag() {
 	    1, 4, "ATK", "ATK", "", "Slipstream die",
 	    "Stowaway: Play 1 extra dice next turn.",
 		"common",
-		90,
+		70,
 	    [
 	        {
 	            trigger: "on_not_used",
 	            modify: function(_context) {
-	                apply_buff(global.player_debuffs, oRunManager.buff_reserve, 1, 1);
+	                apply_buff(global.player_debuffs, oRunManager.buff_reserve, 1, 1, oRunManager.buff_reserve.remove_next_turn, { source: "player", index: -1 });
 	            }
 	        }
 	    ]
@@ -141,7 +141,7 @@ function generate_dice_bag() {
 	    1, 2, "HEAL", "HEAL BLK", "", "Defensive coin",
 	    "Coin. Favourite. Multitype: Can create HEAL and BLK slots.",
 		"rare",
-		130,
+		100,
 	    [
 	        {
 	            trigger: "before_dice_dealt",
@@ -158,7 +158,7 @@ function generate_dice_bag() {
 	    1, 6, "ATK", "ATK", "", "Tidebreaker die",
 	    "Followthrough: If previous slot was BLK, deal +2 damage to attacking rolls.",
 		"common",
-		100,
+		80,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -177,7 +177,7 @@ function generate_dice_bag() {
 	    1, 2, "BLK", "BLK", "", "Power penny",
 	    "Coin. +1 bonus to this coin for the number of dice in this slot.",
 		"common",
-		100,
+		80,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -194,7 +194,7 @@ function generate_dice_bag() {
 	    1, 4, "None", "None", "", "Invisible die",
 	    "When Played: draw 1 dice and play +1 dice this turn.",
 		"common",
-		80,
+		60,
 	    [
 	        {
 	            trigger: "on_die_played",
@@ -214,7 +214,7 @@ function generate_dice_bag() {
 	    1, 4, "BLK", "BLK", "", "Surge die",
 	    "+1 bonus to this dice for every subsequent slot.",
 		"uncommon",
-		100,
+		70,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -231,7 +231,7 @@ function generate_dice_bag() {
 	    1, 2, "ATK", "ATK", "", "Kill coin",
 	    "Coin. +3 bonus if placed in the last slot in your queue.",
 		"uncommon",
-		90,
+		70,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -246,9 +246,9 @@ function generate_dice_bag() {
 	// Tidepusher die
 	global.die_tidepusher = make_die_struct(
 	    1, 4, "HEAL", "HEAL", "", "Tidepusher die",
-	    "Exclusive. If this die rolls a 4, gain 1 more.",
+	    "Exclusive. If this die rolls a 4, heal 1 more.",
 		"rare",
-		140,
+		120,
 	    [
 	        {
 	            trigger: "after_roll_die",
@@ -265,17 +265,20 @@ function generate_dice_bag() {
 	// Bulwark die
 	global.die_bulwark = make_die_struct(
 	    1, 8, "BLK", "BLK", "", "Bulwark die",
-	    "Followthrough: If previous slot was block, deal this die's minimum roll as damage to all enemies.",
+	    "Followthrough: If previous slot was block, deal double this die's minimum roll as damage to all enemies.",
 		"rare",
-		120,
+		100,
 	    [
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._p_slot_type == "BLK") {
 	                    with (oCombat) {
-							// Deal flat damage to the enemy - LATER we will upgrade this to target all enemies
-							process_action("enemy", 0, _context.min_roll, 0, "player", "ATK", undefined, undefined, 0);
+							// Deal flat damage to all enemies, we have to run this backwards in case any enemies die during this roll
+							for (var i = oCombat.enemies_left_this_combat-1; i >= 0 ; i--) {
+								process_action(oCombat.room_enemies[| i], 0, _context.min_roll * 2, 0, "player", "ATK", undefined, undefined, 0);
+								show_debug_message("Dealing damage to enemy index: " + string(i));
+							}
 							show_debug_message("dealing damage to all enemies");
 						}
 	                }
@@ -290,7 +293,7 @@ function generate_dice_bag() {
 	    1, 8, "ATK", "ATK", "", "Crescendo die",
 	    "Increase this die's minimum roll by 1 (up to 4) each time it rolls (resets each combat).",
 		"rare",
-		140,
+		110,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -307,7 +310,7 @@ function generate_dice_bag() {
 	    1, 6, "None", "None", "", "Squall die",
 	    "If this die rolls 5 or higher, draw a die.",
 		"common",
-		100,
+		80,
 	    [
 	        {
 	            trigger: "after_roll_die",
@@ -326,7 +329,7 @@ function generate_dice_bag() {
 	    1, 4, "BLK", "BLK", "", "Reed snap die",
 	    "If this die rolls a 4, gain 2 block.",
 		"common",
-		80,
+		60,
 	    [
 	        {
 	            trigger: "after_roll_die",
@@ -348,7 +351,7 @@ function generate_dice_bag() {
 	    1, 6, "ATK", "ATK", "", "Blood Reef die",
 	    "If this deals damage, gain +2 damage but lose 1 HP.",
 		"rare",
-		130,
+		110,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -370,7 +373,7 @@ function generate_dice_bag() {
 	    1, 4, "ATK", "ATK", "", "Muzzle die",
 	    "Followthrough: +1 bonus to this dice for every previous slot",
 		"uncommon",
-		110,
+		90,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -387,7 +390,7 @@ function generate_dice_bag() {
 	    1, 6, "None", "None", "", "Bilge die",
 	    "Sticky. If this roll is even, heal 2.",
 		"rare",
-		140,
+		110,
 	    [
 	        {
 	            trigger: "after_roll_die",
@@ -409,7 +412,7 @@ function generate_dice_bag() {
 	    1, 4, "None", "None", "", "Sticky die",
 	    "Sticky.",
 		"uncommon",
-		100,
+		80,
 	);
 	ds_list_add(global.master_dice_list, clone_die(global.die_sticky, ""));
 	
@@ -418,7 +421,7 @@ function generate_dice_bag() {
 	    1, 4, "BLK", "BLK", "", "Fogcaller Die",
 	    "Followthrough: Draw a dice if the previous slot contained a coin.",
 		"common",
-		90,
+		70,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -449,7 +452,7 @@ function generate_dice_bag() {
 	    1, 6, "None", "None", "", "Deepdiver Die",
 	    "When played: discard all remaining dice in play then draw 2 more.",
 		"uncommon",
-		100,
+		80,
 	    [
 	        {
 	            trigger: "on_die_played",
@@ -471,7 +474,7 @@ function generate_dice_bag() {
 	    1, 4, "INTEL", "INTEL", "", "Inteli Die",
 	    "Gain +1 for each unique action in the action queue",
 		"uncommon",
-		110,
+		80,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -499,7 +502,7 @@ function generate_dice_bag() {
 	    1, 6, "BLK", "BLK INTEL", "", "Deflect Die",
 	    "Multitype.",
 		"uncommon",
-		120,
+		100,
 	);
 	ds_list_add(global.master_dice_list, clone_die(global.die_deflect, ""));
 
@@ -915,10 +918,10 @@ function define_dice_distributions(_die_dist, _min_roll, _max_roll, _array) {
 function get_dice_color(_action) {
 	var _col;
 	switch (_action) {
-		case "ATK": _col = c_red; break;
-		case "BLK": _col = c_aqua; break;
-		case "HEAL": _col = c_lime; break;
-		case "INTEL": _col = make_color_rgb(210,210,0); break;
+		case "ATK": _col = global.color_attack; break;
+		case "BLK": _col = global.color_block; break;
+		case "HEAL": _col = global.color_heal; break;
+		case "INTEL": _col = global.color_intel; break;
 		
 		default: _col = c_white;
 	}

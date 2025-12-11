@@ -1,9 +1,10 @@
+time++;
+
 if (room == rmMap) {	
 	var gui_w = display_get_gui_width();
 	var gui_h = display_get_gui_height();
 	
 	// Rock the boat
-	time++;
 	boat_data.y += sin(time * 0.05) * 0.4;
 	//map_position.y += sin(time * 0.05) * 0.4;
 	boat_data.angle += cos(time * 0.05) * 0.2;
@@ -43,7 +44,27 @@ if (room == rmMap) {
 	draw_set_alpha(1.0);
 
 	// Draw the pages
-	if (!choices_locked) {
+	if (choices_locked) {
+		pages_alpha = lerp(pages_alpha, 0, 0.4);
+	}
+	
+	if (pages_alpha > 0 && ds_list_size(pages_shown) > 0) {
+		
+		var bg_w = 900;
+		var bg_h = 850;
+		var bg_x = display_get_gui_width() * 3/4 - bg_w/2;
+		var bg_y = display_get_gui_height() / 2 - bg_h/2 + 25;
+		
+		draw_set_color(c_black);
+		draw_set_alpha(0.7 * pages_alpha);
+		draw_roundrect(bg_x, bg_y, bg_x + bg_w, bg_y + bg_h, false);
+		draw_set_alpha(1.0);
+		
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_set_font(ftBigger);
+		draw_outline_text("What happened next?", c_black, c_white, 3, display_get_gui_width() * 3/4, 140, 1, pages_alpha, 0);
+		
 		var page_count = ds_list_size(pages_shown);
 	
 		for (var p = 0; p < page_count; p++) {
@@ -72,7 +93,7 @@ if (room == rmMap) {
 					var _page_clone = clone_page(page);
 					_page_clone.x = drawn_page_x;
 					_page_clone.y = drawn_page_y;
-					_page_clone.y_offset = _page_clone.y - final_map_y
+					_page_clone.y_offset = _page_clone.y - final_map_y;
 					_page_clone.x_offset = _page_clone.x - final_map_x;
 				
 					// Add this locked in page to chosen_pages
@@ -125,17 +146,17 @@ if (room == rmMap) {
 		draw_set_font(ftBigger);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
-		draw_sprite_ext(sButtonSmall, 0, display_get_gui_width() * 3/4, gui_h - 100, embark_scale*1.0, embark_scale*0.8, 0, exit_col, 1.0);
-		draw_outline_text("Embark", c_black, c_white, 2, display_get_gui_width() * 3/4, gui_h - 100, 1, 1, 0);
+		draw_sprite_ext(sButtonSmall, 0, display_get_gui_width() * 3/4, gui_h - 100, embark_scale*1.0, embark_scale*0.8, 0, exit_col, pages_alpha);
+		draw_outline_text("Embark", c_black, c_white, 2, display_get_gui_width() * 3/4, gui_h - 100, 1, pages_alpha, 0);
 	} else {
 		ds_list_clear(pages_shown);
+		pages_alpha = 1;
 	}
 	
 	for (var p = 0; p < ds_list_size(chosen_pages); p++) {
 		var page = chosen_pages[| p];
 		page.x = final_map_x + page.x_offset;
 		page.y = final_map_y + page.y_offset;
-		show_debug_message("Page: "+string(p)+" nodes: "+string(page.nodes));
 		draw_page(page, page.x, page.y, -1, false, true);
 	}
 	

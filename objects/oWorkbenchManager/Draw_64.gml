@@ -176,7 +176,7 @@ if	(workbench_slot[2].dice != undefined && instance_number(oDice) == 0 && instan
 
 var hover_exit = mouse_hovering(gui_w - 150, gui_h - 200, exit_scale*sprite_get_width(sButtonSmall)*0.75, exit_scale*sprite_get_height(sButtonSmall)*0.75, true);
 
-if (hover_exit && !oRunManager.is_dealing_dice && exit_col == c_red) {
+if (hover_exit && !oRunManager.is_dealing_dice && exit_col == c_red && !oRunManager.holding_item) {
 	if (mouse_check_button_pressed(mb_left)) {
 		exiting = true;
 	}

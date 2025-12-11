@@ -8,38 +8,24 @@ function array_contains(_array, _value) {
 }
 
 /// @function choose_weighting(...)
-/// @description Returns one of the given values based on their relative weights.
-/// Example:
-/// node_type = choose_weighting("combat", 0.8, "event", 0.2);
-///
-/// You can add as many as you want:
-/// reward = choose_weighting("credits", 0.6, "relic", 0.3, "heal", 0.1);
 
-function choose_weighting() {
-    var arg_count = argument_count;
+function choose_weighting_list(list) {
+    var total = 0;
 
-    if (arg_count < 2 || arg_count mod 2 != 0) {
-        show_debug_message("⚠️ choose_weighting: must have even number of arguments (value, weight pairs)");
-        return undefined;
+    // sum weights
+    for (var i = 0; i < array_length(list); i++) {
+        total += list[i].weight;
     }
 
-    var total_weight = 0;
-    for (var i = 1; i < arg_count; i += 2) {
-        total_weight += argument[i];
-    }
-
-    var roll = random(total_weight);
+    var roll = random(total);
     var cumulative = 0;
 
-    for (var i = 0; i < arg_count; i += 2) {
-        var val = argument[i];
-        var weight = argument[i + 1];
-        cumulative += weight;
-        if (roll <= cumulative) return val;
+    for (var i = 0; i < array_length(list); i++) {
+        cumulative += list[i].weight;
+        if (roll <= cumulative) return list[i].value;
     }
 
-    // fallback (should never happen)
-    return argument[0];
+    return list[0].value; // fallback
 }
 
 /// @function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rext)
@@ -424,10 +410,25 @@ function mouse_hovering(_x, _y, _width, _height, _centered) {
 	var mx = device_mouse_x_to_gui(0);
 	var my = device_mouse_y_to_gui(0);
 	
+	//draw_set_colour(c_black);
+	//draw_set_alpha(0.2);
+	
 	if (!_centered) {
-		if (mx < _x + _width && mx > _x && my < _y + _height && my > _y) return true;
+		if (mx < _x + _width && mx > _x && my < _y + _height && my > _y) {
+			if (debug_mode) {
+				//draw_rectangle(_x, _y, _x + _width, _y + _height, false);
+				//draw_set_alpha(1.0);
+			}
+			return true;
+		}
 	} else {
-		if (mx < _x + _width/2 && mx > _x - _width/2 && my < _y + _height/2 && my > _y - _height/2) return true;
+		if (mx < _x + _width/2 && mx > _x - _width/2 && my < _y + _height/2 && my > _y - _height/2) {
+			if (debug_mode) {
+				//draw_rectangle(_x - _width/2, _y - _height/2, _x + _width/2, _y + _height/2, false);
+				//draw_set_alpha(1.0);
+			}
+			return true;
+		}
 	}
 	
 	return false;

@@ -11,14 +11,22 @@ enum GUI_LAYOUT {
 	BAG_Y					= 40,
 }
 
+// color definitions
+global.color_intel = make_color_rgb(210, 210, 0);
+global.color_attack = c_red;
+global.color_block = make_color_rgb(30, 160, 255);
+global.color_heal = c_lime;
+global.color_debuff = c_white;
+global.color_unknown = c_dkgray;
+
 randomise();
-credits = 0;
+credits = 50;
 generate_dice_bag();
 define_buffs_and_debuffs();
 enemy_definitions();
 define_items();
 
-global.player_max_hp = 30;
+global.player_max_hp = 40;
 global.player_hp = global.player_max_hp;
 global.player_alignment = 50;
 global.hand_size = 5;
@@ -108,8 +116,9 @@ items_hover = [];
 items_hover_scale = [];
 has_space_for_item = true;
 
-items[0] = item_consumable_crows_nest_clarity;
-items[1] = item_consumable_navigators_brew;
+items[0] = clone_item(item_consumable_crows_nest_clarity);
+items[1] = clone_item(item_consumable_crows_nest_clarity);
+items[2] = clone_item(item_consumable_crows_nest_clarity);
 	
 for (var i = 0; i < max_items; i++) {
 	array_push(items_hover, 0);
@@ -139,14 +148,6 @@ bonus_dice_next_combat = 0;
 holding_item = false; // used for holding the hammer in the workbench, will eventually change cursor type, right now just blocks inputs in that room. Could also do it for dice.
 show_consumables_chance = 30; // percentage chance to show consumables after any given fight
 
-// color definitions
-global.color_intel = make_color_rgb(210, 210, 0);
-global.color_attack = c_red;
-global.color_block = c_aqua;
-global.color_heal = c_lime;
-global.color_debuff = c_white;
-global.color_unknown = c_dkgray;
-
 // player intel 
 global.player_intel_data = ds_list_create();
 ds_list_add(global.player_intel_data, {
@@ -164,7 +165,7 @@ ds_list_add(global.player_intel_data, {
 ds_list_add(global.player_intel_data, {
 	requirement: 6,
 	name: "II",
-	description: "All enemy intents revealed.",
+	description: "All enemy intents revealed and can freely change targets.",
 	index: 2,
 });
 ds_list_add(global.player_intel_data, {

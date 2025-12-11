@@ -84,6 +84,7 @@
     {"id":{"name":"sDiceIcon","path":"sprites/sDiceIcon/sDiceIcon.yy",},},
     {"id":{"name":"sEndTurn","path":"sprites/sEndTurn/sEndTurn.yy",},},
     {"id":{"name":"sEnemies","path":"sprites/sEnemies/sEnemies.yy",},},
+    {"id":{"name":"sEnemyFocus","path":"sprites/sEnemyFocus/sEnemyFocus.yy",},},
     {"id":{"name":"sHammer","path":"sprites/sHammer/sHammer.yy",},},
     {"id":{"name":"sHealthBar","path":"sprites/sHealthBar/sHealthBar.yy",},},
     {"id":{"name":"sHoverBG","path":"sprites/sHoverBG/sHoverBG.yy",},},

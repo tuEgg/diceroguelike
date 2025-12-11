@@ -1,4 +1,6 @@
 if (delay == 0) {
+	image_alpha = 1.0;
+	
 	switch (phase) {
 	    case "float":
 	        // Basic upward float with gravity

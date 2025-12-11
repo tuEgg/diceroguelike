@@ -178,25 +178,44 @@ function enemy_find_by_name(_name) {
 }
 
 function enter_node(_node) {
-	if (_node.type == NODE_TYPE.COMBAT) {
-		_node.enemy = enemy_find_by_name("Deckhand"); // Should be Deckhand 
-		if (_node.type == NODE_TYPE.COMBAT) { 
-			if (pages_turned >= 1 && pages_turned <= 2) {
-				_node.enemy = enemy_find_by_name(choose("Thug", "Deckhand"));
-			}
-			if (pages_turned >= 3 && pages_turned <= 4) {
-				_node.enemy = enemy_find_by_name(choose("Thug", "Corsair Gunner", "Deckhand"));
-			}
-			if (pages_turned >= 5) {
-				_node.enemy = enemy_find_by_name(choose("Thug", "Corsair Gunner"));
-			}
-		} else if (_page.type == NODE_TYPE.BOSS) {
-			_node.enemy = enemy_find_by_name("Barnacle Titan");
-		}
-		room_enemy = _node.enemy;
-	}
+	
+	get_combat_enemies(_node);
+	
 	if (last_node != undefined) last_node.disappeared = true;
 	room_goto(_node.linked_room);
+}
+
+function get_combat_enemies(_node) {
+	
+	if (_node.type == NODE_TYPE.COMBAT) {
+		// Encounter 1
+		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
+		
+		// Encounter 2
+		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
+		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Barrel o' Fish"));
+		
+		// Encounter 3
+		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Thug"));
+		
+		// Encounter 4
+		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
+		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
+		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
+		
+		// Elite 1
+		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Captain"));
+		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
+		
+		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Captain"));
+		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
+		
+	} else if (_node.type == NODE_TYPE.BOSS) {
+		
+		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Barnacle Titan"));
+	}
+	
+	
 }
 
 function draw_dotted_path(page, n, num_nodes, node_x, node_y) {
@@ -304,7 +323,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	    return false; // or exit; but don't fall through to the for-loop
 	}
 
-	
+	// check to see if we've cleared all the nodes of this map
 	var all_nodes_cleared = true;
 	for (var n = 0; n < _page.num_nodes; n++) {
 		if (_page == undefined || _page.nodes == undefined) {
@@ -317,8 +336,37 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	}
 		
 	var _sprite = _locked ? sMapParchmentEmpty : sMapParchment;
-	var _alpha = choices_locked || all_nodes_cleared ? 0.0 : 1.0;
-	var _blend = !page.chosen || all_nodes_cleared ? c_white : c_black;
+	
+	var _alpha;
+
+	if (all_nodes_cleared) {
+	    _alpha = 0.0;
+	} else if (_sprite == sMapParchmentEmpty && ds_list_size(pages_shown) == 0) {
+		_alpha = 0.0;
+	} else if (choices_locked) {
+	    _alpha = pages_alpha;
+	} else  {
+		_alpha = 1.0;
+	}
+
+	
+	var _blend;
+	var _icon_blend = c_white;
+
+	if (page.chosen && !page.locked) {
+	    // highest priority
+	    _blend = make_color_rgb(80, 180, 90); 
+	}
+	else if (!page.chosen || all_nodes_cleared) {
+	    // either unselected or fully cleared
+	    _blend = c_white;
+	}
+	else {
+	    // selected but has uncleared nodes
+	    _blend = make_color_rgb(30,30,30);
+		_icon_blend = _blend;
+	}
+
 	
 	var page_width = sprite_get_width(_sprite);
 	var page_height = sprite_get_height(_sprite);
@@ -326,8 +374,11 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	var pages_hover = (!_locked * !page.chosen * mouse_hovering(page_x, page_y, page_width, page_height, true));
 	_scale = lerp(_scale, pages_hover ? 1.2 : 1.0, 0.2);
 		
-	if (_shadow) draw_sprite_ext(_sprite, page.index, page_x + 20, page_y + 20, _scale * 0.98,  _scale * 0.98, 0, c_black, 0.5);
-	draw_sprite_ext(_sprite, page.index, page_x, page_y, _scale,  _scale, 0, _blend, _alpha);
+	if (_shadow) draw_sprite_ext(_sprite, page.index, page_x + 20, page_y + 20, _scale * 0.98,  _scale * 0.98, 0, c_black, 0.5 * pages_alpha);
+	
+	var draw_scale = _scale;
+	if (!_shadow) draw_scale = 1;
+	draw_sprite_ext(_sprite, page.index, page_x, page_y, draw_scale,  draw_scale, 0, _blend, _alpha);
 		
 	var paper_w = sprite_get_width(_sprite);
 	var paper_h = sprite_get_height(_sprite);
@@ -383,12 +434,26 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 		if (node.x < -30) node.disappeared = true;
 	
 		if (!node.disappeared) {
-			var _alph = !choices_locked || node == next_node ? 1.0 : (node.cleared ? 1.0 : 0.75);
+			var _alph;
+
+			if (!choices_locked || node == next_node) {
+			    _alph = 1.0;
+			}
+			else if (node.cleared) {
+			    _alph = 1.0;
+			}
+			else if (choices_locked && page.chosen) {
+			    _alph = pages_alpha;
+			}
+			else {
+			    _alph = 0.75;
+			}
+
 			if (!choices_locked) {
 				if (!_locked) {
-					draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, _scale, _scale, 0, _blend, _alph);
+					draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, _scale, _scale, 0, _icon_blend, _alph);
 				} else if _locked {
-					draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, 1, 1, 0, _blend, _alph);
+					draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, 1, 1, 0, _icon_blend, _alph);
 				}
 			} else {
 				var node_hover = node == next_node ? mouse_hovering( node.x, node.y, sprite_get_width(sMapIcon) * node.scale, sprite_get_height(sMapIcon) * node.scale, true) : false;
@@ -398,7 +463,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 				draw_set_font(ftDefault);
 			
 				node.scale = lerp(node.scale, node_hover ? 1.5 : 1.0, 0.2);
-				draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale, node.scale, 0, _blend, _alph);
+				draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale, node.scale, 0, _icon_blend, _alph);
 			
 				if (node_hover) {
 					if (mouse_check_button_pressed(mb_left) && node_to_move_to == undefined) {
@@ -414,7 +479,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 		}
 	}
 	
-	if (page.locked) draw_sprite_ext(sRewardChain, 0, page_x, page_y, 1.4, 1.4, 0, c_white, 1.0);
+	if (page.locked) draw_sprite_ext(sRewardChain, 0, page_x, page_y, 1.4, 1.4, 0, c_white, pages_alpha);
 	
 	if (_index != -1) {
 	    page_scale[| _index] = _scale;

@@ -4,12 +4,6 @@ gui_h = display_get_gui_height();
 var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
 
-// Draw enemy sprite
-draw_sprite_ext(sEnemies, 0, global.enemy_x, global.enemy_y + 80, 1, 1, 0, c_white, enemy_alpha);
-
-// Draw player sprite
-draw_sprite_ext(sEnemies, 0, global.player_x, global.player_y + 80, 1, 1, 0, c_white, 1.0);
-
 var tooltip = "";
 
 var aq_list_size = ds_list_size(action_queue);
@@ -37,12 +31,13 @@ draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
 dice_played_scale = lerp(dice_played_scale, 1.0, 0.05);
 dice_played_color = merge_colour(dice_played_color, c_white, 0.05);
-var played_dice_string = string(dice_played) + "/" + string(dice_allowed_per_turn);
-draw_outline_text(played_dice_string, c_black, dice_played_color, 2, aq_start_x - aq_tile_w/2 - aq_tile_padding + 12, aq_start_y + aq_tile_w/2 - 40, dice_played_scale, 1.0, 0);
+var played_dice_string = string(dice_allowed_per_turn - dice_played);
+draw_outline_text(played_dice_string, c_black, dice_played_color, 2, aq_start_x - aq_tile_w/2 - aq_tile_padding - 8, aq_start_y + aq_tile_w/2 - 40, dice_played_scale, 1.0, 0);
+draw_sprite_ext(sDice, 3, aq_start_x - aq_tile_w/2 - aq_tile_padding + 32, aq_start_y + aq_tile_w/2 - 40, 0.5, 0.5, 0, c_white, 1.0);
 
-var played_dice_hover = mouse_hovering(aq_start_x - aq_tile_w/2 - aq_tile_padding + 12, aq_start_y + aq_tile_w/2 - 40, string_width(played_dice_string), string_height(played_dice_string), true);
+var played_dice_hover = mouse_hovering(aq_start_x - aq_tile_w/2 - aq_tile_padding + 12, aq_start_y + aq_tile_w/2 - 40, 100, 50, true);
 
-if (played_dice_hover && !show_rewards) queue_tooltip(mouse_x, mouse_y, "Played dice", "You have played " + played_dice_string + " total dice this turn");
+if (played_dice_hover && !show_rewards) queue_tooltip(mouse_x, mouse_y, "Played dice", "You can play " + string(dice_allowed_per_turn - dice_played) + " more dice this turn");
 
 // --- Play Button ---
 var btn_x = aq_start_x - 150;
@@ -156,16 +151,24 @@ for (var i = 0; i < aq_list_size; i++) {
 	}
 	
 	var slot_index = 1;
+	
+	if (locked_slot == i) draw_col = c_dkgray;
 
     // --- Highlight the active action slot during RESOLVE_ROUND ---
-	if (state == CombatState.RESOLVE_ROUND && !enemy_turn_done) {
+	if (state == CombatState.RESOLVE_ROUND && !enemies_turn_done) {
 	    if (i == action_index - 1) {
 	        slot_index = 0;
-	    }
+		}
 	}
+	
 
 	// Draw the main slot sprite
 	draw_sprite_ext(sActionSlot, slot_index, draw_x, draw_y, current_scale, current_scale, 0, draw_col, 1.0);
+	
+	// If slot locked, kill self
+	if (locked_slot == i) {
+		draw_sprite_ext(sRewardChain, 0, draw_x + draw_w/2, draw_y + draw_h/2, current_scale * 0.75, current_scale * 0.75, 0, c_white, 1.0);
+	}
 	
 	var stats = get_slot_stats(action_queue[| i], i);
 	var _low_roll = stats.low_roll;
@@ -489,57 +492,201 @@ var disc_btn = draw_gui_button(
 // Update animation
 disc_btn_scale = disc_btn.scale;
 
-// Show enemy intent
-if (enemy_intent_alpha > 0.05) {
-	var reveal_intent_single = false;
-	var reveal_intent_all = false;
-	if (intel_level >= 1) reveal_intent_single = true;
-	if (intel_level >= 2) reveal_intent_all = true;
+// ---------------
+// Draw enemy data
+// ---------------
+
+for (var e = 0; e < ds_list_size(room_enemies); e++) {
+	var enemy_data = room_enemies[| e].data;
+	var enemy = room_enemies[| e];
 	
-    var text = reveal_intent_single || reveal_intent_all ? enemy_intent_text : "???";
-    var col  = reveal_intent_single || reveal_intent_all ? enemy_intent_color : c_dkgray;
-
-    var xx = global.enemy_x; // enemy position on screen
-    var yy = global.enemy_y - 200;  // slightly above their head
-
-    draw_set_halign(fa_center);
-    draw_set_valign(fa_middle);
-
-	// Draw attack value
-	draw_set_font(ftTopBar);
-	var text_w = string_width(text);
-	var index = 0;
-	switch (col) {
-		
-	    case c_red: index = 0; break;
-	    case c_aqua: index = 1;  break;
-	    case c_lime: index = 2;  break;
-	    case c_white: index = 3;  break;
-	    case c_dkgray: index = 4;  break;
-		default: index = 4; 
+	var hover_enemy = mouse_hovering(enemy.pos_x, enemy.pos_y - 40, 230, 320, true);
+	enemy.scale = lerp(enemy.scale, hover_enemy ? enemy.target_scale : enemy.start_scale, 0.2);
+	enemy.info_alpha = lerp(enemy.info_alpha, hover_enemy ? 1.0 : 0, 0.4);
+	
+	if (hover_enemy && mouse_check_button_pressed(mb_left) && state == CombatState.PLAYER_INPUT && intel_level >= 2) {
+		enemy_target_index = e;
 	}
 	
-	draw_sprite_ext(sIntentIcons, index, xx - text_w/2, yy, enemy_intent_scale, enemy_intent_scale, 0, col, enemy_intent_alpha);
-    draw_outline_text(text, c_black, c_white, 2, xx + text_w/2, yy, enemy_intent_scale, enemy_intent_alpha);
+	// Draw enemy focus if we're the targeted enemy
+	if (e == enemy_target_index) {
 	
-	// Draw attack name
-	draw_set_font(ftBigger);
-	var move_name = reveal_intent_single || reveal_intent_all ? string(enemy_intent.move_name) : "???";
-	draw_outline_text(move_name, c_black, c_white, 2, xx, yy - 50, enemy_intent_scale, enemy_intent_alpha);
+		var alpha_min = 0.2;
+		var alpha_max = 0.33;
+		var alpha_speed = 0.03;
+
+		var pulse_alpha = alpha_min + (sin(oWorldManager.time * alpha_speed) * 0.5 + 0.5) * (alpha_max - alpha_min);
+
+		draw_sprite_ext(sEnemyFocus, 0, enemy.pos_x, enemy.pos_y + 60, 1, 1, 0, c_white, enemy.alpha * pulse_alpha);
+		draw_sprite_ext(sEnemyFocus, 0, enemy.pos_x, enemy.pos_y + 60, 0.9, 1, 0, c_white, enemy.alpha * pulse_alpha);
+		draw_sprite_ext(sEnemyFocus, 0, enemy.pos_x, enemy.pos_y + 60, 1.2, 0.5, 0, c_white, enemy.alpha * pulse_alpha * 0.3);
+	}
 	
-	if (mouse_hovering(xx, yy - 20, 200, 70, true) && !show_rewards) {
-		if (enemy_intent.action_type == "DEBUFF") {
-			queue_tooltip(mouse_x, mouse_y, enemy_intent.debuff.name, enemy_intent.debuff.desc, undefined, 0, undefined);
-		} else {
-			if (reveal_intent_single || reveal_intent_all) {
-				queue_tooltip(mouse_x, mouse_y, get_dice_name_and_bonus(enemy_intent, enemy_intent.bonus_amount), move_name, undefined, 0, undefined);
+	// Draw enemy sprite
+	draw_sprite_ext(sEnemies, 0, enemy.pos_x, enemy.pos_y + 70, enemy.scale, enemy.scale, 0, c_white, enemy.alpha);
+
+	// Show enemy intent
+	if (enemy.intent.alpha > 0.05) {
+		var reveal_intent_single = false;
+		var reveal_intent_all = false;
+		if (intel_level >= 1) reveal_intent_single = true;
+		if (intel_level >= 2) reveal_intent_all = true;
+	
+	    var text = ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) ? enemy.intent.text : "";
+	    var col  = ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) ? enemy.intent.color : c_dkgray;
+
+	    var xx = enemy.pos_x; // enemy position on screen
+	    var yy = enemy.pos_y - 10 - (enemy.scale * 180);  // slightly above their head
+		
+		// Draw dice in move
+		if ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) {
+			for (var d = 0; d < enemy.intent.move.dice_amount; d++) {
+				draw_sprite_ext(sDiceIcon, get_dice_index(enemy.intent.move.dice_value), xx - (((enemy.intent.move.dice_amount) * 40)/2) + (d * 40), yy - 10, 1, 1, 0, get_dice_color(enemy.intent.move.action_type), enemy.info_alpha * enemy.intent.alpha);
+				
+				if (d == enemy.intent.move.dice_amount - 1) {
+					draw_set_font(ftBigger);
+					draw_set_halign(fa_center);
+					draw_set_valign(fa_middle);
+					draw_outline_text("+" + string(enemy.intent.move.bonus_amount), c_black, get_dice_color(enemy.intent.move.action_type), 2, xx - (((enemy.intent.move.dice_amount) * 40)/2) + ((d+1) * 45), yy - 10, 1, enemy.info_alpha * enemy.intent.alpha, 0);
+				}
+			}
+		}
+
+	    draw_set_halign(fa_left);
+	    draw_set_valign(fa_middle);
+
+		// Draw attack value
+		draw_set_font(ftTopBar);
+		var text_w = string_width(text) + 10 + (sprite_get_width(sIntentIcons) * enemy.intent.scale);
+		var index = 0;
+		switch (col) {
+		
+		    case c_red: index = 0; break;
+		    case c_aqua: index = 1;  break;
+		    case c_lime: index = 2;  break;
+		    case c_white: index = 3;  break;
+		    case c_dkgray: index = 4;  break;
+			default: index = 4; 
+		}
+		
+		var sprite = sIntentIcons;
+		var icon_x = xx - text_w/2 + 5 + ((sprite_get_width(sprite) / 2) * enemy.intent.scale);
+		var text_x = icon_x + ((sprite_get_width(sprite) / 2) * enemy.intent.scale) + 10;
+		var bonus_scale = 1;
+		
+		// enemy move is a debuff, draw sDebuffIcon, _debuff.template.icon_index instead of the standard icon
+		if (enemy.intent.move.action_type == "DEBUFF" || enemy.intent.move.action_type == "BUFF") {
+			if (reveal_intent_all) || (reveal_intent_single && e == enemy_target_index) {
+				sprite = sDebuffIcon;
+				index = enemy.intent.move.debuff.icon_index;
+				bonus_scale = 1.5;
+				icon_x = xx;
+			}
+		}
+	
+		draw_sprite_ext(sprite, index, icon_x, yy, enemy.intent.scale * bonus_scale,  enemy.intent.scale * bonus_scale, 0, col, enemy.intent.alpha - enemy.info_alpha);
+	    draw_outline_text(text, c_black, c_white, 2, text_x, yy, enemy.intent.scale, enemy.intent.alpha - enemy.info_alpha);
+	
+	    draw_set_halign(fa_center);
+	
+		// Draw attack name
+		draw_set_font(ftBigger);
+		var move_name = ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) ? string(enemy.intent.move.move_name) : "???";
+		draw_outline_text(move_name, c_black, c_white, 2, xx, yy - 50, enemy.intent.scale, enemy.info_alpha * enemy.intent.alpha);
+	
+		if (mouse_hovering(xx, yy - 10, 220, 90, true) && !show_rewards) {
+			if (enemy.intent.move.action_type == "DEBUFF" || enemy.intent.move.action_type == "BUFF") {
+				queue_tooltip(mouse_x, mouse_y, enemy.intent.move.debuff.name, enemy.intent.move.debuff.desc, undefined, 0, undefined);
 			} else {
-				queue_tooltip(mouse_x, mouse_y, "???", "Enemy intentions not revealed", undefined, 0, undefined);
+				if (reveal_intent_all) {
+					queue_tooltip(mouse_x, mouse_y, get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount), move_name, undefined, 0, undefined);
+				} else if (reveal_intent_single && e == enemy_target_index) {
+					queue_tooltip(mouse_x, mouse_y, get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount), move_name, undefined, 0, undefined);
+				} else {
+					queue_tooltip(mouse_x, mouse_y, "???", "Enemy intentions not revealed", undefined, 0, undefined);
+				}
 			}
 		}
 	}
+
+	// =========================================================
+	// ENEMY HEALTH BAR (right side)
+	// =========================================================
+
+	var bar_scale = enemy.bar_scale;
+	
+	var e_bar_w = sprite_get_width(sHealthBar) * bar_scale;
+	var e_bar_h = sprite_get_height(sHealthBar) * bar_scale;
+	var e_bar_x = enemy.pos_x - e_bar_w/2; // mirror enemy bar
+	var e_bar_y = enemy.pos_y + 80;
+
+	// Smooth animation
+	enemy.hp_display = lerp(enemy.hp_display, enemy.hp, 0.1);
+	enemy.hp_display = clamp(enemy.hp_display, 0, enemy.max_hp);
+
+	var e_hp_ratio = clamp(enemy.hp_display / enemy.max_hp, 0, 1);
+	var e_hp_color = merge_color(c_grey, c_red, e_hp_ratio);
+
+	// Current HP
+	draw_sprite_ext(sHealthBar, 1, e_bar_x, e_bar_y, e_hp_ratio * bar_scale, bar_scale, 0, e_hp_color, enemy.alpha);
+	draw_sprite_ext(sHealthBar, 0, e_bar_x, e_bar_y, bar_scale, bar_scale, 0, c_white, enemy.alpha);
+
+	// Text label
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_color(c_white);
+	draw_set_font(ftDefault);
+	draw_outline_text(string_format(enemy.hp, 0, 0) + " / " + string(enemy.max_hp), c_black, c_white, 2, e_bar_x + e_bar_w / 2, e_bar_y + e_bar_h / 2, 1, enemy.alpha, 0);
+	
+	// Draw enemy name
+	// Outline
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_font(ftDefault);
+	draw_outline_text(string(enemy_data.name), c_black, c_white, 2, enemy.pos_x, enemy.pos_y + 50 + (enemy.scale * 100), 1, enemy.info_alpha * enemy.alpha);
+		
+	// Draw enemy block
+	if (enemy.block_amount > 0) {
+		var block_x = enemy.pos_x + e_bar_w/2;
+		var block_y = e_bar_y + e_bar_h/2 + 2;
+		var block_radius = 30;
+		draw_set_color(c_blue);
+		draw_sprite_ext(sIntentIcons, 1, block_x, block_y, bar_scale * 1.5, bar_scale * 1.5, 0, c_aqua, 1.0);
+		draw_set_color(c_white);
+		draw_set_alpha(enemy.alpha);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_set_font(ftDefault);
+		draw_outline_text(string(enemy.block_amount), c_black, c_white, 2, block_x, block_y - 4, 1, enemy.alpha, 0);
+	}
+	
+	// Draw enemy debuffs
+	var d_x = 10;
+	var d_y = e_bar_y + e_bar_h + 5;
+	var d_padding = 15;
+
+	for (var d = 0; d < ds_list_size(enemy.debuffs); d++) {
+		var _debuff = enemy.debuffs[| d];
+		
+		var col = _debuff.template.color;
+		draw_sprite_ext(sDebuffIcon, _debuff.template.icon_index, e_bar_x + d_x + sprite_get_width(sDebuffIcon)/2, d_y + sprite_get_height(sDebuffIcon)/2, 1, 1, 0, col, 1.0);
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		if (!_debuff.permanent) draw_outline_text(string(_debuff.remaining), c_black, c_white, 2, e_bar_x + d_x + sprite_get_width(sDebuffIcon), d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
+		draw_outline_text(string(_debuff.amount), c_black, c_red, 2, e_bar_x + d_x, d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
+	
+		if (mouse_hovering(e_bar_x + d_x, d_y, sprite_get_width(sDebuffIcon), sprite_get_height(sDebuffIcon), false)) {
+			queue_tooltip(mouse_x, mouse_y, _debuff.template.name, _debuff.template.desc, undefined, 0, undefined);
+		}
+	
+		d_x += sprite_get_width(sDebuffIcon) + d_padding;
+	}
+
 }
 
+// Draw player sprite
+draw_sprite_ext(sEnemies, 0, global.player_x, global.player_y + 80, 1, 1, 0, c_white, 1.0);
 
 // =========================================================
 // PLAYER HEALTH BAR (left side)
@@ -557,84 +704,36 @@ var p_hp_ratio = clamp(player_hp_display / global.player_max_hp, 0, 1);
 var p_hp_color = merge_color(c_red, c_red, p_hp_ratio);
 
 // Current HP
-draw_sprite_ext(sHealthBar, 1, p_bar_x, p_bar_y, p_hp_ratio, 1, 0, p_hp_color, enemy_alpha);
-draw_sprite_ext(sHealthBar, 0, p_bar_x, p_bar_y, 1, 1, 0, c_white, enemy_alpha);
+draw_sprite_ext(sHealthBar, 1, p_bar_x, p_bar_y, p_hp_ratio, 1, 0, p_hp_color, 1.0);
+draw_sprite_ext(sHealthBar, 0, p_bar_x, p_bar_y, 1, 1, 0, c_white, 1.0 );
 
 // Text label
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
 draw_set_color(c_white);
-draw_set_font(ftBig);
+draw_set_font(ftDefault);
 draw_outline_text(string_format(global.player_hp, 0, 0) + " / " + string(global.player_max_hp), c_black, c_white, 2, p_bar_x + p_bar_w / 2, p_bar_y + p_bar_h / 2, 1, 1.0, 0);
 
-// Draw debuffs
-var d_x = 10;
+// Draw player debuffs
+var d_x = 9;
 var d_y = p_bar_y + p_bar_h + 5;
-var d_padding = 10;
+var d_padding = 22;
 
 for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
 	var _debuff = global.player_debuffs[| d];
 	var col = _debuff.template.color;
-	draw_sprite_ext(sDebuffIcon, _debuff.template.icon_index, p_bar_x + d_x, d_y, 1, 1, 0, col, 1.0);
+	draw_sprite_ext(sDebuffIcon, _debuff.template.icon_index, p_bar_x + d_x + sprite_get_width(sDebuffIcon)/2, d_y + sprite_get_height(sDebuffIcon)/2, 1, 1, 0, col, 1.0);
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
 	draw_outline_text(string(_debuff.remaining), c_black, c_white, 2, p_bar_x + d_x + sprite_get_width(sDebuffIcon), d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
 	draw_outline_text(string(_debuff.amount), c_black, c_red, 2, p_bar_x + d_x, d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
-	
+
 	if (mouse_hovering(p_bar_x + d_x, d_y, sprite_get_width(sDebuffIcon), sprite_get_height(sDebuffIcon), false)) {
 		queue_tooltip(mouse_x, mouse_y, _debuff.template.name, _debuff.template.desc, undefined, 0, undefined);
 	}
 	
 	d_x += sprite_get_width(sDebuffIcon) + d_padding;
-}
-
-
-// =========================================================
-// ENEMY HEALTH BAR (right side)
-// =========================================================
-var e_bar_w = sprite_get_width(sHealthBar);
-var e_bar_h = sprite_get_height(sHealthBar);
-var e_bar_x = global.enemy_x - e_bar_w/2; // mirror enemy bar
-var e_bar_y = global.enemy_y + 80;
-
-// Smooth animation
-enemy_hp_display = lerp(enemy_hp_display, enemy_hp, 0.1);
-enemy_hp_display = clamp(enemy_hp_display, 0, enemy_max_hp);
-
-var e_hp_ratio = clamp(enemy_hp_display / enemy_max_hp, 0, 1);
-var e_hp_color = merge_color(c_grey, c_red, e_hp_ratio);
-
-// Current HP
-draw_sprite_ext(sHealthBar, 1, e_bar_x, e_bar_y, e_hp_ratio, 1, 0, e_hp_color, enemy_alpha);
-draw_sprite_ext(sHealthBar, 0, e_bar_x, e_bar_y, 1, 1, 0, c_white, enemy_alpha);
-
-// Text label
-draw_set_halign(fa_center);
-draw_set_valign(fa_middle);
-draw_set_color(c_white);
-draw_outline_text(string_format(enemy_hp, 0, 0) + " / " + string(enemy_max_hp), c_black, c_white, 2, e_bar_x + e_bar_w / 2, e_bar_y + e_bar_h / 2, 1, 1.0, 0);
-
-// Draw enemy name
-// Outline
-draw_set_halign(fa_center);
-draw_set_valign(fa_middle);
-draw_set_font(ftDefault);
-draw_outline_text(string(enemy.name), c_black, c_white, 2, global.enemy_x, global.enemy_y + 150, 1, 1);
-
-// Draw enemy block
-if (enemy_block_amount > 0) {
-	var block_x = global.enemy_x + 150;
-	var block_y = e_bar_y + 25;
-	var block_radius = 30;
-	draw_set_color(c_blue);
-	draw_sprite_ext(sIntentIcons, 1, block_x, block_y, 1, 1, 0, c_aqua, 1.0);
-	draw_set_color(c_white);
-	draw_set_alpha(enemy_alpha);
-	draw_set_halign(fa_center);
-	draw_set_valign(fa_middle);
-	draw_set_font(ftDefault);
-	draw_outline_text(string(enemy_block_amount), c_black, c_white, 2, block_x, block_y - 4, 1, 1.0, 0);
 }
 
 // Draw player block
@@ -655,7 +754,7 @@ if (player_block_amount > 0) {
 // Draw intel level
 draw_sprite_ext(sIntelEye, global.player_intel_data[| intel_level].index, global.player_x, global.player_y - 180, intel_scale, intel_scale, 0, c_white, intel_alpha);
 draw_outline_text(string(global.player_intel_data[| intel_level].name), c_black, global.color_intel, 2, global.player_x, global.player_y - 220, intel_scale, 1.0, 0);
-var intel_hover = mouse_hovering(global.player_x, global.player_y - 170, sprite_get_width(sIntelEye), sprite_get_height(sIntelEye), true);
+var intel_hover = mouse_hovering(global.player_x, global.player_y - 190, sprite_get_width(sIntelEye) * 2, sprite_get_height(sIntelEye) * 2, true);
 
 intel_scale = intel_hover ? lerp(intel_scale, 1.2, 0.2) : lerp(intel_scale, 1.0, 0.2);
 
@@ -752,9 +851,7 @@ if (show_rewards) {
 			    reward_scale[| r] = btn.scale;
 
 			    // --- Choose sprite index based on dice value ---
-			    var spr_index = 0
-				if (die.dice_value == 6) spr_index = 1;
-				if (die.dice_value == 2) spr_index = 2;
+			    var spr_index = get_dice_index( die.dice_value );
 
 			    // --- Draw the dice sprite ---
 			    var alpha = rewards_dice_taken ? 0.2 : 1.0;
@@ -912,13 +1009,24 @@ if (show_rewards) {
 					}
 					queue_tooltip( mouse_x, mouse_y, consumable.name, consumable.description, undefined, 0, die);
 				}
+				
+				// check for item free
 
 			    // Take first reward
 			    if (rewards_consumables_first_taken == -1 && btn.click) {
 					if (consumable.name != "Coins") {
-						var gained_item = gain_item(consumable);
-						if (gained_item) {
-							rewards_consumables_first_taken = r;
+						var first_free_slot = -1;
+						for (var n = 0; n < array_length(oRunManager.items); n++) {
+							if (oRunManager.items[n] == undefined) {
+								first_free_slot = n;
+								break;
+							}
+						}
+						if (first_free_slot != -1) {
+							var gained_item = gain_item(consumable);
+							if (gained_item) {
+								rewards_consumables_first_taken = r;
+							}
 						}
 					} else {
 						gain_coins(mouse_x, mouse_y, consumable.amount);
@@ -1013,6 +1121,7 @@ if (show_rewards) {
 		} else {
 			rewards_all_taken = true;
 		}
+		show_debug_message("Rewards taken: " + string(rewards_all_taken));
 	}
 }
 

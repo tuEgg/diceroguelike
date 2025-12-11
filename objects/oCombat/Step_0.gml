@@ -1,78 +1,135 @@
 switch (state) {
     case CombatState.START_TURN:
-		// Pick a random move struct from the enemy's move list
-		if (enemy.move_order = "true_random") {
-			move_number = irandom(ds_list_size(enemy.moves) - 1);
-		} else if (enemy.move_order = "order") {
-			if (move_number < ds_list_size(enemy.moves) - 1) {
-				move_number += 1;
-			} else {
-				move_number = 0;
-			}
-		} else if (enemy.move_order = "random") {
-			// look through three latest moves, don't allow for 4 in a row, and weight odds to something else after every move
-			var latest_moves = [];
-			var move_index_avoid = -1;
-			var move_index_completely_avoid = -1;
-			var move_index = irandom(ds_list_size(enemy.moves) - 1);
-				
-			// Add last 3 moves name to array; NEED TO FIX SO THAT IT FLEXES TO LIST SIZE
-			var num_previous_moves = ds_list_size(enemy_move_history);
-			for (var m = num_previous_moves; m > max(0, num_previous_moves - 3); m--) {
-				var move = enemy_move_history[| m - 1];
-				
-				array_push(latest_moves, move);
-			}
+	
+		for (var e = 0; e < ds_list_size(room_enemies); e++) {
+			var enemy_data = room_enemies[| e].data;
+			var enemy = room_enemies[| e];
 			
-			if (array_length(latest_moves) > 0) {
-				var all_same = false;
-				
-				for (var o = 0; o < array_length(latest_moves); o++) {
-					if (latest_moves[o] != latest_moves[0]) {
-						all_same = false;
-					} else {
-						all_same = true;
-					}
-				}
-				// If all three moves are the same
-				if (all_same) {
-					for (var i = 0; i < ds_list_size(enemy.moves); i++) {
-						if (latest_moves[0].move_name == enemy.moves[| i].move_name) move_index_completely_avoid = i;
-					}
+			if (enemy.dead) continue;
+			
+			// Pick a random move struct from the enemy's move list
+			if (enemy_data.move_order == "true_random") {
+				enemy.move_number = irandom(ds_list_size(enemy_data.moves) - 1);
+			} else if (enemy_data.move_order == "ordered") {
+				if (enemy.move_number < ds_list_size(enemy_data.moves) - 1) {
+					enemy.move_number += 1;
 				} else {
-					// just avoid the last move
-					for (var i = 0; i < ds_list_size(enemy.moves); i++) {
-						if (latest_moves[0].move_name == enemy.moves[| i].move_name) move_index_avoid = i;
+					enemy.move_number = 0;
+				}
+			} else if (enemy_data.move_order == "weighted") {
+				var num_moves = ds_list_size(enemy_data.moves);
+
+				var weighted = [];
+				array_resize(weighted, num_moves);
+
+				for (var i = 0; i < num_moves; i++) {
+				    weighted[i] = {
+				        value: i,
+				        weight: enemy_data.moves[| i].weight  // or 1 if no weight
+				    };
+				}
+
+				enemy.move_number = choose_weighting_list(weighted);
+
+			} else if (enemy_data.move_order == "pseudo_random") {
+				// look through three latest moves, don't allow for 4 in a row, and weight odds to something else after every move
+				var latest_moves = [];
+				var move_index_avoid = -1;
+				var move_index_completely_avoid = -1;
+				var move_index = irandom(ds_list_size(enemy_data.moves) - 1);
+				
+				// Add last 3 moves name to array; NEED TO FIX SO THAT IT FLEXES TO LIST SIZE
+				var num_previous_moves = ds_list_size(enemy.move_history);
+				for (var m = num_previous_moves; m > max(0, num_previous_moves - 3); m--) {
+					var move = enemy.move_history[| m - 1];
+				
+					array_push(latest_moves, move);
+				}
+			
+				if (array_length(latest_moves) > 0) {
+					var all_same = false;
+				
+					for (var o = 0; o < array_length(latest_moves); o++) {
+						if (latest_moves[o] != latest_moves[0]) {
+							all_same = false;
+						} else {
+							all_same = true;
+						}
+					}
+					// If all three moves are the same
+					if (all_same) {
+						for (var i = 0; i < ds_list_size(enemy_data.moves); i++) {
+							if (latest_moves[0].move_name == enemy_data.moves[| i].move_name) move_index_completely_avoid = i;
+						}
+					} else {
+						// just avoid the last move
+						for (var i = 0; i < ds_list_size(enemy_data.moves); i++) {
+							if (latest_moves[0].move_name == enemy_data.moves[| i].move_name) move_index_avoid = i;
+						}
+					}
+			
+					// If we are avoiding a move
+					if (move_index_completely_avoid != -1) {
+						// Randomise until we don't get that index
+						var rand_index;
+						
+						do {
+							rand_index = irandom(ds_list_size(enemy_data.moves) - 1);
+						} until (rand_index != move_index_completely_avoid);
+						
+						move_index = rand_index;
+					// otherwise
+					} else if (move_index_avoid != -1) {
+						// randomise twice and if the first one is our index, take the second regardless
+						var rand_1 = irandom(ds_list_size(enemy_data.moves) - 1);
+						var rand_2 = irandom(ds_list_size(enemy_data.moves) - 1);
+				
+						if (rand_1 == move_index_avoid) {
+							move_index = rand_2;
+						} else {
+							move_index = rand_1;
+						}
 					}
 				}
 			
-				// If we are avoiding a move
-				if (move_index_completely_avoid != -1) {
-					// Randomise until we don't get that index
-					do {
-						var rand_index = irandom(ds_list_size(enemy.moves) - 1);
-					} until (rand_index != move_index_completely_avoid);
-					move_index = rand_index;
-				// otherwise
-				} else if (move_index_avoid != -1) {
-					// randomise twice and if the first one is our index, take the second regardless
-					var rand_1 = irandom(ds_list_size(enemy.moves) - 1);
-					var rand_2 = irandom(ds_list_size(enemy.moves) - 1);
-				
-					if (rand_1 == move_index_avoid) {
-						move_index = rand_2;
-					} else {
-						move_index = rand_1;
+				enemy.move_number = move_index;
+			}
+			
+			
+			
+			enemy.intent.move = enemy_data.moves[| enemy.move_number];
+			
+			// Overwrite the above with priority triggers
+			for (var i = 0; i < ds_list_size(enemy_data.moves); i++) {
+				var _move = enemy_data.moves[| i];
+				if (variable_struct_exists(_move, "use_trigger")) {
+					switch (_move.use_trigger) {
+						case "FIRST":
+							if (first_turn) enemy.intent.move = _move;
+						break;
+						
+						case "HEALTH 50":
+							if (enemy.hp <= enemy.max_hp/2 && _move.weight != -1) {
+								enemy.intent.move = _move;
+								_move.weight = -1;
+							}
+						break;
 					}
 				}
 			}
 			
-			move_number = move_index;
+			enemy_turns_remaining++;
+			
+			// flag debuffs as not being applied this turn
+			for (var d = 0; d < ds_list_size(enemy.debuffs); d++) {
+				enemy.debuffs[| d].remove_next_turn = false;
+			}
 		}
-		enemy_intent = enemy.moves[| move_number];
-
-        add_feed_entry("=== Start of Turn ===");
-        add_feed_entry("You draw 3 dice.");
+		
+		// flag debuffs as not being applied this turn
+		for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
+			global.player_debuffs[| d].remove_next_turn = false;
+		}
 		
 		// Reset player stats every turn
 		dice_played_scale = 1.2;
@@ -85,9 +142,12 @@ switch (state) {
 		var turn_start_data = {
 			bonus_dice: dice_allowed_this_turn_bonus
 		};
+		
+		player_intel = 0;
+		
 		combat_trigger_effects("on_turn_start", turn_start_data);
 		
-		dice_allowed_this_turn_bonus = turn_start_data.bonus_dice + (intel_level div 4 > 0);
+		player_intel = clamp(player_intel, 0, 12);
 		
 		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
 			if (player_intel >= global.player_intel_data[| i].requirement) {
@@ -96,41 +156,48 @@ switch (state) {
 		}
 		//show_debug_message("Player intel amount: "+string(player_intel));
 		//show_debug_message("Player intel level: "+string(intel_level));
+		
+		dice_allowed_this_turn_bonus = turn_start_data.bonus_dice + (intel_level div 4 > 0);
 			
 		// Deal 3 dice first turn, then 2 every turn after that
 		dice_to_deal = first_turn ? global.hand_size : global.hand_size - 1 + (intel_level div 3 > 0);
 		dice_deal_timer = 0;
 		is_dealing_dice = true;
-
-        add_feed_entry("The enemy will "+string(enemy_intent.action_type)+".");
 		
-		// Show enemy intent
-		if (enemy_intent.action_type == "DEBUFF") {
-			enemy_intent_text = "DEBUFF";
-		} else if (enemy_intent.action_type == "NONE") {
-			enemy_intent_text = "Recharging";
-		} else {
-			enemy_intent_text = string(enemy_intent.dice_amount + enemy_intent.bonus_amount) + "-" + string((enemy_intent.dice_amount * enemy_intent.dice_value) + enemy_intent.bonus_amount);
-		}
+		for (var e = 0; e < ds_list_size(room_enemies); e++) {
+			var enemy_data = room_enemies[| e].data;
+			var enemy = room_enemies[| e];
 			
-	    // Color by type
-	    switch (enemy_intent.action_type) {
-	        case "ATK":  enemy_intent_color = c_red; break;
-	        case "BLK":  enemy_intent_color = c_aqua; break;
-	        case "HEAL": enemy_intent_color = c_lime; break;
-			default: enemy_intent_color = c_white;
-	    }
+			if (enemy.dead) continue;
+		
+			// Show enemy intent
+			if (enemy.intent.move.action_type == "DEBUFF") || (enemy.intent.move.action_type == "BUFF") {
+				enemy.intent.text = "";
+			} else if (enemy.intent.move.action_type == "NONE") {
+				enemy.intent.text = "Recharging";
+			} else {
+				enemy.intent.text = string(enemy.intent.move.dice_amount + enemy.intent.move.bonus_amount) + "-" + string((enemy.intent.move.dice_amount * enemy.intent.move.dice_value) + enemy.intent.move.bonus_amount);
+			}
+			
+		    // Color by type
+		    switch (enemy.intent.move.action_type) {
+		        case "ATK":  enemy.intent.color = c_red; break;
+		        case "BLK":  enemy.intent.color = c_aqua; break;
+		        case "HEAL": enemy.intent.color = c_lime; break;
+				default: enemy.intent.color = c_white;
+		    }
 
-	    // Animate in
-	    enemy_intent_alpha = lerp(enemy_intent_alpha, 1, 0.2);
-	    enemy_intent_scale = lerp(enemy_intent_scale, 1.2, 0.3);
+		    // Animate in
+		    enemy.intent.alpha = lerp(enemy.intent.alpha, 1, 0.2);
+		    enemy.intent.scale = lerp(enemy.intent.scale, enemy.intent.start_scale, 0.3);
+		}
 		
         state = CombatState.PLAYER_INPUT;
         break;
 
     case CombatState.PLAYER_INPUT:
 
-        // Pretend to wait for player input
+        // Wait for player input
         if (actions_submitted) {
 	
 			// Reset player intel just before we process actions
@@ -140,17 +207,20 @@ switch (state) {
             state = CombatState.RESOLVE_ROUND;
         }
 		
-		// Hold steady on enemy intent scaling and alpha
-        enemy_intent_alpha = lerp(enemy_intent_alpha, 1, 0.1);
-        enemy_intent_scale = lerp(enemy_intent_scale, 1, 0.1);
+		for (var e = 0; e < ds_list_size(room_enemies); e++) {
+			var enemy_data = room_enemies[| e].data;
+			var enemy = room_enemies[| e];
+			
+			if (enemy.dead) continue;
+			
+			// Hold steady on enemy intent scaling and alpha
+	        enemy.intent.alpha = lerp(enemy.intent.alpha, 1, 0.1);
+	        enemy.intent.scale = lerp(enemy.intent.scale, enemy.intent.start_scale, 0.1);
+		}
 		
         break;
 
     case CombatState.RESOLVE_ROUND:
-    // If we’re just entering this state
-    if (action_index == 0 && action_timer == 0 && !enemy_turn_done) {
-        add_feed_entry("=== Resolving Round ===");
-    }
 	
 	// === Discard all loose dice visually at start of RESOLVE_ROUND ===
 	discard_dice_in_play();
@@ -158,27 +228,31 @@ switch (state) {
     // Run player actions one at a time
     if (action_index < ds_list_size(action_queue)) {
         if (action_timer <= 0) {
-			var slot = action_queue[| action_index];
-            var current_action = slot.current_action_type;
 			
-			var _target = "enemy";
-			var _source = "player";
+			// Skip over locked slots
+			if (action_index != locked_slot) {
+				var slot = action_queue[| action_index];
+	            var current_action = slot.current_action_type;
 			
-			var j = 0;
+				var _target = room_enemies[| enemy_target_index];
+				var _source = "player";
 			
-			var action_data = ({
-			    action_type: current_action,
-				_d_amount: 0
-			});
+				var j = 0;
+			
+				var action_data = ({
+				    action_type: current_action,
+					_d_amount: 0
+				});
 
-			combat_trigger_effects("on_action_used", action_data);
+				combat_trigger_effects("on_action_used", action_data);
 			
-	        while (j < ds_list_size(slot.dice_list)) {
-	            var die = slot.dice_list[| j];
-				if (current_action == "BLK" || current_action == "HEAL" || current_action == "INTEL") _target = _source;
+		        while (j < ds_list_size(slot.dice_list)) {
+		            var die = slot.dice_list[| j];
+					if (current_action == "BLK" || current_action == "HEAL" || current_action == "INTEL") _target = _source;
 
-	            process_action(_target, die.dice_amount, die.dice_value, slot.bonus_amount, _source, current_action, action_index, die, j);
-				j++;
+		            process_action(_target, die.dice_amount, die.dice_value, slot.bonus_amount, _source, -1, current_action, action_index, die, j);
+					j++;
+				}
 			}
 
             // Next action after delay
@@ -189,41 +263,73 @@ switch (state) {
         }
 
     // After player actions, handle enemy action once
-    } else if (!enemy_turn_done) {
+    } else if (!enemies_turn_done) {
 		
-        if (action_timer <= 0) {
-			if (enemy_hp <= 0) {
+	    if (action_timer <= 0) {
+			for (var e = 0; e < ds_list_size(room_enemies); e++) {
+				var enemy_data = room_enemies[| e].data;
+				var enemy = room_enemies[| e];
+			
+				if (enemy.turn_done || enemy.dead) {
+					continue;
+					
+				} else {
+					
+					var _source = enemy;
+					var _target = "player";
+					
+					if (variable_struct_exists(enemy.intent.move, "target")) {
+						_target = enemy.intent.move.target;
+					}
+					
+					if (_target == "other") {
+						var _target_index;
+						
+						do {
+							_target_index = irandom(enemies_left_this_combat-1);
+						} until (_target_index != e);
+						
+						_target = room_enemies[| _target_index];
+						
+						show_debug_message("current enemy index: " + string(e));
+						show_debug_message("current other target index: " + string(_target_index));
+					} else if (enemy.intent.move.action_type == "BLK" || enemy.intent.move.action_type == "HEAL" || enemy.intent.move.action_type == "BUFF") {
+						_target = _source;
+					}
 				
-				state = CombatState.END_OF_ROUND;
-			} else {var _target = "player";
-				var _source = "enemy";
-				
-	            add_feed_entry("Enemy uses " + string(enemy_intent.action_type) + ".");
-				ds_list_add(enemy_move_history, enemy_intent);
-				
-				if (enemy_intent.action_type == "BLK" || enemy_intent.action_type == "HEAL") _target = _source;
-	            process_action(_target, enemy_intent.dice_amount, enemy_intent.dice_value, enemy_intent.bonus_amount, _source, enemy_intent.action_type);
-
-
-	            enemy_turn_done = true;			
-	            action_timer = action_delay;
+		            ds_list_add(enemy.move_history, enemy.intent.move);
+					
+		            process_action(_target, enemy.intent.move.dice_amount, enemy.intent.move.dice_value, enemy.intent.move.bonus_amount, _source, e, enemy.intent.move.action_type);
+	
+		            action_timer = action_delay;
+					enemy.turn_done = true;
+					enemy_turns_remaining--;
+					
+					break;
 				}
-        } else {
-            action_timer -= 1;
-        }
-
+	        }
+		} else {
+	        action_timer -= 1;
+	    }
+		
+		if (enemy_turns_remaining <= 0) {
+			enemies_turn_done = true;
+			enemy_turns_remaining = 0;
+		}
     // When everything’s done, reset and loop back to start
     } else {
+		
+		for (var e = 0; e < ds_list_size(room_enemies); e++) {
+			var enemy_data = room_enemies[| e].data;
+			var enemy = room_enemies[| e];
 			
-		// Fade out enemy intent at end of round
-	    enemy_intent_alpha = lerp(enemy_intent_alpha, 0, 0.2);
-	    enemy_intent_scale = lerp(enemy_intent_scale, 0.8, 0.1);
+			// Hold steady on enemy intent scaling and alpha
+	        enemy.intent.alpha = lerp(enemy.intent.alpha, 0, 0.2);
+	        enemy.intent.scale = lerp(enemy.intent.scale, enemy.intent.start_scale, 0.1);
+		}
 			
         if (action_timer <= 0) {
-			// This is a TEMPORARY WORKAROUND for removing debuffs at the end of the player turn, other events may need to end here as well
-			decrease_debuff_duration(global.player_debuffs, "on_roll_die", {});
-				
-            state = CombatState.END_OF_ROUND;
+			state = CombatState.END_OF_ROUND;
 	
         } else {
             action_timer -= 1;
@@ -234,7 +340,7 @@ switch (state) {
 	
 	case CombatState.END_OF_ROUND:
         action_index = 0;
-        enemy_turn_done = false;
+        enemies_turn_done = false;
         actions_submitted = false;
 		first_turn = false;
 		
@@ -262,23 +368,67 @@ switch (state) {
 		}
 
 		if (instance_number(oDiceParticle) == 0) {
-			if (enemy_hp <= 0) {
-				win_fight();
-			} else {
+		
+			if (enemies_to_fade_out > 0) {
+				for (var e = ds_list_size(room_enemies) - 1; e >= 0; e--) {
+					var enemy_data = room_enemies[| e].data;
+					var enemy = room_enemies[| e];
 				
-				// END OF TURN VARIABLES TO SET
-				enemy_turns_since_last_block ++;
-				if (enemy_turns_since_last_block > 1) {
-					enemy_block_amount = 0;
+					if (enemy.dead) {
+						if (!enemy.looted) {
+							// Earn some credits, regardless of secondary rewards
+							gain_coins(enemy.pos_x, enemy.pos_y, enemy_data.bounty);
+							enemy.looted = true;
+						} else {
+							// show enemy fading out
+							enemy.alpha = lerp(enemy.alpha, 0.0, 0.1);
+							enemy.intent.alpha = lerp(enemy.intent.alpha, 0, 0.1);
+						
+							if (enemy.alpha <= 0.05) {
+								enemies_to_fade_out--;
+								enemy.alpha = 0;
+								ds_list_delete(room_enemies, e);
+								
+								if (e == enemy_target_index) {
+									enemy_target_index--;
+									if (enemy_target_index < 0) enemy_target_index = ds_list_size(room_enemies) - 1;
+								}
+							}
+						}
+					}
 				}
+			}
+			
+			if (!enemies_to_fade_out) {
+				if (enemies_left_this_combat == 0) {
+					win_fight();
+				} else {
+					// END OF TURN VARIABLES TO SET
+					for (var e = 0; e < ds_list_size(room_enemies); e++) {
+						var enemy_data = room_enemies[| e].data;
+						var enemy = room_enemies[| e];
+					
+						enemy.turn_done = false;
+						enemy.turns_since_last_block++;
+						if (enemy.turns_since_last_block > 1) {
+							enemy.block_amount = 0;
+						}
+					}
+					
+					locked_slot = -1;
 				
-				// Trigger end of turn effects for keepsakes
-				var turn_end_data = {};
-				combat_trigger_effects("on_turn_end", turn_end_data);
+					// Trigger end of turn effects for keepsakes
+					var turn_end_data = {
+						
+					};
+					
+					combat_trigger_effects("on_player_turn_end", turn_end_data);
+					combat_trigger_effects("on_enemy_turn_end", turn_end_data);
 
-				with (oDice) can_discard = true;
+					with (oDice) can_discard = true;
 
-				state = CombatState.START_TURN;
+					state = CombatState.START_TURN;
+				}
 			}
 		}
 	break;
@@ -299,7 +449,6 @@ if (is_dealing_dice) {
 		} else {
 		    // Finished dealing all dice
 		    is_dealing_dice = false;
-		    add_feed_entry("All dice dealt!");
 		}
 	}
 }
@@ -319,4 +468,18 @@ if (ds_list_size(feed_queue) > 0) {
 
         feed_timer = feed_delay; // reset delay
     }
+}
+
+enemy_x_offset = -460 + (enemies_left_this_combat*80);
+enemy_y_offset = -90;
+
+for (var e = 0; e < ds_list_size(room_enemies); e++) {
+	var enemy_data = room_enemies[| e].data;
+	var enemy = room_enemies[| e];
+	
+	enemy.pos_x = lerp(enemy.pos_x, enemy.pos_x_start, 0.2);
+}
+
+if (keyboard_check_pressed(vk_enter) && state == CombatState.PLAYER_INPUT && !is_dealing_dice) {
+    actions_submitted = true;
 }

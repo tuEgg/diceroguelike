@@ -151,18 +151,32 @@ function define_events() {
 			result: "You feel well rested."
 		}
 		event_upgrade_opt_2 = {
-			description: "Take this opportunity to sharpen your blades. Upgrade all of your attack dice.",
+			description: "Take this opportunity to sharpen your blades. Upgrade two random attack dice.",
 			effect: function(_context) {
 				// search through all dice, add block and heals to a temporary ds list, return a random index, upgrade that index's dice value +2, then destroy the list
-					
+				
+				var attack_list = ds_list_create();
+				
 				for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
 					var die = global.dice_bag[| d];
 					
 					if (die.action_type == "ATK") {
-						die.dice_value += 2;
-						particle_emit( 115, 1000, choose("rise"), die.color);
+						ds_list_add(attack_list, d);
 					}
 				}
+				
+				repeat (2) {
+					var rand_index = irandom(ds_list_size(attack_list) - 1);
+					
+					var die = global.dice_bag[| attack_list[| rand_index]];
+					
+					die.dice_value += 2;
+					particle_emit( 115, 1000, choose("rise"), die.color);
+					
+					ds_list_delete(attack_list, rand_index);
+				}
+				
+				ds_list_destroy(attack_list);
 				
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
@@ -172,6 +186,70 @@ function define_events() {
 	ds_list_add(event_upgrade.options, event_upgrade_opt_1);
 	ds_list_add(event_upgrade.options, event_upgrade_opt_2);
 	ds_list_add(global.master_event_list, event_upgrade);
+	
+	
+	// --------------------------
+	// EVENT
+	// --------------------------
+	
+	event_sails = {
+		name: "Broken sails.",
+		description: "One of the sails has a tear in it, travel will be difficult without making repairs or replacing it.",
+		options: ds_list_create(),
+	}
+		event_sails_opt_1 = {
+			description: "Use the backup sail. -10 coins, + keepsake.",
+			effect: function(_context) {
+				if (oRunManager.credits >= 10) {
+					oRunManager.credits -= 10;
+					ds_list_add(oRunManager.keepsakes, oRunManager.ks_eye_patch);
+					oEventManager.event_complete = 0;
+					oEventManager.event_selected = true;
+				} else {
+					throw_error("Need more credits", "10 needed to complete this event.");
+				}
+			},
+			result: "Sail replaced and you are on your way."
+		}
+		event_sails_opt_2 = {
+			description: "Repair the sail. - consumable, + keepsake.",
+			effect: function(_context) {
+
+				var item_pool = [];
+				for (var i = 0; i < array_length(oRunManager.items); i++) {
+					if (oRunManager.items[i] != undefined) {
+						array_push(item_pool, i);
+					}
+				}
+				
+				if (array_length(item_pool) != 0) {
+				
+					var rand = irandom(array_length(item_pool) - 1);
+					
+					oRunManager.items[rand] = undefined;
+					ds_list_add(oRunManager.keepsakes, oRunManager.ks_anchor);
+					oEventManager.event_complete = 1;
+					oEventManager.event_selected = true;
+				} else {
+					throw_error("No consumables to sacrifice", "At least 1 is needed to complete this event.");
+				}
+			},
+			result: "Sail repaired, it should hold out."
+		}
+		event_sails_opt_3 = {
+			description: "Continue with the tear - Proceed as you are, -2 Max HP.",
+			effect: function(_context) {
+				global.player_max_hp -= 2;
+				if (global.player_hp > global.player_max_hp) global.player_hp = global.player_max_hp;
+				oEventManager.event_complete = 2;
+				oEventManager.event_selected = true;
+			},
+			result: "You take the risk to proceed as you are."
+		}
+	ds_list_add(event_sails.options, event_sails_opt_1);
+	ds_list_add(event_sails.options, event_sails_opt_2);
+	ds_list_add(event_sails.options, event_sails_opt_3);
+	ds_list_add(global.master_event_list, event_sails);
 }
 
 function generate_event() {

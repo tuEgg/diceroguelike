@@ -172,7 +172,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 0,
 		name: "Riggers Tonic",
-		description: "Choose a slot to gain +1 on all rolls for next turn",
+		description: "Choose a slot to gain +2 on all rolls for next turn",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -195,11 +195,11 @@ function define_items() {
 			modify: function(_context) {
 				// give this specific slot +1 to all rolls next turn
 				_context._slot.pre_buff_amount = _context._slot.bonus_amount;
-				_context._slot.bonus_amount += 1;
+				_context._slot.bonus_amount += 2;
 				_context._slot.buffed += 1;
 			}
 		},
-		price: 30
+		price: 25
 	}
 	ds_list_add(global.master_item_list, clone_item(item_consumable_riggers_tonic));
 	
@@ -241,13 +241,13 @@ function define_items() {
 		sprite: sConsumables,
 		index: 2,
 		name: "Artisan's Ember Draught",
-		description: "Upgrade a random dice in play to the next size for the rest of combat",
+		description: "Upgrade a random dice in play +4 for the rest of combat",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
 		taken: false,
 		amount: 1,
-		rarity: "uncommon",
+		rarity: "common",
 		effects: {
 			trigger: "on_clicked",
 			flags: function() {
@@ -270,11 +270,12 @@ function define_items() {
 					if (n == upgrade_chance) {
 						dice = instance_find(oDice, i);
 						dice.scale = 1.5;
-						dice.struct.dice_value += 2;
-						dice.dice_value += 2;
+						dice.struct.dice_value += 4;
+						dice.dice_value += 4;
 						dice.struct.reset_at_end_combat = function(_dice) {
-							_dice.dice_value -= 2;
+							_dice.dice_value -= 4;
 						}
+						particle_emit( dice.x, dice.y, "burst", get_dice_color((dice.action_type)));
 						break;
 					}
 				}
@@ -294,7 +295,7 @@ function define_items() {
 		distribution: "",
 		taken: false,
 		amount: 1,
-		rarity: "uncommon",
+		rarity: "common",
 		effects: {
 			trigger: "on_clicked",
 			flags: function() {
@@ -310,8 +311,9 @@ function define_items() {
 			},
 			modify: function(_context) {
 				// select a random die in play and upgrade it
-				oCombat.dice_allowed_this_turn_bonus += 1;
+				oCombat.dice_allowed_this_turn_bonus += ds_list_size(oCombat.room_enemies);
 				oCombat.dice_played_scale = 1.5;
+				particle_emit( mouse_x, mouse_y, "burst", c_teal);
 				// when we eventually have multiple enemies, use a loop
 				//for (var i = 0; i < num_enemies; i++) {
 				//}
@@ -331,7 +333,7 @@ function define_items() {
 		distribution: "",
 		taken: false,
 		amount: 1,
-		rarity: "uncommon",
+		rarity: "common",
 		effects: {
 			trigger: "on_clicked",
 			flags: function() {
@@ -373,6 +375,8 @@ function define_items() {
 						die_inst.struct.reset_at_end_combat = function(_dice) {
 							ds_list_delete(global.dice_bag, ds_list_find_index(global.dice_bag, _dice));
 						}
+						
+						particle_emit( die_inst.x, die_inst.y, "burst", get_dice_color((die_inst.action_type)));
 						break;
 					}
 				}
@@ -409,10 +413,11 @@ function define_items() {
 			modify: function(_context) {
 				with (oCombat) {
 					var num = 12;
-					apply_buff(global.player_debuffs, oRunManager.buff_intel, 1, num);
+					apply_buff(global.player_debuffs, oRunManager.buff_intel, 1, num, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
 					var num = spawn_floating_number("player", num, -1, global.color_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
+					particle_emit( num.x, num.y, "rise", c_green);
 				}
 			}
 		},
@@ -445,7 +450,8 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
-				apply_buff(global.player_debuffs, oRunManager.buff_might, 1, 1);
+				apply_buff(global.player_debuffs, oRunManager.buff_might, 1, 1, oRunManager.buff_might.remove_next_turn, { source: "player", index: -1 });
+				particle_emit( global.player_x, global.player_y, "rise", c_orange);
 			}
 		},
 		price: 35
@@ -477,7 +483,8 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
-				apply_buff(global.player_debuffs, oRunManager.buff_balance, 1, 1);
+				apply_buff(global.player_debuffs, oRunManager.buff_balance, 1, 1, oRunManager.buff_balance.remove_next_turn, { source: "player", index: -1 });
+				particle_emit( global.player_x, global.player_y, "rise", c_blue);
 			}
 		},
 		price: 35
@@ -515,6 +522,7 @@ function define_items() {
 				with (oRunManager) {
 					dice_to_deal = 3;
 					is_dealing_dice = true;
+					particle_emit( GUI_LAYOUT.BAG_X, display_get_gui_height() - GUI_LAYOUT.BAG_Y, "burst", c_purple);
 				}
 			}
 		},

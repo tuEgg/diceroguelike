@@ -11,16 +11,17 @@ enum NODE_TYPE {
 	BOSS = 5
 }
 
-room_enemy = undefined;
+room_enemies = ds_list_create();
 
 pages_shown = ds_list_create();
 page_scale = ds_list_create();
 ds_list_add(page_scale, 1.0);
 ds_list_add(page_scale, 1.0);
 ds_list_add(page_scale, 1.0);
-page_pos[0] = { x: display_get_gui_width() * 3/4 - 200, y: display_get_gui_height() * 2.2/7 };
-page_pos[1] = { x: display_get_gui_width() * 3/4 + 200, y: display_get_gui_height() * 2.2/7 };
+page_pos[0] = { x: display_get_gui_width() * 3/4 - 200, y: display_get_gui_height() * 2.4/7 };
+page_pos[1] = { x: display_get_gui_width() * 3/4 + 200, y: display_get_gui_height() * 2.4/7 };
 page_pos[2] = { x: display_get_gui_width() * 3/4, y: display_get_gui_height() * 4.7/7 };
+pages_alpha = 1.0; // used for fading out pages
 
 node_combat = {
 	type: NODE_TYPE.COMBAT,

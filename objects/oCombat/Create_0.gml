@@ -20,6 +20,7 @@ if (!ds_exists(global.sacrifice_history, ds_type_list)) {
 
 // Create action queue, which is a list of structs, each containing a list of dice and other info
 action_queue = ds_list_create();
+locked_slot = -1;
 
 var new_slot1 = {
     dice_list: ds_list_create(),			// all dice currently in the slot
@@ -80,22 +81,18 @@ actions_submitted = false;
 // For sequencing actions
 action_index = 0;
 action_timer = 0;
-action_delay = game_get_speed(gamespeed_fps) * 0.75; // half a second between actions
-enemy_turn_done = false;
+action_delay = game_get_speed(gamespeed_fps) * 0.75; // time between actions
+enemies_turn_done = false;
+enemy_turns_remaining = 0;
+enemies_to_fade_out = false; // used to fade enemies out before processing end of turn
 
 player_hp_display = global.player_hp;
-
-global.enemy_x = display_get_gui_width() / 2 + 650;
-global.enemy_y = display_get_gui_height() / 2 + 200;
-global.player_x = display_get_gui_width() / 2 - 650;
-global.player_y = global.enemy_y;
 
 player_block_amount = 0;
 player_intel = 0;
 intel_level = 0;
 intel_scale = 1.0;
 intel_alpha = 1.0;
-enemy_block_amount = 0;
 is_discarding = false;
 is_placing = false;
 
@@ -110,24 +107,27 @@ is_dealing_dice = false;
 ejected_dice = false;
 type_array = [];
 
-enemy = oWorldManager.room_enemy;
 
-var rand_move = irandom(ds_list_size(enemy.moves) - 1);
-enemy_intent = enemy.moves[| rand_move];
+// Enemies
+room_enemies = ds_list_create();
 
-enemy_intent_alpha = 0;     // for fade in/out
-enemy_intent_scale = 0.5;   // for pop animation
-enemy_intent_color = c_white;
-enemy_intent_text = "";     // current intent text
-enemy_turns_since_last_block = 1;
-move_number = -1;
-enemy_move_history = ds_list_create();
+enemies_left_this_combat = ds_list_size(oWorldManager.room_enemies);
 
-// Enemy stats
-enemy_max_hp = enemy.max_hp;
-enemy_hp = debug_mode ? 1 : enemy.current_hp;
-enemy_hp_display = enemy_hp; // for lerping animation
-enemy_alpha = 1.0;
+global.enemy_x = display_get_gui_width() / 2 + 650 + (enemies_left_this_combat*110);
+global.enemy_y = display_get_gui_height() / 2 + 200;
+global.player_x = display_get_gui_width() / 2 - 650;
+global.player_y = global.enemy_y;
+
+enemy_x_offset = -460 + (enemies_left_this_combat*80);
+enemy_y_offset = -90;
+
+for (var i = 0; i < enemies_left_this_combat; i++) {
+	var _enemy = oWorldManager.room_enemies[| i];
+	
+	add_enemy_to_fight(_enemy);
+}
+
+enemy_target_index = 0; // by default the player is targeting enemy 1
 
 //show_debug_message("=== NEW COMBAT START ===");
 //show_debug_message("Dice bag size: " + string(ds_list_size(global.dice_bag)));
@@ -145,7 +145,6 @@ rewards_consumables_second_taken = false;
 rewards_consumables_locked = -1;
 rewards_credits_taken = false;
 rewards_keepsake_taken = false;
-reward_credits = enemy.bounty;
 rewards_all_taken = false;
 
 dice_played = 0;

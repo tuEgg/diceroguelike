@@ -126,7 +126,7 @@ function define_keepsakes() {
 	//                }
 	//            break;
 				
-	//			case "on_turn_end":
+	//			case "on_player_turn_end":
 	//				self.state.streak = 0;
 	//			break;
 	//        }

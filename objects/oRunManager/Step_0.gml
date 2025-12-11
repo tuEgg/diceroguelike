@@ -14,6 +14,11 @@ if (debug_mode) {
 	key_shop = keyboard_check_pressed(ord("E"));
 	if (key_shop) room_goto(rmEvent);
 	
+	key_combat = keyboard_check_pressed(ord("C"));
+	if (key_combat) {		
+		room_goto(rmCombat);
+	}
+	
 	key_dice_list = keyboard_check_pressed(ord("Q"));
 	if (key_dice_list) {
 		show_dice_list = 1 - show_dice_list;

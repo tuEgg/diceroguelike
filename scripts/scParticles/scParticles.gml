@@ -50,5 +50,6 @@ function gain_coins(_x, _y, _amount) {
 		
 		var c = instance_create_depth(_x, _y, -200, oParticleCoin);
 		c.delay = wait;
+		c.image_alpha = 0;
 	}
 }

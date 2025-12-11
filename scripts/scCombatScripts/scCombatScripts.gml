@@ -1,4 +1,4 @@
-/// process_action(_target, _dice_amount, _dice_value, _bonus_amount, _source, _type, _slot_number, _slot_die, _num, _flat_damage)
+/// process_action(_target, _dice_amount, _dice_value, _bonus_amount, _source, _source_index, _type, _slot_number, _slot_die, _num, _flat_damage)
 /// _target: "enemy" or "player"
 /// _dice_amount: base amount of dice
 /// _dice_value: highest roll of dice
@@ -6,13 +6,14 @@
 /// _source: "enemy" or "player" (attacker or caster)
 /// _type: "atk" or "heal"
 
-function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _source, _type, _slot_number = -1, _slot_die = undefined, _num = 0) {
-	show_debug_message("this dice has a value of: "+string(_dice_value));
+function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _source, _source_index, _type, _slot_number = -1, _slot_die = undefined, _num = 0) {
+	//show_debug_message("this dice has a value of: "+string(_dice_value));
 
     // --- Roll total amount ---
     var amount = 0;
 	var slot_bonus_amount = _bonus_amount;
 	var _keepsake_dice_bonus_amount = 0;
+	var enemy_bonus_used_once = false;
 	
 	repeat (_dice_amount) {
 		// Roll starts at default range
@@ -34,9 +35,9 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 			// depending on distribution, use the array or not
 			define_dice_distributions(_slot_die.distribution, _min_roll, _max_roll, distribution_array);
-			show_debug_message("---" + string(_min_roll));
-			show_debug_message("dice MINIMUM roll is " + string(_min_roll));
-			show_debug_message("---" + string(_min_roll));
+			//show_debug_message("---" + string(_min_roll));
+			//show_debug_message("dice MINIMUM roll is " + string(_min_roll));
+			//show_debug_message("---" + string(_min_roll));
 			
 			// Our new weighted roll values, will be a range from 1 to the sum of the entire distribution array
 			var weight_min = 1;
@@ -59,7 +60,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				// add to our actual possible numbers array any entry that isn't empty (aka its a number that can be rolled)
 				if (distribution_array[d] != 0)	{
 					array_push(actual_possible_numbers, d + _min_roll );
-					show_debug_message("Adding  " + string( d + _min_roll ) + " to the list of actual possible numbers for this die");
+					//show_debug_message("Adding  " + string( d + _min_roll ) + " to the list of actual possible numbers for this die");
 				}
 				
 				//show_debug_message("---");
@@ -81,7 +82,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					
 					combat_trigger_effects("after_roll_die", ctx, _slot_die);
 					
-					final_roll = ctx._d_amount;
+					final_roll = ctx._d_amount + slot_bonus_amount + _keepsake_dice_bonus_amount;
 					
 					// die statistics
 					_slot_die.statistics.times_played_this_combat++;
@@ -92,10 +93,26 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				}
 			}
 		} else {
+			show_debug_message("Enemies roll");
 			final_roll = irandom_range( _min_roll, _max_roll );
+			
+			var ctx = {
+				_d_amount: final_roll,
+				action_type: _type,
+			}
+					
+			trigger_debuff_list(_source.debuffs, "on_roll_die", ctx);
+					
+			final_roll = ctx._d_amount;
+			show_debug_message("Rolled amound after buffs " + string(amount));
+			
+			if (!enemy_bonus_used_once) {
+				final_roll += slot_bonus_amount;
+				enemy_bonus_used_once = true;
+			}
 		}
 		
-		amount = final_roll + slot_bonus_amount + _keepsake_dice_bonus_amount; // add the roll, the slot bonus and the keepsake/dice bonus to create the final amount.
+		amount += final_roll; // add the roll, the slot bonus and the keepsake/dice bonus to create the final amount.
 		
 		// Set the rolled value of this dice to 
 		if (_slot_die != undefined) {
@@ -111,7 +128,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	// used for flat damage
 	if (_dice_amount == 0) {
 		amount = _dice_value;
-		show_debug_message("dice amount is zero - this is for flat damage - setting value to "+string(_dice_value));
+		//show_debug_message("dice amount is zero - this is for flat damage - setting value to "+string(_dice_value));
 	}
 
     var inst_color = c_red; // default color for damage
@@ -124,38 +141,64 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	        var final_damage = amount;
 
 	        // Player attacking enemy
-	        if (_target == "enemy") {
+	        if (_target != "player") {
+				
+				// Trigger end of turn effects for keepsakes
+				var on_take_damage_data = {
+					source: _source,
+					target: _target,
+				};
+					
+				//show_debug_message("checking for player attacking enemy");
+				combat_trigger_effects("on_take_damage", on_take_damage_data);
+				
+					
+				_target.taken_damage_this_turn = on_take_damage_data.target.taken_damage_this_turn;
+				
+				//show_debug_message("Value of taken_damage_this_turn: " + string(_target.taken_damage_this_turn));
+
 			
 	            // If the enemy has block
-	            if (enemy_block_amount > 0) {
-	                block_used = min(enemy_block_amount, amount);
-	                enemy_block_amount -= block_used;
+	            if (_target.block_amount > 0) {
+	                block_used = min(_target.block_amount, amount);
+	                _target.block_amount -= block_used;
 	                final_damage -= block_used;
-
-	                var num = spawn_floating_number("enemy", block_used, -1, c_aqua, -1, -1, _num);
+	
+	                var num = spawn_floating_number(_target, block_used, -1, c_aqua, -1, -1, _num);
 					num.x += 20;
 					num.y += 20;
 	            }
 
 	            // Deal any remaining damage
 	            if (final_damage > 0) {
-	                enemy_hp = max(0, enemy_hp - final_damage);
-	                spawn_floating_number("enemy", final_damage, -1, c_red, -1, -1, _num);
+	                _target.hp = max(0, _target.hp - final_damage);
+	                spawn_floating_number(_target, final_damage, -1, c_red, -1, -1, _num);
 	            }
 
 	            inst_color = c_red;
+				
+				if (_target.hp <= 0 && !_target.dead) {
+					_target.dead = true;
+					enemy_turns_remaining--;
+					enemies_left_this_combat--;
+					enemies_to_fade_out = true;
+					show_debug_message("Enemy died, enemies left this combat: "+string(enemies_left_this_combat));
+					show_debug_message("Enemy died, new enemy turns remaining this turn: " + string(enemy_turns_remaining));
+				}
 	        }
 
 	        // Enemy attacking player
-	        else if (_target == "player") {
+	        else {
+				_source.pos_x -= 50;
+				
 	            if (player_block_amount > 0) {
 	                block_used = min(player_block_amount, amount);
 	                player_block_amount -= block_used;
 	                final_damage -= block_used;
 
 	                var num = spawn_floating_number("player", block_used, -1, c_aqua, -1, -1, _num);
-					num.x += 20;
-					num.y += 20;
+					num.x += 40;
+					num.y += 40;
 	            }
 
 	            if (final_damage > 0) {
@@ -170,25 +213,29 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 
 	    // --- BLOCK ---
 	    case "BLK":
-	        if (_target == "enemy") {
-				enemy_turns_since_last_block = 0;
-	            enemy_block_amount += amount;
+	        if (_target != "player") {
+				_target.turns_since_last_block = 0;
+	            _target.block_amount += amount;
 	        } else if (_target == "player") {
 	            player_block_amount += amount;
 	        }
 
+			// Add shield animation here
 	        spawn_floating_number(_target, amount, -1, c_aqua, 1, -1, _num);
 	        inst_color = c_aqua;
 		break;
 
 	    // --- HEAL ---
 	    case "HEAL":
-	        if (_target == "enemy") {
-	            enemy_hp = min(enemy_max_hp, enemy_hp + amount);
-	            add_feed_entry("Enemy heals " + string(amount) + " HP!");
+	        if (_target != "player") {
+	            _target.hp = min(_target.max_hp, _target.hp + amount);
+				particle_emit(_target.pos_x, _target.pos_y, "rise", c_lime);
+				if (_target != _source) {
+					particle_emit(_source.pos_x, _source.pos_y, "burst", c_lime);
+				}
 	        } else if (_target == "player") {
 	            global.player_hp = min(global.player_max_hp, global.player_hp + amount);
-	            add_feed_entry("You heal " + string(amount) + " HP!");
+				particle_emit(global.player_x, global.player_y, "burst", c_lime);
 	        }
 
 	        spawn_floating_number(_target, amount, -1, c_lime, 1);
@@ -197,15 +244,50 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 		case "DEBUFF":
 			if (_target == "player") {
-			    apply_buff(global.player_debuffs, enemy_intent.debuff, enemy_intent.debuff.duration, 1);
+				_source.intent.move.debuff.remove_next_turn = true;
+			    apply_buff(global.player_debuffs, _source.intent.move.debuff, _source.intent.move.duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index });
+				particle_emit(global.player_x, global.player_y, "burst", _source.intent.move.debuff.color);
+			}
+		break;
+		
+		case "BUFF":
+			if (_target != "player") {
+				var permanent = false;
+				if (_source.intent.move.move_name == "Shiny Scales") {
+					permanent = true;
+				}	
+				_source.intent.move.debuff.remove_next_turn = true;
+			    apply_buff(_source.debuffs, _source.intent.move.debuff, _source.intent.move.duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index }, permanent);
 			}
 		break;
 		
 		case "INTEL":
-			apply_buff(global.player_debuffs, oRunManager.buff_intel, 1, amount);
+			apply_buff(global.player_debuffs, oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
 			var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, _num);
 			num.x += 20;
 			num.y -= 20;
+		break;
+		
+		case "SUMMON":
+			add_enemy_to_fight(enemy_find_by_name(_source.intent.move.summon));
+			enemies_left_this_combat++;
+			
+			global.enemy_x = display_get_gui_width() / 2 + 650 + (enemies_left_this_combat*110);
+			enemy_x_offset = -460 + (enemies_left_this_combat*80);
+			enemy_y_offset = -90;
+
+			for (var e = 0; e < ds_list_size(room_enemies); e++) {
+				var enemy_data = room_enemies[| e].data;
+				var enemy = room_enemies[| e];
+	
+				enemy.pos_x = global.enemy_x - 200 + (enemy_x_offset * e);
+				enemy.pos_x_start = global.enemy_x - 200 + (enemy_x_offset * e);
+				enemy.pos_y = global.enemy_y + (enemy_y_offset * e);
+				enemy.pos_y_start = global.enemy_y + (enemy_y_offset * e);
+				enemy.start_scale = 1.0 - ((enemies_left_this_combat-1) * 0.1);
+				enemy.target_scale = 1.08 - ((enemies_left_this_combat-1) * 0.1);
+				enemy.bar_scale = 1.0 - ((enemies_left_this_combat-1) * 0.2);
+			}
 		break;
 	}
 }
@@ -219,10 +301,6 @@ function spawn_floating_number(_target, _amount, _txt, _inst_color, _num_sign, _
 	var offset_y = (_number * 30);
 	
     switch (_target) {
-		case "enemy":
-        inst_x = global.enemy_x + offset_x;
-        inst_y = global.enemy_y + offset_y;
-		break;
 		
 		case "player":
         inst_x = global.player_x + offset_x;
@@ -235,10 +313,12 @@ function spawn_floating_number(_target, _amount, _txt, _inst_color, _num_sign, _
 		break;
 		
 		default:
-		inst_x = display_get_gui_width()/2;
-		inst_y = display_get_gui_height()/2;
+		inst_x = _target.pos_x;
+		inst_y = _target.pos_y;
     }
 
+	inst_x += sin(instance_number(oDamageText) * 30) * 40;
+	inst_y += instance_number(oDamageText) * 20;
     var inst = instance_create_layer(inst_x, inst_y, "Instances", oDamageText);
 	inst.txt = _txt;
     inst.amount = _amount;
@@ -801,44 +881,36 @@ function can_place_dice_in_slot(_die_struct, _slot, _num)
 
 /// @function win_fight();
 function win_fight() {
-	// show enemy fading out
-	enemy_alpha = lerp(enemy_alpha, 0.0, 0.1);
-	enemy_intent_alpha = lerp(enemy_intent_alpha, 0, 0.1);
-	
-	if (enemy_alpha <= 0.2) {
 			
-		if (!show_rewards) {
-			// Earn some credits, regardless of secondary rewards
-			gain_coins(global.enemy_x, global.enemy_y, enemy.bounty);
+	if (!show_rewards) {
 				
-			// pop up rewards screen - dice reward - offered 3 dice, choose 1 to keep and credits
-			reward_dice_options = ds_list_create();
-			reward_consumable_options = ds_list_create();
+		// pop up rewards screen - dice reward - offered 3 dice, choose 1 to keep and credits
+		reward_dice_options = ds_list_create();
+		reward_consumable_options = ds_list_create();
 			
-			generate_dice_rewards(reward_dice_options, global.master_dice_list, 3);
-			generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
+		generate_dice_rewards(reward_dice_options, global.master_dice_list, 3);
+		generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
 			
-			repeat(3) ds_list_add(reward_scale, 0.1);
+		repeat(3) ds_list_add(reward_scale, 0.1);
 			
-			// Show dice every combat, show consumables at a 40% chance, gaining 10% chance every time they don't appear, losing 10% when they do.
-			ds_list_add(reward_list, "dice");
+		// Show dice every combat, show consumables at a 40% chance, gaining 10% chance every time they don't appear, losing 10% when they do.
+		ds_list_add(reward_list, "dice");
 			
-			// Add consumables starting at a chance
-			var con_chance = irandom_range(1, 100);
-			if (con_chance <= oRunManager.show_consumables_chance) {
-				ds_list_add(reward_list, "consumables");
-				oRunManager.show_consumables_chance -= 30;
-			} else {
-				oRunManager.show_consumables_chance += 20;
-			}
+		// Add consumables starting at a chance
+		var con_chance = irandom_range(1, 100);
+		if (con_chance <= oRunManager.show_consumables_chance) {
+			ds_list_add(reward_list, "consumables");
+			oRunManager.show_consumables_chance -= 30;
+		} else {
+			oRunManager.show_consumables_chance += 20;
 		}
+	}
 		
-		show_rewards = true;
+	show_rewards = true;
 		
-		if (rewards_all_taken) {
-			// wait for all rewards to be taken and/or button skipped and then fade transition back to the main room
-			room_goto(rmMap);
-		}
+	if (rewards_all_taken) {
+		// wait for all rewards to be taken and/or button skipped and then fade transition back to the main room
+		room_goto(rmMap);
 	}
 }
 
@@ -1011,7 +1083,14 @@ function combat_trigger_effects(_event, _ctx, _die_struct = undefined) {
     trigger_debuff_list(global.player_debuffs, _event, _ctx);
 
     // 4) enemy debuffs
-    trigger_debuff_list(global.enemy_debuffs, _event, _ctx);
+	if (room == rmCombat) {
+		for (var e = 0; e < ds_list_size(oCombat.room_enemies); e++) {
+			var enemy = oCombat.room_enemies[| e];
+			_ctx.owner = enemy;
+			_ctx.owner_index = e;
+			trigger_debuff_list(enemy.debuffs, _event, _ctx);
+		}
+	}
 }
 
 function trigger_debuff_list(_list, _event, _ctx) {
@@ -1026,48 +1105,25 @@ function trigger_debuff_list(_list, _event, _ctx) {
 
             if (eff.trigger == _event && is_callable(eff.modify)) {
 				
-				// pass the amount through to the context
-				_ctx.buff_amount = inst.amount;
+				// Pass information through to the context that it otherwise wouldn't have
+				_ctx.source = inst.source_info.source;
+				_ctx.source_index = inst.source_info.index;
+				_ctx.stack_amount = inst.amount;
 				
 				// run the event
                 eff.modify(_ctx);
 				
-				// when it comes to triggering things on dice rolls, we need this to only decrease on the final dice roll
-				if (eff.trigger != "on_roll_die") {
-					//show_debug_message("Lowering debuff duration for non on_roll_die events");
-					inst.remaining--;
-				    if (inst.remaining <= 0) {
-						if (inst.template == oRunManager.buff_intel) {
-							// Update intel when this is destroyed
-							oCombat.player_intel = inst.amount;
-						}
-				        ds_list_delete(_list, i);
-				    }
+				if (_event != "on_roll_die") {
+					if (!inst.remove_next_turn) {
+						inst.remaining--;
+					}
 				}
-            }
-        }
-    }
-}
-
-function decrease_debuff_duration(_list, _event, _ctx) {
-	show_debug_message("Debuff list size: "+string(ds_list_size(_list)));
-	
-	var list_size = ds_list_size(_list);
-	
-    for (var i = list_size - 1; i >= 0 ; i--) {
-        var inst = _list[| i];
-        var debuff = inst.template; // <-- reference to original
-
-        for (var e = 0; e < array_length(debuff.effects); e++) {
-            var eff = debuff.effects[e];
-
-            if (eff.trigger == _event) {
-				show_debug_message("Lowering debuff duration for on_roll_die events");
-				// when it comes to triggering things on dice rolls, we need this to only decrease on the final dice roll
-				inst.remaining--;
 				
-				if (inst.remaining <= 0) {
-				    ds_list_delete(_list, i);
+				//show_debug_message("Debuff " + string(debuff.name) + " remaining: " + string(inst.remaining));
+				
+				if (inst.remaining <= 0 && !inst.permanent) {
+					// Don't delete on_roll_die triggers until end of turn
+					if (_event != "on_roll_die") ds_list_delete(_list, i);
 				}
             }
         }
@@ -1156,4 +1212,44 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 			//show_debug_message(string(i)+" slot resetting action type to "+string(parts[0]));
 		}
 	}
+}
+
+function add_enemy_to_fight(_enemy) {
+	var _rand_move = irandom(ds_list_size(_enemy.moves) - 1);
+	
+	enemy_template = {
+		data: _enemy,
+		intent: {
+			move: _enemy.moves[| _rand_move],
+			alpha: 0,
+			start_scale: 0.75,	
+			scale: 0.25,	
+			text: "",
+			color: c_white,
+		},
+		turns_since_last_block: 1,
+		move_number: -1,
+		move_history: ds_list_create(),
+		max_hp: _enemy.max_hp,
+		hp: debug_mode ? 1 : _enemy.current_hp,
+		hp_display: debug_mode ? 1 : _enemy.current_hp,
+		block_amount: 0,
+		alpha: 1.0,
+		dead: false,
+		looted: false,
+		turn_done: false,
+		pos_x: global.enemy_x - 200 + (enemy_x_offset * ds_list_size(room_enemies)),
+		pos_x_start: global.enemy_x - 200 + (enemy_x_offset * ds_list_size(room_enemies)),
+		pos_y: global.enemy_y + (enemy_y_offset * ds_list_size(room_enemies)),
+		pos_y_start: global.enemy_y + (enemy_y_offset * ds_list_size(room_enemies)),
+		start_scale: 1.0 - ((enemies_left_this_combat-1) * 0.1),
+		target_scale: 1.08 - ((enemies_left_this_combat-1) * 0.1),
+		scale: 0.8,
+		info_alpha: 1.0,
+		bar_scale: 1.0 - ((enemies_left_this_combat-1) * 0.2),
+		debuffs: ds_list_create(),
+		taken_damage_this_turn: false,
+	}
+	
+	ds_list_add(room_enemies, enemy_template);
 }
