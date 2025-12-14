@@ -116,9 +116,11 @@ items_hover = [];
 items_hover_scale = [];
 has_space_for_item = true;
 
-items[0] = clone_item(item_consumable_crows_nest_clarity);
-items[1] = clone_item(item_consumable_crows_nest_clarity);
-items[2] = clone_item(item_consumable_crows_nest_clarity);
+if (debug_mode) {
+	items[0] = clone_item(item_consumable_crows_nest_clarity);
+	items[1] = clone_item(item_consumable_crows_nest_clarity);
+	items[2] = clone_item(item_consumable_crows_nest_clarity);
+}
 	
 for (var i = 0; i < max_items; i++) {
 	array_push(items_hover, 0);

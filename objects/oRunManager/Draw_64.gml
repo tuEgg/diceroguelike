@@ -30,9 +30,9 @@ if (voyage_hover) queue_tooltip(mouse_x, mouse_y, "Voyages Sailed", "You are on 
 draw_set_halign(fa_center);
 draw_set_valign(fa_top);
 draw_sprite(sTopBarIcons, 0, 280 + 5, 15);
-draw_outline_text(string(oWorldManager.pages_turned), c_black, c_white, 2, 350 + 5, 30, 1, 1, 0);
+draw_outline_text(string(oWorldManager.nodes_cleared), c_black, c_white, 2, 350 + 5, 30, 1, 1, 0);
 var pages_hover = mouse_hovering(280 + 5, 15, sprite_get_width(sTopBarIcons), sprite_get_height(sTopBarIcons), false);
-if (pages_hover) queue_tooltip(mouse_x, mouse_y, "Pages Turned", "You have turned " + string(oWorldManager.pages_turned) + " pages of the Captain's logbook", undefined, 0, undefined);
+if (pages_hover) queue_tooltip(mouse_x, mouse_y, "Pages Turned", "You have turned " + string(oWorldManager.nodes_cleared) + " pages of the Captain's logbook", undefined, 0, undefined);
 
 // Draw money
 draw_sprite_ext(sTopBarSlot, 1, 400 + 5, 18, 1, 1, 0, c_white, 1.0);
@@ -120,12 +120,14 @@ for (var i = 0; i < array_length(items); i++) {
 					var ctx = {};
 					trigger_item_effects(items[i], "on_clicked", ctx);
 					items[i] = undefined;
+					holding_item = false;
 				}
 			}
 
 			if (items_hover[i] && mouse_check_button(mb_right)) {
 				// delete item - need to add confirmation window to this
 				items[i] = undefined;
+				holding_item = false;
 			}
 		}
 	}

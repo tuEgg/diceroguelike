@@ -152,8 +152,11 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				//show_debug_message("checking for player attacking enemy");
 				combat_trigger_effects("on_take_damage", on_take_damage_data);
 				
-					
-				_target.taken_damage_this_turn = on_take_damage_data.target.taken_damage_this_turn;
+				if (variable_struct_exists(on_take_damage_data.target, "taken_damage_this_turn")) {
+					_target.taken_damage_this_turn = on_take_damage_data.target.taken_damage_this_turn;
+				} else {
+					_target.taken_damage_this_turn = false;
+				}
 				
 				//show_debug_message("Value of taken_damage_this_turn: " + string(_target.taken_damage_this_turn));
 
@@ -426,7 +429,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 				reject_dice = true;
 			} else {
 		        // Only accept dice as strong or stronger
-		        if (die.struct.dice_value >= stats.value || is_dice_coin) {
+		        if (die.struct.dice_value >= stats.highest_value_base || is_dice_coin) {
 		            var die_copy = clone_die(die.struct, string_has_keyword(die.struct.description, "sticky") ? "base" : "temporary");
 		            ds_list_add(slot.dice_list, die_copy);
 				
@@ -449,7 +452,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 					}
 
 		            stats.amount += die_copy.dice_amount;
-		            stats.value   = max(die_copy.dice_value, stats.value);
+		            stats.highest_value = max(die_copy.dice_value, stats.highest_value);
 		            //show_debug_message("Adding coloured dice to coloured slot.");
 		        } else {
 		            reject_dice = true;
@@ -470,13 +473,13 @@ function apply_dice_to_slot(_die, _slot_i) {
 	        ds_list_add(slot.dice_list, die_copy);
 
 	        stats.amount += die_copy.dice_amount;
-	        stats.value   = max(die_copy.dice_value, stats.value);
+	        stats.highest_value   = max(die_copy.dice_value, stats.highest_value);
 	    }
 	    else if (!is_queue_none) {
 			if (is_dice_exclusive || is_slot_exclusive) {
 				reject_dice = true;
 			} else {
-		        if (die.struct.dice_value >= stats.value) {
+		        if (die.struct.dice_value >= stats.highest_value_base) {
 		            var die_copy = clone_die(die.struct, string_has_keyword(die.struct.description, "sticky") ? "base" : "temporary");
 		            ds_list_add(slot.dice_list, die_copy);
 
@@ -700,8 +703,9 @@ function sacrifice_die(_die) {
 
     ds_list_add(action_queue, new_slot);
     var slot = ds_list_size(action_queue) + 1;
-	sacrificies_til_new_action_tile = global.fib_lookup[slot];
-
+	//sacrificies_til_new_action_tile = global.fib_lookup[slot];
+	sacrificies_til_new_action_tile = (slot + 1) div 2; // 1, 1, 2, 2, 3, 3 etc.
+	
     ds_list_destroy(type_list);
     ds_list_clear(global.sacrifice_list);
 	//show_debug_message("New slot created");
@@ -734,11 +738,13 @@ function get_slot_stats(_slot, _num) {
     var low = 0;
     var high = 0;
     var total_amount = 0;
-    var highest_value = 0;
+    var _highest_value = 0;
+    var _highest_value_base = 0;
 	var different = false;
 
     for (var i = 0; i < ds_list_size(_slot.dice_list); i++) {
         var die_struct = _slot.dice_list[| i];
+		var die_base = die_struct.permanence == "base" ? true : false;
 		
 		var dice_values = get_dice_output(die_struct, _num, true);
 		
@@ -748,15 +754,21 @@ function get_slot_stats(_slot, _num) {
 		if (die_struct.action_type != "None!") { 
 			total_amount += die_struct.dice_amount;
 		}
-		if (i > 0 && highest_value != die_struct.dice_value) different = true; // set to true if there are different types
-        highest_value = max(highest_value, die_struct.dice_value);
+		
+		if (i > 0 && _highest_value != die_struct.dice_value) different = true; // set to true if there are different types
+        _highest_value = max(_highest_value, die_struct.dice_value);
+		
+		if (die_base) {
+			_highest_value_base = max(_highest_value_base, die_struct.dice_value);
+		}
     }
 
     return {
         low_roll: low + _slot.bonus_amount, // used for displaying the minimum roll of this slot
         high_roll: high + _slot.bonus_amount, // used for displaying the maximum roll of this slot
         amount: total_amount, // used for displaying the number of dice in this slot
-        value: highest_value, // used for displaying the highest value dice in this slot -- we need to fix for 1d6 + 1d4, right now it shows as 2d6
+        highest_value: _highest_value, // used for displaying the highest value dice in this slot -- we need to fix for 1d6 + 1d4, right now it shows as 2d6
+		highest_value_base: _highest_value_base,
 		differing_types: different
     };
 }
@@ -852,7 +864,7 @@ function can_place_dice_in_slot(_die_struct, _slot, _num)
         }
         else if (string_pos(die.action_type, slot.possible_type) > 0) {
             // Same type — only if equal or stronger value
-            return (die.dice_value >= stats.value);
+            return (die.dice_value >= stats.highest_value_base);
         }
         else {
             // Different color entirely
@@ -870,7 +882,7 @@ function can_place_dice_in_slot(_die_struct, _slot, _num)
         }
         else if (!is_queue_none) {
             // Generic dice can be added to colored slots if equal or stronger
-            return (die.dice_value >= stats.value);
+            return (die.dice_value >= stats.highest_value_base);
         }
         else {
             // Empty slot but generic dice — invalid
@@ -919,7 +931,7 @@ function get_action_name(_slot, _num) {
 	var stats = get_slot_stats(_slot, _num);
 	var action_type = _slot.current_action_type;
 	var total_amount = stats.amount;
-	var highest_value = stats.value;
+	var highest_value = stats.highest_value;
 	
 	var label = "";
 	
@@ -1139,7 +1151,8 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 
 		if (string_pos("temporary", die.permanence) > 0 || (string_has_keyword(die.description, "Loose")) || _all == true) {
 					
-			//// THIS COULD SIT IN A HELPER -- EJECT DICE
+			if (_slot.current_action_type == "None") break;
+			
 			// Clean up sacrifice history
 			if (ds_exists(global.sacrifice_history, ds_type_list)) {
 				for (var s = ds_list_size(global.sacrifice_history) - 1; s >= 0; s--) {

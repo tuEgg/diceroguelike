@@ -26,9 +26,24 @@ function enemy_definitions() {
 
 
 	// -------------------------------
-	// TIER 1 — HUMAN ADVERSARIES
+	// VOYAGE 1 ENEMIES
 	// -------------------------------
 
+	var seagull_moves = [
+	    { dice_amount: 2, dice_value: 2, action_type: "ATK", bonus_amount: 1, move_name: "Peck" },
+	    { dice_amount: 1, dice_value: 2, action_type: "BLK", bonus_amount: 2, move_name: "Evade" },
+	];
+	var seagull = enemy_create("Seagull", 8, 8, seagull_moves, "pseudo_random");
+	ds_list_add(global.enemy_list, seagull);
+	
+	var baby_kraken_moves = [
+	    { dice_amount: 2, dice_value: 2, action_type: "ATK", bonus_amount: 4, move_name: "Tentacle Whip" },
+	    { dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 0, move_name: "Coil" },
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Bind", debuff: debuff_bind, amount: 1, duration: 1 },
+	];
+	var baby_kraken = enemy_create("Baby Kraken", 26, 16, baby_kraken_moves, "pseudo_random");
+	ds_list_add(global.enemy_list, baby_kraken);
+	
 	var deckhand_moves = [
 	    { dice_amount: 1, dice_value: 6, action_type: "ATK", bonus_amount: 3, move_name: "Slash" }, // Slash
 	    { dice_amount: 1, dice_value: 4, action_type: "BLK", bonus_amount: 4, move_name: "Duck" }  // Duck
@@ -51,6 +66,14 @@ function enemy_definitions() {
 	];
 	var gunner = enemy_create("Corsair Gunner", 55, 19, gunner_moves, "ordered");
 	ds_list_add(global.enemy_list, gunner);
+
+	var turtle_moves = [
+	    { dice_amount: 5, dice_value: 2, action_type: "BLK", bonus_amount: -1, move_name: "Withdraw" }, // Aim
+	    { dice_amount: 8, dice_value: 2, action_type: "ATK", bonus_amount: -2, move_name: "Rapid Spin" }, // Volley Fire
+	    //{ dice_amount: 0, dice_value: 0, action_type: "PASSIVE", bonus_amount: 0, move_name: "Turtle Shell" } // Reload
+	];
+	var turtle = enemy_create("Turtle", 48, 18, turtle_moves, "ordered");
+	ds_list_add(global.enemy_list, turtle);
 	
 	var barrel_of_fish_moves = [
 	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Rot", debuff: debuff_rot, weight: 25, amount: 1, duration: 1  },

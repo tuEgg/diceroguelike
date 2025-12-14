@@ -153,6 +153,14 @@ for (var i = 0; i < aq_list_size; i++) {
 	var slot_index = 1;
 	
 	if (locked_slot == i) draw_col = c_dkgray;
+	if (bound_slot == i) {
+		var _slot_pos = oCombat.slot_positions[| oCombat.bound_slot];
+					
+		var start_x = _slot_pos.x + (_slot_pos.w / 2);
+		var start_y = _slot_pos.y + (_slot_pos.h / 2);
+					
+		particle_emit(start_x, start_y, "constant", c_green, 1);
+	}
 
     // --- Highlight the active action slot during RESOLVE_ROUND ---
 	if (state == CombatState.RESOLVE_ROUND && !enemies_turn_done) {
@@ -174,7 +182,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	var _low_roll = stats.low_roll;
 	var _high_roll = stats.high_roll;
 	var total_amount = stats.amount;
-	var highest_value = stats.value;
+	var highest_value = stats.highest_value;
 	var different_dice = stats.differing_types;
 
 	var slot_amount = total_amount;
@@ -532,8 +540,11 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		if (intel_level >= 1) reveal_intent_single = true;
 		if (intel_level >= 2) reveal_intent_all = true;
 	
-	    var text = ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) ? enemy.intent.text : "";
 	    var col  = ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) ? enemy.intent.color : c_dkgray;
+			
+	    var text = ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) ? enemy.intent.text : "";
+		
+	
 
 	    var xx = enemy.pos_x; // enemy position on screen
 	    var yy = enemy.pos_y - 10 - (enemy.scale * 180);  // slightly above their head
@@ -581,6 +592,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 				index = enemy.intent.move.debuff.icon_index;
 				bonus_scale = 1.5;
 				icon_x = xx;
+				col = enemy.intent.move.debuff.color;
 			}
 		}
 	

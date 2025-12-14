@@ -1,8 +1,9 @@
 time++;
 
+var gui_w = display_get_gui_width();
+var gui_h = display_get_gui_height();
+
 if (room == rmMap) {	
-	var gui_w = display_get_gui_width();
-	var gui_h = display_get_gui_height();
 	
 	// Rock the boat
 	boat_data.y += sin(time * 0.05) * 0.4;
@@ -167,3 +168,28 @@ if (room == rmMap) {
 	draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 1, 1, boat_data.angle, c_white, 1.0);
 }
 
+if (debug_mode) {
+	var world_debug = [];
+	array_push(world_debug, combat_chance);
+	array_push(world_debug, event_chance);
+	array_push(world_debug, workbench_chance);
+	array_push(world_debug, shop_chance);
+	array_push(world_debug, bounty_chance);
+	array_push(world_debug, elite_chance);
+	
+	draw_set_alpha(0.8);
+	draw_set_color(c_black);
+	draw_rectangle(gui_w, 100, gui_w - 225, 450, false);
+	draw_set_alpha(1.0);
+	
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	draw_set_color(c_white);
+	for (var i = 0; i < array_length(world_debug); i++) {
+		var lookup = ["combat", "event", "workbench", "shop", "bounty", "elite"];
+		
+		draw_text(gui_w - 200, 125 + (i * 30), lookup[i] + ": ");
+		draw_text(gui_w - 75, 125 + (i * 30), string(world_debug[i]));
+	}
+}

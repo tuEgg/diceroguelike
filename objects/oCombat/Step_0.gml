@@ -95,8 +95,6 @@ switch (state) {
 				enemy.move_number = move_index;
 			}
 			
-			
-			
 			enemy.intent.move = enemy_data.moves[| enemy.move_number];
 			
 			// Overwrite the above with priority triggers
@@ -192,6 +190,17 @@ switch (state) {
 		    enemy.intent.scale = lerp(enemy.intent.scale, enemy.intent.start_scale, 0.3);
 		}
 		
+		// Make any bound slots dice all temporary
+		for (var i = 0; i < ds_list_size(action_queue); i++) {
+			if (i == bound_slot) {
+				var slot = action_queue[| i];
+				
+				for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
+					slot.dice_list[| d].permanence = "temporary";
+				}
+			}
+		}
+		
         state = CombatState.PLAYER_INPUT;
         break;
 
@@ -285,9 +294,13 @@ switch (state) {
 					if (_target == "other") {
 						var _target_index;
 						
-						do {
-							_target_index = irandom(enemies_left_this_combat-1);
-						} until (_target_index != e);
+						if (enemies_left_this_combat > 1) {
+							do {
+								_target_index = irandom(enemies_left_this_combat-1);
+							} until (_target_index != e);
+						} else {
+							_target_index = e;
+						}
 						
 						_target = room_enemies[| _target_index];
 						
@@ -416,6 +429,7 @@ switch (state) {
 					}
 					
 					locked_slot = -1;
+					bound_slot = -1;
 				
 					// Trigger end of turn effects for keepsakes
 					var turn_end_data = {

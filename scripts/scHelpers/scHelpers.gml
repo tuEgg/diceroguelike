@@ -279,10 +279,14 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
     // ICON
     // -------------------------------------------------------
     if (_icon != undefined) {
+		var yyy = yy + padding + 5 + sprite_get_height(_icon)/2;
+		if (_icon == sMapIcon) {
+			yyy -= sprite_get_height(_icon)/5;
+		}
         draw_sprite_ext(
             _icon, _index,
             xx + sprite_get_width(_icon)/2 + padding,
-            yy + padding + 5 + sprite_get_height(_icon)/2,
+            yyy,
             1, 1, 0, c_white, 1
         );
         xx += sprite_get_width(_icon) + padding;

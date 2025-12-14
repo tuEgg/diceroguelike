@@ -1,8 +1,9 @@
 // Script assets have changed for v2.3.0 see
 // https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
-function particle_emit( _x, _y, _type, _col) {
+// particle_emit( x, y, type, color, [amount])
+function particle_emit( _x, _y, _type, _col, _amount = 30) {
 	
-	repeat(30) {
+	repeat(_amount) {
 		var _index = irandom(3);
 		
 		var _color = make_color_rgb(
@@ -26,6 +27,15 @@ function particle_emit( _x, _y, _type, _col) {
 			p.direction = random_range(88, 92);
 			p.size = random_range(0.75, 1.5);
 			p.life = 60;
+		}
+		
+		if (_type == "constant") {
+			p.x = _x + random_range(-80, 80);
+			p.y = _y + random_range(-80, 80);
+			p.speed = random_range(0.5, 2);
+			p.direction = random_range(70, 110);
+			p.size = random_range(0.6, 1.2);
+			p.life = 40;
 		}
 		
 		p.spin = choose(-1, 0, 1); // 1 for rotate right, 0 for no rotation, -1 for rotate left

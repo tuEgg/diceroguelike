@@ -96,9 +96,11 @@ if (deleting_die > 0) {
 		queue_tooltip(mouse_x, mouse_y, "Walk the plank", "Drag a die here to make the pirate walk the plank", undefined, 0, undefined);
 		if (mouse_check_button_released(mb_left)) {
 			var dice_dragged = false;
-			with (instance_nearest(xx, yy, oDice)) {
+			var die = instance_nearest(xx, yy, oDice);
+			with (die) {
 				if (distance_to_point(xx, yy) < 20) {
 					dice_dragged = true;
+					particle_emit(xx, yy, "burst", get_dice_color(die.action_type));
 					instance_destroy();
 				}
 			}

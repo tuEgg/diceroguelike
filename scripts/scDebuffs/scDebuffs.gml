@@ -79,15 +79,15 @@ function define_buffs_and_debuffs() {
 	    ]
 	};
 	
-	debuff_rot = {
-	    _id: "rot",
-		name: "Rot",
+	debuff_bind = {
+	    _id: "bind",
+		name: "Bind",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
 	    desc: "Prevents a random slot from firing this turn",
 	    icon_index: 5,
 		debuff: true,
-		color: make_color_rgb(44, 102, 20),
+		color: c_dkgray,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
 	    effects: [
@@ -95,6 +95,34 @@ function define_buffs_and_debuffs() {
 	            trigger: "on_turn_start",
 	            modify: function(_ctx) {
 				    oCombat.locked_slot = irandom( ds_list_size(oCombat.action_queue) - 1);
+				}
+	        }
+	    ]
+	};
+	
+	debuff_rot = {
+	    _id: "rot",
+		name: "Rot",
+	    duration: 1,  // lasts 1 full turn
+		amount: 1,
+	    desc: "Eject all base dice from this slot this turn",
+	    icon_index: 5,
+		debuff: true,
+		color: c_green,
+		stackable: false, // if false, increase duration when adding more, otherwise increase amount
+		remove_next_turn: false,
+	    effects: [
+	        {
+	            trigger: "on_turn_start",
+	            modify: function(_ctx) {
+				    oCombat.bound_slot = irandom( ds_list_size(oCombat.action_queue) - 1);
+					
+					var _slot_pos = oCombat.slot_positions[| oCombat.bound_slot];
+					
+					var start_x = _slot_pos.x + (_slot_pos.w / 2);
+					var start_y = _slot_pos.y + (_slot_pos.h / 2);
+					
+					particle_emit(start_x, start_y, "burst", c_green);
 				}
 	        }
 	    ]

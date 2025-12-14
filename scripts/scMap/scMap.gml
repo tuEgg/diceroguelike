@@ -4,6 +4,8 @@ function generate_pages() {
 	var num_event = 0; // generate no more than 3 across all 3 pages
 	var num_workbench = 0; // generate no more than 2 across all 3 pages
 	var num_shop = 0; // generate no more than 2 across all 3 pages
+	var num_bounty = 0; // generate no more than 1 bounty across all 3 pages
+	var num_elite = 0; // each page has an elite at the same time???
 	
 	repeat (3) {
 		var _index = irandom(5);
@@ -13,6 +15,7 @@ function generate_pages() {
 		var _top = 0;
 		var _bottom = 0;
 		
+		// offset the position of the nodes and lines depending on the page sprite index
 		switch(_index) {
 			case 0:
 				_left = 60;
@@ -43,6 +46,7 @@ function generate_pages() {
 			break;
 		}
 		
+		// create the page data
 		var _page = {
 			index: _index,
 			num_nodes: _num_nodes,
@@ -64,6 +68,7 @@ function generate_pages() {
 			cleared: false
 		}
 		
+		// the connection points on the maps
 		switch (_page.layout) {
 			case "vertical":
 				_page.map_connection_in.x = sprite_get_height(sMapParchment)/2;
@@ -74,12 +79,15 @@ function generate_pages() {
 			default: _page.map_connection_in.x = sprite_get_height(sMapParchment)/2;
 		}
 		
+		// count the nodes per page
 		var page_num_combat = 0;
 		var page_num_event = 0;
 		var page_num_workbench = 0; // generate no more than 1 per page
 		var page_num_shop = 0; // generate no more than 1 per page
+		var page_num_bounty = 0;
+		var page_num_elite = 0;
 	
-		// Need to add weighting here
+		// add the nodes
 		do {
 			var chosen_node = node_combat;
 			var page_num = ds_list_size(pages_shown); // 0, 1 or 2
@@ -98,12 +106,14 @@ function generate_pages() {
 					chosen_node = node_combat;
 					combat_chance -= 5;
 					
-					var rand_inc = (irandom(2));
+					if (nodes_cleared < 5) {
+						var rand_inc = (irandom(2));
 					
-					switch (rand_inc) {
-						case 0: event_chance += 5; break;
-						case 1: workbench_chance += 5; break;
-						case 2: shop_chance += 5; break;
+						switch (rand_inc) {
+							case 0: event_chance += 5; break;
+							case 1: workbench_chance += 5; break;
+							case 2: shop_chance += 5; break;
+						}
 					}
 					
 				} else {
@@ -116,12 +126,14 @@ function generate_pages() {
 					chosen_node = node_event;
 					event_chance -= 5;
 					
-					var rand_inc = (irandom(2));
+					if (nodes_cleared < 5) {
+						var rand_inc = (irandom(2));
 					
-					switch (rand_inc) {
-						case 0: combat_chance += 5; break;
-						case 1: workbench_chance += 5; break;
-						case 2: shop_chance += 5; break;
+						switch (rand_inc) {
+							case 0: combat_chance += 5; break;
+							case 1: workbench_chance += 5; break;
+							case 2: shop_chance += 5; break;
+						}
 					}
 				} else {
 					continue;
@@ -132,7 +144,14 @@ function generate_pages() {
 					page_num_workbench++;
 					chosen_node = node_workbench;
 					workbench_chance -= 5;
-					shop_chance += 5;
+					
+					if (nodes_cleared < 5) {
+						shop_chance += 5;
+					} else if (bounty == undefined) {
+						bounty_chance += 5;
+					} else {
+						shop_chance += 5;
+					}
 				} else {
 					continue;
 				}
@@ -142,13 +161,56 @@ function generate_pages() {
 					page_num_shop++;
 					chosen_node = node_shop;
 					shop_chance -= 5;
-					workbench_chance += 5;
+					
+					if (nodes_cleared < 5) {
+						workbench_chance += 5;
+					} else if (bounty == undefined) {
+						bounty_chance += 5;
+					} else {
+						workbench_chance += 5;
+					}
 				} else {
 					continue;
 				}
-			} 
+			} else if (rand <= combat_chance + event_chance + workbench_chance + shop_chance + bounty_chance) {
+				if (num_bounty < 2 && page_num_bounty == 0) {
+					num_bounty++;
+					page_num_bounty++;
+					chosen_node = node_bounty;
+					if (num_bounty == 1) {
+						bounty_chance -= 10;
+						workbench_chance += 5;
+						shop_chance += 5;
+					} else {
+						var gap = bounty_chance;
+						bounty_chance = 0;
+						combat_chance += floor(gap * (2/5));
+						event_chance += floor(gap * (1/5));
+						workbench_chance += floor(gap * (1/5));
+						shop_chance += floor(gap * (1/5));
+					}
+					
+				} else {
+					continue;
+				}
+			} else if (rand <= combat_chance + event_chance + workbench_chance + shop_chance + bounty_chance + elite_chance) {
+				if (num_elite < 3 && page_num_elite == 0) {
+					num_elite++;
+					page_num_elite++;
+					chosen_node = node_elite;
+					if (num_elite == 3) {
+						elite_chance = 0;
+						combat_chance = 47;
+						event_chance = 33;
+						workbench_chance = 10;
+						shop_chance = 10;
+					}
+				} else {
+					continue;
+				}
+			}
 			
-			if (oWorldManager.pages_turned == 0) && (ds_list_size(_page.nodes) == 0) {
+			if (oWorldManager.nodes_cleared == 0) && (ds_list_size(_page.nodes) == 0) {
 				chosen_node = node_combat;
 			}
 			
@@ -188,27 +250,63 @@ function enter_node(_node) {
 function get_combat_enemies(_node) {
 	
 	if (_node.type == NODE_TYPE.COMBAT) {
-		// Encounter 1
-		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
 		
-		// Encounter 2
-		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
-		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Barrel o' Fish"));
+		// Find a random encounter in the list of possible encounters
+		var rand_encounter = irandom(ds_list_size(possible_encounters) - 1);
 		
-		// Encounter 3
-		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Thug"));
+		// Add the relevant enemies
+		switch (possible_encounters[| rand_encounter]) {
+			case "Early 1":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
+			break;
+			
+			case "Early 2":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Baby Kraken"));
+			break;
+			
+			case "Early 3":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Seagull"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Seagull"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Seagull"));
+			break;
+			
+			case "Early 4":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Thug"));
+			break;
+			
+			case "Encounter 1":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Barrel o' Fish"));
+			break;
+			
+			case "Encounter 2":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Thug"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name(choose("Driftnet Fish", "Barrel o' Fish")));
+			break;
+			
+			case "Encounter 3":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
+			break;
+			
+			case "Encounter 4":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Corsair Gunner"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Seagull"));
+			break;
+			
+			case "Encounter 5":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Turtle"));
+			break;
+			
+			case "Elite 1":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Captain"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
+			break;
+		}
 		
-		// Encounter 4
-		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
-		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
-		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
-		
-		// Elite 1
-		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Captain"));
-		//ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
-		
-		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Captain"));
-		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
+		// Remove it from the list of possible encounters
+		ds_list_delete(possible_encounters, rand_encounter);
 		
 	} else if (_node.type == NODE_TYPE.BOSS) {
 		
@@ -466,6 +564,8 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 				draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale, node.scale, 0, _icon_blend, _alph);
 			
 				if (node_hover) {
+					queue_tooltip(mouse_x, mouse_y, node.name, node.text, sMapIcon, node.subimg, undefined);
+					 
 					if (mouse_check_button_pressed(mb_left) && node_to_move_to == undefined) {
 						node_to_move_to = node;
 						node_to_move_to.y += 10;
@@ -529,6 +629,7 @@ function clone_node_static(_src) {
 
     return {
         type: _src.type,
+		name: _src.name,
         subimg: _src.subimg,
         text: _src.text,
 
