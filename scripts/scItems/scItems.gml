@@ -190,7 +190,7 @@ function define_items() {
 				} else {
 					dice_exist = true;
 				}
-				return dice_exist;
+				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
 			},
 			modify: function(_context) {
 				// give this specific slot +1 to all rolls next turn
@@ -222,7 +222,7 @@ function define_items() {
 					dice_exist = false;
 					throw_error("This slot is empty", "Try playing this to a slot with dice in it");
 				}
-				return dice_exist;
+				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
 			},
 			modify: function(_context) {
 				// eject dice in this slot
@@ -260,7 +260,7 @@ function define_items() {
 				} else {
 					dice_exist = true;
 				}
-				return dice_exist;
+				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
 			},
 			modify: function(_context) {
 				// select a random die in play and upgrade it
@@ -307,7 +307,7 @@ function define_items() {
 				} else {
 					dice_exist = true;
 				}
-				return dice_exist;
+				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
 			},
 			modify: function(_context) {
 				// select a random die in play and upgrade it
@@ -346,7 +346,7 @@ function define_items() {
 				} else {
 					dice_exist = true;
 				}
-				return dice_exist;
+				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
 			},
 			modify: function(_context) {
 				// select a random die in play and upgrade it
@@ -408,7 +408,7 @@ function define_items() {
 				} else {
 					dice_exist = true;
 				}
-				return dice_exist;
+				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
 			},
 			modify: function(_context) {
 				with (oCombat) {
@@ -447,7 +447,7 @@ function define_items() {
 				} else {
 					dice_exist = true;
 				}
-				return dice_exist;
+				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
 			},
 			modify: function(_context) {
 				apply_buff(global.player_debuffs, oRunManager.buff_might, 1, 1, oRunManager.buff_might.remove_next_turn, { source: "player", index: -1 });
@@ -480,7 +480,7 @@ function define_items() {
 				} else {
 					dice_exist = true;
 				}
-				return dice_exist;
+				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
 			},
 			modify: function(_context) {
 				apply_buff(global.player_debuffs, oRunManager.buff_balance, 1, 1, oRunManager.buff_balance.remove_next_turn, { source: "player", index: -1 });
@@ -516,7 +516,7 @@ function define_items() {
 				} else {
 					dice_exist = true;
 				}
-				return dice_exist;
+				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
 			},
 			modify: function(_context) {
 				with (oRunManager) {

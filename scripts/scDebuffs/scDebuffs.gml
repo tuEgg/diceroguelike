@@ -42,6 +42,7 @@ function define_buffs_and_debuffs() {
 		color: c_red,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount,
 		remove_next_turn: true, // if true, remove at the end of the following turn, otherwise remove at the end of this turn
+		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_roll_die",
@@ -69,6 +70,7 @@ function define_buffs_and_debuffs() {
 		color: c_aqua,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -90,6 +92,7 @@ function define_buffs_and_debuffs() {
 		color: c_dkgray,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -111,6 +114,7 @@ function define_buffs_and_debuffs() {
 		color: c_green,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -139,6 +143,7 @@ function define_buffs_and_debuffs() {
 		color: c_red,
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -157,19 +162,16 @@ function define_buffs_and_debuffs() {
 		amount: 1,
 	    desc: "Gains 1 more attack dice if it takes damage on its turn",
 	    icon_index: 6,
-		debuff: true,
+		debuff: false,
 		color: c_aqua,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: true,
+		permanent: true,
 	    effects: [
 	        {
 	            trigger: "on_enemy_turn_end",
 	            modify: function(_ctx) {
-					show_debug_message("end of turn is triggering");
-					show_debug_message("_ctx.owner.taken_damage_this_turn: " +string(_ctx.owner.taken_damage_this_turn) );
-					
 					if (_ctx.owner.taken_damage_this_turn) {
-						show_debug_message("We took damage this turn");
 						_ctx.owner.data.moves[| 1].dice_amount += 1; 
 					}
 					
@@ -181,8 +183,29 @@ function define_buffs_and_debuffs() {
 	            trigger: "on_take_damage",
 	            modify: function(_ctx) {
 				    _ctx.target.taken_damage_this_turn = true;
-					
-					show_debug_message("We have taken damage");
+				}
+	        }
+	    ]
+	};
+	
+	buff_spines = {
+	    _id: "spines",
+		name: "Spines",
+	    duration: 1,  // lasts 1 full turn
+		amount: 1,
+	    desc: "Every time the Pufferfish takes damage it deals 1 back.",
+	    icon_index: 6,
+		debuff: false,
+		color: c_aqua,
+		stackable: false, // if false, increase duration when adding more, otherwise increase amount
+		remove_next_turn: true,
+		permanent: true,
+	    effects: [
+			{
+	            trigger: "on_take_damage",
+	            modify: function(_ctx) {
+				    // Needed to make this damage work properly
+					process_action("player", 0, 1, 0, _ctx.owner, -1, "ATK", undefined, undefined, 0);
 				}
 	        }
 	    ]
@@ -199,6 +222,7 @@ function define_buffs_and_debuffs() {
 		color: c_lime,
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -220,6 +244,7 @@ function define_buffs_and_debuffs() {
 		color: make_color_rgb(210, 210, 0),
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -241,6 +266,7 @@ function define_buffs_and_debuffs() {
 		color: c_orange,
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_roll_die",
@@ -270,6 +296,7 @@ function define_buffs_and_debuffs() {
 		color: c_blue,
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_roll_die",
@@ -283,6 +310,28 @@ function define_buffs_and_debuffs() {
 					// this exists purely to remove the buff at the end of the turn, rather than on roll die
 				}
 			}
+	    ]
+	};
+	
+	passive_turtle_shell = {
+	    _id: "turtle_shell",
+		name: "Turtle Shell",
+	    duration: 1,  // lasts 1 full turn
+		amount: 0,
+	    desc: "Doesn't lose block between turns",
+	    icon_index: 6,
+		debuff: false,
+		color: make_colour_rgb(40, 150, 60),
+		stackable: false, // if false, increase duration when adding more, otherwise increase amount
+		remove_next_turn: false,
+		permanent: false,
+	    effects: [
+	        {
+	            trigger: "on_enemy_turn_end",
+	            modify: function(_ctx) {
+					_ctx.owner.keep_block_between_turns = true;
+				}
+	        }
 	    ]
 	};
 }

@@ -153,7 +153,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	var slot_index = 1;
 	
 	if (locked_slot == i) draw_col = c_dkgray;
-	if (bound_slot == i) {
+	if (bound_slot == i && !show_rewards) {
 		var _slot_pos = oCombat.slot_positions[| oCombat.bound_slot];
 					
 		var start_x = _slot_pos.x + (_slot_pos.w / 2);
@@ -540,11 +540,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		if (intel_level >= 1) reveal_intent_single = true;
 		if (intel_level >= 2) reveal_intent_all = true;
 	
-	    var col  = ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) ? enemy.intent.color : c_dkgray;
-			
 	    var text = ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) ? enemy.intent.text : "";
-		
-	
 
 	    var xx = enemy.pos_x; // enemy position on screen
 	    var yy = enemy.pos_y - 10 - (enemy.scale * 180);  // slightly above their head
@@ -566,38 +562,49 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	    draw_set_halign(fa_left);
 	    draw_set_valign(fa_middle);
 
-		// Draw attack value
+		// Set index and text width
 		draw_set_font(ftTopBar);
 		var text_w = string_width(text) + 10 + (sprite_get_width(sIntentIcons) * enemy.intent.scale);
-		var index = 0;
-		switch (col) {
-		
-		    case c_red: index = 0; break;
-		    case c_aqua: index = 1;  break;
-		    case c_lime: index = 2;  break;
-		    case c_white: index = 3;  break;
-		    case c_dkgray: index = 4;  break;
-			default: index = 4; 
-		}
 		
 		var sprite = sIntentIcons;
 		var icon_x = xx - text_w/2 + 5 + ((sprite_get_width(sprite) / 2) * enemy.intent.scale);
 		var text_x = icon_x + ((sprite_get_width(sprite) / 2) * enemy.intent.scale) + 10;
 		var bonus_scale = 1;
+
+		// Draw combined intents
+		var intent_array = string_split(enemy.intent.move.action_type, "/");
+
+		var index = 4;
+		var col = c_dkgray;
 		
-		// enemy move is a debuff, draw sDebuffIcon, _debuff.template.icon_index instead of the standard icon
-		if (enemy.intent.move.action_type == "DEBUFF" || enemy.intent.move.action_type == "BUFF") {
-			if (reveal_intent_all) || (reveal_intent_single && e == enemy_target_index) {
-				sprite = sDebuffIcon;
-				index = enemy.intent.move.debuff.icon_index;
-				bonus_scale = 1.5;
-				icon_x = xx;
-				col = enemy.intent.move.debuff.color;
+		for (var i = 0; i < array_length(intent_array); i++) {
+			
+			if ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) {
+				switch (intent_array[i]) {
+					case "ATK": col = global.color_attack; index = 0; break;
+					case "BLK": col = global.color_block; index = 1; break;
+					case "HEAL": col = global.color_heal; index = 2; break;
+					case "DEBUFF": case "NONE": case "BUFF": col = c_white; index = 3; break;
+					default: col = c_dkgray;
+				}
 			}
+		
+			// enemy move is a debuff, draw sDebuffIcon, _debuff.template.icon_index instead of the standard icon
+			if (intent_array[i] == "DEBUFF" || intent_array[i] == "BUFF") {
+				if (reveal_intent_all) || (reveal_intent_single && e == enemy_target_index) {
+					sprite = sDebuffIcon;
+					index = enemy.intent.move.debuff.icon_index;
+					bonus_scale = 1.5;
+					icon_x = xx;
+					col = enemy.intent.move.debuff.color;
+				}
+			}
+			
+			draw_sprite_ext(sprite, index, icon_x, yy, enemy.intent.scale * bonus_scale,  enemy.intent.scale * bonus_scale, 0, col, enemy.intent.alpha - enemy.info_alpha);
+			
 		}
-	
-		draw_sprite_ext(sprite, index, icon_x, yy, enemy.intent.scale * bonus_scale,  enemy.intent.scale * bonus_scale, 0, col, enemy.intent.alpha - enemy.info_alpha);
-	    draw_outline_text(text, c_black, c_white, 2, text_x, yy, enemy.intent.scale, enemy.intent.alpha - enemy.info_alpha);
+		
+		draw_outline_text(text, c_black, c_white, 2, text_x, yy, enemy.intent.scale, enemy.intent.alpha - enemy.info_alpha);
 	
 	    draw_set_halign(fa_center);
 	
@@ -686,7 +693,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		if (!_debuff.permanent) draw_outline_text(string(_debuff.remaining), c_black, c_white, 2, e_bar_x + d_x + sprite_get_width(sDebuffIcon), d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
-		draw_outline_text(string(_debuff.amount), c_black, c_red, 2, e_bar_x + d_x, d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
+		if (_debuff.amount > 0) draw_outline_text(string(_debuff.amount), c_black, c_red, 2, e_bar_x + d_x, d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
 	
 		if (mouse_hovering(e_bar_x + d_x, d_y, sprite_get_width(sDebuffIcon), sprite_get_height(sDebuffIcon), false)) {
 			queue_tooltip(mouse_x, mouse_y, _debuff.template.name, _debuff.template.desc, undefined, 0, undefined);

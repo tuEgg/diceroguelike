@@ -167,7 +167,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	                _target.block_amount -= block_used;
 	                final_damage -= block_used;
 	
-	                var num = spawn_floating_number(_target, block_used, -1, c_aqua, -1, -1, _num);
+	                var num = spawn_floating_number(_target, block_used, -1, global.color_block, -1, -1, _num);
 					num.x += 20;
 					num.y += 20;
 	            }
@@ -199,7 +199,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	                player_block_amount -= block_used;
 	                final_damage -= block_used;
 
-	                var num = spawn_floating_number("player", block_used, -1, c_aqua, -1, -1, _num);
+	                var num = spawn_floating_number("player", block_used, -1, global.color_block, -1, -1, _num);
 					num.x += 40;
 					num.y += 40;
 	            }
@@ -219,13 +219,19 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	        if (_target != "player") {
 				_target.turns_since_last_block = 0;
 	            _target.block_amount += amount;
+				
+				// Animate shield
+				var shield = instance_create_depth(_target.pos_x, _target.pos_y, depth, oSingleParticle);
+				
 	        } else if (_target == "player") {
 	            player_block_amount += amount;
+				
+				// Animate shield
+				var shield = instance_create_depth(global.player_x, global.player_y, depth, oSingleParticle);
 	        }
 
-			// Add shield animation here
-	        spawn_floating_number(_target, amount, -1, c_aqua, 1, -1, _num);
-	        inst_color = c_aqua;
+	        spawn_floating_number(_target, amount, -1, global.color_block, 1, -1, _num);
+	        inst_color = global.color_block;
 		break;
 
 	    // --- HEAL ---
@@ -255,20 +261,21 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 		case "BUFF":
 			if (_target != "player") {
-				var permanent = false;
-				if (_source.intent.move.move_name == "Shiny Scales") {
-					permanent = true;
-				}	
 				_source.intent.move.debuff.remove_next_turn = true;
-			    apply_buff(_source.debuffs, _source.intent.move.debuff, _source.intent.move.duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index }, permanent);
+			    apply_buff(_source.debuffs, _source.intent.move.debuff, _source.intent.move.duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index }, _source.intent.move.debuff.permanent);
 			}
 		break;
 		
 		case "INTEL":
-			apply_buff(global.player_debuffs, oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
-			var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, _num);
-			num.x += 20;
-			num.y -= 20;
+			if (_source == "player") {
+				apply_buff(global.player_debuffs, oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
+				var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, _num);
+				num.x += 20;
+				num.y -= 20;
+			} else {
+			    apply_buff(global.player_debuffs, oRunManager.debuff_overwhelm, 1, 3, oRunManager.debuff_overwhelm.remove_next_turn, { source: _source, index: _source_index });
+				particle_emit(global.player_x, global.player_y, "burst", oRunManager.debuff_overwhelm.color);
+			}
 		break;
 		
 		case "SUMMON":
@@ -1262,6 +1269,11 @@ function add_enemy_to_fight(_enemy) {
 		bar_scale: 1.0 - ((enemies_left_this_combat-1) * 0.2),
 		debuffs: ds_list_create(),
 		taken_damage_this_turn: false,
+		keep_block_between_turns: false,
+	}
+	
+	if (enemy_template.data.passive != undefined) {
+		apply_buff(enemy_template.debuffs, enemy_template.data.passive, 1, 0, false, { source: enemy_template, index: -1 }, true );
 	}
 	
 	ds_list_add(room_enemies, enemy_template);

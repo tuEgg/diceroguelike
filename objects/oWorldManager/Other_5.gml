@@ -30,6 +30,9 @@ if (room == rmMap) {
 			ds_list_add(possible_encounters, "Encounter 3");
 			ds_list_add(possible_encounters, "Encounter 4");
 			ds_list_add(possible_encounters, "Encounter 5");
+			ds_list_add(possible_encounters, "Encounter 6");
+			ds_list_add(possible_encounters, "Encounter 7");
+			ds_list_add(possible_encounters, "Encounter 8");
 		}
 		
 		// After we've cleared 7 nodes, start allowing elites

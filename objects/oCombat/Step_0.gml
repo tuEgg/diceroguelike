@@ -141,7 +141,7 @@ switch (state) {
 			bonus_dice: dice_allowed_this_turn_bonus
 		};
 		
-		player_intel = 0;
+		player_intel = debug_mode ? 12 : 0;
 		
 		combat_trigger_effects("on_turn_start", turn_start_data);
 		
@@ -171,19 +171,11 @@ switch (state) {
 			// Show enemy intent
 			if (enemy.intent.move.action_type == "DEBUFF") || (enemy.intent.move.action_type == "BUFF") {
 				enemy.intent.text = "";
-			} else if (enemy.intent.move.action_type == "NONE") {
-				enemy.intent.text = "Recharging";
+			} else if (enemy.intent.move.action_type == "NONE" || enemy.intent.move.action_type == "EXIT") {
+				enemy.intent.text = enemy.intent.move.move_name;
 			} else {
 				enemy.intent.text = string(enemy.intent.move.dice_amount + enemy.intent.move.bonus_amount) + "-" + string((enemy.intent.move.dice_amount * enemy.intent.move.dice_value) + enemy.intent.move.bonus_amount);
 			}
-			
-		    // Color by type
-		    switch (enemy.intent.move.action_type) {
-		        case "ATK":  enemy.intent.color = c_red; break;
-		        case "BLK":  enemy.intent.color = c_aqua; break;
-		        case "HEAL": enemy.intent.color = c_lime; break;
-				default: enemy.intent.color = c_white;
-		    }
 
 		    // Animate in
 		    enemy.intent.alpha = lerp(enemy.intent.alpha, 1, 0.2);
@@ -261,6 +253,8 @@ switch (state) {
 
 		            process_action(_target, die.dice_amount, die.dice_value, slot.bonus_amount, _source, -1, current_action, action_index, die, j);
 					j++;
+					
+					player_last_action_type = current_action;
 				}
 			}
 
@@ -284,40 +278,55 @@ switch (state) {
 					
 				} else {
 					
-					var _source = enemy;
-					var _target = "player";
+					var intent_array = string_split(enemy.intent.move.action_type, "/");
 					
-					if (variable_struct_exists(enemy.intent.move, "target")) {
-						_target = enemy.intent.move.target;
-					}
-					
-					if (_target == "other") {
-						var _target_index;
+					for (var i = 0; i < array_length(intent_array); i++) {
+						var _source = enemy;
+						var _target = "player";
 						
-						if (enemies_left_this_combat > 1) {
-							do {
-								_target_index = irandom(enemies_left_this_combat-1);
-							} until (_target_index != e);
+						if (intent_array[i] == "MIMIC") {
+							intent_array[i] = player_last_action_type;
+						}
+					
+						if (variable_struct_exists(enemy.intent.move, "target")) {
+							_target = enemy.intent.move.target;
+						}
+					
+						if (_target == "other") {
+							var _target_index;
+						
+							if (enemies_left_this_combat > 1) {
+								do {
+									_target_index = irandom(enemies_left_this_combat-1);
+								} until (_target_index != e);
+							} else {
+								_target_index = e;
+							}
+						
+							_target = room_enemies[| _target_index];
+						
+							show_debug_message("current enemy index: " + string(e));
+							show_debug_message("current other target index: " + string(_target_index));
+						} else if (intent_array[i] == "BLK" || intent_array[i] == "HEAL" || intent_array[i] == "BUFF") {
+							_target = _source;
+						}
+				
+			            ds_list_add(enemy.move_history, enemy.intent.move);
+						
+						if (intent_array[i] == "EXIT") {
+							ds_list_delete(room_enemies, e);
+							particle_emit(enemy.pos_x, enemy.pos_y, "rise", make_color_rgb(20,20,20));
+							enemies_left_this_combat--;
 						} else {
-							_target_index = e;
+							process_action(_target, enemy.intent.move.dice_amount, enemy.intent.move.dice_value, enemy.intent.move.bonus_amount, _source, e, intent_array[i]);
 						}
 						
-						_target = room_enemies[| _target_index];
-						
-						show_debug_message("current enemy index: " + string(e));
-						show_debug_message("current other target index: " + string(_target_index));
-					} else if (enemy.intent.move.action_type == "BLK" || enemy.intent.move.action_type == "HEAL" || enemy.intent.move.action_type == "BUFF") {
-						_target = _source;
+			            action_timer = action_delay;
+						enemy.turn_done = true;
+						enemy_turns_remaining--;
 					}
-				
-		            ds_list_add(enemy.move_history, enemy.intent.move);
 					
-		            process_action(_target, enemy.intent.move.dice_amount, enemy.intent.move.dice_value, enemy.intent.move.bonus_amount, _source, e, enemy.intent.move.action_type);
-	
-		            action_timer = action_delay;
-					enemy.turn_done = true;
-					enemy_turns_remaining--;
-					
+					// Force exit every time we run, so that we loop through enemies with delay between
 					break;
 				}
 	        }
@@ -417,29 +426,29 @@ switch (state) {
 					win_fight();
 				} else {
 					// END OF TURN VARIABLES TO SET
-					for (var e = 0; e < ds_list_size(room_enemies); e++) {
-						var enemy_data = room_enemies[| e].data;
-						var enemy = room_enemies[| e];
-					
-						enemy.turn_done = false;
-						enemy.turns_since_last_block++;
-						if (enemy.turns_since_last_block > 1) {
-							enemy.block_amount = 0;
-						}
-					}
-					
 					locked_slot = -1;
 					bound_slot = -1;
 				
 					// Trigger end of turn effects for keepsakes
 					var turn_end_data = {
-						
 					};
 					
 					combat_trigger_effects("on_player_turn_end", turn_end_data);
 					combat_trigger_effects("on_enemy_turn_end", turn_end_data);
 
 					with (oDice) can_discard = true;
+					
+					// Process enemy block
+					for (var e = 0; e < ds_list_size(room_enemies); e++) {
+						var enemy_data = room_enemies[| e].data;
+						var enemy = room_enemies[| e];
+					
+						enemy.turn_done = false;
+						enemy.turns_since_last_block++;
+						if (enemy.turns_since_last_block > 1 && !enemy.keep_block_between_turns) {
+							enemy.block_amount = 0;
+						}
+					}
 
 					state = CombatState.START_TURN;
 				}

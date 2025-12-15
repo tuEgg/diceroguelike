@@ -28,7 +28,7 @@ function deal_single_die( _can_discard_this_turn = true) {
 
     // --- Draw one die ---
 	var trigger_data = {
-		favourite: false,	
+		favourite: false,
 	};
 	
 	var die_struct = undefined;
@@ -276,7 +276,7 @@ function generate_dice_bag() {
 	                    with (oCombat) {
 							// Deal flat damage to all enemies, we have to run this backwards in case any enemies die during this roll
 							for (var i = oCombat.enemies_left_this_combat-1; i >= 0 ; i--) {
-								process_action(oCombat.room_enemies[| i], 0, _context.min_roll * 2, 0, "player", "ATK", undefined, undefined, 0);
+								process_action(oCombat.room_enemies[| i], 0, _context.min_roll * 2, 0, "player", -1, "ATK", undefined, undefined, 0);
 								show_debug_message("Dealing damage to enemy index: " + string(i));
 							}
 							show_debug_message("dealing damage to all enemies");

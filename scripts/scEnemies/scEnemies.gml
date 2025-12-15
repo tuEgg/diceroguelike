@@ -1,6 +1,6 @@
 // Script assets have changed for v2.3.0 see
 // https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
-function enemy_create(_name, _max_hp, _bounty, _moves_array, _move_order, _elite = false)
+function enemy_create(_name, _max_hp, _bounty, _moves_array, _move_order, _elite = false, _passive = undefined)
 {
     var e = {
         name: _name,
@@ -10,6 +10,7 @@ function enemy_create(_name, _max_hp, _bounty, _moves_array, _move_order, _elite
         moves: ds_list_create(),
 		move_order: _move_order,
 		elite: _elite,
+		passive: _passive
     };
     
     // Copy all moves into its list
@@ -24,10 +25,32 @@ function enemy_definitions() {
 	// Create a global enemy list to hold all types
 	global.enemy_list = ds_list_create();
 
-
 	// -------------------------------
 	// VOYAGE 1 ENEMIES
 	// -------------------------------
+
+	var pirate_ruffian_moves = [
+	    { dice_amount: 1, dice_value: 8, action_type: "ATK", bonus_amount: 1, move_name: "Pointed Cutlass" },
+	    { dice_amount: 2, dice_value: 2, action_type: "BLK", bonus_amount: 3, move_name: "Block" },
+	];
+	var pirate_ruffian = enemy_create("Pirate Ruffian", 21, 7, pirate_ruffian_moves, "pseudo_random");
+	ds_list_add(global.enemy_list, pirate_ruffian);
+	
+	var parrot_moves = [
+	    { dice_amount: 3, dice_value: 2, action_type: "MIMIC", bonus_amount: 1, move_name: "Mimic" },
+	    { dice_amount: 3, dice_value: 2, action_type: "MIMIC", bonus_amount: 1, move_name: "Mimic" },
+	];
+	var parrot = enemy_create("Parrot", 10, 5, parrot_moves, "pseudo_random");
+	ds_list_add(global.enemy_list, parrot);
+	
+	var peg_leg_moves = [
+	    { dice_amount: 1, dice_value: 1, action_type: "NONE", bonus_amount: 0, move_name: "Stretching" },
+	    { dice_amount: 1, dice_value: 1, action_type: "NONE", bonus_amount: 0, move_name: "Removing Leg" },
+	    { dice_amount: 5, dice_value: 4, action_type: "ATK", bonus_amount: 2, move_name: "Throwing Leg" },
+	    { dice_amount: 1, dice_value: 2, action_type: "EXIT", bonus_amount: 2, move_name: "Running Away" },
+	];
+	var peg_leg = enemy_create("Peg-leg", 30, 20, peg_leg_moves, "ordered");
+	ds_list_add(global.enemy_list, peg_leg);
 
 	var seagull_moves = [
 	    { dice_amount: 2, dice_value: 2, action_type: "ATK", bonus_amount: 1, move_name: "Peck" },
@@ -58,6 +81,14 @@ function enemy_definitions() {
 	];
 	var thug = enemy_create("Thug", 36, 17, thug_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, thug);
+	
+	var pufferfish_moves = [
+	    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 5, move_name: "Eject Spines", weight: 50 }, // Heavy Swing
+	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Spines", weight: 0, use_trigger: "FIRST", debuff: buff_spines, amount: 1, duration: 1 }, // Mock
+	    { dice_amount: 2, dice_value: 4, action_type: "BLK", bonus_amount: 2, move_name: "Inflate", weight: 50 }  // Duck
+	];
+	var pufferfish = enemy_create("Pufferfish", 36, 17, pufferfish_moves, "weighted");
+	ds_list_add(global.enemy_list, pufferfish);
 
 	var gunner_moves = [
 	    { dice_amount: 2, dice_value: 4, action_type: "BLK", bonus_amount: 5, move_name: "Take Aim" }, // Aim
@@ -69,10 +100,10 @@ function enemy_definitions() {
 
 	var turtle_moves = [
 	    { dice_amount: 5, dice_value: 2, action_type: "BLK", bonus_amount: -1, move_name: "Withdraw" }, // Aim
-	    { dice_amount: 8, dice_value: 2, action_type: "ATK", bonus_amount: -2, move_name: "Rapid Spin" }, // Volley Fire
-	    //{ dice_amount: 0, dice_value: 0, action_type: "PASSIVE", bonus_amount: 0, move_name: "Turtle Shell" } // Reload
+	    { dice_amount: 8, dice_value: 2, action_type: "ATK", bonus_amount: -4, move_name: "Claw" }, // Volley Fire
+	    { dice_amount: 2, dice_value: 4, action_type: "BLK/ATK", bonus_amount: 1, move_name: "Rapid Spin" }, // Volley Fire
 	];
-	var turtle = enemy_create("Turtle", 48, 18, turtle_moves, "ordered");
+	var turtle = enemy_create("Turtle", 48, 18, turtle_moves, "pseudo_random", false, passive_turtle_shell);
 	ds_list_add(global.enemy_list, turtle);
 	
 	var barrel_of_fish_moves = [

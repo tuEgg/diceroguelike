@@ -86,6 +86,7 @@ action_delay = game_get_speed(gamespeed_fps) * 0.75; // time between actions
 enemies_turn_done = false;
 enemy_turns_remaining = 0;
 enemies_to_fade_out = false; // used to fade enemies out before processing end of turn
+player_last_action_type = undefined;
 
 player_hp_display = global.player_hp;
 
