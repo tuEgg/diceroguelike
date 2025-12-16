@@ -166,9 +166,11 @@ for (var i = 0; i < aq_list_size; i++) {
 	if (state == CombatState.RESOLVE_ROUND && !enemies_turn_done) {
 	    if (i == action_index - 1) {
 	        slot_index = 0;
+			
+			// double up the sprite so the visual is more obvious
+			draw_sprite_ext(sActionSlot, slot_index, draw_x, draw_y, current_scale, current_scale, 0, draw_col, 1.0);
 		}
 	}
-	
 
 	// Draw the main slot sprite
 	draw_sprite_ext(sActionSlot, slot_index, draw_x, draw_y, current_scale, current_scale, 0, draw_col, 1.0);
@@ -410,6 +412,11 @@ for (var i = 0; i < aq_list_size; i++) {
 
 			var _index = get_dice_index(die_struct.dice_value);
 
+			// Emphasise rolled dice
+			if (i == action_index - 1 && state == CombatState.RESOLVE_ROUND && !enemies_turn_done) {
+				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, 1.5, 1.5, 0, _col, 0.4);
+			}
+
 	        // Outline ones that are permanent
 			if (die_struct.permanence == "base") {
 				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, 1.15, 1.15, 0, c_black, 1);
@@ -509,7 +516,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	var enemy = room_enemies[| e];
 	
 	var hover_enemy = mouse_hovering(enemy.pos_x, enemy.pos_y - 40, 230, 320, true);
-	enemy.scale = lerp(enemy.scale, hover_enemy ? enemy.target_scale : enemy.start_scale, 0.2);
+	enemy.scale = lerp(enemy.scale, hover_enemy ? enemy.start_scale : enemy.start_scale, 0.2);
 	enemy.info_alpha = lerp(enemy.info_alpha, hover_enemy ? 1.0 : 0, 0.4);
 	
 	if (hover_enemy && mouse_check_button_pressed(mb_left) && state == CombatState.PLAYER_INPUT && intel_level >= 2) {
@@ -613,7 +620,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		var move_name = ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) ? string(enemy.intent.move.move_name) : "???";
 		draw_outline_text(move_name, c_black, c_white, 2, xx, yy - 50, enemy.intent.scale, enemy.info_alpha * enemy.intent.alpha);
 	
-		if (mouse_hovering(xx, yy - 10, 220, 90, true) && !show_rewards) {
+		if (hover_enemy && !show_rewards) {
 			if (enemy.intent.move.action_type == "DEBUFF" || enemy.intent.move.action_type == "BUFF") {
 				queue_tooltip(mouse_x, mouse_y, enemy.intent.move.debuff.name, enemy.intent.move.debuff.desc, undefined, 0, undefined);
 			} else {
@@ -670,7 +677,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		var block_y = e_bar_y + e_bar_h/2 + 2;
 		var block_radius = 30;
 		draw_set_color(c_blue);
-		draw_sprite_ext(sIntentIcons, 1, block_x, block_y, bar_scale * 1.5, bar_scale * 1.5, 0, c_aqua, 1.0);
+		draw_sprite_ext(sIntentIcons, 1, block_x, block_y, bar_scale * 1.25, bar_scale * 1.25, 0, c_aqua, 1.0);
 		draw_set_color(c_white);
 		draw_set_alpha(enemy.alpha);
 		draw_set_halign(fa_center);

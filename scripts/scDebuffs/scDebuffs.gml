@@ -42,7 +42,6 @@ function define_buffs_and_debuffs() {
 		color: c_red,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount,
 		remove_next_turn: true, // if true, remove at the end of the following turn, otherwise remove at the end of this turn
-		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_roll_die",
@@ -70,7 +69,6 @@ function define_buffs_and_debuffs() {
 		color: c_aqua,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
-		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -92,7 +90,6 @@ function define_buffs_and_debuffs() {
 		color: c_dkgray,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
-		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -114,7 +111,6 @@ function define_buffs_and_debuffs() {
 		color: c_green,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
-		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -143,7 +139,6 @@ function define_buffs_and_debuffs() {
 		color: c_red,
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
-		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -166,7 +161,6 @@ function define_buffs_and_debuffs() {
 		color: c_aqua,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: true,
-		permanent: true,
 	    effects: [
 	        {
 	            trigger: "on_enemy_turn_end",
@@ -194,18 +188,19 @@ function define_buffs_and_debuffs() {
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
 	    desc: "Every time the Pufferfish takes damage it deals 1 back.",
-	    icon_index: 6,
+	    icon_index: 7,
 		debuff: false,
-		color: c_aqua,
+		color: make_color_rgb(100, 60, 0),
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: true,
-		permanent: true,
 	    effects: [
 			{
 	            trigger: "on_take_damage",
 	            modify: function(_ctx) {
 				    // Needed to make this damage work properly
-					process_action("player", 0, 1, 0, _ctx.owner, -1, "ATK", undefined, undefined, 0);
+					with (oCombat) {
+						process_action("player", 0, 1, 0, _ctx.owner, -1, "ATK");
+					}
 				}
 	        }
 	    ]
@@ -222,7 +217,6 @@ function define_buffs_and_debuffs() {
 		color: c_lime,
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
-		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -244,7 +238,6 @@ function define_buffs_and_debuffs() {
 		color: make_color_rgb(210, 210, 0),
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
-		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -266,7 +259,6 @@ function define_buffs_and_debuffs() {
 		color: c_orange,
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
-		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_roll_die",
@@ -296,7 +288,6 @@ function define_buffs_and_debuffs() {
 		color: c_blue,
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
-		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_roll_die",
@@ -319,17 +310,46 @@ function define_buffs_and_debuffs() {
 	    duration: 1,  // lasts 1 full turn
 		amount: 0,
 	    desc: "Doesn't lose block between turns",
-	    icon_index: 6,
+	    icon_index: 8,
 		debuff: false,
 		color: make_colour_rgb(40, 150, 60),
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
-		permanent: false,
 	    effects: [
 	        {
 	            trigger: "on_enemy_turn_end",
 	            modify: function(_ctx) {
 					_ctx.owner.keep_block_between_turns = true;
+				}
+	        }
+	    ]
+	};
+	
+	passive_heartache = {
+	    _id: "heartache",
+		name: "Heart Ache",
+	    duration: 1,  // lasts 1 full turn
+		amount: 0,
+	    desc: "When this enemy dies, its partner is rallied in heartache.",
+	    icon_index: 9,
+		debuff: false,
+		color: make_colour_rgb(160, 50, 30),
+		stackable: false, // if false, increase duration when adding more, otherwise increase amount
+		remove_next_turn: false,
+	    effects: [
+	        {
+	            trigger: "on_enemy_death",
+	            modify: function(_ctx) {
+					if (oCombat.enemies_left_this_combat != 0) {
+						for (var i = 0; i < ds_list_size(oCombat.room_enemies); i++) {
+							if (oCombat.room_enemies[| i] != _ctx.owner) {
+								show_debug_message("Adding move to enemy pool");
+								var vengeance = { dice_amount: 2, dice_value: 2, action_type: "BLK/ATK", bonus_amount: 6, move_name: "Vengeance", use_trigger: "PRIORITY" };
+								
+								ds_list_add(oCombat.room_enemies[| i].data.moves, vengeance);
+							}
+						}
+					}
 				}
 	        }
 	    ]

@@ -82,7 +82,7 @@ actions_submitted = false;
 // For sequencing actions
 action_index = 0;
 action_timer = 0;
-action_delay = game_get_speed(gamespeed_fps) * 0.75; // time between actions
+action_delay = game_get_speed(gamespeed_fps) * 1; // time between actions
 enemies_turn_done = false;
 enemy_turns_remaining = 0;
 enemies_to_fade_out = false; // used to fade enemies out before processing end of turn

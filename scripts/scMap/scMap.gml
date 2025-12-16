@@ -241,9 +241,21 @@ function enemy_find_by_name(_name) {
 
 function enter_node(_node) {
 	
+	if (last_node != undefined) last_node.disappeared = true;
+	
+	if (_node.type == NODE_TYPE.EVENT) {
+		var rand = irandom_range(1, 100);
+		if (rand <= 10) {
+			_node = clone_node_static(node_combat);
+		} else if (rand <= 18) {
+			_node = clone_node_static(node_shop);
+		} else if (rand <= 26) {
+			_node = clone_node_static(node_workbench);
+		}
+	}
+	
 	get_combat_enemies(_node);
 	
-	if (last_node != undefined) last_node.disappeared = true;
 	room_goto(_node.linked_room);
 }
 
@@ -254,71 +266,68 @@ function get_combat_enemies(_node) {
 		// Find a random encounter in the list of possible encounters
 		var rand_encounter = irandom(ds_list_size(possible_encounters) - 1);
 		
-		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pufferfish"));
+		// Add the relevant enemies
+		switch (possible_encounters[| rand_encounter]) {
+			case "Early 1":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
+			break;
+			
+			case "Early 2":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Baby Kraken"));
+			break;
+			
+			case "Early 3":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Seagull"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Seagull"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Seagull"));
+			break;
+			
+			case "Early 4":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Thug"));
+			break;
 		
-		//// Add the relevant enemies
-		//switch (possible_encounters[| rand_encounter]) {
-		//	case "Early 1":
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
-		//	break;
 			
-		//	case "Early 2":
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Baby Kraken"));
-		//	break;
+			case "Encounter 1":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Barrel o' Fish"));
+			break;
 			
-		//	case "Early 3":
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Seagull"));
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Seagull"));
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Seagull"));
-		//	break;
+			case "Encounter 2":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Thug"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
+			break;
 			
-		//	case "Early 4":
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Thug"));
-		//	break;
+			case "Encounter 3":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
+			break;
 			
-		//	case "Encounter 1":
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Barrel o' Fish"));
-		//	break;
+			case "Encounter 4":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Corsair Gunner"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Seagull"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Seagull"));
+			break;
 			
-		//	case "Encounter 2":
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Thug"));
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name(choose("Driftnet Fish", "Barrel o' Fish")));
-		//	break;
-			
-		//	case "Encounter 3":
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Driftnet Fish"));
-		//	break;
-			
-		//	case "Encounter 4":
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Corsair Gunner"));
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Seagull"));
-		//	break;
-			
-		//	case "Encounter 5":
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Turtle"));
-		//	break;
-		//}
+			case "Encounter 5":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Turtle"));
+			break;
 		
-		//	case "Encounter 6":
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Ruffian"));
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Parrot"));
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Peg-leg"));
-		//	break;
+			case "Encounter 6":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Ruffian"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Parrot"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Peg-leg"));
+			break;
 		
-		//	case "Encounter 7":
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Ruffian"));
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Parrot"));
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Peg-leg"));
-		//	break;
+			case "Encounter 7":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pufferfish"));
+			break;
 		
-		//	case "Encounter 8":
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Ruffian"));
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Parrot"));
-		//		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Peg-leg"));
-		//	break;
+			case "Encounter 8":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Elizabeak"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Bill"))
+			break;
+		}
 		
 		// Remove it from the list of possible encounters
 		ds_list_delete(possible_encounters, rand_encounter);
@@ -327,8 +336,6 @@ function get_combat_enemies(_node) {
 		
 		// Find a random encounter in the list of possible encounters
 		var rand_encounter = irandom(ds_list_size(possible_elites) - 1);
-		
-		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Turtle"));
 		
 		switch (possible_elites[| rand_encounter]) {
 			case "Elite 1":

@@ -681,7 +681,7 @@ function get_dice_output(_die, _slot_num, _read_only) {
 
 	// Let keepsakes/dice adjust roll range
 	combat_trigger_effects("on_roll_die", roll_data, _die);
-			
+	
 	return {
 		min_roll: roll_data.min_roll,
 		max_roll: roll_data.max_roll,

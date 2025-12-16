@@ -161,9 +161,8 @@ possible_encounters = ds_list_create();
 ds_list_add(possible_encounters, "Early 1");
 ds_list_add(possible_encounters, "Early 2");
 ds_list_add(possible_encounters, "Early 3");
-ds_list_add(possible_encounters, "Early 4");
 
 possible_elites = ds_list_create();
-ds_list_add(possible_encounters, "Elite 1");
-ds_list_add(possible_encounters, "Elite 2");
-ds_list_add(possible_encounters, "Elite 3");
+ds_list_add(possible_elites, "Elite 1");
+ds_list_add(possible_elites, "Elite 2");
+ds_list_add(possible_elites, "Elite 3");

@@ -100,11 +100,14 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				_d_amount: final_roll,
 				action_type: _type,
 			}
+			
+			// We need to make sure we update the visuals for enemy intent roll values with these buffs in mind.
+			show_debug_message("Rolled amound before buffs " + string(final_roll));
 					
 			trigger_debuff_list(_source.debuffs, "on_roll_die", ctx);
 					
 			final_roll = ctx._d_amount;
-			show_debug_message("Rolled amound after buffs " + string(amount));
+			show_debug_message("Rolled amound after buffs " + string(final_roll));
 			
 			if (!enemy_bonus_used_once) {
 				final_roll += slot_bonus_amount;
@@ -185,14 +188,16 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					enemy_turns_remaining--;
 					enemies_left_this_combat--;
 					enemies_to_fade_out = true;
-					show_debug_message("Enemy died, enemies left this combat: "+string(enemies_left_this_combat));
-					show_debug_message("Enemy died, new enemy turns remaining this turn: " + string(enemy_turns_remaining));
+					
+					var ctx = {};
+					
+					combat_trigger_effects("on_enemy_death", ctx);
 				}
 	        }
 
 	        // Enemy attacking player
 	        else {
-				_source.pos_x -= 50;
+				if (_dice_amount != 0) _source.pos_x -= 50;
 				
 	            if (player_block_amount > 0) {
 	                block_used = min(player_block_amount, amount);
@@ -253,16 +258,28 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 		case "DEBUFF":
 			if (_target == "player") {
+				var _duration = _source.intent.move.duration;
+				var _permanent = false;
+				if (_source.intent.move.duration == -1) {
+					_duration = 1;
+					_permanent = true;
+				}
 				_source.intent.move.debuff.remove_next_turn = true;
-			    apply_buff(global.player_debuffs, _source.intent.move.debuff, _source.intent.move.duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index });
+			    apply_buff(global.player_debuffs, _source.intent.move.debuff, _duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index }, _permanent);
 				particle_emit(global.player_x, global.player_y, "burst", _source.intent.move.debuff.color);
 			}
 		break;
 		
 		case "BUFF":
 			if (_target != "player") {
+				var _duration = _source.intent.move.duration;
+				var _permanent = false;
+				if (_source.intent.move.duration == -1) {
+					_duration = 1;
+					_permanent = true;
+				}
 				_source.intent.move.debuff.remove_next_turn = true;
-			    apply_buff(_source.debuffs, _source.intent.move.debuff, _source.intent.move.duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index }, _source.intent.move.debuff.permanent);
+			    apply_buff(_source.debuffs, _source.intent.move.debuff, _duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index }, _permanent);
 			}
 		break;
 		

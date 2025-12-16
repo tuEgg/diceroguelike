@@ -64,7 +64,9 @@ switch (state) {
 					} else {
 						// just avoid the last move
 						for (var i = 0; i < ds_list_size(enemy_data.moves); i++) {
-							if (latest_moves[0].move_name == enemy_data.moves[| i].move_name) move_index_avoid = i;
+							if (latest_moves[0].move_name == enemy_data.moves[| i].move_name) {
+								move_index_avoid = i;
+							}
 						}
 					}
 			
@@ -111,6 +113,10 @@ switch (state) {
 								enemy.intent.move = _move;
 								_move.weight = -1;
 							}
+						break;
+						
+						case "PRIORITY":
+							enemy.intent.move = _move;
 						break;
 					}
 				}
@@ -323,8 +329,9 @@ switch (state) {
 						
 			            action_timer = action_delay;
 						enemy.turn_done = true;
-						enemy_turns_remaining--;
 					}
+					
+					enemy_turns_remaining--;
 					
 					// Force exit every time we run, so that we loop through enemies with delay between
 					break;

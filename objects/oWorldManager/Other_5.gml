@@ -13,17 +13,13 @@ if (room == rmMap) {
 			event_chance = 33;
 			workbench_chance = 10;
 			shop_chance = 10;
+			
+			// Add thug after first encounter, just because it's slightly harder than the other early encounters
+			ds_list_add(possible_encounters, "Early 4");
 		}
 		
-		// After we've cleared 5 nodes, start allowing bounties
-		if (nodes_cleared == 5) {
-			bounty_chance += 30;
-			combat_chance -= 10;
-			event_chance -= 10;
-			workbench_chance -= 5;
-			shop_chance -= 5;
-			
-			// and change the enemy counters
+		// Change enemy encounters after we've cleared 4 nodes
+		if (nodes_cleared == 4) {
 			ds_list_clear(possible_encounters);
 			ds_list_add(possible_encounters, "Encounter 1");
 			ds_list_add(possible_encounters, "Encounter 2");
@@ -33,6 +29,15 @@ if (room == rmMap) {
 			ds_list_add(possible_encounters, "Encounter 6");
 			ds_list_add(possible_encounters, "Encounter 7");
 			ds_list_add(possible_encounters, "Encounter 8");
+		}
+		
+		// After we've cleared 5 nodes, start allowing bounties
+		if (nodes_cleared == 5) {
+			bounty_chance += 30;
+			combat_chance -= 10;
+			event_chance -= 10;
+			workbench_chance -= 5;
+			shop_chance -= 5;
 		}
 		
 		// After we've cleared 7 nodes, start allowing elites

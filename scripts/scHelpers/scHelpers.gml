@@ -131,7 +131,7 @@ function runmanager_trigger_keepsakes(_event, _data)
     }
 }
 
-function queue_tooltip(_x, _y, _name, _desc, _icon, _index, _dice) {
+function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dice = undefined) {
 
     // If no main tooltip exists yet, set this one as the main tooltip
     if (!global.tooltip_active) {
