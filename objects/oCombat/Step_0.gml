@@ -1,6 +1,7 @@
 switch (state) {
     case CombatState.START_TURN:
-	
+		turn_count++;
+		
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var enemy_data = room_enemies[| e].data;
 			var enemy = room_enemies[| e];
@@ -105,7 +106,7 @@ switch (state) {
 				if (variable_struct_exists(_move, "use_trigger")) {
 					switch (_move.use_trigger) {
 						case "FIRST":
-							if (first_turn) enemy.intent.move = _move;
+							if (turn_count == 1) enemy.intent.move = _move;
 						break;
 						
 						case "HEALTH 50":
@@ -164,7 +165,7 @@ switch (state) {
 		dice_allowed_this_turn_bonus = turn_start_data.bonus_dice + (intel_level div 4 > 0);
 			
 		// Deal 3 dice first turn, then 2 every turn after that
-		dice_to_deal = first_turn ? global.hand_size : global.hand_size - 1 + (intel_level div 3 > 0);
+		dice_to_deal += (turn_count == 1 ? global.hand_size : global.hand_size - 1) + (intel_level div 3 > 0);
 		dice_deal_timer = 0;
 		is_dealing_dice = true;
 		
@@ -203,13 +204,18 @@ switch (state) {
         break;
 
     case CombatState.PLAYER_INPUT:
+		
+		if (debug_mode) {
+			if keyboard_check_pressed(vk_space) {
+				for (var i = 0; i < ds_list_size(room_enemies); i++) {
+					process_action(room_enemies[| i], 1, 1, 20, "player", -1, "ATK", 0, global.dice_d4_atk, 1);
+				}
+			}
+		}
+
 
         // Wait for player input
         if (actions_submitted) {
-	
-			// Reset player intel just before we process actions
-			player_intel = 0;
-			show_debug_message("Player intel set to 0, new player intel is: "+string(player_intel));
 			
             state = CombatState.RESOLVE_ROUND;
         }
@@ -237,7 +243,7 @@ switch (state) {
         if (action_timer <= 0) {
 			
 			// Skip over locked slots
-			if (action_index != locked_slot) {
+			if (action_index != locked_slot && enemies_left_this_combat > 0) {
 				var slot = action_queue[| action_index];
 	            var current_action = slot.current_action_type;
 			
@@ -252,12 +258,12 @@ switch (state) {
 				});
 
 				combat_trigger_effects("on_action_used", action_data);
-			
+
 		        while (j < ds_list_size(slot.dice_list)) {
 		            var die = slot.dice_list[| j];
 					if (current_action == "BLK" || current_action == "HEAL" || current_action == "INTEL") _target = _source;
 
-		            process_action(_target, die.dice_amount, die.dice_value, slot.bonus_amount, _source, -1, current_action, action_index, die, j);
+		            process_action(_target, die.dice_amount, die.dice_value, slot.bonus_amount, _source, undefined, current_action, action_index, die, j);
 					j++;
 					
 					player_last_action_type = current_action;
@@ -371,7 +377,9 @@ switch (state) {
         action_index = 0;
         enemies_turn_done = false;
         actions_submitted = false;
-		first_turn = false;
+	
+		// Reset player intel 
+		player_intel = 0;
 		
 		// Eject temporary dice and remove buffed timers
 		if (!ejected_dice) {
@@ -392,7 +400,6 @@ switch (state) {
 					}
 				}
 		    }
-			
 			ejected_dice = true;
 		}
 
@@ -417,11 +424,7 @@ switch (state) {
 								enemies_to_fade_out--;
 								enemy.alpha = 0;
 								ds_list_delete(room_enemies, e);
-								
-								if (e == enemy_target_index) {
-									enemy_target_index--;
-									if (enemy_target_index < 0) enemy_target_index = ds_list_size(room_enemies) - 1;
-								}
+								if (enemy_target_index > e) enemy_target_index--;
 							}
 						}
 					}
@@ -509,6 +512,8 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	
 	enemy.pos_x = lerp(enemy.pos_x, enemy.pos_x_start, 0.2);
 }
+
+global.player_x = lerp(global.player_x, global.player_xstart, 0.2);
 
 if (keyboard_check_pressed(vk_enter) && state == CombatState.PLAYER_INPUT && !is_dealing_dice) {
     actions_submitted = true;

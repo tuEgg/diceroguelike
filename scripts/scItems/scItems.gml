@@ -258,9 +258,9 @@ function define_items() {
 				} else if (room == rmCombat && oCombat.show_rewards) {
 					dice_exist = false;
 				} else {
-					dice_exist = true;
+					dice_exist = true * oCombat.state == CombatState.PLAYER_INPUT;
 				}
-				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
+				return dice_exist;
 			},
 			modify: function(_context) {
 				// select a random die in play and upgrade it
@@ -305,9 +305,9 @@ function define_items() {
 				} else if (room == rmCombat && oCombat.show_rewards) {
 					dice_exist = false;
 				} else {
-					dice_exist = true;
+					dice_exist = true * oCombat.state == CombatState.PLAYER_INPUT;
 				}
-				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
+				return dice_exist;
 			},
 			modify: function(_context) {
 				// select a random die in play and upgrade it
@@ -337,16 +337,18 @@ function define_items() {
 		effects: {
 			trigger: "on_clicked",
 			flags: function() {
+				
 				var dice_exist = true;
+				
 				if (instance_number(oDice) == 0) dice_exist = false;
 				if (room != rmCombat) {
 					dice_exist = false;
 				} else if (room == rmCombat && oCombat.show_rewards) {
 					dice_exist = false;
 				} else {
-					dice_exist = true;
+					dice_exist = true * oCombat.state == CombatState.PLAYER_INPUT;
 				}
-				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
+				return dice_exist;
 			},
 			modify: function(_context) {
 				// select a random die in play and upgrade it
@@ -406,9 +408,9 @@ function define_items() {
 				} else if (room == rmCombat && oCombat.show_rewards) {
 					dice_exist = false;
 				} else {
-					dice_exist = true;
+					dice_exist = true * oCombat.state == CombatState.PLAYER_INPUT;;
 				}
-				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
+				return dice_exist
 			},
 			modify: function(_context) {
 				with (oCombat) {
@@ -445,9 +447,9 @@ function define_items() {
 				} else if (room == rmCombat && oCombat.show_rewards) {
 					dice_exist = false;
 				} else {
-					dice_exist = true;
+					dice_exist = true * oCombat.state == CombatState.PLAYER_INPUT;
 				}
-				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
+				return dice_exist;
 			},
 			modify: function(_context) {
 				apply_buff(global.player_debuffs, oRunManager.buff_might, 1, 1, oRunManager.buff_might.remove_next_turn, { source: "player", index: -1 });
@@ -478,9 +480,9 @@ function define_items() {
 				} else if (room == rmCombat && oCombat.show_rewards) {
 					dice_exist = false;
 				} else {
-					dice_exist = true;
+					dice_exist = true * oCombat.state == CombatState.PLAYER_INPUT;
 				}
-				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
+				return dice_exist;
 			},
 			modify: function(_context) {
 				apply_buff(global.player_debuffs, oRunManager.buff_balance, 1, 1, oRunManager.buff_balance.remove_next_turn, { source: "player", index: -1 });
@@ -514,9 +516,9 @@ function define_items() {
 				} else if (room == rmCombat && oCombat.show_rewards) {
 					dice_exist = false;
 				} else {
-					dice_exist = true;
+					dice_exist = true * oCombat.state == CombatState.PLAYER_INPUT;
 				}
-				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
+				return dice_exist;
 			},
 			modify: function(_context) {
 				with (oRunManager) {

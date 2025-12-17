@@ -1,4 +1,4 @@
-first_turn = true;
+turn_count = 0;
 
 if (!ds_exists(global.discard_pile, ds_type_list)) {
 	global.discard_pile = ds_list_create();
@@ -38,6 +38,7 @@ ds_list_add(action_queue, new_slot1);
 // Use fibonacci for determining new slot creation
 global.fib_lookup = [0, 1, 1, 2, 3, 5, 8, 13, 21];
 sacrificies_til_new_action_tile = ds_list_size(action_queue);
+slot_cost_modifier = 0;
 
 // For drawing buttons
 tile_scale = ds_list_create();
@@ -92,6 +93,7 @@ player_hp_display = global.player_hp;
 
 player_block_amount = 0;
 player_intel = 0;
+draw_intel = 0; // used to draw intel
 intel_level = 0;
 intel_scale = 1.0;
 intel_alpha = 1.0;
@@ -118,6 +120,7 @@ enemies_left_this_combat = ds_list_size(oWorldManager.room_enemies);
 global.enemy_x = display_get_gui_width() / 2 + 650 + (enemies_left_this_combat*110);
 global.enemy_y = display_get_gui_height() / 2 + 200;
 global.player_x = display_get_gui_width() / 2 - 650;
+global.player_xstart = global.player_x;
 global.player_y = global.enemy_y;
 
 enemy_x_offset = -460 + (enemies_left_this_combat*80);
@@ -141,6 +144,7 @@ rewards_stage = 1;
 reward_list = ds_list_create();
 reward_dice_options = undefined;
 reward_consumable_options = undefined;
+reward_keepsake_options = undefined;
 rewards_dice_taken = false;
 rewards_consumables_first_taken = -1;
 rewards_consumables_second_taken = false;
@@ -155,3 +159,5 @@ dice_allowed_per_turn = dice_allowed_per_turn_original;
 dice_allowed_this_turn_bonus = 0;
 dice_played_scale = 1;
 dice_played_color = c_white;
+
+combat_end_effects_triggered = false;

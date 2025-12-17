@@ -41,6 +41,6 @@ switch (phase) {
 image_angle += y_speed;
 
 image_index = get_dice_index(die_struct.dice_value);
-image_blend = die_struct.color;
+image_blend = get_dice_color(die_struct.possible_type);
 
 life++;

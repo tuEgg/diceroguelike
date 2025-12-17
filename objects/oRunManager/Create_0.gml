@@ -100,11 +100,9 @@ global.keywords = {
     }
 };
 
-//ds_list_add(keepsakes, get_keepsake_by_id("lucky_coin"));
-//ds_list_add(keepsakes, get_keepsake_by_id("message_in_a_bottle"));
-//ds_list_add(keepsakes, get_keepsake_by_id("eye_patch"));
-//ds_list_add(keepsakes, get_keepsake_by_id("anchor"));
-//ds_list_add(keepsakes, get_keepsake_by_id("ghost_lantern"));
+ds_list_add(keepsakes, get_keepsake_by_id("looking_glass"));
+ds_list_add(keepsakes, get_keepsake_by_id("chainmasters_anchor"));
+
 
 global.tooltip_active = false;
 global.tooltip_main = undefined; // main tooltip struct (only one allowed)
@@ -138,7 +136,7 @@ global.enemy_debuffs = ds_list_create();
 /// oCombat Create Event
 global.hovered_dice_id = noone;
 
-first_turn = true; // used to help favourtie dice come out of the bag at the workshop
+turn_count = 1; // used to help favourtie dice come out of the bag at the workshop
 dice_to_deal = 0;
 dice_deal_timer = 0;
 dice_deal_delay = 10; // frames between dice (at 60fps ~0.17s)
@@ -192,3 +190,5 @@ filtered_list = ds_list_create();
 error_timer = 0;
 error_message = "";
 error_description = "";
+
+active_bounty = undefined;

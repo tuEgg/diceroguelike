@@ -23,6 +23,7 @@ function stock_shop() {
 
 /// @func generate_dice_rewards(_reward_list, _item_list, _num)
 function generate_dice_rewards(_reward_list, _item_list, _num) {
+	show_debug_message("Generating dice rewards");
 	
 	var total_dice = ds_list_size(_item_list);
 	var indices_dice_common = ds_list_create();
@@ -50,6 +51,16 @@ function generate_dice_rewards(_reward_list, _item_list, _num) {
 	ds_list_shuffle(indices_dice_common);
 	ds_list_shuffle(indices_dice_uncommon);
 	ds_list_shuffle(indices_dice_rare);
+	
+	// set rarity likelihood
+	var common_dice_chance = 200;
+	var uncommon_dice_chance = 40;
+	var rare_dice_chance = 1;
+	
+	if (room == rmBounty) {
+		uncommon_dice_chance = 200;
+		rare_dice_chance = 100;
+	}
 
 	// pick up to 3 unique entries
 	var num_rewards = _num;
@@ -59,9 +70,21 @@ function generate_dice_rewards(_reward_list, _item_list, _num) {
 	var die_2 = clone_die(global.dice_all, "");
 
 	do {
+		if (oRunManager.active_bounty != undefined && oWorldManager.current_node_type == NODE_TYPE.ELITE) {
+			if (oRunManager.active_bounty.complete) {
+				// third item is always a dice, so add that here
+				if (oRunManager.active_bounty.rewards[2] != undefined) {
+					ds_list_add(_reward_list, clone_die(oRunManager.active_bounty.rewards[2], ""));
+					oRunManager.active_bounty.rewards[2] = undefined;
+				
+					continue;
+				}
+			}
+		}
+		
 		var chance = irandom_range(1, 200);
 				
-		if (chance <= 1) {
+		if (chance <= rare_dice_chance) {
 			var rare_index = irandom(ds_list_size(indices_dice_rare)-1);
 			var die_struct = indices_dice_rare[| rare_index ];
 				
@@ -74,7 +97,7 @@ function generate_dice_rewards(_reward_list, _item_list, _num) {
 			continue;
 		}
 				
-		if (chance <= 40) {
+		if (chance <= uncommon_dice_chance) {
 			var uncommon_index = irandom(ds_list_size(indices_dice_uncommon)-1);
 			var die_struct = indices_dice_uncommon[| uncommon_index ];
 				
@@ -88,7 +111,7 @@ function generate_dice_rewards(_reward_list, _item_list, _num) {
 			continue;
 		}
 				
-		if (chance <= 200) {
+		if (chance <= common_dice_chance) {
 			var common_index = irandom(ds_list_size(indices_dice_common)-1);
 			var die_struct = indices_dice_common[| common_index ];
 				
@@ -111,6 +134,7 @@ function generate_dice_rewards(_reward_list, _item_list, _num) {
 }
 
 function generate_item_rewards(_reward_list, _item_list, _num) {
+	show_debug_message("Generating item rewards");
 	var total_items = ds_list_size(_item_list);
 	var indices_items_common = ds_list_create();
 	var indices_items_uncommon = ds_list_create();
@@ -137,15 +161,37 @@ function generate_item_rewards(_reward_list, _item_list, _num) {
 	ds_list_shuffle(indices_items_common);
 	ds_list_shuffle(indices_items_uncommon);
 	ds_list_shuffle(indices_items_rare);
+	
+	// set item rarity chance
+	var common_item_chance = 200;
+	var uncommon_item_chance = 60;
+	var rare_item_chance = 10;
+	
+	if (room == rmBounty) {
+		uncommon_item_chance = 200;
+		rare_item_chance = 100;
+	}
 
 	// pick up to 3 unique entries
 	var num_rewards = _num;
 
 	do {
+		if (oRunManager.active_bounty != undefined) {
+			if (oRunManager.active_bounty.complete) {
+				// third item is always a dice, so add that here
+				if (oRunManager.active_bounty.rewards[0] != undefined) {
+					ds_list_add(_reward_list, clone_item(oRunManager.active_bounty.rewards[0]));
+					oRunManager.active_bounty.rewards[0] = undefined;
+				
+					continue;
+				}
+			}
+		}
+		
 		// Random number but make common rewards less likely on each subsequent slot
 		var chance = irandom_range(1, 200 - ds_list_size(_reward_list) * 20 );
 				
-		if (chance <= 10) {
+		if (chance <= rare_item_chance) {
 			var item_struct = indices_items_rare[| irandom(ds_list_size(indices_items_rare)-1) ];
 			ds_list_add(_reward_list, clone_item(item_struct));
 			show_debug_message("Added a rare item to the rewards.");
@@ -153,17 +199,17 @@ function generate_item_rewards(_reward_list, _item_list, _num) {
 		}
 				
 				
-		if (chance <= 60) {
+		if (chance <= uncommon_item_chance) {
 			var item_struct = indices_items_uncommon[| irandom(ds_list_size(indices_items_uncommon)-1) ];
 			ds_list_add(_reward_list, clone_item(item_struct));
 			show_debug_message("Added an uncommon item to the rewards.");
 			continue;
 		}
 				
-		if (chance <= 200) {
+		if (chance <= common_item_chance) {
 			var item_struct = indices_items_common[| irandom(ds_list_size(indices_items_common)-1) ];
 			if (item_struct.name == "Coins") {
-				if (room == rmShop || room = rmEvent) {
+				if (room == rmShop || room = rmEvent) { // we don't want to generate coins as a reward in shops or events
 					continue;
 				} else {
 					item_struct.amount = irandom_range(12, 15);
@@ -183,13 +229,14 @@ function generate_item_rewards(_reward_list, _item_list, _num) {
 	ds_list_destroy(indices_items_rare);
 }
 
-function generate_keepsake_rewards(_reward_list, _item_list, _num) {
-	var total_keepsakes = ds_list_size(_item_list);
+function generate_keepsake_rewards(_reward_list, _keepsake_list, _num) {
+	show_debug_message("Generating keepsake rewards");
+	var total_keepsakes = ds_list_size(_keepsake_list);
 	var indices_keepsakes = ds_list_create();		
 			
-	// fill list with all possible indices
+	// fill list with all possible keepsakes
 	for (var i = 0; i < total_keepsakes; i++) {
-		ds_list_add(indices_keepsakes, clone_item(_item_list[| i]));
+		ds_list_add(indices_keepsakes, clone_keepsake(_keepsake_list[| i]));
 	}
 
 	// shuffle to randomize order
@@ -199,13 +246,31 @@ function generate_keepsake_rewards(_reward_list, _item_list, _num) {
 	var num_rewards = _num;
 
 	do {
-
-		var item_struct = indices_keepsakes[| irandom(ds_list_size(indices_keepsakes)-1) ];
-		ds_list_add(_reward_list, clone_item(item_struct));
-		continue;
-			    
+		if (oRunManager.active_bounty != undefined) {
+			if (oRunManager.active_bounty.complete) {
+				// third item is always a dice, so add that here
+				if (oRunManager.active_bounty.rewards[1] != undefined) {
+					ds_list_add(_reward_list, clone_keepsake(oRunManager.active_bounty.rewards[1]));
+					oRunManager.active_bounty.rewards[1] = undefined;
+				
+					continue;
+				}
+			}
+		}
+		
+		var keepsake_struct = indices_keepsakes[| irandom(ds_list_size(indices_keepsakes)-1) ];
+		ds_list_add(_reward_list, clone_keepsake(keepsake_struct));
+		continue;  
 	}
 	until (ds_list_size(_reward_list) == num_rewards);
 	
 	ds_list_destroy(indices_keepsakes);
+}
+
+/// @func clone_keepsake(_item_struct)
+function clone_keepsake(_src)
+{
+    var c = variable_clone(_src); // shallow clone of base-level fields
+
+    return c;
 }

@@ -38,7 +38,7 @@ function deal_single_die( _can_discard_this_turn = true) {
 	for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
 		trigger_die_effects_single(global.dice_bag[| d], "before_dice_dealt", trigger_data);
 		// only check for favourites on first turn
-		if (first_turn) {
+		if (turn_count == 1) {
 			if (trigger_data.favourite == true) {
 				die_struct = clone_die(global.dice_bag[| d], "");
 				index = d;
@@ -229,14 +229,14 @@ function generate_dice_bag() {
 	// Kill Coin
 	global.die_kill_coin = make_die_struct(
 	    1, 2, "ATK", "ATK", "", "Kill coin",
-	    "Coin. +3 bonus if placed in the last slot in your queue.",
+	    "Coin. +2 bonus if placed in the last slot in your queue.",
 		"uncommon",
 		70,
 	    [
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
-					_context._d_amount = 3 * (ds_list_size(oCombat.action_queue) - 1 == _context.slot_num);
+					_context._d_amount = 2 * (ds_list_size(oCombat.action_queue) - 1 == _context.slot_num);
 	            }
 	        }
 	    ]
@@ -413,6 +413,7 @@ function generate_dice_bag() {
 	    "Sticky.",
 		"uncommon",
 		80,
+		[]
 	);
 	ds_list_add(global.master_dice_list, clone_die(global.die_sticky, ""));
 	
@@ -500,9 +501,10 @@ function generate_dice_bag() {
 	// Deflect Die
 	global.die_deflect = make_die_struct(
 	    1, 6, "BLK", "BLK INTEL", "", "Deflect Die",
-	    "Multitype.",
+	    "Multitype. Can create BLK and INTEL slots.",
 		"uncommon",
 		100,
+		[]
 	);
 	ds_list_add(global.master_dice_list, clone_die(global.die_deflect, ""));
 
@@ -598,19 +600,21 @@ function clone_die(_src, _perm)
 {
     var c = variable_clone(_src); // shallow clone of base-level fields
 
-    // --- Ensure nested arrays are deep copies ---
-    if (is_array(c.effects)) {
-        var new_arr = array_create(array_length(c.effects));
-        for (var i = 0; i < array_length(c.effects); i++) {
-            if (is_struct(c.effects[i])) {
-                new_arr[i] = variable_clone(c.effects[i]); // clone effect struct
-            } else {
-                new_arr[i] = c.effects[i];
-            }
-        }
-        c.effects = new_arr;
-    }
-
+	if (variable_struct_exists(c, "effects")) {
+	    // --- Ensure nested arrays are deep copies ---
+	    if (is_array(c.effects)) {
+	        var new_arr = array_create(array_length(c.effects));
+	        for (var i = 0; i < array_length(c.effects); i++) {
+	            if (is_struct(c.effects[i])) {
+	                new_arr[i] = variable_clone(c.effects[i]); // clone effect struct
+	            } else {
+	                new_arr[i] = c.effects[i];
+	            }
+	        }
+	        c.effects = new_arr;
+	    }
+	}
+	
     // If you add other array-type fields later, clone them in the same way.
 
     c.permanence = _perm;
@@ -656,7 +660,7 @@ function get_dice_output(_die, _slot_num, _read_only) {
 	var slot = undefined;
 	var action = "";
 	
-	if (_slot_num == undefined) {
+	if (_slot_num == undefined || _slot_num == -1) {
 		
 	} else {
 		if (_slot_num > 0) {
@@ -676,7 +680,9 @@ function get_dice_output(_die, _slot_num, _read_only) {
 		_slot: slot,
 		slot_num: _slot_num,
 		die: _die,
-		read_only: _read_only
+		read_only: _read_only,
+		roll_twice: false,
+		repeat_followthrough: false
 	};
 
 	// Let keepsakes/dice adjust roll range
@@ -685,8 +691,9 @@ function get_dice_output(_die, _slot_num, _read_only) {
 	return {
 		min_roll: roll_data.min_roll,
 		max_roll: roll_data.max_roll,
-		keepsake_dice_bonus_amount: roll_data._d_amount,
-		previous_slot_type: roll_data.previous_slot_action_type
+		keepsake_dice_bonus_amount: roll_data._d_amount * (roll_data.repeat_followthrough + 1), // double the bonuses if we're repeating followthrough
+		previous_slot_type: roll_data.previous_slot_action_type,
+		roll_twice: roll_data.roll_twice,
 	};
 	
 }
@@ -916,16 +923,77 @@ function define_dice_distributions(_die_dist, _min_roll, _max_roll, _array) {
 }
 
 function get_dice_color(_action) {
-	var _col;
-	switch (_action) {
-		case "ATK": _col = global.color_attack; break;
-		case "BLK": _col = global.color_block; break;
-		case "HEAL": _col = global.color_heal; break;
-		case "INTEL": _col = global.color_intel; break;
+	
+	if (string_pos(" ", _action) > 0) {
+		var attack_type_colours = {
+		    "ATK":  global.color_attack,
+		    "BLK":  global.color_block,
+		    "HEAL": global.color_heal,
+			"INTEL": global.color_intel,
+		};
+
+		// --- Split the incoming type string
+		var parts = string_split(_action, " ");
+		var total = array_length(parts);
+
+		// --- Collect valid colours
+		var colours = [];
+		var count = 0;
+
+		for (var i = 0; i < total; i++) {
+		    var token = string_upper(parts[i]);
+
+		    if (variable_struct_exists(attack_type_colours, token)) {
+		        array_push(colours, attack_type_colours[$ token]);
+		        count++;
+		    }
+		}
+
+		// --- Fallbacks and Pulsing Blends --------------------------------------
+
+		var blended;
+
+		if (count == 0) {
+		    blended = c_white;
+		}
+		else if (count == 1) {
+		    blended = colours[0];
+		}
+		else {
+		    // 2+ colours: pulse through all of them in a loop
+
+		    // Pulse speed (tweak to taste)
+		    var spd = 0.006;
+
+		    // Normalized sine wave from 0..1
+		    var t = (sin(current_time * spd) + 1) * 0.5;
+
+		    // Index selection: smoothly moves between colour slots
+		    // t spreads across (count-1) intervals
+		    var pos = t * (count - 1);
+
+		    var index_a = floor(pos);
+		    var index_b = min(index_a + 1, count - 1);
+
+		    var local_t = pos - index_a;
+
+		    // Blend between those two colours only
+		    blended = merge_colour(colours[index_a], colours[index_b], local_t);
+		}
 		
-		default: _col = c_white;
+		return blended;
+	} else {
+		var _col;
+		switch (_action) {
+			case "ATK": _col = global.color_attack; break;
+			case "BLK": _col = global.color_block; break;
+			case "HEAL": _col = global.color_heal; break;
+			case "INTEL": _col = global.color_intel; break;
+		
+			default: _col = c_white;
+		}
+		return _col;
 	}
-	return _col;
 }
 
 function get_dice_index(_value) {

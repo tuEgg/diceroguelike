@@ -147,7 +147,7 @@ function generate_pages() {
 					
 					if (nodes_cleared < 5) {
 						shop_chance += 5;
-					} else if (bounty == undefined) {
+					} else if (oRunManager.active_bounty == undefined && num_bounty == 0) {
 						bounty_chance += 5;
 					} else {
 						shop_chance += 5;
@@ -164,7 +164,7 @@ function generate_pages() {
 					
 					if (nodes_cleared < 5) {
 						workbench_chance += 5;
-					} else if (bounty == undefined) {
+					} else if (oRunManager.active_bounty == undefined) {
 						bounty_chance += 5;
 					} else {
 						workbench_chance += 5;
@@ -173,32 +173,26 @@ function generate_pages() {
 					continue;
 				}
 			} else if (rand <= combat_chance + event_chance + workbench_chance + shop_chance + bounty_chance) {
-				if (num_bounty < 2 && page_num_bounty == 0) {
+				if (num_bounty < 1 && page_num_bounty == 0) {
 					num_bounty++;
 					page_num_bounty++;
 					chosen_node = node_bounty;
-					if (num_bounty == 1) {
-						bounty_chance -= 10;
-						workbench_chance += 5;
-						shop_chance += 5;
-					} else {
-						var gap = bounty_chance;
-						bounty_chance = 0;
-						combat_chance += floor(gap * (2/5));
-						event_chance += floor(gap * (1/5));
-						workbench_chance += floor(gap * (1/5));
-						shop_chance += floor(gap * (1/5));
-					}
+					var gap = bounty_chance;
+					bounty_chance = 0;
+					combat_chance += floor(gap * (2/5));
+					event_chance += floor(gap * (1/5));
+					workbench_chance += floor(gap * (1/5));
+					shop_chance += floor(gap * (1/5));
 					
 				} else {
 					continue;
 				}
 			} else if (rand <= combat_chance + event_chance + workbench_chance + shop_chance + bounty_chance + elite_chance) {
-				if (num_elite < 3 && page_num_elite == 0) {
+				if (num_elite < 2 && page_num_elite == 0) {
 					num_elite++;
 					page_num_elite++;
 					chosen_node = node_elite;
-					if (num_elite == 3) {
+					if (num_elite == 2) {
 						elite_chance = 0;
 						combat_chance = 47;
 						event_chance = 33;
@@ -255,6 +249,7 @@ function enter_node(_node) {
 	}
 	
 	get_combat_enemies(_node);
+	current_node_type = _node.type;
 	
 	room_goto(_node.linked_room);
 }

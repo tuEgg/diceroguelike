@@ -82,7 +82,7 @@ node_bounty = {
 	subimg: 4,
 	name: "Bounty",
 	text: "Choose a bounty target",
-	linked_room: rmCombat,
+	linked_room: rmBounty,
 	scale: 1.0,
 	cleared: false,
 	x: 0,
@@ -145,7 +145,6 @@ node_x[2] = 0;
 node_y[2] = 0;
 node_to_move_to = undefined;
 last_node = undefined;
-bounty = undefined;
 
 chosen_pages = ds_list_create();
 choices_locked = false;
@@ -163,6 +162,4 @@ ds_list_add(possible_encounters, "Early 2");
 ds_list_add(possible_encounters, "Early 3");
 
 possible_elites = ds_list_create();
-ds_list_add(possible_elites, "Elite 1");
-ds_list_add(possible_elites, "Elite 2");
-ds_list_add(possible_elites, "Elite 3");
+current_node_type = undefined;

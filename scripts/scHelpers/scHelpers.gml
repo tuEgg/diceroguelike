@@ -101,7 +101,7 @@ function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x,
 				if (_max_length == -1) {
 					draw_text_transformed(_x + ox, _y + oy, _string, _scale, _scale, _angle);
 				} else {
-					draw_text_ext_transformed(_x + ox, _y + oy, _string, 25, _max_length, _scale, _scale, _angle);
+					draw_text_ext_transformed(_x + ox, _y + oy, _string, font_get_size(draw_get_font()) * 1.2, _max_length, _scale, _scale, _angle);
 				}
 			}
         }
@@ -113,14 +113,13 @@ function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x,
 	if (_max_length == -1) {
 		draw_text_transformed(_x, _y, _string, _scale, _scale, _angle);
 	} else {
-		draw_text_ext_transformed(_x, _y, _string, 25, _max_length, _scale, _scale, _angle);
+		draw_text_ext_transformed(_x, _y, _string, font_get_size(draw_get_font()) * 1.2, _max_length, _scale, _scale, _angle);
 	}
 
     draw_set_alpha(1);
 }
 
-function runmanager_trigger_keepsakes(_event, _data)
-{
+function runmanager_trigger_keepsakes(_event, _data) {
     for (var i = 0; i < ds_list_size(oRunManager.keepsakes); i++)
     {
         var ks = oRunManager.keepsakes[| i];
@@ -129,6 +128,17 @@ function runmanager_trigger_keepsakes(_event, _data)
         // allow keepsakes to mutate _data
         ks.trigger(_event, _data);
     }
+}
+
+function trigger_bounty(_event, _data) {
+	if (oRunManager.active_bounty == undefined) return;
+	
+    var bounty = oRunManager.active_bounty;
+	
+    if (is_undefined(bounty.condition.trigger)) return;
+
+    // allow keepsakes to mutate _data
+    bounty.condition.trigger(_event, _data);
 }
 
 function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dice = undefined) {
@@ -234,6 +244,19 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
     // -------------------------------------------------------
     var _width  = padding * 2 + max(name_w, desc_w);
     var _height = padding * 2 + name_h + desc_h;
+	
+	var gap_x;
+	var gap_y;
+	
+	if (xx + _width > room_width) {
+		gap_x = room_width - (xx + _width);
+		xx += gap_x;
+	}
+	
+	if (yy + _height > room_height) {
+		gap_y = room_height - (yy + _height);
+		yy += gap_y;
+	}
 
     // Add icon room if present
     var icon_w = 0;
@@ -624,3 +647,123 @@ function throw_error(_error_msg, _error_desc) {
 	oRunManager.error_message = _error_msg;
 	oRunManager.error_description = _error_desc;
 }
+
+/// @function draw_arc_thick_deg(x, y, r_inner, r_outer, start_deg, end_deg, steps)
+/// @desc Draw a filled thick arc (donut slice) using degrees
+function draw_arc_thick_deg(_x, _y, _r_inner, _r_outer, _start_deg, _end_deg, _steps)
+{
+    if (_steps <= 0) return;
+
+    // Normalize to 0..360
+    _start_deg = (_start_deg mod 360 + 360) mod 360;
+    _end_deg   = (_end_deg   mod 360 + 360) mod 360;
+
+    // Wraparound support: 300 -> 45 draws through 360
+    if (_end_deg <= _start_deg) _end_deg += 360;
+
+    var step = (_end_deg - _start_deg) / _steps;
+
+    draw_primitive_begin(pr_trianglelist);
+
+    for (var i = 0; i < _steps; i++)
+    {
+        var a0 = _start_deg + step * i;
+        var a1 = _start_deg + step * (i + 1);
+
+        var cos0 = dcos(a0);
+        var sin0 = dsin(a0);
+        var cos1 = dcos(a1);
+        var sin1 = dsin(a1);
+
+        // Outer arc points
+        var ox0 = _x + cos0 * _r_outer;
+        var oy0 = _y + sin0 * _r_outer;
+        var ox1 = _x + cos1 * _r_outer;
+        var oy1 = _y + sin1 * _r_outer;
+
+        // Inner arc points
+        var ix0 = _x + cos0 * _r_inner;
+        var iy0 = _y + sin0 * _r_inner;
+        var ix1 = _x + cos1 * _r_inner;
+        var iy1 = _y + sin1 * _r_inner;
+
+        // Quad between radii, split into two triangles
+        // Tri 1: outer0 -> outer1 -> inner0
+        draw_vertex(ox0, oy0);
+        draw_vertex(ox1, oy1);
+        draw_vertex(ix0, iy0);
+
+        // Tri 2: inner0 -> outer1 -> inner1
+        draw_vertex(ix0, iy0);
+        draw_vertex(ox1, oy1);
+        draw_vertex(ix1, iy1);
+    }
+
+    draw_primitive_end();
+}
+
+	/// @function draw_arc_thick_deg_gradient(x, y, r_inner, r_outer, start_deg, end_deg, steps, col_start, col_end, alpha)
+function draw_arc_thick_deg_gradient(
+    _x, _y,
+    _r_inner, _r_outer,
+    _start_deg, _end_deg,
+    _steps,
+    _col_start, _col_end,
+    _alpha
+)
+{
+    if (_steps <= 0) return;
+
+    // Normalize to 0..360
+    _start_deg = (_start_deg mod 360 + 360) mod 360;
+    _end_deg   = (_end_deg   mod 360 + 360) mod 360;
+
+    if (_end_deg <= _start_deg) _end_deg += 360;
+
+    var total = _end_deg - _start_deg;
+    var step  = total / _steps;
+
+    draw_primitive_begin(pr_trianglelist);
+
+    for (var i = 0; i < _steps; i++)
+    {
+        var a0 = _start_deg + step * i;
+        var a1 = _start_deg + step * (i + 1);
+
+        var t0 = i / _steps;
+        var t1 = (i + 1) / _steps;
+
+        var c0 = merge_colour(_col_start, _col_end, t0);
+        var c1 = merge_colour(_col_start, _col_end, t1);
+
+        var cos0 = dcos(a0);
+        var sin0 = dsin(a0);
+        var cos1 = dcos(a1);
+        var sin1 = dsin(a1);
+
+        // Outer
+        var ox0 = _x + cos0 * _r_outer;
+        var oy0 = _y + sin0 * _r_outer;
+        var ox1 = _x + cos1 * _r_outer;
+        var oy1 = _y + sin1 * _r_outer;
+
+        // Inner
+        var ix0 = _x + cos0 * _r_inner;
+        var iy0 = _y + sin0 * _r_inner;
+        var ix1 = _x + cos1 * _r_inner;
+        var iy1 = _y + sin1 * _r_inner;
+
+        // Triangle 1
+        draw_vertex_color(ox0, oy0, c0, _alpha);
+        draw_vertex_color(ox1, oy1, c1, _alpha);
+        draw_vertex_color(ix0, iy0, c0, _alpha);
+
+        // Triangle 2
+        draw_vertex_color(ix0, iy0, c0, _alpha);
+        draw_vertex_color(ox1, oy1, c1, _alpha);
+        draw_vertex_color(ix1, iy1, c1, _alpha);
+    }
+
+    draw_primitive_end();
+}
+

@@ -48,6 +48,11 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 			// Roll between all the values in the array
 			var weighted_roll = irandom_range(weight_min, weight_max);
+			if (dice_output.roll_twice) {
+				var second_roll = irandom_range(weight_min, weight_max);
+				
+				if (second_roll > weighted_roll) weighted_roll = second_roll;
+			}
 			
 			// used for determining which numbers can actually be rolled when taking into account distribution
 			var actual_possible_numbers = [];
@@ -146,6 +151,8 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	        // Player attacking enemy
 	        if (_target != "player") {
 				
+				global.player_x += 50;
+				
 				// Trigger end of turn effects for keepsakes
 				var on_take_damage_data = {
 					source: _source,
@@ -183,15 +190,35 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 
 	            inst_color = c_red;
 				
+				// Enemy death event
 				if (_target.hp <= 0 && !_target.dead) {
+					show_debug_message("Enemy target index: " + string(enemy_target_index));
+					
 					_target.dead = true;
 					enemy_turns_remaining--;
 					enemies_left_this_combat--;
 					enemies_to_fade_out = true;
+					_target.alpha = 0.5;
+					
+					var possible_new_targets = ds_list_create();
+					var new_target = undefined;
+					
+					for (var e = 0; e < ds_list_size(room_enemies); e++) {
+						if (!room_enemies[| e].dead) ds_list_add(possible_new_targets, room_enemies[| e]);
+					}
+					
+					new_target = possible_new_targets[| irandom(ds_list_size(possible_new_targets) - 1)];
+					
+					enemy_target_index = ds_list_find_index(room_enemies, new_target);
+					
+					ds_list_destroy(possible_new_targets);
 					
 					var ctx = {};
 					
 					combat_trigger_effects("on_enemy_death", ctx);
+					
+					show_debug_message("Enemies left this combat: " + string(enemies_left_this_combat));
+					show_debug_message("NEW Enemy target index: " + string(enemy_target_index));
 				}
 	        }
 
@@ -230,6 +257,13 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				
 	        } else if (_target == "player") {
 	            player_block_amount += amount;
+				
+				var ctx = {
+					block_gained: amount,
+				}
+				
+				combat_trigger_effects("on_player_block_gained", ctx)
+				
 				
 				// Animate shield
 				var shield = instance_create_depth(global.player_x, global.player_y, depth, oSingleParticle);
@@ -628,7 +662,12 @@ function sacrifice_die(_die) {
     var history_copy  = clone_die(die_struct, _perm);
 	ds_list_add(global.sacrifice_history, history_copy ); // persistent record
 	
-	particle_emit( die.x, die.y, choose("burst"), die.struct.color);
+	particle_emit( die.x, die.y, "burst", die.struct.color);
+	
+	var sacrifice_data = {
+	};
+	
+	combat_trigger_effects("on_sacrifice_die", sacrifice_data);
 	
     instance_destroy(die);
 
@@ -637,6 +676,11 @@ function sacrifice_die(_die) {
 	update_sacrificed_type_array();
 
     if (sacrificies_til_new_action_tile > 0) return;
+	
+	var sacrifice_new_slot_data = {
+	};
+	
+	combat_trigger_effects("on_new_slot_created", sacrifice_data);
 
     // === Time to create new slot ===
 	var type_list = ds_list_create();
@@ -716,19 +760,19 @@ function sacrifice_die(_die) {
     // Add sacrificed dice as base copies
     for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
         var src = global.sacrifice_list[| j];
-		var _perm = "base";
+		var _perma = "base";
 		
 		// "none" dice cannot be permanent
-		if (global.sacrifice_list[| j].action_type == "None") _perm = "temporary";
+		if (global.sacrifice_list[| j].action_type == "None") _perma = "temporary";
 		
-        var base_copy = clone_die(src, _perm);
+        var base_copy = clone_die(src, _perma);
         ds_list_add(new_slot.dice_list, base_copy);
     }
 
     ds_list_add(action_queue, new_slot);
     var slot = ds_list_size(action_queue) + 1;
 	//sacrificies_til_new_action_tile = global.fib_lookup[slot];
-	sacrificies_til_new_action_tile = (slot + 1) div 2; // 1, 1, 2, 2, 3, 3 etc.
+	sacrificies_til_new_action_tile = max(1, ((slot + 1) div 2) + oCombat.slot_cost_modifier); // 1, 1, 2, 2, 3, 3 etc.
 	
     ds_list_destroy(type_list);
     ds_list_clear(global.sacrifice_list);
@@ -917,17 +961,37 @@ function can_place_dice_in_slot(_die_struct, _slot, _num)
 
 /// @function win_fight();
 function win_fight() {
+	
+	if (!combat_end_effects_triggered) {
+		var combat_end_data = {};
+	
+		combat_trigger_effects("on_combat_end", combat_end_data);
+		
+		combat_end_effects_triggered = true;
+		
+		// trigger bounty check
+		if (oRunManager.active_bounty != undefined) {
+			if (!oRunManager.active_bounty.condition.failed) {
+				oRunManager.active_bounty.complete = true;
+			}
+		}
+	}
 			
-	if (!show_rewards) {
+	if (!show_rewards && combat_end_effects_triggered) {
 				
 		// pop up rewards screen - dice reward - offered 3 dice, choose 1 to keep and credits
 		reward_dice_options = ds_list_create();
 		reward_consumable_options = ds_list_create();
+		reward_keepsake_options = ds_list_create();
 			
 		generate_dice_rewards(reward_dice_options, global.master_dice_list, 3);
-		generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
 			
 		repeat(3) ds_list_add(reward_scale, 0.1);
+		
+		if (oWorldManager.current_node_type == NODE_TYPE.ELITE) {
+			generate_keepsake_rewards(reward_keepsake_options, global.master_keepsake_list, 3);
+			ds_list_add(reward_list, "keepsakes");
+		}
 			
 		// Show dice every combat, show consumables at a 40% chance, gaining 10% chance every time they don't appear, losing 10% when they do.
 		ds_list_add(reward_list, "dice");
@@ -935,6 +999,7 @@ function win_fight() {
 		// Add consumables starting at a chance
 		var con_chance = irandom_range(1, 100);
 		if (con_chance <= oRunManager.show_consumables_chance) {
+			generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
 			ds_list_add(reward_list, "consumables");
 			oRunManager.show_consumables_chance -= 30;
 		} else {
@@ -1127,6 +1192,9 @@ function combat_trigger_effects(_event, _ctx, _die_struct = undefined) {
 			trigger_debuff_list(enemy.debuffs, _event, _ctx);
 		}
 	}
+	
+	// 5) bounty conditions
+	trigger_bounty(_event, _ctx);
 }
 
 function trigger_debuff_list(_list, _event, _ctx) {
@@ -1286,7 +1354,7 @@ function add_enemy_to_fight(_enemy) {
 		bar_scale: 1.0 - ((enemies_left_this_combat-1) * 0.2),
 		debuffs: ds_list_create(),
 		taken_damage_this_turn: false,
-		keep_block_between_turns: false,
+		keep_block_between_turns: false
 	}
 	
 	if (enemy_template.data.passive != undefined) {

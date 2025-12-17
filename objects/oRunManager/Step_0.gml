@@ -14,6 +14,9 @@ if (debug_mode) {
 	key_shop = keyboard_check_pressed(ord("E"));
 	if (key_shop) room_goto(rmEvent);
 	
+	key_bounty = keyboard_check_pressed(ord("B"));
+	if (key_bounty) room_goto(rmBounty);
+	
 	key_combat = keyboard_check_pressed(ord("C"));
 	if (key_combat) {		
 		room_goto(rmCombat);

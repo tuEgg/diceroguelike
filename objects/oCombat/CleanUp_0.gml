@@ -33,5 +33,6 @@ if (ds_exists(global.sacrifice_history, ds_type_list)) {
 }
 if (ds_exists(reward_dice_options, ds_type_list)) ds_list_destroy(reward_dice_options);
 if (ds_exists(reward_consumable_options, ds_type_list)) ds_list_destroy(reward_consumable_options);
+if (ds_exists(reward_keepsake_options, ds_type_list)) ds_list_destroy(reward_keepsake_options);
 if (ds_exists(reward_list, ds_type_list)) ds_list_destroy(reward_list);
 if (ds_exists(room_enemies, ds_type_list)) ds_list_destroy(room_enemies);

@@ -34,7 +34,8 @@ for (var c = 0; c < ds_list_size(shop_consumable_options); c++) {
 		draw_set_halign(fa_left);
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBig);
-		draw_outline_text(consumable.price, c_black, c_white, 2, cx, cy + coin_offset_y, shop_consumable_scale[| c], 1.0, 0);
+		var cost_col = consumable.price > oRunManager.credits ? c_red : c_white;
+		draw_outline_text(consumable.price, c_black, cost_col, 2, cx, cy + coin_offset_y, shop_consumable_scale[| c], 1.0, 0);
 	}
 	
 	if (hover_con && alpha > 0) {
@@ -75,7 +76,8 @@ for (var d = 0; d < ds_list_size(shop_dice_options); d++) {
 		draw_set_halign(fa_left);
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBig);
-		draw_outline_text(dice.price, c_black, c_white, 2, dx, dy + coin_offset_y, shop_dice_scale[| d], 1.0, 0);
+		var cost_col = dice.price > oRunManager.credits ? c_red : c_white;
+		draw_outline_text(dice.price, c_black, cost_col, 2, dx, dy + coin_offset_y, shop_dice_scale[| d], 1.0, 0);
 	
 		if (hover_die) {
 			queue_tooltip(mouse_x, mouse_y, dice.name, dice.description, undefined, 0, dice);

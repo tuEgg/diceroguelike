@@ -1,6 +1,6 @@
 {
   "$GMFont":"",
-  "%Name":"ftLogbook",
+  "%Name":"ftHuge",
   "AntiAlias":1,
   "applyKerning":0,
   "ascender":32,
@@ -184,7 +184,7 @@
   "last":0,
   "lineHeight":40,
   "maintainGms1Font":false,
-  "name":"ftLogbook",
+  "name":"ftHuge",
   "parent":{
     "name":"fonts",
     "path":"folders/fonts.yy",

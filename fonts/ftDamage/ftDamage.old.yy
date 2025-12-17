@@ -119,8 +119,8 @@
   "maintainGms1Font":false,
   "name":"ftDamage",
   "parent":{
-    "name":"KOTOR RogueLike",
-    "path":"KOTOR RogueLike.yyp",
+    "name":"fonts",
+    "path":"folders/fonts.yy",
   },
   "pointRounding":0,
   "ranges":[

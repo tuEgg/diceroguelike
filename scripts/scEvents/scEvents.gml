@@ -16,7 +16,7 @@ function define_events() {
 				if (oRunManager.credits >= 10) {
 					global.player_alignment += 5;
 					oRunManager.credits -= 10;
-					ds_list_add(oRunManager.keepsakes, oRunManager.ks_message_in_a_bottle);
+					ds_list_add(oRunManager.keepsakes, oRunManager.ks_deckhands_token);
 					oEventManager.event_complete = 0;
 					oEventManager.event_selected = true;
 				} else {
@@ -32,7 +32,7 @@ function define_events() {
 				oEventManager.deleting_die = true;
 				with (oRunManager) {
 					if (!dice_dealt) {
-						first_turn = true;
+						turn_count = 1;
 						dice_to_deal = global.hand_size;
 						is_dealing_dice = true;
 						dice_dealt = true;
@@ -71,7 +71,7 @@ function define_events() {
 	
 	event_storm = {
 		name: "A Great Storm",
-		description: "Storms ruined a week’s worth of salted pork. Hunger has the crew restless, and the quartermaster demands a ruling.",
+		description: "Storms ruined a week's worth of salted pork. Hunger has the crew restless, and the quartermaster demands a ruling.",
 		options: ds_list_create(),
 	}
 		event_storm_opt_1 = {
@@ -96,7 +96,7 @@ function define_events() {
 				
 				rand_die.dice_value += 2;
 				
-				particle_emit( 115, 1000, choose("rise"), rand_die.color);
+				particle_emit( 115, 1000, "rise", rand_die.color);
 				
 				ds_list_destroy(heal_block_list);
 				
@@ -109,7 +109,7 @@ function define_events() {
 			description: "Cut rations for everyone. - alignment, + keepsake.",
 			effect: function(_context) {
 				global.player_alignment -= 4;
-				ds_list_add(oRunManager.keepsakes, oRunManager.ks_ghost_lantern);
+				ds_list_add(oRunManager.keepsakes, oRunManager.ks_starvers_efficiency);
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
@@ -171,7 +171,7 @@ function define_events() {
 					var die = global.dice_bag[| attack_list[| rand_index]];
 					
 					die.dice_value += 2;
-					particle_emit( 115, 1000, choose("rise"), die.color);
+					particle_emit( 115, 1000, "rise", die.color);
 					
 					ds_list_delete(attack_list, rand_index);
 				}
@@ -202,7 +202,7 @@ function define_events() {
 			effect: function(_context) {
 				if (oRunManager.credits >= 10) {
 					oRunManager.credits -= 10;
-					ds_list_add(oRunManager.keepsakes, oRunManager.ks_eye_patch);
+					ds_list_add(oRunManager.keepsakes, oRunManager.ks_small_sail);
 					oEventManager.event_complete = 0;
 					oEventManager.event_selected = true;
 				} else {
@@ -227,7 +227,7 @@ function define_events() {
 					var rand = irandom(array_length(item_pool) - 1);
 					
 					oRunManager.items[rand] = undefined;
-					ds_list_add(oRunManager.keepsakes, oRunManager.ks_anchor);
+					ds_list_add(oRunManager.keepsakes, oRunManager.ks_repaired_sail);
 					oEventManager.event_complete = 1;
 					oEventManager.event_selected = true;
 				} else {

@@ -32,7 +32,7 @@ draw_set_valign(fa_top);
 draw_sprite(sTopBarIcons, 0, 280 + 5, 15);
 draw_outline_text(string(oWorldManager.nodes_cleared), c_black, c_white, 2, 350 + 5, 30, 1, 1, 0);
 var pages_hover = mouse_hovering(280 + 5, 15, sprite_get_width(sTopBarIcons), sprite_get_height(sTopBarIcons), false);
-if (pages_hover) queue_tooltip(mouse_x, mouse_y, "Pages Turned", "You have turned " + string(oWorldManager.nodes_cleared) + " pages of the Captain's logbook", undefined, 0, undefined);
+if (pages_hover) queue_tooltip(mouse_x, mouse_y, "Events Explored", "You have explored " + string(oWorldManager.nodes_cleared) + " events from the Captain's logbook", undefined, 0, undefined);
 
 // Draw money
 draw_sprite_ext(sTopBarSlot, 1, 400 + 5, 18, 1, 1, 0, c_white, 1.0);
@@ -119,6 +119,7 @@ for (var i = 0; i < array_length(items); i++) {
 				if (items[i].effects.trigger == "on_clicked" && items[i].effects.flags() ) {
 					var ctx = {};
 					trigger_item_effects(items[i], "on_clicked", ctx);
+					combat_trigger_effects("on_consumable_used", ctx);
 					items[i] = undefined;
 					holding_item = false;
 				}
@@ -133,6 +134,32 @@ for (var i = 0; i < array_length(items); i++) {
 	}
 }
 
+// Draw bounty information
+draw_sprite_ext(sMapIcon, 5, gui_w - 300, 45, 1, 1, 0, c_white, 1.0);
+
+draw_set_font(ftBig);
+var bounty_name = "-";
+var bounty_description = "You aren't hunting any bounties";
+var bounty_col = c_white;
+if (active_bounty != undefined) {
+	bounty_name = active_bounty.enemy_name;
+	bounty_description =  "Defeat " + string(active_bounty.enemy_name) + " " +active_bounty.condition.description;
+	bounty_col = c_dkgray;
+}
+if (active_bounty.complete) {
+	bounty_name = active_bounty.enemy_name;
+	bounty_description =  "Bounty completed";
+	bounty_col = c_lime;
+}
+draw_set_halign(fa_left);
+draw_set_valign(fa_middle);
+draw_outline_text(bounty_name, c_black, bounty_col, 2, gui_w - 300 + 30, 44, 1, 1, 0);
+
+var bounty_hover = mouse_hovering(gui_w - 330, 20, 300, 50, false); 
+if (bounty_hover) {
+	queue_tooltip(mouse_x, mouse_y, "Active Bounty: " + bounty_name, bounty_description);
+}
+
 // Keep scale list synced with keepsake size
 if (ds_list_size(keepsake_scale) < ds_list_size(keepsakes)) {
     repeat(ds_list_size(keepsakes) - ds_list_size(keepsake_scale)) ds_list_add(keepsake_scale, 1.0);
@@ -140,6 +167,7 @@ if (ds_list_size(keepsake_scale) < ds_list_size(keepsakes)) {
     repeat(ds_list_size(keepsake_scale) - ds_list_size(keepsakes)) ds_list_delete(keepsake_scale, ds_list_size(keepsake_scale) - 1);
 }
 
+// Draw keepsakes
 var ks_x = 15;
 var ks_y = bar_height + 25;
 

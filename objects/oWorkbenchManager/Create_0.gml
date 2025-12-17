@@ -22,7 +22,7 @@ exiting = false;
 
 with (oRunManager) {
 	if (!dice_dealt) {
-		first_turn = true;
+		turn_count = 1;
 		dice_to_deal = global.hand_size;
 		is_dealing_dice = true;
 		dice_dealt = true;
