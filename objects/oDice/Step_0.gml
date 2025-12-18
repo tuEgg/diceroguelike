@@ -99,7 +99,7 @@ if (is_dragging) {
 				if (workbench_slot[0].dice == undefined) {
 					if (hovered_slot_1) {
 						// Reject coins
-						if (other.struct.dice_value != 2) {
+						if (other.struct.dice_value == 2) {
 							throw_error("Can't upgrade coins", "Coins aren't dice, they are too small to receive a core");
 						} else {
 							workbench_slot[0].dice = other.struct;

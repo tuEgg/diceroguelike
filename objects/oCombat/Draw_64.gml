@@ -343,6 +343,7 @@ for (var i = 0; i < aq_list_size; i++) {
 						if (item.effects.flags(context)) {
 							trigger_item_effects(item, "on_item_played_to_slot", context);
 							oRunManager.items[c] = undefined;
+							oRunManager.holding_item = false;
 						}
 					}
 				}
@@ -540,7 +541,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	// Draw enemy sprite
 	draw_set_alpha(0.5 * enemy.alpha);
 	draw_set_color(c_black);
-	draw_ellipse(enemy.pos_x - 100, enemy.pos_y + 50, enemy.pos_x + 100, enemy.pos_y + 70, false);
+	draw_ellipse(enemy.pos_x - 100 * enemy.data.shadow_scale, enemy.pos_y + 50, enemy.pos_x + 100 * enemy.data.shadow_scale, enemy.pos_y + 70, false);
 	draw_sprite_ext(sEnemies, enemy.data.index, enemy.pos_x, enemy.pos_y + 60, enemy.scale, enemy.scale, 0, c_white, enemy.alpha);
 
 	// Show enemy intent

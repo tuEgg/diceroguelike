@@ -227,7 +227,7 @@ function define_events() {
 					var rand = irandom(array_length(item_pool) - 1);
 					
 					oRunManager.items[rand] = undefined;
-					ds_list_add(oRunManager.keepsakes, oRunManager.ks_repaired_sail);
+					ds_list_add(oRunManager.keepsakes, oRunManager.ks_rope_of_repair);
 					oEventManager.event_complete = 1;
 					oEventManager.event_selected = true;
 				} else {

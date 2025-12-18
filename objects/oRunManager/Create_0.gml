@@ -101,7 +101,6 @@ global.keywords = {
 };
 
 ds_list_add(keepsakes, get_keepsake_by_id("looking_glass"));
-ds_list_add(keepsakes, get_keepsake_by_id("chainmasters_anchor"));
 
 
 global.tooltip_active = false;

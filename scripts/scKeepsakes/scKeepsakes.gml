@@ -11,7 +11,7 @@ function define_keepsakes() {
 	    _id: "looking_glass",
 	    name: "Looking Glass",
 	    desc: "Start each combat with 6 intel",
-		sub_image: 0,
+		sub_image: 5,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
 	            if (oCombat.turn_count == 1) oCombat.player_intel = 6;
@@ -28,7 +28,7 @@ function define_keepsakes() {
 	    _id: "small_sail",
 	    name: "Small Sail",
 	    desc: "Draw 2 additional dice at the start of combat",
-		sub_image: 0,
+		sub_image: 6,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
 	            if (oCombat.turn_count == 1) {
@@ -41,11 +41,11 @@ function define_keepsakes() {
 	};
 	ds_list_add(global.master_keepsake_list, ks_small_sail);
 	
-	ks_repaired_sail = {
-	    _id: "repaired_sail",
-	    name: "Repaired Sail",
+	ks_rope_of_repair = {
+	    _id: "rope_of_repair",
+	    name: "Rope of Repair",
 	    desc: "Heal 1 at the start of each combat",
-		sub_image: 0,
+		sub_image: 7,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
 	            if (global.player_hp < global.player_max_hp) {
@@ -56,13 +56,13 @@ function define_keepsakes() {
 	        }
 	    }
 	};
-	ds_list_add(global.master_keepsake_list, ks_repaired_sail);
+	ds_list_add(global.master_keepsake_list, ks_rope_of_repair);
 	
 	ks_deckhands_token = {
 	    _id: "deckhands_token",
 	    name: "Deckhand's Token",
 	    desc: "First dice in slot 1 gets +1 bonus",
-		sub_image: 0,
+		sub_image: 8,
 	    trigger: function(event, data) {
 	        if (event == "on_roll_die") {
 	            if (data.slot_num == 0 && data.die == oCombat.action_queue[| data.slot_num].dice_list[| 0]) {
@@ -103,7 +103,7 @@ function define_keepsakes() {
 	    _id: "black_purse",
 	    name: "Black Purse",
 	    desc: "At the end of combat gain 3 coins for every slot in your action queue",
-		sub_image: 0,
+		sub_image: 9,
 	    trigger: function(event, data) {
 	        if (event == "on_combat_end") {
 	            for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
@@ -118,7 +118,7 @@ function define_keepsakes() {
 	    _id: "shipwrights_draft",
 	    name: "Shipwright's Draft",
 	    desc: "When new slots are created, gain 1 more dice playable that turn",
-		sub_image: 0,
+		sub_image: 10,
 	    trigger: function(event, data) {
 	        if (event == "on_new_slot_created") {
 	            oCombat.dice_allowed_this_turn_bonus++;

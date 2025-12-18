@@ -201,6 +201,11 @@ switch (state) {
 			}
 		}
 		
+		// Failsafe for targeting in case enemy_target_index is outside of the room_enemies size.
+		if (enemy_target_index < 0 || enemy_target_index > enemies_left_this_combat) {
+			enemy_target_index = irandom(ds_list_size(room_enemies) - 1);
+		}
+		
         state = CombatState.PLAYER_INPUT;
         break;
 
