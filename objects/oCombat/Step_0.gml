@@ -143,16 +143,17 @@ switch (state) {
 		dice_allowed_this_turn_bonus = 0;
 		ejected_dice = false;
 		
+		player_intel = debug_mode ? 12 : 0;
+		player_intel = clamp(player_intel, 0, 12);
+		
 		// Modify dice allowed this turn
 		var turn_start_data = {
-			bonus_dice: dice_allowed_this_turn_bonus
+			bonus_dice: dice_allowed_this_turn_bonus,
+			intel: player_intel,
+			turn_count: turn_count,
 		};
 		
-		player_intel = debug_mode ? 12 : 0;
-		
 		combat_trigger_effects("on_turn_start", turn_start_data);
-		
-		player_intel = clamp(player_intel, 0, 12);
 		
 		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
 			if (player_intel >= global.player_intel_data[| i].requirement) {
@@ -414,6 +415,11 @@ switch (state) {
 						if (!enemy.looted) {
 							// Earn some credits, regardless of secondary rewards
 							gain_coins(enemy.pos_x, enemy.pos_y, enemy_data.bounty);
+							
+							// Gain the gold reward if we complete the fight
+							if (oWorldManager.current_node_type == NODE_TYPE.ELITE && oRunManager.active_bounty.complete) {
+								gain_coins(enemy.pos_x, enemy.pos_y, oRunManager.active_bounty.condition.gold_reward);
+							}
 							enemy.looted = true;
 						} else {
 							// show enemy fading out

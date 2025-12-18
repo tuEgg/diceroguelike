@@ -49,6 +49,7 @@ if (room == rmMap) {
 		pages_alpha = lerp(pages_alpha, 0, 0.4);
 	}
 	
+	// If there are drafting pages to draw, draw them
 	if (pages_alpha > 0 && ds_list_size(pages_shown) > 0) {
 		
 		var bg_w = 900;
@@ -68,6 +69,7 @@ if (room == rmMap) {
 		
 		var page_count = ds_list_size(pages_shown);
 	
+		// Draw every page
 		for (var p = 0; p < page_count; p++) {
 			var page = pages_shown[| p];
 		
@@ -100,8 +102,36 @@ if (room == rmMap) {
 					// Add this locked in page to chosen_pages
 					ds_list_add(chosen_pages, _page_clone);
 					
+					// Add all nodes to a master node list
 					for (var n = 0; n < _page_clone.num_nodes; n++) {
-						ds_list_add(all_nodes, _page_clone.nodes[| n]);
+						var node = _page_clone.nodes[| n];
+						ds_list_add(all_nodes, node);
+						
+						// update node count types - used for generating further nodes
+						switch(node.type) {
+							case NODE_TYPE.COMBAT:			combat_nodes_this_voyage++;			break;
+							case NODE_TYPE.EVENT:			event_nodes_this_voyage++;			break;
+							case NODE_TYPE.WORKBENCH:		workbench_nodes_this_voyage++;		break;
+							case NODE_TYPE.SHOP:			shop_nodes_this_voyage++;			break;
+							case NODE_TYPE.BOUNTY:			bounty_nodes_this_voyage++;			break;
+							case NODE_TYPE.ELITE:			elite_nodes_this_voyage++;			break;
+						}
+						
+						// When we add an elite to the node list, we need to remove elites from the remaining drafted pages
+						if (node.type == NODE_TYPE.ELITE) {
+							// loop through all pages
+							for (var pp = 0; pp < page_count; pp++) {
+								// for any that aren't this page
+								if (pages_shown[| pp] != page) {
+									// loop through their nodes
+									for (var nn = 0; nn < pages_shown[| pp].num_nodes; nn++) {
+										if (pages_shown[| pp].nodes[| nn].type == NODE_TYPE.ELITE) {
+											pages_shown[| pp].nodes[| nn] = clone_node_static(node_combat);
+										}
+									}
+								}	
+							}
+						}
 					}
 					
 					page.chosen = true;
@@ -154,6 +184,7 @@ if (room == rmMap) {
 		pages_alpha = 1;
 	}
 	
+	// Draw chosen pages
 	for (var p = 0; p < ds_list_size(chosen_pages); p++) {
 		var page = chosen_pages[| p];
 		page.x = final_map_x + page.x_offset;
@@ -177,17 +208,24 @@ if (debug_mode) {
 	array_push(world_debug, bounty_chance);
 	array_push(world_debug, elite_chance);
 	
+	array_push(world_debug, combat_nodes_this_voyage);
+	array_push(world_debug, event_nodes_this_voyage);
+	array_push(world_debug, workbench_nodes_this_voyage);
+	array_push(world_debug, shop_nodes_this_voyage);
+	array_push(world_debug, bounty_nodes_this_voyage);
+	array_push(world_debug, elite_nodes_this_voyage);
+	
 	draw_set_alpha(0.8);
 	draw_set_color(c_black);
-	draw_rectangle(gui_w, 100, gui_w - 225, 450, false);
+	draw_rectangle(gui_w, 100, gui_w - 225, 700, false);
 	draw_set_alpha(1.0);
 	
-	draw_set_font(ftDefault);
+	draw_set_font(ftSmall);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 	draw_set_color(c_white);
 	for (var i = 0; i < array_length(world_debug); i++) {
-		var lookup = ["combat", "event", "workbench", "shop", "bounty", "elite"];
+		var lookup = ["combat", "event", "workbench", "shop", "bounty", "elite", "combat nodes", "event nodes", "workbench nodes", "shop nodes", "bounty nodes", "elite nodes"];
 		
 		draw_text(gui_w - 200, 125 + (i * 30), lookup[i] + ": ");
 		draw_text(gui_w - 75, 125 + (i * 30), string(world_debug[i]));

@@ -98,10 +98,15 @@ if (is_dragging) {
 			with (oWorkbenchManager) { 
 				if (workbench_slot[0].dice == undefined) {
 					if (hovered_slot_1) {
-						workbench_slot[0].dice = other.struct;
-						other.x = workbench_slot[0].xx;
-						other.y = workbench_slot[0].yy;
-						other.in_slot = true;
+						// Reject coins
+						if (other.struct.dice_value != 2) {
+							throw_error("Can't upgrade coins", "Coins aren't dice, they are too small to receive a core");
+						} else {
+							workbench_slot[0].dice = other.struct;
+							other.x = workbench_slot[0].xx;
+							other.y = workbench_slot[0].yy;
+							other.in_slot = true;
+						}
 					} else {
 						other.in_slot = false;
 						workbench_slot[0].dice = undefined;

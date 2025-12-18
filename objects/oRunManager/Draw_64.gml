@@ -140,16 +140,20 @@ draw_sprite_ext(sMapIcon, 5, gui_w - 300, 45, 1, 1, 0, c_white, 1.0);
 draw_set_font(ftBig);
 var bounty_name = "-";
 var bounty_description = "You aren't hunting any bounties";
-var bounty_col = c_white;
+var bounty_col = c_dkgray;
 if (active_bounty != undefined) {
 	bounty_name = active_bounty.enemy_name;
 	bounty_description =  "Defeat " + string(active_bounty.enemy_name) + " " +active_bounty.condition.description;
-	bounty_col = c_dkgray;
-}
-if (active_bounty.complete) {
-	bounty_name = active_bounty.enemy_name;
-	bounty_description =  "Bounty completed";
-	bounty_col = c_lime;
+	bounty_col = c_white;
+	if (active_bounty.condition.failed) {
+		bounty_description = "Bounty failed.";
+		bounty_col = c_red;
+	}
+	if (active_bounty.complete) {
+		bounty_name = active_bounty.enemy_name;
+		bounty_description =  "Bounty completed.";
+		bounty_col = c_lime;
+	}
 }
 draw_set_halign(fa_left);
 draw_set_valign(fa_middle);

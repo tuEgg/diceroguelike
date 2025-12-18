@@ -1,3 +1,10 @@
+combat_nodes_this_voyage = 0;
+event_nodes_this_voyage = 0;
+workbench_nodes_this_voyage = 0;
+shop_nodes_this_voyage = 0;
+bounty_nodes_this_voyage = 0;
+elite_nodes_this_voyage = 0;
+
 nodes_cleared = 0; // how many pages in the captains logbook have we cleared
 time = 0; // used to pulse animate next node
 page_previous = undefined;

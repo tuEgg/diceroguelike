@@ -180,7 +180,7 @@ function define_items() {
 		amount: 1,
 		rarity: "common",
 		effects: {
-			trigger: "on_played_to_slot",
+			trigger: "on_item_played_to_slot",
 			flags: function() {
 				var dice_exist = true;
 				if (room != rmCombat) {
@@ -215,7 +215,7 @@ function define_items() {
 		amount: 1,
 		rarity: "common",
 		effects: {
-			trigger: "on_played_to_slot",
+			trigger: "on_item_played_to_slot",
 			flags: function(_context) {
 				var dice_exist = true;
 				if (ds_list_size(_context._slot.dice_list) == 0) {

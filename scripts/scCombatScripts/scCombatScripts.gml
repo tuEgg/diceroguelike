@@ -556,6 +556,12 @@ function apply_dice_to_slot(_die, _slot_i) {
     // Result
     //-----------------------------------------
     if (!reject_dice) {
+		var played_data = {
+			_slot: slot
+		};
+	
+		combat_trigger_effects("on_dice_played_to_slot", played_data);
+	
         add_feed_entry("You used a dice!");
 		if (!string_has_keyword(die.struct.description, "coin")) dice_played++;
 		dice_played_scale = 1.2;
@@ -970,7 +976,7 @@ function win_fight() {
 		combat_end_effects_triggered = true;
 		
 		// trigger bounty check
-		if (oRunManager.active_bounty != undefined) {
+		if (oRunManager.active_bounty != undefined && oWorldManager.current_node_type == NODE_TYPE.ELITE) {
 			if (!oRunManager.active_bounty.condition.failed) {
 				oRunManager.active_bounty.complete = true;
 			}
@@ -991,20 +997,26 @@ function win_fight() {
 		if (oWorldManager.current_node_type == NODE_TYPE.ELITE) {
 			generate_keepsake_rewards(reward_keepsake_options, global.master_keepsake_list, 3);
 			ds_list_add(reward_list, "keepsakes");
-		}
-			
-		// Show dice every combat, show consumables at a 40% chance, gaining 10% chance every time they don't appear, losing 10% when they do.
-		ds_list_add(reward_list, "dice");
-			
-		// Add consumables starting at a chance
-		var con_chance = irandom_range(1, 100);
-		if (con_chance <= oRunManager.show_consumables_chance) {
+			ds_list_add(reward_list, "dice");
 			generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
 			ds_list_add(reward_list, "consumables");
-			oRunManager.show_consumables_chance -= 30;
 		} else {
-			oRunManager.show_consumables_chance += 20;
+			
+			// Show dice every combat, show consumables at a 40% chance, gaining 10% chance every time they don't appear, losing 10% when they do.
+			ds_list_add(reward_list, "dice");
+			
+			// Add consumables starting at a chance
+			var con_chance = irandom_range(1, 100);
+			if (con_chance <= oRunManager.show_consumables_chance) {
+				generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
+				ds_list_add(reward_list, "consumables");
+				oRunManager.show_consumables_chance -= 30;
+			} else {
+				oRunManager.show_consumables_chance += 20;
+			}
 		}
+			
+		
 	}
 		
 	show_rewards = true;

@@ -2,7 +2,7 @@ if (room == rmMap) {
 
 } else {
 	page_previous = room;
-	if (nodes_cleared > 9) {
+	if (nodes_cleared > 100) {
 		oRunManager.voyage++;
 	} else {
 		nodes_cleared++;
@@ -31,22 +31,46 @@ if (room == rmMap) {
 			ds_list_add(possible_encounters, "Encounter 8");
 		}
 		
-		// After we've cleared 5 nodes, start allowing bounties
-		if (nodes_cleared == 5) {
-			bounty_chance += 50;
-			combat_chance -= 10;
+		// Start pushing for bounties after node 3
+		if (nodes_cleared > 3 && bounty_nodes_this_voyage == 0) {
+			bounty_chance += 5;
+			combat_chance -= 2;
+			event_chance -= 1;
+			workbench_chance -= 1;
+			shop_chance -= 1;
+		}
+		
+		// If we haven't had a bounty by node 7, really push for one
+		if (nodes_cleared == 7 && bounty_nodes_this_voyage == 0) {
+			bounty_chance += 40;
+			combat_chance -= 20;
 			event_chance -= 10;
 			workbench_chance -= 5;
 			shop_chance -= 5;
 		}
 		
-		// After we've cleared 7 nodes, start allowing elites
-		if (oRunManager.active_bounty != undefined && nodes_cleared >= 8) {
-			elite_chance = 80;
-			combat_chance = 5;
-			event_chance = 5;
-			workbench_chance = 5;
-			shop_chance = 5;
+		// Start allowing elites from node 7
+		if (nodes_cleared >= 7 && elite_nodes_this_voyage < 2) {
+			elite_chance += 10;
+		}
+		
+		// Once we have a bounty active, start really pushing elites
+		if (oRunManager.active_bounty != undefined) {
+			if (!oRunManager.active_bounty.complete) {
+				if (elite_nodes_this_voyage < 2) {
+					// Add a further 10% for elite chance once we have a bounty
+					elite_chance += 10;
+				}
+			}
+			
+			if (oRunManager.active_bounty.complete || oRunManager.active_bounty.condition.failed) {
+				// once victorious, unset the bounty
+				oRunManager.active_bounty = undefined;
+			}
+		}
+		
+		if (elite_nodes_this_voyage > 2) {
+			elite_chance = 0;
 		}
 	}
 }

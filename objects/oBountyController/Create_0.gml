@@ -11,7 +11,7 @@ bounty_condition_slots = {
 	color: global.color_attack,
 	text: "<5", // undefined or a text/number to draw on the slot
 	description: "without making more than 4 slots.",
-	gold_reward: 75,
+	gold_reward: 35,
 	failed: false,
 	trigger: function(event, data) {
 		if (event == "on_new_slot_created") {
@@ -30,7 +30,7 @@ bounty_condition_potion = {
 	color: c_white,
 	text: "", // undefined or a text/number to draw on the slot
 	description: "without using any potions",
-	gold_reward: 70,
+	gold_reward: 30,
 	failed: false,
 	trigger: function(event, data) {
 		if (event == "on_consumable_used") {
@@ -47,7 +47,7 @@ bounty_condition_block = {
 	color: global.color_block,
 	text: "", // undefined or a text/number to draw on the slot
 	description: "without ever having more than 12 block",
-	gold_reward: 70,
+	gold_reward: 35,
 	failed: false,
 	trigger: function(event, data) {
 		if (event == "on_player_block_gained") {
@@ -58,6 +58,44 @@ bounty_condition_block = {
 	}
 }
 ds_list_add(condition_list, bounty_condition_block);
+
+bounty_condition_dice = {
+	icon: sDice,
+	index: 3,
+	scale: 1,
+	color: global.color_heal,
+	text: "<4", // undefined or a text/number to draw on the slot
+	description: "without using more than 3 dice in a slot",
+	gold_reward: 45,
+	failed: false,
+	trigger: function(event, data) {
+		if (event == "on_dice_played_to_slot") {
+			if (ds_list_size(data._slot.dice_list) > 3) {
+				failed = true;
+			}
+		}
+	}
+}
+ds_list_add(condition_list, bounty_condition_dice);
+
+bounty_condition_intel = {
+	icon: sIntelEye,
+	index: 2,
+	scale: 1,
+	color: global.color_intel,
+	text: "", // undefined or a text/number to draw on the slot
+	description: "without gaining intel after the first turn",
+	gold_reward: 55,
+	failed: false,
+	trigger: function(event, data) {
+		if (event == "on_turn_start") {
+			if (data.intel > 0 && data.turn_count > 1) {
+				failed = true;
+			}
+		}
+	}
+}
+ds_list_add(condition_list, bounty_condition_intel);
 
 bounty = [];
 generate_bounties(2);

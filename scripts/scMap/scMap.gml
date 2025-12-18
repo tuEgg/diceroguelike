@@ -147,7 +147,7 @@ function generate_pages() {
 					
 					if (nodes_cleared < 5) {
 						shop_chance += 5;
-					} else if (oRunManager.active_bounty == undefined && num_bounty == 0) {
+					} else if (oRunManager.active_bounty == undefined && num_bounty == 0 && bounty_nodes_this_voyage == 0) {
 						bounty_chance += 5;
 					} else {
 						shop_chance += 5;
@@ -164,7 +164,7 @@ function generate_pages() {
 					
 					if (nodes_cleared < 5) {
 						workbench_chance += 5;
-					} else if (oRunManager.active_bounty == undefined) {
+					} else if (oRunManager.active_bounty == undefined && bounty_nodes_this_voyage == 0) {
 						bounty_chance += 5;
 					} else {
 						workbench_chance += 5;
@@ -192,13 +192,7 @@ function generate_pages() {
 					num_elite++;
 					page_num_elite++;
 					chosen_node = node_elite;
-					if (num_elite == 2) {
-						elite_chance = 0;
-						combat_chance = 47;
-						event_chance = 33;
-						workbench_chance = 10;
-						shop_chance = 10;
-					}
+					elite_chance /= 2;
 				} else {
 					continue;
 				}

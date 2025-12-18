@@ -329,19 +329,19 @@ for (var i = 0; i < aq_list_size; i++) {
 		draw_text(draw_x + draw_w / 2, draw_y - draw_h / 2, string(tooltip));
 	}
 	
-	// Apply potions that trigger on_played_to_slot
+	// Apply potions that trigger on_item_played_to_slot
 	if (hover) {
 		for (var c = 0; c < array_length(oRunManager.items); c++) {
 			var item = oRunManager.items[c];
 			if (item != undefined) {
-				if (item.type == "consumable" && item.dragging && item.effects.trigger == "on_played_to_slot" && !show_rewards) {
+				if (item.type == "consumable" && item.dragging && item.effects.trigger == "on_item_played_to_slot" && !show_rewards) {
 					if (mouse_check_button_released(mb_left)) {
 						var context = {
 							_slot: action_queue[| i],
 							_ind: i
 						}
 						if (item.effects.flags(context)) {
-							trigger_item_effects(item, "on_played_to_slot", context);
+							trigger_item_effects(item, "on_item_played_to_slot", context);
 							oRunManager.items[c] = undefined;
 						}
 					}

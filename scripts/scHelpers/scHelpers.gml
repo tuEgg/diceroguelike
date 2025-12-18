@@ -131,14 +131,14 @@ function runmanager_trigger_keepsakes(_event, _data) {
 }
 
 function trigger_bounty(_event, _data) {
-	if (oRunManager.active_bounty == undefined) return;
+	if (oRunManager.active_bounty != undefined && oWorldManager.current_node_type == NODE_TYPE.ELITE) {
+	    var bounty = oRunManager.active_bounty;
 	
-    var bounty = oRunManager.active_bounty;
-	
-    if (is_undefined(bounty.condition.trigger)) return;
+	    if (is_undefined(bounty.condition.trigger)) return;
 
-    // allow keepsakes to mutate _data
-    bounty.condition.trigger(_event, _data);
+	    // allow bounty conditions to mutate _data
+	    bounty.condition.trigger(_event, _data);
+	}
 }
 
 function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dice = undefined) {

@@ -109,7 +109,7 @@ for (var i = 0; i < wb_list_size; i++) {
 
 	// Draw distribution
 	if (i == 0 || i == 2) {
-		if (workbench_slot[i].dice != undefined && workbench_slot[i].dice.dice_value != 2) {
+		if (workbench_slot[i].dice != undefined) {
 			draw_dice_distribution(workbench_slot[i].dice, slot_x, slot_y - wb_tile_size/2, true);
 		}
 	}

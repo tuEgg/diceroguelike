@@ -700,8 +700,8 @@ function get_dice_output(_die, _slot_num, _read_only) {
 
 function dice_trigger_effects(_event, _data) {
     // Iterate through all dice currently in play
-    for (var s = 0; s < ds_list_size(action_queue); s++) {
-        var slot = action_queue[| s];
+    for (var s = 0; s < ds_list_size(oCombat.action_queue); s++) {
+        var slot = oCombat.action_queue[| s];
         for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
             var die = slot.dice_list[| d];
             if (is_undefined(die.effects)) continue;
