@@ -144,7 +144,6 @@ switch (state) {
 		ejected_dice = false;
 		
 		player_intel = debug_mode ? 12 : 0;
-		player_intel = clamp(player_intel, 0, 12);
 		
 		// Modify dice allowed this turn
 		var turn_start_data = {
@@ -154,6 +153,8 @@ switch (state) {
 		};
 		
 		combat_trigger_effects("on_turn_start", turn_start_data);
+		
+		player_intel = clamp(player_intel, 0, 12);
 		
 		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
 			if (player_intel >= global.player_intel_data[| i].requirement) {
@@ -323,8 +324,8 @@ switch (state) {
 						
 							_target = room_enemies[| _target_index];
 						
-							show_debug_message("current enemy index: " + string(e));
-							show_debug_message("current other target index: " + string(_target_index));
+							//show_debug_message("current enemy index: " + string(e));
+							//show_debug_message("current other target index: " + string(_target_index));
 						} else if (intent_array[i] == "BLK" || intent_array[i] == "HEAL" || intent_array[i] == "BUFF") {
 							_target = _source;
 						}
@@ -422,8 +423,10 @@ switch (state) {
 							gain_coins(enemy.pos_x, enemy.pos_y, enemy_data.bounty);
 							
 							// Gain the gold reward if we complete the fight
-							if (oWorldManager.current_node_type == NODE_TYPE.ELITE && oRunManager.active_bounty.complete) {
-								gain_coins(enemy.pos_x, enemy.pos_y, oRunManager.active_bounty.condition.gold_reward);
+							if (oRunManager.active_bounty != undefined) {
+								if (oWorldManager.current_node_type == NODE_TYPE.ELITE && oRunManager.active_bounty.complete) {
+									gain_coins(enemy.pos_x, enemy.pos_y, oRunManager.active_bounty.condition.gold_reward);
+								}
 							}
 							enemy.looted = true;
 						} else {

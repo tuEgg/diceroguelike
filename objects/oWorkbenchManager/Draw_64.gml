@@ -130,8 +130,8 @@ if (!craft) {
 	var craft_col = c_dkgray;
 	if (workbench_slot[0].dice != undefined && workbench_slot[1].core != undefined) craft_col = c_lime;
 	
-	draw_sprite_ext(sButtonSmall, 0, gui_w/2, slot_y + 280, 0.75, 0.75, 0, craft_col, 1.0);
-	draw_outline_text("Craft", c_black, c_white, 2, gui_w/2, slot_y + 280, 1, 1, 0);
+	draw_sprite_ext(sButtonSmall, 0, gui_w/2, start_y + 280, 0.75, 0.75, 0, craft_col, 1.0);
+	draw_outline_text("Craft", c_black, c_white, 2, gui_w/2, start_y + 280, 1, 1, 0);
 } else {
 	if (bang_timer == 15) {
 		var new_dice = workbench_slot[0].dice;
@@ -143,7 +143,7 @@ if (!craft) {
 			
 		discard_dice_in_play();
 			
-		show_debug_message("New dice created.");
+		//show_debug_message("New dice created.");
 			
 		// Spawn instance
 		var xx = start_x + (2 * (wb_tile_padding + wb_tile_size));
@@ -162,7 +162,7 @@ if (!craft) {
 	bang_timer--;
 		
 	if (bang_timer > 0) {
-		draw_sprite(sBang, 0, gui_w/2, slot_y + 280);
+		draw_sprite(sBang, 0, gui_w/2, start_y + 280);
 	}
 }
 

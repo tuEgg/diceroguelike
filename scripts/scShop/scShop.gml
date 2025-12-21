@@ -133,7 +133,7 @@ function generate_dice_rewards(_reward_list, _item_list, _num) {
 	ds_list_destroy(indices_dice_rare);
 }
 
-function generate_item_rewards(_reward_list, _item_list, _num) {
+function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none") {
 	show_debug_message("Generating item rewards");
 	var total_items = ds_list_size(_item_list);
 	var indices_items_common = ds_list_create();
@@ -193,17 +193,41 @@ function generate_item_rewards(_reward_list, _item_list, _num) {
 				
 		if (chance <= rare_item_chance) {
 			var item_struct = indices_items_rare[| irandom(ds_list_size(indices_items_rare)-1) ];
-			ds_list_add(_reward_list, clone_item(item_struct));
-			show_debug_message("Added a rare item to the rewards.");
-			continue;
+			switch(_filter) {
+				case "none":
+					ds_list_add(_reward_list, clone_item(item_struct)); 
+					show_debug_message("Added a rare item to the rewards.");
+				continue;
+				
+				case "consumable":
+					if (item_struct.type != "consumable") {
+						continue;
+					} else {
+						ds_list_add(_reward_list, clone_item(item_struct)); 
+						show_debug_message("Added a rare consumable to the rewards.");
+					}
+				break;
+			}
 		}
 				
 				
 		if (chance <= uncommon_item_chance) {
 			var item_struct = indices_items_uncommon[| irandom(ds_list_size(indices_items_uncommon)-1) ];
-			ds_list_add(_reward_list, clone_item(item_struct));
-			show_debug_message("Added an uncommon item to the rewards.");
-			continue;
+			switch(_filter) {
+				case "none":
+					ds_list_add(_reward_list, clone_item(item_struct)); 
+					show_debug_message("Added an uncommon item to the rewards.");
+				continue;
+				
+				case "consumable":
+					if (item_struct.type != "consumable") {
+						continue;
+					} else {
+						ds_list_add(_reward_list, clone_item(item_struct)); 
+						show_debug_message("Added an uncommon consumable to the rewards.");
+					}
+				break;
+			}
 		}
 				
 		if (chance <= common_item_chance) {
@@ -216,8 +240,21 @@ function generate_item_rewards(_reward_list, _item_list, _num) {
 				}
 			}
 			
-			ds_list_add(_reward_list, clone_item(item_struct));
-			show_debug_message("Added a common item to the rewards.");
+			switch(_filter) {
+				case "none":
+					ds_list_add(_reward_list, clone_item(item_struct)); 
+					show_debug_message("Added a common item to the rewards.");
+				continue;
+				
+				case "consumable":
+					if (item_struct.type != "consumable") {
+						continue;
+					} else {
+						ds_list_add(_reward_list, clone_item(item_struct)); 
+						show_debug_message("Added a common consumable to the rewards.");
+					}
+				break;
+			}
 			continue;
 		}
 			    

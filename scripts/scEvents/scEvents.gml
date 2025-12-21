@@ -91,6 +91,14 @@ function define_events() {
 					}
 				}
 				
+				// Fail safe in case we have no heal or block die
+				if (ds_list_size(heal_block_list) == 0) {
+				    ds_list_destroy(heal_block_list);
+				    oEventManager.event_complete = 0;
+				    oEventManager.event_selected = true;
+				    return;
+				}
+				
 				var rand_ind = irandom(ds_list_size(heal_block_list)-1);
 				var rand_die = heal_block_list[| rand_ind];
 				
@@ -163,6 +171,14 @@ function define_events() {
 					if (die.action_type == "ATK") {
 						ds_list_add(attack_list, d);
 					}
+				}
+				
+				// Fail safe in case we have no attack die
+				if (ds_list_size(attack_list) == 0) {
+				    ds_list_destroy(attack_list);
+				    oEventManager.event_complete = 1;
+				    oEventManager.event_selected = true;
+				    return;
 				}
 				
 				repeat (2) {

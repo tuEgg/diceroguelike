@@ -408,18 +408,18 @@ function define_items() {
 				} else if (room == rmCombat && oCombat.show_rewards) {
 					dice_exist = false;
 				} else {
-					dice_exist = true * oCombat.state == CombatState.PLAYER_INPUT;;
+					dice_exist = true * oCombat.state == CombatState.PLAYER_INPUT;
 				}
 				return dice_exist
 			},
 			modify: function(_context) {
 				with (oCombat) {
-					var num = 12;
-					apply_buff(global.player_debuffs, oRunManager.buff_intel, 1, num, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
-					var num = spawn_floating_number("player", num, -1, global.color_intel, 1, -1, 0);
+					var amount = 12;
+					apply_buff(global.player_debuffs, oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
+					num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
-					particle_emit( num.x, num.y, "rise", c_green);
+					particle_emit( num.x, num.y, "rise", global.color_intel);
 				}
 			}
 		},
@@ -531,6 +531,35 @@ function define_items() {
 		price: 35
 	}
 	ds_list_add(global.master_item_list, clone_item(item_consumable_navigators_brew));
+	
+	item_consumable_healing_flask = {
+		sprite: sConsumables,
+		index: 9,
+		name: "Healing Flask",
+		description: "Heal 16hp",
+		type: "consumable",
+		dragging: false,
+		distribution: "",
+		taken: false,
+		amount: 1,
+		rarity: "common",
+		effects: {
+			trigger: "on_clicked",
+			flags: function() {
+				if (global.player_hp < global.player_max_hp) {
+					return true;
+				} else {
+					return false;
+				}
+			},
+			modify: function(_context) {
+				global.player_hp = min(global.player_max_hp, global.player_hp + 16);
+				particle_emit(650, 25, "burst", c_lime);
+			}
+		},
+		price: 40
+	}
+	ds_list_add(global.master_item_list, clone_item(item_consumable_healing_flask));
 }
 
 /// @func clone_item(_item_struct)
@@ -568,8 +597,8 @@ function gain_item(_consumable) {
 		}
 	}
 	if (first_free_slot != -1) {
-		oRunManager.items[n] = clone_item(_consumable);
-		oRunManager.items_hover_scale[n] = 1.2;
+		oRunManager.items[first_free_slot] = clone_item(_consumable);
+		oRunManager.items_hover_scale[first_free_slot] = 1.2;
 		_consumable.taken = true;
 	}
 	

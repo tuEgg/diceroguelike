@@ -4,7 +4,7 @@ age += 1;
 y -= rise_speed;
 
 // Scale up fast at start, then shrink slightly
-if (age < room_speed * 0.1) {
+if (age < game_get_speed(gamespeed_fps) * 0.1) {
     scale = lerp(scale, 1.5, 0.3);
 } else {
     scale = lerp(scale, 1, 0.05);

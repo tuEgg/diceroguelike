@@ -148,7 +148,7 @@ function enemy_definitions() {
 	// Pack enemy that gets stronger when attacked, and messes with player focus.
 	var driftnet_fish_moves = [
 	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Shiny Scales", debuff: buff_shiny_scales, amount: 1, duration: -1, weight: 0, use_trigger: "FIRST" },
-	    { dice_amount: 2, dice_value: 2, action_type: "ATK", bonus_amount: 4, move_name: "Snap", weight: 75 },
+	    { dice_amount: 1, dice_value: 2, action_type: "ATK", bonus_amount: 3, move_name: "Snap", weight: 75 },
 	    { dice_amount: 2, dice_value: 2, action_type: "DEBUFF", bonus_amount: 1, move_name: "Overwhelm", debuff: debuff_overwhelm, weight: 25, amount: 3, duration: 1 }
 	];
 	var driftnet_fish = enemy_create("Driftnet Fish", 0, 1, 18, 10, driftnet_fish_moves, "weighted");

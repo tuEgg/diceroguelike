@@ -9,10 +9,10 @@ if (room == rmMap) {
 			
 		// The second time we draft:
 		if (nodes_cleared == 1) {
-			combat_chance = 47;
-			event_chance = 33;
-			workbench_chance = 10;
-			shop_chance = 10;
+			combat_chance = 35;
+			event_chance = 35;
+			workbench_chance = 15;
+			shop_chance = 15;
 			
 			// Add thug after first encounter, just because it's slightly harder than the other early encounters
 			ds_list_add(possible_encounters, "Early 4");
@@ -50,8 +50,8 @@ if (room == rmMap) {
 		}
 		
 		// Start allowing elites from node 7
-		if (nodes_cleared >= 7 && elite_nodes_this_voyage < 2) {
-			elite_chance += 10;
+		if (nodes_cleared >= 7 && elite_nodes_this_voyage <= 2) {
+			elite_chance += 5 + ((2 - elite_nodes_this_voyage) * 2.5);
 		}
 		
 		// Once we have a bounty active, start really pushing elites
@@ -81,6 +81,8 @@ if (room == rmCombat) {
 
 if (room == rmBounty) {
 	if (oRunManager.active_bounty != undefined) {
+		ds_list_copy(elite_list_before_bounty, possible_elites);
+		ds_list_clear(possible_elites);
 		ds_list_add(possible_elites, oRunManager.active_bounty.elite_encounter);
 	}
 }

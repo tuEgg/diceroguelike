@@ -92,13 +92,13 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					// die statistics
 					_slot_die.statistics.times_played_this_combat++;
 					
-					ds_list_add(_slot_die.statistics.roll_history, final_roll);
+					array_push(_slot_die.statistics.roll_history, final_roll);
 					
 					break;
 				}
 			}
 		} else {
-			show_debug_message("Enemies roll");
+			//show_debug_message("Enemies roll");
 			final_roll = irandom_range( _min_roll, _max_roll );
 			
 			var ctx = {
@@ -107,12 +107,12 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 			}
 			
 			// We need to make sure we update the visuals for enemy intent roll values with these buffs in mind.
-			show_debug_message("Rolled amound before buffs " + string(final_roll));
+			//show_debug_message("Rolled amound before buffs " + string(final_roll));
 					
 			trigger_debuff_list(_source.debuffs, "on_roll_die", ctx);
 					
 			final_roll = ctx._d_amount;
-			show_debug_message("Rolled amound after buffs " + string(final_roll));
+			//show_debug_message("Rolled amound after buffs " + string(final_roll));
 			
 			if (!enemy_bonus_used_once) {
 				final_roll += slot_bonus_amount;
@@ -153,23 +153,17 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				
 				global.player_x += 50;
 				
-				// Trigger end of turn effects for keepsakes
-				var on_take_damage_data = {
-					source: _source,
-					target: _target,
+				// Only trigger debuffs/buffs on the enemy that actually took damage
+				var ctx = {
+				    source: _source,
+				    target: _target,
+				    owner: _target
 				};
-					
-				//show_debug_message("checking for player attacking enemy");
-				combat_trigger_effects("on_take_damage", on_take_damage_data);
-				
-				if (variable_struct_exists(on_take_damage_data.target, "taken_damage_this_turn")) {
-					_target.taken_damage_this_turn = on_take_damage_data.target.taken_damage_this_turn;
-				} else {
-					_target.taken_damage_this_turn = false;
-				}
+
+				trigger_debuff_list(_target.debuffs, "on_take_damage", ctx);
+
 				
 				//show_debug_message("Value of taken_damage_this_turn: " + string(_target.taken_damage_this_turn));
-
 			
 	            // If the enemy has block
 	            if (_target.block_amount > 0) {
@@ -192,7 +186,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				
 				// Enemy death event
 				if (_target.hp <= 0 && !_target.dead) {
-					show_debug_message("Enemy target index: " + string(enemy_target_index));
+					//show_debug_message("Enemy target index: " + string(enemy_target_index));
 					
 					_target.dead = true;
 					enemy_turns_remaining--;
@@ -217,8 +211,8 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					
 					combat_trigger_effects("on_enemy_death", ctx);
 					
-					show_debug_message("Enemies left this combat: " + string(enemies_left_this_combat));
-					show_debug_message("NEW Enemy target index: " + string(enemy_target_index));
+					//show_debug_message("Enemies left this combat: " + string(enemies_left_this_combat));
+					//show_debug_message("NEW Enemy target index: " + string(enemy_target_index));
 				}
 	        }
 
@@ -654,6 +648,13 @@ function sacrifice_die(_die) {
 	
     var die = _die;
     var die_struct = die.struct;
+	
+	var sacrifice_data = {
+		die: die,
+		duplicate_die: false,
+	};
+	
+	trigger_die_effects_single(die.struct, "on_sacrifice_die", sacrifice_data);
 
     // Clone before adding
 	var _perm = "temporary";
@@ -663,17 +664,21 @@ function sacrifice_die(_die) {
 	}
 	var die_copy = clone_die(die_struct, _perm);
     ds_list_add(global.sacrifice_list, die_copy);
+	
+	if (sacrifice_data.duplicate_die == true) {
+		var die_copy2 = clone_die(die_struct, _perm);
+		die_copy2.reset_at_end_combat = function(_dice) {
+			ds_list_delete(global.dice_bag, ds_list_find_index(global.dice_bag, _dice));
+		}
+		ds_list_add(global.sacrifice_list, die_copy2);
+	}
+	
 	//show_debug_message("Added dice to list, new length is: "+string(ds_list_size(global.sacrifice_list)));
 	
     var history_copy  = clone_die(die_struct, _perm);
 	ds_list_add(global.sacrifice_history, history_copy ); // persistent record
 	
 	particle_emit( die.x, die.y, "burst", die.struct.color);
-	
-	var sacrifice_data = {
-	};
-	
-	combat_trigger_effects("on_sacrifice_die", sacrifice_data);
 	
     instance_destroy(die);
 
@@ -980,6 +985,12 @@ function win_fight() {
 			if (!oRunManager.active_bounty.condition.failed) {
 				oRunManager.active_bounty.complete = true;
 			}
+			
+			var active_bounty_index = ds_list_find_index(oWorldManager.elite_list_before_bounty, oRunManager.active_bounty.elite_encounter);
+			show_debug_message("active bounty index: " + string(active_bounty_index));
+			ds_list_delete(oWorldManager.elite_list_before_bounty, active_bounty_index);
+			ds_list_copy(oWorldManager.possible_elites, oWorldManager.elite_list_before_bounty);
+			ds_list_clear(oWorldManager.elite_list_before_bounty);
 		}
 	}
 			

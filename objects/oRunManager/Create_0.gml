@@ -114,9 +114,7 @@ items_hover_scale = [];
 has_space_for_item = true;
 
 if (debug_mode) {
-	items[0] = clone_item(item_consumable_crows_nest_clarity);
-	items[1] = clone_item(item_consumable_crows_nest_clarity);
-	items[2] = clone_item(item_consumable_crows_nest_clarity);
+	items[0] = clone_item(item_consumable_healing_flask);
 }
 	
 for (var i = 0; i < max_items; i++) {
@@ -181,10 +179,15 @@ ds_list_add(global.player_intel_data, {
 });
 
 show_dice_list = false; // used for displaying all the dice in the master list
+show_dice_bag = false;
+bag_hover = false;
+bag_hover_locked = false; // used to click on the bag and lock the view
 scroll_y = 0;
 m_grab_y = 0;
 s_grab_y = 0;
 filtered_list = ds_list_create();
+show_bag_dice_info = true;
+dice_hover = undefined;
 
 error_timer = 0;
 error_message = "";

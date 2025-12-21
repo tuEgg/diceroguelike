@@ -1171,8 +1171,8 @@ if (show_rewards) {
 							}
 						}
 						if (first_free_slot != -1) {
-							oRunManager.items[n] = clone_item(consumable);
-							oRunManager.items_hover_scale[n] = 1.2;
+							oRunManager.items[first_free_slot] = clone_item(consumable);
+							oRunManager.items_hover_scale[first_free_slot] = 1.2;
 							consumable.taken = true;
 							rewards_consumables_second_taken = true;
 						} else {

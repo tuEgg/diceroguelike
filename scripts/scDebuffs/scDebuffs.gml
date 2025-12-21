@@ -4,7 +4,7 @@
 function apply_buff(_target_list, _template, _duration, _amount, _remove_next_turn, _source, _permanent = false) {
 
     var inst = {
-        template: _template,   // <-- reference, NOT a clone
+        template: clone_buff(_template),   // <-- reference, NOT a clone
         remaining: _duration,
 		permanent: _permanent,
 		amount: _amount,
@@ -15,7 +15,7 @@ function apply_buff(_target_list, _template, _duration, _amount, _remove_next_tu
 	// see if this debuff already exists and extend it if so
 	if (ds_list_size(_target_list) > 0) {
 		for (var d = 0; d < ds_list_size(_target_list); d++) {
-			if (_target_list[| d].template == _template) {
+			if (_target_list[| d].template._id == _template._id) {
 				if (_template.stackable) {
 					_target_list[| d].amount += _amount;
 					_target_list[| d].remove_next_turn = true;
@@ -28,6 +28,27 @@ function apply_buff(_target_list, _template, _duration, _amount, _remove_next_tu
 	}
 
     ds_list_add(_target_list, inst);
+}
+
+/// @func clone_buff(_src)
+function clone_buff(_src) {
+	// Shallow clone of base-level fields
+	var c = variable_clone(_src);
+
+	// --- Deep copy effects array (you already do this) ---
+	if (variable_struct_exists(c, "effects") && is_array(c.effects)) {
+	    var new_arr = array_create(array_length(c.effects));
+	    for (var i = 0; i < array_length(c.effects); i++) {
+	        if (is_struct(c.effects[i])) {
+	            new_arr[i] = variable_clone(c.effects[i]);
+	        } else {
+	            new_arr[i] = c.effects[i];
+	        }
+	    }
+	    c.effects = new_arr;
+	}
+
+	return c;
 }
 
 function define_buffs_and_debuffs() {
@@ -155,7 +176,7 @@ function define_buffs_and_debuffs() {
 		name: "Shiny Scales",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Gains 1 more attack dice if it takes damage on its turn",
+	    desc: "All Driftnet fish gain 1 coin to their attacks if any driftnet fish take damage",
 	    icon_index: 6,
 		debuff: false,
 		color: c_aqua,
@@ -174,11 +195,12 @@ function define_buffs_and_debuffs() {
 				}
 	        },
 			{
-	            trigger: "on_take_damage",
-	            modify: function(_ctx) {
-				    _ctx.target.taken_damage_this_turn = true;
-				}
-	        }
+			    trigger: "on_take_damage",
+			    modify: function(_ctx) {
+			        if (_ctx.owner != _ctx.target) return;
+			        _ctx.owner.taken_damage_this_turn = true;
+			    }
+			}
 	    ]
 	};
 	

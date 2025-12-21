@@ -37,24 +37,21 @@ if (debug_mode) {
 			if (!ds_exists(filtered_list, ds_type_list)) filtered_list = ds_list_create();
 			
 			// Filter list
-			filter = "none"
-	
-			for (var i = 0; i < ds_list_size(global.master_dice_list); i++) {
-				switch (filter) {
-					case "none":
-					ds_list_add(filtered_list, global.master_dice_list[| i]);
-					break;
-				}
+			filter = "bag";
+			var _list = global.master_dice_list;
+			
+			switch (filter) {				
+				case "bag":
+					_list = global.dice_bag;
+				break;
+				
+			}
+			
+			for (var i = 0; i < ds_list_size(_list); i++) {
+				ds_list_add(filtered_list, _list[| i]);
 			}
 		} else {
 			if (ds_exists(filtered_list, ds_type_list)) ds_list_destroy(filtered_list);
-		}
-	}
-	
-	// Change filter
-	if (show_dice_list) {
-		if keyboard_check_pressed(ord("A")) {
-			filter = "none";
 		}
 	}
 }

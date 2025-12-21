@@ -215,7 +215,7 @@ function draw_all_tooltips() {
 
 function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefined) {
     
-    var padding = 15;
+    var padding = 10;
     var xx = _x;
     var yy = _y;
 
@@ -283,12 +283,12 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
     // BACKGROUND
     // -------------------------------------------------------
     var col = make_color_rgb(20, 50, 80);
-    draw_set_alpha(1);
+    draw_set_alpha(0.8);
 	draw_set_color(c_black);
-	var thickness = 3;
-	draw_rectangle(xx - thickness, yy - thickness, xx + _width + thickness, yy + _height + thickness, false);
+	var thickness = 2;
+	draw_roundrect(xx - thickness, yy - thickness, xx + _width + thickness, yy + _height + thickness, false);
 	draw_set_color(col);
-	draw_rectangle(xx, yy, xx+_width, yy+_height, false);
+	draw_roundrect(xx, yy, xx+_width, yy+_height, false);
 
     //draw_sprite_ext(
     //    sHoverBG, 0,
@@ -344,6 +344,9 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
     // -------------------------------------------------------
     draw_set_color(c_white);
     draw_set_font(ftDefault);
+	draw_set_halign(fa_left);
+    draw_set_valign(fa_top);
+    draw_set_alpha(1.0);
     draw_text(xx + padding, yy + padding, string(_name));
 
     // -------------------------------------------------------

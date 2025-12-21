@@ -331,6 +331,16 @@ function get_combat_enemies(_node) {
 				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Captain"));
 				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
 			break;
+			
+			case "Elite 2":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Captain"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
+			break;
+			
+			case "Elite 3":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Captain"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
+			break;
 		}
 		
 		// Remove it from the list of possible encounters

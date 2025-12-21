@@ -152,7 +152,7 @@ if (is_dragging && mouse_check_button_released(mb_left)) {
 	
 	is_dragging = false;
 	
-	var combat = instance_find(oCombat, 0);
+	combat = instance_find(oCombat, 0);
     if (combat != noone) {
 		oCombat.is_placing = false;
 		oCombat.is_discarding = false;

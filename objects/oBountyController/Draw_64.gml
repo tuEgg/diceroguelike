@@ -158,8 +158,7 @@ for (var b = 0; b < array_length(bounty); b++) {
 	
 	// Set active bounty
 	if (bounty_hover) {
-		
-		if mouse_check_button_pressed(mb_left) {
+		if (mouse_check_button_pressed(mb_left)) {
 			oRunManager.active_bounty = _bounty;
 			show_debug_message("Active bounty set to: " + string(oRunManager.active_bounty));
 			bounty_selected = b;

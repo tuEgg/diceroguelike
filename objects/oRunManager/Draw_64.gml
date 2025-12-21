@@ -10,7 +10,7 @@ draw_sprite(sTopBar, 0, -3, -4);
 draw_set_font(ftTopBar);
 draw_set_halign(fa_left);
 draw_set_valign(fa_top);
-var act = "I"
+var act = "I";
 switch (voyage) {
 	case 1:
 	act = "II";
@@ -41,6 +41,12 @@ draw_outline_text(string(credits), c_black, c_white, 2, 470 + 5, 30, 1, 1, 0);
 var credits_hover = mouse_hovering(400 + 5, 15, sprite_get_width(sTopBarIcons), sprite_get_height(sTopBarIcons), false);
 if (credits_hover) queue_tooltip(mouse_x, mouse_y, "Gold Doubloons", "You have " + string(credits) + " gold doubloons", undefined, 0, undefined);
 credits_scale = lerp(credits_scale, 1.0, 0.05);
+
+// Draw health
+draw_set_halign(fa_center);
+draw_set_valign(fa_top);
+draw_set_font(ftBigger);
+draw_outline_text("HP: " + string(global.player_hp) + "/" +string(global.player_max_hp), c_black, global.color_attack, 2, 650, 25,  1, 1, 0);
 
 // Draw cores and consumables
 var core_x = 800;
@@ -119,7 +125,7 @@ for (var i = 0; i < array_length(items); i++) {
 				if (items[i].effects.trigger == "on_clicked" && items[i].effects.flags() ) {
 					var ctx = {};
 					trigger_item_effects(items[i], "on_clicked", ctx);
-					combat_trigger_effects("on_consumable_used", ctx);
+					if (room == rmCombat) combat_trigger_effects("on_consumable_used", ctx);
 					items[i] = undefined;
 					holding_item = false;
 				}
@@ -166,7 +172,7 @@ if (bounty_hover) {
 
 // Keep scale list synced with keepsake size
 if (ds_list_size(keepsake_scale) < ds_list_size(keepsakes)) {
-    repeat(ds_list_size(keepsakes) - ds_list_size(keepsake_scale)) ds_list_add(keepsake_scale, 1.0);
+    repeat(ds_list_size(keepsakes) - ds_list_size(keepsake_scale)) ds_list_add(keepsake_scale, 4.0);
 } else if (ds_list_size(keepsake_scale) > ds_list_size(keepsakes)) {
     repeat(ds_list_size(keepsake_scale) - ds_list_size(keepsakes)) ds_list_delete(keepsake_scale, ds_list_size(keepsake_scale) - 1);
 }
@@ -181,19 +187,12 @@ for (var k = 0; k < ds_list_size(keepsakes); k++) {
 	var btn_size = 64;
 	var btn = draw_gui_button(ks_x + xx, ks_y, btn_size, btn_size, keepsake_scale[| k], "", c_white, ftSmall, 1, false);
 	keepsake_scale[| k] = btn.scale;
-	draw_sprite_ext(sKeepsake, _keepsake.sub_image, ks_x + xx + btn_size/2, ks_y + btn_size/2, keepsake_scale[| k] * 0.8, keepsake_scale[| k] * 0.8, 0, c_white, 1);
+	draw_sprite_ext(sKeepsake, _keepsake.sub_image, ks_x + xx + btn_size/2, ks_y + btn_size/2, keepsake_scale[| k] * 1.1, keepsake_scale[| k] * 1.1, 0, c_white, 1);
 	
 	if (btn.hover) {
 		queue_tooltip(mouse_x, mouse_y, keepsakes[| k].name, keepsakes[| k].desc, undefined, 0, undefined);
 	}
 }
-
-// Draw draw bag (discard bag in oCombat)
-draw_sprite(sDiceBag, 0, 60, gui_h - 40);
-draw_set_font(ftBigger);
-draw_set_valign(fa_bottom)
-draw_set_halign(fa_left);
-draw_outline_text(room = rmCombat ? "DRAW" : "BAG", c_black, c_white, 2, 110, gui_h - 33, 1, 1, 0);
 
 var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
@@ -205,6 +204,16 @@ var bag_w = GUI_LAYOUT.BAG_W;
 var bag_h = GUI_LAYOUT.BAG_H;
 bag_hover = (mx > bag_x && mx < bag_x + bag_w && my > bag_y && my < bag_y + bag_h);
 
+// Draw draw bag (discard bag in oCombat)
+if (bag_hover || bag_hover_locked) {
+	draw_sprite_ext(sDiceBag, 0, 56, gui_h - 36, 1.07, 1.07, 0, c_black, 1);
+}
+draw_sprite(sDiceBag, 0, 60, gui_h - 40);
+draw_set_font(ftBigger);
+draw_set_valign(fa_bottom)
+draw_set_halign(fa_left);
+draw_outline_text(room = rmCombat ? "DRAW" : "BAG", c_black, c_white, 2, 110, gui_h - 33, 1, 1, 0);
+
 // Draw bag count
 draw_set_color(c_black);
 draw_circle(70, gui_h - 55, 20, false);
@@ -215,6 +224,12 @@ draw_set_font(ftBig);
 draw_text(70, gui_h - 55, string(ds_list_size(global.dice_bag)));
 
 if (bag_hover) {
+	show_dice_bag = true;
+	
+	if (mouse_check_button_pressed(mb_left)) {
+		bag_hover_locked = 1 - bag_hover_locked;
+	}
+	
     var bag_bg_offset = 200;
 	var bag_bg_w = 420;
 	var bag_bg_h = 180;
@@ -257,6 +272,8 @@ if (bag_hover) {
         //draw_set_alpha(0.5);
         //draw_rectangle(xx - 32, yy - 32, xx + 32, yy + 32, false);
     }
+} else {
+	show_dice_bag = false;
 }
 
 // Draw all tooltips

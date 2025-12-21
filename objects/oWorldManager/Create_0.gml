@@ -169,4 +169,8 @@ ds_list_add(possible_encounters, "Early 2");
 ds_list_add(possible_encounters, "Early 3");
 
 possible_elites = ds_list_create();
+elite_list_before_bounty = ds_list_create(); // for restoring remaining elite fights this voyage after a bounty
+ds_list_add(possible_elites, "Elite 1");
+ds_list_add(possible_elites, "Elite 2");
+ds_list_add(possible_elites, "Elite 3");
 current_node_type = undefined;
