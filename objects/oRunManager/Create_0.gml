@@ -18,6 +18,7 @@ global.color_block = make_color_rgb(30, 160, 255);
 global.color_heal = c_lime;
 global.color_debuff = c_white;
 global.color_unknown = c_dkgray;
+global.color_bg = make_color_rgb(20, 50, 80);
 
 randomise();
 credits = 50;
@@ -156,25 +157,25 @@ ds_list_add(global.player_intel_data, {
 ds_list_add(global.player_intel_data, {
 	requirement: 3,
 	name: "I",
-	description: "Single enemy intent revealed.",
+	description: "Target enemy intent revealed.",
 	index: 1,
 });
 ds_list_add(global.player_intel_data, {
 	requirement: 6,
 	name: "II",
-	description: "All enemy intents revealed and can freely change targets.",
+	description: "All enemy intents revealed & can change targets.",
 	index: 2,
 });
 ds_list_add(global.player_intel_data, {
 	requirement: 9,
 	name: "III",
-	description: "All enemy intents revealed and drew an extra die this turn.",
+	description: "Drew an extra die this turn.",
 	index: 3,
 });
 ds_list_add(global.player_intel_data, {
 	requirement: 12,
 	name: "IV",
-	description: "All enemy intents revealed, drew an extra die and able to play 1 more this turn.",
+	description: "+1 playable dice this turn.",
 	index: 4,
 });
 

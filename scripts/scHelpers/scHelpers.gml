@@ -282,7 +282,7 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
     // -------------------------------------------------------
     // BACKGROUND
     // -------------------------------------------------------
-    var col = make_color_rgb(20, 50, 80);
+    var col = global.color_bg;
     draw_set_alpha(0.8);
 	draw_set_color(c_black);
 	var thickness = 2;

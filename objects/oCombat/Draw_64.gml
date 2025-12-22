@@ -440,12 +440,13 @@ for (var i = 0; i < aq_list_size; i++) {
 				draw_set_font(ftSmall);
 				draw_set_color(c_black);
 				
-				var off_x = -3;
-				var off_y = 3;
+				var off_x = -2;
+				var off_y = 1;
 				
 				switch (_index) {
 					case 1:
-					off_y = 2;
+					off_x = -2;
+					off_y = 3;
 					break;
 					case 2:
 					off_x = -2;
@@ -556,16 +557,33 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	    var xx = enemy.pos_x; // enemy position on screen
 	    var yy = enemy.pos_y - 10 - (enemy.scale * 180);  // slightly above their head
 		
+		// Draw combined intents
+		var intent_array = string_split(enemy.intent.move.action_type, "/");
+		
 		// Draw dice in move
 		if ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) {
 			for (var d = 0; d < enemy.intent.move.dice_amount; d++) {
-				draw_sprite_ext(sDiceIcon, get_dice_index(enemy.intent.move.dice_value), xx - (((enemy.intent.move.dice_amount) * 40)/2) + (d * 40), yy - 10, 1, 1, 0, get_dice_color(enemy.intent.move.action_type), enemy.info_alpha * enemy.intent.alpha);
+				var dice_index = get_dice_index(enemy.intent.move.dice_value);
 				
-				if (d == enemy.intent.move.dice_amount - 1) {
-					draw_set_font(ftBigger);
-					draw_set_halign(fa_center);
-					draw_set_valign(fa_middle);
-					draw_outline_text("+" + string(enemy.intent.move.bonus_amount), c_black, get_dice_color(enemy.intent.move.action_type), 2, xx - (((enemy.intent.move.dice_amount) * 40)/2) + ((d+1) * 45), yy - 10, 1, enemy.info_alpha * enemy.intent.alpha, 0);
+				draw_set_font(ftBigger);
+				draw_set_halign(fa_center);
+				draw_set_valign(fa_middle);
+							
+				// only draw dice if the intent contains blk, atk or heal
+				for (var i = 0; i < array_length(intent_array); i++) {
+					switch (intent_array[i]) {
+						case "ATK":
+						case "BLK":
+						case "HEAL":
+						draw_sprite_ext(sDiceIcon, dice_index, xx - (((enemy.intent.move.dice_amount) * 40)/2) + (d * 40), yy - 10, 1, 1, 0, get_dice_color(enemy.intent.move.action_type), enemy.info_alpha * enemy.intent.alpha);
+						
+						if (d == enemy.intent.move.dice_amount - 1) {
+							draw_outline_text("+" + string(enemy.intent.move.bonus_amount), c_black, get_dice_color(enemy.intent.move.action_type), 2, xx - (((enemy.intent.move.dice_amount) * 40)/2) + ((d+1) * 45), yy - 10, 1, enemy.info_alpha * enemy.intent.alpha, 0);
+						}
+						break;
+						default:
+						draw_outline_text("-", c_black, get_dice_color(enemy.intent.move.action_type), 2, xx, yy - 10, 1, enemy.info_alpha * enemy.intent.alpha, 0);
+					}
 				}
 			}
 		}
@@ -582,9 +600,6 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		var text_x = icon_x + ((sprite_get_width(sprite) / 2) * enemy.intent.scale) + 10;
 		var bonus_scale = 1;
 
-		// Draw combined intents
-		var intent_array = string_split(enemy.intent.move.action_type, "/");
-
 		var index = 4;
 		var col = c_dkgray;
 		
@@ -596,7 +611,9 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 					case "BLK": col = global.color_block; index = 1; break;
 					case "HEAL": col = global.color_heal; index = 2; break;
 					case "DEBUFF": case "NONE": case "BUFF": col = c_white; index = 3; break;
-					default: col = c_dkgray;
+					default: 
+					col = c_dkgray; 
+					index = 0;
 				}
 			}
 		
@@ -808,7 +825,42 @@ if (player_intel > 0) {
 	draw_outline_text(string(player_intel), c_black, c_white, 2, global.player_x + 30, global.player_y - 170, intel_scale, 1.0, 0);
 }
 
-if (intel_hover) queue_tooltip(mouse_x, mouse_y, "Intel level: "+string(global.player_intel_data[| intel_level].name), "Resets each turn. " + string(global.player_intel_data[| intel_level].description), undefined, 0, undefined);
+if (intel_hover) {
+	var intel_x = global.player_x - 210;
+	var intel_y = global.player_y - 520;
+	var intel_pad = 20;
+	var intel_row_h = 40;
+	
+	draw_set_color(c_black);
+	draw_set_alpha(0.8);
+	draw_roundrect(intel_x - 1, intel_y - 11, intel_x + 421, intel_y + 256, false);
+	
+	draw_set_color(global.color_bg);
+	draw_roundrect(intel_x, intel_y - 10, intel_x + 420, intel_y + 255, false);
+	
+	draw_set_color(c_white);
+	draw_set_alpha(1.0);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_middle);
+	draw_set_font(ftDefault);
+	draw_text(intel_x + intel_pad, intel_y + intel_pad, "Intel Levels");
+	
+	// Draw rows
+	for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
+		draw_set_font(ftSmall);
+		draw_set_halign(fa_left);
+		draw_sprite_ext(sIntelEye, global.player_intel_data[| i].index,
+					intel_x + intel_pad + 20, intel_y + intel_pad + (intel_row_h * (i+1)), 0.75, 0.75, 0, c_white, intel_alpha);
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_center);
+		draw_text(	intel_x + intel_pad + 70, intel_y + intel_pad + (intel_row_h * (i+1)), + string(global.player_intel_data[| i].name));
+		draw_set_halign(fa_left);
+		draw_set_font(ftSmall); 
+		draw_text(	intel_x + intel_pad + 95, intel_y + intel_pad + (intel_row_h * (i+1)), + string(global.player_intel_data[| i].description));
+	}
+	
+	queue_tooltip(mouse_x, mouse_y, "Intel level: "+string(global.player_intel_data[| intel_level].name), "Resets each turn. " + string(global.player_intel_data[| intel_level].description), undefined, 0, undefined);
+}
 
 /// DEBUG
 if (debug_mode) {

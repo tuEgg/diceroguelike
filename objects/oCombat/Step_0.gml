@@ -249,31 +249,36 @@ switch (state) {
     if (action_index < ds_list_size(action_queue)) {
         if (action_timer <= 0) {
 			
-			// Skip over locked slots
-			if (action_index != locked_slot && enemies_left_this_combat > 0) {
+			// Skip over locked slots 
+			if (action_index != locked_slot) {
 				var slot = action_queue[| action_index];
 	            var current_action = slot.current_action_type;
 			
 				var _target = room_enemies[| enemy_target_index];
 				var _source = "player";
+				
+				// skip attacks if there's no enemies left
+				if (current_action == "ATK" && enemies_left_this_combat == 0) {
+					show_debug_message("No enemies left, skipping attack action");
+				} else {
+					var j = 0;
 			
-				var j = 0;
-			
-				var action_data = ({
-				    action_type: current_action,
-					_d_amount: 0
-				});
+					var action_data = ({
+					    action_type: current_action,
+						_d_amount: 0
+					});
 
-				combat_trigger_effects("on_action_used", action_data);
+					combat_trigger_effects("on_action_used", action_data);
 
-		        while (j < ds_list_size(slot.dice_list)) {
-		            var die = slot.dice_list[| j];
-					if (current_action == "BLK" || current_action == "HEAL" || current_action == "INTEL") _target = _source;
-
-		            process_action(_target, die.dice_amount, die.dice_value, slot.bonus_amount, _source, undefined, current_action, action_index, die, j);
-					j++;
+			        while (j < ds_list_size(slot.dice_list)) {
+			            var die = slot.dice_list[| j];
+						if (current_action == "BLK" || current_action == "HEAL" || current_action == "INTEL") _target = _source;
 					
-					player_last_action_type = current_action;
+				        process_action(_target, die.dice_amount, die.dice_value, slot.bonus_amount, _source, undefined, current_action, action_index, die, j);
+						j++;
+					
+						player_last_action_type = current_action;
+					}
 				}
 			}
 
@@ -336,6 +341,9 @@ switch (state) {
 							ds_list_delete(room_enemies, e);
 							particle_emit(enemy.pos_x, enemy.pos_y, "rise", make_color_rgb(20,20,20));
 							enemies_left_this_combat--;
+							if (enemy_target_index == e) {
+								enemy_target_index = irandom(ds_list_size(room_enemies) - 1);
+							}
 						} else {
 							process_action(_target, enemy.intent.move.dice_amount, enemy.intent.move.dice_value, enemy.intent.move.bonus_amount, _source, e, intent_array[i]);
 						}

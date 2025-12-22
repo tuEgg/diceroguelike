@@ -207,9 +207,9 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					
 					ds_list_destroy(possible_new_targets);
 					
-					var ctx = {};
+					var context = {};
 					
-					combat_trigger_effects("on_enemy_death", ctx);
+					combat_trigger_effects("on_enemy_death", context);
 					
 					//show_debug_message("Enemies left this combat: " + string(enemies_left_this_combat));
 					//show_debug_message("NEW Enemy target index: " + string(enemy_target_index));
@@ -992,6 +992,8 @@ function win_fight() {
 			ds_list_copy(oWorldManager.possible_elites, oWorldManager.elite_list_before_bounty);
 			ds_list_clear(oWorldManager.elite_list_before_bounty);
 		}
+		
+		discard_dice_in_play(true);
 	}
 			
 	if (!show_rewards && combat_end_effects_triggered) {
@@ -1155,9 +1157,9 @@ function get_action_name(_slot, _num) {
 	return label;
 }
 
-function discard_dice_in_play() {
+function discard_dice_in_play(_all = false) {
 	with (oDice) {
-		if (can_discard) {
+		if (can_discard || _all) {
 		    // Cache everything before we destroy the dice
 		    var start_x = x;
 		    var start_y = y;

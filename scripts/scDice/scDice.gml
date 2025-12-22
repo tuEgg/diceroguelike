@@ -513,7 +513,7 @@ function generate_dice_bag() {
 	
 	global.die_bolster = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Bolster Die",
-	    "When sacrificed: gain block equal to double this die’s max value",
+	    "When sacrificed: gain block equal to double this die's max value",
 		"common",
 		80,
 	    [
@@ -633,7 +633,7 @@ function generate_dice_bag() {
 	
 	global.die_bouncing = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Bouncing Die",
-	    "When this die rolls to deal damage it has a chance to randomly change targets",
+	    "When this die rolls to deal damage, randomly change targets",
 		"common",
 		70,
 	    [
@@ -641,19 +641,24 @@ function generate_dice_bag() {
 				trigger: "on_roll_die",
 	            modify: function(_context) {
 					if (!_context.read_only && _context.action_type == "ATK") {
-						// Find random enemy target
-						var possible_new_targets = ds_list_create();
-						var new_target = undefined;
+						// Find random enemy target if there's more than 1 enemy
+						if (ds_list_size(oCombat.room_enemies) > 1) {
+							var possible_new_targets = ds_list_create();
+							var new_target = undefined;
+							var cur_index = oCombat.enemy_target_index;
+						
+							for (var ee = 0; ee < ds_list_size(oCombat.room_enemies); ee++) {
+								if (!oCombat.room_enemies[| ee].dead && ee != cur_index) {
+									ds_list_add(possible_new_targets, oCombat.room_enemies[| ee]);
+								}
+							}
 					
-						for (var e = 0; e < ds_list_size(oCombat.room_enemies); e++) {
-							if (!oCombat.room_enemies[| e].dead) ds_list_add(possible_new_targets, oCombat.room_enemies[| e]);
+							new_target = possible_new_targets[| irandom(ds_list_size(possible_new_targets) - 1)];
+					
+							oCombat.enemy_target_index = ds_list_find_index(oCombat.room_enemies, new_target);
+					
+							ds_list_destroy(possible_new_targets);
 						}
-					
-						new_target = possible_new_targets[| irandom(ds_list_size(possible_new_targets) - 1)];
-					
-						enemy_target_index = ds_list_find_index(oCombat.room_enemies, new_target);
-					
-						ds_list_destroy(possible_new_targets);
 					}
 	            }
 	        }
@@ -663,7 +668,7 @@ function generate_dice_bag() {
 	
 	global.die_guerrilla_coin = make_die_struct(
 	    1, 2, "INTEL", "INTEL", "", "Guerrilla Die",
-	    "When sacrificed, deal damage to a random enemy equal to the amount of intel you have.",
+	    "Coin. When sacrificed, deal damage to a random enemy equal to the amount of intel you have.",
 		"common",
 		70,
 	    [
@@ -1289,13 +1294,7 @@ function get_dice_color(_action) {
 }
 
 function get_dice_index(_value) {
-	var _index;
-	switch (_value) {
-		case 2: _index = 2; break;
-        case 4: _index = 0; break;
-        case 6: _index = 1; break;
-		case 8: _index = 3; break;
-        default: _index = 0; break;
-	}
+	var _index = _value/2 - 1;
+
 	return _index;
 }

@@ -168,7 +168,7 @@ function define_events() {
 				for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
 					var die = global.dice_bag[| d];
 					
-					if (die.action_type == "ATK") {
+					if (die.action_type == "ATK" && die.dice_value < 12) {
 						ds_list_add(attack_list, d);
 					}
 				}
@@ -181,7 +181,7 @@ function define_events() {
 				    return;
 				}
 				
-				repeat (2) {
+				repeat (min(ds_list_size(attack_list), 2)) {
 					var rand_index = irandom(ds_list_size(attack_list) - 1);
 					
 					var die = global.dice_bag[| attack_list[| rand_index]];
