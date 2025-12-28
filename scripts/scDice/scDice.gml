@@ -907,7 +907,7 @@ function get_dice_name_and_bonus(_die, _bonus_amount) {
 /// @param _die	The die struct to be calculated from
 /// @param _slot_num	The slot number this dice is in
 /// @param _read_only	Determine whether we are just reading to generate numbers, or actually running the code
-function get_dice_output(_die, _slot_num, _read_only) {
+function get_dice_output(_die, _slot_num, _read_only, _owner) {
 	
 	var prev_slot_type = "";
 	var slot = undefined;
@@ -930,12 +930,14 @@ function get_dice_output(_die, _slot_num, _read_only) {
 		min_roll: 1,
 		max_roll: _die.dice_value,
 		_d_amount: 0,
+		_b_amount: oCombat.action_queue[| _slot_num].bonus_amount,
 		_slot: slot,
 		slot_num: _slot_num,
 		die: _die,
 		read_only: _read_only,
 		roll_twice: false,
-		repeat_followthrough: false
+		repeat_followthrough: false,
+		owner: _owner,
 	};
 
 	// Let keepsakes/dice adjust roll range
@@ -946,7 +948,7 @@ function get_dice_output(_die, _slot_num, _read_only) {
 		max_roll: roll_data.max_roll,
 		keepsake_dice_bonus_amount: roll_data._d_amount * (roll_data.repeat_followthrough + 1), // double the bonuses if we're repeating followthrough
 		previous_slot_type: roll_data.previous_slot_action_type,
-		roll_twice: roll_data.roll_twice,
+		roll_twice: roll_data.roll_twice
 	};
 	
 }
@@ -1022,7 +1024,7 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0) {
 }
 
 function draw_dice_distribution(_die, _x, _y, _centered = false) {
-	var dice_output = get_dice_output(_die, undefined, true);
+	var dice_output = get_dice_output(_die, undefined, true, "player");
 			
 	var _min_roll = dice_output.min_roll;
 	var _max_roll = dice_output.max_roll;
@@ -1057,7 +1059,7 @@ function draw_dice_distribution(_die, _x, _y, _centered = false) {
 }
 
 function draw_dice_history(_die, _x, _y, _centered = false) {
-	var dice_output = get_dice_output(_die, undefined, true);
+	var dice_output = get_dice_output(_die, undefined, true, "player");
 			
 	var _min_roll = dice_output.min_roll;
 	var _max_roll = dice_output.max_roll;

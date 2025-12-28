@@ -229,6 +229,10 @@ for (var i = 0; i < aq_list_size; i++) {
 	    // Move to next option
 	    var next_index = (current_index + 1) mod array_length(opts);
 	    slot.current_action_type = opts[next_index];
+		
+		if (next_index != current_index) {
+			combat_trigger_effects("after_change_current_action", {});
+		}
 	}
 	
 	// Hover info

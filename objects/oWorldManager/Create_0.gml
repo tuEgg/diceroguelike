@@ -30,7 +30,7 @@ ds_list_add(page_scale, 1.0);
 page_pos[0] = { x: display_get_gui_width() * 3/4 - 200, y: display_get_gui_height() * 2.4/7 };
 page_pos[1] = { x: display_get_gui_width() * 3/4 + 200, y: display_get_gui_height() * 2.4/7 };
 page_pos[2] = { x: display_get_gui_width() * 3/4, y: display_get_gui_height() * 4.7/7 };
-pages_alpha = 1.0; // used for fading out pages
+pages_alpha = 0; // used for fading out pages
 
 node_combat = {
 	type: NODE_TYPE.COMBAT,
@@ -154,12 +154,20 @@ node_to_move_to = undefined;
 last_node = undefined;
 
 chosen_pages = ds_list_create();
-choices_locked = false;
+choices_locked = false; // whether we've locked in both our page choices
 nodes_til_drafting = 0;
 pages_drafted = 0;
 all_nodes = ds_list_create();
 next_node = undefined;
 node_drift = 0; // used for drifting the last node to the left, resets every time we click
+
+world_state = "drafting"; // "drafting", "resting" or "exploring"
+heal_scale_target = 2.0;
+heal_scale = heal_scale_target;
+workbench_scale_target = 2.0;
+workbench_scale = workbench_scale_target;
+resting_alpha = 0;
+rest_amount = 0.10;
 
 embark_scale = 1.0;
 

@@ -16,7 +16,7 @@ function define_events() {
 				if (oRunManager.credits >= 10) {
 					global.player_alignment += 5;
 					oRunManager.credits -= 10;
-					ds_list_add(oRunManager.keepsakes, oRunManager.ks_deckhands_token);
+					gain_keepsake(oRunManager.ks_deckhands_token);
 					oEventManager.event_complete = 0;
 					oEventManager.event_selected = true;
 				} else {
@@ -266,6 +266,53 @@ function define_events() {
 	ds_list_add(event_sails.options, event_sails_opt_2);
 	ds_list_add(event_sails.options, event_sails_opt_3);
 	ds_list_add(global.master_event_list, event_sails);
+	
+	
+	// --------------------------
+	// EVENT
+	// --------------------------
+	
+	event_bounty = {
+		name: "Dividing up the bounty",
+		description: "Your latest plunder has been sold and shared amongst the crew, everyone has their fair share. What will you do?",
+		options: ds_list_create(),
+	}
+		event_bounty_opt_1 = {
+			description: "Demand a bigger share. +120 gold, -7 alignment.",
+			effect: function(_context) {
+				gain_coins(mouse_x, mouse_y, 120);
+				global.player_alignment -= 7;
+				
+				oEventManager.event_complete = 0;
+				oEventManager.event_selected = true;
+			},
+			result: "The crew fork over more of the bounty, morale seems lower."
+		}
+		event_bounty_opt_2 = {
+			description: "Take your share. +80 gold.",
+			effect: function(_context) {
+				gain_coins(mouse_x, mouse_y, 80);
+				
+				oEventManager.event_complete = 1;
+				oEventManager.event_selected = true;
+			},
+			result: "You take your share of the bounty."
+		}
+		event_bounty_opt_3 = {
+			description: "Take a smaller share to boost morale. +40 gold, +7 alignment.",
+			effect: function(_context) {
+				gain_coins(mouse_x, mouse_y, 40);
+				global.player_alignment += 7;
+				
+				oEventManager.event_complete = 2;
+				oEventManager.event_selected = true;
+			},
+			result: "You half your cut and share the rest with the crew, they seem pleased."
+		}
+	ds_list_add(event_bounty.options, event_bounty_opt_1);
+	ds_list_add(event_bounty.options, event_bounty_opt_2);
+	ds_list_add(event_bounty.options, event_bounty_opt_3);
+	ds_list_add(global.master_event_list, event_bounty);
 }
 
 function generate_event() {

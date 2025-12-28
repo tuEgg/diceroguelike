@@ -59,7 +59,7 @@ function gain_coins(_x, _y, _amount) {
 		_y += random_range(-20, 20);
 		
 		var c = instance_create_depth(_x, _y, -200, oParticleCoin);
-		c.delay = wait;
+		c.delay = min(wait, (wait / _amount) * (1.00 * game_get_speed(gamespeed_fps)));
 		c.image_alpha = 0;
 	}
 }

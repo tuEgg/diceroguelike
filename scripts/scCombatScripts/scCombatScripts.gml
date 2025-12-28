@@ -23,7 +23,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 		// Player tweaks numbers differently from enemy
 		if (_source == "player") {
-			var dice_output = get_dice_output(_slot_die, _slot_number, false);
+			var dice_output = get_dice_output(_slot_die, _slot_number, false, "player");
 			
 			_min_roll = dice_output.min_roll;			
 			_max_roll = dice_output.max_roll;
@@ -80,8 +80,10 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					var ctx = {
 						_d_amount: final_roll,
 						_p_slot_type: _prev_slot_type,
+						_c_slot_type: _type,
 						die: _slot_die,
 						min_roll: actual_possible_numbers[0], // first row in distribution array that isn't zero,
+						owner: "player",
 						//max_roll: actual_possible_numbers[ array_length(actual_possible_numbers) - 1] // first row in distribution array that isn't zero -- THIS isn't possible yet because we need to continue looping through the numbers after we find our actual number to check for what our real max is
 					}
 					
@@ -104,6 +106,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 			var ctx = {
 				_d_amount: final_roll,
 				action_type: _type,
+				owner: _source,
 			}
 			
 			// We need to make sure we update the visuals for enemy intent roll values with these buffs in mind.
@@ -121,6 +124,12 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		}
 		
 		amount += final_roll; // add the roll, the slot bonus and the keepsake/dice bonus to create the final amount.
+			
+		var ctx = {};
+		ctx.final_amount = amount;
+		ctx.type = _type;
+					
+		combat_trigger_effects("after_slot_damage_calculated", ctx, _slot_die);
 		
 		// Set the rolled value of this dice to 
 		if (_slot_die != undefined) {
@@ -207,7 +216,9 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					
 					ds_list_destroy(possible_new_targets);
 					
-					var context = {};
+					var context = {
+						owner: _target,
+					};
 					
 					combat_trigger_effects("on_enemy_death", context);
 					
@@ -254,6 +265,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				
 				var ctx = {
 					block_gained: amount,
+					owner: "player",
 				}
 				
 				combat_trigger_effects("on_player_block_gained", ctx)
@@ -293,8 +305,11 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					_permanent = true;
 				}
 				_source.intent.move.debuff.remove_next_turn = true;
+				
 			    apply_buff(global.player_debuffs, _source.intent.move.debuff, _duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index }, _permanent);
 				particle_emit(global.player_x, global.player_y, "burst", _source.intent.move.debuff.color);
+				
+				combat_trigger_effects( "on_player_debuffed", {});
 			}
 		break;
 		
@@ -551,7 +566,9 @@ function apply_dice_to_slot(_die, _slot_i) {
     //-----------------------------------------
     if (!reject_dice) {
 		var played_data = {
-			_slot: slot
+			_slot: slot,
+			_slot_num: _slot_i,
+			owner: "player",
 		};
 	
 		combat_trigger_effects("on_dice_played_to_slot", played_data);
@@ -562,7 +579,11 @@ function apply_dice_to_slot(_die, _slot_i) {
 		dice_played_color = c_green;
 		
 		// Let keepsakes/dice adjust roll range
-		combat_trigger_effects("on_die_played", { dice_object: die }, die.struct);
+		combat_trigger_effects("on_die_played", {
+			dice_object: die, 
+			owner: "player" },
+			die.struct
+			);
 		
 		// die statistics
 		die.struct.statistics.times_played_this_combat++;
@@ -689,6 +710,7 @@ function sacrifice_die(_die) {
     if (sacrificies_til_new_action_tile > 0) return;
 	
 	var sacrifice_new_slot_data = {
+		owner: "player",
 	};
 	
 	combat_trigger_effects("on_new_slot_created", sacrifice_data);
@@ -781,6 +803,9 @@ function sacrifice_die(_die) {
     }
 
     ds_list_add(action_queue, new_slot);
+	
+	combat_trigger_effects("after_new_slot_created", sacrifice_data);
+	
     var slot = ds_list_size(action_queue) + 1;
 	//sacrificies_til_new_action_tile = global.fib_lookup[slot];
 	sacrificies_til_new_action_tile = max(1, ((slot + 1) div 2) + oCombat.slot_cost_modifier); // 1, 1, 2, 2, 3, 3 etc.
@@ -825,7 +850,7 @@ function get_slot_stats(_slot, _num) {
         var die_struct = _slot.dice_list[| i];
 		var die_base = die_struct.permanence == "base" ? true : false;
 		
-		var dice_values = get_dice_output(die_struct, _num, true);
+		var dice_values = get_dice_output(die_struct, _num, true, "player");
 		
 		low += dice_values.min_roll + dice_values.keepsake_dice_bonus_amount;
 		high += dice_values.max_roll + dice_values.keepsake_dice_bonus_amount;
@@ -974,7 +999,9 @@ function can_place_dice_in_slot(_die_struct, _slot, _num)
 function win_fight() {
 	
 	if (!combat_end_effects_triggered) {
-		var combat_end_data = {};
+		var combat_end_data = {
+			owner: "player",
+			};
 	
 		combat_trigger_effects("on_combat_end", combat_end_data);
 		
@@ -1008,7 +1035,7 @@ function win_fight() {
 		repeat(3) ds_list_add(reward_scale, 0.1);
 		
 		if (oWorldManager.current_node_type == NODE_TYPE.ELITE) {
-			generate_keepsake_rewards(reward_keepsake_options, global.master_keepsake_list, 3);
+			generate_keepsake_rewards(reward_keepsake_options, global.rollable_keepsake_list, 3);
 			ds_list_add(reward_list, "keepsakes");
 			ds_list_add(reward_list, "dice");
 			generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
@@ -1158,6 +1185,9 @@ function get_action_name(_slot, _num) {
 }
 
 function discard_dice_in_play(_all = false) {
+	
+	runmanager_trigger_keepsakes("on_not_used", {});
+	
 	with (oDice) {
 		if (can_discard || _all) {
 		    // Cache everything before we destroy the dice
@@ -1195,6 +1225,11 @@ function discard_dice_in_play(_all = false) {
 /// @func combat_trigger_effects(_event, _ctx, _die_struct)
 function combat_trigger_effects(_event, _ctx, _die_struct = undefined) {
 
+	// Set the owner
+	if (!variable_struct_exists(_ctx, "owner")) {
+		_ctx.owner = "player";
+	}
+
     // 1) dice effects	
 	if (_die_struct == undefined) {
 		dice_trigger_effects(_event, _ctx);
@@ -1203,18 +1238,20 @@ function combat_trigger_effects(_event, _ctx, _die_struct = undefined) {
 	}
 
     // 2) keepsake effects
-    runmanager_trigger_keepsakes(_event, _ctx);
+	if (_ctx.owner == "player") {
+	    runmanager_trigger_keepsakes(_event, _ctx);
 
-    // 3) player debuffs
-    trigger_debuff_list(global.player_debuffs, _event, _ctx);
-
-    // 4) enemy debuffs
-	if (room == rmCombat) {
-		for (var e = 0; e < ds_list_size(oCombat.room_enemies); e++) {
-			var enemy = oCombat.room_enemies[| e];
-			_ctx.owner = enemy;
-			_ctx.owner_index = e;
-			trigger_debuff_list(enemy.debuffs, _event, _ctx);
+	    // 3) player debuffs
+	    trigger_debuff_list(global.player_debuffs, _event, _ctx);
+	} else {
+	    // 4) enemy debuffs
+		if (room == rmCombat) {
+			for (var e = 0; e < ds_list_size(oCombat.room_enemies); e++) {
+				var enemy = oCombat.room_enemies[| e];
+				_ctx.owner = enemy;
+				_ctx.owner_index = e;
+				trigger_debuff_list(enemy.debuffs, _event, _ctx);
+			}
 		}
 	}
 	

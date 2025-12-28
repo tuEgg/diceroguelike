@@ -44,7 +44,7 @@ function enemy_definitions() {
 	    { dice_amount: 3, dice_value: 2, action_type: "MIMIC", bonus_amount: 1, move_name: "Mimic" },
 	    { dice_amount: 3, dice_value: 2, action_type: "MIMIC", bonus_amount: 1, move_name: "Mimic" },
 	];
-	var parrot = enemy_create("Parrot", 2, 0.5, 10, 5, parrot_moves, "pseudo_random");
+	var parrot = enemy_create("Parrot", 7, 0.5, 10, 5, parrot_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, parrot);
 	
 	// Spends 2 turns charging, third turn dealing big damage, then runs away on the final turn
@@ -71,7 +71,7 @@ function enemy_definitions() {
 	    { dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 0, move_name: "Coil" },
 	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Bind", debuff: debuff_bind, amount: 1, duration: 1 },
 	];
-	var baby_kraken = enemy_create("Baby Kraken", 0, 1, 26, 16, baby_kraken_moves, "pseudo_random");
+	var baby_kraken = enemy_create("Baby Kraken", 3, 1, 26, 16, baby_kraken_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, baby_kraken);
 	
 	// Basic enemy that has attack and defend.
@@ -97,7 +97,7 @@ function enemy_definitions() {
 	    { dice_amount: 2, dice_value: 2, action_type: "BLK/ATK", bonus_amount: 3, move_name: "Flap", weight: 70 },
 	    { dice_amount: 2, dice_value: 2, action_type: "HEAL", bonus_amount: 3, move_name: "Rest", use_trigger: "HEALTH 50", weight: 0 },
 	];
-	var elizabeak = enemy_create("Elizabeak", 0, 1, 16, 8, elizabeak_moves, "weighted", false, passive_heartache);
+	var elizabeak = enemy_create("Elizabeak", 2, 1, 16, 8, elizabeak_moves, "weighted", false, passive_heartache);
 	ds_list_add(global.enemy_list, elizabeak);
 	
 	// Comes in a pair with Elizabeak, has a buff, and a passive.
@@ -124,7 +124,7 @@ function enemy_definitions() {
 	    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 6, move_name: "Volley Fire" }, // Volley Fire
 	    { dice_amount: 0, dice_value: 0, action_type: "NONE", bonus_amount: 0, move_name: "Reload" } // Reload
 	];
-	var gunner = enemy_create("Corsair Gunner", 0, 1, 35, 19, gunner_moves, "ordered");
+	var gunner = enemy_create("Corsair Gunner", 5, 1, 35, 19, gunner_moves, "ordered");
 	ds_list_add(global.enemy_list, gunner);
 
 	// Moderate enemy that builds up block over time, doesn't lose it between turns.
@@ -142,7 +142,7 @@ function enemy_definitions() {
 	    { dice_amount: 2, dice_value: 2, action_type: "HEAL", bonus_amount: 4, move_name: "Feeding Frenzy", weight: 25, target: "other" },
 	    { dice_amount: 2, dice_value: 2, action_type: "ATK", bonus_amount: 0, move_name: "Snap", weight: 50 }
 	];
-	var barrel_of_fish = enemy_create("Barrel o' Fish", 0, 1, 15, 10, barrel_of_fish_moves, "weighted");
+	var barrel_of_fish = enemy_create("Barrel o' Fish", 4, 1, 15, 10, barrel_of_fish_moves, "weighted");
 	ds_list_add(global.enemy_list, barrel_of_fish);
 
 	// Pack enemy that gets stronger when attacked, and messes with player focus.
@@ -151,7 +151,7 @@ function enemy_definitions() {
 	    { dice_amount: 1, dice_value: 2, action_type: "ATK", bonus_amount: 3, move_name: "Snap", weight: 75 },
 	    { dice_amount: 2, dice_value: 2, action_type: "DEBUFF", bonus_amount: 1, move_name: "Overwhelm", debuff: debuff_overwhelm, weight: 25, amount: 3, duration: 1 }
 	];
-	var driftnet_fish = enemy_create("Driftnet Fish", 0, 1, 18, 10, driftnet_fish_moves, "weighted");
+	var driftnet_fish = enemy_create("Driftnet Fish", 6, 1, 18, 10, driftnet_fish_moves, "weighted");
 	ds_list_add(global.enemy_list, driftnet_fish);
 	
 	// Elite that buffs others and summons minions to the fight.

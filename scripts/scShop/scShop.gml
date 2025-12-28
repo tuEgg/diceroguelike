@@ -14,7 +14,7 @@ function stock_shop() {
 	
 	generate_dice_rewards(shop_dice_options, global.master_dice_list, num_dice);
 	generate_item_rewards(shop_consumable_options, global.master_item_list, num_consumables);
-	generate_keepsake_rewards(shop_keepsake_options, global.master_keepsake_list, num_keepsakes);
+	generate_keepsake_rewards(shop_keepsake_options, global.shop_keepsake_list, num_keepsakes);
 	
 	repeat(num_dice) ds_list_add(shop_dice_scale, 0.1);
 	repeat(num_consumables) ds_list_add(shop_consumable_scale, 0.1);
@@ -60,6 +60,11 @@ function generate_dice_rewards(_reward_list, _item_list, _num) {
 	if (room == rmBounty) {
 		uncommon_dice_chance = 200;
 		rare_dice_chance = 100;
+	}
+	
+	if (room == rmShop) {
+		uncommon_dice_chance = 80;
+		rare_dice_chance = 20;
 	}
 
 	// pick up to 3 unique entries

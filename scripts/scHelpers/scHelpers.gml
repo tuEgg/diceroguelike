@@ -203,7 +203,7 @@ function draw_all_tooltips() {
         //--------------------------
         for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
             var kw = global.tooltip_keywords[i];
-            draw_single_tooltip(kw.x + 10, kw.y + 20, kw.name, kw.desc, kw.icon, kw.index);
+            draw_single_tooltip(kw.x + 5, kw.y + 10, kw.name, kw.desc, kw.icon, kw.index);
         }
     }
 

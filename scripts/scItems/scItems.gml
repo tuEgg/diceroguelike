@@ -207,7 +207,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 1,
 		name: "Bilge-Purge Flask",
-		description: "Completely empty a slot, ejecting and discarding all dice within it and gaining that many dice to play this turn.",
+		description: "Completely empty a slot, ejecting all dice within it. Gain +3 dice to play this turn.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -228,7 +228,7 @@ function define_items() {
 				// eject dice in this slot
 				var num_dice = ds_list_size(_context._slot.dice_list);
 				eject_dice_in_slot(_context._slot, oCombat.slot_positions[| _context._ind], true);
-				oCombat.dice_allowed_this_turn_bonus = num_dice;
+				oCombat.dice_allowed_this_turn_bonus = 3;
 				
 				particle_emit( mouse_x, mouse_y, "burst", c_aqua);
 			}
@@ -431,7 +431,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 6,
 		name: "Grog of Grit",
-		description: "Gain +1 might this turn.",
+		description: "Gain +2 might this turn.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -452,7 +452,7 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
-				apply_buff(global.player_debuffs, oRunManager.buff_might, 1, 1, oRunManager.buff_might.remove_next_turn, { source: "player", index: -1 });
+				apply_buff(global.player_debuffs, oRunManager.buff_might, 1, 2, oRunManager.buff_might.remove_next_turn, { source: "player", index: -1 });
 				particle_emit( global.player_x, global.player_y, "rise", c_orange);
 			}
 		},
@@ -464,7 +464,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 7,
 		name: "Captain's Brew",
-		description: "Gain +1 balance this turn.",
+		description: "Gain +2 balance this turn.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -485,7 +485,7 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
-				apply_buff(global.player_debuffs, oRunManager.buff_balance, 1, 1, oRunManager.buff_balance.remove_next_turn, { source: "player", index: -1 });
+				apply_buff(global.player_debuffs, oRunManager.buff_balance, 1, 2, oRunManager.buff_balance.remove_next_turn, { source: "player", index: -1 });
 				particle_emit( global.player_x, global.player_y, "rise", c_blue);
 			}
 		},
@@ -497,7 +497,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 8,
 		name: "Navigator's Brew",
-		description: "Draw 3 dice",
+		description: "Draw 4 dice",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -522,7 +522,7 @@ function define_items() {
 			},
 			modify: function(_context) {
 				with (oRunManager) {
-					dice_to_deal = 3;
+					dice_to_deal = 4;
 					is_dealing_dice = true;
 					particle_emit( GUI_LAYOUT.BAG_X, display_get_gui_height() - GUI_LAYOUT.BAG_Y, "burst", c_purple);
 				}
@@ -536,7 +536,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 9,
 		name: "Healing Flask",
-		description: "Heal 16hp",
+		description: "Heal 30% of your max HP",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -553,7 +553,8 @@ function define_items() {
 				}
 			},
 			modify: function(_context) {
-				global.player_hp = min(global.player_max_hp, global.player_hp + 16);
+				var heal_amount = global.player_max_hp * 0.3;
+				global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
 				particle_emit(650, 25, "burst", c_lime);
 			}
 		},

@@ -262,13 +262,6 @@ switch (state) {
 					show_debug_message("No enemies left, skipping attack action");
 				} else {
 					var j = 0;
-			
-					var action_data = ({
-					    action_type: current_action,
-						_d_amount: 0
-					});
-
-					combat_trigger_effects("on_action_used", action_data);
 
 			        while (j < ds_list_size(slot.dice_list)) {
 			            var die = slot.dice_list[| j];

@@ -5,14 +5,13 @@ if (room == rmMap) {
 	if (nodes_cleared > 100) {
 		oRunManager.voyage++;
 	} else {
-		nodes_cleared++;
+		if (room != rmWorkbench) nodes_cleared++;
 			
 		// The second time we draft:
 		if (nodes_cleared == 1) {
-			combat_chance = 35;
-			event_chance = 35;
-			workbench_chance = 15;
-			shop_chance = 15;
+			combat_chance = 40;
+			event_chance = 40;
+			shop_chance = 20;
 			
 			// Add thug after first encounter, just because it's slightly harder than the other early encounters
 			ds_list_add(possible_encounters, "Early 4");
@@ -35,8 +34,7 @@ if (room == rmMap) {
 		if (nodes_cleared > 3 && bounty_nodes_this_voyage == 0) {
 			bounty_chance += 5;
 			combat_chance -= 2;
-			event_chance -= 1;
-			workbench_chance -= 1;
+			event_chance -= 2;
 			shop_chance -= 1;
 		}
 		
@@ -44,14 +42,18 @@ if (room == rmMap) {
 		if (nodes_cleared == 7 && bounty_nodes_this_voyage == 0) {
 			bounty_chance += 40;
 			combat_chance -= 20;
-			event_chance -= 10;
-			workbench_chance -= 5;
-			shop_chance -= 5;
+			event_chance -= 15;
+			shop_chance -= 10;
+		}
+		
+		if (room == rmBounty) {
+			bounty_chance = 0;
+			elite_chance += 10;
 		}
 		
 		// Start allowing elites from node 7
 		if (nodes_cleared >= 7 && elite_nodes_this_voyage <= 2) {
-			elite_chance += 5 + ((2 - elite_nodes_this_voyage) * 2.5);
+			elite_chance += 2.5 + ((2 - elite_nodes_this_voyage) * 1.5); // 5-10% if we've fought 2-0 elites
 		}
 		
 		// Once we have a bounty active, start really pushing elites
@@ -59,7 +61,7 @@ if (room == rmMap) {
 			if (!oRunManager.active_bounty.complete) {
 				if (elite_nodes_this_voyage < 2) {
 					// Add a further 10% for elite chance once we have a bounty
-					elite_chance += 10;
+					elite_chance += 5;
 				}
 			}
 			
@@ -87,9 +89,8 @@ if (room == rmBounty) {
 	}
 }
 
-combat_chance = max(0, combat_chance);
-event_chance = max(0, event_chance);
-workbench_chance = max(0, workbench_chance);
-shop_chance = max(0, shop_chance);
-bounty_chance = max(0, bounty_chance);
-elite_chance = max(0, elite_chance);
+combat_chance =		clamp(0, combat_chance, 100);
+event_chance =		clamp(0, event_chance, 100);
+shop_chance =		clamp(0, shop_chance, 100);
+bounty_chance =		clamp(0, bounty_chance, 100);
+elite_chance =		clamp(0, elite_chance, 100);

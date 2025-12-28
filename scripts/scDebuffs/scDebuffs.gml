@@ -366,7 +366,7 @@ function define_buffs_and_debuffs() {
 						for (var i = 0; i < ds_list_size(oCombat.room_enemies); i++) {
 							if (oCombat.room_enemies[| i] != _ctx.owner) {
 								show_debug_message("Adding move to enemy pool");
-								var vengeance = { dice_amount: 2, dice_value: 2, action_type: "BLK/ATK", bonus_amount: 6, move_name: "Vengeance", use_trigger: "PRIORITY" };
+								var vengeance = { dice_amount: 2, dice_value: 2, action_type: "BLK/ATK", bonus_amount: 6, move_name: "Vengeance", use_trigger: "PRIORITY", weight: 100 };
 								
 								ds_list_add(oCombat.room_enemies[| i].data.moves, vengeance);
 							}

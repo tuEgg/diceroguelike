@@ -102,6 +102,7 @@ global.keywords = {
 };
 
 ds_list_add(keepsakes, get_keepsake_by_id("looking_glass"));
+ds_list_add(keepsakes, get_keepsake_by_id("lantern_of_patience"));
 
 
 global.tooltip_active = false;

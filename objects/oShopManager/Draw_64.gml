@@ -1,12 +1,15 @@
 var consumable_pos = { x: 150, y: 665 };
 var dice_pos = { x: 735, y: 595 };
-var keepsake_pos = { x: 460, y: 920 };
+var keepsake_pos = { x: 460, y: 935 };
 
 var cx = consumable_pos.x;
 var cy = consumable_pos.y;
 
 var dx = dice_pos.x;
 var dy = dice_pos.y;
+
+var kx = keepsake_pos.x;
+var ky = keepsake_pos.y;
 
 var coin_offset_x = -20;
 var coin_offset_y = -60;
@@ -98,6 +101,44 @@ for (var d = 0; d < ds_list_size(shop_dice_options); d++) {
 	
 	dx += 140 + (d == 1 ? 260 : 0);
 	dy += 5;
+}
+
+for (var k = 0; k < ds_list_size(shop_keepsake_options); k++) {
+	var keepsake = shop_keepsake_options[| k];
+	var width = shop_keepsake_scale[| k] * sprite_get_width(sKeepsake);
+	var height =  shop_keepsake_scale[| k] * sprite_get_height(sKeepsake);
+	
+	if (keepsake != undefined) {
+		var hover_die = mouse_hovering(kx, ky, width, height, true);
+		shop_keepsake_scale[| k] = lerp(shop_keepsake_scale[| k], hover_die ? 1.2 : 1.0, 0.2);
+	
+		draw_set_alpha(0.4);
+		draw_set_color(c_black);
+		draw_ellipse(kx - sprite_get_width(sKeepsake)/2, ky + sprite_get_height(sKeepsake)/2 - 15, kx + sprite_get_width(sKeepsake)/2, ky + sprite_get_height(sKeepsake)/2 - 3, false);
+		draw_sprite_ext(sKeepsake, keepsake.sub_image, kx, ky, shop_keepsake_scale[| k], shop_keepsake_scale[| k], 0, c_white, 1.0);
+	
+		// Draw cost
+		draw_sprite_ext(sCoin, 0, kx + coin_offset_x, ky + coin_offset_y, shop_keepsake_scale[| k] * coin_scale, shop_keepsake_scale[| k] * coin_scale, 0, c_white, 1.0);
+		draw_set_halign(fa_left);
+		draw_set_valign(fa_middle);
+		draw_set_font(ftBig);
+		var cost_col = keepsake.price > oRunManager.credits ? c_red : c_white;
+		draw_outline_text(keepsake.price, c_black, cost_col, 2, kx, ky + coin_offset_y, shop_keepsake_scale[| k], 1.0, 0);
+	
+		if (hover_die) {
+			queue_tooltip(mouse_x, mouse_y, keepsake.name, keepsake.desc);
+		
+			if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= keepsake.price) {
+				oRunManager.credits -= keepsake.price;
+				
+				gain_keepsake(keepsake);
+				
+				shop_keepsake_options[| k] = undefined;
+			}
+		}
+	}
+	
+	kx += 130;
 }
 
 // Draw exit 1761 622

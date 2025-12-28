@@ -3,8 +3,7 @@ if (room == rmMap) {
 		// Define variables at start of game
 		combat_chance = 15;
 		event_chance = 65;
-		workbench_chance = 5;
-		shop_chance = 15;
+		shop_chance = 20;
 		bounty_chance = 0;
 		elite_chance = 0;
 	}
@@ -12,10 +11,9 @@ if (room == rmMap) {
 	if (!ds_exists(pages_shown, ds_type_list)) pages_shown = ds_list_create();
 	
 	if (nodes_til_drafting == 0) {
-		// Heal the player 4
-		global.player_hp = min(global.player_max_hp, global.player_hp + 4);
-		particle_emit(650, 25, "burst", c_lime);
-		generate_pages();
+		if (world_state == "exploring") {
+			world_state = "resting";
+		}
 	}
 	
 	show_debug_message("Possible elites " + string(ds_list_size(possible_elites)));

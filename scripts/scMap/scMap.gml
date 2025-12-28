@@ -2,7 +2,6 @@
 function generate_pages() {
 	var num_combat = 0; // generate no more than 5 across all 3 pages
 	var num_event = 0; // generate no more than 3 across all 3 pages
-	var num_workbench = 0; // generate no more than 2 across all 3 pages
 	var num_shop = 0; // generate no more than 2 across all 3 pages
 	var num_bounty = 0; // generate no more than 1 bounty across all 3 pages
 	var num_elite = 0; // each page has an elite at the same time???
@@ -82,7 +81,6 @@ function generate_pages() {
 		// count the nodes per page
 		var page_num_combat = 0;
 		var page_num_event = 0;
-		var page_num_workbench = 0; // generate no more than 1 per page
 		var page_num_shop = 0; // generate no more than 1 per page
 		var page_num_bounty = 0;
 		var page_num_elite = 0;
@@ -91,11 +89,6 @@ function generate_pages() {
 		do {
 			var chosen_node = node_combat;
 			var page_num = ds_list_size(pages_shown); // 0, 1 or 2
-			
-			//combat_chance = 60; node_combat, node_event, node_shop, node_workbench
-			//event_chance = 30;
-			//workbench_chance = 5;
-			//shop_chance = 5;
 			
 			var rand = irandom_range(1,100);
 			
@@ -106,14 +99,11 @@ function generate_pages() {
 					chosen_node = node_combat;
 					combat_chance -= 5;
 					
-					if (nodes_cleared < 5) {
-						var rand_inc = (irandom(2));
+					var rand_inc = (irandom(1));
 					
-						switch (rand_inc) {
-							case 0: event_chance += 5; break;
-							case 1: workbench_chance += 5; break;
-							case 2: shop_chance += 5; break;
-						}
+					switch (rand_inc) {
+						case 0: event_chance += 5; break;
+						case 1: shop_chance += 5; break;
 					}
 					
 				} else {
@@ -126,36 +116,16 @@ function generate_pages() {
 					chosen_node = node_event;
 					event_chance -= 5;
 					
-					if (nodes_cleared < 5) {
-						var rand_inc = (irandom(2));
+					var rand_inc = (irandom(1));
 					
-						switch (rand_inc) {
-							case 0: combat_chance += 5; break;
-							case 1: workbench_chance += 5; break;
-							case 2: shop_chance += 5; break;
-						}
+					switch (rand_inc) {
+						case 0: combat_chance += 5; break;
+						case 1: shop_chance += 5; break;
 					}
 				} else {
 					continue;
 				}
-			} else if (rand <= combat_chance + event_chance + workbench_chance) {
-				if (num_workbench < 1) {
-					num_workbench++;
-					page_num_workbench++;
-					chosen_node = node_workbench;
-					workbench_chance -= 5;
-					
-					if (nodes_cleared < 5) {
-						shop_chance += 5;
-					} else if (oRunManager.active_bounty == undefined && num_bounty == 0 && bounty_nodes_this_voyage == 0) {
-						bounty_chance += 5;
-					} else {
-						shop_chance += 5;
-					}
-				} else {
-					continue;
-				}
-			} else if (rand <= combat_chance + event_chance + workbench_chance + shop_chance) {
+			} else if (rand <= combat_chance + event_chance + shop_chance) {
 				if (num_shop < 1) {
 					num_shop++;
 					page_num_shop++;
@@ -163,16 +133,16 @@ function generate_pages() {
 					shop_chance -= 5;
 					
 					if (nodes_cleared < 5) {
-						workbench_chance += 5;
+						event_chance += 5;
 					} else if (oRunManager.active_bounty == undefined && bounty_nodes_this_voyage == 0) {
 						bounty_chance += 5;
 					} else {
-						workbench_chance += 5;
+						event_chance += 5;
 					}
 				} else {
 					continue;
 				}
-			} else if (rand <= combat_chance + event_chance + workbench_chance + shop_chance + bounty_chance) {
+			} else if (rand <= combat_chance + event_chance + shop_chance + bounty_chance) {
 				if (num_bounty < 1 && page_num_bounty == 0) {
 					num_bounty++;
 					page_num_bounty++;
@@ -180,14 +150,13 @@ function generate_pages() {
 					var gap = bounty_chance;
 					bounty_chance = 0;
 					combat_chance += floor(gap * (2/5));
-					event_chance += floor(gap * (1/5));
-					workbench_chance += floor(gap * (1/5));
+					event_chance += floor(gap * (2/5));
 					shop_chance += floor(gap * (1/5));
 					
 				} else {
 					continue;
 				}
-			} else if (rand <= combat_chance + event_chance + workbench_chance + shop_chance + bounty_chance + elite_chance) {
+			} else if (rand <= combat_chance + event_chance + shop_chance + bounty_chance + elite_chance) {
 				if (num_elite < 2 && page_num_elite == 0) {
 					num_elite++;
 					page_num_elite++;
@@ -198,6 +167,7 @@ function generate_pages() {
 				}
 			}
 			
+			// First node of each run is always combat
 			if (oWorldManager.nodes_cleared == 0) && (ds_list_size(_page.nodes) == 0) {
 				chosen_node = node_combat;
 			}
@@ -233,12 +203,10 @@ function enter_node(_node) {
 	
 	if (_node.type == NODE_TYPE.EVENT) {
 		var rand = irandom_range(1, 100);
-		if (rand <= 10) {
+		if (rand <= 8) {
 			_node = clone_node_static(node_combat);
-		} else if (rand <= 18) {
+		} else if (rand <= 16) {
 			_node = clone_node_static(node_shop);
-		} else if (rand <= 26) {
-			_node = clone_node_static(node_workbench);
 		}
 	}
 	
