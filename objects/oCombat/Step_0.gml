@@ -1,6 +1,8 @@
 switch (state) {
     case CombatState.START_TURN:
 		turn_count++;
+		player_turn_done = false;
+		delayed_enemy_attack = false;
 		
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var enemy_data = room_enemies[| e].data;
@@ -247,6 +249,14 @@ switch (state) {
 
     // Run player actions one at a time
     if (action_index < ds_list_size(action_queue)) {
+			
+		function reset_die() {
+			// Next action after delay
+			action_index += 1;
+			dice_index = 0;
+			action_timer = 0;
+		}
+			
         if (action_timer <= 0) {
 			
 			// Skip over locked slots 
@@ -257,27 +267,37 @@ switch (state) {
 				var _target = room_enemies[| enemy_target_index];
 				var _source = "player";
 				
-				// skip attacks if there's no enemies left
-				if (current_action == "ATK" && enemies_left_this_combat == 0) {
-					show_debug_message("No enemies left, skipping attack action");
-				} else {
-					var j = 0;
-
-			        while (j < ds_list_size(slot.dice_list)) {
-			            var die = slot.dice_list[| j];
-						if (current_action == "BLK" || current_action == "HEAL" || current_action == "INTEL") _target = _source;
+			    if (dice_index < ds_list_size(slot.dice_list)) {
+					// skip attacks if there's no enemies left
+					if (current_action == "ATK" && enemies_left_this_combat == 0) {
+						show_debug_message("No enemies left, skipping attack action");
+						
+				        reset_die();
+					} else {
+						if (dice_timer <= 0) {
+							
+					        var die = slot.dice_list[| dice_index];
+							if (current_action == "BLK" || current_action == "HEAL" || current_action == "INTEL") _target = _source;
 					
-				        process_action(_target, die.dice_amount, die.dice_value, slot.bonus_amount, _source, undefined, current_action, action_index, die, j);
-						j++;
-					
-						player_last_action_type = current_action;
+						    process_action(_target, die.dice_amount, die.dice_value, slot.bonus_amount, _source, undefined, current_action, action_index, die, dice_index);
+							
+							player_last_action_type = current_action;
+							
+							draw_action_index = action_index;
+							draw_dice_index = dice_index;
+							
+							dice_index++;
+							dice_timer = dice_delay;
+						} else {
+							dice_timer -= 1;
+						}
 					}
+				} else {
+			        reset_die();
 				}
+			} else {
+	            reset_die();
 			}
-
-            // Next action after delay
-            action_index += 1;
-            action_timer = action_delay;
         } else {
             action_timer -= 1;
         }
@@ -285,7 +305,15 @@ switch (state) {
     // After player actions, handle enemy action once
     } else if (!enemies_turn_done) {
 		
+		if (!delayed_enemy_attack) {
+			delayed_enemy_attack = true;
+			action_timer = action_delay;
+		}
+		
 	    if (action_timer <= 0) {
+			
+			player_turn_done = true;
+		
 			for (var e = 0; e < ds_list_size(room_enemies); e++) {
 				var enemy_data = room_enemies[| e].data;
 				var enemy = room_enemies[| e];
@@ -383,6 +411,11 @@ switch (state) {
 	
 	case CombatState.END_OF_ROUND:
         action_index = 0;
+		draw_action_index = 0;
+		dice_index = 0;
+		draw_dice_index = 0;
+		dice_timer = 0;
+		action_timer = 0;
         enemies_turn_done = false;
         actions_submitted = false;
 	
@@ -460,6 +493,22 @@ switch (state) {
 					
 					combat_trigger_effects("on_player_turn_end", turn_end_data);
 					combat_trigger_effects("on_enemy_turn_end", turn_end_data);
+					
+					for (var i = 0; i < ds_list_size(action_queue); i++) {
+						var slot = action_queue[| i];
+						for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
+							var die = slot.dice_list[| d];
+	
+							if (die.reset_after_next_roll != false && die.reset_this_turn == false) {
+								die.reset_this_turn = true;
+								show_debug_message("Resetting at the end of the round");
+							}
+						
+							if (die.reset_after_next_roll == false && die.reset_this_turn) {
+								die.reset_this_turn = false;
+							}
+						}
+					}
 
 					with (oDice) can_discard = true;
 					

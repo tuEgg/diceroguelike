@@ -21,7 +21,7 @@ global.color_unknown = c_dkgray;
 global.color_bg = make_color_rgb(20, 50, 80);
 
 randomise();
-credits = 50;
+credits = debug_mode ? 500 : 50;
 generate_dice_bag();
 define_buffs_and_debuffs();
 enemy_definitions();
@@ -38,6 +38,8 @@ voyage = 0; // voyage act I to start with
 depth = -100;
 
 define_keepsakes();
+
+ds_list_add(keepsakes, get_keepsake_by_id("looking_glass"));
 
 global.keywords = {
     "Stowaway": {
@@ -100,10 +102,6 @@ global.keywords = {
 		index: 9
     }
 };
-
-ds_list_add(keepsakes, get_keepsake_by_id("looking_glass"));
-ds_list_add(keepsakes, get_keepsake_by_id("lantern_of_patience"));
-
 
 global.tooltip_active = false;
 global.tooltip_main = undefined; // main tooltip struct (only one allowed)

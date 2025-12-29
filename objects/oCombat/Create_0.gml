@@ -83,11 +83,18 @@ actions_submitted = false;
 // For sequencing actions
 action_index = 0;
 action_timer = 0;
-action_delay = game_get_speed(gamespeed_fps) * 1; // time between actions
+draw_action_index = 0;
+draw_dice_index = 0;
+action_delay = game_get_speed(gamespeed_fps) * 0.75; // time between actions
+dice_index = 0;
+dice_timer = 0;
+dice_delay = game_get_speed(gamespeed_fps) * 0.75; // time between actions
 enemies_turn_done = false;
 enemy_turns_remaining = 0;
 enemies_to_fade_out = false; // used to fade enemies out before processing end of turn
 player_last_action_type = undefined;
+player_turn_done = false; // for ending visuals on last die roll
+delayed_enemy_attack = false; // used for delaying enemy turn after player turn 
 
 player_hp_display = global.player_hp;
 

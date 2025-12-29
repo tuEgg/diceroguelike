@@ -1,4 +1,4 @@
-gui_w = display_get_gui_width();
+ gui_w = display_get_gui_width();
 gui_h = display_get_gui_height();
 
 var mx = device_mouse_x_to_gui(0);
@@ -164,7 +164,7 @@ for (var i = 0; i < aq_list_size; i++) {
 
     // --- Highlight the active action slot during RESOLVE_ROUND ---
 	if (state == CombatState.RESOLVE_ROUND && !enemies_turn_done) {
-	    if (i == action_index - 1) {
+	    if (i == draw_action_index) {
 	        slot_index = 0;
 			
 			// double up the sprite so the visual is more obvious
@@ -416,15 +416,18 @@ for (var i = 0; i < aq_list_size; i++) {
 	        draw_set_alpha(1.0);
 
 			var _index = get_dice_index(die_struct.dice_value);
-
+			
+			var _angle = 0;
+			
 			// Emphasise rolled dice
-			if (i == action_index - 1 && state == CombatState.RESOLVE_ROUND && !enemies_turn_done) {
-				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, 1.5, 1.5, 0, _col, 0.4);
+			if (d == draw_dice_index && state == CombatState.RESOLVE_ROUND && i == draw_action_index && !player_turn_done) {
+				_angle = sin(((current_time / 1000) + 20) * 3.33) * 3;
+				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, lerp(1.5, abs(_angle) + 1.5, 0.2), lerp(1.5, abs(_angle) + 1.5, 0.2), _angle, _col, 0.4);
 			}
 
 	        // Outline ones that are permanent
 			if (die_struct.permanence == "base") {
-				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, 1.15, 1.15, 0, c_black, 1);
+				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, 1.15, 1.15, _angle, c_black, 1);
 			}
 			
 			var dice_hovered = mouse_hovering(xx_top, yy_top, sprite_get_width(sDiceIcon), sprite_get_height(sDiceIcon), true);
@@ -439,29 +442,39 @@ for (var i = 0; i < aq_list_size; i++) {
 			// Draw keyword icons above
 			draw_dice_keywords(die_struct, xx_top + 3, yy_top - 34, 1);
 			
+			
+			draw_set_font(ftSmall);
+			draw_set_color(c_black);
+				
+			var off_x = -2;
+			var off_y = 1;
+				
+			switch (_index) {
+				case 1:
+				off_x = -2;
+				off_y = 3;
+				break;
+				case 2:
+				off_x = -2;
+				off_y = 1;
+				break;
+				case 3:
+				off_x = 0;
+				off_y = -1;
+				break;
+			}
+			
 			// Draw rolled value
 			if (die_struct.rolled_value != -1) {
-				draw_set_font(ftSmall);
-				draw_set_color(c_black);
-				
-				var off_x = -2;
-				var off_y = 1;
-				
-				switch (_index) {
-					case 1:
-					off_x = -2;
-					off_y = 3;
-					break;
-					case 2:
-					off_x = -2;
-					off_y = 1;
-					break;
-					case 3:
-					off_x = 0;
-					off_y = -1;
-					break;
-				}
 				draw_text(xx_top + off_x, yy_top + off_y, string(die_struct.rolled_value));
+			} else if (die_struct.forced_roll != -1) {
+				var _bonus = get_dice_output(die_struct, i, -1, true, "player").keepsake_dice_bonus_amount;
+					
+				draw_outline_text(string(die_struct.forced_roll + _bonus), c_black, c_white, 2, xx_top + off_x, yy_top + off_y, 1, 1, 0);
+			}
+			
+			if (die_struct.min_roll_bonus > 0) {
+				draw_outline_text("+" + string(die_struct.min_roll_bonus) + " min", c_black, c_white, 2, xx_top + off_x, yy_top + off_y - 24, 1, 1, 0);
 			}
 	    }
 	}
@@ -567,7 +580,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		// Draw dice in move
 		if ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) {
 			for (var d = 0; d < enemy.intent.move.dice_amount; d++) {
-				var dice_index = get_dice_index(enemy.intent.move.dice_value);
+				var d_index = get_dice_index(enemy.intent.move.dice_value);
 				
 				draw_set_font(ftBigger);
 				draw_set_halign(fa_center);
@@ -579,7 +592,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 						case "ATK":
 						case "BLK":
 						case "HEAL":
-						draw_sprite_ext(sDiceIcon, dice_index, xx - (((enemy.intent.move.dice_amount) * 40)/2) + (d * 40), yy - 10, 1, 1, 0, get_dice_color(enemy.intent.move.action_type), enemy.info_alpha * enemy.intent.alpha);
+						draw_sprite_ext(sDiceIcon, d_index, xx - (((enemy.intent.move.dice_amount) * 40)/2) + (d * 40), yy - 10, 1, 1, 0, get_dice_color(enemy.intent.move.action_type), enemy.info_alpha * enemy.intent.alpha);
 						
 						if (d == enemy.intent.move.dice_amount - 1) {
 							draw_outline_text("+" + string(enemy.intent.move.bonus_amount), c_black, get_dice_color(enemy.intent.move.action_type), 2, xx - (((enemy.intent.move.dice_amount) * 40)/2) + ((d+1) * 45), yy - 10, 1, enemy.info_alpha * enemy.intent.alpha, 0);

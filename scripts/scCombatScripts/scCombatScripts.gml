@@ -1,4 +1,4 @@
-/// process_action(_target, _dice_amount, _dice_value, _bonus_amount, _source, _source_index, _type, _slot_number, _slot_die, _num, _flat_damage)
+/// process_action(_target, _dice_amount, _dice_value, _bonus_amount, _source, _source_index, _type, _slot_number, _slot_die, _dice_list_index)
 /// _target: "enemy" or "player"
 /// _dice_amount: base amount of dice
 /// _dice_value: highest roll of dice
@@ -6,7 +6,7 @@
 /// _source: "enemy" or "player" (attacker or caster)
 /// _type: "atk" or "heal"
 
-function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _source, _source_index, _type, _slot_number = -1, _slot_die = undefined, _num = 0) {
+function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _source, _source_index, _type, _slot_number = -1, _slot_die = undefined, _dice_list_index = 0) {
 	//show_debug_message("this dice has a value of: "+string(_dice_value));
 
     // --- Roll total amount ---
@@ -23,18 +23,26 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 		// Player tweaks numbers differently from enemy
 		if (_source == "player") {
-			var dice_output = get_dice_output(_slot_die, _slot_number, false, "player");
+			var dice_output = get_dice_output(_slot_die, _slot_number, _dice_list_index, false, "player");
 			
-			_min_roll = dice_output.min_roll;			
+			_min_roll = dice_output.min_roll + _slot_die.min_roll_bonus;			
 			_max_roll = dice_output.max_roll;
 			_keepsake_dice_bonus_amount = dice_output.keepsake_dice_bonus_amount;
+			var _keepsake_weighting = dice_output.weighting; // currently only used to add weighting to coins from the Lucky Coin 
 			var _prev_slot_type = dice_output.previous_slot_type;
 			
 			// Create our array for weighted rolling
 			var distribution_array = [];
+			
+			var distr = _slot_die.distribution; // the distribution to check for, can be overridden by _keepsake_weighting
+		
+			if (_keepsake_weighting != "") {
+				distr = _keepsake_weighting;
+			}
 		
 			// depending on distribution, use the array or not
-			define_dice_distributions(_slot_die.distribution, _min_roll, _max_roll, distribution_array);
+			define_dice_distributions(distr, _min_roll, _max_roll, distribution_array);
+			
 			//show_debug_message("---" + string(_min_roll));
 			//show_debug_message("dice MINIMUM roll is " + string(_min_roll));
 			//show_debug_message("---" + string(_min_roll));
@@ -48,10 +56,23 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 			// Roll between all the values in the array
 			var weighted_roll = irandom_range(weight_min, weight_max);
-			if (dice_output.roll_twice) {
+			if (dice_output.roll_twice || _slot_die.roll_twice) { // roll advantage
 				var second_roll = irandom_range(weight_min, weight_max);
 				
 				if (second_roll > weighted_roll) weighted_roll = second_roll;
+				
+				_slot_die.roll_twice = false; // reset after we roll twice
+				
+				// need to add a little roll twice animation here
+			}
+			
+			if (_slot_die.forced_roll != -1) {
+				show_debug_message("forcing roll")
+				weighted_roll = 0;
+				for (var d = 0; d < _slot_die.forced_roll; d++) {
+					weighted_roll += distribution_array[d];
+					show_debug_message("weighted_roll is: " + string(weighted_roll));
+				}
 			}
 			
 			// used for determining which numbers can actually be rolled when taking into account distribution
@@ -83,11 +104,22 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 						_c_slot_type: _type,
 						die: _slot_die,
 						min_roll: actual_possible_numbers[0], // first row in distribution array that isn't zero,
+						max_roll: _max_roll,
 						owner: "player",
+						slot_bonus: slot_bonus_amount,
+						keepsake_bonus: _keepsake_dice_bonus_amount,
+						dice_index: _dice_list_index,
+						_slot: oCombat.action_queue[| _slot_number],
+						slot_num: _slot_number, 
 						//max_roll: actual_possible_numbers[ array_length(actual_possible_numbers) - 1] // first row in distribution array that isn't zero -- THIS isn't possible yet because we need to continue looping through the numbers after we find our actual number to check for what our real max is
 					}
 					
 					combat_trigger_effects("after_roll_die", ctx, _slot_die);
+					
+					if (_slot_die.reset_after_next_roll != false && _slot_die.reset_this_turn) {
+						_slot_die.reset_after_next_roll(_slot_die);
+						_slot_die.reset_after_next_roll = false;
+					}
 					
 					final_roll = ctx._d_amount + slot_bonus_amount + _keepsake_dice_bonus_amount;
 					
@@ -160,7 +192,9 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	        // Player attacking enemy
 	        if (_target != "player") {
 				
-				global.player_x += 50;
+				if (_dice_amount > 0) {
+					global.player_x += 50;
+				}
 				
 				// Only trigger debuffs/buffs on the enemy that actually took damage
 				var ctx = {
@@ -180,7 +214,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	                _target.block_amount -= block_used;
 	                final_damage -= block_used;
 	
-	                var num = spawn_floating_number(_target, block_used, -1, global.color_block, -1, -1, _num);
+	                var num = spawn_floating_number(_target, block_used, -1, global.color_block, -1, -1, _dice_list_index);
 					num.x += 20;
 					num.y += 20;
 	            }
@@ -188,7 +222,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	            // Deal any remaining damage
 	            if (final_damage > 0) {
 	                _target.hp = max(0, _target.hp - final_damage);
-	                spawn_floating_number(_target, final_damage, -1, c_red, -1, -1, _num);
+	                spawn_floating_number(_target, final_damage, -1, c_red, -1, -1, _dice_list_index);
 	            }
 
 	            inst_color = c_red;
@@ -236,14 +270,14 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	                player_block_amount -= block_used;
 	                final_damage -= block_used;
 
-	                var num = spawn_floating_number("player", block_used, -1, global.color_block, -1, -1, _num);
+	                var num = spawn_floating_number("player", block_used, -1, global.color_block, -1, -1, _dice_list_index);
 					num.x += 40;
 					num.y += 40;
 	            }
 
 	            if (final_damage > 0) {
 	                global.player_hp = max(0, global.player_hp - final_damage);
-	                spawn_floating_number("player", final_damage, -1, c_red, -1, -1, _num);
+	                spawn_floating_number("player", final_damage, -1, c_red, -1, -1, _dice_list_index);
 				
 	            }
 
@@ -270,12 +304,11 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				
 				combat_trigger_effects("on_player_block_gained", ctx)
 				
-				
 				// Animate shield
 				var shield = instance_create_depth(global.player_x, global.player_y, depth, oSingleParticle);
 	        }
 
-	        spawn_floating_number(_target, amount, -1, global.color_block, 1, -1, _num);
+	        spawn_floating_number(_target, amount, -1, global.color_block, 1, -1, _dice_list_index);
 	        inst_color = global.color_block;
 		break;
 
@@ -329,7 +362,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		case "INTEL":
 			if (_source == "player") {
 				apply_buff(global.player_debuffs, oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
-				var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, _num);
+				var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, _dice_list_index);
 				num.x += 20;
 				num.y -= 20;
 			} else {
@@ -569,21 +602,16 @@ function apply_dice_to_slot(_die, _slot_i) {
 			_slot: slot,
 			_slot_num: _slot_i,
 			owner: "player",
+			_d_struct: die.struct,
+			dice_object: die,
 		};
 	
-		combat_trigger_effects("on_dice_played_to_slot", played_data);
+		combat_trigger_effects("on_dice_played_to_slot", played_data, die.struct);
 	
         add_feed_entry("You used a dice!");
 		if (!string_has_keyword(die.struct.description, "coin")) dice_played++;
 		dice_played_scale = 1.2;
 		dice_played_color = c_green;
-		
-		// Let keepsakes/dice adjust roll range
-		combat_trigger_effects("on_die_played", {
-			dice_object: die, 
-			owner: "player" },
-			die.struct
-			);
 		
 		// die statistics
 		die.struct.statistics.times_played_this_combat++;
@@ -676,6 +704,7 @@ function sacrifice_die(_die) {
 	};
 	
 	trigger_die_effects_single(die.struct, "on_sacrifice_die", sacrifice_data);
+	runmanager_trigger_keepsakes("on_sacrifice_die", sacrifice_data);
 
     // Clone before adding
 	var _perm = "temporary";
@@ -850,7 +879,7 @@ function get_slot_stats(_slot, _num) {
         var die_struct = _slot.dice_list[| i];
 		var die_base = die_struct.permanence == "base" ? true : false;
 		
-		var dice_values = get_dice_output(die_struct, _num, true, "player");
+		var dice_values = get_dice_output(die_struct, _num, -1, true, "player");
 		
 		low += dice_values.min_roll + dice_values.keepsake_dice_bonus_amount;
 		high += dice_values.max_roll + dice_values.keepsake_dice_bonus_amount;

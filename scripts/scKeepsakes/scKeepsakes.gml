@@ -74,6 +74,26 @@ function define_keepsakes() {
 	ds_list_add(global.master_keepsake_list, ks_pickled_cucumber);
 	ds_list_add(global.shop_keepsake_list, ks_pickled_cucumber);
 	
+	ks_toolbelt = {
+	    _id: "toolbelt",
+	    name: "Toolbelt",
+	    desc: "Gain +2 item slots",
+		sub_image: 25,
+		price: 100,
+	    trigger: function(event, data) {
+	        if (event == "on_keepsake_acquired" && data.keepsake_id == _id) { // make sure we only trigger when we acquire THIS keepsake, not all keepsakes
+	            oRunManager.max_items += 2;
+				repeat(2) {
+					array_push(oRunManager.items, undefined);
+					array_push(oRunManager.items_hover, false);
+					array_push(oRunManager.items_hover_scale, 1.0);
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_toolbelt);
+	ds_list_add(global.shop_keepsake_list, ks_toolbelt);
+	
 	
 	// ------------------
 	// EVENT KEEPSAKES
@@ -373,17 +393,135 @@ function define_keepsakes() {
 		state: { },
 	    trigger: function(event, data) {			
 			if (event == "on_not_used") {
-				oCombat.player_block_amount += 2 * instance_number(oDice);
+				repeat (instance_number(oDice)) {
+					with (oCombat) process_action("player", 0, 2, 0, "player", undefined, "BLK");
+				}
 	        }
 	    }
 	};
 	ds_list_add(global.master_keepsake_list, ks_lantern_of_patience);
 	ds_list_add(global.rollable_keepsake_list, ks_lantern_of_patience);
 	
+	ks_windbound_charm = {
+	    _id: "windbound_charm",
+	    name: "Windbound Charm",
+	    desc: "Stowaway effects also trigger when played",
+	    sub_image: 15,
+		state: { },
+	    trigger: function(event, data) {			
+			if (event == "on_dice_played_to_slot") {
+				trigger_die_effects_single(data._d_struct, "on_not_used", data);
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_windbound_charm);
+	ds_list_add(global.rollable_keepsake_list, ks_windbound_charm);
+	
+	ks_lead_line = {
+	    _id: "lead_line",
+	    name: "Lead Line",
+	    desc: "'When played' effects also trigger twice when sacrificed",
+	    sub_image: 17,
+		state: { },
+	    trigger: function(event, data) {			
+			if (event == "on_sacrifice_die") {
+				data._slot = -1;
+				data._slot_num = -1;
+				data.owner = "player";
+				data._d_struct = data.die.struct;
+				data.dice_object = data.die;
+				
+				repeat (2) {
+					combat_trigger_effects("on_dice_played_to_slot", data, data.die.struct);
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_lead_line);
+	ds_list_add(global.rollable_keepsake_list, ks_lead_line);
+	
 	
 	// ------------------
 	// ROLL KEEPSAKES
 	// ------------------
+	
+	ks_topographic_map = {
+	    _id: "topographic_map",
+	    name: "Topographic Map",
+	    desc: "If a die rolls its max, the next dice in that slot has its minimum roll increased by 2.",
+	    sub_image: 20,
+		state: { },
+	    trigger: function(event, data) {			
+			if (event == "after_roll_die") {
+				if (data._d_amount == data.max_roll) {
+					// next dice in sequence roll_twice = true
+					if (data.dice_index != ds_list_size(data._slot.dice_list) - 1) {
+						var next_die = data._slot.dice_list[| data.dice_index+1];
+						
+						if (next_die.dice_value != 2) {
+							next_die.reset_after_next_roll = function(_dice) {
+								_dice.min_roll_bonus -= 2;
+							}
+							next_die.min_roll_bonus += 2;
+						} else {
+							next_die.reset_after_next_roll = function(_dice) {
+								_dice.min_roll_bonus -= 1;
+							}
+							next_die.min_roll_bonus += 1;
+						}
+						
+						next_die.reset_this_turn = true;
+					}
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_topographic_map);
+	ds_list_add(global.rollable_keepsake_list, ks_topographic_map);
+	
+	ks_nav_chart = {
+	    _id: "nav_chart",
+	    name: "Navigation Chart",
+	    desc: "Every time a die rolls its minimum, roll the next die twice.",
+	    sub_image: 19,
+		state: { },
+	    trigger: function(event, data) {			
+			if (event == "after_roll_die") {
+				if (data._d_amount == data.min_roll) {
+					// next dice in sequence roll_twice = true
+					if (data.dice_index != ds_list_size(data._slot.dice_list) - 1) {
+						data._slot.dice_list[| data.dice_index+1].roll_twice = true;
+					} else if (data.slot_num != ds_list_size(oCombat.action_queue) -1) {
+						oCombat.action_queue[| data.slot_num + 1].dice_list[| 0].roll_twice = true;
+					}
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_nav_chart);
+	ds_list_add(global.rollable_keepsake_list, ks_nav_chart);
+	
+	ks_balancing_compass = {
+	    _id: "balancing_compass",
+	    name: "Balancing Compass",
+	    desc: "After a dice rolls its minimum, guarantee it rolls its maximum next turn.",
+	    sub_image: 18,
+		state: { },
+	    trigger: function(event, data) {			
+			if (event == "after_roll_die") {
+				if (data._d_amount == data.min_roll) {
+					data.die.reset_after_next_roll = function(_dice) {
+						_dice.forced_roll = -1;
+					}
+					data.die.forced_roll = data.max_roll;
+					data.die.reset_this_turn = false;
+					show_debug_message("this die's forced roll is set to: " + string(data.die.forced_roll));
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_balancing_compass);
+	ds_list_add(global.rollable_keepsake_list, ks_balancing_compass);
 	
 	// ------------------
 	// DICE KEEPSAKES
@@ -422,73 +560,200 @@ function define_keepsakes() {
 	ds_list_add(global.master_keepsake_list, ks_message_in_a_bottle);
 	ds_list_add(global.rollable_keepsake_list, ks_message_in_a_bottle);
 	
+	ks_polished_sextant = {
+	    _id: "polished_sextant",
+	    name: "Polished Sextant",
+	    desc: "+1 minimum roll on all d4s.",
+	    sub_image: 21,
+		state: { },
+	    trigger: function(event, data) {			
+			if (event == "on_roll_die") {
+				if (data.max_roll == 4) {
+					data.min_roll += 1;
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_polished_sextant);
+	ds_list_add(global.rollable_keepsake_list, ks_polished_sextant);
+	
+	ks_shield_plating = {
+	    _id: "shield_plating",
+	    name: "Shield Plating",
+	    desc: "+1 minimum roll on all Block die.",
+	    sub_image: 21,
+		state: { },
+	    trigger: function(event, data) {			
+			if (event == "on_roll_die") {
+				if (data.action_type == "BLK") {
+					data.min_roll += 1;
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_shield_plating);
+	ds_list_add(global.rollable_keepsake_list, ks_shield_plating);
+	
+	ks_weapon_polish = {
+	    _id: "weapon_polish",
+	    name: "Weapon Polish",
+	    desc: "+1 minimum roll on all Attack die.",
+	    sub_image: 21,
+		state: { },
+	    trigger: function(event, data) {			
+			if (event == "on_roll_die") {
+				if (data.action_type == "ATK") {
+					data.min_roll += 1;
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_weapon_polish);
+	ds_list_add(global.rollable_keepsake_list, ks_weapon_polish);
+	
+	ks_crossword_puzzle = {
+	    _id: "crossword_puzzle",
+	    name: "Crossword Puzzle",
+	    desc: "+1 minimum roll on all Neutral die.",
+	    sub_image: 21,
+		state: { },
+	    trigger: function(event, data) {			
+			if (event == "on_roll_die") {
+				if (data.action_type == "None") {
+					data.min_roll += 1;
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_crossword_puzzle);
+	ds_list_add(global.rollable_keepsake_list, ks_crossword_puzzle);
+	
+	ks_book_of_secrets = {
+	    _id: "book_of_secrets",
+	    name: "Book of Secrets",
+	    desc: "+1 minimum roll on all Intel die.",
+	    sub_image: 21,
+		state: { },
+	    trigger: function(event, data) {			
+			if (event == "on_roll_die") {
+				if (data.action_type == "INTEL") {
+					data.min_roll += 1;
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_book_of_secrets);
+	ds_list_add(global.rollable_keepsake_list, ks_book_of_secrets);
+	
+	ks_lucky_coin = {
+	    _id: "lucky_coin",
+	    name: "Lucky Coin",
+	    desc: "Coins roll 2s twice as often as 1s",
+	    sub_image: 0,
+		state: { },
+	    trigger: function(event, data) {			
+			if (event == "on_roll_die") {
+				if (data.max_roll == "2") {
+					data.weighting = "loaded";
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_lucky_coin);
+	ds_list_add(global.rollable_keepsake_list, ks_lucky_coin);
+	
+	ks_protective_rigging = {
+	    _id: "protective_rigging",
+	    name: "Protective Rigging",
+	    desc: "Gain +2 block every time you play a die.",
+	    sub_image: 26,
+
+	    trigger: function(event, data) {
+	        // IMPORTANT: `self` here is the keepsake struct itself — no need for `var that`
+	        switch (event) {
+	            case "on_dice_played_to_slot":
+					with (oCombat) {
+						process_action("player", 0, 2, 0, "player", undefined, "BLK");
+					}
+				break;
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_protective_rigging);
+	ds_list_add(global.rollable_keepsake_list, ks_protective_rigging);
+	
+	ks_captains_ledger = {
+	    _id: "captains_ledger",
+	    name: "Captain's Ledger",
+	    desc: "Whenever you draw the last die from your bag, deal 5 damage to all enemies and gain 3 coins.",
+	    sub_image: 22,
+	    trigger: function(event, data) {
+	        // IMPORTANT: `self` here is the keepsake struct itself — no need for `var that`
+	        switch (event) {
+	            case "on_bag_empty":
+					with (oCombat) {
+						// Deal flat damage to all enemies, we have to run this backwards in case any enemies die during this roll
+						for (var i = oCombat.enemies_left_this_combat-1; i >= 0 ; i--) {
+							process_action(oCombat.room_enemies[| i], 0, 5, 0, "player", -1, "ATK", undefined, undefined, 0);
+						}
+					}
+					gain_coins(200, display_get_gui_height() - 100, 3);
+				break;
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_captains_ledger);
+	ds_list_add(global.rollable_keepsake_list, ks_captains_ledger);
+	
+	ks_rusty_rudder = {
+	    _id: "rusty_rudder",
+	    name: "Rusty Rudder",
+	    desc: "Whenever a die rolls its minimum value, deal equal damage to a random enemy.",
+	    sub_image: 23,
+	    trigger: function(event, data) {
+	        // IMPORTANT: `self` here is the keepsake struct itself — no need for `var that`
+	        switch (event) {
+	            case "after_roll_die":
+					if (data._d_amount == data.min_roll) {
+						with (oCombat) {
+							var rand_index = irandom(ds_list_size(room_enemies) - 1);
+							process_action(room_enemies[| rand_index], 0, data._d_amount + data.slot_bonus + data.keepsake_bonus, 0, "player", -1, "ATK", undefined, undefined, 0);
+						}
+	
+					}
+				break;
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_rusty_rudder);
+	ds_list_add(global.rollable_keepsake_list, ks_rusty_rudder);
+	
+	// ------------------
+	// OTHER KEEPSAKES
+	// ------------------	
+	
 	ks_eye_patch = {
 	    _id: "eye_patch",
 	    name: "Eye patch",
-	    desc: "Not yet defined.",
+	    desc: "Gain 1 intel every time you play a die.",
 	    sub_image: 2,
 
 	    trigger: function(event, data) {
 	        // IMPORTANT: `self` here is the keepsake struct itself — no need for `var that`
 	        switch (event) {
 
-	            case "on_turn_start":
+	            case "on_dice_played_to_slot":
+					oCombat.player_intel += 1;
+					var num = spawn_floating_number("player", 1, -1, global.color_intel, 1, -1, 0);
+					num.x += 20;
+					num.y -= 20;
+					particle_emit( num.x, num.y, "rise", global.color_intel);
 				break;
 	        }
 	    }
 	};
 	ds_list_add(global.master_keepsake_list, ks_eye_patch);
 	ds_list_add(global.rollable_keepsake_list, ks_eye_patch);
-	
-	//var ks_message_in_a_bottle = {
-	//    _id: "message_in_a_bottle",
-	//    name: "Message in a Bottle",
-	//    desc: "Discover a random dice at the start of combat.",
-	//    sub_image: 1,
-	//    state: { last_type: "", streak: 0, buff_ready: false },
-
-	//    trigger: function(event, data) {
-	//        // IMPORTANT: `self` here is the keepsake struct itself — no need for `var that`
-	//        switch (event) {
-
-	//            case "on_action_used":
-	//                if (is_undefined(data) || !variable_struct_exists(data, "action_type")) {
-	//                    show_debug_message("⚠️ Invalid data passed to keepsake trigger: " + string(data));
-	//                    break;
-	//                }
-
-	//                var t = data.action_type;
-	//                if (t == self.state.last_type) {
-	//                    self.state.streak++;
-	//                    show_debug_message("Cutlass streak: " + string(self.state.streak));
-	//                } else {
-	//                    self.state.streak = 1;
-	//                    self.state.last_type = t;
-	//                }
-
-	//                if (self.state.streak >= 3) {
-	//                    self.state.streak = 0;
-	//                    self.state.last_type = "";
-	//                    self.state.buff_ready = true;
-	//                    show_debug_message("Cutlass buff ready!");
-	//                }
-	//            break;
-
-	//            case "on_roll_die":
-	//                if (self.state.buff_ready && data.action_type == "ATK") {
-	//                    show_debug_message("Cutlass buff triggered! +4 damage");
-	//                    data._d_amount += 4;
-	//                    self.state.buff_ready = false;
-	//                }
-	//            break;
-				
-	//			case "on_player_turn_end":
-	//				self.state.streak = 0;
-	//			break;
-	//        }
-	//    }
-	//};
-	//ds_list_add(oRunManager.keepsakes_master, ks_blooded_cutlass);
 }
 
 function get_keepsake_by_id(_id) {

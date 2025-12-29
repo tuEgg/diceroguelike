@@ -3,8 +3,14 @@
 /// @func deal_single_die( _can_discard_this_turn )
 function deal_single_die( _can_discard_this_turn = true) {
 	if (room == rmCombat) {
+		
+		if (ds_list_size(global.dice_bag) == 1) {
+			combat_trigger_effects("on_bag_empty", {});
+		}
+		
 	    // --- Reshuffle if empty ---
 	    if (ds_list_size(global.dice_bag) == 0) {
+			
 	        if (ds_list_size(global.discard_pile) > 0) {
 	            //show_debug_message("Dice bag empty — reshuffling discard pile!");
 	            for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
@@ -112,7 +118,9 @@ function generate_dice_bag() {
 	        {
 	            trigger: "on_not_used",
 	            modify: function(_context) {
-	                oCombat.player_block_amount += 5;
+					with (oCombat) {
+						process_action("player", 0, 5, 0, "player", undefined, "BLK");
+					}
 	            }
 	        }
 	    ]
@@ -199,7 +207,7 @@ function generate_dice_bag() {
 		60,
 	    [
 	        {
-	            trigger: "on_die_played",
+	            trigger: "on_dice_played_to_slot",
 	            modify: function(_context) {
 					with (oRunManager) {
 						deal_single_die();
@@ -337,10 +345,9 @@ function generate_dice_bag() {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._d_amount == 4) {
-						oCombat.player_block_amount += 2;
-						var num = spawn_floating_number("player", 1, -1, c_aqua, 1, -1, 0);
-						num.x += 20;
-						num.y += 10;
+						with (oCombat) {
+							process_action("player", 0, 2, 0, "player", undefined, "BLK");
+						}
 					}
 	            }
 	        }
@@ -380,7 +387,9 @@ function generate_dice_bag() {
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
-					_context._d_amount = _context.slot_num;
+					if (_context.slot_num > -1) {
+						_context._d_amount = _context.slot_num;
+					}
 	            }
 	        }
 	    ]
@@ -459,12 +468,12 @@ function generate_dice_bag() {
 		80,
 	    [
 	        {
-	            trigger: "on_die_played",
+	            trigger: "on_dice_played_to_slot",
 	            modify: function(_context) {
 					with (oCombat) {
 						_context.dice_object.can_discard = false;
 						discard_dice_in_play();
-						oCombat.dice_to_deal = 2;
+						oCombat.dice_to_deal += 2;
 						oCombat.is_dealing_dice = true;
 					}
 	            }
@@ -520,7 +529,9 @@ function generate_dice_bag() {
 	        {
 	            trigger: "on_sacrifice_die",
 	            modify: function(_context) {
-					oCombat.player_block_amount = _context.die.struct.dice_value*2;
+					with (oCombat) {
+						process_action("player", 0, _context.die.struct.dice_value*2, 0, "player", undefined, "BLK");
+					}
 	            }
 	        }
 	    ]
@@ -745,7 +756,7 @@ function generate_dice_bag() {
 	
 	// Add to bag
 	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_atk, "")); }
-	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_blk, "")); }
+	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.die_power_penny, "")); }
 	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_intel, "")); }
 	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_atk, "")); }
 	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_blk, "")); }
@@ -822,6 +833,11 @@ function make_die_struct(_amount, _value, _action, _poss, _perm, _name, _desc, _
 		distribution: _distribution,
 		rolled_value: -1,
 		reset_at_end_combat: false,		// if not false, at the end of combat, reset to the type of dice defined here
+		reset_after_next_roll: false,		// if not false, at the end of combat, reset to the type of dice defined here
+		reset_this_turn: false,
+		forced_roll: -1,
+		roll_twice: false,
+		min_roll_bonus: 0,
 		statistics: {
 			times_rolled_this_combat: 0,
 			times_played_this_combat: 0,
@@ -902,12 +918,14 @@ function get_dice_name_and_bonus(_die, _bonus_amount) {
 	return string(amount) + "d" + string(value) +  _bonus + " " + string(type);
 }
 
-/// @func get_dice_output(_die, _slot_num, _read_only)
+/// @func get_dice_output(_die, _slot_num, _die_index, _read_only, _owner)
 /// @desc returns the minimum and maximum value of the dice based on ALL keepsakes, dice bonuses, slot bonuses etc.
-/// @param _die	The die struct to be calculated from
+/// @param _die			The die struct to be calculated from
 /// @param _slot_num	The slot number this dice is in
+/// @param _die_index	The dice_list index this dice is
 /// @param _read_only	Determine whether we are just reading to generate numbers, or actually running the code
-function get_dice_output(_die, _slot_num, _read_only, _owner) {
+/// @param _owner		Whether its player owned or owned by the enemy
+function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
 	
 	var prev_slot_type = "";
 	var slot = undefined;
@@ -930,14 +948,16 @@ function get_dice_output(_die, _slot_num, _read_only, _owner) {
 		min_roll: 1,
 		max_roll: _die.dice_value,
 		_d_amount: 0,
-		_b_amount: oCombat.action_queue[| _slot_num].bonus_amount,
 		_slot: slot,
 		slot_num: _slot_num,
+		die_index: _die_index,
 		die: _die,
 		read_only: _read_only,
 		roll_twice: false,
 		repeat_followthrough: false,
 		owner: _owner,
+		dice_index: _die_index,
+		weighting: ""
 	};
 
 	// Let keepsakes/dice adjust roll range
@@ -948,7 +968,8 @@ function get_dice_output(_die, _slot_num, _read_only, _owner) {
 		max_roll: roll_data.max_roll,
 		keepsake_dice_bonus_amount: roll_data._d_amount * (roll_data.repeat_followthrough + 1), // double the bonuses if we're repeating followthrough
 		previous_slot_type: roll_data.previous_slot_action_type,
-		roll_twice: roll_data.roll_twice
+		roll_twice: roll_data.roll_twice,
+		weighting: roll_data.weighting
 	};
 	
 }
@@ -1024,7 +1045,7 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0) {
 }
 
 function draw_dice_distribution(_die, _x, _y, _centered = false) {
-	var dice_output = get_dice_output(_die, undefined, true, "player");
+	var dice_output = get_dice_output(_die, undefined, -1, true, "player");
 			
 	var _min_roll = dice_output.min_roll;
 	var _max_roll = dice_output.max_roll;
@@ -1059,7 +1080,7 @@ function draw_dice_distribution(_die, _x, _y, _centered = false) {
 }
 
 function draw_dice_history(_die, _x, _y, _centered = false) {
-	var dice_output = get_dice_output(_die, undefined, true, "player");
+	var dice_output = get_dice_output(_die, undefined, -1, true, "player");
 			
 	var _min_roll = dice_output.min_roll;
 	var _max_roll = dice_output.max_roll;
