@@ -4,8 +4,8 @@ y_speed = -irandom_range(2, 3);
 grav = 0.3;
 
 // Target
-target_x = 440;
-target_y = 40;
+target_x = 310;
+target_y = 35;
 
 // Visuals
 color_main = c_white;

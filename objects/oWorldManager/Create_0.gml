@@ -5,7 +5,9 @@ shop_nodes_this_voyage = 0;
 bounty_nodes_this_voyage = 0;
 elite_nodes_this_voyage = 0;
 
-nodes_cleared = 0; // how many pages in the captains logbook have we cleared
+nodes_cleared = 0; // how many nodes in the captains logbook have we cleared
+pages_cleared = 0; // how many pages have we cleared
+nodes_til_page_cleared = 0; // resets every time we start a new page
 time = 0; // used to pulse animate next node
 page_previous = undefined;
 
@@ -17,7 +19,8 @@ enum NODE_TYPE {
 	EVENT = 4,
 	BOUNTY = 5,
 	ELITE = 6,
-	BOSS = 7
+	BOSS = 7,
+	TREASURE = 8
 }
 
 room_enemies = ds_list_create();
@@ -123,6 +126,19 @@ node_boss = {
 	disappeared: false,
 };
 
+node_treasure = {
+	type: NODE_TYPE.TREASURE,
+	subimg: 7,
+	name: "Treasure",
+	text: "Gain a relic",
+	linked_room: rmTreasure,
+	scale: 1.0,
+	cleared: false,
+	x: 0,
+	y: 0,
+	disappeared: false,
+};
+
 boat_data = {
 	x: 300,
 	y: display_get_gui_height()/2,
@@ -167,7 +183,7 @@ heal_scale = heal_scale_target;
 workbench_scale_target = 2.0;
 workbench_scale = workbench_scale_target;
 resting_alpha = 0;
-rest_amount = 0.10;
+rest_amount = 0.25;
 
 embark_scale = 1.0;
 
@@ -182,3 +198,6 @@ ds_list_add(possible_elites, "Elite 1");
 ds_list_add(possible_elites, "Elite 2");
 ds_list_add(possible_elites, "Elite 3");
 current_node_type = undefined;
+
+alarm[0] = 1; // used to delay drafting in cases where we click exit in another room 
+can_draft = false;

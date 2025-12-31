@@ -114,7 +114,7 @@ items_hover_scale = [];
 has_space_for_item = true;
 
 if (debug_mode) {
-	items[0] = clone_item(item_consumable_healing_flask);
+	items[0] = clone_item(item_consumable_mirage_brew);
 }
 	
 for (var i = 0; i < max_items; i++) {
@@ -194,3 +194,6 @@ error_message = "";
 error_description = "";
 
 active_bounty = undefined;
+
+health_scale = 1.0; // changes every time the player heals or loses health outside of room combat
+alignment_scale = 1.0;

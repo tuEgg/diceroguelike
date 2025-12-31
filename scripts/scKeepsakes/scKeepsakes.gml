@@ -1,5 +1,10 @@
 // Script assets have changed for v2.3.0 see
 // https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
+
+function trigger_keepsake_visual() {
+	oRunManager.keepsake_scale[| ds_list_find_index(oRunManager.keepsakes, get_keepsake_by_id(self._id))] = 2.0;
+}
+
 function define_keepsakes() {
 	global.master_keepsake_list = ds_list_create(); // all keepsakes
 	global.rollable_keepsake_list = ds_list_create(); // keepsakes that aren't starters, events, boss or shop keepsakes, that can be rolled in events amd acquired from elites
@@ -17,7 +22,10 @@ function define_keepsakes() {
 		sub_image: 5,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
-	            if (oCombat.turn_count == 1) oCombat.player_intel = 6;
+	            if (oCombat.turn_count == 1) {
+					oCombat.player_intel = 6;
+					trigger_keepsake_visual();
+				}
 	        }
 	    }
 	};
@@ -51,6 +59,8 @@ function define_keepsakes() {
 	    trigger: function(event, data) {
 	        if (event == "on_rest") { // make sure we only trigger when we acquire THIS keepsake, not all keepsakes
 	            data.rest_amount += 0.10;
+				
+				trigger_keepsake_visual();
 	        }
 	    }
 	};
@@ -65,8 +75,10 @@ function define_keepsakes() {
 		price: 100,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
-	            if (oCombat.turn_count == 0) {
-					oCombat.dice_allowed_this_turn_bonus = 1;
+	            if (oCombat.turn_count == 1) {
+					data.bonus_dice = 1;
+				
+					trigger_keepsake_visual();
 				}
 	        }
 	    }
@@ -109,6 +121,8 @@ function define_keepsakes() {
 	            if (oCombat.turn_count == 1) {
 					if (!oCombat.is_dealing_dice) {
 						oCombat.dice_to_deal += 2;
+				
+					trigger_keepsake_visual();
 					}
 				}
 	        }
@@ -126,6 +140,8 @@ function define_keepsakes() {
 	            if (global.player_hp < global.player_max_hp) {
 					if (oCombat.turn_count == 1) {
 						process_action( "player", 0, 1, 0, "player", undefined, "HEAL");
+				
+						trigger_keepsake_visual();
 					}
 				}
 	        }
@@ -143,6 +159,10 @@ function define_keepsakes() {
 	            if (data.slot_num == 0 && data.die == oCombat.action_queue[| data.slot_num].dice_list[| 0]) {
 					data.min_roll++;
 					data.max_roll++;
+				
+					if (!data.read_only) {				
+						trigger_keepsake_visual();
+					}
 				}
 	        }
 	    }
@@ -160,6 +180,8 @@ function define_keepsakes() {
 	            if (!self.state.effect_used && data.action_type == "BLK" && !data.read_only) {
 					data.roll_twice = true;
 					self.state.effect_used = true;
+				
+					trigger_keepsake_visual();
 				}
 	        }
 			
@@ -177,12 +199,14 @@ function define_keepsakes() {
 	ks_black_purse = {
 	    _id: "black_purse",
 	    name: "Black Purse",
-	    desc: "At the end of combat gain 3 coins for every slot in your action queue",
+	    desc: "At the end of combat gain 3 gold for every slot in your action queue",
 		sub_image: 9,
 	    trigger: function(event, data) {
 	        if (event == "on_combat_end") {
 	            for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
 					gain_coins(oCombat.slot_positions[| i].x, oCombat.slot_positions[| i].y, 3);
+				
+					trigger_keepsake_visual();
 				}
 	        }
 	    }
@@ -198,6 +222,8 @@ function define_keepsakes() {
 	    trigger: function(event, data) {
 	        if (event == "on_new_slot_created") {
 	            oCombat.dice_allowed_this_turn_bonus++;
+				
+				trigger_keepsake_visual();
 	        }
 	    }
 	};
@@ -222,6 +248,8 @@ function define_keepsakes() {
 						}
 					}
 					self.state.used = true;
+				
+					trigger_keepsake_visual();
 	            }
 	        }
 			
@@ -246,6 +274,8 @@ function define_keepsakes() {
 			if (event == "on_player_debuffed") {
 				if (!self.state.triggered) {
 					oCombat.action_queue[| 0].bonus_amount += 1;
+				
+					trigger_keepsake_visual();
 					//self.state.triggered = true; // uncomment this if we want it to only trigger the first time we are debuffed
 				}
 	        }
@@ -286,7 +316,7 @@ function define_keepsakes() {
 	ks_repeater_rail = {
 	    _id: "repeater_rail",
 	    name: "Repeater Rail",
-	    desc: "Subsequent slots gain +1 to their first dice for every slot of the same type before them",
+	    desc: "Slots gain +1 to their first dice for every slot of the same type before them",
 		sub_image: 12,
 		state: { buffed_list: ds_list_create() },
 	    trigger: function(event, data) {
@@ -373,6 +403,8 @@ function define_keepsakes() {
 					
 					if (!data.read_only && !self.state.effect_used) {
 						self.state.effect_used = true;
+				
+						trigger_keepsake_visual();
 					}
 				}
 			}
@@ -396,6 +428,8 @@ function define_keepsakes() {
 				repeat (instance_number(oDice)) {
 					with (oCombat) process_action("player", 0, 2, 0, "player", undefined, "BLK");
 				}
+				
+				trigger_keepsake_visual();
 	        }
 	    }
 	};
@@ -411,6 +445,8 @@ function define_keepsakes() {
 	    trigger: function(event, data) {			
 			if (event == "on_dice_played_to_slot") {
 				trigger_die_effects_single(data._d_struct, "on_not_used", data);
+				
+				trigger_keepsake_visual();
 	        }
 	    }
 	};
@@ -434,6 +470,8 @@ function define_keepsakes() {
 				repeat (2) {
 					combat_trigger_effects("on_dice_played_to_slot", data, data.die.struct);
 				}
+				
+				trigger_keepsake_visual();
 	        }
 	    }
 	};
@@ -471,6 +509,8 @@ function define_keepsakes() {
 						}
 						
 						next_die.reset_this_turn = true;
+				
+						trigger_keepsake_visual();
 					}
 				}
 	        }
@@ -491,8 +531,12 @@ function define_keepsakes() {
 					// next dice in sequence roll_twice = true
 					if (data.dice_index != ds_list_size(data._slot.dice_list) - 1) {
 						data._slot.dice_list[| data.dice_index+1].roll_twice = true;
+				
+						trigger_keepsake_visual();
 					} else if (data.slot_num != ds_list_size(oCombat.action_queue) -1) {
 						oCombat.action_queue[| data.slot_num + 1].dice_list[| 0].roll_twice = true;
+				
+						trigger_keepsake_visual();
 					}
 				}
 	        }
@@ -516,6 +560,8 @@ function define_keepsakes() {
 					data.die.forced_roll = data.max_roll;
 					data.die.reset_this_turn = false;
 					show_debug_message("this die's forced roll is set to: " + string(data.die.forced_roll));
+				
+					trigger_keepsake_visual();
 				}
 	        }
 	    }
@@ -553,6 +599,8 @@ function define_keepsakes() {
 					die_inst.struct.reset_at_end_combat = function(_dice) {
 						ds_list_delete(global.dice_bag, ds_list_find_index(global.dice_bag, _dice));
 					}
+				
+					trigger_keepsake_visual();
 				}
 	        }
 	    }
@@ -570,6 +618,10 @@ function define_keepsakes() {
 			if (event == "on_roll_die") {
 				if (data.max_roll == 4) {
 					data.min_roll += 1;
+					
+					if (!data.read_only) {
+						trigger_keepsake_visual();
+					}
 				}
 	        }
 	    }
@@ -587,6 +639,10 @@ function define_keepsakes() {
 			if (event == "on_roll_die") {
 				if (data.action_type == "BLK") {
 					data.min_roll += 1;
+					
+					if (!data.read_only) {
+						trigger_keepsake_visual();
+					}
 				}
 	        }
 	    }
@@ -604,6 +660,10 @@ function define_keepsakes() {
 			if (event == "on_roll_die") {
 				if (data.action_type == "ATK") {
 					data.min_roll += 1;
+					
+					if (!data.read_only) {
+						trigger_keepsake_visual();
+					}
 				}
 	        }
 	    }
@@ -621,6 +681,10 @@ function define_keepsakes() {
 			if (event == "on_roll_die") {
 				if (data.action_type == "None") {
 					data.min_roll += 1;
+					
+					if (!data.read_only) {
+						trigger_keepsake_visual();
+					}
 				}
 	        }
 	    }
@@ -638,6 +702,10 @@ function define_keepsakes() {
 			if (event == "on_roll_die") {
 				if (data.action_type == "INTEL") {
 					data.min_roll += 1;
+					
+					if (!data.read_only) {
+						trigger_keepsake_visual();
+					}
 				}
 	        }
 	    }
@@ -655,6 +723,10 @@ function define_keepsakes() {
 			if (event == "on_roll_die") {
 				if (data.max_roll == "2") {
 					data.weighting = "loaded";
+					
+					if (!data.read_only) {
+						trigger_keepsake_visual();
+					}
 				}
 	        }
 	    }
@@ -675,6 +747,8 @@ function define_keepsakes() {
 					with (oCombat) {
 						process_action("player", 0, 2, 0, "player", undefined, "BLK");
 					}
+					
+					trigger_keepsake_visual();
 				break;
 	        }
 	    }
@@ -685,7 +759,7 @@ function define_keepsakes() {
 	ks_captains_ledger = {
 	    _id: "captains_ledger",
 	    name: "Captain's Ledger",
-	    desc: "Whenever you draw the last die from your bag, deal 5 damage to all enemies and gain 3 coins.",
+	    desc: "Whenever you draw the last die from your bag, deal 5 damage to all enemies and gain 3 gold.",
 	    sub_image: 22,
 	    trigger: function(event, data) {
 	        // IMPORTANT: `self` here is the keepsake struct itself — no need for `var that`
@@ -698,6 +772,7 @@ function define_keepsakes() {
 						}
 					}
 					gain_coins(200, display_get_gui_height() - 100, 3);
+					trigger_keepsake_visual();
 				break;
 	        }
 	    }
@@ -719,6 +794,8 @@ function define_keepsakes() {
 							var rand_index = irandom(ds_list_size(room_enemies) - 1);
 							process_action(room_enemies[| rand_index], 0, data._d_amount + data.slot_bonus + data.keepsake_bonus, 0, "player", -1, "ATK", undefined, undefined, 0);
 						}
+						
+						trigger_keepsake_visual();
 	
 					}
 				break;
@@ -748,6 +825,8 @@ function define_keepsakes() {
 					num.x += 20;
 					num.y -= 20;
 					particle_emit( num.x, num.y, "rise", global.color_intel);
+					
+					trigger_keepsake_visual();
 				break;
 	        }
 	    }

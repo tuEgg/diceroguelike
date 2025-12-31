@@ -290,7 +290,6 @@ function generate_keepsake_rewards(_reward_list, _keepsake_list, _num) {
 	do {
 		if (oRunManager.active_bounty != undefined) {
 			if (oRunManager.active_bounty.complete) {
-				// third item is always a dice, so add that here
 				if (oRunManager.active_bounty.rewards[1] != undefined) {
 					ds_list_add(_reward_list, clone_keepsake(oRunManager.active_bounty.rewards[1]));
 					oRunManager.active_bounty.rewards[1] = undefined;
@@ -300,8 +299,12 @@ function generate_keepsake_rewards(_reward_list, _keepsake_list, _num) {
 			}
 		}
 		
-		var keepsake_struct = indices_keepsakes[| irandom(ds_list_size(indices_keepsakes)-1) ];
+		var rand_index = irandom(ds_list_size(indices_keepsakes)-1);
+		
+		var keepsake_struct = indices_keepsakes[| rand_index];
 		ds_list_add(_reward_list, clone_keepsake(keepsake_struct));
+		ds_list_delete( _keepsake_list, ds_list_find_index( _keepsake_list, keepsake_struct));
+		ds_list_delete( indices_keepsakes, ds_list_find_index( indices_keepsakes, keepsake_struct));
 		continue;  
 	}
 	until (ds_list_size(_reward_list) == num_rewards);

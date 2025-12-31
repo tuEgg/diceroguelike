@@ -596,7 +596,7 @@ function generate_dice_bag() {
 	
 	global.die_harvest = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Harvest Die",
-	    "At the end of combat gain 4 coins for each die in this slot",
+	    "At the end of combat gain 4 gold for each die in this slot",
 		"common",
 		85,
 	    [
@@ -756,7 +756,7 @@ function generate_dice_bag() {
 	
 	// Add to bag
 	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_atk, "")); }
-	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.die_power_penny, "")); }
+	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_blk, "")); }
 	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_intel, "")); }
 	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_atk, "")); }
 	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_blk, "")); }

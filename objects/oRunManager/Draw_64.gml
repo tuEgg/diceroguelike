@@ -1,15 +1,16 @@
 gui_w = display_get_gui_width();
 gui_h = display_get_gui_height();
 
-var bar_height = 70;
+var bar_height = sprite_get_height(sTopBar) - 3;
+var bar_half = bar_height/2;
 
 // Draw top bar
-draw_sprite(sTopBar, 0, -3, -4);
+draw_sprite(sTopBar, 1, -3, -4);
 
 // Draw voyage act
-draw_set_font(ftTopBar);
+draw_set_font(ftBigger);
 draw_set_halign(fa_left);
-draw_set_valign(fa_top);
+draw_set_valign(fa_middle);
 var act = "I";
 switch (voyage) {
 	case 1:
@@ -22,34 +23,38 @@ switch (voyage) {
 	act = "IV";
 	break;
 }
-draw_outline_text("Voyage " + act, c_black, c_white, 2, 20, 15, 1, 1, 0);
+draw_outline_text("Voyage " + act, c_black, c_white, 2, 20, bar_half, 1, 1, 0);
 var voyage_hover = mouse_hovering(20, 15, string_width("Voyage III"), string_height("Voyage III"), false);
 if (voyage_hover) queue_tooltip(mouse_x, mouse_y, "Voyages Sailed", "You are on voyage " + string(act) + "/III", undefined, 0, undefined);
 
 // Draw pages turned
 draw_set_halign(fa_center);
 draw_set_valign(fa_top);
-draw_sprite(sTopBarIcons, 0, 280 + 5, 15);
-draw_outline_text(string(oWorldManager.nodes_cleared), c_black, c_white, 2, 350 + 5, 30, 1, 1, 0);
-var pages_hover = mouse_hovering(280 + 5, 15, sprite_get_width(sTopBarIcons), sprite_get_height(sTopBarIcons), false);
+var pages_x = 210;
+draw_sprite(sPaper, 0, pages_x, bar_half);
+draw_outline_text(string(oWorldManager.nodes_cleared), c_black, c_white, 2, pages_x + 20, bar_half, 1, 1, 0);
+var pages_hover = mouse_hovering(pages_x, bar_half, sprite_get_width(sPaper), sprite_get_height(sPaper), true);
 if (pages_hover) queue_tooltip(mouse_x, mouse_y, "Events Explored", "You have explored " + string(oWorldManager.nodes_cleared) + " events from the Captain's logbook", undefined, 0, undefined);
 
 // Draw money
-draw_sprite_ext(sTopBarSlot, 1, 400 + 5, 18, 1, 1, 0, c_white, 1.0);
-draw_sprite_ext(sCoin, 1, 400 + 5 + sprite_get_width(sTopBarSlot)/2, 18 + sprite_get_height(sTopBarSlot)/2, credits_scale, credits_scale, 0, c_white, 1.0);
-draw_outline_text(string(credits), c_black, c_white, 2, 470 + 5, 30, 1, 1, 0);
-var credits_hover = mouse_hovering(400 + 5, 15, sprite_get_width(sTopBarIcons), sprite_get_height(sTopBarIcons), false);
+var nodes_x = pages_x + 80;
+draw_sprite_ext(sCoin, 1, nodes_x, bar_half, credits_scale, credits_scale, 0, c_white, 1.0);
+draw_outline_text(string(credits), c_black, c_white, 2, nodes_x + 20, bar_half, 1, 1, 0);
+var credits_hover = mouse_hovering(nodes_x, bar_half, sprite_get_width(sPaper), sprite_get_height(sPaper), true);
 if (credits_hover) queue_tooltip(mouse_x, mouse_y, "Gold Doubloons", "You have " + string(credits) + " gold doubloons", undefined, 0, undefined);
 credits_scale = lerp(credits_scale, 1.0, 0.05);
 
 // Draw health
-draw_set_halign(fa_center);
-draw_set_valign(fa_top);
+var health_x = nodes_x + 150;
+draw_sprite(sHeart, 0, health_x, bar_half);
+draw_set_halign(fa_left);
+draw_set_valign(fa_middle);
 draw_set_font(ftBigger);
-draw_outline_text("HP: " + string(global.player_hp) + "/" +string(global.player_max_hp), c_black, global.color_attack, 2, 650, 25,  1, 1, 0);
+draw_outline_text(string(global.player_hp) + "/" +string(global.player_max_hp), c_black, c_white, 2, health_x + 30, bar_half, 1, 1, 0);
+health_scale = lerp(health_scale, 1.0, 0.2);
 
 // Draw cores and consumables
-var core_x = 800;
+var core_x = health_x + 220;
 var core_y = 18;
 for (var i = 0; i < array_length(items); i++) {
 	var i_x = 90 * i;
@@ -140,8 +145,24 @@ for (var i = 0; i < array_length(items); i++) {
 	}
 }
 
+// Draw alignment
+var alignment_color = make_color_rgb(250, 166, 20);
+var alignment_x = gui_w - 450;
+
+var alignment_hover = mouse_hovering(alignment_x, bar_half, sprite_get_width(sAlignmentBar), sprite_get_height(sAlignmentBar), true);
+draw_sprite_ext(sMapIcon, 8, gui_w - 620, bar_half, 1, 1, 0, c_white, 1.0);
+draw_sprite_ext(sAlignmentBar, 0, alignment_x, bar_half, alignment_scale, alignment_scale, 0, c_white, 1.0);
+alignment_scale = lerp(alignment_scale, 1.0, 0.2);
+
+var alignment_pos_x = alignment_x - 70 + ((global.player_alignment) * 1.4);
+draw_sprite_ext(sCircleSmall, 0, alignment_pos_x, bar_half + 2, 1, 1, 0, c_white, 1.0);
+
+if (alignment_hover) {
+	queue_tooltip(mouse_x, mouse_y, "Alignment", "Actions have consequences, you currently have neutral alignment.");
+}
+
 // Draw bounty information
-draw_sprite_ext(sMapIcon, 5, gui_w - 300, 45, 1, 1, 0, c_white, 1.0);
+draw_sprite_ext(sMapIcon, 5, gui_w - 250, 45, 1, 1, 0, c_white, 1.0);
 
 draw_set_font(ftBig);
 var bounty_name = "-";
@@ -163,9 +184,9 @@ if (active_bounty != undefined) {
 }
 draw_set_halign(fa_left);
 draw_set_valign(fa_middle);
-draw_outline_text(bounty_name, c_black, bounty_col, 2, gui_w - 300 + 30, 44, 1, 1, 0);
+draw_outline_text(bounty_name, c_black, bounty_col, 2, gui_w - 250 + 30, 44, 1, 1, 0);
 
-var bounty_hover = mouse_hovering(gui_w - 330, 20, 300, 50, false); 
+var bounty_hover = mouse_hovering(gui_w - 280, 20, 300, 50, false); 
 if (bounty_hover) {
 	queue_tooltip(mouse_x, mouse_y, "Active Bounty: " + bounty_name, bounty_description);
 }

@@ -1,6 +1,8 @@
 if (room == rmMap) {
 
 } else {
+	alarm[0] = 1;
+	
 	page_previous = room;
 	if (nodes_cleared > 100) {
 		oRunManager.voyage++;

@@ -20,6 +20,10 @@ if (debug_mode) {
 	key_elite = keyboard_check_pressed(ord("L"));
 	if (key_elite) room_goto(rmCombat);
 	
+	key_treasure = keyboard_check_pressed(ord("T"));
+	if (key_treasure) room_goto(rmTreasure);
+	
+	
 	key_combat = keyboard_check_pressed(ord("C"));
 	if (key_combat) {		
 		room_goto(rmCombat);

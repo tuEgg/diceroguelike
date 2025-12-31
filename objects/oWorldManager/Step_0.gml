@@ -29,6 +29,18 @@ if (room == rmMap) {
             enter_node(node_to_move_to);
             node_to_move_to.cleared = true;
             nodes_til_drafting--;
+			nodes_til_page_cleared--;
+
+			if (nodes_til_page_cleared == 0) {
+				pages_cleared++;
+	
+				if (nodes_til_drafting > 0) {
+					nodes_til_page_cleared = nodes_til_drafting;
+				}
+			}
+			
+			show_debug_message("nodes_til_page_cleared: " + string(nodes_til_page_cleared));
+			show_debug_message("pages_cleared: " + string(pages_cleared));
 
             last_node = node_to_move_to;
 			node_drift = 0;
@@ -37,6 +49,7 @@ if (room == rmMap) {
         }
     }
 	
+	// find the next node
 	if (next_node == undefined) {
 		for (var n = 0; n < ds_list_size(all_nodes); n++) {
 			if (!all_nodes[| n].cleared) {

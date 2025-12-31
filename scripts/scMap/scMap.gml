@@ -92,84 +92,90 @@ function generate_pages() {
 			
 			var rand = irandom_range(1,100);
 			
-			if (rand <= combat_chance) {
-				if (num_combat < 5) {
-					num_combat++;
-					page_num_combat++;
-					chosen_node = node_combat;
-					combat_chance -= 5;
-					
-					var rand_inc = (irandom(1));
-					
-					switch (rand_inc) {
-						case 0: event_chance += 5; break;
-						case 1: shop_chance += 5; break;
-					}
-					
-				} else {
-					continue;
-				}
-			} else if (rand <= combat_chance + event_chance) {
-				if (num_event < 3) {
-					num_event++;
-					page_num_event++;
-					chosen_node = node_event;
-					event_chance -= 5;
-					
-					var rand_inc = (irandom(1));
-					
-					switch (rand_inc) {
-						case 0: combat_chance += 5; break;
-						case 1: shop_chance += 5; break;
-					}
-				} else {
-					continue;
-				}
-			} else if (rand <= combat_chance + event_chance + shop_chance) {
-				if (num_shop < 1) {
-					num_shop++;
-					page_num_shop++;
-					chosen_node = node_shop;
-					shop_chance -= 5;
-					
-					if (nodes_cleared < 5) {
-						event_chance += 5;
-					} else if (oRunManager.active_bounty == undefined && bounty_nodes_this_voyage == 0) {
-						bounty_chance += 5;
-					} else {
-						event_chance += 5;
-					}
-				} else {
-					continue;
-				}
-			} else if (rand <= combat_chance + event_chance + shop_chance + bounty_chance) {
-				if (num_bounty < 1 && page_num_bounty == 0) {
-					num_bounty++;
-					page_num_bounty++;
-					chosen_node = node_bounty;
-					var gap = bounty_chance;
-					bounty_chance = 0;
-					combat_chance += floor(gap * (2/5));
-					event_chance += floor(gap * (2/5));
-					shop_chance += floor(gap * (1/5));
-					
-				} else {
-					continue;
-				}
-			} else if (rand <= combat_chance + event_chance + shop_chance + bounty_chance + elite_chance) {
-				if (num_elite < 2 && page_num_elite == 0) {
-					num_elite++;
-					page_num_elite++;
-					chosen_node = node_elite;
-					elite_chance /= 2;
-				} else {
-					continue;
-				}
-			}
 			
-			// First node of each run is always combat
-			if (oWorldManager.nodes_cleared == 0) && (ds_list_size(_page.nodes) == 0) {
-				chosen_node = node_combat;
+			// 7th page draft node of each run is always combat
+			if (oWorldManager.pages_cleared == 4) && (ds_list_size(_page.nodes) == 0) {
+				chosen_node = node_treasure;
+			} else {
+				if (rand <= combat_chance) {
+					if (num_combat < 5) {
+						num_combat++;
+						page_num_combat++;
+						chosen_node = node_combat;
+						combat_chance -= 5;
+					
+						var rand_inc = (irandom(1));
+					
+						switch (rand_inc) {
+							case 0: event_chance += 5; break;
+							case 1: shop_chance += 5; break;
+						}
+					
+					} else {
+						continue;
+					}
+				} else if (rand <= combat_chance + event_chance) {
+					if (num_event < 3) {
+						num_event++;
+						page_num_event++;
+						chosen_node = node_event;
+						event_chance -= 5;
+					
+						var rand_inc = (irandom(1));
+					
+						switch (rand_inc) {
+							case 0: combat_chance += 5; break;
+							case 1: shop_chance += 5; break;
+						}
+					} else {
+						continue;
+					}
+				} else if (rand <= combat_chance + event_chance + shop_chance) {
+					if (num_shop < 1) {
+						num_shop++;
+						page_num_shop++;
+						chosen_node = node_shop;
+						shop_chance -= 5;
+					
+						if (nodes_cleared < 5) {
+							event_chance += 5;
+						} else if (oRunManager.active_bounty == undefined && bounty_nodes_this_voyage == 0) {
+							bounty_chance += 5;
+						} else {
+							event_chance += 5;
+						}
+					} else {
+						continue;
+					}
+				} else if (rand <= combat_chance + event_chance + shop_chance + bounty_chance) {
+					if (num_bounty < 1 && page_num_bounty == 0) {
+						num_bounty++;
+						page_num_bounty++;
+						chosen_node = node_bounty;
+						var gap = bounty_chance;
+						bounty_chance = 0;
+						combat_chance += floor(gap * (2/5));
+						event_chance += floor(gap * (2/5));
+						shop_chance += floor(gap * (1/5));
+					
+					} else {
+						continue;
+					}
+				} else if (rand <= combat_chance + event_chance + shop_chance + bounty_chance + elite_chance) {
+					if (num_elite < 2 && page_num_elite == 0) {
+						num_elite++;
+						page_num_elite++;
+						chosen_node = node_elite;
+						elite_chance /= 2;
+					} else {
+						continue;
+					}
+				}
+			
+				// First node of each run is always combat
+				if (oWorldManager.nodes_cleared == 0) && (ds_list_size(_page.nodes) == 0) {
+					chosen_node = node_combat;
+				}
 			}
 			
 			ds_list_add(_page.nodes, clone_node_static(chosen_node));

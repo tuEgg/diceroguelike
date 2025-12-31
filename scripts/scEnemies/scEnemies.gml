@@ -36,7 +36,7 @@ function enemy_definitions() {
 	    { dice_amount: 1, dice_value: 8, action_type: "ATK", bonus_amount: 1, move_name: "Pointed Cutlass" },
 	    { dice_amount: 2, dice_value: 2, action_type: "BLK", bonus_amount: 3, move_name: "Block" },
 	];
-	var pirate_ruffian = enemy_create("Pirate Ruffian", 0, 1, 21, 7, pirate_ruffian_moves, "pseudo_random");
+	var pirate_ruffian = enemy_create("Pirate Ruffian", 0, 1, 23, 7, pirate_ruffian_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, pirate_ruffian);
 	
 	// Weak enemy that always copies the players last intent
@@ -54,7 +54,7 @@ function enemy_definitions() {
 	    { dice_amount: 2, dice_value: 4, action_type: "ATK", bonus_amount: 14, move_name: "Throwing Leg" },
 	    { dice_amount: 1, dice_value: 2, action_type: "EXIT", bonus_amount: 2, move_name: "Running Away" },
 	];
-	var peg_leg = enemy_create("Peg-leg", 0, 1, 30, 20, peg_leg_moves, "ordered");
+	var peg_leg = enemy_create("Peg-leg", 0, 1, 18, 20, peg_leg_moves, "ordered");
 	ds_list_add(global.enemy_list, peg_leg);
 	
 	// Pack enemy that does attacks and defends

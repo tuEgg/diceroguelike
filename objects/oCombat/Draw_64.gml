@@ -446,6 +446,7 @@ for (var i = 0; i < aq_list_size; i++) {
 			draw_set_font(ftSmall);
 			draw_set_color(c_black);
 				
+			// used to offset the rolled numbers
 			var off_x = -2;
 			var off_y = 1;
 				
@@ -459,6 +460,8 @@ for (var i = 0; i < aq_list_size; i++) {
 				off_y = 1;
 				break;
 				case 3:
+				case 4:
+				case 5:
 				off_x = 0;
 				off_y = -1;
 				break;

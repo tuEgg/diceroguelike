@@ -352,36 +352,43 @@ function define_items() {
 			},
 			modify: function(_context) {
 				// select a random die in play and upgrade it
-				var dupe_chance = instance_number(oDice);
-				for (var i = 0; i < dupe_chance; i++) {
-					var n = irandom_range(i, dupe_chance);
-					if (n == dupe_chance) {
+				var random_die_index = irandom(instance_number(oDice) - 1);
+				var dice;
+				
+				for (var i = 0; i < instance_number(oDice) - 1; i++) {
+					
+					if (random_die_index == i) {
 						dice = instance_find(oDice, i);
-						dice.scale = 1.5;
-						
-						var die_struct = clone_die(dice.struct, "");
-
-						// Spawn instance
-					    var die_inst = instance_create_layer(dice.x + choose(-50,0, 50), dice.y + choose(-50, 50), "Instances", oDice);
-					    die_inst.struct = die_struct;
-					    die_inst.action_type = die_struct.action_type;
-					    die_inst.dice_amount = die_struct.dice_amount;
-					    die_inst.dice_value  = die_struct.dice_value;
-						die_inst.possible_type = die_struct.possible_type;
-						die_inst.can_discard = true;
-
-					    var target = generate_valid_targets(1, 100) [0];
-					    die_inst.target_x = target[0];
-					    die_inst.target_y = target[1];
-
-						die_inst.struct.reset_at_end_combat = function(_dice) {
-							ds_list_delete(global.dice_bag, ds_list_find_index(global.dice_bag, _dice));
-						}
-						
-						particle_emit( die_inst.x, die_inst.y, "burst", get_dice_color((die_inst.action_type)));
 						break;
 					}
 				}
+				
+				if (instance_number(oDice) == 1) {
+					dice = instance_nearest(500, 500, oDice);
+				}
+				
+				dice.scale = 1.5;
+						
+				var die_struct = clone_die(dice.struct, "");
+
+				// Spawn instance
+				var die_inst = instance_create_layer(dice.x + choose(-50,0, 50), dice.y + choose(-50, 50), "Instances", oDice);
+				die_inst.struct = die_struct;
+				die_inst.action_type = die_struct.action_type;
+				die_inst.dice_amount = die_struct.dice_amount;
+				die_inst.dice_value  = die_struct.dice_value;
+				die_inst.possible_type = die_struct.possible_type;
+				die_inst.can_discard = true;
+
+				var target = generate_valid_targets(1, 100) [0];
+				die_inst.target_x = target[0];
+				die_inst.target_y = target[1];
+
+				die_inst.struct.reset_at_end_combat = function(_dice) {
+					ds_list_delete(global.dice_bag, ds_list_find_index(global.dice_bag, _dice));
+				}
+						
+				particle_emit( die_inst.x, die_inst.y, "burst", get_dice_color((die_inst.action_type)));
 			}
 		},
 		price: 40

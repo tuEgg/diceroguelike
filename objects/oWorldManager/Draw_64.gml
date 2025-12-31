@@ -178,7 +178,7 @@ if (room == rmMap) {
 			
 					draw_page(page, drawn_page_x, drawn_page_y, p, false, false);
 			
-					if (mouse_check_button_pressed(mb_left)) {
+					if (mouse_check_button_pressed(mb_left) && can_draft) {
 					
 						// Set this page as selected
 						var _page_clone = clone_page(page);
@@ -219,6 +219,22 @@ if (room == rmMap) {
 									}	
 								}
 							}
+							
+							// When we add a treasure to the node list, we need to remove treasures from the remaining drafted pages
+							if (node.type == NODE_TYPE.TREASURE) {
+								// loop through all pages
+								for (var pp = 0; pp < page_count; pp++) {
+									// for any that aren't this page
+									if (pages_shown[| pp] != page) {
+										// loop through their nodes
+										for (var nn = 0; nn < pages_shown[| pp].num_nodes; nn++) {
+											if (pages_shown[| pp].nodes[| nn].type == NODE_TYPE.TREASURE) {
+												pages_shown[| pp].nodes[| nn] = clone_node_static(node_event);
+											}
+										}
+									}	
+								}
+							}
 						}
 					
 						page.chosen = true;
@@ -227,6 +243,10 @@ if (room == rmMap) {
 								
 						// Randomly remove one of the other options
 						if (pages_drafted == 1) {
+							
+							// add the first pages number of nodes to nodes_til_page_cleared
+							nodes_til_page_cleared = page.num_nodes;
+							
 							var temp_list = ds_list_create();
 					
 							for (var i = 0; i < ds_list_size(pages_shown); i++) {
