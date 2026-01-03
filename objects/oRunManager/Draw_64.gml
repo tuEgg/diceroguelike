@@ -45,7 +45,7 @@ if (credits_hover) queue_tooltip(mouse_x, mouse_y, "Gold Doubloons", "You have "
 credits_scale = lerp(credits_scale, 1.0, 0.05);
 
 // Draw health
-var health_x = nodes_x + 150;
+var health_x = nodes_x + 100;
 draw_sprite(sHeart, 0, health_x, bar_half);
 draw_set_halign(fa_left);
 draw_set_valign(fa_middle);
@@ -54,7 +54,7 @@ draw_outline_text(string(global.player_hp) + "/" +string(global.player_max_hp), 
 health_scale = lerp(health_scale, 1.0, 0.2);
 
 // Draw cores and consumables
-var core_x = health_x + 220;
+var core_x = health_x + 150;
 var core_y = 18;
 for (var i = 0; i < array_length(items); i++) {
 	var i_x = 90 * i;
@@ -128,11 +128,15 @@ for (var i = 0; i < array_length(items); i++) {
 			
 			if (items[i].dragging && mouse_check_button_pressed(mb_left)) {
 				if (items[i].effects.trigger == "on_clicked" && items[i].effects.flags() ) {
-					var ctx = {};
+					var ctx = {
+						use_potion: true,
+					};
 					trigger_item_effects(items[i], "on_clicked", ctx);
-					if (room == rmCombat) combat_trigger_effects("on_consumable_used", ctx);
-					items[i] = undefined;
-					holding_item = false;
+					combat_trigger_effects("on_consumable_used", ctx);
+					if (ctx.use_potion) {
+						items[i] = undefined;
+						holding_item = false;
+					}
 				}
 			}
 
@@ -144,6 +148,11 @@ for (var i = 0; i < array_length(items); i++) {
 		}
 	}
 }
+
+// Draw tools
+draw_set_font(ftBig);
+var tools_x = gui_w - 860;
+draw_outline_text("Tools: " + string(ds_list_size(tool_list)) + "/5", c_black, c_white, 2, tools_x, bar_half, 1, 1.0, 0);
 
 // Draw alignment
 var alignment_color = make_color_rgb(250, 166, 20);

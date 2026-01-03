@@ -795,8 +795,8 @@ for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
-	draw_outline_text(string(_debuff.remaining), c_black, c_white, 2, p_bar_x + d_x + sprite_get_width(sDebuffIcon), d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
-	draw_outline_text(string(_debuff.amount), c_black, c_red, 2, p_bar_x + d_x, d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
+	if (!_debuff.permanent) draw_outline_text(string(_debuff.remaining), c_black, c_white, 2, p_bar_x + d_x + sprite_get_width(sDebuffIcon), d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
+	if (_debuff.amount > 0) draw_outline_text(string(_debuff.amount), c_black, c_red, 2, p_bar_x + d_x, d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
 
 	if (mouse_hovering(p_bar_x + d_x, d_y, sprite_get_width(sDebuffIcon), sprite_get_height(sDebuffIcon), false)) {
 		queue_tooltip(mouse_x, mouse_y, _debuff.template.name, _debuff.template.desc, undefined, 0, undefined);

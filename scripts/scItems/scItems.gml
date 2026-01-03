@@ -438,7 +438,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 6,
 		name: "Grog of Grit",
-		description: "Gain +2 might this turn.",
+		description: "Gain +1 might for the rest of combat.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -459,7 +459,7 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
-				apply_buff(global.player_debuffs, oRunManager.buff_might, 1, 2, oRunManager.buff_might.remove_next_turn, { source: "player", index: -1 });
+				apply_buff(global.player_debuffs, oRunManager.buff_might, -1, 2, oRunManager.buff_might.remove_next_turn, { source: "player", index: -1 }, true);
 				particle_emit( global.player_x, global.player_y, "rise", c_orange);
 			}
 		},
@@ -471,7 +471,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 7,
 		name: "Captain's Brew",
-		description: "Gain +2 balance this turn.",
+		description: "Gain +1 balance for the rest of combat.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -492,7 +492,7 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
-				apply_buff(global.player_debuffs, oRunManager.buff_balance, 1, 2, oRunManager.buff_balance.remove_next_turn, { source: "player", index: -1 });
+				apply_buff(global.player_debuffs, oRunManager.buff_balance, -1, 2, oRunManager.buff_balance.remove_next_turn, { source: "player", index: -1 }, true);
 				particle_emit( global.player_x, global.player_y, "rise", c_blue);
 			}
 		},

@@ -110,7 +110,10 @@ for (var i = 0; i < wb_list_size; i++) {
 	// Draw distribution
 	if (i == 0 || i == 2) {
 		if (workbench_slot[i].dice != undefined) {
-			draw_dice_distribution(workbench_slot[i].dice, slot_x, slot_y - wb_tile_size/2, true);
+			draw_dice_distribution(workbench_slot[i].dice, slot_x, slot_y - wb_tile_size/2 - (wb_scale[i]*15), true);
+			
+			draw_set_font(ftBig);
+			draw_outline_text(string(workbench_slot[i].dice.distribution), c_black, c_white, 2, slot_x, slot_y - wb_tile_size, 1, 1, 0);
 		}
 	}
 	
@@ -119,26 +122,82 @@ for (var i = 0; i < wb_list_size; i++) {
 		d.distribution = workbench_slot[i].core.distribution;
 		
 		draw_dice_distribution(d, slot_x, slot_y - wb_tile_size/2, true);
+		draw_set_font(ftBig);
+		draw_outline_text(string(d.distribution), c_black, c_white, 2, slot_x, slot_y - wb_tile_size, 1, 1, 0);
 	}
 	
 	// Draw output preview
 	// NEED TO ADD THIS
 }
 
-// Draw craft button
-if (!craft) {
-	var craft_col = c_dkgray;
-	if (workbench_slot[0].dice != undefined && workbench_slot[1].core != undefined) craft_col = c_lime;
+var button_text_w = 100;
+
+// Crafting states
+switch (crafting_state) {
+	case "waiting":
+		var craft_col = c_dkgray;
+		switch (button_text) {
+			case "Craft":
+				if (workbench_slot[0].dice != undefined && workbench_slot[1].core != undefined) {
+					craft_col = c_lime;
+				}
+			break;
+			case "Cut":
+				if (workbench_slot[0].dice != undefined && workbench_slot[1].core == undefined && workbench_slot[1].dice == undefined && workbench_slot[2].dice == undefined) {
+					craft_col = c_lime;
+				}
+			break;
+		}
 	
-	draw_sprite_ext(sButtonSmall, 0, gui_w/2, start_y + 280, 0.75, 0.75, 0, craft_col, 1.0);
-	draw_outline_text("Craft", c_black, c_white, 2, gui_w/2, start_y + 280, 1, 1, 0);
-} else {
-	if (bang_timer == 15) {
-		var new_dice = workbench_slot[0].dice;
-		new_dice.distribution = workbench_slot[1].core.distribution;
-		workbench_slot[2].dice = new_dice;
+		button_text_w = string_width(button_text);
+	
+		draw_sprite_ext(sButtonSmall, 0, gui_w/2, start_y + 280, (0.2 + button_text_w / 120) * (0.75 * button_scale), 0.75 * button_scale, 0, craft_col, 1.0);
+		draw_outline_text(button_text, c_black, c_white, 2, gui_w/2, start_y + 280, 1, 1, 0);
+	break;
+	
+	case "hammered":
+		if (bang_timer == 15) {
+			var new_dice = clone_die(workbench_slot[0].dice, "");
+			new_dice.distribution = workbench_slot[1].core.distribution;
+			workbench_slot[2].dice = new_dice;
+			workbench_slot[0].dice = undefined;
+			workbench_slot[1].core = undefined;
+			with (oDice) if (in_slot) instance_destroy();
+			
+			discard_dice_in_play();
+			
+			//show_debug_message("New dice created.");
+			
+			// Spawn instance
+			var xx = start_x + (2 * (wb_tile_padding + wb_tile_size));
+			var die_inst = instance_create_layer(xx, start_y, "Instances", oDice);
+			die_inst.struct = new_dice;
+			die_inst.action_type = new_dice.action_type;
+			die_inst.dice_amount = new_dice.dice_amount;
+			die_inst.dice_value  = new_dice.dice_value;
+			die_inst.possible_type = new_dice.possible_type;
+			die_inst.target_x = xx;
+			die_inst.target_y = start_y;
+			die_inst.still = true;
+			
+		}
+		// Draw explosion and then create the die
+		bang_timer--;
+		
+		if (bang_timer > 0) {
+			draw_sprite(sBang, 0, gui_w/2, start_y + 280);
+		}
+	break;
+	
+	case "cut":
+		var new_dice = clone_die(workbench_slot[0].dice, "");
+		new_dice.dice_value = workbench_slot[0].dice.dice_value - 2;
+		var new_coin = clone_die(workbench_slot[0].dice, "");
+		new_coin.dice_value = 2;
+		
 		workbench_slot[0].dice = undefined;
-		workbench_slot[1].core = undefined;
+		workbench_slot[1].dice = new_coin;
+		workbench_slot[2].dice = new_dice;
 		with (oDice) if (in_slot) instance_destroy();
 			
 		discard_dice_in_play();
@@ -146,24 +205,42 @@ if (!craft) {
 		//show_debug_message("New dice created.");
 			
 		// Spawn instance
-		var xx = start_x + (2 * (wb_tile_padding + wb_tile_size));
-		var die_inst = instance_create_layer(xx, start_y, "Instances", oDice);
+		var coin_xx = start_x + (1 * (wb_tile_padding + wb_tile_size));
+		var coin_inst = instance_create_layer(coin_xx, start_y, "Instances", oDice);
+		coin_inst.struct = new_coin;
+		coin_inst.action_type = new_coin.action_type;
+		coin_inst.dice_amount = new_coin.dice_amount;
+		coin_inst.dice_value  = new_coin.dice_value;
+		coin_inst.possible_type = new_coin.possible_type;
+		coin_inst.target_x = coin_xx;
+		coin_inst.target_y = start_y;
+		coin_inst.still = true;
+		
+		var die_xx = start_x + (2 * (wb_tile_padding + wb_tile_size));
+		var die_inst = instance_create_layer(die_xx, start_y, "Instances", oDice);
 		die_inst.struct = new_dice;
 		die_inst.action_type = new_dice.action_type;
 		die_inst.dice_amount = new_dice.dice_amount;
 		die_inst.dice_value  = new_dice.dice_value;
 		die_inst.possible_type = new_dice.possible_type;
-		die_inst.target_x = xx;
+		die_inst.target_x = die_xx;
 		die_inst.target_y = start_y;
 		die_inst.still = true;
-			
-	}
-	// Draw explosion and then create the die
-	bang_timer--;
 		
-	if (bang_timer > 0) {
-		draw_sprite(sBang, 0, gui_w/2, start_y + 280);
-	}
+		crafting_state = "snipped";
+	break;
+	
+	case "snipped":
+		snipped_x += 3;
+		snipped_y *= 1.13;
+		
+		snipped_y = min(snipped_y, 400);
+		
+		snipped_angle += max(2, snipped_y / 30);
+		
+		draw_sprite_ext(sButtonSmall, 1, gui_w/2 - snipped_x, start_y + 280 + snipped_y, (0.2 + button_text_w / 120) * (0.75 * button_scale), 0.75 * button_scale, snipped_angle, c_lime, 1.0);
+		draw_sprite_ext(sButtonSmall, 2, gui_w/2 + snipped_x, start_y + 280 + snipped_y, (0.2 + button_text_w / 120) * (0.75 * button_scale), 0.75 * button_scale, -snipped_angle, c_lime, 1.0);
+	break;
 }
 
 draw_outline_text("+", c_black, c_white, 2, gui_w/2 - wb_tile_size/2 - wb_tile_padding/2, start_y, 1, 1.0, 0);

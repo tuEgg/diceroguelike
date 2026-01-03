@@ -9,16 +9,18 @@ var chest_w = sprite_get_width(sChest);
 var chest_h = sprite_get_height(sChest);
 var chest_x = gui_w/2;
 var chest_y = gui_h/2 + 200;
-var chest_hover = mouse_hovering(chest_x, chest_y, chest_w, chest_h, true);
+var chest_hover = mouse_hovering(chest_x, chest_y - 130, chest_w, chest_h, true);
 
 if (chest_hover) {
 	chest_scale = lerp(chest_scale, 1.1, 0.2);
-	if (mouse_check_button_pressed(mb_left)) {
+	if (mouse_check_button_pressed(mb_left) && !chest_open) {
 		chest_open = true;
 	}
 } else {
 	chest_scale = lerp(chest_scale, 1.0, 0.2);
 }
+
+if (mouse_check_button_released(mb_left)) can_click = true
 
 // Draw chest
 draw_sprite_ext(sChest, chest_open, chest_x, chest_y, 1, 1, 0, c_white, 1.0);
@@ -34,19 +36,24 @@ var value = mid + sin(current_time * spd) * amp;
 
 // Draw chest glow
 if (chest_open) {
-	draw_sprite_ext(sChestGlow, 0, chest_x, chest_y - 140, 1, 1, 0, c_white, value);
+	draw_sprite_ext(sChestGlow, 0, chest_x, chest_y - 140, 1 + value/2, 1 + value/2, 0, c_white, value);
+	draw_sprite_ext(sChestGlow, 0, chest_x, chest_y - 140, 0.8 + value/3, 0.8 + value/3, 0, c_white, value + 0.2);
+	draw_sprite_ext(sChestGlow, 0, chest_x, chest_y - 140, 0.6 + value/4, 0.6 + value/4, 0, c_white, value + 0.4);
 	
-	var pos = value * 50;
+	var pos = value * 50 + keepsake_y;
+	
+	keepsake_y = lerp(keepsake_y, 0, 0.07);
+	keepsake_alpha = lerp(keepsake_alpha, 1.0, 0.07);
 	
 	if (keepsake_reward[| 0] != undefined) {
-		draw_sprite_ext(sKeepsake, keepsake_reward[| 0].sub_image, chest_x, chest_y - 300 + pos, 1.5, 1.5, 0, c_white, 1.0); 
+		draw_sprite_ext(sKeepsake, keepsake_reward[| 0].sub_image, chest_x, chest_y - 300 + pos, 1.5, 1.5, 0, c_white, keepsake_alpha); 
 	
 		var hover_keepsake = mouse_hovering(chest_x, chest_y - 300 + pos/2, 110, 110, true);
 	
 		if (hover_keepsake) {
 			queue_tooltip(mouse_x, mouse_y, keepsake_reward[| 0].name, keepsake_reward[| 0].desc);
 		
-			if (mouse_check_button_pressed(mb_left)) {
+			if (mouse_check_button_pressed(mb_left) && keepsake_alpha > 0.8) {
 				ds_list_add(oRunManager.keepsakes, keepsake_reward[| 0]);
 			
 				keepsake_reward[| 0] = undefined;

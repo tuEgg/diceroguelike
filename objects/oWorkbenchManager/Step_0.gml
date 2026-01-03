@@ -9,3 +9,9 @@ if (exiting) {
 		room_goto(rmMap);
 	}
 }
+
+if (!oHammer.over_button) && (!oScissors.over_button) {
+	button_hovered = false;
+}
+
+button_scale = lerp(button_scale, button_hovered ? 1.2 : 1.0, 0.2);

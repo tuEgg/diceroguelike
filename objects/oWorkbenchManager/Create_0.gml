@@ -1,5 +1,5 @@
 workbench_slot[0] = { dice: undefined, name: "Dice", xx: 715, yy: 490 }; // dice input
-workbench_slot[1] = { core: undefined, name: "Core", xx: 0, yy: 0 }; // core input
+workbench_slot[1] = { dice: undefined, core: undefined, name: "Core", xx: 0, yy: 0 }; // core input
 workbench_slot[2] = { dice: undefined, name: "Output", xx: 0, yy: 0 }; // dice output
 
 wb_scale[0] = 1.0;
@@ -12,13 +12,21 @@ slot_alpha = 1.0;
 
 hovered_slot_1 = false;
 core_prev_item_slot = -1;
-craft = false;
+crafting_state = "waiting"; // waiting, hammered, cut
 
 bang_timer = 15;
 
 exit_scale = 1.0;
 
 exiting = false;
+
+button_text = "Craft";
+button_hovered = false;
+button_scale = 1.0;
+
+snipped_x = 1;
+snipped_y = 1;
+snipped_angle = 0;
 
 with (oRunManager) {
 	if (!dice_dealt) {

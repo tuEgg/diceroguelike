@@ -4,6 +4,11 @@ switch (state) {
 		player_turn_done = false;
 		delayed_enemy_attack = false;
 		
+		if (turn_count == 1) {
+			combat_trigger_effects("on_combat_started", {});
+			sacrificies_til_new_action_tile = ds_list_size(action_queue) + slot_cost_modifier;
+		}
+		
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var enemy_data = room_enemies[| e].data;
 			var enemy = room_enemies[| e];

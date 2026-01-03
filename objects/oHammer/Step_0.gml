@@ -17,6 +17,7 @@ if (!is_dragging && hovered && mouse_check_button_pressed(mb_left)) {
 	drag_offset_x = mx - x;
 	drag_offset_y = my - y;
 	first_selected = true;
+	oWorkbenchManager.button_text = "Craft";
 }
 
 if (is_dragging && mouse_check_button_pressed(mb_right)) {
@@ -36,17 +37,23 @@ if (is_dragging) {
 		image_angle = lerp(image_angle, 0, 0.2);
 	}
 	
+	over_button = mouse_hovering(gui_w/2 + 200, gui_h/2 + 260, 280, 160, false);
+	
+	if (over_button) {
+		oWorkbenchManager.button_hovered = true;
+	}
+	
 	// Check if as we smash the hammer we are over the craft button
 	if (mouse_check_button_pressed(mb_left)) { 
-		var over_button = mouse_hovering(gui_w/2 + 200, gui_h/2 + 280, gui_w/2 + 400, gui_h/2 + 280 + 122, false);
 		if (over_button && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined) {
-			oWorkbenchManager.craft = true;
+			oWorkbenchManager.crafting_state = "hammered";
 		}
 	}
 } else {
 	oRunManager.holding_item = false;
 	x = lerp(x, xstart, 0.2);
 	y = lerp(y, ystart, 0.2);
+	over_button = false;
 }
 
 if (is_dragging && first_selected && mouse_check_button_released(mb_left)) {

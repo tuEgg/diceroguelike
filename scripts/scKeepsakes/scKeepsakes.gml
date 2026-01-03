@@ -2,7 +2,8 @@
 // https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
 
 function trigger_keepsake_visual() {
-	oRunManager.keepsake_scale[| ds_list_find_index(oRunManager.keepsakes, get_keepsake_by_id(self._id))] = 2.0;
+	var index = ds_list_find_index(oRunManager.keepsakes, self);
+	oRunManager.keepsake_scale[| index] = 2.0;
 }
 
 function define_keepsakes() {
@@ -55,7 +56,7 @@ function define_keepsakes() {
 	    name: "Salted Pork",
 	    desc: "Heal 10% more every time you rest",
 		sub_image: 29,
-		price: 100,
+		price: 90,
 	    trigger: function(event, data) {
 	        if (event == "on_rest") { // make sure we only trigger when we acquire THIS keepsake, not all keepsakes
 	            data.rest_amount += 0.10;
@@ -76,7 +77,7 @@ function define_keepsakes() {
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
 	            if (oCombat.turn_count == 1) {
-					data.bonus_dice = 1;
+					data.bonus_dice += 1;
 				
 					trigger_keepsake_visual();
 				}
@@ -106,6 +107,68 @@ function define_keepsakes() {
 	ds_list_add(global.master_keepsake_list, ks_toolbelt);
 	ds_list_add(global.shop_keepsake_list, ks_toolbelt);
 	
+	ks_rum = {
+	    _id: "rum",
+	    name: "Rum",
+	    desc: "All attacks gain +1 max roll and -1 min roll",
+	    sub_image: 30,
+		price: 110,
+	    trigger: function(event, data) {			
+			if (event == "on_roll_die") {
+				if (data.action_type == "ATK") {
+					data.min_roll -= 1;
+					data.max_roll += 1;
+					
+					if (!data.read_only) {
+						trigger_keepsake_visual();
+					}
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_rum);
+	ds_list_add(global.shop_keepsake_list, ks_rum);
+	
+	ks_rations = {
+	    _id: "rations",
+	    name: "Rations",
+	    desc: "When you drink a potion, heal 3 hitpoints",
+	    sub_image: 31,
+		price: 110,
+	    trigger: function(event, data) {			
+			if (event == "on_consumable_used") {
+	            if (global.player_hp < global.player_max_hp) {
+					var amount = 3;
+					process_action("player", 0, amount, 0, "player", undefined, "HEAL");
+					
+					trigger_keepsake_visual();
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_rations);
+	ds_list_add(global.shop_keepsake_list, ks_rations);
+	
+	ks_water_barrel = {
+	    _id: "water_barrel",
+	    name: "Water Barrel",
+	    desc: "Potions have a 30% chance to not be consumed",
+	    sub_image: 32,
+		price: 120,
+	    trigger: function(event, data) {			
+			if (event == "on_consumable_used") {
+				var random_chance = irandom(9);
+				
+				if (random_chance <= 2) {
+					data.use_potion = false;
+					trigger_keepsake_visual();
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_water_barrel);
+	ds_list_add(global.shop_keepsake_list, ks_water_barrel);
+	
 	
 	// ------------------
 	// EVENT KEEPSAKES
@@ -122,7 +185,7 @@ function define_keepsakes() {
 					if (!oCombat.is_dealing_dice) {
 						oCombat.dice_to_deal += 2;
 				
-					trigger_keepsake_visual();
+						trigger_keepsake_visual();
 					}
 				}
 	        }
@@ -633,7 +696,7 @@ function define_keepsakes() {
 	    _id: "shield_plating",
 	    name: "Shield Plating",
 	    desc: "+1 minimum roll on all Block die.",
-	    sub_image: 21,
+	    sub_image: 39,
 		state: { },
 	    trigger: function(event, data) {			
 			if (event == "on_roll_die") {
@@ -654,7 +717,7 @@ function define_keepsakes() {
 	    _id: "weapon_polish",
 	    name: "Weapon Polish",
 	    desc: "+1 minimum roll on all Attack die.",
-	    sub_image: 21,
+	    sub_image: 40,
 		state: { },
 	    trigger: function(event, data) {			
 			if (event == "on_roll_die") {
@@ -675,7 +738,7 @@ function define_keepsakes() {
 	    _id: "crossword_puzzle",
 	    name: "Crossword Puzzle",
 	    desc: "+1 minimum roll on all Neutral die.",
-	    sub_image: 21,
+	    sub_image: 41,
 		state: { },
 	    trigger: function(event, data) {			
 			if (event == "on_roll_die") {
@@ -696,7 +759,7 @@ function define_keepsakes() {
 	    _id: "book_of_secrets",
 	    name: "Book of Secrets",
 	    desc: "+1 minimum roll on all Intel die.",
-	    sub_image: 21,
+	    sub_image: 42,
 		state: { },
 	    trigger: function(event, data) {			
 			if (event == "on_roll_die") {
@@ -833,6 +896,92 @@ function define_keepsakes() {
 	};
 	ds_list_add(global.master_keepsake_list, ks_eye_patch);
 	ds_list_add(global.rollable_keepsake_list, ks_eye_patch);
+	
+	// ------------------
+	// BOSS KEEPSAKES
+	// ------------------	
+	
+	ks_krakens_grasp = {
+	    _id: "krakens_grasp",
+	    name: "Kraken's Grasp",
+	    desc: "+1 dice playable per turn, draw 1 less dice per turn",
+		sub_image: 34,
+	    trigger: function(event, data) {
+	        if (event == "on_turn_start") {
+	            data.bonus_dice += 1;
+				oCombat.dice_to_deal -= 1;
+				
+				trigger_keepsake_visual();
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_krakens_grasp);
+	ds_list_add(global.boss_keepsake_list, ks_krakens_grasp);
+	
+	ks_deep_lens = {
+	    _id: "deep_lens",
+	    name: "Deep Lens",
+	    desc: "Start the first 2 turns of combat with 12 Intel, replaces starting keepsake",
+		sub_image: 35,
+	    trigger: function(event, data) {
+	        if (event == "on_turn_start") {
+	            if (oCombat.turn_count <= 2) {
+					oCombat.player_intel = 12;
+					trigger_keepsake_visual();
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_deep_lens);
+	ds_list_add(global.boss_keepsake_list, ks_deep_lens);
+	
+	ks_scavengers_tear = {
+	    _id: "scavengers_tear",
+	    name: "Scavenger's Tear",
+	    desc: "Choose 2 dice to remove from your bag",
+		sub_image: 36,
+	    trigger: function(event, data) {
+	        if (event == "on_keepsake_acquired") {
+	            // Need to add choosing functionality
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_scavengers_tear);
+	ds_list_add(global.boss_keepsake_list, ks_scavengers_tear);
+	
+	ks_medallion_of_the_deep = {
+	    _id: "medallion_of_the_deep",
+	    name: "Medallion of the Sea",
+	    desc: "+1 dice playable per turn if you have extreme alignment",
+		sub_image: 37,
+	    trigger: function(event, data) {
+	        if (event == "on_turn_start") {
+				if (global.player_alignment < 20 || global.player_alignment > 80) {
+					data.bonus_dice += 1;
+					
+					trigger_keepsake_visual();
+				}
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_medallion_of_the_deep);
+	ds_list_add(global.boss_keepsake_list, ks_medallion_of_the_deep);
+	
+	ks_cursed_heart = {
+	    _id: "cursed_heart",
+	    name: "Cursed Heart",
+	    desc: "Slots cost 1 more die to create",
+		sub_image: 38,
+	    trigger: function(event, data) {
+	        if (event == "on_combat_started") {
+				oCombat.slot_cost_modifier += 1;
+					
+				trigger_keepsake_visual();
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_cursed_heart);
+	ds_list_add(global.boss_keepsake_list, ks_cursed_heart);
 }
 
 function get_keepsake_by_id(_id) {

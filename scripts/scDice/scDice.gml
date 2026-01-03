@@ -95,17 +95,17 @@ function generate_dice_bag() {
 
 	// Define starter dice structs
 	global.dice_all = make_die_struct(1, 4,"None", "All", "", "Multicolor die", "Counts as anything", "starter");
-	global.dice_d4_none = make_die_struct(1, 4,"None", "None", "", "Generic die", "Upgrades slots 1d4", "starter");
+	global.dice_d4_none = make_die_struct(1, 4,"None", "None", "", "Generic die", "Upgrades any action type", "starter");
 	//ds_list_add(global.master_dice_list, clone_die(global.dice_d4_none, ""));
-	global.dice_d6_atk = make_die_struct(1, 6,"ATK", "ATK", "", "Attack", "Deals 1d6 damage", "starter");
+	global.dice_d6_atk = make_die_struct(1, 6,"ATK", "ATK", "", "Attack", "Deals damage", "starter");
 	//ds_list_add(global.master_dice_list, clone_die(global.dice_d6_atk, ""));
-	global.dice_d4_atk = make_die_struct(1, 4,"ATK", "ATK", "", "Attack", "Deals 1d4 damage", "starter");
+	global.dice_d4_atk = make_die_struct(1, 4,"ATK", "ATK", "", "Attack", "Deals damage", "starter");
 	//ds_list_add(global.master_dice_list, clone_die(global.dice_d4_atk, ""));
-	global.dice_d6_blk = make_die_struct(1, 6,"BLK", "BLK", "", "Block", "Blocks 1d6 damage", "starter");
+	global.dice_d6_blk = make_die_struct(1, 6,"BLK", "BLK", "", "Block", "Blocks damage", "starter");
 	//ds_list_add(global.master_dice_list, clone_die(global.dice_d6_blk, ""));
-	global.dice_d4_blk = make_die_struct(1, 4,"BLK", "BLK", "", "Block", "Blocks 1d4 damage", "starter");
+	global.dice_d4_blk = make_die_struct(1, 4,"BLK", "BLK", "", "Block", "Blocks damage", "starter");
 	//ds_list_add(global.master_dice_list, clone_die(global.dice_d4_blk, ""));
-	global.dice_d4_intel = make_die_struct(1, 4,"INTEL", "INTEL", "", "Intel", "Provides 1d4 intel", "starter");
+	global.dice_d4_intel = make_die_struct(1, 4,"INTEL", "INTEL", "", "Intel", "Provides intel", "starter");
 	//ds_list_add(global.master_dice_list, clone_die(global.dice_d4_intel, ""));
 	
 	// Anchor Die: Gain +3 block if not used
@@ -432,26 +432,29 @@ function generate_dice_bag() {
 	// Fogcaller Die
 	global.die_fogcaller = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Fogcaller Die",
-	    "Followthrough: Draw a dice if the previous slot contained a coin.",
+	    "Followthrough: Gain +1 and draw a dice if the previous slot contained a coin.",
 		"common",
 		70,
 	    [
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
-					if (_context.slot_num > 0 && !_context.read_only) {
+					if (_context.slot_num > 0) {
 						var prev_slot_list = oCombat.action_queue[| _context.slot_num - 1 ].dice_list;
 						var prev_has_coin = false;
 					
 						for (var i = 0; i < ds_list_size(prev_slot_list); i++) {
 							if (string_pos("Coin", string(prev_slot_list[| i].description)) > 0) {
 								prev_has_coin = true;
+								_context._d_amount += 1;
 								break;
 							}
 						}
-					
-						if (prev_has_coin) {
-							with (oRunManager) deal_single_die(false);
+							
+						if (!_context.read_only) {
+							if (prev_has_coin) {
+								with (oRunManager) deal_single_die(false);
+							}
 						}
 					}
 	            }

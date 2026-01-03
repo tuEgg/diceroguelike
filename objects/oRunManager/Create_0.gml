@@ -197,3 +197,6 @@ active_bounty = undefined;
 
 health_scale = 1.0; // changes every time the player heals or loses health outside of room combat
 alignment_scale = 1.0;
+
+tool_list = ds_list_create();
+ds_list_add(tool_list, "hammer");

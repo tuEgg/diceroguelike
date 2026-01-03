@@ -201,6 +201,7 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none")
 			switch(_filter) {
 				case "none":
 					ds_list_add(_reward_list, clone_item(item_struct)); 
+					ds_list_delete( indices_items_rare, ds_list_find_index( indices_items_rare, item_struct));
 					show_debug_message("Added a rare item to the rewards.");
 				continue;
 				
@@ -209,7 +210,18 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none")
 						continue;
 					} else {
 						ds_list_add(_reward_list, clone_item(item_struct)); 
+						ds_list_delete( indices_items_rare, ds_list_find_index( indices_items_rare, item_struct));
 						show_debug_message("Added a rare consumable to the rewards.");
+					}
+				break;
+				
+				case "core":
+					if (item_struct.type != "core") {
+						continue;
+					} else {
+						ds_list_add(_reward_list, clone_item(item_struct)); 
+						ds_list_delete( indices_items_rare, ds_list_find_index( indices_items_rare, item_struct));
+						show_debug_message("Added a rare core to the rewards.");
 					}
 				break;
 			}
@@ -221,6 +233,7 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none")
 			switch(_filter) {
 				case "none":
 					ds_list_add(_reward_list, clone_item(item_struct)); 
+					ds_list_delete( indices_items_uncommon, ds_list_find_index( indices_items_uncommon, item_struct));
 					show_debug_message("Added an uncommon item to the rewards.");
 				continue;
 				
@@ -229,7 +242,18 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none")
 						continue;
 					} else {
 						ds_list_add(_reward_list, clone_item(item_struct)); 
+						ds_list_delete( indices_items_uncommon, ds_list_find_index( indices_items_uncommon, item_struct));
 						show_debug_message("Added an uncommon consumable to the rewards.");
+					}
+				break;
+				
+				case "core":
+					if (item_struct.type != "core") {
+						continue;
+					} else {
+						ds_list_add(_reward_list, clone_item(item_struct)); 
+						ds_list_delete( indices_items_uncommon, ds_list_find_index( indices_items_uncommon, item_struct));
+						show_debug_message("Added an uncommon core to the rewards.");
 					}
 				break;
 			}
@@ -248,6 +272,7 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none")
 			switch(_filter) {
 				case "none":
 					ds_list_add(_reward_list, clone_item(item_struct)); 
+					ds_list_delete( indices_items_common, ds_list_find_index( indices_items_common, item_struct));
 					show_debug_message("Added a common item to the rewards.");
 				continue;
 				
@@ -256,7 +281,18 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none")
 						continue;
 					} else {
 						ds_list_add(_reward_list, clone_item(item_struct)); 
+						ds_list_delete( indices_items_common, ds_list_find_index( indices_items_common, item_struct));
 						show_debug_message("Added a common consumable to the rewards.");
+					}
+				break;
+				
+				case "core":
+					if (item_struct.type != "core") {
+						continue;
+					} else {
+						ds_list_add(_reward_list, clone_item(item_struct)); 
+						ds_list_delete( indices_items_common, ds_list_find_index( indices_items_common, item_struct));
+						show_debug_message("Added a common core to the rewards.");
 					}
 				break;
 			}
