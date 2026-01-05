@@ -222,7 +222,7 @@ switch (state) {
 		if (debug_mode) {
 			if keyboard_check_pressed(vk_space) {
 				for (var i = 0; i < ds_list_size(room_enemies); i++) {
-					process_action(room_enemies[| i], 1, 1, 20, "player", -1, "ATK", 0, global.dice_d4_atk, 1);
+					process_action(room_enemies[| i], 0, 20, 0, "player", -1, "ATK", 0, global.dice_d4_atk, 1);
 				}
 			}
 		}
@@ -440,6 +440,7 @@ switch (state) {
 				// Count down buff timers
 				if (slot.buffed > 0) {
 					slot.buffed -= 1;
+					show_debug_message("we are reducing buffed timers now");
 					
 					if (slot.buffed == 0) {
 						slot.bonus_amount = slot.pre_buff_amount;

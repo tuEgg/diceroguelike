@@ -12,7 +12,6 @@ function define_keepsakes() {
 	global.shop_keepsake_list = ds_list_create();
 	global.boss_keepsake_list = ds_list_create(); // keepsakes that are acquired from completing a voyage
 
-
 	// ------------------
 	// STARTER KEEPSAKES
 	// ------------------
@@ -236,7 +235,7 @@ function define_keepsakes() {
 	    _id: "starvers_efficiency",
 	    name: "Starver's Efficiency",
 	    desc: "The first block you play each turn rolls twice and takes the higher value",
-		sub_image: 0,
+		sub_image: 43,
 		state: { effect_used: false },
 	    trigger: function(event, data) {
 	        if (event == "on_roll_die") {
@@ -355,12 +354,23 @@ function define_keepsakes() {
 		state: {
 		},
 	    trigger: function(event, data) {
-			if (event == "on_dice_played_to_slot" || event == "on_new_slot_created")  {
-				if (string_pos(" ", data._slot.possible_type) == 0) {
-					data._slot.bonus_amount += 1;
-					data._slot.buffed += 1;
+			if (event == "on_dice_played_to_slot")  {
+				if (data._slot > -1) {
+					if (string_pos(" ", data._slot.possible_type) == 0) {
+						data._slot.bonus_amount += 1;
+						data._slot.buffed += 1;
+					}
 				}
 	        }
+			
+			if (event == "after_new_slot_created") {
+				var slot = oCombat.action_queue[| ds_list_size(oCombat.action_queue) -1];
+				
+				if (string_pos(" ", slot.possible_type) == 0) {
+					slot.bonus_amount += 1;
+					slot.buffed += 1;
+				}
+			}
 			
 			if (event == "on_turn_start")  {
 				for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
@@ -416,27 +426,33 @@ function define_keepsakes() {
 		        case "on_roll_die":
 					var last_type = "";
 					var streak = 0;
-						
-					for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
-						var slot = oCombat.action_queue[| i];
-						var bonus_before = slot.bonus_amount;
+					
+					if (room == rmCombat) {
+						for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
+							var slot = oCombat.action_queue[| i];
+							var bonus_before = slot.bonus_amount;
 							
-						if (slot.current_action_type == last_type) {
-							streak++;
-						} else {
-							streak = 0;
+							if (slot.current_action_type == last_type) {
+								streak++;
+							} else {
+								streak = 0;
+							}
+							
+							if (self.state.buffed_list[| i] == 0) {
+								self.state.buffed_list[| i] = streak;
+								slot.bonus_amount = self.state.buffed_list[| i];
+							}
+							
+							last_type = slot.current_action_type;
+							//show_debug_message("Slot buffed list amount " + string(i) + ":" + string(self.state.buffed_list[| i]));
+							//show_debug_message("Slot bonus amount " + string(i) + ":" + string(oCombat.action_queue[| i].bonus_amount));
 						}
-							
-						if (self.state.buffed_list[| i] == 0) {
-							self.state.buffed_list[| i] = streak;
-							slot.bonus_amount = self.state.buffed_list[| i];
-						}
-							
-						last_type = slot.current_action_type;
-						show_debug_message("Slot buffed list amount " + string(i) + ":" + string(self.state.buffed_list[| i]));
-						show_debug_message("Slot bonus amount " + string(i) + ":" + string(oCombat.action_queue[| i].bonus_amount));
 					}
 		        break;
+				
+				case "on_combat_end":
+					ds_list_clear(self.state.buffed_list);
+				break;
 			}
 	    }
 	};
@@ -540,6 +556,28 @@ function define_keepsakes() {
 	};
 	ds_list_add(global.master_keepsake_list, ks_lead_line);
 	ds_list_add(global.rollable_keepsake_list, ks_lead_line);
+	
+	ks_friendship_bracelet = {
+	    _id: "friendship_bracelet",
+	    name: "Friendship Bracelet",
+	    desc: "On pickup, choose a die in your bag to gain Favourite",
+	    sub_image: 16,
+		state: { },
+	    trigger: function(event, data) {			
+			if (event == "on_keepsake_acquired" && data.keepsake_id == _id) {
+	            // Need to add choosing functionality
+				oRunManager.dice_selection = 1;
+				oRunManager.dice_selection_message = "Choose 1 dice to add Favourite to.";
+				oRunManager.dice_selection_event = function(_die) {
+					var old_desc = _die.description;
+					_die.description = "Favourite. " + old_desc;
+				}
+				
+	        }
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_friendship_bracelet);
+	ds_list_add(global.rollable_keepsake_list, ks_friendship_bracelet);
 	
 	
 	// ------------------
@@ -941,8 +979,16 @@ function define_keepsakes() {
 	    desc: "Choose 2 dice to remove from your bag",
 		sub_image: 36,
 	    trigger: function(event, data) {
-	        if (event == "on_keepsake_acquired") {
+	        if (event == "on_keepsake_acquired" && data.keepsake_id == _id) {
 	            // Need to add choosing functionality
+				oRunManager.dice_selection = 2;
+				oRunManager.dice_selection_message = "Choose 2 dice to remove";
+				oRunManager.dice_selection_event = function(_die) {
+					var _ind = ds_list_find_index(global.dice_bag, _die);
+					
+					ds_list_delete(global.dice_bag, _ind);
+				}
+				
 	        }
 	    }
 	};
@@ -992,8 +1038,32 @@ function get_keepsake_by_id(_id) {
 	}
 }
 
-function gain_keepsake(_keepsake_struct) {
-	ds_list_add(oRunManager.keepsakes, _keepsake_struct);
+/// @func gain_keepsake(_keepsake_struct, _list)
+/// @param _list	The list to remove this keepsake from
+function gain_keepsake(_keepsake_struct, _list = undefined) {
+	with (oRunManager) {
+		ds_list_add(keepsakes, _keepsake_struct);
+	
+		if (_list != undefined) {
+			show_debug_message("Removing keepsake from list: " + string(_list));
+			var keepsake_id  = string(_keepsake_struct._id);
+			
+			show_debug_message("Item to remove: " + string(keepsake_id));
+			var index = -1;
+			
+			for (var i = 0; i < ds_list_size(_list); i++) {
+				if (_list[| i]._id == keepsake_id) {
+					index = i;
+					break;
+				}
+			}
+			
+			show_debug_message("Index found " + string(index));
+		
+			ds_list_delete( _list, index); // remove from future shop keepsakes
+			show_debug_message("List length is now: " + string(ds_list_size(_list)));
+		}
+	}
 	
 	var ctx = {
 		keepsake_id: _keepsake_struct._id,

@@ -21,14 +21,9 @@ function deal_single_die( _can_discard_this_turn = true) {
 	            ds_list_clear(global.discard_pile);
 	        } else {
 	            //show_debug_message("No dice left to deal, stopping dealing.");
+				oCombat.dice_to_deal = 0;
 	            return;
 	        }
-	    }
-
-	    if (ds_list_size(global.dice_bag) == 0) {
-	        //show_debug_message("No dice available after reshuffle — GAME OVER.");
-	        game_end();
-	        return;
 	    }
 	}
 
@@ -40,15 +35,14 @@ function deal_single_die( _can_discard_this_turn = true) {
 	var die_struct = undefined;
 	var index = 0;
 		
-	// Trigger on before dealt effects for every dice in the bag
+	// Check for favourites and deal them first
 	for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
-		trigger_die_effects_single(global.dice_bag[| d], "before_dice_dealt", trigger_data);
 		// only check for favourites on first turn
-		if (turn_count == 1) {
-			if (trigger_data.favourite == true) {
+		if (turn_count <= 1) {
+			var fave = string_has_keyword(global.dice_bag[| d].description, "Favourite");
+			if (fave) {
 				die_struct = clone_die(global.dice_bag[| d], "");
 				index = d;
-				trigger_data.favourite = false;
 			}
 		}
 	}
@@ -107,6 +101,7 @@ function generate_dice_bag() {
 	//ds_list_add(global.master_dice_list, clone_die(global.dice_d4_blk, ""));
 	global.dice_d4_intel = make_die_struct(1, 4,"INTEL", "INTEL", "", "Intel", "Provides intel", "starter");
 	//ds_list_add(global.master_dice_list, clone_die(global.dice_d4_intel, ""));
+	global.dice_d4_heal = make_die_struct(1, 4,"HEAL", "HEAL", "", "Heal", "Heals", "starter");
 	
 	// Anchor Die: Gain +3 block if not used
 	global.die_anchor = make_die_struct(
@@ -150,14 +145,7 @@ function generate_dice_bag() {
 	    "Coin. Favourite. Multitype: Can create HEAL and BLK slots.",
 		"rare",
 		100,
-	    [
-	        {
-	            trigger: "before_dice_dealt",
-	            modify: function(_context) {
-	                _context.favourite = true;
-	            }
-	        }
-	    ]
+	    []
 	);
 	ds_list_add(global.master_dice_list, clone_die(global.die_defensive, ""));
 	
@@ -681,7 +669,7 @@ function generate_dice_bag() {
 	ds_list_add(global.master_dice_list, clone_die(global.die_bouncing, ""));
 	
 	global.die_guerrilla_coin = make_die_struct(
-	    1, 2, "INTEL", "INTEL", "", "Guerrilla Die",
+	    1, 2, "INTEL", "INTEL", "", "Guerrilla Coin",
 	    "Coin. When sacrificed, deal damage to a random enemy equal to the amount of intel you have.",
 		"common",
 		70,
@@ -755,7 +743,6 @@ function generate_dice_bag() {
 	    ]
 	);
 	ds_list_add(global.master_dice_list, clone_die(global.die_balanced, ""));
-	
 	
 	// Add to bag
 	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_atk, "")); }
@@ -841,6 +828,7 @@ function make_die_struct(_amount, _value, _action, _poss, _perm, _name, _desc, _
 		forced_roll: -1,
 		roll_twice: false,
 		min_roll_bonus: 0,
+		selected: false,				// used for dice selection events in the bag
 		statistics: {
 			times_rolled_this_combat: 0,
 			times_played_this_combat: 0,
@@ -959,12 +947,13 @@ function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
 		roll_twice: false,
 		repeat_followthrough: false,
 		owner: _owner,
-		dice_index: _die_index,
 		weighting: ""
 	};
 
 	// Let keepsakes/dice adjust roll range
 	combat_trigger_effects("on_roll_die", roll_data, _die);
+	
+	if (roll_data.min_roll > roll_data.max_roll) roll_data.min_roll = roll_data.max_roll;
 	
 	return {
 		min_roll: roll_data.min_roll,

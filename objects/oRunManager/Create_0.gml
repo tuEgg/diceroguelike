@@ -27,6 +27,9 @@ define_buffs_and_debuffs();
 enemy_definitions();
 define_items();
 
+global.main_input_disabled = false; // allows you to interact with menus and the bag screen without affecting elements behind it
+global.all_input_disabled = false; // prevents player from doing anything
+
 global.player_max_hp = 40;
 global.player_hp = global.player_max_hp;
 global.player_alignment = 50;
@@ -200,3 +203,10 @@ alignment_scale = 1.0;
 
 tool_list = ds_list_create();
 ds_list_add(tool_list, "hammer");
+
+dice_selection = false; // set to a number when you want to select a certain number of dice to process an event for
+dice_selection_message = "";
+dice_selection_scale = 1.0; // used for the button
+dice_selection_list = ds_list_create();
+dice_selection_num_selected = 0;
+dice_selection_event = undefined;

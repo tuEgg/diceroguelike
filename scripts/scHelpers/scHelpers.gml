@@ -44,8 +44,9 @@ function choose_weighting_list(list) {
 ///
 /// @returns { hover: bool, click: bool, scale: real, x: real, y: real, w: real, h: real }
 
-function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rect)
-{
+function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rect) {
+	
+	// this function needs to be deprecated soon as its leftover from when we originally first did buttons
     var mx = device_mouse_x_to_gui(0);
     var my = device_mouse_y_to_gui(0);
 
@@ -57,6 +58,9 @@ function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _f
 
     // Hover & click
     var hover = (mx > draw_x && mx < draw_x + w && my > draw_y && my < draw_y + h && _active);
+	
+	if (global.main_input_disabled) hover = false;
+	
     var click = hover && mouse_check_button_pressed(mb_left);
 
     // Smooth hover animation
@@ -439,6 +443,11 @@ function get_keywords_in_string(str) {
 function mouse_hovering(_x, _y, _width, _height, _centered) {
 	var mx = device_mouse_x_to_gui(0);
 	var my = device_mouse_y_to_gui(0);
+	
+	// This disables inputs for anything when main_input_disabled is true and we aren't the oRunManager object
+	if (global.main_input_disabled && id.object_index != oRunManager) {
+		return false;
+	}
 	
 	//draw_set_colour(c_black);
 	//draw_set_alpha(0.2);

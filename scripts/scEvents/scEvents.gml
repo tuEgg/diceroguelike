@@ -86,7 +86,8 @@ function define_events() {
 				for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
 					var die = global.dice_bag[| d];
 					
-					if (die.action_type == "HEAL" || die.action_type == "BLK") {
+					// only heal and block dice, avoid coins
+					if (die.action_type == "HEAL" || die.action_type == "BLK") && (die.dice_value != 2) {
 						ds_list_add(heal_block_list, die);
 					}
 				}
@@ -117,7 +118,7 @@ function define_events() {
 			description: "Cut rations for everyone. - alignment, + keepsake.",
 			effect: function(_context) {
 				global.player_alignment -= 4;
-				ds_list_add(oRunManager.keepsakes, oRunManager.ks_starvers_efficiency);
+				gain_keepsake(oRunManager.ks_starvers_efficiency);
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
@@ -168,7 +169,7 @@ function define_events() {
 				for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
 					var die = global.dice_bag[| d];
 					
-					if (die.action_type == "ATK" && die.dice_value < 12) {
+					if (die.action_type == "ATK" && die.dice_value < 12 && die.dice_value != 2) {
 						ds_list_add(attack_list, d);
 					}
 				}
@@ -218,7 +219,7 @@ function define_events() {
 			effect: function(_context) {
 				if (oRunManager.credits >= 10) {
 					oRunManager.credits -= 10;
-					ds_list_add(oRunManager.keepsakes, oRunManager.ks_small_sail);
+					gain_keepsake(oRunManager.ks_small_sail);
 					oEventManager.event_complete = 0;
 					oEventManager.event_selected = true;
 				} else {
@@ -243,7 +244,7 @@ function define_events() {
 					var rand = irandom(array_length(item_pool) - 1);
 					
 					oRunManager.items[rand] = undefined;
-					ds_list_add(oRunManager.keepsakes, oRunManager.ks_rope_of_repair);
+					gain_keepsake(oRunManager.ks_rope_of_repair);
 					oEventManager.event_complete = 1;
 					oEventManager.event_selected = true;
 				} else {

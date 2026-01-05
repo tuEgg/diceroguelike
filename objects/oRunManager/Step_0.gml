@@ -1,5 +1,11 @@
-key_escape = keyboard_check(vk_escape);
-if key_escape game_end();
+key_escape = keyboard_check_pressed(vk_escape);
+if key_escape {
+	if (bag_hover_locked) {
+		bag_hover_locked = false;
+	} else {
+		game_end();
+	}
+}
 
 key_restart = keyboard_check(ord("R"));
 if key_restart game_restart();
@@ -22,6 +28,13 @@ if (debug_mode) {
 	
 	key_treasure = keyboard_check_pressed(ord("T"));
 	if (key_treasure) room_goto(rmTreasure);
+	
+	key_treasure = keyboard_check_pressed(ord("G"));
+	if (key_treasure) {
+		for (var i = 0; i < ds_list_size(global.master_keepsake_list); i++) {
+			gain_keepsake(global.master_keepsake_list[| i]);
+		}
+	}
 	
 	
 	key_combat = keyboard_check_pressed(ord("C"));
@@ -79,6 +92,8 @@ if (error_timer > 0) {
 	error_message = "";
 	error_description = "";
 }
+
+global.main_input_disabled = bag_hover_locked;
 
 //if (mouse_check_button_pressed(mb_left)) {
 //	particle_emit( mouse_x, mouse_y, choose("rise"), c_red);

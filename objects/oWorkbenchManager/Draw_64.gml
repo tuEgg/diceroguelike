@@ -192,7 +192,25 @@ switch (crafting_state) {
 	case "cut":
 		var new_dice = clone_die(workbench_slot[0].dice, "");
 		new_dice.dice_value = workbench_slot[0].dice.dice_value - 2;
-		var new_coin = clone_die(workbench_slot[0].dice, "");
+		
+		var base_coin = global.dice_d4_none;
+		
+		switch(workbench_slot[0].dice.action_type) {
+			case "ATK":
+				base_coin = global.dice_d4_atk;
+			break;
+			case "BLK":
+				base_coin = global.dice_d4_blk;
+			break;
+			case "INTEL":
+				base_coin = global.dice_d4_intel;
+			break;
+			case "HEAL":
+				base_coin = global.dice_d4_heal;
+			break;
+		}
+		
+		var new_coin = clone_die(base_coin, "");
 		new_coin.dice_value = 2;
 		
 		workbench_slot[0].dice = undefined;

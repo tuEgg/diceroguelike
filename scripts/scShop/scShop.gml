@@ -339,7 +339,6 @@ function generate_keepsake_rewards(_reward_list, _keepsake_list, _num) {
 		
 		var keepsake_struct = indices_keepsakes[| rand_index];
 		ds_list_add(_reward_list, clone_keepsake(keepsake_struct));
-		ds_list_delete( _keepsake_list, ds_list_find_index( _keepsake_list, keepsake_struct));
 		ds_list_delete( indices_keepsakes, ds_list_find_index( indices_keepsakes, keepsake_struct));
 		continue;  
 	}

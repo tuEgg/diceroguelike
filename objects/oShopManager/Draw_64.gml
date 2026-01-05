@@ -131,7 +131,7 @@ for (var k = 0; k < ds_list_size(shop_keepsake_options); k++) {
 			if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= keepsake.price) {
 				oRunManager.credits -= keepsake.price;
 				
-				gain_keepsake(keepsake);
+				gain_keepsake(keepsake, global.shop_keepsake_list);
 				
 				shop_keepsake_options[| k] = undefined;
 			}

@@ -27,6 +27,9 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 			
 			_min_roll = dice_output.min_roll + _slot_die.min_roll_bonus;			
 			_max_roll = dice_output.max_roll;
+			
+			if (_min_roll > _max_roll) _min_roll = _max_roll;
+			
 			_keepsake_dice_bonus_amount = dice_output.keepsake_dice_bonus_amount;
 			var _keepsake_weighting = dice_output.weighting; // currently only used to add weighting to coins from the Lucky Coin 
 			var _prev_slot_type = dice_output.previous_slot_type;
@@ -449,15 +452,18 @@ function get_hovered_action_slot() {
         var base_w = aq_tile_w;
         var base_h = aq_tile_w;
         var current_scale = tile_scale[| i];
+		
+		if (current_scale != undefined) {
+	        var draw_w = base_w * current_scale;
+	        var draw_h = base_h * current_scale;
+	        var draw_x = base_x + (base_w - draw_w) / 2;
+	        var draw_y = base_y + (base_h - draw_h) / 2;
 
-        var draw_w = base_w * current_scale;
-        var draw_h = base_h * current_scale;
-        var draw_x = base_x + (base_w - draw_w) / 2;
-        var draw_y = base_y + (base_h - draw_h) / 2;
 
-        if (mx > draw_x && mx < draw_x + draw_w && my > draw_y && my < draw_y + draw_h) {
-            return i;
-        }
+	        if (mx > draw_x && mx < draw_x + draw_w && my > draw_y && my < draw_y + draw_h) {
+	            return i;
+	        }
+		}
     }
 	
     return -1; // no slot hovered
@@ -701,6 +707,7 @@ function sacrifice_die(_die) {
 	var sacrifice_data = {
 		die: die,
 		duplicate_die: false,
+		slot_index: ds_list_size(oCombat.action_queue) // 1 more than the highest index currently of the action queue
 	};
 	
 	trigger_die_effects_single(die.struct, "on_sacrifice_die", sacrifice_data);
@@ -740,6 +747,7 @@ function sacrifice_die(_die) {
 	
 	var sacrifice_new_slot_data = {
 		owner: "player",
+		slot_index: ds_list_size(oCombat.action_queue) + 1,
 	};
 	
 	combat_trigger_effects("on_new_slot_created", sacrifice_data);

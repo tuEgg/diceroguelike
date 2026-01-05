@@ -54,7 +54,7 @@ if (chest_open) {
 			queue_tooltip(mouse_x, mouse_y, keepsake_reward[| 0].name, keepsake_reward[| 0].desc);
 		
 			if (mouse_check_button_pressed(mb_left) && keepsake_alpha > 0.8) {
-				ds_list_add(oRunManager.keepsakes, keepsake_reward[| 0]);
+				gain_keepsake(keepsake_reward[| 0], global.rollable_keepsake_list);
 			
 				keepsake_reward[| 0] = undefined;
 			}

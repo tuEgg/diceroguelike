@@ -306,7 +306,7 @@ if (room == rmMap) {
 	draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 1, 1, boat_data.angle, c_white, 1.0);
 }
 
-if (debug_mode) {
+if (debug_mode) && keyboard_check(vk_alt) {
 	var world_debug = [];
 	array_push(world_debug, combat_chance);
 	array_push(world_debug, event_chance);

@@ -1,4 +1,4 @@
- gui_w = display_get_gui_width();
+gui_w = display_get_gui_width();
 gui_h = display_get_gui_height();
 
 var mx = device_mouse_x_to_gui(0);
@@ -97,6 +97,8 @@ for (var i = 0; i < aq_list_size; i++) {
 
     // Hover check based on *scaled* rectangle
     var hover = (mx > draw_x && mx < draw_x + draw_w && my > draw_y && my < draw_y + draw_h && !show_rewards);
+	
+	if (global.main_input_disabled) hover = false;
 
     // Smooth scale update
     var target_scale = hover ? 1.2 : 1.0;
@@ -991,7 +993,7 @@ if (show_rewards) {
 
 			    // --- Click logic: Take reward ---
 			    if (!rewards_keepsake_taken && btn.click) {
-			        ds_list_add(oRunManager.keepsakes, keepsake);
+			        gain_keepsake(keepsake, global.rollable_keepsake_list);
 					rewards_keepsake_taken = true;
 			    }
 			}

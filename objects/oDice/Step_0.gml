@@ -26,7 +26,7 @@ var bottom = y + half_h;
 
 // --- Hover detection (exclusive) ---
 var hovered_local = (mx > left && mx < right && my > top && my < bottom);
-if (oRunManager.holding_item) hovered_local = false;
+if (oRunManager.holding_item || global.main_input_disabled) hovered_local = false;
 
 // If nothing else is hovered OR this dice is already the hovered one
 if (hovered_local && (global.hovered_dice_id == noone || global.hovered_dice_id == id)) {
