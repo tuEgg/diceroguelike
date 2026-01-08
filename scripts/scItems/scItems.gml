@@ -597,13 +597,10 @@ function trigger_item_effects(_item, _event, _data) {
 }
 
 function gain_item(_consumable) {
-	var first_free_slot = -1;
-	for (var n = 0; n < array_length(oRunManager.items); n++) {
-		if (oRunManager.items[n] == undefined) {
-			first_free_slot = n;
-			break;
-		}
-	}
+	var first_free_slot = get_first_free_item_slot();
+	
+	show_debug_message(first_free_slot);
+	
 	if (first_free_slot != -1) {
 		oRunManager.items[first_free_slot] = clone_item(_consumable);
 		oRunManager.items_hover_scale[first_free_slot] = 1.2;
@@ -611,4 +608,18 @@ function gain_item(_consumable) {
 	}
 	
 	return true;
+}
+
+function get_first_free_item_slot() {
+	var free_slot = -1;
+	
+	for (var n = 0; n < array_length(oRunManager.items); n++) {
+		if (oRunManager.items[n] == undefined) {
+			free_slot = n;
+			show_debug_message("free slot: " + string(n));
+			break;
+		}
+	}
+	
+	return free_slot;
 }

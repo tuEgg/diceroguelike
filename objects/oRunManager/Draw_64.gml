@@ -67,7 +67,7 @@ for (var i = 0; i < array_length(items); i++) {
 			sprite_x = mouse_x;
 			sprite_y = mouse_y;
 		} else {
-			sprite_x = core_x;
+			sprite_x = core_x + i_x;
 			sprite_y = core_y;
 		}
 	}
@@ -372,25 +372,42 @@ if (bag_hover_locked) {
 			// Functionality for selection events
 			if (dice_selection != false) {
 				if (mouse_check_button_pressed(mb_left) && info_hover) {
-					if (dice.selected) {
-						dice.selected = false;
-						dice_selection_num_selected -= 1;
-						var _ind = ds_list_find_index(dice_selection_list, dice);
-						ds_list_delete(dice_selection_list, _ind);
-						show_debug_message("dice_selection_list size: " + string(ds_list_size(dice_selection_list)));
-					} else {
-						if (dice_selection_num_selected < dice_selection) {
-							dice.selected = true;
-							dice_selection_num_selected += 1;
-							ds_list_add(dice_selection_list, dice);
+					var filter_pass = false;
+					
+					switch (dice_selection_filter) {
+						case "none":
+							filter_pass = true; // allow all dice types through
+						break;
+						case "coin":
+							if (dice.dice_value == 2) {
+								filter_pass = true;
+							} else {
+								throw_error("Not a coin", "You must select a coin");
+							}
+						break;
+					}
+					
+					if (filter_pass) {
+						if (dice.selected) {
+							dice.selected = false;
+							dice_selection_num_selected -= 1;
+							var _ind = ds_list_find_index(dice_selection_list, dice);
+							ds_list_delete(dice_selection_list, _ind);
 							show_debug_message("dice_selection_list size: " + string(ds_list_size(dice_selection_list)));
+						} else {
+							if (dice_selection_num_selected < dice_selection) {
+								dice.selected = true;
+								dice_selection_num_selected += 1;
+								ds_list_add(dice_selection_list, dice);
+								show_debug_message("dice_selection_list size: " + string(ds_list_size(dice_selection_list)));
+							}
 						}
 					}
 				}
 			}
 	
 			// Give highlighted dice a white border
-			if (info_hover || dice_hover == dice) {
+			if (info_hover) {
 				draw_set_alpha(dice_alpha);
 				draw_set_color(c_white);
 				draw_roundrect(dice_x - box_width/2 - 2, dice_y - box_height/2 - 2, dice_x + box_width/2 + 2, dice_y + box_height/2 + 2, false);
@@ -424,6 +441,26 @@ if (bag_hover_locked) {
 		        draw_outline_text(parsed[p].text, c_black, parsed[p].colour, 2, desc_x, desc_y, 1, dice_alpha, 0, col_spacing - 40);
 		        desc_x += string_width(parsed[p].text);
 		    }
+			
+			// Need to draw distribution
+			if (dice.distribution != "") {
+				var core_index = get_core_index(dice);
+				
+				draw_sprite_ext(
+		            sCores, core_index,
+		            dice_x,
+		            dice_y - 30,
+		            0.5, 0.5, 0, c_white, 1
+		        );
+			
+				if (info_hover) {
+					draw_dice_distribution(dice, dice_x, dice_y - 100, true);
+				}
+			}
+			
+			// Need to draw if this dice has any min_roll_bonus
+			draw_outline_text(string(dice.min_roll_bonus + 1) + "-" + string(dice.dice_value), c_black, c_white, 2, dice_x, dice_y - 75, 1, dice_alpha, 0);
+			
 		}
 	}
 	
@@ -535,6 +572,7 @@ if (dice_selection != false) {
 			dice_selection = false;
 			dice_selection_message = "";
 			dice_selection_num_selected = 0;
+			dice_selection_filter = "none";
 			ds_list_clear(dice_selection_list);
 			show_debug_message("list clear");
 			dice_hover = undefined;

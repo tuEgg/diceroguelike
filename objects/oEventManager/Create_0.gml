@@ -1,5 +1,3 @@
-define_events();
-
 chosen_event = undefined;
 
 generate_event();

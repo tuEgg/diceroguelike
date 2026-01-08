@@ -1437,7 +1437,7 @@ function add_enemy_to_fight(_enemy) {
 		max_hp: _enemy.max_hp,
 		hp: debug_mode ? 1 : _enemy.current_hp,
 		hp_display: debug_mode ? 1 : _enemy.current_hp,
-		block_amount: 0,
+		block_amount: _enemy.starting_block,
 		alpha: 1.0,
 		dead: false,
 		looted: false,

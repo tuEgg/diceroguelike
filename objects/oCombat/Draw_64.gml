@@ -1211,13 +1211,8 @@ if (show_rewards) {
 			    // Take first reward
 			    if (rewards_consumables_first_taken == -1 && btn.click) {
 					if (consumable.name != "Coins") {
-						var first_free_slot = -1;
-						for (var n = 0; n < array_length(oRunManager.items); n++) {
-							if (oRunManager.items[n] == undefined) {
-								first_free_slot = n;
-								break;
-							}
-						}
+						var first_free_slot = get_first_free_item_slot();
+						
 						if (first_free_slot != -1) {
 							var gained_item = gain_item(consumable);
 							if (gained_item) {
@@ -1237,18 +1232,13 @@ if (show_rewards) {
 			    // Take second reward
 			    if (rewards_consumables_first_taken != -1 && !rewards_consumables_second_taken && btn.click && r != rewards_consumables_locked && !consumable.taken) {
 					if (consumable.name != "Coins") {
-						var first_free_slot = -1;
-						for (var n = 0; n < array_length(oRunManager.items); n++) {
-							if (oRunManager.items[n] == undefined) {
-								first_free_slot = n;
-								break;
-							}
-						}
+						var first_free_slot = get_first_free_item_slot();
+						
 						if (first_free_slot != -1) {
-							oRunManager.items[first_free_slot] = clone_item(consumable);
-							oRunManager.items_hover_scale[first_free_slot] = 1.2;
-							consumable.taken = true;
-							rewards_consumables_second_taken = true;
+							var gained_item = gain_item(consumable);
+							if (gained_item) {
+								rewards_consumables_second_taken = true;
+							}
 						} else {
 							throw_error("No space", "Right click to delete an existing item");
 						}

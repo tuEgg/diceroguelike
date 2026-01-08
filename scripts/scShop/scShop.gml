@@ -2,7 +2,7 @@
 // https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
 function stock_shop() {
 	var num_dice = 4;
-	var num_consumables = 3;
+	var num_consumables = 4;
 	var num_keepsakes = 3;
 	
 	shop_dice_options = ds_list_create();
@@ -22,7 +22,7 @@ function stock_shop() {
 }
 
 /// @func generate_dice_rewards(_reward_list, _item_list, _num)
-function generate_dice_rewards(_reward_list, _item_list, _num) {
+function generate_dice_rewards(_reward_list, _item_list, _num, _filter = "none") {
 	show_debug_message("Generating dice rewards");
 	
 	var total_dice = ds_list_size(_item_list);
@@ -54,8 +54,8 @@ function generate_dice_rewards(_reward_list, _item_list, _num) {
 	
 	// set rarity likelihood
 	var common_dice_chance = 200;
-	var uncommon_dice_chance = 40;
-	var rare_dice_chance = 1;
+	var uncommon_dice_chance = clamp(40 + (round(global.player_luck - 50)/2), 10, 200);
+	var rare_dice_chance = max(1, 1 + (round(global.player_luck - 50))/10);
 	
 	if (room == rmBounty) {
 		uncommon_dice_chance = 200;
@@ -94,37 +94,78 @@ function generate_dice_rewards(_reward_list, _item_list, _num) {
 			var die_struct = indices_dice_rare[| rare_index ];
 				
 			if (die_struct != die_1 && die_struct != die_2) {
-				if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
-				if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
+				switch (_filter) {
+					case "none":
+						if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
+						if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
 				
-				ds_list_add(_reward_list, clone_die(die_struct, ""));
+						ds_list_add(_reward_list, clone_die(die_struct, ""));
+					break;
+					
+					case "coin":
+						if (die_struct.dice_value != 2) {
+							continue;
+						} else {
+							if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
+							if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
+				
+							ds_list_add(_reward_list, clone_die(die_struct, ""));
+						}
+					break;
+				}
 			}
 			continue;
-		}
-				
-		if (chance <= uncommon_dice_chance) {
+		} else if (chance <= uncommon_dice_chance) {
 			var uncommon_index = irandom(ds_list_size(indices_dice_uncommon)-1);
 			var die_struct = indices_dice_uncommon[| uncommon_index ];
 				
 			if (die_struct != die_1 && die_struct != die_2) {
-				if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
-				if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
+				switch (_filter) {
+					case "none":
+						if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
+						if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
 				
-				ds_list_add(_reward_list, clone_die(die_struct, ""));
+						ds_list_add(_reward_list, clone_die(die_struct, ""));
+					break;
+					
+					case "coin":
+						if (die_struct.dice_value != 2) {
+							continue;
+						} else {
+							if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
+							if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
+				
+							ds_list_add(_reward_list, clone_die(die_struct, ""));
+						}
+					break;
+				}
 			}
 
 			continue;
-		}
-				
-		if (chance <= common_dice_chance) {
+		} else if (chance <= common_dice_chance) {
 			var common_index = irandom(ds_list_size(indices_dice_common)-1);
 			var die_struct = indices_dice_common[| common_index ];
 				
 			if (die_struct != die_1 && die_struct != die_2) {
-				if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
-				if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
+				switch (_filter) {
+					case "none":
+						if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
+						if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
 				
-				ds_list_add(_reward_list, clone_die(die_struct, ""));
+						ds_list_add(_reward_list, clone_die(die_struct, ""));
+					break;
+					
+					case "coin":
+						if (die_struct.dice_value != 2) {
+							continue;
+						} else {
+							if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
+							if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
+				
+							ds_list_add(_reward_list, clone_die(die_struct, ""));
+						}
+					break;
+				}
 			}
 					
 			continue;
@@ -138,7 +179,7 @@ function generate_dice_rewards(_reward_list, _item_list, _num) {
 	ds_list_destroy(indices_dice_rare);
 }
 
-function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none") {
+function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none", _rarity = "all") {
 	show_debug_message("Generating item rewards");
 	var total_items = ds_list_size(_item_list);
 	var indices_items_common = ds_list_create();
@@ -169,12 +210,17 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none")
 	
 	// set item rarity chance
 	var common_item_chance = 200;
-	var uncommon_item_chance = 60;
-	var rare_item_chance = 10;
+	var uncommon_item_chance = clamp(60 + (round(global.player_luck - 50)/2), 10, 200);
+	var rare_item_chance = clamp(10 + (round(global.player_luck - 50)/5), 1, 200);
 	
 	if (room == rmBounty) {
 		uncommon_item_chance = 200;
 		rare_item_chance = 100;
+	}
+	
+	if (room == rmShop) {
+		uncommon_item_chance = clamp(80 + (round(global.player_luck - 50)/2), 10, 200);
+		rare_item_chance = clamp(20 + (round(global.player_luck - 50)/5), 1, 200);
 	}
 
 	// pick up to 3 unique entries
@@ -193,11 +239,35 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none")
 			}
 		}
 		
-		// Random number but make common rewards less likely on each subsequent slot
-		var chance = irandom_range(1, 200 - ds_list_size(_reward_list) * 20 );
+		// Variable used to check which item to generate
+		var chance;
+		
+		switch (_rarity) {
+			case "all":
+				// Random number but make common rewards less likely on each subsequent slot
+				chance = irandom_range(1, 200 - ds_list_size(_reward_list) * 20 );
+			break;
+			case "common":
+				// Random number but make common rewards less likely on each subsequent slot
+				chance = common_item_chance;
+			break;
+			case "uncommon":
+				// Random number but make common rewards less likely on each subsequent slot
+				chance = uncommon_item_chance;
+			break;
+			case "rare":
+				// Random number but make common rewards less likely on each subsequent slot
+				chance = rare_item_chance;
+			break;
+		}
+		
+		show_debug_message("Rolled item chance is: " + string(chance));
 				
 		if (chance <= rare_item_chance) {
 			var item_struct = indices_items_rare[| irandom(ds_list_size(indices_items_rare)-1) ];
+			
+			show_debug_message("Item struct generated: " + string(item_struct));
+			
 			switch(_filter) {
 				case "none":
 					ds_list_add(_reward_list, clone_item(item_struct)); 
@@ -225,10 +295,7 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none")
 					}
 				break;
 			}
-		}
-				
-				
-		if (chance <= uncommon_item_chance) {
+		} else if (chance <= uncommon_item_chance) {
 			var item_struct = indices_items_uncommon[| irandom(ds_list_size(indices_items_uncommon)-1) ];
 			switch(_filter) {
 				case "none":
@@ -257,9 +324,7 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none")
 					}
 				break;
 			}
-		}
-				
-		if (chance <= common_item_chance) {
+		} else if (chance <= common_item_chance) {
 			var item_struct = indices_items_common[| irandom(ds_list_size(indices_items_common)-1) ];
 			if (item_struct.name == "Coins") {
 				if (room == rmShop || room = rmEvent) { // we don't want to generate coins as a reward in shops or events

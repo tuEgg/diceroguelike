@@ -10,3 +10,7 @@ if (ds_exists(keepsake_scale, ds_type_list)) ds_list_destroy(keepsake_scale);
 if (ds_exists(global.enemy_debuffs, ds_type_list)) ds_list_destroy(global.enemy_debuffs);
 if (ds_exists(global.player_debuffs, ds_type_list)) ds_list_destroy(global.player_debuffs);
 if (ds_exists(global.player_intel_data, ds_type_list)) ds_list_destroy(global.player_intel_data);
+if (ds_exists(global.master_event_list, ds_type_list)) {
+	ds_list_destroy(global.master_event_list);
+	global.master_event_list = undefined;
+}

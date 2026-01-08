@@ -483,6 +483,8 @@ function generate_dice_bag() {
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
+					if (room != rmCombat) exit;
+					
 					var type_str = "";
 					for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
 						slot = oCombat.action_queue[| i];

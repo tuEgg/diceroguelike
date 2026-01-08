@@ -24,8 +24,9 @@ randomise();
 credits = debug_mode ? 500 : 50;
 generate_dice_bag();
 define_buffs_and_debuffs();
-enemy_definitions();
+define_enemies();
 define_items();
+define_events();
 
 global.main_input_disabled = false; // allows you to interact with menus and the bag screen without affecting elements behind it
 global.all_input_disabled = false; // prevents player from doing anything
@@ -34,6 +35,7 @@ global.player_max_hp = 40;
 global.player_hp = global.player_max_hp;
 global.player_alignment = 50;
 global.hand_size = 5;
+global.player_luck = 50; // used for reward generation
 keepsakes = ds_list_create();
 keepsake_scale = ds_list_create();
 credits_scale = 1.0;
@@ -210,3 +212,4 @@ dice_selection_scale = 1.0; // used for the button
 dice_selection_list = ds_list_create();
 dice_selection_num_selected = 0;
 dice_selection_event = undefined;
+dice_selection_filter = "none";

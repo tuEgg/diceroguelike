@@ -320,19 +320,7 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
     } else if (_dice != undefined) {
 		// Draw core icon
 		if (_dice.distribution != "") {
-			var core_index = 0;
-			switch (_dice.distribution) {
-				case "weighted":	core_index = 0;		break;
-				case "loaded":		core_index = 1;		break;
-				case "edge":		core_index = 2;		break;
-				case "binary":		core_index = 3;		break;
-				case "bell":		core_index = 4;		break;
-				case "dome":		core_index = 5;		break;
-				case "odd":			core_index = 6;		break;
-				case "even":		core_index = 7;		break;
-				case "dual":		core_index = 8;		break;
-				case "tower":		core_index = 9;		break;
-			}
+			var core_index = get_core_index(_dice);
 			draw_sprite_ext(
 	            sCores, core_index,
 	            xx + sprite_get_width(sCores)/2 + padding - 5,
@@ -779,3 +767,25 @@ function draw_arc_thick_deg_gradient(
     draw_primitive_end();
 }
 
+function get_random_distribution() {
+	return choose("weighted", "loaded", "edge", "binary", "bell", "dome", "odd", "even", "dual", "tower");
+}
+
+function get_core_index(_dice) {
+	var core_index = -1;
+	
+	switch (_dice.distribution) {
+		case "weighted":	core_index = 0;		break;
+		case "loaded":		core_index = 1;		break;
+		case "edge":		core_index = 2;		break;
+		case "binary":		core_index = 3;		break;
+		case "bell":		core_index = 4;		break;
+		case "dome":		core_index = 5;		break;
+		case "odd":			core_index = 6;		break;
+		case "even":		core_index = 7;		break;
+		case "dual":		core_index = 8;		break;
+		case "tower":		core_index = 9;		break;
+	}
+	
+	return core_index;
+}

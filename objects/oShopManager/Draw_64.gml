@@ -1,4 +1,4 @@
-var consumable_pos = { x: 150, y: 665 };
+var consumable_pos = { x: 80, y: 715 };
 var dice_pos = { x: 735, y: 595 };
 var keepsake_pos = { x: 460, y: 935 };
 

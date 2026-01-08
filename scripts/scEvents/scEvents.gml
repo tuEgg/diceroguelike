@@ -144,7 +144,7 @@ function define_events() {
 	// --------------------------
 	
 	event_upgrade = {
-		name: "Clear skies.",
+		name: "Clear skies",
 		description: "Clear skies ahead after a long night of travel, a chance to rest as the journey continues.",
 		options: ds_list_create(),
 	}
@@ -210,7 +210,7 @@ function define_events() {
 	// --------------------------
 	
 	event_sails = {
-		name: "Broken sails.",
+		name: "Broken sails",
 		description: "One of the sails has a tear in it, travel will be difficult without making repairs or replacing it.",
 		options: ds_list_create(),
 	}
@@ -314,6 +314,587 @@ function define_events() {
 	ds_list_add(event_bounty.options, event_bounty_opt_2);
 	ds_list_add(event_bounty.options, event_bounty_opt_3);
 	ds_list_add(global.master_event_list, event_bounty);
+	
+	
+	// --------------------------
+	// EVENT
+	// --------------------------
+	
+	event_trunk = {
+		name: "A Hidden Trunk",
+		description: "You tidy up your quarters, and discover a small trunk under the bed you left there months ago. You open it - excited as you remember what's inside. What do you see?",
+		options: ds_list_create(),
+	}
+		event_trunk_opt_1 = {
+			description: "A token from an ex lover - Gain a random dice",
+			effect: function(_context) {
+				
+				// Generate a random dice
+				var dice_options = ds_list_create();
+				generate_dice_rewards(dice_options, global.master_dice_list, 1);
+				
+				var die_struct = dice_options[| 0];
+				
+				var die_inst = instance_create_layer(display_get_gui_width()/2, display_get_gui_height() + 100, "Instances", oDice);
+				die_inst.struct = die_struct;
+			    die_inst.action_type = die_struct.action_type;
+			    die_inst.dice_amount = die_struct.dice_amount;
+			    die_inst.dice_value  = die_struct.dice_value;
+				die_inst.possible_type = die_struct.possible_type;
+				die_inst.can_discard = true;
+
+				var target = generate_valid_targets(1, 100) [0];
+				die_inst.target_x = target[0];
+				die_inst.target_y = target[1];
+				
+				ds_list_destroy(dice_options);
+					
+				oEventManager.event_complete = 0;
+				oEventManager.event_selected = true;
+				
+			},
+			result: "Result"
+		}
+		event_trunk_opt_2 = {
+			description: "An heirloom from a time gone by - Gain a random core",
+			effect: function(_context) {
+				if (get_first_free_item_slot() != -1) {
+					
+					// Generate a random core
+					var consumable_options = ds_list_create();
+					generate_item_rewards(consumable_options, global.master_item_list, 1, "core");
+					gain_item(consumable_options[| 0]);
+					ds_list_destroy(consumable_options);
+					
+					oEventManager.event_complete = 1;
+					oEventManager.event_selected = true;
+					
+				} else {
+					throw_error("No free slots", "Make space by destroying an item (right click)");
+				}
+			},
+			result: "Result"
+		}
+		event_trunk_opt_3 = {
+			description: "A tonic that you were saving for a special day - Gain a random potion",
+			effect: function(_context) {
+				if (get_first_free_item_slot() != -1) {
+					
+					// Generate a random potion
+					var consumable_options = ds_list_create();
+					generate_item_rewards(consumable_options, global.master_item_list, 1, "consumable");
+					gain_item(consumable_options[| 0]);
+					ds_list_destroy(consumable_options);
+					
+					oEventManager.event_complete = 2;
+					oEventManager.event_selected = true;
+					
+				} else {
+					throw_error("No free slots", "Make space by destroying an item (right click)");
+				}
+			},
+			result: "Result"
+		}
+	ds_list_add(event_trunk.options, event_trunk_opt_1);
+	ds_list_add(event_trunk.options, event_trunk_opt_2);
+	ds_list_add(event_trunk.options, event_trunk_opt_3);
+	ds_list_add(global.master_event_list, event_trunk);
+	
+	
+	// --------------------------
+	// EVENT
+	// --------------------------
+	
+	event_plunder = {
+		name: "Some old loot",
+		description: "The crew dug some old loot up from a previous plunder.",
+		options: ds_list_create(),
+	}
+		event_plunder_opt_1 = {
+			description: "Stick your hand in and pull something out - Gain a random keepsake, 50% chance to lose 5 hp.",
+			effect: function(_context) {
+				// Generate a random keepsake
+				var keepsake_options = ds_list_create();
+				generate_keepsake_rewards(keepsake_options, global.rollable_keepsake_list, 1);
+				gain_keepsake(keepsake_options[| 0], global.rollable_keepsake_list);
+				ds_list_destroy(keepsake_options);
+				
+				var take_damage = irandom(1);
+				
+				if (take_damage) global.player_hp -= 5;
+				
+				oEventManager.event_complete = 0;
+				oEventManager.event_selected = true;
+				
+			},
+			result: "Result"
+		}
+		event_plunder_opt_2 = {
+			description: "Get the crew to find something for you - Gain a random rare dice core",
+			effect: function(_context) {
+				if (get_first_free_item_slot() != -1) {
+					
+					// Generate a random core
+					show_debug_message("generating a core");
+					var consumable_options = ds_list_create();
+					generate_item_rewards(consumable_options, global.master_item_list, 1, "core", "rare");
+					gain_item(consumable_options[| 0]);
+					ds_list_destroy(consumable_options);
+					
+					oEventManager.event_complete = 1;
+					oEventManager.event_selected = true;
+					
+				} else {
+					throw_error("No free slots", "Make space by destroying an item (right click)");
+				}
+			},
+			result: "Result"
+		}
+	ds_list_add(event_plunder.options, event_plunder_opt_1);
+	ds_list_add(event_plunder.options, event_plunder_opt_2);
+	ds_list_add(global.master_event_list, event_plunder);
+	
+	
+	// --------------------------
+	// EVENT
+	// --------------------------
+	
+	event_gunner = {
+		name: "Spare Ammuniation",
+		description: "The gunner found some spare ammunition lying around, and is offering it to you before selling the rest. Which will you take?",
+		options: ds_list_create(),
+	}
+		event_gunner_opt_1 = {
+			description: "Roundshot - Choose a dice to gain +2 max roll",
+			effect: function(_context) {
+				oRunManager.dice_selection = 1;
+				oRunManager.dice_selection_message = "Choose a dice to gain +2 max roll";
+				oRunManager.dice_selection_event = function(_die) {
+					_die.dice_value += 2;
+					
+					particle_emit(115, 1000, "rise", get_dice_color(_die.action_type), 30);
+				}
+				oEventManager.event_complete = 0;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+		event_gunner_opt_2 = {
+			description: "Chainshot - Choose a dice to gain +1 min roll",
+			effect: function(_context) {
+				oRunManager.dice_selection = 1;
+				oRunManager.dice_selection_message = "Choose a dice to gain +1 min roll";
+				oRunManager.dice_selection_event = function(_die) {
+					_die.min_roll_bonus += 1;
+					
+					particle_emit(115, 1000, "rise", get_dice_color(_die.action_type), 30);
+				}
+				oEventManager.event_complete = 1;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+		event_gunner_opt_3 = {
+			description: "Grapeshot - Choose a dice to gain a random core",
+			effect: function(_context) {
+				oRunManager.dice_selection = 1;
+				oRunManager.dice_selection_message = "Choose a dice to gain a random core";
+				oRunManager.dice_selection_event = function(_die) {
+					_die.distribution = get_random_distribution();
+					
+					particle_emit(115, 1000, "rise", get_dice_color(_die.action_type), 30);
+				}
+				oEventManager.event_complete = 2;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+	ds_list_add(event_gunner.options, event_gunner_opt_1);
+	ds_list_add(event_gunner.options, event_gunner_opt_2);
+	ds_list_add(event_gunner.options, event_gunner_opt_3);
+	ds_list_add(global.master_event_list, event_gunner);
+	
+	
+	// --------------------------
+	// EVENT
+	// --------------------------
+	
+	event_albatross = {
+		name: "A bird flies aboard",
+		description: "An albatross flies aboard your ship, there is seemingly no land around for hundreds of miles. It has something hanging from its neck.",
+		options: ds_list_create(),
+	}
+		event_albatross_opt_1 = {
+			description: "Offer it some food - If you have a shop relic, heal to full and gain 7 max hitpoints",
+			effect: function(_context) {
+				var player_has_shop_keepsake = false;
+				
+				for (var i = 0; i < ds_list_size(oRunManager.keepsakes); i++) {
+					var keepsake = oRunManager.keepsakes[| i];
+					if (keepsake._id == "lime_juice")
+					|| (keepsake._id == "salted_pork")
+					|| (keepsake._id == "pickled_cucumber")
+					|| (keepsake._id == "toolbelt")
+					|| (keepsake._id == "rum")
+					|| (keepsake._id == "rations")
+					|| (keepsake._id == "water_barrel") {
+						player_has_shop_keepsake = true;
+					}
+				}
+				
+				// Example of conditional event
+				if (player_has_shop_keepsake) {
+					oEventManager.event_complete = 0;
+					oEventManager.event_selected = true;
+				} else {
+					throw_error("No shop relic found", "You can't take this option without a shop relic");
+				}
+			},
+			result: "Result"
+		}
+		event_albatross_opt_2 = {
+			description: "Take the object hanging around its neck - Gain a random keepsake, lose 7 alignment",
+			effect: function(_context) {
+				// Generate a random keepsake
+				var keepsake_options = ds_list_create();
+				generate_keepsake_rewards(keepsake_options, global.rollable_keepsake_list, 1);
+				gain_keepsake(keepsake_options[| 0], global.rollable_keepsake_list);
+				ds_list_destroy(keepsake_options);
+				
+				global.player_alignment -= 7;
+				oEventManager.event_complete = 1;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+		event_albatross_opt_3 = {
+			description: "Offer your blessings to the Albatross - Gain 10 alignment",
+			effect: function(_context) {
+				global.player_alignment += 10;
+				oEventManager.event_complete = 2;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+	ds_list_add(event_albatross.options, event_albatross_opt_1);
+	ds_list_add(event_albatross.options, event_albatross_opt_2);
+	ds_list_add(event_albatross.options, event_albatross_opt_3);
+	ds_list_add(global.master_event_list, event_albatross);
+	
+	
+	// --------------------------
+	// EVENT
+	// --------------------------
+	
+	event_wishing_well = {
+		name: "The Wishing Well",
+		description: "Your crew stops at a small island to gather resources and rest. Progress halts for a day or two as they find something hidden in a dark cave. It lights up the far end of a cavern. As you approach, you realise it's a wishing well.",
+		options: ds_list_create(),
+	}
+		event_wishing_well_opt_1 = {
+			description: "Reach into the water and steal a penny - gain a random coin, lose alignment",
+			effect: function(_context) {
+				// Generate a random dice
+				var dice_options = ds_list_create();
+				generate_dice_rewards(dice_options, global.master_dice_list, 1, "coin");
+				
+				var die_struct = dice_options[| 0];
+				
+				var die_inst = instance_create_layer(display_get_gui_width()/2, display_get_gui_height() + 100, "Instances", oDice);
+				die_inst.struct = die_struct;
+			    die_inst.action_type = die_struct.action_type;
+			    die_inst.dice_amount = die_struct.dice_amount;
+			    die_inst.dice_value  = die_struct.dice_value;
+				die_inst.possible_type = die_struct.possible_type;
+				die_inst.can_discard = true;
+
+				var target = generate_valid_targets(1, 100) [0];
+				die_inst.target_x = target[0];
+				die_inst.target_y = target[1];
+				
+				ds_list_destroy(dice_options);
+				
+				global.player_alignment -= 4;
+					
+				oEventManager.event_complete = 0;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+		event_wishing_well_opt_2 = {
+			description: "Make a wish - remove a coin from your bag, gain improved luck for the run",
+			effect: function(_context) {
+				// initialize variables
+				var player_has_coin = false;
+				
+				// discover if the player has a coin
+				for (var i = 0; i < ds_list_size(global.dice_bag); i++) {
+					var dice = global.dice_bag[| i];
+					if (dice.dice_value == 2) {
+						player_has_coin = true;
+						break;
+					}
+				}
+				
+				// if the player has a coin, delete it and give them permanent luck, otherwise throw an error
+				if (player_has_coin) {
+					oRunManager.dice_selection = 1;
+					oRunManager.dice_selection_filter = "coin";
+					oRunManager.dice_selection_message = "Choose a coin to toss into the well";
+					oRunManager.dice_selection_event = function(_die) {
+						var die_index = ds_list_find_index(global.dice_bag, _die);
+						ds_list_delete(global.dice_bag, die_index);
+						
+						global.player_luck += 10;
+						
+						particle_emit(115, 1000, "burst", c_red, 30);
+					}
+					
+					oEventManager.event_complete = 1;
+					oEventManager.event_selected = true;
+				} else {
+					throw_error("No coins found in bag", "You cannot take this option without at least 1 coin in your bag");
+				}
+			},
+			result: "Result"
+		}
+		event_wishing_well_opt_3 = {
+			description: "Leave it",
+			effect: function(_context) {
+				oEventManager.event_complete = 2;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+	ds_list_add(event_wishing_well.options, event_wishing_well_opt_1);
+	ds_list_add(event_wishing_well.options, event_wishing_well_opt_2);
+	ds_list_add(event_wishing_well.options, event_wishing_well_opt_3);
+	ds_list_add(global.master_event_list, event_wishing_well);
+	
+	
+	// --------------------------
+	// EVENT
+	// --------------------------
+	
+	event_EVENTNAME = {
+		name: "Title",
+		description: "Description",
+		options: ds_list_create(),
+	}
+		event_EVENTNAME_opt_1 = {
+			description: "Detail",
+			effect: function(_context) {
+				// Example of conditional event
+				if (condition) {
+					oEventManager.event_complete = 0;
+					oEventManager.event_selected = true;
+				} else {
+					throw_error("Errormessage", "Errordescription");
+				}
+			},
+			result: "Result"
+		}
+		event_EVENTNAME_opt_2 = {
+			description: "Detail",
+			effect: function(_context) {
+				// Example of instant event
+				oEventManager.event_complete = 1;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+		event_EVENTNAME_opt_3 = {
+			description: "Detail",
+			effect: function(_context) {
+				oEventManager.event_complete = 2;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_1);
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_2);
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_3);
+	ds_list_add(global.master_event_list, event_EVENTNAME);
+	
+	
+	// --------------------------
+	// EVENT
+	// --------------------------
+	
+	event_EVENTNAME = {
+		name: "Title",
+		description: "Description",
+		options: ds_list_create(),
+	}
+		event_EVENTNAME_opt_1 = {
+			description: "Detail",
+			effect: function(_context) {
+				// Example of conditional event
+				if (condition) {
+					oEventManager.event_complete = 0;
+					oEventManager.event_selected = true;
+				} else {
+					throw_error("Errormessage", "Errordescription");
+				}
+			},
+			result: "Result"
+		}
+		event_EVENTNAME_opt_2 = {
+			description: "Detail",
+			effect: function(_context) {
+				// Example of instant event
+				oEventManager.event_complete = 1;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+		event_EVENTNAME_opt_3 = {
+			description: "Detail",
+			effect: function(_context) {
+				oEventManager.event_complete = 2;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_1);
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_2);
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_3);
+	ds_list_add(global.master_event_list, event_EVENTNAME);
+	
+	
+	// --------------------------
+	// EVENT
+	// --------------------------
+	
+	event_EVENTNAME = {
+		name: "Title",
+		description: "Description",
+		options: ds_list_create(),
+	}
+		event_EVENTNAME_opt_1 = {
+			description: "Detail",
+			effect: function(_context) {
+				// Example of conditional event
+				if (condition) {
+					oEventManager.event_complete = 0;
+					oEventManager.event_selected = true;
+				} else {
+					throw_error("Errormessage", "Errordescription");
+				}
+			},
+			result: "Result"
+		}
+		event_EVENTNAME_opt_2 = {
+			description: "Detail",
+			effect: function(_context) {
+				// Example of instant event
+				oEventManager.event_complete = 1;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+		event_EVENTNAME_opt_3 = {
+			description: "Detail",
+			effect: function(_context) {
+				oEventManager.event_complete = 2;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_1);
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_2);
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_3);
+	ds_list_add(global.master_event_list, event_EVENTNAME);
+	
+	
+	// --------------------------
+	// EVENT
+	// --------------------------
+	
+	event_EVENTNAME = {
+		name: "Title",
+		description: "Description",
+		options: ds_list_create(),
+	}
+		event_EVENTNAME_opt_1 = {
+			description: "Detail",
+			effect: function(_context) {
+				// Example of conditional event
+				if (condition) {
+					oEventManager.event_complete = 0;
+					oEventManager.event_selected = true;
+				} else {
+					throw_error("Errormessage", "Errordescription");
+				}
+			},
+			result: "Result"
+		}
+		event_EVENTNAME_opt_2 = {
+			description: "Detail",
+			effect: function(_context) {
+				// Example of instant event
+				oEventManager.event_complete = 1;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+		event_EVENTNAME_opt_3 = {
+			description: "Detail",
+			effect: function(_context) {
+				oEventManager.event_complete = 2;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_1);
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_2);
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_3);
+	ds_list_add(global.master_event_list, event_EVENTNAME);
+	
+	
+	// --------------------------
+	// EVENT
+	// --------------------------
+	
+	event_EVENTNAME = {
+		name: "Title",
+		description: "Description",
+		options: ds_list_create(),
+	}
+		event_EVENTNAME_opt_1 = {
+			description: "Detail",
+			effect: function(_context) {
+				// Example of conditional event
+				if (condition) {
+					oEventManager.event_complete = 0;
+					oEventManager.event_selected = true;
+				} else {
+					throw_error("Errormessage", "Errordescription");
+				}
+			},
+			result: "Result"
+		}
+		event_EVENTNAME_opt_2 = {
+			description: "Detail",
+			effect: function(_context) {
+				// Example of instant event
+				oEventManager.event_complete = 1;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+		event_EVENTNAME_opt_3 = {
+			description: "Detail",
+			effect: function(_context) {
+				oEventManager.event_complete = 2;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_1);
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_2);
+	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_3);
+	ds_list_add(global.master_event_list, event_EVENTNAME);
 }
 
 function generate_event() {
@@ -324,4 +905,5 @@ function generate_event() {
 	event = global.master_event_list[| rand];
 	
 	chosen_event = event;
+	ds_list_delete(global.master_event_list, rand);
 }

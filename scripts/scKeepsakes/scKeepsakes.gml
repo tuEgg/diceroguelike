@@ -980,7 +980,6 @@ function define_keepsakes() {
 		sub_image: 36,
 	    trigger: function(event, data) {
 	        if (event == "on_keepsake_acquired" && data.keepsake_id == _id) {
-	            // Need to add choosing functionality
 				oRunManager.dice_selection = 2;
 				oRunManager.dice_selection_message = "Choose 2 dice to remove";
 				oRunManager.dice_selection_event = function(_die) {
