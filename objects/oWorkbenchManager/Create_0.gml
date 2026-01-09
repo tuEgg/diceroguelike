@@ -36,3 +36,7 @@ with (oRunManager) {
 		dice_dealt = true;
 	}
 }
+
+error_shake = false;
+error_wobble_phase = 0;
+error_wobble_amp = 30; // degrees

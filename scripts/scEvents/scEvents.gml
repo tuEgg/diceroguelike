@@ -152,7 +152,12 @@ function define_events() {
 			description: "Get some much needed sleep. +5 max hp, heal to full.",
 			effect: function(_context) {
 				global.player_max_hp += 5;
-				global.player_hp = global.player_max_hp;
+				if (global.player_hp < global.player_max_hp) {
+					var amount = global.player_max_hp - global.player_hp;
+					process_action("player", 0, amount, 0, "player", undefined, "HEAL");
+					
+					trigger_keepsake_visual();
+				}
 				
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;
@@ -460,7 +465,7 @@ function define_events() {
 	// --------------------------
 	
 	event_gunner = {
-		name: "Spare Ammuniation",
+		name: "Spare Ammunition",
 		description: "The gunner found some spare ammunition lying around, and is offering it to you before selling the rest. Which will you take?",
 		options: ds_list_create(),
 	}
@@ -596,7 +601,7 @@ function define_events() {
 			effect: function(_context) {
 				// Generate a random dice
 				var dice_options = ds_list_create();
-				generate_dice_rewards(dice_options, global.master_dice_list, 1, "coin");
+				generate_dice_rewards(dice_options, global.master_dice_list, 1, "", "coin");
 				
 				var die_struct = dice_options[| 0];
 				
@@ -676,135 +681,218 @@ function define_events() {
 	// EVENT
 	// --------------------------
 	
-	event_EVENTNAME = {
-		name: "Title",
-		description: "Description",
+	event_mermaid = {
+		name: "An island dream",
+		description: "In a dream you find yourself on an island. You take a stroll along a rocky outcropping before being pulled below the surface of the water. A mermaid meets your face as you exhale bubbles that cover the view of her for a moment. As the sea stills her beauty captures you. What will you do?",
 		options: ds_list_create(),
 	}
-		event_EVENTNAME_opt_1 = {
-			description: "Detail",
+		event_mermaid_opt_1 = {
+			description: "Offer her a treasure and leave - Choose a die from your bag to remove",
 			effect: function(_context) {
-				// Example of conditional event
-				if (condition) {
-					oEventManager.event_complete = 0;
-					oEventManager.event_selected = true;
-				} else {
-					throw_error("Errormessage", "Errordescription");
+				oRunManager.dice_selection = 1;
+				oRunManager.dice_selection_message = "Choose a die to remove";
+				oRunManager.dice_selection_event = function(_die) {
+					var die_index = ds_list_find_index(global.dice_bag, _die);
+						
+					particle_emit(115, 1000, "burst", get_dice_color(global.dice_bag[| die_index].action_type), 30);
+					ds_list_delete(global.dice_bag, die_index);
 				}
+					
+				oEventManager.event_complete = 0;
+				oEventManager.event_selected = true;
 			},
 			result: "Result"
 		}
-		event_EVENTNAME_opt_2 = {
-			description: "Detail",
+		event_mermaid_opt_2 = {
+			description: "Listen to her song - Heal 40% health",
 			effect: function(_context) {
-				// Example of instant event
+				if (global.player_hp < global.player_max_hp) {
+					var amount = global.player_max_hp * 0.4;
+					process_action("player", 0, amount, 0, "player", undefined, "HEAL");
+					
+					trigger_keepsake_visual();
+				}
+				
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
 			result: "Result"
 		}
-		event_EVENTNAME_opt_3 = {
-			description: "Detail",
+		event_mermaid_opt_3 = {
+			description: "Venture into the depths with her - Lose 5 max health for a random rare dice",
 			effect: function(_context) {
+				// Generate a random dice
+				var dice_options = ds_list_create();
+				generate_dice_rewards(dice_options, global.master_dice_list, 1, "rare", "");
+				
+				var die_struct = dice_options[| 0];
+				
+				var die_inst = instance_create_layer(display_get_gui_width()/2, display_get_gui_height() + 100, "Instances", oDice);
+				die_inst.struct = die_struct;
+			    die_inst.action_type = die_struct.action_type;
+			    die_inst.dice_amount = die_struct.dice_amount;
+			    die_inst.dice_value  = die_struct.dice_value;
+				die_inst.possible_type = die_struct.possible_type;
+				die_inst.can_discard = true;
+
+				var target = generate_valid_targets(1, 100) [0];
+				die_inst.target_x = target[0];
+				die_inst.target_y = target[1];
+				
+				ds_list_destroy(dice_options);
+				
+				global.player_max_hp -= 5;
+				if (global.player_hp > global.player_max_hp) global.player_hp = global.player_max_hp;
+				
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
 			},
 			result: "Result"
 		}
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_1);
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_2);
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_3);
-	ds_list_add(global.master_event_list, event_EVENTNAME);
+	ds_list_add(event_mermaid.options, event_mermaid_opt_1);
+	ds_list_add(event_mermaid.options, event_mermaid_opt_2);
+	ds_list_add(event_mermaid.options, event_mermaid_opt_3);
+	ds_list_add(global.master_event_list, event_mermaid);
 	
 	
 	// --------------------------
 	// EVENT
 	// --------------------------
 	
-	event_EVENTNAME = {
-		name: "Title",
-		description: "Description",
+	event_dutchman = {
+		name: "The Flying Dutchman",
+		description: "A fog lasts for days on your journey. In the distance, echoes of drowned sailors and crashing waves, despite a mostly calm sea. In the dead of night after the 5th day, the crows nest watch shouts down in terror - The Flying Dutchman breaks through the fog.",
 		options: ds_list_create(),
 	}
-		event_EVENTNAME_opt_1 = {
-			description: "Detail",
+		event_dutchman_opt_1 = {
+			description: "Let the Dutchman sail through you - Guarantee item rewards every combat for the rest of this voyage. You will be unable to port at shops until your next voyage.",
 			effect: function(_context) {
-				// Example of conditional event
-				if (condition) {
-					oEventManager.event_complete = 0;
-					oEventManager.event_selected = true;
-				} else {
-					throw_error("Errormessage", "Errordescription");
+				oRunManager.dutchman_taken = true;
+				
+				// Remove any upcoming shop nodes
+				with (oWorldManager) {
+					for (var p = 0; p < ds_list_size(chosen_pages); p++) {
+						var page = chosen_pages[| p];
+						for (var n = 0; n < page.num_nodes; n++) {
+							var node = page.nodes[| n];
+							if (node.type == NODE_TYPE.SHOP && !node.cleared) {
+								chosen_pages[| p].nodes[| n] = clone_node_static(node_combat);
+							}
+						}
+					}
 				}
+				
+				oEventManager.event_complete = 0;
+				oEventManager.event_selected = true;
 			},
 			result: "Result"
 		}
-		event_EVENTNAME_opt_2 = {
-			description: "Detail",
+		event_dutchman_opt_2 = {
+			description: "Steer to avoid the Dutchman (50% chance) - On success gain a random keepsake, on a failure lose a random die and 5 hitpoints.",
 			effect: function(_context) {
-				// Example of instant event
+				var success = irandom_range(1, 100);
+				
+				if (success <= 50) {
+					// Generate a random keepsake
+					var keepsake_options = ds_list_create();
+					generate_keepsake_rewards(keepsake_options, global.rollable_keepsake_list, 1);
+					gain_keepsake(keepsake_options[| 0], global.rollable_keepsake_list);
+					ds_list_destroy(keepsake_options);
+					
+				} else {
+					var rand_die_index = irandom(ds_list_size(global.dice_bag) - 1);
+					
+					particle_emit(115, 1000, "burst", get_dice_color(global.dice_bag[| rand_die_index].action_type), 30);
+					
+					ds_list_delete(global.dice_bag, rand_die_index);
+					
+					global.player_hp -= 5;
+				}
+				
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
 			result: "Result"
 		}
-		event_EVENTNAME_opt_3 = {
-			description: "Detail",
-			effect: function(_context) {
-				oEventManager.event_complete = 2;
-				oEventManager.event_selected = true;
-			},
-			result: "Result"
-		}
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_1);
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_2);
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_3);
-	ds_list_add(global.master_event_list, event_EVENTNAME);
+	ds_list_add(event_dutchman.options, event_dutchman_opt_1);
+	ds_list_add(event_dutchman.options, event_dutchman_opt_2);
+	ds_list_add(global.master_event_list, event_dutchman);
 	
 	
 	// --------------------------
 	// EVENT
 	// --------------------------
 	
-	event_EVENTNAME = {
-		name: "Title",
-		description: "Description",
+	event_rough_tides = {
+		name: "Rough tides",
+		description: "Rough tides rise up and batter the hull of your ship. Your men sail the ship through and you come out the other side mostly unscathed. Later when you return to your desk, you find:",
 		options: ds_list_create(),
 	}
-		event_EVENTNAME_opt_1 = {
-			description: "Detail",
+		event_rough_tides_opt_1 = {
+			description: "Your bag has spilled out over the desk - Remove a die from your bag",
 			effect: function(_context) {
-				// Example of conditional event
-				if (condition) {
-					oEventManager.event_complete = 0;
-					oEventManager.event_selected = true;
-				} else {
-					throw_error("Errormessage", "Errordescription");
+				oRunManager.dice_selection = 1;
+				oRunManager.dice_selection_message = "Choose a die to remove";
+				oRunManager.dice_selection_event = function(_die) {
+					var die_index = ds_list_find_index(global.dice_bag, _die);
+						
+					particle_emit(115, 1000, "burst", get_dice_color(global.dice_bag[| die_index].action_type), 30);
+					
+					ds_list_delete(global.dice_bag, die_index);
 				}
+					
+				oEventManager.event_complete = 0;
+				oEventManager.event_selected = true;
 			},
 			result: "Result"
 		}
-		event_EVENTNAME_opt_2 = {
-			description: "Detail",
+		event_rough_tides_opt_2 = {
+			description: "Ink has spilled over your parchment - Transform a die from your bag",
 			effect: function(_context) {
-				// Example of instant event
+				oRunManager.dice_selection = 1;
+				oRunManager.dice_selection_message = "Choose a die to transform";
+				oRunManager.dice_selection_event = function(_die) {
+					var die_index = ds_list_find_index(global.dice_bag, _die);
+						
+					particle_emit(115, 1000, "burst", get_dice_color(_die.action_type), 30);
+					
+					// Generate a random dice
+					var dice_options = ds_list_create();
+					generate_dice_rewards(dice_options, global.master_dice_list, 1, "", "");
+				
+					var die_struct = dice_options[| 0];
+				
+					ds_list_destroy(dice_options);
+					
+					global.dice_bag[| die_index] = clone_die(die_struct, "");
+				}
+					
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
 			result: "Result"
 		}
-		event_EVENTNAME_opt_3 = {
-			description: "Detail",
+		event_rough_tides_opt_3 = {
+			description: "Something on the floor - Duplicate a die from your bag",
 			effect: function(_context) {
+				oRunManager.dice_selection = 1;
+				oRunManager.dice_selection_message = "Choose a die to duplicate";
+				oRunManager.dice_selection_event = function(_die) {
+						
+					particle_emit(115, 1000, "burst", get_dice_color(_die.action_type), 30);
+					
+					ds_list_add(global.dice_bag, clone_die(_die, ""));
+				}
+					
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
 			},
 			result: "Result"
 		}
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_1);
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_2);
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_3);
-	ds_list_add(global.master_event_list, event_EVENTNAME);
+	ds_list_add(event_rough_tides.options, event_rough_tides_opt_1);
+	ds_list_add(event_rough_tides.options, event_rough_tides_opt_2);
+	ds_list_add(event_rough_tides.options, event_rough_tides_opt_3);
+	ds_list_add(global.master_event_list, event_rough_tides);
 	
 	
 	// --------------------------

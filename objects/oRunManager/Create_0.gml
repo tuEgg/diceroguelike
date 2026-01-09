@@ -42,6 +42,8 @@ credits_scale = 1.0;
 voyage = 0; // voyage act I to start with
 depth = -100;
 
+dutchman_taken = false; // used for the bonuses granted by the flying dutchman event.
+
 define_keepsakes();
 
 ds_list_add(keepsakes, get_keepsake_by_id("looking_glass"));
@@ -213,3 +215,46 @@ dice_selection_list = ds_list_create();
 dice_selection_num_selected = 0;
 dice_selection_event = undefined;
 dice_selection_filter = "none";
+
+tools = ds_list_create();
+
+tool_hammer = {
+	name: "The Hammer",
+	desc: "Smash two dice together using this",
+	index: 0, // index for the silhouette sprite
+	sprite: sHammer,
+	price: 150,
+	object: oHammer
+}
+
+
+tool_drill = {
+	name: "The Drill",
+	desc: "Drill a new core into your dice using this",
+	index: 2, // index for the silhouette sprite
+	sprite: sDrill,
+	price: 125,
+	object: oDrill
+}
+
+
+tool_scissors = {
+	name: "The Cutters",
+	desc: "Cut two faces off of one of your die",
+	index: 1, // index for the silhouette sprite
+	sprite: sScissors,
+	price: 165,
+	object: oScissors
+}
+
+ds_list_add(tools, tool_drill);
+
+tools_scale = ds_list_create();
+ds_list_add(tools_scale, 0.5);
+
+show_tools = false;
+toolbag_scale = 1.0;
+
+global.master_tool_list = ds_list_create();
+ds_list_add(global.master_tool_list, tool_hammer);
+ds_list_add(global.master_tool_list, tool_scissors);

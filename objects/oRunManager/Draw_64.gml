@@ -153,9 +153,76 @@ for (var i = 0; i < array_length(items); i++) {
 }
 
 // Draw tools
+if (room == rmWorkbench) show_tools = true;
+var num_tools = string(ds_list_size(tools));
+
+var toolbar_hover = mouse_hovering(gui_w - 860, bar_half, sprite_get_width(sToolbag) + 10, bar_height, true);
+if (toolbar_hover) {
+	if mouse_check_button_pressed(mb_left) {
+		show_tools = 1 - show_tools;
+	}
+	queue_tooltip(mouse_x, mouse_y, "Toolbag", "You currently have " + num_tools + " tools");
+}
+
+toolbag_scale = lerp(toolbag_scale, toolbar_hover ? 1.2 : 1.0, 0.1);
+
 draw_set_font(ftBig);
 var tools_x = gui_w - 860;
-draw_outline_text("Tools: " + string(ds_list_size(tool_list)) + "/5", c_black, c_white, 2, tools_x, bar_half, 1, 1.0, 0);
+
+draw_set_halign(fa_center);
+draw_set_valign(fa_middle);
+draw_outline_text(num_tools, c_black, c_white, 2, tools_x, bar_half - 20, toolbag_scale, 1.0, 0);
+
+draw_sprite_ext(sToolbag, 0, tools_x, bar_half + 10, toolbag_scale, toolbag_scale, 0, c_white, 1.0);
+
+if (show_tools) {
+	for (var i = 0; i < ds_list_size(tools); i++) {
+		var tool = tools[| i];
+		var tile_width = sprite_get_width(sToolButton) + 10;
+		var starting_offset = (ds_list_size(tools)-1)/2 * tile_width; // 1 tool, offset by 0, 2 tools, offset by 0.5, 3 tools offset by 1,
+		var tool_x = tools_x - starting_offset + (tile_width*i);
+		
+		var tool_hover = mouse_hovering(tool_x, 130, tile_width - 10, tile_width - 10, true);
+		
+		tools_scale[| i] = lerp(tools_scale[| i], tool_hover ? 1.2 : 1.0, 0.2);
+		
+		draw_sprite_ext(sToolButton, 0, tool_x, 130, tools_scale[| i], tools_scale[| i], 0, c_gray, 1.0);
+		draw_sprite_ext(sToolSilhouettes, tool.index, tool_x, 130, tools_scale[| i], tools_scale[| i], 0, c_gray, 1.0);
+		
+		if (tool_hover) {
+			queue_tooltip(mouse_x, mouse_y, tool.name, tool.desc);
+			
+			if (mouse_check_button_pressed(mb_left) && room == rmWorkbench && !instance_exists(tool.object)) {
+				var pos_x;
+				var pos_y;
+				
+				switch(i) {
+					case 0:
+					pos_x = gui_w - 150;
+					pos_y = gui_h/2 + 50;
+					break;
+					
+					case 1:
+					pos_x = 150;
+					pos_y = gui_h/2 + 50;
+					break;
+					
+					case 2:
+					pos_x = gui_w - 300;
+					pos_y = gui_h - 200;
+					break;
+				}
+				instance_create_layer(pos_x, pos_y, "Instances", tool.object);
+			}
+		}
+	}
+} else {
+	if (tools_scale[| 0] > 0.5) {
+		for (var i = 0; i < ds_list_size(tools); i++) {
+			tools_scale[| i] = 0.5;
+		}
+	}
+}
 
 // Draw alignment
 var alignment_color = make_color_rgb(250, 166, 20);
@@ -208,6 +275,13 @@ if (ds_list_size(keepsake_scale) < ds_list_size(keepsakes)) {
     repeat(ds_list_size(keepsakes) - ds_list_size(keepsake_scale)) ds_list_add(keepsake_scale, 4.0);
 } else if (ds_list_size(keepsake_scale) > ds_list_size(keepsakes)) {
     repeat(ds_list_size(keepsake_scale) - ds_list_size(keepsakes)) ds_list_delete(keepsake_scale, ds_list_size(keepsake_scale) - 1);
+}
+
+// Keep scale list synced with tools size
+if (ds_list_size(tools_scale) < ds_list_size(tools)) {
+    repeat(ds_list_size(tools) - ds_list_size(tools_scale)) ds_list_add(tools_scale, 0.5);
+} else if (ds_list_size(tools_scale) > ds_list_size(tools)) {
+    repeat(ds_list_size(tools_scale) - ds_list_size(tools)) ds_list_delete(tools_scale, ds_list_size(tools_scale) - 1);
 }
 
 // Draw keepsakes
@@ -420,22 +494,23 @@ if (bag_hover_locked) {
 			draw_roundrect(dice_x - box_width/2, dice_y - box_height/2, dice_x + box_width/2, dice_y + box_height/2, false);
 		
 			// Draw dice sprite - need to add blended draws here for multitype die
-			draw_sprite_ext(sDice, get_dice_index(dice.dice_value), dice_x, dice_y - 30, 1.0, 1.0, 0, get_dice_color(dice.action_type), dice_alpha);
+			draw_sprite_ext(sDice, get_dice_index(dice.dice_value), dice_x - box_width/3.75, dice_y - box_height/3.75, 1.0, 1.0, 0, get_dice_color(dice.action_type), dice_alpha);
 		
 			// Draw dice keywords
-			draw_dice_keywords(dice, dice_x, dice_y, 1);
+			draw_dice_keywords(dice, dice_x - box_width/3.75, dice_y - box_height/3.75, 1);
 		
 			// Draw dice name
 			draw_set_font(ftDefault);
 			draw_set_valign(fa_middle);
-			draw_set_halign(fa_center);
-			draw_outline_text(dice.name, c_black, c_white, 2, dice_x, dice_y + 25, 1, dice_alpha, 0);
+			draw_set_halign(fa_left);
+			draw_outline_text(dice.name, c_black, c_white, 2, dice_x - 10, dice_y - box_height/3.5, 1, dice_alpha, 0, box_width/4);
 		
 			// Draw dice description
-			draw_set_font(ftSmall);
+			draw_set_font(ftDescriptions);
+			draw_set_valign(fa_top);
 		    var parsed = parse_text_with_keywords(dice.description);
-		    var desc_x = dice_x;
-		    var desc_y = dice_y + 60;
+		    var desc_x = dice_x - box_width/2 + 20;
+		    var desc_y = dice_y;
 
 		    for (var p = 0; p < array_length(parsed); p++) {
 		        draw_outline_text(parsed[p].text, c_black, parsed[p].colour, 2, desc_x, desc_y, 1, dice_alpha, 0, col_spacing - 40);
@@ -448,9 +523,9 @@ if (bag_hover_locked) {
 				
 				draw_sprite_ext(
 		            sCores, core_index,
-		            dice_x,
-		            dice_y - 30,
-		            0.5, 0.5, 0, c_white, 1
+		            dice_x + box_width/2 - 40,
+		            dice_y - box_height/3.5 + 5,
+		            0.75, 0.75, 0, c_white, 1
 		        );
 			
 				if (info_hover) {
@@ -458,8 +533,6 @@ if (bag_hover_locked) {
 				}
 			}
 			
-			// Need to draw if this dice has any min_roll_bonus
-			draw_outline_text(string(dice.min_roll_bonus + 1) + "-" + string(dice.dice_value), c_black, c_white, 2, dice_x, dice_y - 75, 1, dice_alpha, 0);
 			
 		}
 	}

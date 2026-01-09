@@ -1084,12 +1084,13 @@ function win_fight() {
 			
 			// Add consumables starting at a chance
 			var con_chance = irandom_range(1, 100);
-			if (con_chance <= oRunManager.show_consumables_chance) {
+
+			if (con_chance <= oRunManager.show_consumables_chance || oRunManager.dutchman_taken) {
 				generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
 				ds_list_add(reward_list, "consumables");
 				oRunManager.show_consumables_chance -= 30;
 			} else {
-				oRunManager.show_consumables_chance += 20;
+				oRunManager.show_consumables_chance += 20 * round((global.player_luck - 50)/2);
 			}
 		}
 			

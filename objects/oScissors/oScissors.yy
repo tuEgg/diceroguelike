@@ -10,8 +10,8 @@
   "name":"oScissors",
   "overriddenProperties":[],
   "parent":{
-    "name":"objects",
-    "path":"folders/objects.yy",
+    "name":"Tools",
+    "path":"folders/objects/Tools.yy",
   },
   "parentObjectId":null,
   "persistent":false,

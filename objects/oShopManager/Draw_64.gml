@@ -1,6 +1,7 @@
 var consumable_pos = { x: 80, y: 715 };
 var dice_pos = { x: 735, y: 595 };
 var keepsake_pos = { x: 460, y: 935 };
+var tool_pos = { x: 1300, y: 1000 };
 
 var cx = consumable_pos.x;
 var cy = consumable_pos.y;
@@ -10,6 +11,9 @@ var dy = dice_pos.y;
 
 var kx = keepsake_pos.x;
 var ky = keepsake_pos.y;
+
+var tx = tool_pos.x;
+var ty = tool_pos.y;
 
 var coin_offset_x = -20;
 var coin_offset_y = -60;
@@ -134,6 +138,47 @@ for (var k = 0; k < ds_list_size(shop_keepsake_options); k++) {
 				gain_keepsake(keepsake, global.shop_keepsake_list);
 				
 				shop_keepsake_options[| k] = undefined;
+			}
+		}
+	}
+	
+	kx += 130;
+}
+
+for (var t = 0; t < ds_list_size(shop_tool_options); t++) {
+	var tool = shop_tool_options[| t];
+	var width = shop_tool_scale[| t] * sprite_get_width(sHammer) * 0.5;
+	var height =  shop_tool_scale[| t] * sprite_get_height(sHammer) * 0.5;
+	
+	if (tool != undefined) {
+		var hover_tool = mouse_hovering(tx, ty, width, height, true);
+		shop_tool_scale[| t] = lerp(shop_tool_scale[| t], hover_tool ? 1.2 : 1.0, 0.2);
+	
+		draw_set_alpha(0.4);
+		draw_set_color(c_black);
+		draw_ellipse(tx - sprite_get_width(sHammer)/2, ty + sprite_get_height(sHammer)/2 - 15, tx + sprite_get_width(sHammer)/2, ty + sprite_get_height(sHammer)/2 - 3, false);
+		draw_sprite_ext(tool.sprite, 0, tx, ty, shop_tool_scale[| t] * 0.5, shop_tool_scale[| t] * 0.5, 0, c_white, 1.0);
+	
+		// Draw cost
+		draw_sprite_ext(sCoin, 0, tx + coin_offset_x, ty + coin_offset_y, shop_tool_scale[| t] * coin_scale, shop_tool_scale[| t] * coin_scale, 0, c_white, 1.0);
+		draw_set_halign(fa_left);
+		draw_set_valign(fa_middle);
+		draw_set_font(ftBig);
+		var cost_col = tool.price > oRunManager.credits ? c_red : c_white;
+		draw_outline_text(tool.price, c_black, cost_col, 2, tx, ty + coin_offset_y, shop_tool_scale[| t], 1.0, 0);
+	
+		if (hover_tool) {
+			queue_tooltip(mouse_x, mouse_y, tool.name, tool.desc);
+		
+			if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= tool.price) {
+				oRunManager.credits -= tool.price;
+				
+				ds_list_add(oRunManager.tools, tool);
+				ds_list_add(oRunManager.tools_scale, 0.5);
+				
+				shop_tool_options[| t] = undefined;
+				
+				oRunManager.show_tools = true;
 			}
 		}
 	}

@@ -4,6 +4,13 @@ var gui_h = display_get_gui_height();
 var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
 
+// Draw "choose a tool" below toolbag
+//draw_set_font(ftDefault);
+//draw_set_halign(fa_center);
+//draw_set_valign(fa_top);
+
+//draw_outline_text("Choose a tool from your toolbag", c_black, c_white, 2, gui_w - 860, 110, 1, 1, 0);
+
 var wb_list_size = array_length(workbench_slot);
 var wb_tile_size = sprite_get_width(sActionSlotCentered);
 var wb_tile_padding = 50;
@@ -18,7 +25,7 @@ for (var i = 0; i < wb_list_size; i++) {
 	var slot_x = start_x + (i * (wb_tile_padding + wb_tile_size));
 	var slot_y = start_y;
 	
-	var hovering_slot = mouse_hovering(slot_x, slot_y, wb_tile_size, wb_tile_size, true);
+	var hovering_slot = !oRunManager.holding_item * mouse_hovering(slot_x, slot_y, wb_tile_size, wb_tile_size, true);
 	
 	if (oRunManager.holding_item) hovering_slot = false;
 	
@@ -81,7 +88,7 @@ for (var i = 0; i < wb_list_size; i++) {
 	if (i == 1 && workbench_slot[i].core != undefined) {
 		var core_w = sprite_get_width(sCores) * 1.5;
 		var core_h = sprite_get_height(sCores) * 1.5;
-		var hovering_core = mouse_hovering(slot_x, slot_y, core_w * core_scale, core_h * core_scale, true);
+		var hovering_core = !oRunManager.holding_item * mouse_hovering(slot_x, slot_y, core_w * core_scale, core_h * core_scale, true);
 		
 		if (hovering_core) {
 			core_scale = lerp(core_scale, 1.2, 0.2);
@@ -137,7 +144,7 @@ switch (crafting_state) {
 	case "waiting":
 		var craft_col = c_dkgray;
 		switch (button_text) {
-			case "Craft":
+			case "Drill":
 				if (workbench_slot[0].dice != undefined && workbench_slot[1].core != undefined) {
 					craft_col = c_lime;
 				}
@@ -150,8 +157,28 @@ switch (crafting_state) {
 		}
 	
 		button_text_w = string_width(button_text);
+		
+		var angle = 0;
 	
-		draw_sprite_ext(sButtonSmall, 0, gui_w/2, start_y + 280, (0.2 + button_text_w / 120) * (0.75 * button_scale), 0.75 * button_scale, 0, craft_col, 1.0);
+		if (error_shake) {
+		    // Advance the wave
+		    error_wobble_phase += 0.5; // speed of wobble
+
+		    // Reduce the amplitude smoothly
+		    error_wobble_amp = lerp(error_wobble_amp, 0, 0.2);
+
+		    // Apply wobble
+		    angle = sin(error_wobble_phase) * error_wobble_amp;
+
+		    // Kill shake when basically settled
+		    if (error_wobble_amp < 0.1) {
+		        error_shake = false;
+		        error_wobble_amp = 30;
+		        angle = 0;
+		    }
+		}
+
+		draw_sprite_ext(sButtonSmall, 0, gui_w/2, start_y + 280, (0.2 + button_text_w / 120) * (0.75 * button_scale), 0.75 * button_scale, angle, craft_col, 1.0);
 		draw_outline_text(button_text, c_black, c_white, 2, gui_w/2, start_y + 280, 1, 1, 0);
 	break;
 	
@@ -187,6 +214,31 @@ switch (crafting_state) {
 		if (bang_timer > 0) {
 			draw_sprite(sBang, 0, gui_w/2, start_y + 280);
 		}
+	break;
+	
+	case "drilled":
+		var new_dice = clone_die(workbench_slot[0].dice, "");
+		new_dice.distribution = workbench_slot[1].core.distribution;
+		workbench_slot[2].dice = new_dice;
+		workbench_slot[0].dice = undefined;
+		workbench_slot[1].core = undefined;
+		with (oDice) if (in_slot) instance_destroy();
+			
+		discard_dice_in_play();
+			
+		//show_debug_message("New dice created.");
+			
+		// Spawn instance
+		var xx = start_x + (2 * (wb_tile_padding + wb_tile_size));
+		var die_inst = instance_create_layer(xx, start_y, "Instances", oDice);
+		die_inst.struct = new_dice;
+		die_inst.action_type = new_dice.action_type;
+		die_inst.dice_amount = new_dice.dice_amount;
+		die_inst.dice_value  = new_dice.dice_value;
+		die_inst.possible_type = new_dice.possible_type;
+		die_inst.target_x = xx;
+		die_inst.target_y = start_y;
+		die_inst.still = true;
 	break;
 	
 	case "cut":

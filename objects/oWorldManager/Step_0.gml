@@ -63,3 +63,5 @@ if (room == rmMap) {
 		node_drift -= 1.5;
 	}
 }
+
+if (oRunManager.dutchman_taken) shop_chance = 0;

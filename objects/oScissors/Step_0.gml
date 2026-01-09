@@ -12,7 +12,7 @@ if (hovered && !is_dragging) {
 }
 
 // --- Start dragging ---
-if (!is_dragging && hovered && mouse_check_button_pressed(mb_left)) {
+if (!is_dragging && hovered && mouse_check_button_pressed(mb_left) && !oRunManager.holding_item) {
     is_dragging = true;
 	drag_offset_x = mx - x;
 	drag_offset_y = my - y;
@@ -50,12 +50,15 @@ if (is_dragging) {
 		var x2 = x + 53;
 		var y2 = y - 160;
 	
-		if (over_button && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core == undefined && oWorkbenchManager.workbench_slot[1].dice == undefined && oWorkbenchManager.workbench_slot[2].dice == undefined) {
-			oWorkbenchManager.crafting_state = "cut";
+		if (over_button) {
+			if (oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core == undefined && oWorkbenchManager.workbench_slot[1].dice == undefined && oWorkbenchManager.workbench_slot[2].dice == undefined) {
+				oWorkbenchManager.crafting_state = "cut";
+			} else {
+				oWorkbenchManager.error_shake = true;
+			}
 		}
 	}
 } else {
-	oRunManager.holding_item = false;
 	x = lerp(x, xstart, 0.2);
 	y = lerp(y, ystart, 0.2);
 	over_button = false;
