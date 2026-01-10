@@ -179,6 +179,14 @@ for (var t = 0; t < ds_list_size(shop_tool_options); t++) {
 				shop_tool_options[| t] = undefined;
 				
 				oRunManager.show_tools = true;
+						
+				var tool_index;
+				for (var tt = 0; tt < ds_list_size(global.master_tool_list); tt++) {
+					if (global.master_tool_list[| tt].name == tool.name) {
+						tool_index = t;
+					}
+				}
+				ds_list_delete(global.master_tool_list, tool_index);
 			}
 		}
 	}

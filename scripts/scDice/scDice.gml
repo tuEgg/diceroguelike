@@ -3,27 +3,31 @@
 /// @func deal_single_die( _can_discard_this_turn )
 function deal_single_die( _can_discard_this_turn = true) {
 	if (room == rmCombat) {
-		
 		if (ds_list_size(global.dice_bag) == 1) {
 			combat_trigger_effects("on_bag_empty", {});
 		}
+	}
 		
-	    // --- Reshuffle if empty ---
-	    if (ds_list_size(global.dice_bag) == 0) {
+	// --- Reshuffle if empty ---
+	if (ds_list_size(global.dice_bag) == 0) {
 			
-	        if (ds_list_size(global.discard_pile) > 0) {
-	            //show_debug_message("Dice bag empty — reshuffling discard pile!");
-	            for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
-	                var discard_die = global.discard_pile[| i];
-	                var die_copy = clone_die(discard_die, "temporary");
-	                ds_list_add(global.dice_bag, die_copy);
-	            }
-	            ds_list_clear(global.discard_pile);
-	        } else {
-	            //show_debug_message("No dice left to deal, stopping dealing.");
-				oCombat.dice_to_deal = 0;
-	            return;
+	    if (ds_list_size(global.discard_pile) > 0) {
+	        //show_debug_message("Dice bag empty — reshuffling discard pile!");
+	        for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
+	            var discard_die = global.discard_pile[| i];
+	            var die_copy = clone_die(discard_die, "temporary");
+	            ds_list_add(global.dice_bag, die_copy);
 	        }
+	        ds_list_clear(global.discard_pile);
+	    } else {
+	        //show_debug_message("No dice left to deal, stopping dealing.");
+			if (room == rmCombat) {
+				oCombat.dice_to_deal = 0;
+			} else {
+				oRunManager.dice_to_deal = 0;
+			}
+	        return;
+			
 	    }
 	}
 

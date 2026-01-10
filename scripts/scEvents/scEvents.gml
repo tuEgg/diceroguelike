@@ -1,4 +1,4 @@
-function define_events() {
+	function define_events() {
 	global.master_event_list = ds_list_create();
 	
 	// --------------------------
@@ -899,90 +899,258 @@ function define_events() {
 	// EVENT
 	// --------------------------
 	
-	event_EVENTNAME = {
-		name: "Title",
-		description: "Description",
+	event_constellation = {
+		name: "The constellation",
+		description: "The seas have calmed and the skies have cleared. As the sun sets and night stills the sky alights with a million stars, which constellation will you follow?",
 		options: ds_list_create(),
 	}
-		event_EVENTNAME_opt_1 = {
-			description: "Detail",
+		event_constellation_opt_1 = {
+			description: "The Plough - Reset your alignment, gain 10 luck.",
 			effect: function(_context) {
-				// Example of conditional event
-				if (condition) {
-					oEventManager.event_complete = 0;
-					oEventManager.event_selected = true;
-				} else {
-					throw_error("Errormessage", "Errordescription");
-				}
+				global.player_alignment = 50;
+				global.player_luck += 10;
+				oEventManager.event_complete = 0;
+				oEventManager.event_selected = true;
+				
 			},
 			result: "Result"
 		}
-		event_EVENTNAME_opt_2 = {
-			description: "Detail",
+		event_constellation_opt_2 = {
+			description: "Cassiopeia - Lose 12 alignment, gain 3 luck.",
 			effect: function(_context) {
-				// Example of instant event
+				global.player_alignment -= 12;
+				global.player_luck += 3;
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
 			result: "Result"
 		}
-		event_EVENTNAME_opt_3 = {
-			description: "Detail",
+		event_constellation_opt_3 = {
+			description: "Lyra - Gain 12 alignment, gain 3 luck.",
 			effect: function(_context) {
+				global.player_alignment += 12;
+				global.player_luck += 3;
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
 			},
 			result: "Result"
 		}
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_1);
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_2);
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_3);
-	ds_list_add(global.master_event_list, event_EVENTNAME);
+	ds_list_add(event_constellation.options, event_constellation_opt_1);
+	ds_list_add(event_constellation.options, event_constellation_opt_2);
+	ds_list_add(event_constellation.options, event_constellation_opt_3);
+	ds_list_add(global.master_event_list, event_constellation);
 	
 	
 	// --------------------------
 	// EVENT
 	// --------------------------
 	
-	event_EVENTNAME = {
-		name: "Title",
-		description: "Description",
+	event_shipwright = {
+		name: "A precious ingot",
+		description: "Late one evening the shipwright comes to you with a precious ingot he found buried within the latest hoard. “What shall I craft with it sir?”",
 		options: ds_list_create(),
 	}
-		event_EVENTNAME_opt_1 = {
-			description: "Detail",
+		event_shipwright_opt_1 = {
+			description: "Fashion a new tool - Gain a random tool for the workbench",
 			effect: function(_context) {
-				// Example of conditional event
-				if (condition) {
+				if (ds_list_size(global.master_tool_list) > 0) {
+					// Generate a random tool
+					var tool_options = ds_list_create();
+					generate_tool_rewards(tool_options, global.master_tool_list, 1);
+					ds_list_add(oRunManager.tools, tool_options[| 0]);
+					ds_list_add(oRunManager.tools_scale, 0.5);
+					oRunManager.show_tools = true;
+					ds_list_destroy(tool_options);
+					
 					oEventManager.event_complete = 0;
 					oEventManager.event_selected = true;
 				} else {
-					throw_error("Errormessage", "Errordescription");
+					throw_error("You already have every tool", "There are no more tools available to acquire"); 
 				}
 			},
 			result: "Result"
 		}
-		event_EVENTNAME_opt_2 = {
-			description: "Detail",
+		event_shipwright_opt_2 = {
+			description: "Enhance your buckle - Gain the toolbelt keepsake",
 			effect: function(_context) {
-				// Example of instant event
-				oEventManager.event_complete = 1;
-				oEventManager.event_selected = true;
+				var has_toolbelt = false;
+				
+				for (var i = 0; i < ds_list_size(oRunManager.keepsakes); i++) {
+					var keepsake = oRunManager.keepsakes[| i];
+					
+					if (keepsake._id == "toolbelt") {
+						has_toolbelt = true;
+						break;
+					}
+				}
+				
+				if (has_toolbelt) {
+						throw_error("You already have the toolbelt", "You cannot have duplicate keepsakes");
+				} else {
+					gain_keepsake(get_keepsake_by_id("toolbelt"), global.rollable_keepsake_list);
+				
+					oEventManager.event_complete = 1;
+					oEventManager.event_selected = true;
+				}
 			},
 			result: "Result"
 		}
-		event_EVENTNAME_opt_3 = {
-			description: "Detail",
+		event_shipwright_opt_3 = {
+			description: "Leave it",
 			effect: function(_context) {
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
 			},
 			result: "Result"
 		}
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_1);
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_2);
-	ds_list_add(event_EVENTNAME.options, event_EVENTNAME_opt_3);
-	ds_list_add(global.master_event_list, event_EVENTNAME);
+	ds_list_add(event_shipwright.options, event_shipwright_opt_1);
+	ds_list_add(event_shipwright.options, event_shipwright_opt_2);
+	ds_list_add(event_shipwright.options, event_shipwright_opt_3);
+	ds_list_add(global.master_event_list, event_shipwright);
+	
+	
+	// --------------------------
+	// EVENT
+	// --------------------------
+	
+	event_sirens = {
+		name: "The Siren's Call",
+		description: "The call of distant Sirens can be heard through the early morning mist. Your sailors are already beginning to falter. What will you do?",
+		options: ds_list_create(),
+	}
+	
+	function fail_sirens() {
+		var has_rigging = false;
+				
+		for (var i = 0; i < ds_list_size(oRunManager.keepsakes); i++) {
+			var keepsake = oRunManager.keepsakes[| i];
+					
+			if (keepsake._id == "protective_rigging") {
+				has_rigging = true;
+				break;
+			}
+		}
+				
+		var hp_to_lose = has_rigging ? 0 : 5;
+				
+		if (global.player_hp > hp_to_lose) {
+			global.player_hp -= hp_to_lose;
+					
+			// change this so that we go to the shop on pressing exit
+			oEventManager.alternate_exit = rmShop;
+		} else {
+			throw_error("This would kill you", "At least try first!.");
+		}
+	}
+		event_sirens_opt_1 = {
+			description: "Sing a song of your own - Higher chance of success the higher your alignment, if successful upgrade all your intel die.",
+			effect: function(_context) {
+				var random_num = irandom_range(1, 100);
+				if (random_num <= global.player_alignment) {
+					var intel_list = ds_list_create();
+					
+					for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
+						var die = global.dice_bag[| d];
+					
+						// only intel dice, avoid coins
+						if (die.action_type == "INTEL") && (die.dice_value != 2) {
+							ds_list_add(intel_list, die);
+						}
+					}
+				
+					// Fail safe in case we have no heal or block die
+					if (ds_list_size(intel_list) == 0) {
+					    ds_list_destroy(intel_list);
+					    oEventManager.event_complete = 0;
+					    oEventManager.event_selected = true;
+					    return;
+					}
+				
+					for (var i = 0; i < ds_list_size(intel_list); i++) {
+						var intel_die = intel_list[| i];
+						
+						intel_die.dice_value += 2;
+					}
+				
+					particle_emit(115, 1000, "rise", global.color_intel);
+				
+					ds_list_destroy(intel_list);
+				} else {
+					fail_sirens();
+				}
+				
+				oEventManager.event_complete = 0;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+		event_sirens_opt_2 = {
+			description: "Block your ears - Higher chance of success the more block dice you have. If successful, upgrade all your block die.",
+			effect: function(_context) {
+				var random_num = irandom_range(1, 100);
+				var block_num = 0;
+				
+				for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
+					var die = global.dice_bag[| d];
+					
+					// only intel dice, avoid coins
+					if (die.action_type == "BLOCK") {
+						block_num++;
+					}
+				}
+				
+				if (random_num <= 35 + (block_num * 5)) {
+					var block_list = ds_list_create();
+					
+					for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
+						var die = global.dice_bag[| d];
+					
+						// only intel dice, avoid coins
+						if (die.action_type == "BLK") && (die.dice_value != 2) {
+							ds_list_add(block_list, die);
+						}
+					}
+				
+					// Fail safe in case we have no heal or block die
+					if (ds_list_size(block_list) == 0) {
+					    ds_list_destroy(block_list);
+					    oEventManager.event_complete = 0;
+					    oEventManager.event_selected = true;
+					    return;
+					}
+				
+					for (var i = 0; i < ds_list_size(block_list); i++) {
+						var block_die = block_list[| i];
+						
+						block_die.dice_value += 2;
+					}
+				
+					particle_emit(115, 1000, "rise", global.color_block);
+				
+					ds_list_destroy(block_list);
+				} else {
+					fail_sirens();
+				}
+				
+				oEventManager.event_complete = 1;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+		event_sirens_opt_3 = {
+			description: "Succumb to the song - Crash on the rocks, lose 5hp (0 if you have protective rigging) and go straight to the shop.",
+			effect: function(_context) {
+				fail_sirens();
+				
+				oEventManager.event_complete = 2;
+				oEventManager.event_selected = true;
+			},
+			result: "Result"
+		}
+	ds_list_add(event_sirens.options, event_sirens_opt_1);
+	ds_list_add(event_sirens.options, event_sirens_opt_2);
+	ds_list_add(event_sirens.options, event_sirens_opt_3);
+	ds_list_add(global.master_event_list, event_sirens);
 }
 
 function generate_event() {

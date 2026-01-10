@@ -6,6 +6,11 @@ if (exiting) {
 	} else if (instance_exists(oDiceParticle)) {
 		
 	} else {
-		room_goto(rmMap);
+		if (!alternate_exit) {
+			room_goto(rmMap);
+		} else {
+			room_goto(alternate_exit);
+			alternate_exit = false;
+		}
 	}
 }

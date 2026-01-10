@@ -18,7 +18,9 @@ function stock_shop() {
 	generate_dice_rewards(shop_dice_options, global.master_dice_list, num_dice);
 	generate_item_rewards(shop_consumable_options, global.master_item_list, num_consumables);
 	generate_keepsake_rewards(shop_keepsake_options, global.shop_keepsake_list, num_keepsakes);
-	generate_tool_rewards(shop_tool_options, global.master_tool_list, num_tools);
+	if (ds_list_size(global.master_tool_list) > 0) {
+		generate_tool_rewards(shop_tool_options, global.master_tool_list, num_tools);
+	}
 	
 	repeat(num_dice) ds_list_add(shop_dice_scale, 0.1);
 	repeat(num_consumables) ds_list_add(shop_consumable_scale, 0.1);
@@ -457,6 +459,7 @@ function generate_tool_rewards(_reward_list, _tool_list, _num) {
 		var tool_struct = indices_tools[| rand_index];
 		ds_list_add(_reward_list, clone_keepsake(tool_struct));
 		ds_list_delete( indices_tools, ds_list_find_index( indices_tools, tool_struct));
+		
 		continue;  
 	}
 	until (ds_list_size(_reward_list) == num_rewards);

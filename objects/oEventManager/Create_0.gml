@@ -18,3 +18,5 @@ chosen_option = -1;
 
 exit_scale = 1.0;
 exiting = false;
+
+alternate_exit = false;
