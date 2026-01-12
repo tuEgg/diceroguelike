@@ -9,3 +9,4 @@ if (room == rmCombat) {
 }
 
 show_tools = false;
+bag_hover_locked = false;

@@ -491,20 +491,6 @@ for (var i = 0; i < aq_list_size; i++) {
 	draw_action_type_bars(draw_x, draw_y + draw_h + 30, draw_w, types, action_queue_type);
 }
 
-// Entry feed
-//var feed_x_pos = 50;
-//var feed_y_pos = gui_h/2 - 200;
-//var feed_line_height = 24;
-
-//draw_set_font(ftDefault);
-//draw_set_color(c_white);
-//draw_set_halign(fa_left);
-//draw_set_valign(fa_top);
-
-//for (var i = 0; i < ds_list_size(combat_feed); i++) {
-//    draw_colored_text(feed_x_pos, feed_y_pos + (i * feed_line_height), combat_feed[| i]);
-//}
-
 // --- Discard Button ---
 var disc_x = gui_w - GUI_LAYOUT.DISCARD_W - 40;
 var disc_y = gui_h - GUI_LAYOUT.DISCARD_H - 40;

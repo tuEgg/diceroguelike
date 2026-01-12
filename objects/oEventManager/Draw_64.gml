@@ -38,34 +38,45 @@ if (chosen_event != undefined) {
 		
 	// Draw options
 	for (var i = ds_list_size(chosen_event.options) - 1; i >= 0; i--) {
-		var _w = container_width - padding * 2;
-		var _h = row_h;
+		draw_set_valign(fa_top);	
 		
 		var option = chosen_event.options[| i];
 		
-		options_hover[| i] = mouse_hovering(xx, yy - _h, _w, _h, false);
+		var _w = container_width - padding * 4;
 		
+		draw_set_font(ftDefault);
+		var _title_h = string_height_ext(option.title, font_get_size(draw_get_font()) * 1.2, _w);
+		
+		draw_set_font(ftDescriptions);
+		var _desc_h = string_height_ext(option.description, font_get_size(draw_get_font()) * 1.2, _w);
+		var _h = _title_h + _desc_h + padding;
+		
+		options_hover[| i] = mouse_hovering(xx, yy - _h, _w, _h, false);
 		options_scale[| i] = lerp(options_scale[| i], !event_selected * options_hover[| i] ? 1.1 : 1.0, 0.2);
 		
 		var hover_col = !event_selected * options_hover[| i] ? make_color_rgb(155, 255, 155) : c_white;
-		
 		var option_alpha = event_selected ? 0.2 : 1.0;
 		
-		draw_sprite_ext(sButtonWide, 0, xx, yy - _h, options_scale[| i] * 1.15, options_scale[| i] * 1.15, 0, c_dkgray, option_alpha);
+		draw_sprite_ext(sButtonWide, 0, xx, yy - _h, options_scale[| i] * 1.15, (options_scale[| i] / sprite_get_height(sButtonWide)) * _h, 0, c_dkgray, option_alpha);
 		
 		draw_set_font(ftDefault);
-		draw_set_valign(fa_top);	
-	 
+		draw_outline_text(option.title, c_black, hover_col, 2, xx + padding/2, yy - _h + padding/2 - 1, options_scale[| i], option_alpha, 0, _w);
 		
-		draw_outline_text(string(option.description), c_black, hover_col, 2, xx + padding/2, yy - _h/2 - 10, options_scale[| i], option_alpha, 0, _w);
+		draw_set_font(ftDescriptions);
+		var colored_desc = colorcode_text(option.description);
+		draw_outline_text(colored_desc, c_black, hover_col, 2, xx + padding/2, yy - _h + padding/2 - 1 + _title_h + ((options_scale[| i] * 50) - 50), 1, option_alpha * 0.95, 0, _w);
 		
 		if (options_hover[| i]) {
 			if (mouse_check_button_pressed(mb_left) && !event_selected) {
 				option.effect();
 			}
+			
+			if (variable_struct_exists(option, "hover")) {
+				option.hover();
+			}
 		}
 		
-		yy -= row_h + padding/2;
+		yy -= _h + padding/4;
 	}
 }
 

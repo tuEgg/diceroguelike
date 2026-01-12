@@ -19,6 +19,7 @@ global.color_heal = c_lime;
 global.color_debuff = c_white;
 global.color_unknown = c_dkgray;
 global.color_bg = make_color_rgb(20, 50, 80);
+global.heal_pos = 0;
 
 randomise();
 credits = debug_mode ? 500 : 50;

@@ -325,10 +325,16 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				}
 	        } else if (_target == "player") {
 	            global.player_hp = min(global.player_max_hp, global.player_hp + amount);
-				particle_emit(global.player_x, global.player_y, "burst", c_lime);
+				if (room == rmCombat) {
+					particle_emit(global.player_x, global.player_y, "burst", c_lime);
+				} else {
+					particle_emit(global.heal_pos, 25, "burst", c_lime, 30);
+				}
 	        }
-
-	        spawn_floating_number(_target, amount, -1, c_lime, 1);
+			
+			if (room == rmCombat) {
+				spawn_floating_number(_target, amount, -1, c_lime, 1);
+			}
 	        inst_color = c_lime;
 		break;
 		

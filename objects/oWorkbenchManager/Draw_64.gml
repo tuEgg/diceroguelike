@@ -239,6 +239,10 @@ switch (crafting_state) {
 		die_inst.target_x = xx;
 		die_inst.target_y = start_y;
 		die_inst.still = true;
+		
+		particle_emit(gui_w/2, start_y + 280, "burst", c_green, 150);
+		
+		crafting_state = "finished";
 	break;
 	
 	case "cut":

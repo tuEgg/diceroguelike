@@ -11,7 +11,11 @@
 		options: ds_list_create(),
 	}
 		event_prisoner_opt_1 = {
-			description: "Recruit him as a deckhand. -10 gold, + alignment, + keepsake.",
+			title: "Recruit him as a deckhand",
+			description: "Lose 10 gold, gain 5 alignment, and gain the Deckhand's Token keepsake.",
+			hover: function() {
+				queue_tooltip(mouse_x, mouse_y, oRunManager.ks_deckhands_token.name, oRunManager.ks_deckhands_token.desc, sKeepsake, oRunManager.ks_deckhands_token.sub_image);
+			},
 			effect: function(_context) {
 				if (oRunManager.credits >= 10) {
 					global.player_alignment += 5;
@@ -26,7 +30,8 @@
 			result: "Pirate Pete has joined your crew."
 		}
 		event_prisoner_opt_2 = {
-			description: "Make him walk the plank. - alignment, - dice.",
+			title: "Make him walk the plank",
+			description: "Lose 7 alignment and remove a die from your bag.",
 			effect: function(_context) {
 				global.player_alignment -= 7;
 				oEventManager.deleting_die = true;
@@ -44,7 +49,8 @@
 			result: "Pirate Pete walked the plank."
 		}
 		event_prisoner_opt_3 = {
-			description: "Drop him off at the next port. + random item.",
+			title: "Drop him off at the next port",
+			description: "Gain a random item.",
 			effect: function(_context) {
 				var consumable_options = ds_list_create();
 				
@@ -75,7 +81,8 @@
 		options: ds_list_create(),
 	}
 		event_storm_opt_1 = {
-			description: "Share your personal stores. + alignment, -7 hp, upgrade a random block or heal die.",
+			title: "Share your personal stores",
+			description: "Gain 5 alignment, lose 7 health, and upgrade a random block or heal die.",
 			effect: function(_context) {
 				global.player_hp -= 7;
 				global.player_alignment += 5;
@@ -115,7 +122,11 @@
 			result: "You share your stores with the crew."
 		}
 		event_storm_opt_2 = {
-			description: "Cut rations for everyone. - alignment, + keepsake.",
+			title: "Cut rations for everyone",
+			description: "Lose 4 alignment, and gain the Starver's Efficiency keepsake.",
+			hover: function() {
+				queue_tooltip(mouse_x, mouse_y, oRunManager.ks_starvers_efficiency.name, oRunManager.ks_starvers_efficiency.desc, sKeepsake, oRunManager.ks_starvers_efficiency.sub_image);
+			},
 			effect: function(_context) {
 				global.player_alignment -= 4;
 				gain_keepsake(oRunManager.ks_starvers_efficiency);
@@ -125,7 +136,8 @@
 			result: "A hard decision."
 		}
 		event_storm_opt_3 = {
-			description: "Let the crew solve it for themselves. +1 dice playable next combat.",
+			title: "Let the crew solve it for themselves",
+			description: "Gain 1 dice playable every turn next combat.",
 			effect: function(_context) {
 				oRunManager.bonus_dice_next_combat = 1;
 				oEventManager.event_complete = 2;
@@ -149,7 +161,8 @@
 		options: ds_list_create(),
 	}
 		event_upgrade_opt_1 = {
-			description: "Get some much needed sleep. +5 max hp, heal to full.",
+			title: "Get some much needed sleep",
+			description: "Gain 5 max health and heal to full.",
 			effect: function(_context) {
 				global.player_max_hp += 5;
 				if (global.player_hp < global.player_max_hp) {
@@ -165,7 +178,8 @@
 			result: "You feel well rested."
 		}
 		event_upgrade_opt_2 = {
-			description: "Take this opportunity to sharpen your blades. Upgrade two random attack dice.",
+			title: "Take this opportunity to sharpen your blades",
+			description: "Upgrade 2 random attack dice.",
 			effect: function(_context) {
 				// search through all dice, add block and heals to a temporary ds list, return a random index, upgrade that index's dice value +2, then destroy the list
 				
@@ -220,7 +234,11 @@
 		options: ds_list_create(),
 	}
 		event_sails_opt_1 = {
-			description: "Use the backup sail. -10 coins, + keepsake.",
+			title: "Use the backup sail",
+			description: "Lose 10 coins to gain the Small Sail keepsake.",
+			hover: function() {
+				queue_tooltip(mouse_x, mouse_y, oRunManager.ks_small_sail.name, oRunManager.ks_small_sail.desc, sKeepsake, oRunManager.ks_small_sail.sub_image);
+			},
 			effect: function(_context) {
 				if (oRunManager.credits >= 10) {
 					oRunManager.credits -= 10;
@@ -234,7 +252,11 @@
 			result: "Sail replaced and you are on your way."
 		}
 		event_sails_opt_2 = {
-			description: "Repair the sail. - consumable, + keepsake.",
+			title: "Repair the sail",
+			description: "Lose a random consumable to gain the Rope of Repair keepsake.",
+			hover: function() {
+				queue_tooltip(mouse_x, mouse_y, oRunManager.ks_rope_of_repair.name, oRunManager.ks_rope_of_repair.desc, sKeepsake, oRunManager.ks_rope_of_repair.sub_image);
+			},
 			effect: function(_context) {
 
 				var item_pool = [];
@@ -259,7 +281,8 @@
 			result: "Sail repaired, it should hold out."
 		}
 		event_sails_opt_3 = {
-			description: "Continue with the tear - Proceed as you are, -2 Max HP.",
+			title: "Continue with the tear",
+			description: "Proceed as you are and lose 2 max health.",
 			effect: function(_context) {
 				global.player_max_hp -= 2;
 				if (global.player_hp > global.player_max_hp) global.player_hp = global.player_max_hp;
@@ -284,7 +307,8 @@
 		options: ds_list_create(),
 	}
 		event_bounty_opt_1 = {
-			description: "Demand a bigger share. +120 gold, -7 alignment.",
+			title: "Demand a bigger share",
+			description: "Gain 120 gold and lose 7 alignment.",
 			effect: function(_context) {
 				gain_coins(mouse_x, mouse_y, 120);
 				global.player_alignment -= 7;
@@ -295,7 +319,8 @@
 			result: "The crew fork over more of the bounty, morale seems lower."
 		}
 		event_bounty_opt_2 = {
-			description: "Take your share. +80 gold.",
+			title: "Take your fair share",
+			description: "Gain 80 gold.",
 			effect: function(_context) {
 				gain_coins(mouse_x, mouse_y, 80);
 				
@@ -305,7 +330,8 @@
 			result: "You take your share of the bounty."
 		}
 		event_bounty_opt_3 = {
-			description: "Take a smaller share to boost morale. +40 gold, +7 alignment.",
+			title: "Take a smaller share to boost morale",
+			description: "Gain 40 gold and 7 alignment.",
 			effect: function(_context) {
 				gain_coins(mouse_x, mouse_y, 40);
 				global.player_alignment += 7;
@@ -331,7 +357,8 @@
 		options: ds_list_create(),
 	}
 		event_trunk_opt_1 = {
-			description: "A token from an ex lover - Gain a random dice",
+			title: "A token from an ex lover",
+			description: "Gain a random dice.",
 			effect: function(_context) {
 				
 				// Generate a random dice
@@ -361,7 +388,8 @@
 			result: "Result"
 		}
 		event_trunk_opt_2 = {
-			description: "An heirloom from a time gone by - Gain a random core",
+			title: "An heirloom from a time gone by",
+			description: "Gain a random core.",
 			effect: function(_context) {
 				if (get_first_free_item_slot() != -1) {
 					
@@ -381,7 +409,8 @@
 			result: "Result"
 		}
 		event_trunk_opt_3 = {
-			description: "A tonic that you were saving for a special day - Gain a random potion",
+			title: "A tonic you were saving for a special day",
+			description: "Gain a random potion.",
 			effect: function(_context) {
 				if (get_first_free_item_slot() != -1) {
 					
@@ -398,7 +427,7 @@
 					throw_error("No free slots", "Make space by destroying an item (right click)");
 				}
 			},
-			result: "Result"
+			result: "Today is the day!"
 		}
 	ds_list_add(event_trunk.options, event_trunk_opt_1);
 	ds_list_add(event_trunk.options, event_trunk_opt_2);
@@ -416,7 +445,8 @@
 		options: ds_list_create(),
 	}
 		event_plunder_opt_1 = {
-			description: "Stick your hand in and pull something out - Gain a random keepsake, 50% chance to lose 5 hp.",
+			title: "Stick your hand in and pull something out",
+			description: "Gain a random keepsake, 50% chance to lose 5 health.",
 			effect: function(_context) {
 				// Generate a random keepsake
 				var keepsake_options = ds_list_create();
@@ -435,7 +465,8 @@
 			result: "Result"
 		}
 		event_plunder_opt_2 = {
-			description: "Get the crew to find something for you - Gain a random rare dice core",
+			title: "Get the crew to find something for you",
+			description: "Gain a random rare dice core",
 			effect: function(_context) {
 				if (get_first_free_item_slot() != -1) {
 					
@@ -470,7 +501,8 @@
 		options: ds_list_create(),
 	}
 		event_gunner_opt_1 = {
-			description: "Roundshot - Choose a dice to gain +2 max roll",
+			title: "Roundshot",
+			description: "Choose a dice to gain +2 max roll.",
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
 				oRunManager.dice_selection_message = "Choose a dice to gain +2 max roll";
@@ -485,7 +517,8 @@
 			result: "Result"
 		}
 		event_gunner_opt_2 = {
-			description: "Chainshot - Choose a dice to gain +1 min roll",
+			title: "Chainshot",
+			description: "Choose a dice to gain +1 min roll.",
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
 				oRunManager.dice_selection_message = "Choose a dice to gain +1 min roll";
@@ -500,7 +533,8 @@
 			result: "Result"
 		}
 		event_gunner_opt_3 = {
-			description: "Grapeshot - Choose a dice to gain a random core",
+			title: "Grapeshot",
+			description: "Choose a dice to gain a random core.",
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
 				oRunManager.dice_selection_message = "Choose a dice to gain a random core";
@@ -530,7 +564,8 @@
 		options: ds_list_create(),
 	}
 		event_albatross_opt_1 = {
-			description: "Offer it some food - If you have a shop relic, heal to full and gain 7 max hitpoints",
+			title: "Offer it some food",
+			description: "If you have a shop relic, heal to full and gain 7 max health.",
 			effect: function(_context) {
 				var player_has_shop_keepsake = false;
 				
@@ -558,7 +593,8 @@
 			result: "Result"
 		}
 		event_albatross_opt_2 = {
-			description: "Take the object hanging around its neck - Gain a random keepsake, lose 7 alignment",
+			title: "Take the object hanging around its neck",
+			description: "Gain a random keepsake and lose 7 alignment.",
 			effect: function(_context) {
 				// Generate a random keepsake
 				var keepsake_options = ds_list_create();
@@ -573,9 +609,11 @@
 			result: "Result"
 		}
 		event_albatross_opt_3 = {
-			description: "Offer your blessings to the Albatross - Gain 10 alignment",
+			title: "Offer your blessings to the Albatross",
+			description: "Gain 5 alignment and 5 luck.",
 			effect: function(_context) {
-				global.player_alignment += 10;
+				global.player_alignment += 5;
+				global.player_luck += 5;
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
 			},
@@ -597,7 +635,8 @@
 		options: ds_list_create(),
 	}
 		event_wishing_well_opt_1 = {
-			description: "Reach into the water and steal a penny - gain a random coin, lose alignment",
+			title: "Reach into the water and steal a penny",
+			description: "Gain a random coin and lose 4 alignment.",
 			effect: function(_context) {
 				// Generate a random dice
 				var dice_options = ds_list_create();
@@ -627,7 +666,8 @@
 			result: "Result"
 		}
 		event_wishing_well_opt_2 = {
-			description: "Make a wish - remove a coin from your bag, gain improved luck for the run",
+			title: "Make a wish",
+			description: "Remove a coin from your bag and gain improved luck for the run.",
 			effect: function(_context) {
 				// initialize variables
 				var player_has_coin = false;
@@ -664,12 +704,13 @@
 			result: "Result"
 		}
 		event_wishing_well_opt_3 = {
-			description: "Leave it",
+			title: "Leave it",
+			description: "Do nothing and leave.",
 			effect: function(_context) {
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "You leave."
 		}
 	ds_list_add(event_wishing_well.options, event_wishing_well_opt_1);
 	ds_list_add(event_wishing_well.options, event_wishing_well_opt_2);
@@ -687,7 +728,8 @@
 		options: ds_list_create(),
 	}
 		event_mermaid_opt_1 = {
-			description: "Offer her a treasure and leave - Choose a die from your bag to remove",
+			title: "Offer her a treasure and leave",
+			description: "Choose a die from your bag to remove.",
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
 				oRunManager.dice_selection_message = "Choose a die to remove";
@@ -704,7 +746,8 @@
 			result: "Result"
 		}
 		event_mermaid_opt_2 = {
-			description: "Listen to her song - Heal 40% health",
+			title: "Listen to her song",
+			description: "Heal 40% of your max health.",
 			effect: function(_context) {
 				if (global.player_hp < global.player_max_hp) {
 					var amount = global.player_max_hp * 0.4;
@@ -719,7 +762,8 @@
 			result: "Result"
 		}
 		event_mermaid_opt_3 = {
-			description: "Venture into the depths with her - Lose 5 max health for a random rare dice",
+			title: "Venture into the depths with her",
+			description: "Lose 5 max health and gain a random rare dice",
 			effect: function(_context) {
 				// Generate a random dice
 				var dice_options = ds_list_create();
@@ -765,7 +809,8 @@
 		options: ds_list_create(),
 	}
 		event_dutchman_opt_1 = {
-			description: "Let the Dutchman sail through you - Guarantee item rewards every combat for the rest of this voyage. You will be unable to port at shops until your next voyage.",
+			title: "Let the Dutchman sail through you",
+			description: "For the rest of this voyage: Guarantee item rewards every combat but lose the ability to port at shops.",
 			effect: function(_context) {
 				oRunManager.dutchman_taken = true;
 				
@@ -782,17 +827,22 @@
 					}
 				}
 				
+				for (var i = 300; i < room_width - 300; i++) {
+					particle_emit(i, display_get_gui_height() - irandom(30), "rise", make_color_rgb(70, 180, 110), 1);
+				}
+				
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;
 			},
 			result: "Result"
 		}
 		event_dutchman_opt_2 = {
-			description: "Steer to avoid the Dutchman (50% chance) - On success gain a random keepsake, on a failure lose a random die and 5 hitpoints.",
+			title: "Steer to avoid the Dutchman",
+			description: "On success gain a random keepsake, on a failure lose a random die and 5 health.",
 			effect: function(_context) {
 				var success = irandom_range(1, 100);
 				
-				if (success <= 50) {
+				if (success <= global.player_luck) {
 					// Generate a random keepsake
 					var keepsake_options = ds_list_create();
 					generate_keepsake_rewards(keepsake_options, global.rollable_keepsake_list, 1);
@@ -829,7 +879,8 @@
 		options: ds_list_create(),
 	}
 		event_rough_tides_opt_1 = {
-			description: "Your bag has spilled out over the desk - Remove a die from your bag",
+			title: "Your bag has spilled out over the desk",
+			description: "Choose a die to remove from your bag.",
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
 				oRunManager.dice_selection_message = "Choose a die to remove";
@@ -847,7 +898,8 @@
 			result: "Result"
 		}
 		event_rough_tides_opt_2 = {
-			description: "Ink has spilled over your parchment - Transform a die from your bag",
+			title: "Ink has spilled over your parchment",
+			description: "Choose a die to transform.",
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
 				oRunManager.dice_selection_message = "Choose a die to transform";
@@ -873,7 +925,8 @@
 			result: "Result"
 		}
 		event_rough_tides_opt_3 = {
-			description: "Something on the floor - Duplicate a die from your bag",
+			title: "Something on the floor",
+			description: "Choose a die to duplicate.",
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
 				oRunManager.dice_selection_message = "Choose a die to duplicate";
@@ -905,7 +958,8 @@
 		options: ds_list_create(),
 	}
 		event_constellation_opt_1 = {
-			description: "The Plough - Reset your alignment, gain 10 luck.",
+			title: "The Plough",
+			description: "Reset your alignment and gain 10 luck.",
 			effect: function(_context) {
 				global.player_alignment = 50;
 				global.player_luck += 10;
@@ -916,7 +970,8 @@
 			result: "Result"
 		}
 		event_constellation_opt_2 = {
-			description: "Cassiopeia - Lose 12 alignment, gain 3 luck.",
+			title: "Cassiopeia",
+			description: "Lose 12 alignment and gain 3 luck.",
 			effect: function(_context) {
 				global.player_alignment -= 12;
 				global.player_luck += 3;
@@ -926,7 +981,8 @@
 			result: "Result"
 		}
 		event_constellation_opt_3 = {
-			description: "Lyra - Gain 12 alignment, gain 3 luck.",
+			title: "Lyra",
+			description: "Gain 12 alignment and 3 luck.",
 			effect: function(_context) {
 				global.player_alignment += 12;
 				global.player_luck += 3;
@@ -947,11 +1003,12 @@
 	
 	event_shipwright = {
 		name: "A precious ingot",
-		description: "Late one evening the shipwright comes to you with a precious ingot he found buried within the latest hoard. “What shall I craft with it sir?”",
+		description: "Late one evening the shipwright comes to you with a precious ingot he found buried within the latest hoard. 'What shall I craft with it sir?'",
 		options: ds_list_create(),
 	}
 		event_shipwright_opt_1 = {
-			description: "Fashion a new tool - Gain a random tool for the workbench",
+			title: "Fashion a new tool",
+			description: "Gain a random tool for the workbench.",
 			effect: function(_context) {
 				if (ds_list_size(global.master_tool_list) > 0) {
 					// Generate a random tool
@@ -971,7 +1028,11 @@
 			result: "Result"
 		}
 		event_shipwright_opt_2 = {
-			description: "Enhance your buckle - Gain the toolbelt keepsake",
+			title: "Enhance your buckle",
+			description: "Gain the toolbelt keepsake.",
+			hover: function() {
+				queue_tooltip(mouse_x, mouse_y, oRunManager.ks_toolbelt.name, oRunManager.ks_toolbelt.desc, sKeepsake, oRunManager.ks_toolbelt.sub_image);
+			},
 			effect: function(_context) {
 				var has_toolbelt = false;
 				
@@ -996,7 +1057,8 @@
 			result: "Result"
 		}
 		event_shipwright_opt_3 = {
-			description: "Leave it",
+			title: "Leave it",
+			description: "Save the resources for the men.",
 			effect: function(_context) {
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
@@ -1043,7 +1105,8 @@
 		}
 	}
 		event_sirens_opt_1 = {
-			description: "Sing a song of your own - Higher chance of success the higher your alignment, if successful upgrade all your intel die.",
+			title: "Sing a song of your own",
+			description: "Higher chance of success the higher your alignment. If successful, upgrade all of your intel die.",
 			effect: function(_context) {
 				var random_num = irandom_range(1, 100);
 				if (random_num <= global.player_alignment) {
@@ -1085,7 +1148,8 @@
 			result: "Result"
 		}
 		event_sirens_opt_2 = {
-			description: "Block your ears - Higher chance of success the more block dice you have. If successful, upgrade all your block die.",
+			title: "Block your ears",
+			description: "Higher chance of success the more block dice you have. If successful, upgrade all of your block die.",
 			effect: function(_context) {
 				var random_num = irandom_range(1, 100);
 				var block_num = 0;
@@ -1138,7 +1202,8 @@
 			result: "Result"
 		}
 		event_sirens_opt_3 = {
-			description: "Succumb to the song - Crash on the rocks, lose 5hp (0 if you have protective rigging) and go straight to the shop.",
+			title: "Succumb to the song",
+			description: "Crash on the rocks, lose 5 health (0 if you have protective rigging) and go straight to the shop. On failure of other events this option will be auto-selected.",
 			effect: function(_context) {
 				fail_sirens();
 				
@@ -1155,11 +1220,17 @@
 
 function generate_event() {
 	var event = undefined;
+	var rand;
 	
-	var rand = irandom(ds_list_size(global.master_event_list) - 1);
+	if (ds_list_size(global.master_event_list) > 0) {
+		rand = irandom(ds_list_size(global.master_event_list) - 1);
+	} else {
+		define_events();
+		rand = irandom(ds_list_size(global.master_event_list) - 1);
+	}
 	
 	event = global.master_event_list[| rand];
-	
+
 	chosen_event = event;
 	ds_list_delete(global.master_event_list, rand);
 }

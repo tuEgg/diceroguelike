@@ -46,6 +46,7 @@ credits_scale = lerp(credits_scale, 1.0, 0.05);
 
 // Draw health
 var health_x = nodes_x + 100;
+global.heal_pos = health_x;
 draw_sprite(sHeart, 0, health_x, bar_half);
 draw_set_halign(fa_left);
 draw_set_valign(fa_middle);
@@ -228,16 +229,35 @@ if (show_tools) {
 var alignment_color = make_color_rgb(250, 166, 20);
 var alignment_x = gui_w - 450;
 
-var alignment_hover = mouse_hovering(alignment_x, bar_half, sprite_get_width(sAlignmentBar), sprite_get_height(sAlignmentBar), true);
-draw_sprite_ext(sMapIcon, 8, gui_w - 620, bar_half, 1, 1, 0, c_white, 1.0);
+var alignment_hover = mouse_hovering(alignment_x - 25, bar_half, sprite_get_width(sAlignmentBar) + 50, sprite_get_height(sAlignmentBar), true);
+draw_sprite_ext(sMapIcon, 8, alignment_x - 170, bar_half, 1, 1, 0, c_white, 1.0);
 draw_sprite_ext(sAlignmentBar, 0, alignment_x, bar_half, alignment_scale, alignment_scale, 0, c_white, 1.0);
 alignment_scale = lerp(alignment_scale, 1.0, 0.2);
 
 var alignment_pos_x = alignment_x - 70 + ((global.player_alignment) * 1.4);
 draw_sprite_ext(sCircleSmall, 0, alignment_pos_x, bar_half + 2, 1, 1, 0, c_white, 1.0);
 
+var alignment_text = "Neutral";
+var alignment_description = "Actions have consequences, make decisions that change how the sea interacts with you.";
+
+if (global.player_alignment >= 0 && global.player_alignment < 10) {
+	alignment_text = "Eldritch Horror";
+} else if (global.player_alignment >= 10 && global.player_alignment < 25) {
+	alignment_text = "Darkest Captain";
+} else if (global.player_alignment >= 25 && global.player_alignment < 40) {
+	alignment_text = "Cursed Sailor";
+} else if (global.player_alignment >= 40 && global.player_alignment < 60) {
+	alignment_text = "Neutral";
+} else if (global.player_alignment >= 60 && global.player_alignment < 75) {
+	alignment_text = "Sea";
+} else if (global.player_alignment >= 75 && global.player_alignment < 90) {
+	alignment_text = "Sea Nobility";
+} else if (global.player_alignment >= 90 && global.player_alignment <= 100) {
+	alignment_text = "Seafaring Light & Justice";
+}
+
 if (alignment_hover) {
-	queue_tooltip(mouse_x, mouse_y, "Alignment", "Actions have consequences, you currently have neutral alignment.");
+	queue_tooltip(mouse_x, mouse_y, "Alignment: " + alignment_text, alignment_description);
 }
 
 // Draw bounty information

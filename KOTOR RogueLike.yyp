@@ -72,7 +72,6 @@
     {"id":{"name":"scMap","path":"scripts/scMap/scMap.yy",},},
     {"id":{"name":"scParticles","path":"scripts/scParticles/scParticles.yy",},},
     {"id":{"name":"scShop","path":"scripts/scShop/scShop.yy",},},
-    {"id":{"name":"scTextScripts","path":"scripts/scTextScripts/scTextScripts.yy",},},
     {"id":{"name":"sActionSlot","path":"sprites/sActionSlot/sActionSlot.yy",},},
     {"id":{"name":"sActionSlotCentered","path":"sprites/sActionSlotCentered/sActionSlotCentered.yy",},},
     {"id":{"name":"sAlignmentBar","path":"sprites/sAlignmentBar/sAlignmentBar.yy",},},

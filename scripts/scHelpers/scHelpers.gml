@@ -94,33 +94,281 @@ function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _f
     };
 }
 
-/// @function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x, _y, _scale, _alpha, _angle, _max_length)
-function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x, _y, _scale, _alpha, _angle = 0, _max_length = -1) {
-	// Outline
-    draw_set_alpha(_alpha * 0.6);
-    draw_set_color(_outline_col);
-    for (var ox = -_outline_width; ox <= _outline_width; ox++) {
-        for (var oy = -_outline_width; oy <= _outline_width; oy++) {
-            if (ox != 0 || oy != 0) {
-				if (_max_length == -1) {
-					draw_text_transformed(_x + ox, _y + oy, _string, _scale, _scale, _angle);
-				} else {
-					draw_text_ext_transformed(_x + ox, _y + oy, _string, font_get_size(draw_get_font()) * 1.2, _max_length, _scale, _scale, _angle);
-				}
-			}
+function is_number_string(_s) {
+    return string_digits(_s) == _s;
+}
+
+function clean_word(_w) {
+    return string_lower(string_trim(_w, [".", ",", "!", "?", ":", ";"]));
+}
+
+function split_trailing_punct(_token) {
+    var core = _token;
+    var punct = "";
+
+    while (string_length(core) > 0) {
+        var last = string_char_at(core, string_length(core));
+        if (last == "." || last == "," || last == "!" || last == "?" || last == ":" || last == ";") {
+            punct = last + punct;
+            core = string_delete(core, string_length(core), 1);
+        } else {
+            break;
         }
     }
 
-    // Main text
-    draw_set_alpha(_alpha);
-    draw_set_color(_fill_col);
-	if (_max_length == -1) {
-		draw_text_transformed(_x, _y, _string, _scale, _scale, _angle);
-	} else {
-		draw_text_ext_transformed(_x, _y, _string, font_get_size(draw_get_font()) * 1.2, _max_length, _scale, _scale, _angle);
-	}
+    return [core, punct];
+}
 
-    draw_set_alpha(1);
+function colorcode_text(_str) {
+    global.COLOR_RULES = [
+        { tag: "gold",			keyword: "gold",		type: "num_keyword" },
+        { tag: "alignment",		keyword: "alignment",	type: "num_keyword" },
+        { tag: "luck",			keyword: "luck",		type: "num_keyword" },
+        { tag: "luck",			keyword: "lucky",		type: "num_keyword" },
+        { tag: "block",			keyword: "block",		type: "num_keyword" },
+        { tag: "heal",			keyword: "heal",		type: "num_keyword" },
+        { tag: "attack",		keyword: "attack",		type: "num_keyword" },
+        { tag: "intel",			keyword: "intel",		type: "num_keyword" }
+        // NOTE: "health" is handled as a special case below
+    ];
+
+    var words = string_split(_str, " ");
+    var wc = array_length(words);
+
+    var tags = array_create(wc, "def");
+
+    // --- Generic rule: keyword (always colour keyword; colour number too if present) ---
+    for (var i = 0; i < wc; i++) {
+        var parts = split_trailing_punct(words[i]);
+        var core = parts[0];
+        var w_clean = clean_word(core);
+
+        for (var r = 0; r < array_length(global.COLOR_RULES); r++) {
+            var rule = global.COLOR_RULES[r];
+
+            if (rule.type == "num_keyword" && w_clean == rule.keyword) {
+                tags[i] = rule.tag; // colour the keyword itself
+
+                if (i > 0) {
+                    var prev_parts = split_trailing_punct(words[i - 1]);
+                    var prev_core = prev_parts[0];
+                    if (is_number_string(prev_core)) {
+                        tags[i - 1] = rule.tag;
+                    }
+                }
+            }
+        }
+    }
+
+    // --- Special case: HEALTH (supports "7 health" and "7 max health") ---
+    for (var i = 0; i < wc; i++) {
+        var parts_i = split_trailing_punct(words[i]);
+        var core_i = parts_i[0];
+        var w_clean = clean_word(core_i);
+
+        if (w_clean == "health") {
+            // Always tag health
+            tags[i] = "health";
+
+            // If previous word is "max", tag it
+            var max_index = -1;
+            if (i > 0) {
+                var prev_parts = split_trailing_punct(words[i - 1]);
+                var prev_core = prev_parts[0];
+                if (clean_word(prev_core) == "max") {
+                    tags[i - 1] = "health";
+                    max_index = i - 1;
+                }
+            }
+
+            // Tag the number: either before "max" if present, otherwise before "health"
+            var num_index = (max_index != -1) ? (max_index - 1) : (i - 1);
+            if (num_index >= 0) {
+                var num_parts = split_trailing_punct(words[num_index]);
+                var num_core = num_parts[0];
+                if (is_number_string(num_core)) {
+                    tags[num_index] = "health";
+                }
+            }
+        }
+    }
+
+    // --- Keepsake range ("the"/"a" ... keepsake) ---
+    for (var i = 0; i < wc; i++) {
+        var parts_i = split_trailing_punct(words[i]);
+        var core_i = parts_i[0];
+        var w_clean = clean_word(core_i);
+
+        if (w_clean == "keepsake") {
+            var start = -1;
+
+            for (var j = i - 1; j >= 0; j--) {
+                var parts_j = split_trailing_punct(words[j]);
+                var core_j = parts_j[0];
+                var back_clean = clean_word(core_j);
+
+                if (back_clean == "the" || back_clean == "a") {
+                    start = j;
+                    break;
+                }
+            }
+
+            if (start != -1) {
+                for (var t = start + 1; t <= i; t++) tags[t] = "keepsake";
+            } else {
+                tags[i] = "keepsake";
+            }
+        }
+    }
+
+    // --- Rebuild: punctuation always [def], and no leading space ---
+    var out = "";
+    var current_tag = "def";
+    out += "[def]";
+
+    for (var i = 0; i < wc; i++) {
+        var parts = split_trailing_punct(words[i]);
+        var core = parts[0];
+        var punct = parts[1];
+
+        if (tags[i] != current_tag) {
+            out += "[" + tags[i] + "]";
+            current_tag = tags[i];
+        }
+
+        // no leading space
+        if (i != 0) out += " " + core;
+        else out += core;
+
+        if (punct != "") {
+            if (current_tag != "def") {
+                out += "[def]";
+                current_tag = "def";
+            }
+            out += punct;
+        }
+    }
+
+    if (current_tag != "def") out += "[def]";
+    return out;
+}
+
+
+/// @function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x, _y, _scale, _alpha, _angle, _max_length)
+function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x, _y, _scale, _alpha, _angle = 0, _max_length = -1) {
+	var colored = false;
+	
+	if (string_pos("[", _string) > 0) colored = true;
+	
+	if (colored) {
+		// Take the input string and turn it into an array 
+		var input_string_array = string_split_ext(_string, ["[", "]"], true);
+		
+		var output_string_array = [];
+		var colors_array = [];
+		
+		var xx = _x;
+		var yy = _y;
+		
+		// Assin that array to an array of string parts and an array of color parts
+		for (var i = 0; i < array_length(input_string_array); i++) {
+			
+			if (i mod 2 == 1) {
+				array_push(output_string_array, input_string_array[i]);
+			} else {
+				var col = _fill_col;
+				switch (input_string_array[i]) {
+					case "gold":					col = c_yellow;		break;
+					case "alignment":				col = c_aqua;		break;
+					case "keepsake":				col = c_orange;		break;
+					case "health":					col = c_red;		break;
+					case "luck":					col = c_lime;		break;
+					case "dice":					col = c_teal;		break;
+					case "block":					col = global.color_block;		break;
+					case "heal":					col = global.color_heal;		break;
+					case "attack":					col = global.color_attack;		break;
+					case "intel":					col = global.color_intel;		break;
+					default:						col = _fill_col;
+				}
+				array_push(colors_array, col);
+			}
+		}
+		
+		var line_h = font_get_size(draw_get_font()) * 1.5;
+		var x0 = _x;
+		var x1 = _x + _max_length;
+
+		for (var i = 0; i < array_length(output_string_array); i++) {
+		    var col = colors_array[i];
+		    var chunk = output_string_array[i];
+
+		    // Split chunk into words
+		    var words = string_split(chunk, " ");
+		    var wc = array_length(words);
+
+		    for (var w = 0; w < wc; w++) {
+		        var word = words[w];
+
+		        // Re-add the space after each word except the last
+		        var piece = (w < wc - 1) ? (word + " ") : word;
+
+		        // Width of this piece
+		        var pw = string_width(piece) * _scale;
+
+		        // If this piece doesn't fit and we're not at line start, wrap
+		        if (xx + pw > x1 && xx > x0) {
+		            xx = x0;
+		            yy += line_h;
+		        }
+
+		        // Draw outline
+		        draw_set_alpha(_alpha * 0.6);
+		        draw_set_color(_outline_col);
+		        for (var ox = -_outline_width; ox <= _outline_width; ox++) {
+		            for (var oy = -_outline_width; oy <= _outline_width; oy++) {
+		                if (ox != 0 || oy != 0) {
+		                    draw_text_transformed(xx + ox, yy + oy, piece, _scale, _scale, _angle);
+		                }
+		            }
+		        }
+
+		        // Draw main
+		        draw_set_alpha(_alpha);
+		        draw_set_color(col);
+		        draw_text_transformed(xx, yy, piece, _scale, _scale, _angle);
+
+		        // Advance cursor
+		        xx += pw;
+		    }
+		}
+
+	} else {
+		// Outline
+	    draw_set_alpha(_alpha * 0.6);
+	    draw_set_color(_outline_col);
+	    for (var ox = -_outline_width; ox <= _outline_width; ox++) {
+	        for (var oy = -_outline_width; oy <= _outline_width; oy++) {
+	            if (ox != 0 || oy != 0) {
+					if (_max_length == -1) {
+						draw_text_transformed(_x + ox, _y + oy, _string, _scale, _scale, _angle);
+					} else {
+						draw_text_ext_transformed(_x + ox, _y + oy, _string, font_get_size(draw_get_font()) * 1.2, _max_length, _scale, _scale, _angle);
+					}
+				}
+	        }
+	    }
+
+	    // Main text
+	    draw_set_alpha(_alpha);
+	    draw_set_color(_fill_col);
+		if (_max_length == -1) {
+			draw_text_transformed(_x, _y, _string, _scale, _scale, _angle);
+		} else {
+			draw_text_ext_transformed(_x, _y, _string, font_get_size(draw_get_font()) * 1.2, _max_length, _scale, _scale, _angle);
+		}
+
+	    draw_set_alpha(1);
+	}
 }
 
 function runmanager_trigger_keepsakes(_event, _data) {
@@ -309,6 +557,9 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
 		var yyy = yy + padding + 5 + sprite_get_height(_icon)/2;
 		if (_icon == sMapIcon) {
 			yyy -= sprite_get_height(_icon)/5;
+		}
+		if (_icon == sKeepsake) {
+			yyy -= sprite_get_height(_icon)/4;
 		}
         draw_sprite_ext(
             _icon, _index,
