@@ -111,6 +111,28 @@ global.keywords = {
     }
 };
 
+global.COLOR_RULES = [
+    { tag: "gold",			keyword: "gold",			type: "num_keyword" },
+    { tag: "alignment",		keyword: "alignment",		type: "num_keyword" },
+    { tag: "luck",			keyword: "luck",			type: "num_keyword" },
+    { tag: "luck",			keyword: "lucky",			type: "num_keyword" },
+    { tag: "block",			keyword: "block",			type: "num_keyword" },
+    { tag: "block",			keyword: "BLK",				type: "num_keyword" },
+    { tag: "heal",			keyword: "heal",			type: "num_keyword" },
+    { tag: "attack",		keyword: "attack",			type: "num_keyword" },
+    { tag: "attack",		keyword: "ATK",				type: "num_keyword" },
+    { tag: "intel",			keyword: "intel",			type: "num_keyword" },
+    { tag: "followthrough",	keyword: "followthrough",	type: "num_keyword" },
+    { tag: "multitype",		keyword: "multitype",		type: "num_keyword" },
+    { tag: "coin",			keyword: "coin",			type: "num_keyword" },
+    { tag: "stowaway",		keyword: "stowaway",		type: "num_keyword" },
+    { tag: "favourite",		keyword: "favourite",		type: "num_keyword" },
+    { tag: "exclusive",		keyword: "exclusive",		type: "num_keyword" },
+    { tag: "loose",			keyword: "loose",			type: "num_keyword" },
+    { tag: "sticky",		keyword: "sticky",			type: "num_keyword" },
+    // NOTE: "health" is handled as a special case below
+];
+
 global.tooltip_active = false;
 global.tooltip_main = undefined; // main tooltip struct (only one allowed)
 global.tooltip_keywords = [];    // list of keyword tooltip structs

@@ -120,17 +120,6 @@ function split_trailing_punct(_token) {
 }
 
 function colorcode_text(_str) {
-    global.COLOR_RULES = [
-        { tag: "gold",			keyword: "gold",		type: "num_keyword" },
-        { tag: "alignment",		keyword: "alignment",	type: "num_keyword" },
-        { tag: "luck",			keyword: "luck",		type: "num_keyword" },
-        { tag: "luck",			keyword: "lucky",		type: "num_keyword" },
-        { tag: "block",			keyword: "block",		type: "num_keyword" },
-        { tag: "heal",			keyword: "heal",		type: "num_keyword" },
-        { tag: "attack",		keyword: "attack",		type: "num_keyword" },
-        { tag: "intel",			keyword: "intel",		type: "num_keyword" }
-        // NOTE: "health" is handled as a special case below
-    ];
 
     var words = string_split(_str, " ");
     var wc = array_length(words);
@@ -223,23 +212,24 @@ function colorcode_text(_str) {
 
     // --- Rebuild: punctuation always [def], and no leading space ---
     var out = "";
-    var current_tag = "def";
-    out += "[def]";
+    var current_tag = ""; // Start empty to force the first tag to write
 
     for (var i = 0; i < wc; i++) {
         var parts = split_trailing_punct(words[i]);
         var core = parts[0];
         var punct = parts[1];
 
+        // 1. Handle the Core Word Tag
         if (tags[i] != current_tag) {
             out += "[" + tags[i] + "]";
             current_tag = tags[i];
         }
 
-        // no leading space
-        if (i != 0) out += " " + core;
-        else out += core;
+        // 2. Add the word (and space if not first)
+        if (i != 0) out += " ";
+        out += core;
 
+        // 3. Handle Punctuation (always switches back to def)
         if (punct != "") {
             if (current_tag != "def") {
                 out += "[def]";
@@ -278,17 +268,20 @@ function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x,
 			} else {
 				var col = _fill_col;
 				switch (input_string_array[i]) {
-					case "gold":					col = c_yellow;		break;
-					case "alignment":				col = c_aqua;		break;
-					case "keepsake":				col = c_orange;		break;
-					case "health":					col = c_red;		break;
-					case "luck":					col = c_lime;		break;
-					case "dice":					col = c_teal;		break;
-					case "block":					col = global.color_block;		break;
-					case "heal":					col = global.color_heal;		break;
-					case "attack":					col = global.color_attack;		break;
-					case "intel":					col = global.color_intel;		break;
-					default:						col = _fill_col;
+					case "gold":		case "coin":							col = c_yellow;		break;
+					case "alignment":	case "stowaway":						col = c_aqua;		break;
+					case "keepsake":											col = c_orange;		break;
+					case "health":		case "followthrough":					col = c_red;		break;
+					case "luck":		case "favourite":						col = c_lime;		break;
+					case "dice":		case "exclusive":						col = c_teal;		break;
+					case "ltgray":												col = c_ltgray;		break;
+					case "sticky":												col = c_ltgray;		break;
+					case "multitype":											col = c_silver;		break;
+					case "block":												col = global.color_block;		break;
+					case "heal":												col = global.color_heal;		break;
+					case "attack":												col = global.color_attack;		break;
+					case "intel":												col = global.color_intel;		break;
+					default:													col = _fill_col;
 				}
 				array_push(colors_array, col);
 			}
@@ -394,52 +387,52 @@ function trigger_bounty(_event, _data) {
 }
 
 function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dice = undefined) {
-
-    // If no main tooltip exists yet, set this one as the main tooltip
     if (!global.tooltip_active) {
-
         global.tooltip_active = true;
 
         global.tooltip_main = {
-            x: _x,
-            y: _y,
-            name: _name,
-            desc: _desc,
-            icon: _icon,
-            index: _index,
-			dice: _dice
+            x: _x, y: _y, name: _name, desc: _desc,
+            icon: _icon, index: _index, dice: _dice
         };
 
-        // Clear previous keyword tooltips
         global.tooltip_keywords = [];
 
-        // Parse description for keywords and immediately queue keyword tooltips
-        var key_array = variable_struct_get_names(global.keywords);
+        // 1. Measure the Main Tooltip height to find where the first keyword starts
+        draw_set_font(ftDefault);
+        var _h_name = string_height(_name);
+        draw_set_font(ftDescriptions);
+        var _h_desc = string_height_ext(_desc, -1, 300);
+        var current_ky = _h_name + _h_desc + 65; // 30 is base padding/gap
 
-        var ky = 92; // offset below main tooltip
+        var key_array = variable_struct_get_names(global.keywords);
 
         for (var k = 0; k < array_length(key_array); k++) {
             var key = key_array[k];
 
             if (string_has_keyword(_desc, key)) {
-
                 var data = global.keywords[$ key];
 
                 array_push(global.tooltip_keywords, {
                     x: _x + 10,
-                    y: _y + ky,
+                    y: _y + current_ky,
                     name: key,
                     desc: data.desc,
                     icon: sKeywordIcons,
                     index: data.index
                 });
 
-                ky += 72;
+                // 2. Measure THIS keyword's height to find where the NEXT one starts
+                // This ensures they never overlap regardless of description length
+                draw_set_font(ftDefault);
+                var _kw_name_h = string_height(key);
+                draw_set_font(ftDescriptions);
+                var _kw_desc_h = string_height_ext(data.desc, -1, 200);
+                
+                current_ky += (_kw_name_h + _kw_desc_h + 25); // 25 is the gap between tooltips
             }
         }
     }
 }
-
 function draw_all_tooltips() {
 
     if (global.tooltip_active) {
@@ -448,14 +441,14 @@ function draw_all_tooltips() {
         // Draw main tooltip
         //--------------------------
         var tt = global.tooltip_main;
-        draw_single_tooltip(tt.x, tt.y, tt.name, tt.desc, tt.icon, tt.index, tt.dice);
+        draw_single_tooltip(tt.x, tt.y, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false);
 
         //--------------------------
         // Draw keyword tooltips under it
         //--------------------------
         for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
             var kw = global.tooltip_keywords[i];
-            draw_single_tooltip(kw.x + 5, kw.y + 10, kw.name, kw.desc, kw.icon, kw.index);
+            draw_single_tooltip(kw.x + 5, kw.y + 10, kw.name, kw.desc, kw.icon, kw.index, undefined, true);
         }
     }
 
@@ -465,151 +458,108 @@ function draw_all_tooltips() {
     global.tooltip_keywords = [];
 }
 
-function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefined) {
-    
-    var padding = 10;
+function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefined, _is_keyword = false) {
+    var padding = 15;
     var xx = _x;
     var yy = _y;
 
-    // Offset tooltip if hovering directly on the mouse
     if (_y == mouse_y) {
-		xx = _x + 15;
+        xx = _x + 15;
         yy = _y + 30;
     }
 
-    // -------------------------------------------------------
-    // MEASURE NAME + DESCRIPTION
-    // -------------------------------------------------------
+    // --- 1. MEASURE NAME ---
     draw_set_font(ftDefault);
-    draw_set_halign(fa_left);
-    draw_set_valign(fa_top);
-
     var name_w = string_width(_name);
     var name_h = string_height(_name);
 
-    draw_set_font(ftSmall);
-    var desc_w = string_width(_desc);
-    var desc_h = string_height(_desc);
+    // --- 2. THE "LONGEST LINE" APPROACH ---
+    draw_set_font(ftDescriptions);
+    var max_desc_w = 300;
+    
+    var words = string_split(_desc, " ");
+    var longest_line_px = 0;
+    var current_line_str = "";
 
-    // -------------------------------------------------------
-    // BASE WIDTH / HEIGHT
-    // -------------------------------------------------------
-    var _width  = padding * 2 + max(name_w, desc_w);
-    var _height = padding * 2 + name_h + desc_h;
-	
-	var gap_x;
-	var gap_y;
-	
-	if (xx + _width > room_width) {
-		gap_x = room_width - (xx + _width);
-		xx += gap_x;
-	}
-	
-	if (yy + _height > room_height) {
-		gap_y = room_height - (yy + _height);
-		yy += gap_y;
-	}
+    for (var i = 0; i < array_length(words); i++) {
+        var word = words[i];
+        // Create a temporary string to see if the next word fits
+        var test_string = (current_line_str == "") ? word : (current_line_str + " " + word);
+        
+        if (string_width(test_string) <= max_desc_w) {
+            // It fits, so this is our new current line
+            current_line_str = test_string;
+        } else {
+            // It doesn't fit! The current_line_str (before the new word) is a finished line.
+            longest_line_px = max(longest_line_px, string_width(current_line_str));
+            // Start the next line with the word that didn't fit
+            current_line_str = word;
+        }
+    }
+    // Check the very last line after the loop finishes
+    longest_line_px = max(longest_line_px, string_width(current_line_str));
 
-    // Add icon room if present
-    var icon_w = 0;
-    if (_icon != undefined) {
-        icon_w = sprite_get_width(_icon) + padding + padding;
-        _width += icon_w;
-    } else if (_dice != undefined) {
-		if (_dice.distribution != "") {
-			icon_w = sprite_get_width(sCores);
-			_width += icon_w;
-		}
-	}
+    // Use the pixel-perfect width we just found
+    var actual_desc_w = longest_line_px;
 
-    // -------------------------------------------------------
-    // DISTRIBUTION BARS
-    // -------------------------------------------------------
-	if (_dice != undefined) {
-		if (_dice.distribution != "") {
-			draw_dice_distribution(_dice, xx + 50, yy + 7);
-		}
-	}
+    // Use standard GML height measurement (matches your line-break logic)
+    var line_sep = font_get_size(ftDescriptions) * 1.5;
+    var desc_h = string_height_ext(_desc, line_sep, max_desc_w);
 
-    // -------------------------------------------------------
-    // BACKGROUND
-    // -------------------------------------------------------
-    var col = global.color_bg;
+    // --- 3. DYNAMIC BOX SIZING ---
+    var icon_space = (_icon != undefined || (_dice != undefined && _dice.distribution != "")) ? 50 : 0;
+    var dist_h = (_dice != undefined && variable_struct_exists(_dice, "distribution") && _dice.distribution != "") ? 25 : 0;
+
+    var _width  = padding * 2 + max(name_w, actual_desc_w) + icon_space;
+    var _height = padding * 1.6 + name_h + desc_h + 10;
+
+    // Screen Clamping
+    if (xx + _width > room_width) xx = room_width - _width - 10;
+    if (yy + _height > room_height) yy = room_height - _height - 10;
+
+    // --- 4. DRAW BACKGROUND ---
     draw_set_alpha(0.8);
-	draw_set_color(c_black);
-	var thickness = 2;
-	draw_roundrect(xx - thickness, yy - thickness, xx + _width + thickness, yy + _height + thickness, false);
-	draw_set_color(col);
-	draw_roundrect(xx, yy, xx+_width, yy+_height, false);
+    draw_set_color(c_black);
+    draw_roundrect(xx - 2, yy - 2, xx + _width + 2, yy + _height + 2, false);
+    draw_set_color(_is_keyword ? make_color_rgb(20, 40, 70) : global.color_bg);
+    draw_roundrect(xx, yy, xx + _width, yy + _height, false);
+    draw_set_alpha(1);
 
-    //draw_sprite_ext(
-    //    sHoverBG, 0,
-    //    xx, yy,
-    //    _width / sprite_get_width(sHoverBG),
-    //    _height / sprite_get_height(sHoverBG),
-    //    0, col, 1
-    //);
+    var content_x = xx + padding;
 
-    // -------------------------------------------------------
-    // ICON
-    // -------------------------------------------------------
+    // --- 5. DRAW ICON / CORE / DISTRIBUTION ---
+    var icon_sprite = undefined;
+    var icon_idx = 0;
+    var icon_scale = 1;
+
     if (_icon != undefined) {
-		var yyy = yy + padding + 5 + sprite_get_height(_icon)/2;
-		if (_icon == sMapIcon) {
-			yyy -= sprite_get_height(_icon)/5;
-		}
-		if (_icon == sKeepsake) {
-			yyy -= sprite_get_height(_icon)/4;
-		}
-        draw_sprite_ext(
-            _icon, _index,
-            xx + sprite_get_width(_icon)/2 + padding,
-            yyy,
-            1, 1, 0, c_white, 1
-        );
-        xx += sprite_get_width(_icon) + padding;
-    } else if (_dice != undefined) {
-		// Draw core icon
-		if (_dice.distribution != "") {
-			var core_index = get_core_index(_dice);
-			draw_sprite_ext(
-	            sCores, core_index,
-	            xx + sprite_get_width(sCores)/2 + padding - 5,
-	            yy + padding - 20 + sprite_get_height(sCores)/2,
-	            0.75, 0.75, 0, c_white, 1
-	        );
-	        xx += sprite_get_width(sCores)*0.75 + padding;
-		}
-	}
-
-    // -------------------------------------------------------
-    // NAME
-    // -------------------------------------------------------
-    draw_set_color(c_white);
-    draw_set_font(ftDefault);
-	draw_set_halign(fa_left);
-    draw_set_valign(fa_top);
-    draw_set_alpha(1.0);
-    draw_text(xx + padding, yy + padding, string(_name));
-
-    // -------------------------------------------------------
-    // DESCRIPTION (with keyword colour parsing)
-    // -------------------------------------------------------
-    draw_set_font(ftSmall);
-
-    var parsed = parse_text_with_keywords(_desc);
-    var cursor_x = xx + padding;
-    var cursor_y = yy + padding + name_h;
-
-    for (var i = 0; i < array_length(parsed); i++) {
-        draw_set_colour(parsed[i].colour);
-        draw_text(cursor_x, cursor_y, parsed[i].text);
-        cursor_x += string_width(parsed[i].text);
+        icon_sprite = _icon;
+        icon_idx = _index;
+    } else if (_dice != undefined && variable_struct_exists(_dice, "distribution") && _dice.distribution != "") {
+        icon_sprite = sCores;
+        icon_idx = get_core_index(_dice);
+        icon_scale = 0.75;
     }
 
-    // IMPORTANT:
-    // No recursive keyword tooltips here.
-    // Keyword tooltips are queued externally.
+    if (icon_sprite != undefined) {
+        draw_sprite_ext(icon_sprite, icon_idx, content_x + 16, yy + (_height/2), icon_scale, icon_scale, 0, c_white, 1);
+        if (_dice != undefined && variable_struct_exists(_dice, "distribution") && _dice.distribution != "") {
+             draw_dice_distribution(_dice, content_x + 35, yy);
+        }
+        content_x += icon_space;
+    }
+
+    // --- 6. DRAW NAME ---
+    draw_set_font(ftDefault);
+    draw_set_color(c_white);
+    draw_set_halign(fa_left);
+    draw_set_valign(fa_top);
+	draw_outline_text(_name, c_black, c_white, 2, content_x, yy + padding, 1, 1, 0, max_desc_w);
+
+    // --- 7. DRAW DESCRIPTION ---
+    var colored_desc = colorcode_text(_desc);
+    draw_set_font(ftDescriptions); 
+    draw_outline_text(colored_desc, c_black, c_white, 1, content_x, yy + padding + name_h + 2, 1, 1, 0, max_desc_w);
 }
 
 /// @func string_has_keyword(str, keyword)
@@ -675,41 +625,6 @@ function get_keywords_in_string(str) {
     }
 
     return list;
-}
-
-
-/// @function mouse_hovering(_x, _y, _width, _height, _centered)
-function mouse_hovering(_x, _y, _width, _height, _centered) {
-	var mx = device_mouse_x_to_gui(0);
-	var my = device_mouse_y_to_gui(0);
-	
-	// This disables inputs for anything when main_input_disabled is true and we aren't the oRunManager object
-	if (global.main_input_disabled && id.object_index != oRunManager) {
-		return false;
-	}
-	
-	//draw_set_colour(c_black);
-	//draw_set_alpha(0.2);
-	
-	if (!_centered) {
-		if (mx < _x + _width && mx > _x && my < _y + _height && my > _y) {
-			if (debug_mode) {
-				//draw_rectangle(_x, _y, _x + _width, _y + _height, false);
-				//draw_set_alpha(1.0);
-			}
-			return true;
-		}
-	} else {
-		if (mx < _x + _width/2 && mx > _x - _width/2 && my < _y + _height/2 && my > _y - _height/2) {
-			if (debug_mode) {
-				//draw_rectangle(_x - _width/2, _y - _height/2, _x + _width/2, _y + _height/2, false);
-				//draw_set_alpha(1.0);
-			}
-			return true;
-		}
-	}
-	
-	return false;
 }
 
 function parse_text(str) {
@@ -891,6 +806,40 @@ function parse_text_with_keywords(str) {
     }
 
     return out;
+}
+
+/// @function mouse_hovering(_x, _y, _width, _height, _centered)
+function mouse_hovering(_x, _y, _width, _height, _centered) {
+	var mx = device_mouse_x_to_gui(0);
+	var my = device_mouse_y_to_gui(0);
+	
+	// This disables inputs for anything when main_input_disabled is true and we aren't the oRunManager object
+	if (global.main_input_disabled && id.object_index != oRunManager) {
+		return false;
+	}
+	
+	//draw_set_colour(c_black);
+	//draw_set_alpha(0.2);
+	
+	if (!_centered) {
+		if (mx < _x + _width && mx > _x && my < _y + _height && my > _y) {
+			if (debug_mode) {
+				//draw_rectangle(_x, _y, _x + _width, _y + _height, false);
+				//draw_set_alpha(1.0);
+			}
+			return true;
+		}
+	} else {
+		if (mx < _x + _width/2 && mx > _x - _width/2 && my < _y + _height/2 && my > _y - _height/2) {
+			if (debug_mode) {
+				//draw_rectangle(_x - _width/2, _y - _height/2, _x + _width/2, _y + _height/2, false);
+				//draw_set_alpha(1.0);
+			}
+			return true;
+		}
+	}
+	
+	return false;
 }
 
 function throw_error(_error_msg, _error_desc) {

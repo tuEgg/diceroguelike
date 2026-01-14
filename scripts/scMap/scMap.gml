@@ -6,6 +6,7 @@ function generate_pages() {
 	var num_bounty = 0; // generate no more than 1 bounty across all 3 pages
 	var num_elite = 0; // each page has an elite at the same time???
 	
+	// Generate 3 pages
 	repeat (3) {
 		var _index = irandom(5);
 		var _num_nodes = choose(1,2,2);
@@ -93,8 +94,8 @@ function generate_pages() {
 			var rand = irandom_range(1,100);
 			
 			
-			// 7th page draft node of each run is always combat
-			if (oWorldManager.pages_cleared == 4) && (ds_list_size(_page.nodes) == 0) {
+			// after 4, 12, 20 pages etc.
+			if ((oWorldManager.pages_cleared + 4) mod 8 == 0) && (ds_list_size(_page.nodes) == 0) {
 				chosen_node = node_treasure;
 			} else {
 				if (rand <= combat_chance) {

@@ -1275,10 +1275,12 @@ function combat_trigger_effects(_event, _ctx, _die_struct = undefined) {
 	}
 
     // 1) dice effects	
-	if (_die_struct == undefined) {
-		dice_trigger_effects(_event, _ctx);
-	} else {
-		trigger_die_effects_single(_die_struct, _event, _ctx)
+	if (room == rmCombat) {
+		if (_die_struct == undefined) {
+			dice_trigger_effects(_event, _ctx);
+		} else {
+			trigger_die_effects_single(_die_struct, _event, _ctx)
+		}
 	}
 
     // 2) keepsake effects

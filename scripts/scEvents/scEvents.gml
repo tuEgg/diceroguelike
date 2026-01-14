@@ -446,7 +446,7 @@
 	}
 		event_plunder_opt_1 = {
 			title: "Stick your hand in and pull something out",
-			description: "Gain a random keepsake, 50% chance to lose 5 health.",
+			description: "Gain a random keepsake, 50% chance to lose 8 health.",
 			effect: function(_context) {
 				// Generate a random keepsake
 				var keepsake_options = ds_list_create();
@@ -456,7 +456,7 @@
 				
 				var take_damage = irandom(1);
 				
-				if (take_damage) global.player_hp -= 5;
+				if (take_damage) global.player_hp -= 8;
 				
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;
@@ -565,7 +565,7 @@
 	}
 		event_albatross_opt_1 = {
 			title: "Offer it some food",
-			description: "If you have a shop relic, heal to full and gain 7 max health.",
+			description: "If you have a shop relic, gain 7 max health and heal to full.",
 			effect: function(_context) {
 				var player_has_shop_keepsake = false;
 				
@@ -584,6 +584,10 @@
 				
 				// Example of conditional event
 				if (player_has_shop_keepsake) {
+					global.player_max_hp += 7;
+					var amount = global.player_max_hp - global.player_hp;
+					process_action("player", 0, amount, 0, "player", undefined, "HEAL");
+					
 					oEventManager.event_complete = 0;
 					oEventManager.event_selected = true;
 				} else {

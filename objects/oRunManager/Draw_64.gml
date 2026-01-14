@@ -28,6 +28,7 @@ var voyage_hover = mouse_hovering(20, 15, string_width("Voyage III"), string_hei
 if (voyage_hover) queue_tooltip(mouse_x, mouse_y, "Voyages Sailed", "You are on voyage " + string(act) + "/III", undefined, 0, undefined);
 
 // Draw pages turned
+draw_set_font(ftBig);
 draw_set_halign(fa_center);
 draw_set_valign(fa_top);
 var pages_x = 190;
@@ -37,6 +38,7 @@ var pages_hover = mouse_hovering(pages_x, bar_half, sprite_get_width(sPaper), sp
 if (pages_hover) queue_tooltip(mouse_x, mouse_y, "Events Explored", "You have explored " + string(oWorldManager.nodes_cleared) + " events from the Captain's logbook", undefined, 0, undefined);
 
 // Draw money
+draw_set_font(ftBig);
 var nodes_x = pages_x + 80;
 draw_sprite_ext(sCoin, 1, nodes_x, bar_half, credits_scale * 0.8, credits_scale * 0.8, 0, c_white, 1.0);
 draw_outline_text(string(credits), c_black, c_white, 2, nodes_x + 20, bar_half, 1, 1, 0);
@@ -134,8 +136,10 @@ for (var i = 0; i < array_length(items); i++) {
 						var ctx = {
 							use_potion: true,
 						};
+						
 						trigger_item_effects(items[i], "on_clicked", ctx);
 						combat_trigger_effects("on_consumable_used", ctx);
+						
 						if (ctx.use_potion) {
 							items[i] = undefined;
 							holding_item = false;
@@ -356,49 +360,6 @@ if (bag_hover) {
 	if (mouse_check_button_pressed(mb_left)) {
 		bag_hover_locked = 1 - bag_hover_locked;
 	}
-	
-    //var bag_bg_offset = 200;
-	//var bag_bg_w = 420;
-	//var bag_bg_h = 180;
-    //draw_set_color(c_black);
-    //draw_set_alpha(0.3);
-	//draw_roundrect(bag_bg_offset, gui_h - bag_bg_offset, bag_bg_offset + bag_bg_w, gui_h - bag_bg_offset - bag_bg_h, false);
-
-    //// === Draw dice from bag ===
-    //var dice_per_row = 5;
-	//var dice_scale = 1;
-    //var dice_spacing = 80 * dice_scale;
-	//var padding = 50 * dice_scale;
-    //var start_x = bag_bg_offset + padding;
-    //var start_y = gui_h - bag_bg_offset - bag_bg_h + padding;
-
-    //for (var i = 0; i < ds_list_size(global.dice_bag); i++) {
-    //    var die_struct = global.dice_bag[| i];
-
-    //    // Position in grid
-    //    var col = i mod dice_per_row;
-    //    var row = i div dice_per_row;
-
-    //    var xx = start_x + (col * dice_spacing);
-    //    var yy = start_y + (row * dice_spacing);
-
-    //    // Choose color based on action type
-    //    var colr = get_dice_color(die_struct.action_type);
-
-    //    // Choose image index based on dice type
-    //    var frame = get_dice_index(die_struct.dice_value);
-
-    //    // Draw dice sprite
-    //    draw_set_alpha(1);
-    //    draw_set_color(colr);
-    //    draw_sprite_ext(sDice, frame, xx, yy, dice_scale, dice_scale, 0, colr, 1);
-	//	draw_dice_keywords(die_struct, xx, yy, 1);
-
-    //    // Optional: outline or count number
-    //    //draw_set_color(c_black);
-    //    //draw_set_alpha(0.5);
-    //    //draw_rectangle(xx - 32, yy - 32, xx + 32, yy + 32, false);
-    //}
 } else {
 	show_dice_bag = false;
 }
@@ -517,7 +478,7 @@ if (bag_hover_locked) {
 			draw_sprite_ext(sDice, get_dice_index(dice.dice_value), dice_x - box_width/3.75, dice_y - box_height/3.75, 1.0, 1.0, 0, get_dice_color(dice.action_type), dice_alpha);
 		
 			// Draw dice keywords
-			draw_dice_keywords(dice, dice_x - box_width/3.75, dice_y - box_height/3.75, 1);
+			draw_dice_keywords(dice, dice_x - box_width/3.75, dice_y - box_height/3.75, 1, dice_alpha);
 		
 			// Draw dice name
 			draw_set_font(ftDefault);
@@ -528,14 +489,11 @@ if (bag_hover_locked) {
 			// Draw dice description
 			draw_set_font(ftDescriptions);
 			draw_set_valign(fa_top);
-		    var parsed = parse_text_with_keywords(dice.description);
 		    var desc_x = dice_x - box_width/2 + 20;
 		    var desc_y = dice_y;
-
-		    for (var p = 0; p < array_length(parsed); p++) {
-		        draw_outline_text(parsed[p].text, c_black, parsed[p].colour, 2, desc_x, desc_y, 1, dice_alpha, 0, col_spacing - 40);
-		        desc_x += string_width(parsed[p].text);
-		    }
+			
+			var colored_desc = colorcode_text(dice.description);
+			draw_outline_text(colored_desc, c_black, c_white, 2, desc_x, desc_y, 1, dice_alpha, 0, col_spacing - 40);
 			
 			// Need to draw distribution
 			if (dice.distribution != "") {
@@ -583,7 +541,7 @@ if (bag_hover_locked) {
 	if (mouse_wheel_up()) scroll_y += 100;
 	
 	// Total pixel height of the bag height, its never less than 3 rows high (hence 15)
-	var minimum_size = min(3 * -row_spacing, ds_list_size(global.dice_bag) div 5 * -row_spacing);
+	var minimum_size = min(3 * -row_spacing, (ds_list_size(global.dice_bag) div 5 + ceil((ds_list_size(global.dice_bag) mod 5)/5)) * -row_spacing);
 	
 	// The adaptive height of the scrollable area
 	var scroll_height = minimum_size + bag_height;
