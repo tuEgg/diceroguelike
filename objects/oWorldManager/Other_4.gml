@@ -6,6 +6,7 @@ if (room == rmMap) {
 		shop_chance = 20;
 		bounty_chance = 0;
 		elite_chance = 0;
+		alignment_chance = 0;
 	}
 	
 	if (!ds_exists(pages_shown, ds_type_list)) pages_shown = ds_list_create();

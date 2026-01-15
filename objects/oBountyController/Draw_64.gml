@@ -15,6 +15,45 @@ draw_set_font(ftBig);
 draw_outline_text("Choose a boss to encounter later in the run. Accept a special bounty condition for the fight and receive greater rewards.",
 	c_black, c_white, 2, 50, 370, 1, 1, 0, 400);
 	
+
+draw_set_font(ftBigger);
+
+// Offer the player a potion
+draw_outline_text("Grab a drink", c_black, c_white, 2, 125, 635, 1, 1, 0);
+
+var pot_x = 75;
+var pot_y = 650;
+
+var pot = potion;
+
+var potion_w = potion_scale * sprite_get_width(pot.sprite);
+var potion_h =  potion_scale * sprite_get_height(pot.sprite);
+	
+var hover_con = mouse_hovering(pot_x, pot_y, potion_w, potion_h, true);
+potion_scale = lerp(potion_scale, !pot.taken && hover_con ? 1.2 : 1.0, 0.2);
+	
+var alpha = pot.taken ? 0 : 1.0;
+	
+draw_set_alpha(0.4 * alpha);
+draw_set_color(c_black);
+draw_ellipse(pot_x - sprite_get_width(pot.sprite)/2, pot_y + sprite_get_height(pot.sprite)/2 - 7, pot_x + sprite_get_width(pot.sprite)/2, pot_y + sprite_get_height(pot.sprite)/2 + 7, false);
+draw_sprite_ext(pot.sprite, pot.index, pot_x, pot_y, potion_scale, potion_scale, 0, c_white, alpha);
+draw_set_alpha(1.0);
+
+if (hover_con && alpha > 0) {
+	var die = undefined;
+	if (string_pos("Core", pot.name) > 0) {
+		die = clone_die(global.dice_d6_atk, "");
+		die.distribution = pot.distribution;
+	}
+	queue_tooltip(mouse_x, mouse_y, pot.name, pot.description, undefined, 0, die);
+		
+	if (mouse_check_button_pressed(mb_left) && !pot.taken && oRunManager.credits >= pot.price && oRunManager.has_space_for_item) {
+		oRunManager.credits -= pot.price;
+		gain_item(pot);
+	}
+}
+	
 // Draw the bounties
 for (var b = 0; b < array_length(bounty); b++) {
 	var _bounty = bounty[b];

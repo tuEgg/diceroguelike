@@ -268,15 +268,16 @@ function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x,
 			} else {
 				var col = _fill_col;
 				switch (input_string_array[i]) {
-					case "gold":		case "coin":							col = c_yellow;		break;
-					case "alignment":	case "stowaway":						col = c_aqua;		break;
-					case "keepsake":											col = c_orange;		break;
-					case "health":		case "followthrough":					col = c_red;		break;
-					case "luck":		case "favourite":						col = c_lime;		break;
-					case "dice":		case "exclusive":						col = c_teal;		break;
-					case "ltgray":												col = c_ltgray;		break;
-					case "sticky":												col = c_ltgray;		break;
-					case "multitype":											col = c_silver;		break;
+					case "gold":		case "coin":							col = c_yellow;					break;
+					case "stowaway":						col = c_aqua;					break;
+					case "keepsake":											col = c_orange;					break;
+					case "followthrough":										col = c_red;					break;
+					case "luck":	case "favourite":	case "health":			col = c_lime;					break;
+					case "dice":		case "exclusive":						col = c_teal;					break;
+					case "ltgray":												col = c_ltgray;					break;
+					case "sticky":												col = c_ltgray;					break;
+					case "multitype":											col = c_silver;					break;
+					case "alignment":											col = make_colour_rgb(230, 50, 230)	break;
 					case "block":												col = global.color_block;		break;
 					case "heal":												col = global.color_heal;		break;
 					case "attack":												col = global.color_attack;		break;

@@ -150,7 +150,7 @@ switch (state) {
 		dice_allowed_this_turn_bonus = 0;
 		ejected_dice = false;
 		
-		player_intel = debug_mode ? 12 : 0;
+		player_intel = debug_mode ? 6 : 0;
 		
 		// Modify dice allowed this turn
 		var turn_start_data = {
@@ -453,32 +453,66 @@ switch (state) {
 		if (instance_number(oDiceParticle) == 0) {
 		
 			if (enemies_to_fade_out > 0) {
+				show_debug_message("enemies to fade out:" + string(enemies_to_fade_out));
 				for (var e = ds_list_size(room_enemies) - 1; e >= 0; e--) {
 					var enemy_data = room_enemies[| e].data;
 					var enemy = room_enemies[| e];
 				
 					if (enemy.dead) {
-						if (!enemy.looted) {
-							// Earn some credits, regardless of secondary rewards
-							gain_coins(enemy.pos_x, enemy.pos_y, enemy_data.bounty);
+						if (oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT || oWorldManager.current_node_type == NODE_TYPE.ELITE) {
+							if (!enemy.alignment_choices_shown && !enemy.spared && !enemy.killed) {
+								enemy.alignment_choices_shown = true;
+							}
 							
-							// Gain the gold reward if we complete the fight
-							if (oRunManager.active_bounty != undefined) {
-								if (oWorldManager.current_node_type == NODE_TYPE.ELITE && oRunManager.active_bounty.complete) {
-									gain_coins(enemy.pos_x, enemy.pos_y, oRunManager.active_bounty.condition.gold_reward);
+							if (enemy.spared) {
+								if (!enemy.looted) {
+									global.player_alignment += 5;
+								
+									// Earn some credits, regardless of secondary rewards
+									gain_coins(enemy.pos_x, enemy.pos_y, ceil(enemy_data.bounty * 1.5));
+									
+									enemy.looted = true;
+								} else {
+									// show enemy fading back in and leaving
+									enemy.alpha = lerp(enemy.alpha, 1.0, 0.1);
+									enemy.intent.alpha = lerp(enemy.intent.alpha, 1.0, 0.1);
+						
+									if (enemy.alpha >= 0.95) {
+										enemies_to_fade_out--;
+										enemy.alpha = 1;
+										particle_emit(enemy.pos_x, enemy.pos_y, "rise", make_color_rgb(20,20,20));
+										ds_list_delete(room_enemies, e);
+										if (enemy_target_index > e) enemy_target_index--;
+									}
 								}
 							}
-							enemy.looted = true;
-						} else {
-							// show enemy fading out
-							enemy.alpha = lerp(enemy.alpha, 0.0, 0.1);
-							enemy.intent.alpha = lerp(enemy.intent.alpha, 0, 0.1);
+						}
 						
-							if (enemy.alpha <= 0.05) {
-								enemies_to_fade_out--;
-								enemy.alpha = 0;
-								ds_list_delete(room_enemies, e);
-								if (enemy_target_index > e) enemy_target_index--;
+						if (oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT && enemy.killed || oWorldManager.current_node_type == NODE_TYPE.COMBAT || oWorldManager.current_node_type == NODE_TYPE.ELITE && enemy.killed) {
+							all_enemies_spared = false;
+							
+							if (!enemy.looted) {
+								// Earn some credits, regardless of secondary rewards
+								gain_coins(enemy.pos_x, enemy.pos_y, enemy_data.bounty);
+							
+								// Gain the gold reward if we complete the fight
+								if (oRunManager.active_bounty != undefined) {
+									if (oWorldManager.current_node_type == NODE_TYPE.ELITE && oRunManager.active_bounty.complete) {
+										gain_coins(enemy.pos_x, enemy.pos_y, oRunManager.active_bounty.condition.gold_reward);
+									}
+								}
+								enemy.looted = true;
+							} else {
+								// show enemy fading out
+								enemy.alpha = lerp(enemy.alpha, 0.0, 0.1);
+								enemy.intent.alpha = lerp(enemy.intent.alpha, 0, 0.1);
+						
+								if (enemy.alpha <= 0.05) {
+									enemies_to_fade_out--;
+									enemy.alpha = 0;
+									ds_list_delete(room_enemies, e);
+									if (enemy_target_index > e) enemy_target_index--;
+								}
 							}
 						}
 					}

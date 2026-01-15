@@ -35,6 +35,7 @@ global.all_input_disabled = false; // prevents player from doing anything
 global.player_max_hp = 40;
 global.player_hp = global.player_max_hp;
 global.player_alignment = 50;
+global.alignment_stage = 0;
 global.hand_size = 5;
 global.player_luck = 50; // used for reward generation
 keepsakes = ds_list_create();
@@ -130,8 +131,13 @@ global.COLOR_RULES = [
     { tag: "exclusive",		keyword: "exclusive",		type: "num_keyword" },
     { tag: "loose",			keyword: "loose",			type: "num_keyword" },
     { tag: "sticky",		keyword: "sticky",			type: "num_keyword" },
+    { tag: "alignment",		keyword: "alignment",		type: "num_keyword" },
     // NOTE: "health" is handled as a special case below
 ];
+
+global.color_common = make_colour_rgb(52, 55, 73);
+global.color_uncommon = make_colour_rgb(42, 90, 85);
+global.color_rare = make_colour_rgb(85, 42, 90);
 
 global.tooltip_active = false;
 global.tooltip_main = undefined; // main tooltip struct (only one allowed)

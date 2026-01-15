@@ -64,6 +64,13 @@ function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", 
 	var uncommon_dice_chance = clamp(40 + (round(global.player_luck - 50)/2), 10, 200);
 	var rare_dice_chance = max(1, 1 + (round(global.player_luck - 50))/10);
 	
+	if (room == rmCombat) {
+		if (oCombat.all_enemies_spared || oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT) {
+			uncommon_dice_chance = 200;
+			rare_dice_chance = 200;
+		}
+	}
+	
 	if (room == rmBounty) {
 		uncommon_dice_chance = 200;
 		rare_dice_chance = 100;
@@ -239,9 +246,9 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none",
 	var uncommon_item_chance = clamp(60 + (round(global.player_luck - 50)/2), 10, 200);
 	var rare_item_chance = clamp(10 + (round(global.player_luck - 50)/5), 1, 200);
 	
-	if (room == rmBounty) {
+	if (room == rmCombat && oCombat.all_enemies_spared) {
 		uncommon_item_chance = 200;
-		rare_item_chance = 100;
+		rare_item_chance = 150;
 	}
 	
 	if (room == rmShop) {
@@ -444,7 +451,7 @@ function generate_tool_rewards(_reward_list, _tool_list, _num) {
 			
 	// fill list with all possible keepsakes
 	for (var i = 0; i < total_tools; i++) {
-		ds_list_add(indices_tools, clone_keepsake(_tool_list[| i]));
+		ds_list_add(indices_tools, _tool_list[| i]);
 	}
 
 	// shuffle to randomize order
@@ -457,7 +464,7 @@ function generate_tool_rewards(_reward_list, _tool_list, _num) {
 		var rand_index = irandom(ds_list_size(indices_tools)-1);
 		
 		var tool_struct = indices_tools[| rand_index];
-		ds_list_add(_reward_list, clone_keepsake(tool_struct));
+		ds_list_add(_reward_list, tool_struct);
 		ds_list_delete( indices_tools, ds_list_find_index( indices_tools, tool_struct));
 		
 		continue;  

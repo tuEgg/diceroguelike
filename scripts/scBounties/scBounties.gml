@@ -28,7 +28,7 @@ function generate_bounties(_num) {
 		var reward_item = ds_list_create();
 		var reward_keepsake = ds_list_create();
 		var reward_dice = ds_list_create();
-		generate_item_rewards(reward_item, global.master_item_list, 1);
+		generate_item_rewards(reward_item, global.master_item_list, 1, "core", "rare");
 		generate_keepsake_rewards(reward_keepsake, global.rollable_keepsake_list, 1);
 		generate_dice_rewards(reward_dice, global.master_dice_list, 1);
 				

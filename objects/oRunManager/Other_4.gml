@@ -1,5 +1,7 @@
-// need to shuffle bag every time we enter a new room
-ds_list_shuffle(global.dice_bag);
+// need to shuffle bag every time we enter combat
+if (room == rmCombat) {
+	ds_list_shuffle(global.dice_bag);
+}
 
 for (var i = 0; i < ds_list_size(global.dice_bag); i++) {
 	var die = global.dice_bag[| i];

@@ -611,13 +611,17 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		var index = 4;
 		var col = c_dkgray;
 		
+		var enemy_exiting = false;
+		
+		// Draw enemy intent
 		for (var i = 0; i < array_length(intent_array); i++) {
 			
-			if ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) {
+			if ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all || intent_array[i] == "EXIT") {
 				switch (intent_array[i]) {
 					case "ATK": col = global.color_attack; index = 0; break;
 					case "BLK": col = global.color_block; index = 1; break;
 					case "HEAL": col = global.color_heal; index = 2; break;
+					case "EXIT": col = c_orange; index = 5; enemy_exiting = true; break;
 					case "DEBUFF": case "NONE": case "BUFF": col = c_white; index = 3; break;
 					default: 
 					col = c_dkgray; 
@@ -653,12 +657,61 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			if (enemy.intent.move.action_type == "DEBUFF" || enemy.intent.move.action_type == "BUFF") && (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
 				queue_tooltip(mouse_x, mouse_y, enemy.intent.move.debuff.name, enemy.intent.move.debuff.desc, undefined, 0, undefined);
 			} else {
-				if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
+				if (enemy_exiting) {
+					queue_tooltip(mouse_x, mouse_y, "Exiting", "The enemy intents to escape", undefined, 0, undefined);
+				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
 					queue_tooltip(mouse_x, mouse_y, move_name, "The enemy intends to perform the following move: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount), undefined, 0, undefined);
 				} else {
 					queue_tooltip(mouse_x, mouse_y, "???", "Enemy intentions not revealed", undefined, 0, undefined);
 				}
 			}
+		}
+	}
+	
+	// =========================================================
+	// ENEMY KILL/SPARE OPTIONS
+	// =========================================================
+	
+	if (enemy.alignment_choices_shown) {
+		spare_kill_alpha = lerp(spare_kill_alpha, 1.0, 0.1);
+		
+		var btn1_x = enemy.pos_x - 50;
+		var btn1_y = enemy.pos_y + 50;
+		var btn2_x = btn1_x + 100;
+		var btn2_y = btn1_y;
+		
+		var btn_1_hover = mouse_hovering(btn1_x, btn1_y, sprite_get_width(sButtonSmall) * enemy.alignment_option_btn_1_scale * 0.5, sprite_get_height(sButtonSmall) * enemy.alignment_option_btn_1_scale * 0.5, true);
+		var btn_2_hover = mouse_hovering(btn2_x, btn2_y, sprite_get_width(sButtonSmall) * enemy.alignment_option_btn_2_scale * 0.5, sprite_get_height(sButtonSmall) * enemy.alignment_option_btn_2_scale * 0.5, true);
+		
+		enemy.alignment_option_btn_1_scale = lerp(enemy.alignment_option_btn_1_scale, btn_1_hover ? 1.2 : 1.0, 0.2);
+		enemy.alignment_option_btn_2_scale = lerp(enemy.alignment_option_btn_2_scale, btn_2_hover ? 1.2 : 1.0, 0.2);
+		
+		draw_sprite_ext(sButtonSmall, 0, btn1_x, btn1_y, enemy.alignment_option_btn_1_scale * 0.5, enemy.alignment_option_btn_1_scale * 0.5, 0, global.color_attack, spare_kill_alpha);
+		draw_sprite_ext(sButtonSmall, 0, btn2_x, btn2_y, enemy.alignment_option_btn_2_scale * 0.5, enemy.alignment_option_btn_2_scale * 0.5, 0, global.color_block, spare_kill_alpha);
+		
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_outline_text("Kill", c_black, c_white, 2, btn1_x, btn1_y, enemy.alignment_option_btn_1_scale, spare_kill_alpha, 0);
+		draw_outline_text("Spare", c_black, c_white, 2, btn2_x, btn2_y, enemy.alignment_option_btn_2_scale, spare_kill_alpha, 0);
+		
+		if (btn_1_hover) {
+			queue_tooltip(mouse_x, mouse_y, "Kill the enemy", "Lose 5 alignment");
+			if (mouse_check_button_pressed(mb_left)) {
+				enemy.killed = true;
+				global.player_alignment -= 5;
+				enemy.alignment_choices_shown = false;
+			}
+			// Proceed with killing the enemy
+		}
+		
+		if (btn_2_hover) {
+			queue_tooltip(mouse_x, mouse_y, "Spare the enemy", "Gain 5 alignment");
+			if (mouse_check_button_pressed(mb_left)) {
+				enemy.spared = true;
+				enemy.alignment_choices_shown = false;
+			}
+			// Proceed with sparing the enemy
 		}
 	}
 
@@ -1075,11 +1128,6 @@ if (show_rewards) {
 			        rewards_dice_taken = true;
 			        global.bag_size++;
 			    }
-		
-				// Need to add keepsake rewards on some fights, certainly on boss fights
-		
-				// Below code adds keepsakes
-				//ds_list_add(keepsakes, get_keepsake_by_id("lucky_coin"));
 			}
 		break;
 		
@@ -1104,14 +1152,14 @@ if (show_rewards) {
 				// Draw background sprite
 				
 				// Draw background sprite
-				var btn_col = make_colour_rgb(52, 55, 73);
+				var btn_col = global.color_common;
 				switch (consumable.rarity) {
 					case "uncommon":
-					btn_col = make_colour_rgb(42, 90, 85);
+					btn_col = global.color_uncommon;
 					break;
 					
 					case "rare":
-					btn_col = make_colour_rgb(85, 42, 90);
+					btn_col = global.color_rare;
 					break;
 				}
 				
@@ -1253,7 +1301,7 @@ if (show_rewards) {
 					}
 					
 					// and choosing a random one
-					rewards_consumables_locked = available_items[choose(0,1)];
+					rewards_consumables_locked = available_items[irandom(array_length(available_items) -1 )];
 				}
 			}
 		break;
@@ -1282,6 +1330,7 @@ if (show_rewards) {
 	
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
+	draw_set_font(ftBig);
 	draw_outline_text(rewards_stage == ds_list_size(reward_list) ? "Exit" : "Next", c_black, c_white, 2, next_x, next_y, reward_next_hover, 1.0, 0);
 
 	// Update animation

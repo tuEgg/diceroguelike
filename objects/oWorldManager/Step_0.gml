@@ -65,3 +65,21 @@ if (room == rmMap) {
 }
 
 if (oRunManager.dutchman_taken) shop_chance = 0;
+
+if (combat_chance + event_chance + shop_chance + bounty_chance + elite_chance + alignment_chance < 100) {
+	do { combat_chance++ } until (combat_chance + event_chance + shop_chance + bounty_chance + elite_chance + alignment_chance == 100);
+}
+
+if (combat_chance + event_chance + shop_chance + bounty_chance + elite_chance + alignment_chance > 100) {
+	do {
+		combat_chance -= 0.7;
+		event_chance -= 0.3;
+	} until (combat_chance + event_chance + shop_chance + bounty_chance + elite_chance + alignment_chance == 100);
+	
+	combat_chance = ceil(combat_chance);
+	event_chance = floor(event_chance);
+}
+
+if (keyboard_check_pressed(vk_alt)) {
+	draw_room_chances = 1 - draw_room_chances;
+}

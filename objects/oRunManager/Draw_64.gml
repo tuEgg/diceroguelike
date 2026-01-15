@@ -104,6 +104,10 @@ for (var i = 0; i < array_length(items); i++) {
 		}
 		
 		if (!global.main_input_disabled) {
+			if (items_hover[i] && mouse_check_button(mb_left)) {
+				items[i].show_item_delete_confirmation = false;
+			}
+			
 			// Add core dragging functionality
 			if (room == rmWorkbench) {
 				if (items[i].type == "core") {
@@ -146,9 +150,61 @@ for (var i = 0; i < array_length(items); i++) {
 						}
 					}
 				}
+			}
 
-				if (items_hover[i] && mouse_check_button(mb_right)) {
-					// delete item - need to add confirmation window to this
+			if (items_hover[i] && mouse_check_button_pressed(mb_right)) {
+				items[i].show_item_delete_confirmation = 1 - items[i].show_item_delete_confirmation;
+			}
+				
+			if (items[i].show_item_delete_confirmation) {
+				var padding = 15;
+				
+				draw_set_font(ftDefault);
+				var _width = string_width_ext("Delete this item?", -1, 140) + (padding*2);
+				var _height = string_height_ext("Delete this item?", font_get_size(draw_get_font()) * 1.5, 140) + (padding*1.5);
+				
+				var xx = sprite_x - _width - 30;
+				var yy = sprite_y + 30;
+				
+				draw_set_alpha(0.8);
+			    draw_set_color(c_black);
+			    draw_roundrect(xx - 2, yy - 2, xx + _width + 2, yy + _height + 2, false);
+			    draw_set_color(global.color_bg);
+			    draw_roundrect(xx, yy, xx + _width, yy + _height, false);
+			    draw_set_alpha(1);
+				
+				draw_set_font(ftDefault);
+				draw_set_halign(fa_left);
+				draw_set_valign(fa_top);
+				draw_outline_text("Delete this item?", c_black, c_white, 2, xx + padding, yy + padding, 1, 1, 0, _width - (padding*2));
+				
+				var btn_x = xx + _width;
+				var btn_y = yy + _height;
+				
+				var confirm_hover = mouse_hovering(btn_x, btn_y, _width, _height, true);
+				
+				items[i].item_delete_confirmation_scale = lerp(items[i].item_delete_confirmation_scale, confirm_hover ? 1.2 : 1.0, 0.2);
+				
+				if (!items_hover[i] && !confirm_hover) {
+					if (mouse_check_button_pressed(mb_left) || mouse_check_button_pressed(mb_right)) {
+						items[i].show_item_delete_confirmation = false;
+					}
+				}
+				
+				draw_sprite_ext(sButtonSmall, 0, btn_x, btn_y, items[i].item_delete_confirmation_scale * 0.5, items[i].item_delete_confirmation_scale * 0.5, 0, c_white, 1.0);
+				draw_sprite_ext(sButtonSmall, 0, btn_x, btn_y, items[i].item_delete_confirmation_progress/30, items[i].item_delete_confirmation_scale * 0.5, 0, c_red, 1.0);
+				draw_set_font(ftDefault);
+				draw_set_halign(fa_center);
+				draw_set_valign(fa_middle);
+				draw_outline_text("Delete", c_black, c_white, 2, btn_x, btn_y, items[i].item_delete_confirmation_scale, 1, 0);
+				
+				if (confirm_hover && mouse_check_button(mb_left)) {
+					items[i].item_delete_confirmation_progress++;
+				} else {
+					items[i].item_delete_confirmation_progress = 0;
+				}
+				
+				if (items[i].item_delete_confirmation_progress >= game_get_speed(gamespeed_fps) * 0.3) {
 					items[i] = undefined;
 					holding_item = false;
 				}
@@ -246,18 +302,25 @@ var alignment_description = "Actions have consequences, make decisions that chan
 
 if (global.player_alignment >= 0 && global.player_alignment < 10) {
 	alignment_text = "Eldritch Horror";
+	global.alignment_stage = 0;
 } else if (global.player_alignment >= 10 && global.player_alignment < 25) {
 	alignment_text = "Darkest Captain";
+	global.alignment_stage = 1;
 } else if (global.player_alignment >= 25 && global.player_alignment < 40) {
 	alignment_text = "Cursed Sailor";
+	global.alignment_stage = 2;
 } else if (global.player_alignment >= 40 && global.player_alignment < 60) {
 	alignment_text = "Neutral";
+	global.alignment_stage = 3;
 } else if (global.player_alignment >= 60 && global.player_alignment < 75) {
-	alignment_text = "Sea";
+	alignment_text = "Honest Captain";
+	global.alignment_stage = 4;
 } else if (global.player_alignment >= 75 && global.player_alignment < 90) {
 	alignment_text = "Sea Nobility";
+	global.alignment_stage = 5;
 } else if (global.player_alignment >= 90 && global.player_alignment <= 100) {
 	alignment_text = "Seafaring Light & Justice";
+	global.alignment_stage = 6;
 }
 
 if (alignment_hover) {
@@ -366,8 +429,6 @@ if (bag_hover) {
 
 if (bag_hover_locked) {
 	
-	// When this is true we need to set a global interact to false that disables any other hovers or interaction
-	
 	var bag_inner_padding = 200; // offset from the edges to start drawing dice
 	var bag_outer_padding = 170;
 	
@@ -470,6 +531,11 @@ if (bag_hover_locked) {
 			
 			// Give each dice its own background
 			draw_set_alpha(dice_alpha);
+			switch(dice.rarity) {
+				case "common": draw_set_color(global.color_common); break;
+				case "uncommon": draw_set_color(global.color_uncommon); break;
+				case "rare": draw_set_color(global.color_rare); break;
+			}
 			draw_set_color(make_color_rgb(44, 40, 62));
 			if (dice.selected) draw_set_color(c_green);
 			draw_roundrect(dice_x - box_width/2, dice_y - box_height/2, dice_x + box_width/2, dice_y + box_height/2, false);
@@ -495,7 +561,7 @@ if (bag_hover_locked) {
 			var colored_desc = colorcode_text(dice.description);
 			draw_outline_text(colored_desc, c_black, c_white, 2, desc_x, desc_y, 1, dice_alpha, 0, col_spacing - 40);
 			
-			// Need to draw distribution
+			// Draw distribution
 			if (dice.distribution != "") {
 				var core_index = get_core_index(dice);
 				

@@ -5,4 +5,5 @@ if ds_exists(chosen_pages, ds_type_list) ds_list_destroy(chosen_pages);
 if ds_exists(all_nodes, ds_type_list) ds_list_destroy(all_nodes);
 if ds_exists(possible_encounters, ds_type_list) ds_list_destroy(possible_encounters);
 if ds_exists(possible_elites, ds_type_list) ds_list_destroy(possible_elites);
+if ds_exists(possible_alignment_encounters, ds_type_list) ds_list_destroy(possible_alignment_encounters);
 if ds_exists(elite_list_before_bounty, ds_type_list) ds_list_destroy(elite_list_before_bounty);

@@ -202,6 +202,7 @@ if (room == rmMap) {
 								case NODE_TYPE.SHOP:			shop_nodes_this_voyage++;			break;
 								case NODE_TYPE.BOUNTY:			bounty_nodes_this_voyage++;			break;
 								case NODE_TYPE.ELITE:			elite_nodes_this_voyage++;			break;
+								case NODE_TYPE.ALIGNMENT:		alignment_nodes_this_voyage++;		break;
 							}
 						
 							// When we add an elite to the node list, we need to remove elites from the remaining drafted pages
@@ -306,33 +307,31 @@ if (room == rmMap) {
 	draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 1, 1, boat_data.angle, c_white, 1.0);
 }
 
-if (debug_mode) && keyboard_check(vk_alt) {
+if (debug_mode) && draw_room_chances {
 	var world_debug = [];
-	array_push(world_debug, combat_chance);
-	array_push(world_debug, event_chance);
-	array_push(world_debug, shop_chance);
-	array_push(world_debug, bounty_chance);
-	array_push(world_debug, elite_chance);
-	
-	array_push(world_debug, combat_nodes_this_voyage);
-	array_push(world_debug, event_nodes_this_voyage);
-	array_push(world_debug, shop_nodes_this_voyage);
-	array_push(world_debug, bounty_nodes_this_voyage);
-	array_push(world_debug, elite_nodes_this_voyage);
+	array_push(world_debug, string(combat_chance) + " (" + string(combat_nodes_this_voyage) + ")" );
+	array_push(world_debug, string(event_chance) + " (" + string(event_nodes_this_voyage) + ")" );
+	array_push(world_debug, string(shop_chance) + " (" + string(shop_nodes_this_voyage) + ")" );
+	array_push(world_debug, string(bounty_chance) + " (" + string(bounty_nodes_this_voyage) + ")" );
+	array_push(world_debug, string(elite_chance) + " (" + string(elite_nodes_this_voyage) + ")" );
+	array_push(world_debug, string(alignment_chance) + " (" + string(alignment_nodes_this_voyage) + ")" );
 	
 	draw_set_alpha(0.8);
 	draw_set_color(c_black);
-	draw_rectangle(gui_w, 100, gui_w - 225, 700, false);
-	draw_set_alpha(1.0);
-	
 	draw_set_font(ftSmall);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
+	
+	var _h = (30) * array_length(world_debug);
+	
+	
+	draw_rectangle(gui_w, 100, gui_w - 225, 100 + _h + 50, false);
+	draw_set_alpha(1.0);
 	draw_set_color(c_white);
 	for (var i = 0; i < array_length(world_debug); i++) {
-		var lookup = ["combat", "event", "shop", "bounty", "elite", "combat nodes", "event nodes", "shop nodes", "bounty nodes", "elite nodes"];
+		var lookup = ["combat", "event", "shop", "bounty", "elite", "alignment", "combat nodes", "event nodes", "shop nodes", "bounty nodes", "elite nodes", "alignment nodes"];
 		
 		draw_text(gui_w - 200, 125 + (i * 30), lookup[i] + ": ");
-		draw_text(gui_w - 75, 125 + (i * 30), string(world_debug[i]));
+		draw_text(gui_w - 75, 125 + (i * 30), world_debug[i]);
 	}
 }

@@ -237,7 +237,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					_target.dead = true;
 					enemy_turns_remaining--;
 					enemies_left_this_combat--;
-					enemies_to_fade_out = true;
+					enemies_to_fade_out += 1;
 					_target.alpha = 0.5;
 					
 					var possible_new_targets = ds_list_create();
@@ -1072,10 +1072,14 @@ function win_fight() {
 		reward_dice_options = ds_list_create();
 		reward_consumable_options = ds_list_create();
 		reward_keepsake_options = ds_list_create();
+		
+		if (oWorldManager.current_node_type != NODE_TYPE.ALIGNMENT) {
+			generate_dice_rewards(reward_dice_options, global.master_dice_list, 3 );
+		} else {
+			generate_dice_rewards(reward_dice_options, global.alignment_dice_list, 2 );
+		}
 			
-		generate_dice_rewards(reward_dice_options, global.master_dice_list, 3);
-			
-		repeat(3) ds_list_add(reward_scale, 0.1);
+		repeat(3 + all_enemies_spared) ds_list_add(reward_scale, 0.1);
 		
 		if (oWorldManager.current_node_type == NODE_TYPE.ELITE) {
 			generate_keepsake_rewards(reward_keepsake_options, global.rollable_keepsake_list, 3);
@@ -1084,15 +1088,25 @@ function win_fight() {
 			generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
 			ds_list_add(reward_list, "consumables");
 		} else {
-			
 			// Show dice every combat, show consumables at a 40% chance, gaining 10% chance every time they don't appear, losing 10% when they do.
 			ds_list_add(reward_list, "dice");
 			
 			// Add consumables starting at a chance
 			var con_chance = irandom_range(1, 100);
 
-			if (con_chance <= oRunManager.show_consumables_chance || oRunManager.dutchman_taken) {
-				generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
+			// Show rewards if we meet the chance, and always show if we have the dutchman event taken, or we spared all enemies
+			if (con_chance <= oRunManager.show_consumables_chance || oRunManager.dutchman_taken || all_enemies_spared) {
+				var num_items = 3;
+				if (all_enemies_spared) {
+					if (oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT) {
+						num_items = 2;
+					}
+					if (oWorldManager.current_node_type == NODE_TYPE.BOSS || oWorldManager.current_node_type == NODE_TYPE.ELITE) {
+						num_items = 3;
+					}
+				}
+				
+				generate_item_rewards(reward_consumable_options, global.master_item_list, num_items);
 				ds_list_add(reward_list, "consumables");
 				oRunManager.show_consumables_chance -= 30;
 			} else {
@@ -1462,7 +1476,14 @@ function add_enemy_to_fight(_enemy) {
 		bar_scale: 1.0 - ((enemies_left_this_combat-1) * 0.2),
 		debuffs: ds_list_create(),
 		taken_damage_this_turn: false,
-		keep_block_between_turns: false
+		keep_block_between_turns: false,
+		alignment_choices_shown: false, // have we shown them their alignment choices yet
+		alignment_choice: "", // have they picked to either kill or spare
+		alignment_option_btn_1_scale: 1,
+		alignment_option_btn_2_scale: 1,
+		spared: false,	// for alignment fights
+		killed: false,	// for alignment fights
+		
 	}
 	
 	if (enemy_template.data.passive != undefined) {

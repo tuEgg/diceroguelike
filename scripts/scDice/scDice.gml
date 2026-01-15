@@ -90,6 +90,7 @@ function generate_dice_bag() {
 	global.sacrifice_list = ds_list_create();
 	global.sacrifice_history = ds_list_create();
 	global.master_dice_list = ds_list_create(); // used to track 1 instance of each dice type, for offering random rewards
+	global.alignment_dice_list = ds_list_create(); // used to track 1 instance of each dice type, for offering random rewards
 
 	// Define starter dice structs
 	global.dice_all = make_die_struct(1, 4,"None", "All", "", "Multicolor die", "Counts as anything", "starter");
@@ -749,6 +750,38 @@ function generate_dice_bag() {
 	    ]
 	);
 	ds_list_add(global.master_dice_list, clone_die(global.die_balanced, ""));
+	
+	global.die_holy = make_die_struct(
+	    1, 8, "None", "None", "", "Holy die",
+	    "Alignment: The higher your alignment, the higher this dice's mininimum roll",
+		"rare",
+		60,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					_context.min_roll += global.alignment_stage;
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.alignment_dice_list, clone_die(global.die_holy, ""));
+	
+	global.die_unholy = make_die_struct(
+	    1, 6, "None", "None", "", "Unholy die",
+	    "Alignment: The lower your alignment, the higher this dice's maximum roll",
+		"rare",
+		60,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					_context.max_roll += (6 - global.alignment_stage);
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.alignment_dice_list, clone_die(global.die_unholy, ""));
 	
 	// Add to bag
 	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_atk, "")); }

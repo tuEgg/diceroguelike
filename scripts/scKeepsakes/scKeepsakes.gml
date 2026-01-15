@@ -195,13 +195,13 @@ function define_keepsakes() {
 	ks_rope_of_repair = {
 	    _id: "rope_of_repair",
 	    name: "Rope of Repair",
-	    desc: "Heal 1 at the start of each combat",
+	    desc: "Heal 3 health at the start of each combat",
 		sub_image: 7,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
 	            if (global.player_hp < global.player_max_hp) {
 					if (oCombat.turn_count == 1) {
-						process_action( "player", 0, 1, 0, "player", undefined, "HEAL");
+						process_action( "player", 0, 3, 0, "player", undefined, "HEAL");
 				
 						trigger_keepsake_visual();
 					}
@@ -295,7 +295,7 @@ function define_keepsakes() {
 	ks_cannon_splitter = {
 	    _id: "cannon_splitter",
 	    name: "Cannon Splitter",
-	    desc: "Your first attack slot hits all other enemies for 25%",
+	    desc: "Your first attack slot hits all other enemies for 75%",
 		sub_image: 11,
 		state: {
 			used: false,
@@ -306,7 +306,7 @@ function define_keepsakes() {
 	                with (oCombat) {
 						// Deal flat damage to all enemies, we have to run this backwards in case any enemies die during this roll
 						for (var i = oCombat.enemies_left_this_combat-1; i >= 0 ; i--) {
-							if (i != enemy_target_index) process_action(oCombat.room_enemies[| i], 0, floor(data.final_amount / 4), 0, "player", -1, "ATK", undefined, undefined, 0);
+							if (i != enemy_target_index) process_action(oCombat.room_enemies[| i], 0, floor(data.final_amount * 0.75), 0, "player", -1, "ATK", undefined, undefined, 0);
 						}
 					}
 					self.state.used = true;

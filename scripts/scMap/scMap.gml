@@ -5,6 +5,7 @@ function generate_pages() {
 	var num_shop = 0; // generate no more than 2 across all 3 pages
 	var num_bounty = 0; // generate no more than 1 bounty across all 3 pages
 	var num_elite = 0; // each page has an elite at the same time???
+	var num_alignment = 0; // generate no more than 1 across all 3 pages
 	
 	// Generate 3 pages
 	repeat (3) {
@@ -139,11 +140,11 @@ function generate_pages() {
 						shop_chance -= 5;
 					
 						if (nodes_cleared < 5) {
-							event_chance += 5;
+							combat_chance += 5;
 						} else if (oRunManager.active_bounty == undefined && bounty_nodes_this_voyage == 0) {
 							bounty_chance += 5;
 						} else {
-							event_chance += 5;
+							combat_chance += 5;
 						}
 					} else {
 						continue;
@@ -155,7 +156,7 @@ function generate_pages() {
 						chosen_node = node_bounty;
 						var gap = bounty_chance;
 						bounty_chance = 0;
-						combat_chance += floor(gap * (2/5));
+						combat_chance += ceil(gap * (2/5));
 						event_chance += floor(gap * (2/5));
 						shop_chance += floor(gap * (1/5));
 					
@@ -167,7 +168,18 @@ function generate_pages() {
 						num_elite++;
 						page_num_elite++;
 						chosen_node = node_elite;
-						elite_chance /= 2;
+						
+						var amount = round(elite_chance/2);
+						elite_chance -= amount;
+						combat_chance += ceil(amount * 2/5);
+						event_chance += floor(amount * 3/5);
+					} else {
+						continue;
+					}
+				} else if (rand <= combat_chance + event_chance + shop_chance + bounty_chance + elite_chance + alignment_chance) {
+					if (num_alignment < 1 && page_num_elite == 0) { // don't draft alignment and elites on the same page
+						num_alignment++;
+						chosen_node = node_alignment;
 					} else {
 						continue;
 					}
@@ -215,6 +227,10 @@ function enter_node(_node) {
 		} else if (rand <= 16) {
 			_node = clone_node_static(node_shop);
 		}
+	}
+	
+	if (_node.type == NODE_TYPE.ALIGNMENT) {
+		alignment_chance = 0;
 	}
 	
 	get_combat_enemies(_node);
@@ -286,11 +302,6 @@ function get_combat_enemies(_node) {
 			case "Encounter 7":
 				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pufferfish"));
 			break;
-		
-			case "Encounter 8":
-				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Elizabeak"));
-				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Bill"))
-			break;
 		}
 		
 		// Remove it from the list of possible encounters
@@ -320,8 +331,21 @@ function get_combat_enemies(_node) {
 		
 		// Remove it from the list of possible encounters
 		ds_list_delete(possible_elites, rand_encounter);
-	} else if (_node.type == NODE_TYPE.BOSS) {
+	} else if (_node.type == NODE_TYPE.ALIGNMENT) {
 		
+		// Find a random encounter in the list of possible encounters
+		var rand_encounter = irandom(ds_list_size(possible_alignment_encounters) - 1);
+		
+		switch (possible_alignment_encounters[| rand_encounter]) {
+			case "Alignment 1":
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Elizabeak"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Bill"))
+			break;
+		}
+		
+		// Remove it from the list of possible encounters
+		ds_list_delete(possible_alignment_encounters, rand_encounter);
+	} else if (_node.type == NODE_TYPE.BOSS) {
 		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Barnacle Titan"));
 	}
 	
@@ -561,12 +585,19 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 
 			if (!choices_locked) {
 				if (!_locked) {
-					draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, _scale, _scale, 0, _icon_blend, _alph);
+					
+					var node_hover = mouse_hovering( node.x, node.y, sprite_get_width(sMapIcon) * node.scale, sprite_get_height(sMapIcon) * node.scale, true);
+					
+					node.scale = lerp(node.scale, node_hover ? 1.5 : 1.0, 0.2);
+					
+					if (node_hover) queue_tooltip(mouse_x, mouse_y, node.name, node.text, sMapIcon, node.subimg, undefined);
+					
+					draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale, node.scale, 0, _icon_blend, _alph);
 				} else if _locked {
 					draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, 1, 1, 0, _icon_blend, _alph);
 				}
 			} else {
-				var node_hover = node == next_node ? mouse_hovering( node.x, node.y, sprite_get_width(sMapIcon) * node.scale, sprite_get_height(sMapIcon) * node.scale, true) : false;
+				var node_hover = mouse_hovering( node.x, node.y, sprite_get_width(sMapIcon) * node.scale, sprite_get_height(sMapIcon) * node.scale, true);
 			
 				draw_set_color(c_black);
 				draw_set_halign(fa_left);
@@ -579,10 +610,14 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 					queue_tooltip(mouse_x, mouse_y, node.name, node.text, sMapIcon, node.subimg, undefined);
 					 
 					if (mouse_check_button_pressed(mb_left) && node_to_move_to == undefined) {
-						node_to_move_to = node;
-						node_to_move_to.y += 10;
-						map_offset.x += boat_data.x - node_to_move_to.x;
-						map_offset.y += boat_data.y - node_to_move_to.y;
+						if (node == next_node) {
+							node_to_move_to = node;
+							node_to_move_to.y += 10;
+							map_offset.x += boat_data.x - node_to_move_to.x;
+							map_offset.y += boat_data.y - node_to_move_to.y;
+						} else {
+							throw_error("You can't reach that yet!", "Complete the next room before continuing.");
+						}
 					}
 				}
 			}

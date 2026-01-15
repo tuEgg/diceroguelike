@@ -560,7 +560,7 @@ function define_items() {
 				}
 			},
 			modify: function(_context) {
-				var heal_amount = global.player_max_hp * 0.3;
+				var heal_amount = ceil(global.player_max_hp * 0.3);
 				global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
 				particle_emit(650, 25, "burst", c_lime);
 			}
@@ -574,6 +574,10 @@ function define_items() {
 function clone_item(_src)
 {
     var c = variable_clone(_src); // shallow clone of base-level fields
+	
+	c.show_item_delete_confirmation = false;
+	c.item_delete_confirmation_scale = 1.0;
+	c.item_delete_confirmation_progress = 0;
 
     return c;
 }

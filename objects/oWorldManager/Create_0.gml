@@ -4,6 +4,7 @@ workbench_nodes_this_voyage = 0;
 shop_nodes_this_voyage = 0;
 bounty_nodes_this_voyage = 0;
 elite_nodes_this_voyage = 0;
+alignment_nodes_this_voyage = 0;
 
 nodes_cleared = 0; // how many nodes in the captains logbook have we cleared
 pages_cleared = 0; // how many pages have we cleared
@@ -20,7 +21,8 @@ enum NODE_TYPE {
 	BOUNTY = 5,
 	ELITE = 6,
 	BOSS = 7,
-	TREASURE = 8
+	TREASURE = 8,
+	ALIGNMENT = 9
 }
 
 room_enemies = ds_list_create();
@@ -139,6 +141,19 @@ node_treasure = {
 	disappeared: false,
 };
 
+node_alignment = {
+	type: NODE_TYPE.ALIGNMENT,
+	subimg: 8,
+	name: "Alignment Fight",
+	text: "A moral battle that affects your alignment",
+	linked_room: rmCombat,
+	scale: 1.0,
+	cleared: false,
+	x: 0,
+	y: 0,
+	disappeared: false,
+};
+
 boat_data = {
 	x: 300,
 	y: display_get_gui_height()/2,
@@ -197,7 +212,13 @@ elite_list_before_bounty = ds_list_create(); // for restoring remaining elite fi
 ds_list_add(possible_elites, "Elite 1");
 ds_list_add(possible_elites, "Elite 2");
 ds_list_add(possible_elites, "Elite 3");
+
+
+possible_alignment_encounters = ds_list_create();
+ds_list_add(possible_alignment_encounters, "Alignment 1");
 current_node_type = undefined;
 
 alarm[0] = 1; // used to delay drafting in cases where we click exit in another room 
 can_draft = false;
+
+draw_room_chances = true;

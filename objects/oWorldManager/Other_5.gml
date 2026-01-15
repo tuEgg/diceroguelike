@@ -29,7 +29,6 @@ if (room == rmMap) {
 			ds_list_add(possible_encounters, "Encounter 5");
 			ds_list_add(possible_encounters, "Encounter 6");
 			ds_list_add(possible_encounters, "Encounter 7");
-			ds_list_add(possible_encounters, "Encounter 8");
 		}
 		
 		// Start pushing for bounties after node 3
@@ -55,7 +54,7 @@ if (room == rmMap) {
 		
 		// Start allowing elites from node 7
 		if (nodes_cleared >= 7 && elite_nodes_this_voyage <= 2) {
-			elite_chance += 2.5 + ((2 - elite_nodes_this_voyage) * 1.5); // 5-10% if we've fought 2-0 elites
+			elite_chance += round(2.5 + ((2 - elite_nodes_this_voyage) * 1.5)); // 5-10% if we've fought 2-0 elites
 		}
 		
 		// Once we have a bounty active, start really pushing elites
@@ -75,6 +74,12 @@ if (room == rmMap) {
 		
 		if (elite_nodes_this_voyage > 2) {
 			elite_chance = 0;
+		}
+		
+		if (nodes_cleared > 7) {
+			if (alignment_nodes_this_voyage == 0) {
+				alignment_chance += 4;
+			}
 		}
 	}
 }
@@ -96,3 +101,4 @@ event_chance =		clamp(0, event_chance, 100);
 shop_chance =		clamp(0, shop_chance, 100);
 bounty_chance =		clamp(0, bounty_chance, 100);
 elite_chance =		clamp(0, elite_chance, 100);
+alignment_chance =	clamp(0, alignment_chance, 100);

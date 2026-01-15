@@ -108,3 +108,9 @@ bounty_offset[1] = 0;
 bounty_highlighted = -1;
 bounty_selected = -1;
 bounty_taken = -1;
+
+var potion_list = ds_list_create();
+potion_scale = 1;
+generate_item_rewards(potion_list, global.master_item_list, 1, "consumable", "common");
+potion = potion_list[| 0];
+ds_list_destroy(potion_list);
