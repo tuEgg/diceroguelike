@@ -69,6 +69,8 @@ if (room == rmMap) {
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBigger);
 		draw_outline_text("What happened next?", c_black, c_white, 3, display_get_gui_width() * 3/4, 140, 1, pages_alpha, 0);
+		draw_set_font(ftDefault);
+		draw_outline_text("Choose a page to draft", c_black, c_white, 2, display_get_gui_width() * 3/4, 180, 1, pages_alpha, 0);
 	
 		// If we are healing or workbench
 		if (world_state == "resting") {

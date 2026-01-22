@@ -83,6 +83,8 @@ if (play_btn.click && state == CombatState.PLAYER_INPUT && !is_dealing_dice) {
     actions_submitted = true;
 }
 
+hovered_slot = -1;
+
 for (var i = 0; i < aq_list_size; i++) {
 	var base_x = aq_start_x + (i * (aq_tile_w + aq_tile_padding));
 	var base_y = aq_start_y;
@@ -97,6 +99,8 @@ for (var i = 0; i < aq_list_size; i++) {
 
     // Hover check based on *scaled* rectangle
     var hover = (mx > draw_x && mx < draw_x + draw_w && my > draw_y && my < draw_y + draw_h && !show_rewards);
+	
+	if (hover) hovered_slot = i;
 	
 	if (global.main_input_disabled) hover = false;
 
@@ -126,7 +130,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	draw_col = get_dice_color(action_queue_type);
 	
 	// --- Determine alpha for this slot ---
-	var draw_alpha_val = 0.5;
+	var draw_alpha_val = 1.0;
 	var col = c_white;
 
 	// Check if any dice are being dragged
@@ -137,18 +141,20 @@ for (var i = 0; i < aq_list_size; i++) {
 	        break; // stop once we find one
 	    }
 	}
+	
+	var draw_playable_slots = false
 
 	if (dragged_die_inst != noone) {
 	    var grabbed_die_struct = dragged_die_inst.struct;
 
 	    if (!can_place_dice_in_slot(grabbed_die_struct, action_queue[| i], i)) {
 	        // Fade invalid targets
-	        draw_alpha_val = 0.1;
+	        draw_alpha_val = 1.0;
 	        col = c_white;
 	    } else {
 	        // Highlight valid targets slightly
-	        draw_alpha_val = 0.5;
-	        col = make_color_rgb(160, 255, 160); // light green tint
+	        draw_alpha_val = 1.0;
+			draw_playable_slots = true;
 	    }
 	}
 	
@@ -173,11 +179,16 @@ for (var i = 0; i < aq_list_size; i++) {
 			draw_sprite_ext(sActionSlot, slot_index, draw_x, draw_y, current_scale, current_scale, 0, draw_col, 1.0);
 		}
 	}
+	
+	// Draw slot highlight if we can play to it
+	//if (draw_playable_slots) {
+	//	draw_sprite_ext(sActionSlotHighlight, slot_index, draw_x - 12, draw_y - 12, current_scale, current_scale, 0, c_white, 0.3);
+	//}
 
 	// Draw the main slot sprite
-	draw_sprite_ext(sActionSlot, slot_index, draw_x, draw_y, current_scale, current_scale, 0, draw_col, 1.0);
+	draw_sprite_ext(sActionSlot, slot_index, draw_x, draw_y, current_scale, current_scale, 0, draw_col, draw_alpha_val);
 	
-	// If slot locked, kill self
+	// If slot locked, draw the chain
 	if (locked_slot == i) {
 		draw_sprite_ext(sRewardChain, 0, draw_x + draw_w/2, draw_y + draw_h/2, current_scale * 0.75, current_scale * 0.75, 0, c_white, 1.0);
 	}
@@ -779,11 +790,22 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
-		if (!_debuff.permanent) draw_outline_text(string(_debuff.remaining), c_black, c_white, 2, e_bar_x + d_x + sprite_get_width(sDebuffIcon), d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
+		
+		var debuff_remaining_text = string(_debuff.remaining);
+		
+		if (!_debuff.permanent) {
+			if (_debuff.remaining > 0) {
+				debuff_remaining_text = string(_debuff.remaining);
+			} else {
+				debuff_remaining_text = "";
+			}
+		}
+		
+		draw_outline_text(debuff_remaining_text, c_black, c_white, 2, e_bar_x + d_x + sprite_get_width(sDebuffIcon), d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
 		if (_debuff.amount > 0) draw_outline_text(string(_debuff.amount), c_black, c_red, 2, e_bar_x + d_x, d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
 	
 		if (mouse_hovering(e_bar_x + d_x, d_y, sprite_get_width(sDebuffIcon), sprite_get_height(sDebuffIcon), false)) {
-			queue_tooltip(mouse_x, mouse_y, _debuff.template.name, _debuff.template.desc, undefined, 0, undefined);
+			queue_tooltip(mouse_x, mouse_y, _debuff.template.name, _debuff.template.desc + "[subtext]Turns remaining: [def]" + string(_debuff.remaining) + "   [subtext]Amount: [def]" + string(_debuff.amount), undefined, 0, undefined);
 		}
 	
 		d_x += sprite_get_width(sDebuffIcon) + d_padding;
@@ -1382,46 +1404,8 @@ var disc_bag_h = GUI_LAYOUT.BAG_H;
 disc_bag_hover = (mx > disc_bag_x && mx < disc_bag_x + disc_bag_w && my > disc_bag_y && my < disc_bag_y + disc_bag_h);
 
 if (disc_bag_hover) {
-    var disc_bag_bg_offset = 200;
-	var disc_bag_bg_w = 420;
-	var disc_bag_bg_h = 180;
-    draw_set_color(c_black);
-    draw_set_alpha(0.3);
-	draw_roundrect(gui_w - disc_bag_bg_offset - disc_bag_bg_w, gui_h - disc_bag_bg_offset, gui_w - disc_bag_bg_offset, gui_h - disc_bag_bg_offset - disc_bag_bg_h, false);
-
-    // === Draw dice from bag ===
-    var dice_per_row = 5;
-	var dice_scale = 1;
-    var dice_spacing = 80 * dice_scale;
-	var padding = 50 * dice_scale;
-    var start_x = gui_w - disc_bag_bg_offset - disc_bag_bg_w + padding;
-    var start_y = gui_h - disc_bag_bg_offset - disc_bag_bg_h + padding;
-
-    for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
-        var die_struct = global.discard_pile[| i];
-
-        // Position in grid
-        var col = i mod dice_per_row;
-        var row = i div dice_per_row;
-
-        var xx = start_x + (col * dice_spacing);
-        var yy = start_y + (row * dice_spacing);
-
-        // Choose color based on action type
-        var colr = get_dice_color(die_struct.action_type);
-
-        // Choose image index based on dice type
-        var frame = get_dice_index(die_struct.dice_value);
-
-        // Draw dice sprite
-        draw_set_alpha(1);
-        draw_set_color(colr);
-        draw_sprite_ext(sDice, frame, xx, yy, dice_scale, dice_scale, 0, colr, 1);
-		draw_dice_keywords(die_struct, xx, yy, 1);
-
-        // Optional: outline or count number
-        //draw_set_color(c_black);
-        //draw_set_alpha(0.5);
-        //draw_rectangle(xx - 32, yy - 32, xx + 32, yy + 32, false);
-    }
+    if (mouse_check_button_pressed(mb_left)) {
+		oRunManager.bag_hover_locked = 1 - oRunManager.bag_hover_locked;
+		oRunManager.bag_to_show = global.discard_pile;
+	}
 }

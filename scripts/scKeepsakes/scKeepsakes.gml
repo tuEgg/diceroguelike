@@ -542,12 +542,12 @@ function define_keepsakes() {
 			if (event == "on_sacrifice_die") {
 				data._slot = -1;
 				data._slot_num = -1;
-				data.owner = "player";
 				data._d_struct = data.die.struct;
 				data.dice_object = data.die;
+				data._die_struct = data.die.struct;
 				
 				repeat (2) {
-					combat_trigger_effects("on_dice_played_to_slot", data, data.die.struct);
+					combat_trigger_effects("on_dice_played_to_slot", data);
 				}
 				
 				trigger_keepsake_visual();

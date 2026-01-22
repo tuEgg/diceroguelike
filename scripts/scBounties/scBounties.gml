@@ -5,23 +5,39 @@ function generate_bounties(_num) {
 	bounty = [];
 	
 	repeat(_num) {
-		var elite_list = ds_list_create();
 		
-		for (var e = 0; e < ds_list_size(global.enemy_list); e++) {
-			if (global.enemy_list[| e].elite) {
-				ds_list_add(elite_list, global.enemy_list[| e]);
-			}
+		var random_elite_encounter = choose("Elite 1", "Elite 2", "Elite 3");
+		
+		if (array_length(bounty) > 0) {
+			do {
+				random_elite_encounter = choose("Elite 1", "Elite 2", "Elite 3");
+			} until (random_elite_encounter != bounty[0].elite_encounter);
 		}
 		
-		var random_elite = elite_list[| irandom(ds_list_size(elite_list) - 1)];
+		var random_elite = "";
+		
+		switch (random_elite_encounter) {
+			case "Elite 1":
+				random_elite = "Pirate Captain";
+			break;
+			
+			case "Elite 2":
+				random_elite = "Giant Conch";
+			break;
+			
+			case "Elite 3":
+				random_elite = "Unfinished Elite";
+			break;
+		}
+		
 		var random_condition = condition_list[| irandom(ds_list_size(condition_list) - 1)];
 		
 		var template = {
-			enemy_name: random_elite.name,
+			enemy_name: random_elite,
 			condition: random_condition,
 			rewards: [],
 			rewards_scale: array_create(3, 1.0),
-			elite_encounter: "Elite 1",
+			elite_encounter: random_elite_encounter,
 			complete: false,
 		}
 
@@ -41,6 +57,5 @@ function generate_bounties(_num) {
 		ds_list_destroy(reward_item);
 		ds_list_destroy(reward_keepsake);
 		ds_list_destroy(reward_dice);
-		ds_list_destroy(elite_list);
 	}
 }

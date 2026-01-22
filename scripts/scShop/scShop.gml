@@ -357,12 +357,18 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none",
 				continue;
 			}
 		} else if (chance <= common_item_chance) {
+			// Generate a random item
 			var item_struct = indices_items_common[| irandom(ds_list_size(indices_items_common)-1) ];
-			if (item_struct.name == "Coins") {
+			
+			var rand_num_100 = irandom(100);
+			var coin_chance = 10;
+			
+			if (item_struct.name == "Coins" || rand_num_100 < coin_chance) {
 				if (room == rmShop || room = rmEvent) { // we don't want to generate coins as a reward in shops or events
 					continue;
 				} else {
-					item_struct.amount = irandom_range(12, 15);
+					item_struct = clone_item(oRunManager.item_coins);
+					item_struct.amount = irandom_range(30, 45);
 				}
 			}
 			

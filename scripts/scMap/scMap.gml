@@ -319,8 +319,7 @@ function get_combat_enemies(_node) {
 			break;
 			
 			case "Elite 2":
-				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Captain"));
-				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
+				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Giant Conch"));
 			break;
 			
 			case "Elite 3":

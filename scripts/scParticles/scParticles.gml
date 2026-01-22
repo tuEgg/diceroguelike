@@ -20,6 +20,25 @@ function particle_emit( _x, _y, _type, _col, _amount = 30) {
 			p.life = 30;
 		}
 		
+		if (_type == "ring") {
+		    var _dir = random(360);
+		    p.direction = _dir;
+    
+		    // Calculate a multiplier between 0 and 1 based on horizontal alignment
+		    // abs(dcos(0))   = 1.0 (Full speed)
+		    // abs(dcos(90))  = 0.0 (Min speed)
+		    // abs(dcos(180)) = 1.0 (Full speed)
+		    // abs(dcos(270)) = 0.0 (Min speed)
+		    var _modifier = abs(dcos(_dir));
+    
+		    // Use lerp to ensure speed stays within a nice range (e.g., 4 to 12)
+		    // When _modifier is 1, speed is 12. When 0, speed is 4.
+		    p.speed = lerp(4, random_range(9, 12), _modifier);
+    
+		    p.size = random_range(1, 1.5);
+		    p.life = 40;
+		}
+		
 		if (_type == "rise") {
 			p.x = _x + random_range(-30, 30);
 			p.y = _y + random_range(-20, 20);

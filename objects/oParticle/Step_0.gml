@@ -22,6 +22,10 @@ if (type == "burst") {
 	speed *= 0.91;
 }
 
+if (type == "ring") {
+	speed *= 0.92;
+}
+
 if (type == "constant") {
 	speed *= 0.94;
 }

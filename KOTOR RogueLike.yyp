@@ -74,6 +74,7 @@
     {"id":{"name":"scShop","path":"scripts/scShop/scShop.yy",},},
     {"id":{"name":"sActionSlot","path":"sprites/sActionSlot/sActionSlot.yy",},},
     {"id":{"name":"sActionSlotCentered","path":"sprites/sActionSlotCentered/sActionSlotCentered.yy",},},
+    {"id":{"name":"sActionSlotHighlight","path":"sprites/sActionSlotHighlight/sActionSlotHighlight.yy",},},
     {"id":{"name":"sAlignmentBar","path":"sprites/sAlignmentBar/sAlignmentBar.yy",},},
     {"id":{"name":"sBackgroundBounty","path":"sprites/sBackgroundBounty/sBackgroundBounty.yy",},},
     {"id":{"name":"sBackgroundCombat","path":"sprites/sBackgroundCombat/sBackgroundCombat.yy",},},

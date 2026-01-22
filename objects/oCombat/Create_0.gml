@@ -22,6 +22,7 @@ if (!ds_exists(global.sacrifice_history, ds_type_list)) {
 action_queue = ds_list_create();
 locked_slot = -1;
 bound_slot = -1;
+hovered_slot = -1;
 
 var new_slot1 = {
     dice_list: ds_list_create(),			// all dice currently in the slot

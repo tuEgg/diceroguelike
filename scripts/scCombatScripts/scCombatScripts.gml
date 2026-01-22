@@ -105,10 +105,10 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 						_d_amount: final_roll,
 						_p_slot_type: _prev_slot_type,
 						_c_slot_type: _type,
+						_slot_die: _slot_die,
 						die: _slot_die,
 						min_roll: actual_possible_numbers[0], // first row in distribution array that isn't zero,
 						max_roll: _max_roll,
-						owner: "player",
 						slot_bonus: slot_bonus_amount,
 						keepsake_bonus: _keepsake_dice_bonus_amount,
 						dice_index: _dice_list_index,
@@ -117,7 +117,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 						//max_roll: actual_possible_numbers[ array_length(actual_possible_numbers) - 1] // first row in distribution array that isn't zero -- THIS isn't possible yet because we need to continue looping through the numbers after we find our actual number to check for what our real max is
 					}
 					
-					combat_trigger_effects("after_roll_die", ctx, _slot_die);
+					combat_trigger_effects("after_roll_die", ctx);
 					
 					if (_slot_die.reset_after_next_roll != false && _slot_die.reset_this_turn) {
 						_slot_die.reset_after_next_roll(_slot_die);
@@ -160,11 +160,13 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 		amount += final_roll; // add the roll, the slot bonus and the keepsake/dice bonus to create the final amount.
 			
-		var ctx = {};
-		ctx.final_amount = amount;
-		ctx.type = _type;
+		var ctx = {
+			final_amount: amount,
+			type: _type,
+			_slot_die: _slot_die,
+		}
 					
-		combat_trigger_effects("after_slot_damage_calculated", ctx, _slot_die);
+		combat_trigger_effects("after_slot_damage_calculated", ctx);
 		
 		// Set the rolled value of this dice to 
 		if (_slot_die != undefined) {
@@ -198,16 +200,22 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				if (_dice_amount > 0) {
 					global.player_x += 50;
 				}
-				
-				// Only trigger debuffs/buffs on the enemy that actually took damage
-				var ctx = {
-				    source: _source,
-				    target: _target,
-				    owner: _target
+					
+				// before_enemy_take_damage is used to make adjustments before block is calculated
+				var before_ctx = {
+					source: _source,
+					target: _target,
+					owner: _target,
+					amount: final_damage,
 				};
 
-				trigger_debuff_list(_target.debuffs, "on_take_damage", ctx);
-
+				trigger_debuff_list(_target.debuffs, "before_enemy_take_damage", before_ctx);
+				
+				final_damage = before_ctx.amount;
+				
+				if (final_damage <= 0) {
+					spawn_floating_number(_target, 0, -1, global.color_block, 1, -1, _dice_list_index);
+				}
 				
 				//show_debug_message("Value of taken_damage_this_turn: " + string(_target.taken_damage_this_turn));
 			
@@ -224,6 +232,17 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 
 	            // Deal any remaining damage
 	            if (final_damage > 0) {
+					
+					// Only trigger debuffs/buffs on the enemy that actually took damage
+					var ctx = {
+					    source: _source,
+					    target: _target,
+					    owner: _target,
+						amount: final_damage,
+					};
+
+					trigger_debuff_list(_target.debuffs, "on_enemy_take_damage", ctx);
+					
 	                _target.hp = max(0, _target.hp - final_damage);
 	                spawn_floating_number(_target, final_damage, -1, c_red, -1, -1, _dice_list_index);
 	            }
@@ -254,7 +273,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					ds_list_destroy(possible_new_targets);
 					
 					var context = {
-						owner: _target,
+						target: _target,
 					};
 					
 					combat_trigger_effects("on_enemy_death", context);
@@ -302,7 +321,6 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				
 				var ctx = {
 					block_gained: amount,
-					owner: "player",
 				}
 				
 				combat_trigger_effects("on_player_block_gained", ctx)
@@ -348,7 +366,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				}
 				_source.intent.move.debuff.remove_next_turn = true;
 				
-			    apply_buff(global.player_debuffs, _source.intent.move.debuff, _duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index }, _permanent);
+			    apply_buff("player", _source.intent.move.debuff, _duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index }, _permanent);
 				particle_emit(global.player_x, global.player_y, "burst", _source.intent.move.debuff.color);
 				
 				combat_trigger_effects( "on_player_debuffed", {});
@@ -364,18 +382,18 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					_permanent = true;
 				}
 				_source.intent.move.debuff.remove_next_turn = true;
-			    apply_buff(_source.debuffs, _source.intent.move.debuff, _duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index }, _permanent);
+			    apply_buff(_source, _source.intent.move.debuff, _duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index }, _permanent);
 			}
 		break;
 		
 		case "INTEL":
 			if (_source == "player") {
-				apply_buff(global.player_debuffs, oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
+				apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
 				var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, _dice_list_index);
 				num.x += 20;
 				num.y -= 20;
 			} else {
-			    apply_buff(global.player_debuffs, oRunManager.debuff_overwhelm, 1, 3, oRunManager.debuff_overwhelm.remove_next_turn, { source: _source, index: _source_index });
+			    apply_buff("player", oRunManager.debuff_overwhelm, 1, 3, oRunManager.debuff_overwhelm.remove_next_turn, { source: _source, index: _source_index });
 				particle_emit(global.player_x, global.player_y, "burst", oRunManager.debuff_overwhelm.color);
 			}
 		break;
@@ -440,41 +458,6 @@ function spawn_floating_number(_target, _amount, _txt, _inst_color, _num_sign, _
 	return inst;
 }
 
-/// @desc Returns the index of the hovered action slot or -1 if none
-function get_hovered_action_slot() {
-    var mx = device_mouse_x_to_gui(0);
-    var my = device_mouse_y_to_gui(0);
-
-    var aq_list_size = ds_list_size(action_queue);
-    var aq_tile_w = GUI_LAYOUT.ACTION_TILE_W;
-    var aq_tile_padding = GUI_LAYOUT.ACTION_TILE_PADDING;
-    var aq_total_w = ((aq_list_size + 1) * aq_tile_w) + ((aq_list_size - 1) * aq_tile_padding);
-    var aq_start_x = display_get_gui_width() / 2 - (aq_total_w / 2);
-    var aq_start_y = display_get_gui_height() / 2;
-
-    for (var i = 0; i < aq_list_size; i++) {
-        var base_x = aq_start_x + (i * (aq_tile_w + aq_tile_padding));
-        var base_y = aq_start_y;
-        var base_w = aq_tile_w;
-        var base_h = aq_tile_w;
-        var current_scale = tile_scale[| i];
-		
-		if (current_scale != undefined) {
-	        var draw_w = base_w * current_scale;
-	        var draw_h = base_h * current_scale;
-	        var draw_x = base_x + (base_w - draw_w) / 2;
-	        var draw_y = base_y + (base_h - draw_h) / 2;
-
-
-	        if (mx > draw_x && mx < draw_x + draw_w && my > draw_y && my < draw_y + draw_h) {
-	            return i;
-	        }
-		}
-    }
-	
-    return -1; // no slot hovered
-}
-
 /// @param die_id  The instance ID of the dropped die
 /// @param slot_index  The index of the hovered slot
 
@@ -485,11 +468,20 @@ function apply_dice_to_slot(_die, _slot_i) {
 
     var reject_dice = false;
 
-    var is_queue_all  = (slot.possible_type == "All");
-    var is_queue_none = (slot.possible_type == "None");
+    var is_queue_all  = (slot.possible_type == "All");	// does the slot have "All types" as its type
+    var is_queue_none = (slot.possible_type == "None"); // does the slot have no type set
     var is_dice_none  = (die.struct.possible_type == "None");
 	var is_dice_exclusive = string_has_keyword(die.struct.description, "Exclusive");
-	var is_slot_exclusive = string_has_keyword(die.struct.description, "Exclusive");
+	var is_slot_exclusive = false;
+	if (ds_list_size(slot.dice_list) > 0) {
+		for (var i = 0; i < ds_list_size(slot.dice_list); i++) {
+			if (string_has_keyword(slot.dice_list[| i].description, "Exclusive")) {
+				is_slot_exclusive = true;
+				break;
+			}
+			
+		}
+	}
 	var is_dice_coin = false;
 	if (die.struct.dice_value == 2) is_dice_coin = true;
 	var dice_keyword_list = string_split(die.struct.possible_type, " ");
@@ -522,6 +514,7 @@ function apply_dice_to_slot(_die, _slot_i) {
     //-----------------------------------------
 	
 	if (!is_dice_none) {
+		// If played to an empty slot
 	    if (is_queue_none) {
 	        // --- Empty slot, becomes colored slot
 			slot.current_action_type = die.struct.action_type;
@@ -533,9 +526,11 @@ function apply_dice_to_slot(_die, _slot_i) {
 			var history_copy = clone_die(die.struct, "temporary");
 			ds_list_add(global.sacrifice_history, history_copy ); // persistent record
 	    }
+		// If played to a slot with all types - I think this is deprecated, probably safe to remove, need to check
 	    else if (is_queue_all) {
 	        reject_dice = true;
 	    }
+		// If played dice has a match with a slot
 	    else if (dice_has_match_with_slot) {
 			if (is_dice_exclusive || is_slot_exclusive) {
 				reject_dice = true;
@@ -571,8 +566,23 @@ function apply_dice_to_slot(_die, _slot_i) {
 		        }
 			}
 	    }
+		// Reject, unless it's exclusive
 	    else {
-	        reject_dice = true;
+			if (is_dice_exclusive) {
+				eject_dice_in_slot(oCombat.action_queue[| _slot_i], oCombat.slot_positions[| _slot_i], true);	
+				
+				// --- Empty slot, becomes colored slot
+				slot.current_action_type = die.struct.action_type;
+		        slot.possible_type = die.struct.possible_type;
+
+		        var die_copy = clone_die(die.struct, "base"); // coloured dice added to empty slots become base die
+		        ds_list_add(slot.dice_list, die_copy);
+			
+				var history_copy = clone_die(die.struct, "temporary");
+				ds_list_add(global.sacrifice_history, history_copy ); // persistent record
+			} else {
+				reject_dice = true;
+			}
 	    }
 	}
 
@@ -580,6 +590,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 	// CASE 2: Dice is generic (no color)
 	//-----------------------------------------
 	else {
+		// If queue is all types, also deprecated I believe.
 	    if (is_queue_all) {
 	        var die_copy = clone_die(die.struct, string_has_keyword(die.struct.description, "sticky") ? "base" : "temporary");
 	        ds_list_add(slot.dice_list, die_copy);
@@ -587,8 +598,9 @@ function apply_dice_to_slot(_die, _slot_i) {
 	        stats.amount += die_copy.dice_amount;
 	        stats.highest_value   = max(die_copy.dice_value, stats.highest_value);
 	    }
+		// If the slot is not empty
 	    else if (!is_queue_none) {
-			if (is_dice_exclusive || is_slot_exclusive) {
+			if (is_dice_exclusive || is_slot_exclusive || is_slot_exclusive) {
 				reject_dice = true;
 			} else {
 		        if (die.struct.dice_value >= stats.highest_value_base) {
@@ -613,12 +625,14 @@ function apply_dice_to_slot(_die, _slot_i) {
 		var played_data = {
 			_slot: slot,
 			_slot_num: _slot_i,
-			owner: "player",
 			_d_struct: die.struct,
+			_slot_die: die.struct,
 			dice_object: die,
 		};
+		
+		particle_emit(mouse_x, mouse_y, "burst", get_dice_color(die.action_type), 30);
 	
-		combat_trigger_effects("on_dice_played_to_slot", played_data, die.struct);
+		combat_trigger_effects("on_dice_played_to_slot", played_data);
 	
         add_feed_entry("You used a dice!");
 		if (!string_has_keyword(die.struct.description, "coin")) dice_played++;
@@ -752,11 +766,10 @@ function sacrifice_die(_die) {
     if (sacrificies_til_new_action_tile > 0) return;
 	
 	var sacrifice_new_slot_data = {
-		owner: "player",
 		slot_index: ds_list_size(oCombat.action_queue) + 1,
 	};
 	
-	combat_trigger_effects("on_new_slot_created", sacrifice_data);
+	combat_trigger_effects("on_new_slot_created", sacrifice_new_slot_data);
 
     // === Time to create new slot ===
 	var type_list = ds_list_create();
@@ -1043,8 +1056,7 @@ function win_fight() {
 	
 	if (!combat_end_effects_triggered) {
 		var combat_end_data = {
-			owner: "player",
-			};
+		};
 	
 		combat_trigger_effects("on_combat_end", combat_end_data);
 		
@@ -1064,6 +1076,25 @@ function win_fight() {
 		}
 		
 		discard_dice_in_play(true);
+		
+		// --- Return discarded dice to bag ---
+		if (ds_exists(global.discard_pile, ds_type_list)) {
+		    for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
+		        var discard_die = global.discard_pile[| i];
+		        ds_list_add(global.dice_bag, clone_die(discard_die, "temporary"));
+		    }
+		    ds_list_clear(global.discard_pile);
+		}
+
+
+		// --- Return historically sacrificed dice to bag ---
+		if (ds_exists(global.sacrifice_history, ds_type_list)) {
+		    for (var j = 0; j < ds_list_size(global.sacrifice_history); j++) {
+		        var sac_die = global.sacrifice_history[| j];
+		        ds_list_add(global.dice_bag, clone_die(sac_die, "temporary"));
+		    }
+		    ds_list_clear(global.sacrifice_history);
+		}
 	}
 			
 	if (!show_rewards && combat_end_effects_triggered) {
@@ -1280,76 +1311,72 @@ function discard_dice_in_play(_all = false) {
 	}
 }
 
-/// @func combat_trigger_effects(_event, _ctx, _die_struct)
-function combat_trigger_effects(_event, _ctx, _die_struct = undefined) {
-
-	// Set the owner
-	if (!variable_struct_exists(_ctx, "owner")) {
-		_ctx.owner = "player";
-	}
+/// @func combat_trigger_effects(_event, _ctx, _filter)
+function combat_trigger_effects(_event, _ctx, _filter = "all") { // filter to either "player", a specific enemy, or "all"
 
     // 1) dice effects	
 	if (room == rmCombat) {
-		if (_die_struct == undefined) {
+		if (!variable_struct_exists(_ctx, "_die_struct")) {
 			dice_trigger_effects(_event, _ctx);
 		} else {
-			trigger_die_effects_single(_die_struct, _event, _ctx)
+			trigger_die_effects_single(_ctx._die_struct, _event, _ctx)
 		}
 	}
-
-    // 2) keepsake effects
-	if (_ctx.owner == "player") {
-	    runmanager_trigger_keepsakes(_event, _ctx);
-
-	    // 3) player debuffs
-	    trigger_debuff_list(global.player_debuffs, _event, _ctx);
-	} else {
-	    // 4) enemy debuffs
-		if (room == rmCombat) {
-			for (var e = 0; e < ds_list_size(oCombat.room_enemies); e++) {
-				var enemy = oCombat.room_enemies[| e];
-				_ctx.owner = enemy;
-				_ctx.owner_index = e;
-				trigger_debuff_list(enemy.debuffs, _event, _ctx);
-			}
-		}
-	}
+   
+	if (_filter == "player" || _filter == "all") {
+		runmanager_trigger_keepsakes(_event, _ctx);
+		
+        // When checking player debuffs, the player is the owner
+        _ctx.owner = "player"; 
+        trigger_debuff_list(global.player_debuffs, _event, _ctx);
+    }
+		
+	if (_filter != "player") {
+        if (room == rmCombat) {
+            for (var e = 0; e < ds_list_size(oCombat.room_enemies); e++) {
+                var enemy = oCombat.room_enemies[| e];
+                
+                // CRITICAL: Set the owner to the specific enemy instance
+                // This allows the debuff to know exactly who it is sitting on.
+                _ctx.owner = enemy; 
+                _ctx.owner_index = e;
+                trigger_debuff_list(enemy.debuffs, _event, _ctx);
+            }
+        }
+    }
 	
 	// 5) bounty conditions
 	trigger_bounty(_event, _ctx);
 }
 
 function trigger_debuff_list(_list, _event, _ctx) {
-	var list_size = ds_list_size(_list); 
-	
-    for (var i = list_size - 1; i >= 0 ; i--) {
+    for (var i = ds_list_size(_list) - 1; i >= 0 ; i--) {
         var inst = _list[| i];
-        var debuff = inst.template; // <-- reference to original
+        var debuff = inst.template; 
 
         for (var e = 0; e < array_length(debuff.effects); e++) {
             var eff = debuff.effects[e];
 
             if (eff.trigger == _event && is_callable(eff.modify)) {
-				
-				// Pass information through to the context that it otherwise wouldn't have
-				_ctx.source = inst.source_info.source;
-				_ctx.source_index = inst.source_info.index;
-				_ctx.stack_amount = inst.amount;
-				
-				// run the event
+                // Attach the actual instance to the context
+                _ctx.debuff = inst; 
+                
+                // Directly call the function
                 eff.modify(_ctx);
+			}
+			
+			if (debuff.removal_event == _event && is_callable(eff.modify)) {
 				
-				if (_event != "on_roll_die") {
+				// When this debuffs removal_event is called and if it isn't permanent, and we aren't removing it next turn, lower its remaining duration
+				if (!inst.permanent) {
 					if (!inst.remove_next_turn) {
 						inst.remaining--;
 					}
 				}
 				
-				//show_debug_message("Debuff " + string(debuff.name) + " remaining: " + string(inst.remaining));
-				
+				// Remove any debuffs which duration reaches zero
 				if (inst.remaining <= 0 && !inst.permanent) {
-					// Don't delete on_roll_die triggers until end of turn
-					if (_event != "on_roll_die") ds_list_delete(_list, i);
+					ds_list_delete(_list, i);
 				}
             }
         }
@@ -1458,8 +1485,8 @@ function add_enemy_to_fight(_enemy) {
 		move_number: -1,
 		move_history: ds_list_create(),
 		max_hp: _enemy.max_hp,
-		hp: debug_mode ? 1 : _enemy.current_hp,
-		hp_display: debug_mode ? 1 : _enemy.current_hp,
+		hp: _enemy.current_hp, // debug_mode ? 1 : _enemy.current_hp,
+		hp_display: _enemy.current_hp,
 		block_amount: _enemy.starting_block,
 		alpha: 1.0,
 		dead: false,
@@ -1487,7 +1514,7 @@ function add_enemy_to_fight(_enemy) {
 	}
 	
 	if (enemy_template.data.passive != undefined) {
-		apply_buff(enemy_template.debuffs, enemy_template.data.passive, 1, 0, false, { source: enemy_template, index: -1 }, true );
+		apply_buff(enemy_template, enemy_template.data.passive, enemy_template.data.passive.duration, enemy_template.data.passive.amount, false, { source: enemy_template, index: -1 }, true );
 	}
 	
 	ds_list_add(room_enemies, enemy_template);

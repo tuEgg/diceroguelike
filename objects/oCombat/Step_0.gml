@@ -132,13 +132,13 @@ switch (state) {
 			
 			enemy_turns_remaining++;
 			
-			// flag debuffs as not being applied this turn
+			// debuffs that were set to remove_next_turn now get set to false and will be removed at the end of the turn
 			for (var d = 0; d < ds_list_size(enemy.debuffs); d++) {
 				enemy.debuffs[| d].remove_next_turn = false;
 			}
 		}
 		
-		// flag debuffs as not being applied this turn
+		// debuffs that were set to remove_next_turn now get set to false and will be removed at the end of the turn
 		for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
 			global.player_debuffs[| d].remove_next_turn = false;
 		}
@@ -318,10 +318,24 @@ switch (state) {
 	    if (action_timer <= 0) {
 			
 			player_turn_done = true;
+			
+			var player_turn_end_data = {
+			};
+					
+			combat_trigger_effects("on_player_turn_end", player_turn_end_data);
 		
 			for (var e = 0; e < ds_list_size(room_enemies); e++) {
 				var enemy_data = room_enemies[| e].data;
 				var enemy = room_enemies[| e];
+					
+				// Modify dice allowed this turn
+				var enemy_turn_start_data = {
+					stunned_enemy: enemy
+				};
+				
+				show_debug_message("checking enemy turn start effects");
+		
+				combat_trigger_effects("on_enemy_turn_start", enemy_turn_start_data);
 			
 				if (enemy.turn_done || enemy.dead) {
 					continue;
@@ -379,6 +393,15 @@ switch (state) {
 					}
 					
 					enemy_turns_remaining--;
+					
+					show_debug_message("checking enemy turn end effects");
+				
+					// Trigger end of turn effects for keepsakes
+					var enemy_turn_end_data = {
+						target: enemy,
+					};
+					
+					combat_trigger_effects("on_enemy_turn_end", enemy_turn_end_data);
 					
 					// Force exit every time we run, so that we loop through enemies with delay between
 					break;
@@ -526,13 +549,6 @@ switch (state) {
 					// END OF TURN VARIABLES TO SET
 					locked_slot = -1;
 					bound_slot = -1;
-				
-					// Trigger end of turn effects for keepsakes
-					var turn_end_data = {
-					};
-					
-					combat_trigger_effects("on_player_turn_end", turn_end_data);
-					combat_trigger_effects("on_enemy_turn_end", turn_end_data);
 					
 					for (var i = 0; i < ds_list_size(action_queue); i++) {
 						var slot = action_queue[| i];
@@ -563,6 +579,11 @@ switch (state) {
 							enemy.block_amount = 0;
 						}
 					}
+					
+					var end_of_round_data = {
+					};
+					
+					combat_trigger_effects("on_round_end", end_of_round_data);
 
 					state = CombatState.START_TURN;
 				}

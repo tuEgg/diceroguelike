@@ -1,7 +1,7 @@
 // Script assets have changed for v2.3.0 see
 // https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
-/// @function apply_buff(_target_list, _template, _duration, _amount, _remove_next_turn, _source, [_permanent])
-function apply_buff(_target_list, _template, _duration, _amount, _remove_next_turn, _source, _permanent = false) {
+/// @function apply_buff(_target, _template, _duration, _amount, _remove_next_turn, _source, [_permanent])
+function apply_buff(_target, _template, _duration, _amount, _remove_next_turn, _source, _permanent = false) {
 
     var inst = {
         template: clone_buff(_template),   // <-- reference, NOT a clone
@@ -12,13 +12,22 @@ function apply_buff(_target_list, _template, _duration, _amount, _remove_next_tu
 		source_info: _source
     };
 	
+	var _target_list;
+	switch (_target) {
+		case "player":
+			_target_list = global.player_debuffs;
+		break;
+		default:
+			_target_list = _target.debuffs;
+	}
+	
+	
 	// see if this debuff already exists and extend it if so
 	if (ds_list_size(_target_list) > 0) {
 		for (var d = 0; d < ds_list_size(_target_list); d++) {
 			if (_target_list[| d].template._id == _template._id) {
 				if (_template.stackable) {
 					_target_list[| d].amount += _amount;
-					_target_list[| d].remove_next_turn = true;
 				} else {
 					_target_list[| d].remaining += _duration;
 				}
@@ -28,6 +37,13 @@ function apply_buff(_target_list, _template, _duration, _amount, _remove_next_tu
 	}
 
     ds_list_add(_target_list, inst);
+	
+	var data = {
+		newly_acquired_debuff: inst,
+		target: _target
+	};
+					
+	combat_trigger_effects("on_debuff_acquired", data);
 }
 
 /// @func clone_buff(_src)
@@ -63,23 +79,18 @@ function define_buffs_and_debuffs() {
 		color: c_red,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount,
 		remove_next_turn: true, // if true, remove at the end of the following turn, otherwise remove at the end of this turn
+		removal_event: "on_round_end",
 	    effects: [
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_ctx) {
 				    if (_ctx.max_roll > 1 && _ctx.action_type == "ATK") _ctx.max_roll = 1;
 				}
-	        },
-			{
-				trigger:"on_player_turn_end",
-				modify: function() {
-					// this exists purely to remove the buff at the end of the turn, rather than on roll die, MUST be added to every on_roll_die event
-				}
-			}
+	        }
 	    ]
 	};
 	
-	debuff_bind = {
+	debuff_barnacle_bind = {
 	    _id: "barnacle_bind",
 		name: "Barnacle Bind",
 	    duration: 1,  // lasts 1 full turn
@@ -89,7 +100,8 @@ function define_buffs_and_debuffs() {
 		debuff: true,
 		color: c_aqua,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
-		remove_next_turn: false,
+		remove_next_turn: true,
+		removal_event: "on_round_end",
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -110,7 +122,8 @@ function define_buffs_and_debuffs() {
 		debuff: true,
 		color: c_dkgray,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
-		remove_next_turn: false,
+		remove_next_turn: true,
+		removal_event: "on_round_end",
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -118,6 +131,50 @@ function define_buffs_and_debuffs() {
 				    oCombat.locked_slot = irandom( ds_list_size(oCombat.action_queue) - 1);
 				}
 	        }
+	    ]
+	};
+	
+	debuff_stunned = {
+	    _id: "stunned",
+		name: "Stunned",
+	    duration: 1,  // lasts 1 full turn
+		amount: 1,
+	    desc: "Cannot act this turn.",
+	    icon_index: 5,
+		debuff: true,
+		color: c_white,
+		stackable: false, // if false, increase duration when adding more, otherwise increase amount
+		remove_next_turn: false,
+		removal_event: "on_round_end",
+	    effects: [
+	        {
+	            trigger: "on_debuff_acquired",
+	            modify: function(_ctx) {
+					if (_ctx.owner != _ctx.target) return;
+					
+					if (_ctx.newly_acquired_debuff.template._id == "stunned") {
+						show_debug_message("Adding stunned to enemy pool");
+						var stunned = { dice_amount: 0, dice_value: 0, action_type: "NONE", bonus_amount: 0, move_name: "Stunned", use_trigger: "PRIORITY", weight: 100};
+						ds_list_add(_ctx.target.data.moves, stunned);
+						
+						particle_emit( oCombat.room_enemies[| _ctx.owner_index].pos_x, oCombat.room_enemies[| _ctx.owner_index].pos_y, "ring", c_white, 55);
+					
+						_ctx.target.intent.move = stunned;
+					}
+				}
+	        },
+	        {
+	            trigger: "on_enemy_turn_end",
+	            modify: function(_ctx) {
+					show_debug_message(string(_ctx.owner));
+					show_debug_message(string(_ctx.target));
+					if (_ctx.owner != _ctx.target) return;
+					
+					show_debug_message("Removing stunned from enemy pool");
+					var last_move_index = ds_list_size(_ctx.owner.data.moves) - 1;
+					ds_list_delete(_ctx.owner.data.moves, last_move_index);
+				}
+	        },
 	    ]
 	};
 	
@@ -131,7 +188,8 @@ function define_buffs_and_debuffs() {
 		debuff: true,
 		color: c_green,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
-		remove_next_turn: false,
+		remove_next_turn: true,
+		removal_event: "on_round_end",
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -160,12 +218,15 @@ function define_buffs_and_debuffs() {
 		color: c_red,
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		removal_event: "on_turn_start",
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
 	            modify: function(_ctx) {
-				    oCombat.player_intel -= _ctx.stack_amount;
-					oCombat.enemy_target_index = _ctx.source_index; 
+				    oCombat.player_intel -= _ctx.debuff.amount;
+					oCombat.enemy_target_index = _ctx.debuff.source_info.index; 
+					
+					particle_emit( oCombat.room_enemies[| oCombat.enemy_target_index].pos_x, oCombat.room_enemies[| oCombat.enemy_target_index].pos_y, "rise", global.color_intel, 42);
 				}
 	        }
 	    ]
@@ -176,16 +237,19 @@ function define_buffs_and_debuffs() {
 		name: "Shiny Scales",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "All Driftnet fish gain 1 coin to their attacks if any driftnet fish take damage",
+	    desc: "Driftnet fish gains a coin to their attack roll every time they take take damage",
 	    icon_index: 6,
 		debuff: false,
 		color: c_aqua,
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: true,
+		removal_event: "on_round_end",
 	    effects: [
 	        {
 	            trigger: "on_enemy_turn_end",
 	            modify: function(_ctx) {
+					if (_ctx.owner != _ctx.target) return;
+					
 					if (_ctx.owner.taken_damage_this_turn) {
 						_ctx.owner.data.moves[| 1].dice_amount += 1; 
 					}
@@ -195,7 +259,7 @@ function define_buffs_and_debuffs() {
 				}
 	        },
 			{
-			    trigger: "on_take_damage",
+			    trigger: "on_enemy_take_damage",
 			    modify: function(_ctx) {
 			        if (_ctx.owner != _ctx.target) return;
 			        _ctx.owner.taken_damage_this_turn = true;
@@ -215,9 +279,10 @@ function define_buffs_and_debuffs() {
 		color: make_color_rgb(100, 60, 0),
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: true,
+		removal_event: "on_round_end",
 	    effects: [
 			{
-	            trigger: "on_take_damage",
+	            trigger: "on_enemy_take_damage",
 	            modify: function(_ctx) {
 				    // Needed to make this damage work properly
 					with (oCombat) {
@@ -239,6 +304,7 @@ function define_buffs_and_debuffs() {
 		color: c_lime,
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		removal_event: "on_turn_start",
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
@@ -260,11 +326,12 @@ function define_buffs_and_debuffs() {
 		color: make_color_rgb(210, 210, 0),
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		removal_event: "on_turn_start",
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
 	            modify: function(_ctx) {
-					oCombat.player_intel += _ctx.stack_amount;
+					oCombat.player_intel += _ctx.debuff.amount;
 				}
 	        }
 	    ]
@@ -281,21 +348,17 @@ function define_buffs_and_debuffs() {
 		color: c_orange,
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		removal_event: "on_round_end",
 	    effects: [
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_ctx) {
 				    if (_ctx.action_type == "ATK") {
+						if (_ctx.owner != _ctx.target) return;
 						_ctx._d_amount += _ctx.stack_amount;
 					}
 				}
-	        },
-			{
-				trigger:"on_player_turn_end",
-				modify: function() {
-					// this exists purely to remove the buff at the end of the turn, rather than on roll die
-				}
-			}
+	        }
 	    ]
 	};
 	
@@ -310,19 +373,15 @@ function define_buffs_and_debuffs() {
 		color: c_blue,
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		removal_event: "on_round_end",
 	    effects: [
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_ctx) {
+					if (_ctx.owner != _ctx.target) return;
 				    if (_ctx.action_type == "BLK") _ctx._d_amount += _ctx.stack_amount;
 				}
 	        },
-			{
-				trigger:"on_player_turn_end",
-				modify: function() {
-					// this exists purely to remove the buff at the end of the turn, rather than on roll die
-				}
-			}
 	    ]
 	};
 	
@@ -337,6 +396,7 @@ function define_buffs_and_debuffs() {
 		color: make_colour_rgb(40, 150, 60),
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		removal_event: "on_round_end",
 	    effects: [
 	        {
 	            trigger: "on_enemy_turn_end",
@@ -344,6 +404,45 @@ function define_buffs_and_debuffs() {
 					_ctx.owner.keep_block_between_turns = true;
 				}
 	        }
+	    ]
+	};
+	
+	passive_conch_layers = {
+		_id: "conch_layers",
+		name: "Conch Layer",
+	    duration: 3,  // lasts 1 full turn
+		amount: 10,
+	    desc: "Has 3 protective layers that reduce flat damage by 2 per hit. Dealing 10/15/20 damage in total will break a layer, causing the Conch to be stunned.",
+	    icon_index: 8,
+		debuff: false,
+		color: make_colour_rgb(60, 180, 240),
+		stackable: true, // if false, increase duration when adding more, otherwise increase amount
+		remove_next_turn: false,
+		removal_event: "on_round_end",
+	    effects: [
+	        {
+				trigger: "before_enemy_take_damage",
+	            modify: function(_ctx) {
+					_ctx.amount -= 2;
+				}
+	        },
+			{
+				state: {
+					layers_broken: 0,
+				},
+	            trigger: "on_enemy_take_damage",
+	            modify: function(_ctx) {
+					_ctx.debuff.amount -= _ctx.amount;
+					
+					if (_ctx.debuff.amount <= 0) {
+						apply_buff(_ctx.target, oRunManager.debuff_stunned, 1, 1, oRunManager.debuff_stunned.remove_next_turn, { source: "player", index: -1 }, false);
+						self.state.layers_broken += 1;
+						_ctx.debuff.remaining -= 1;
+						_ctx.debuff.amount = ((self.state.layers_broken * 5) + 10);
+					}
+				}
+	        },
+			
 	    ]
 	};
 	
@@ -358,13 +457,14 @@ function define_buffs_and_debuffs() {
 		color: make_colour_rgb(160, 50, 30),
 		stackable: false, // if false, increase duration when adding more, otherwise increase amount
 		remove_next_turn: false,
+		removal_event: "on_round_end",
 	    effects: [
 	        {
 	            trigger: "on_enemy_death",
 	            modify: function(_ctx) {
 					if (oCombat.enemies_left_this_combat != 0) {
 						for (var i = 0; i < ds_list_size(oCombat.room_enemies); i++) {
-							if (oCombat.room_enemies[| i] != _ctx.owner) {
+							if (oCombat.room_enemies[| i] != _ctx.target) {
 								show_debug_message("Adding move to enemy pool");
 								var vengeance = { dice_amount: 2, dice_value: 2, action_type: "BLK/ATK", bonus_amount: 6, move_name: "Vengeance", use_trigger: "PRIORITY", weight: 100 };
 								

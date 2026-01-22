@@ -353,17 +353,17 @@ function define_items() {
 			modify: function(_context) {
 				// select a random die in play and upgrade it
 				var random_die_index = irandom(instance_number(oDice) - 1);
-				var dice;
+				var dice = undefined;
 				
 				for (var i = 0; i < instance_number(oDice) - 1; i++) {
 					
 					if (random_die_index == i) {
-						dice = instance_find(oDice, i);
+						dice = instance_find(oDice, i + 1);
 						break;
 					}
 				}
 				
-				if (instance_number(oDice) == 1) {
+				if (instance_number(oDice) == 1 || dice == undefined) {
 					dice = instance_nearest(500, 500, oDice);
 				}
 				
@@ -422,7 +422,7 @@ function define_items() {
 			modify: function(_context) {
 				with (oCombat) {
 					var amount = 12;
-					apply_buff(global.player_debuffs, oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
+					apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
 					num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
@@ -459,7 +459,7 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
-				apply_buff(global.player_debuffs, oRunManager.buff_might, -1, 2, oRunManager.buff_might.remove_next_turn, { source: "player", index: -1 }, true);
+				apply_buff("player", oRunManager.buff_might, -1, 2, oRunManager.buff_might.remove_next_turn, { source: "player", index: -1 }, true);
 				particle_emit( global.player_x, global.player_y, "rise", c_orange);
 			}
 		},
@@ -492,7 +492,7 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
-				apply_buff(global.player_debuffs, oRunManager.buff_balance, -1, 2, oRunManager.buff_balance.remove_next_turn, { source: "player", index: -1 }, true);
+				apply_buff("player", oRunManager.buff_balance, -1, 2, oRunManager.buff_balance.remove_next_turn, { source: "player", index: -1 }, true);
 				particle_emit( global.player_x, global.player_y, "rise", c_blue);
 			}
 		},

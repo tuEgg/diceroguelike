@@ -99,7 +99,7 @@ for (var i = 0; i < array_length(items); i++) {
 
 if (error_timer > 0) {
 	error_timer--;
-	queue_tooltip(mouse_x, mouse_y, error_message, error_description, undefined, 0, undefined);
+	queue_tooltip(mouse_x, mouse_y, error_message, error_description);
 } else {
 	error_message = "";
 	error_description = "";

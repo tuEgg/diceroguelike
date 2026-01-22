@@ -282,6 +282,7 @@ function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x,
 					case "heal":												col = global.color_heal;		break;
 					case "attack":												col = global.color_attack;		break;
 					case "intel":												col = global.color_intel;		break;
+					case "subtext":												col = c_gray;					break;
 					default:													col = _fill_col;
 				}
 				array_push(colors_array, col);
@@ -522,7 +523,13 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
     draw_set_alpha(0.8);
     draw_set_color(c_black);
     draw_roundrect(xx - 2, yy - 2, xx + _width + 2, yy + _height + 2, false);
-    draw_set_color(_is_keyword ? make_color_rgb(20, 40, 70) : global.color_bg);
+	
+	var bg_col = _is_keyword ? make_color_rgb(20, 40, 70) : global.color_bg;
+	if (oRunManager.error_timer == 0) {
+		draw_set_color(bg_col);
+	} else {
+		draw_set_color(global.color_error);
+	}
     draw_roundrect(xx, yy, xx + _width, yy + _height, false);
     draw_set_alpha(1);
 

@@ -82,7 +82,7 @@ if (is_dragging) {
         // Update is_discarding live during drag
         combat.is_discarding = is_mouse_over_discard_button();
 		with (oCombat) { 
-			if (get_hovered_action_slot() != -1) {
+			if (hovered_slot != -1) {
 				combat.is_placing = true;
 			}
 		}
@@ -138,13 +138,14 @@ if (is_dragging && mouse_check_button_released(mb_left)) {
         if (is_mouse_over_discard_button()) {
             with (combat) discard_dice(other.id);
         } else if (oCombat.last_hover) {
-			with (combat) sacrifice_die(other.id);
+			if (!string_has_keyword(struct.description, "exclusive")) {
+				with (combat) sacrifice_die(other.id);
+			}
 		} else {
 			with (combat) {
-	            var slot_i = get_hovered_action_slot();
 				//show_debug_message("Slot released: "+string(slot_i));
-	            if (slot_i != -1) {
-	                 apply_dice_to_slot(other.id, slot_i);
+	            if (hovered_slot != -1) {
+	                 apply_dice_to_slot(other.id, hovered_slot);
 	            }
 			}
         }

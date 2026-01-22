@@ -161,23 +161,22 @@ function define_enemies() {
 	
 	// Elite that buffs others and summons minions to the fight.
 	var pirate_captain_moves = [
-	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Command", debuff: buff_might, weight: 20, use_trigger: "FIRST", target: "other", amount: 1, duration: 2 }, // Command
+	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Command", debuff: buff_might, weight: 20, use_trigger: "FIRST", target: "other", amount: 1, duration: 1 }, // Command
 	    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 6, move_name: "Pistol Shot", weight: 40 }, // Take Cover
 	    { dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 8, move_name: "Take Cover", weight: 40 }, // Pistol Shot
 	    { dice_amount: 1, dice_value: 1, action_type: "SUMMON", bonus_amount: 0, move_name: "Open Barrel", weight: 0, summon: "Barrel o' Fish", use_trigger: "HEALTH 50" } // Pistol Shot
 	];
-	var pirate_captain = enemy_create("Pirate Captain", 0, 1, 70, 45, 0, pirate_captain_moves, "weighted", true);
+	var pirate_captain = enemy_create("Pirate Captain", 0, 1.2, 70, 45, 0, pirate_captain_moves, "weighted", true);
 	ds_list_add(global.enemy_list, pirate_captain);
 	
 	// Elite that disrupts intel, echoes attacks, and has 3 protective layers that block damage. The layers block 2/3/4 flat damage per attack but once the conch takes 10/12/14 damage in a single turn a layer is broken.
-	//var giant_conch_moves = [
-	//    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Command", debuff: buff_might, weight: 20, use_trigger: "FIRST", target: "other", amount: 1, duration: 2 }, // Command
-	//    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 6, move_name: "Pistol Shot", weight: 40 }, // Take Cover
-	//    { dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 8, move_name: "Take Cover", weight: 40 }, // Pistol Shot
-	//    { dice_amount: 1, dice_value: 1, action_type: "SUMMON", bonus_amount: 0, move_name: "Open Barrel", weight: 0, summon: "Barrel o' Fish", use_trigger: "HEALTH 50" } // Pistol Shot
-	//];
-	//var giant_conch = enemy_create("Giant Conch", 0, 1, 70, 45, 0, giant_conch, "weighted", true);
-	//ds_list_add(global.enemy_list, pirate_captain);
+	var giant_conch_moves = [
+	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Command", debuff: buff_might, weight: 20, use_trigger: "FIRST", target: "other", amount: 1, duration: 1 }, // Command
+		//{ dice_amount: 3, dice_value: 2, action_type: "ATK", bonus_amount: 4, move_name: "Wrap", weight: 100 },
+	    //{ dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 4, move_name: "Shield", weight: 40 }
+	];
+	var giant_conch = enemy_create("Giant Conch", 0, 1.25, 40, 50, 0, giant_conch_moves, "weighted", true, passive_conch_layers);
+	ds_list_add(global.enemy_list, giant_conch);
 	
 	//// Elite that buffs others and summons minions to the fight.
 	//var pirate_captain_moves = [
@@ -197,7 +196,7 @@ function define_enemies() {
 	var titan_moves = [
 	    { dice_amount: 2, dice_value: 6, action_type: "ATK", bonus_amount: 6, move_name: "Crushing Slam" }, // Crushing Slam
 	    { dice_amount: 2, dice_value: 6, action_type: "BLK", bonus_amount: 6, move_name: "Harden Shell" }, // Harden Shell
-	    { dice_amount: 1, dice_value: 6, action_type: "DEBUFF", bonus_amount: 0, move_name: "Barnacle Bind", debuff: debuff_bind } // Mock
+	    { dice_amount: 1, dice_value: 6, action_type: "DEBUFF", bonus_amount: 0, move_name: "Barnacle Bind", debuff: debuff_barnacle_bind } // Mock
 	];
 	var titan = enemy_create("Barnacle Titan", 0, 1.5, 125, 151, 0, titan_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, titan);

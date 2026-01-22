@@ -19,6 +19,7 @@ global.color_heal = c_lime;
 global.color_debuff = c_white;
 global.color_unknown = c_dkgray;
 global.color_bg = make_color_rgb(20, 50, 80);
+global.color_error = make_color_rgb(140, 10, 10);
 global.heal_pos = 0;
 
 randomise();
@@ -83,7 +84,7 @@ global.keywords = {
 
     "Exclusive": {
         colour: c_teal,
-        desc: "This die cannot be played into a slot with other dice, or have other dice played into it.",
+        desc: "This die ejects all other die when played to a slot, cannot have other dice played into it and cannot be sacrificed.",
 		index: 5
     },
 
@@ -215,9 +216,10 @@ ds_list_add(global.player_intel_data, {
 });
 
 show_dice_list = false; // used for displaying all the dice in the master list
-show_dice_bag = false;
 bag_hover = false;
 bag_hover_locked = false; // used to click on the bag and lock the view
+bag_to_show = global.dice_bag;
+bag_title = "";
 scroll_y = 0;
 m_grab_y = 0;
 s_grab_y = 0;

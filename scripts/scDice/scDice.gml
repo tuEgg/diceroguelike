@@ -137,7 +137,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "on_not_used",
 	            modify: function(_context) {
-	                apply_buff(global.player_debuffs, oRunManager.buff_reserve, 1, 1, oRunManager.buff_reserve.remove_next_turn, { source: "player", index: -1 });
+	                apply_buff("player", oRunManager.buff_reserve, 1, 1, oRunManager.buff_reserve.remove_next_turn, { source: "player", index: -1 });
 	            }
 	        }
 	    ]
@@ -630,7 +630,7 @@ function generate_dice_bag() {
 	            trigger: "on_not_used",
 	            modify: function(_context) {
 					var amount = 3;
-	                apply_buff(global.player_debuffs, oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
+	                apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
 					var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
@@ -705,7 +705,7 @@ function generate_dice_bag() {
 	            trigger: "on_sacrifice_die",
 	            modify: function(_context) {
 					var amount = 3;
-	                apply_buff(global.player_debuffs, oRunManager.buff_intel, 2, amount, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
+	                apply_buff("player", oRunManager.buff_intel, 2, amount, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
 					var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
@@ -725,7 +725,7 @@ function generate_dice_bag() {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._d_amount == _context.min_roll) {
-						apply_buff(global.player_debuffs, oRunManager.buff_might, 1, 1, true, { source: "player", index: -1 });
+						apply_buff("player", oRunManager.buff_might, 1, 1, true, { source: "player", index: -1 });
 					}
 	            }
 	        }
@@ -743,7 +743,7 @@ function generate_dice_bag() {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._d_amount == 3) {
-						apply_buff(global.player_debuffs, oRunManager.buff_balance, 1, 1, true, { source: "player", index: -1 });
+						apply_buff("player", oRunManager.buff_balance, 1, 1, true, { source: "player", index: -1 });
 					}
 	            }
 	        }
@@ -978,6 +978,7 @@ function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
 		min_roll: 1,
 		max_roll: _die.dice_value,
 		_d_amount: 0,
+		_die_struct: _die,
 		_slot: slot,
 		slot_num: _slot_num,
 		die_index: _die_index,
@@ -985,12 +986,12 @@ function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
 		read_only: _read_only,
 		roll_twice: false,
 		repeat_followthrough: false,
-		owner: _owner,
+		target: _owner,
 		weighting: ""
 	};
 
 	// Let keepsakes/dice adjust roll range
-	combat_trigger_effects("on_roll_die", roll_data, _die);
+	combat_trigger_effects("on_roll_die", roll_data);
 	
 	if (roll_data.min_roll > roll_data.max_roll) roll_data.min_roll = roll_data.max_roll;
 	

@@ -207,6 +207,17 @@ ds_list_add(possible_encounters, "Early 1");
 ds_list_add(possible_encounters, "Early 2");
 ds_list_add(possible_encounters, "Early 3");
 
+// comment out the below when not testing
+if (debug_mode) {
+	ds_list_add(possible_encounters, "Encounter 1");
+	ds_list_add(possible_encounters, "Encounter 2");
+	ds_list_add(possible_encounters, "Encounter 3");
+	ds_list_add(possible_encounters, "Encounter 4");
+	ds_list_add(possible_encounters, "Encounter 5");
+	ds_list_add(possible_encounters, "Encounter 6");
+	ds_list_add(possible_encounters, "Encounter 7");
+}
+
 possible_elites = ds_list_create();
 elite_list_before_bounty = ds_list_create(); // for restoring remaining elite fights this voyage after a bounty
 ds_list_add(possible_elites, "Elite 1");

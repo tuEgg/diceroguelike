@@ -24,7 +24,7 @@ switch (voyage) {
 	break;
 }
 draw_outline_text("Voyage " + act, c_black, c_white, 2, 20, bar_half, 1, 1, 0);
-var voyage_hover = mouse_hovering(20, 15, string_width("Voyage III"), string_height("Voyage III"), false);
+var voyage_hover = mouse_hovering(20, bar_half, string_width("Voyage III"), string_height("Voyage III"), false);
 if (voyage_hover) queue_tooltip(mouse_x, mouse_y, "Voyages Sailed", "You are on voyage " + string(act) + "/III", undefined, 0, undefined);
 
 // Draw pages turned
@@ -55,6 +55,8 @@ draw_set_valign(fa_middle);
 draw_set_font(ftBig);
 draw_outline_text(string(global.player_hp) + "/" +string(global.player_max_hp), c_black, c_white, 2, health_x + 30, bar_half, 1, 1, 0);
 health_scale = lerp(health_scale, 1.0, 0.2);
+var health_hover = mouse_hovering(health_x + 55, bar_half, 135, 50, true);
+if (health_hover) queue_tooltip(mouse_x, mouse_y, "Your Health", "You have " + string(global.player_hp) + "/" +string(global.player_max_hp) + " health");
 
 // Draw cores and consumables
 var core_x = health_x + 185;
@@ -106,50 +108,6 @@ for (var i = 0; i < array_length(items); i++) {
 		if (!global.main_input_disabled) {
 			if (items_hover[i] && mouse_check_button(mb_left)) {
 				items[i].show_item_delete_confirmation = false;
-			}
-			
-			// Add core dragging functionality
-			if (room == rmWorkbench) {
-				if (items[i].type == "core") {
-					// drag the core
-					if (items_hover[i] && mouse_check_button(mb_left)) {
-						items[i].dragging = true;
-					}
-					// release the core
-					if (items[i].dragging and mouse_check_button_released(mb_left)) {
-						items[i].dragging = false;
-					}
-				}
-			}
-		
-			// Add potion dragging functionality
-			if (items[i].type == "consumable") {
-
-				if (items_hover[i] && mouse_check_button(mb_left) && !holding_item) {
-					items[i].dragging = true;
-					holding_item = true;
-				}
-
-				if (items[i].dragging and mouse_check_button_released(mb_left)) {
-					items[i].dragging = false;
-					holding_item = false;
-				}
-			
-				if (items[i].dragging && mouse_check_button_pressed(mb_left)) {
-					if (items[i].effects.trigger == "on_clicked" && items[i].effects.flags() ) {
-						var ctx = {
-							use_potion: true,
-						};
-						
-						trigger_item_effects(items[i], "on_clicked", ctx);
-						combat_trigger_effects("on_consumable_used", ctx);
-						
-						if (ctx.use_potion) {
-							items[i] = undefined;
-							holding_item = false;
-						}
-					}
-				}
 			}
 
 			if (items_hover[i] && mouse_check_button_pressed(mb_right)) {
@@ -209,6 +167,52 @@ for (var i = 0; i < array_length(items); i++) {
 					holding_item = false;
 				}
 			}
+			
+			// Add core dragging functionality
+			if (room == rmWorkbench) {
+				if (items[i].type == "core") {
+					// drag the core
+					if (items_hover[i] && mouse_check_button(mb_left)) {
+						items[i].dragging = true;
+					}
+					// release the core
+					if (items[i].dragging and mouse_check_button_released(mb_left)) {
+						items[i].dragging = false;
+					}
+				}
+			}
+		
+			if (items[i] != undefined) {
+				// Add potion dragging functionality
+				if (items[i].type == "consumable") {
+
+					if (items_hover[i] && mouse_check_button(mb_left) && !holding_item) {
+						items[i].dragging = true;
+						holding_item = true;
+					}
+
+					if (items[i].dragging and mouse_check_button_released(mb_left)) {
+						items[i].dragging = false;
+						holding_item = false;
+					}
+			
+					if (items[i].dragging && mouse_check_button_pressed(mb_left)) {
+						if (items[i].effects.trigger == "on_clicked" && items[i].effects.flags() ) {
+							var ctx = {
+								use_potion: true,
+							};
+						
+							trigger_item_effects(items[i], "on_clicked", ctx);
+							combat_trigger_effects("on_consumable_used", ctx);
+						
+							if (ctx.use_potion) {
+								items[i] = undefined;
+								holding_item = false;
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 }
@@ -222,7 +226,7 @@ if (toolbar_hover) {
 	if mouse_check_button_pressed(mb_left) {
 		show_tools = 1 - show_tools;
 	}
-	queue_tooltip(mouse_x, mouse_y, "Toolbag", "You currently have " + num_tools + " tools");
+	queue_tooltip(mouse_x, mouse_y, "Toolbag", "Use tools at the workbench to upgrade your dice");
 }
 
 toolbag_scale = lerp(toolbag_scale, toolbar_hover ? 1.2 : 1.0, 0.1);
@@ -253,27 +257,35 @@ if (show_tools) {
 		if (tool_hover) {
 			queue_tooltip(mouse_x, mouse_y, tool.name, tool.desc);
 			
-			if (mouse_check_button_pressed(mb_left) && room == rmWorkbench && !instance_exists(tool.object)) {
-				var pos_x;
-				var pos_y;
+			if (mouse_check_button_pressed(mb_left)) {
+				if (room == rmWorkbench) {
+					if (!instance_exists(tool.object)) {
+						var pos_x;
+						var pos_y;
 				
-				switch(i) {
-					case 0:
-					pos_x = gui_w - 150;
-					pos_y = gui_h/2 + 50;
-					break;
+						switch(i) {
+							case 0:
+							pos_x = gui_w - 150;
+							pos_y = gui_h/2 + 50;
+							break;
 					
-					case 1:
-					pos_x = 150;
-					pos_y = gui_h/2 + 50;
-					break;
+							case 1:
+							pos_x = 150;
+							pos_y = gui_h/2 + 50;
+							break;
 					
-					case 2:
-					pos_x = gui_w - 300;
-					pos_y = gui_h - 200;
-					break;
+							case 2:
+							pos_x = gui_w - 300;
+							pos_y = gui_h - 200;
+							break;
+						}
+						instance_create_layer(pos_x, pos_y, "Instances", tool.object);
+					} else {
+						throw_error("Tool already exists", "This tool is already on the workbench");
+					}
+				} else {
+					throw_error("Open at the workbench", "You can't open the toolbag outside of the workbench");
 				}
-				instance_create_layer(pos_x, pos_y, "Instances", tool.object);
 			}
 		}
 	}
@@ -418,13 +430,11 @@ draw_set_font(ftBig);
 draw_text(70, gui_h - 55, string(ds_list_size(global.dice_bag)));
 
 if (bag_hover) {
-	show_dice_bag = true;
-	
 	if (mouse_check_button_pressed(mb_left)) {
 		bag_hover_locked = 1 - bag_hover_locked;
+		bag_to_show = global.dice_bag;
 	}
-} else {
-	show_dice_bag = false;
+	queue_tooltip(mouse_x, mouse_y, "Click to open", "Details all the dice you have in your bag");
 }
 
 if (bag_hover_locked) {
@@ -437,15 +447,36 @@ if (bag_hover_locked) {
 	draw_set_color(make_color_rgb(24, 20, 32));
 	draw_roundrect(0, 0, display_get_gui_width(), display_get_gui_height(), false);
 	
+	// Draw bag title
+	draw_set_font(ftBigger);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	
+	if (dice_selection_message == "") {
+		switch (bag_to_show) {
+			case global.dice_bag: bag_title = "Dice bag" break;
+			case global.discard_pile: bag_title = "Discard pile" break;
+		}
+	}
+	
+	draw_outline_text(bag_title, c_black, c_white, 2, bag_outer_padding, bag_outer_padding - 50, 1, 1, 0);
+	
+	draw_set_color(make_color_rgb(24, 20, 32));
 	draw_set_alpha(0.85);
 	draw_roundrect(bag_outer_padding, bag_outer_padding, display_get_gui_width() - bag_outer_padding, display_get_gui_height() - bag_outer_padding, false);
 	
 	var bag_width =		display_get_gui_width() - (bag_inner_padding * 2);
 	var bag_height =	display_get_gui_height() - (bag_inner_padding * 2);
 
-	if (mouse_check_button_pressed(mb_left) && !mouse_hovering(bag_outer_padding, bag_outer_padding, display_get_gui_width() - bag_outer_padding*2, display_get_gui_height() - bag_outer_padding*2, false)) {
+	if ((mouse_check_button_pressed(mb_left) || mouse_check_button_pressed(mb_right)) && !mouse_hovering(bag_outer_padding, bag_outer_padding, display_get_gui_width() - bag_outer_padding*2, display_get_gui_height() - bag_outer_padding*2, false)) {
 		if (bag_hover_locked && !bag_hover) {
-			bag_hover_locked = false;
+			if (room == rmCombat) {
+				if (!oCombat.disc_bag_hover) {
+					bag_hover_locked = false;
+				}
+			} else {
+				bag_hover_locked = false;
+			}
 		}
 	}
 		
@@ -461,7 +492,7 @@ if (bag_hover_locked) {
 	var inner_padding_w = box_width/2
 	var inner_padding_h = box_height/2;
 	
-	for (var i = 0; i < ds_list_size(global.dice_bag); i++) {
+	for (var i = 0; i < ds_list_size(bag_to_show); i++) {
 		
 		// Increase spacing for next dice
 		var dice_x = (bag_inner_padding + inner_padding_w + scrollbar_w*2) +		i mod 5 * col_spacing;
@@ -472,7 +503,7 @@ if (bag_hover_locked) {
 		
 		if (top_of_box < display_get_gui_height() - bag_inner_padding && bottom_of_box > bag_inner_padding) {
 		
-			var dice = global.dice_bag[| i];
+			var dice = bag_to_show[| i];
 			
 			var top_edge_overlap = bag_inner_padding - top_of_box;
 			var bottom_edge_overlap = (bottom_of_box - (display_get_gui_height() - bag_inner_padding));
@@ -607,7 +638,7 @@ if (bag_hover_locked) {
 	if (mouse_wheel_up()) scroll_y += 100;
 	
 	// Total pixel height of the bag height, its never less than 3 rows high (hence 15)
-	var minimum_size = min(3 * -row_spacing, (ds_list_size(global.dice_bag) div 5 + ceil((ds_list_size(global.dice_bag) mod 5)/5)) * -row_spacing);
+	var minimum_size = min(3 * -row_spacing, (ds_list_size(bag_to_show) div 5 + ceil((ds_list_size(bag_to_show) mod 5)/5)) * -row_spacing);
 	
 	// The adaptive height of the scrollable area
 	var scroll_height = minimum_size + bag_height;
@@ -661,12 +692,8 @@ if (bag_hover_locked) {
 	
 if (dice_selection != false) {
 	bag_hover_locked = true;
-		
-	// Draw the message
-	draw_set_font(ftBigger);
-	draw_set_halign(fa_center);
-	draw_set_valign(fa_middle);
-	draw_outline_text(dice_selection_message, c_black, c_white, 2, gui_w/2, 120, 1, 1, 0, 800);
+	
+	bag_title = dice_selection_message;
 		
 	// Draw a button
 	var dice_selection_col = c_lime;
