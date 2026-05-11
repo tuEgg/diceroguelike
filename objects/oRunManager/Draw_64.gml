@@ -306,7 +306,7 @@ draw_sprite_ext(sMapIcon, 8, alignment_x - 170, bar_half, 1, 1, 0, c_white, 1.0)
 draw_sprite_ext(sAlignmentBar, 0, alignment_x, bar_half, alignment_scale, alignment_scale, 0, c_white, 1.0);
 alignment_scale = lerp(alignment_scale, 1.0, 0.2);
 
-var alignment_pos_x = alignment_x - 70 + ((global.player_alignment) * 1.4);
+var alignment_pos_x = alignment_x - 112 + ((global.player_alignment) * 2.24);
 draw_sprite_ext(sCircleSmall, 0, alignment_pos_x, bar_half + 2, 1, 1, 0, c_white, 1.0);
 
 var alignment_text = "Neutral";

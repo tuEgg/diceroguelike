@@ -107,6 +107,8 @@ if (error_timer > 0) {
 
 global.main_input_disabled = bag_hover_locked;
 
+global.player_alignment = clamp(global.player_alignment, 0, 100);
+
 //if (mouse_check_button_pressed(mb_left)) {
 //	particle_emit( mouse_x, mouse_y, choose("rise"), c_red);
 //}

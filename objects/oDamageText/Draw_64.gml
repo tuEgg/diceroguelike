@@ -7,10 +7,15 @@ draw_set_valign(fa_middle);
 var _sign = "";
 
 switch(num_sign) {
-	case -1: _sign = "-" break
+	case -1: _sign = "-" break;
+	case 0: _sign = "" break;
 	case 1: _sign = "+" break;
 }
 
 var str = _sign + string(amount);
+
+if (txt != -1) {
+	str = txt;
+}
 
 draw_outline_text(str, c_black, color_main, 2, x, y, scale * size, alpha, 0);

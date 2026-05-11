@@ -18,7 +18,7 @@
 			},
 			effect: function(_context) {
 				if (oRunManager.credits >= 10) {
-					global.player_alignment += 5;
+					gain_alignment(5);
 					oRunManager.credits -= 10;
 					gain_keepsake(oRunManager.ks_deckhands_token);
 					oEventManager.event_complete = 0;
@@ -33,7 +33,7 @@
 			title: "Make him walk the plank",
 			description: "Lose 7 alignment and remove a die from your bag.",
 			effect: function(_context) {
-				global.player_alignment -= 7;
+				gain_alignment(-7);
 				oEventManager.deleting_die = true;
 				with (oRunManager) {
 					if (!dice_dealt) {
@@ -85,7 +85,7 @@
 			description: "Gain 5 alignment, lose 7 health, and upgrade a random block or heal die.",
 			effect: function(_context) {
 				global.player_hp -= 7;
-				global.player_alignment += 5;
+				gain_alignment(5);
 				// search through all dice, add block and heals to a temporary ds list, return a random index, upgrade that index's dice value +2, then destroy the list
 				
 				var heal_block_list = ds_list_create();
@@ -113,6 +113,7 @@
 				rand_die.dice_value += 2;
 				
 				particle_emit( 115, 1000, "rise", rand_die.color);
+				spawn_floating_number("bag", 0, rand_die.name + " upgraded", rand_die.color, 0, -1, 0);
 				
 				ds_list_destroy(heal_block_list);
 				
@@ -128,7 +129,7 @@
 				queue_tooltip(mouse_x, mouse_y, oRunManager.ks_starvers_efficiency.name, oRunManager.ks_starvers_efficiency.desc, sKeepsake, oRunManager.ks_starvers_efficiency.sub_image);
 			},
 			effect: function(_context) {
-				global.player_alignment -= 4;
+				gain_alignment(-4);
 				gain_keepsake(oRunManager.ks_starvers_efficiency);
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
@@ -208,6 +209,7 @@
 					
 					die.dice_value += 2;
 					particle_emit( 115, 1000, "rise", die.color);
+					spawn_floating_number("bag", 0, die.name, die.color, 0, -1, 0);
 					
 					ds_list_delete(attack_list, rand_index);
 				}
@@ -311,7 +313,7 @@
 			description: "Gain 120 gold and lose 7 alignment.",
 			effect: function(_context) {
 				gain_coins(mouse_x, mouse_y, 120);
-				global.player_alignment -= 7;
+				gain_alignment(-7);
 				
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;
@@ -334,7 +336,7 @@
 			description: "Gain 40 gold and 7 alignment.",
 			effect: function(_context) {
 				gain_coins(mouse_x, mouse_y, 40);
-				global.player_alignment += 7;
+				gain_alignment(7);
 				
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
@@ -510,6 +512,7 @@
 					_die.dice_value += 2;
 					
 					particle_emit(115, 1000, "rise", get_dice_color(_die.action_type), 30);
+					spawn_floating_number("bag", 0, _die.name + " +2 max roll", _die.color, 0, -1, 0);
 				}
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;
@@ -526,6 +529,7 @@
 					_die.min_roll_bonus += 1;
 					
 					particle_emit(115, 1000, "rise", get_dice_color(_die.action_type), 30);
+					spawn_floating_number("bag", 0, _die.name + " +1 min roll", _die.color, 0, -1, 0);
 				}
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
@@ -542,6 +546,7 @@
 					_die.distribution = get_random_distribution();
 					
 					particle_emit(115, 1000, "rise", get_dice_color(_die.action_type), 30);
+					spawn_floating_number("bag", 0, _die.name + " " + string(_die.distribution) + " core applied", _die.color, 0, -1, 0);
 				}
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
@@ -606,7 +611,7 @@
 				gain_keepsake(keepsake_options[| 0], global.rollable_keepsake_list);
 				ds_list_destroy(keepsake_options);
 				
-				global.player_alignment -= 7;
+				gain_alignment(-4);
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
@@ -616,7 +621,7 @@
 			title: "Offer your blessings to the Albatross",
 			description: "Gain 5 alignment and 5 luck.",
 			effect: function(_context) {
-				global.player_alignment += 5;
+				gain_alignment(5);
 				global.player_luck += 5;
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
@@ -662,7 +667,7 @@
 				
 				ds_list_destroy(dice_options);
 				
-				global.player_alignment -= 4;
+				gain_alignment(-4);
 					
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;
@@ -697,6 +702,7 @@
 						global.player_luck += 10;
 						
 						particle_emit(115, 1000, "burst", c_red, 30);
+						spawn_floating_number("bag", 0, _die.name + " tossed", _die.color, 0, -1, 0);
 					}
 					
 					oEventManager.event_complete = 1;
@@ -741,6 +747,8 @@
 					var die_index = ds_list_find_index(global.dice_bag, _die);
 						
 					particle_emit(115, 1000, "burst", get_dice_color(global.dice_bag[| die_index].action_type), 30);
+					spawn_floating_number("bag", 0, _die.name + " removed", _die.color, 0, -1, 0);
+					
 					ds_list_delete(global.dice_bag, die_index);
 				}
 					
@@ -857,6 +865,7 @@
 					var rand_die_index = irandom(ds_list_size(global.dice_bag) - 1);
 					
 					particle_emit(115, 1000, "burst", get_dice_color(global.dice_bag[| rand_die_index].action_type), 30);
+					spawn_floating_number("bag", 0, global.dice_bag[| rand_die_index].name + " removed", global.dice_bag[| rand_die_index].color, 0, -1, 0);
 					
 					ds_list_delete(global.dice_bag, rand_die_index);
 					
@@ -892,6 +901,7 @@
 					var die_index = ds_list_find_index(global.dice_bag, _die);
 						
 					particle_emit(115, 1000, "burst", get_dice_color(global.dice_bag[| die_index].action_type), 30);
+					spawn_floating_number("bag", 0, global.dice_bag[| die_index].name + " removed", global.dice_bag[| die_index].color, 0, -1, 0);
 					
 					ds_list_delete(global.dice_bag, die_index);
 				}
@@ -937,6 +947,7 @@
 				oRunManager.dice_selection_event = function(_die) {
 						
 					particle_emit(115, 1000, "burst", get_dice_color(_die.action_type), 30);
+					spawn_floating_number("bag", 0, _die.name + " duplicated", _die.color, 0, -1, 0);
 					
 					ds_list_add(global.dice_bag, clone_die(_die, ""));
 				}
@@ -977,7 +988,7 @@
 			title: "Cassiopeia",
 			description: "Lose 12 alignment and gain 3 luck.",
 			effect: function(_context) {
-				global.player_alignment -= 12;
+				gain_alignment(-12);
 				global.player_luck += 3;
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
@@ -988,7 +999,7 @@
 			title: "Lyra",
 			description: "Gain 12 alignment and 3 luck.",
 			effect: function(_context) {
-				global.player_alignment += 12;
+				gain_alignment(12);
 				global.player_luck += 3;
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
@@ -1137,6 +1148,7 @@
 						var intel_die = intel_list[| i];
 						
 						intel_die.dice_value += 2;
+						spawn_floating_number("bag", 0, intel_die.name + " upgraded", intel_die.color, 0, -1, 0);
 					}
 				
 					particle_emit(115, 1000, "rise", global.color_intel);
@@ -1191,9 +1203,11 @@
 						var block_die = block_list[| i];
 						
 						block_die.dice_value += 2;
+						spawn_floating_number("bag", 0, block_die.name + " upgraded", block_die.color, 0, -1, 0);
 					}
 				
 					particle_emit(115, 1000, "rise", global.color_block);
+					
 				
 					ds_list_destroy(block_list);
 				} else {

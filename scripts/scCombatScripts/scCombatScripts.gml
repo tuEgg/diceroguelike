@@ -442,6 +442,11 @@ function spawn_floating_number(_target, _amount, _txt, _inst_color, _num_sign, _
 		inst_y = slot_positions[| _slot_number].y - 80 + random_range(-50, 50);
 		break;
 		
+		case "bag":
+		inst_x = 165;
+		inst_y = 1000;
+		break;
+		
 		default:
 		inst_x = _target.pos_x;
 		inst_y = _target.pos_y;
@@ -449,6 +454,7 @@ function spawn_floating_number(_target, _amount, _txt, _inst_color, _num_sign, _
 
 	inst_x += sin(instance_number(oDamageText) * 30) * 40;
 	inst_y += instance_number(oDamageText) * 20;
+	
     var inst = instance_create_layer(inst_x, inst_y, "Instances", oDamageText);
 	inst.txt = _txt;
     inst.amount = _amount;
@@ -628,11 +634,20 @@ function apply_dice_to_slot(_die, _slot_i) {
 			_d_struct: die.struct,
 			_slot_die: die.struct,
 			dice_object: die,
+			duplicate_die: false
 		};
 		
 		particle_emit(mouse_x, mouse_y, "burst", get_dice_color(die.action_type), 30);
 	
 		combat_trigger_effects("on_dice_played_to_slot", played_data);
+		
+		if (played_data.duplicate_die) {
+			var die_copy2 = clone_die(die.struct, "temporary");
+			die_copy2.reset_at_end_combat = function(_dice) {
+				ds_list_delete(global.dice_bag, ds_list_find_index(global.dice_bag, _dice));
+			}
+			ds_list_add(slot.dice_list, die_copy2);
+		}
 	
         add_feed_entry("You used a dice!");
 		if (!string_has_keyword(die.struct.description, "coin")) dice_played++;
@@ -726,7 +741,6 @@ function sacrifice_die(_die) {
 	
 	var sacrifice_data = {
 		die: die,
-		duplicate_die: false,
 		slot_index: ds_list_size(oCombat.action_queue) // 1 more than the highest index currently of the action queue
 	};
 	
@@ -741,14 +755,6 @@ function sacrifice_die(_die) {
 	}
 	var die_copy = clone_die(die_struct, _perm);
     ds_list_add(global.sacrifice_list, die_copy);
-	
-	if (sacrifice_data.duplicate_die == true) {
-		var die_copy2 = clone_die(die_struct, _perm);
-		die_copy2.reset_at_end_combat = function(_dice) {
-			ds_list_delete(global.dice_bag, ds_list_find_index(global.dice_bag, _dice));
-		}
-		ds_list_add(global.sacrifice_list, die_copy2);
-	}
 	
 	//show_debug_message("Added dice to list, new length is: "+string(ds_list_size(global.sacrifice_list)));
 	

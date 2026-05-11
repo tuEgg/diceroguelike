@@ -82,3 +82,28 @@ function gain_coins(_x, _y, _amount) {
 		c.image_alpha = 0;
 	}
 }
+
+
+
+function gain_alignment( _amount) {
+	
+	var _num = abs(_amount);
+	
+	var _neg = _amount < 0 ? -1 : 1;
+	
+	repeat (_num) {
+		
+		var wait = instance_number(oParticleAlignment);
+		
+		var _x = room_width;
+		var _y = room_height/2;
+		
+		_x += random_range(-40, 40);
+		_y += random_range(-40, 40);
+		
+		var c = instance_create_depth(_x, _y, -200, oParticleAlignment);
+		c.delay = min(wait, (wait / _num) * (1.00 * game_get_speed(gamespeed_fps)));
+		c.negative = _neg;
+		c.image_alpha = 0;
+	}
+}

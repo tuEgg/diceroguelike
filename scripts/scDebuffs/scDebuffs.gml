@@ -355,7 +355,7 @@ function define_buffs_and_debuffs() {
 	            modify: function(_ctx) {
 				    if (_ctx.action_type == "ATK") {
 						if (_ctx.owner != _ctx.target) return;
-						_ctx._d_amount += _ctx.stack_amount;
+						_ctx._d_amount += _ctx.debuff.amount;
 					}
 				}
 	        }
@@ -379,7 +379,7 @@ function define_buffs_and_debuffs() {
 	            trigger: "on_roll_die",
 	            modify: function(_ctx) {
 					if (_ctx.owner != _ctx.target) return;
-				    if (_ctx.action_type == "BLK") _ctx._d_amount += _ctx.stack_amount;
+				    if (_ctx.action_type == "BLK") _ctx._d_amount += _ctx.debuff.amount;
 				}
 	        },
 	    ]

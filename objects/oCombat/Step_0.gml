@@ -489,7 +489,7 @@ switch (state) {
 							
 							if (enemy.spared) {
 								if (!enemy.looted) {
-									global.player_alignment += 5;
+									gain_alignment(5);
 								
 									// Earn some credits, regardless of secondary rewards
 									gain_coins(enemy.pos_x, enemy.pos_y, ceil(enemy_data.bounty * 1.5));

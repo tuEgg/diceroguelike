@@ -22,7 +22,7 @@
   "isEcma":false,
   "LibraryEmitters":[],
   "MetaData":{
-    "IDEVersion":"2024.14.2.213",
+    "IDEVersion":"2024.14.4.222",
   },
   "name":"KOTOR RogueLike",
   "resources":[
@@ -44,6 +44,7 @@
     {"id":{"name":"oEventManager","path":"objects/oEventManager/oEventManager.yy",},},
     {"id":{"name":"oHammer","path":"objects/oHammer/oHammer.yy",},},
     {"id":{"name":"oParticle","path":"objects/oParticle/oParticle.yy",},},
+    {"id":{"name":"oParticleAlignment","path":"objects/oParticleAlignment/oParticleAlignment.yy",},},
     {"id":{"name":"oParticleCoin","path":"objects/oParticleCoin/oParticleCoin.yy",},},
     {"id":{"name":"oRunManager","path":"objects/oRunManager/oRunManager.yy",},},
     {"id":{"name":"oScissors","path":"objects/oScissors/oScissors.yy",},},

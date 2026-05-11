@@ -710,7 +710,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			queue_tooltip(mouse_x, mouse_y, "Kill the enemy", "Lose 5 alignment");
 			if (mouse_check_button_pressed(mb_left)) {
 				enemy.killed = true;
-				global.player_alignment -= 5;
+				gain_alignment(-5);
 				enemy.alignment_choices_shown = false;
 			}
 			// Proceed with killing the enemy

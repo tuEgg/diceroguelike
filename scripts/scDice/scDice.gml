@@ -538,12 +538,12 @@ function generate_dice_bag() {
 	
 	global.die_echo = make_die_struct(
 	    1, 4, "None", "None", "", "Echo Die",
-	    "When sacrificed: create another copy of this dice in the sacrificed slot",
+	    "When played: create another copy of this dice in the sacrificed slot",
 		"rare",
 		90,
 	    [
 	        {
-	            trigger: "on_sacrifice_die",
+	            trigger: "on_dice_played_to_slot",
 	            modify: function(_context) {
 					_context.duplicate_die = true;
 	            }
@@ -783,14 +783,14 @@ function generate_dice_bag() {
 	);
 	ds_list_add(global.alignment_dice_list, clone_die(global.die_unholy, ""));
 	
-	// Add to bag
+	// Add to bag - STARTING DICE SET HERE
 	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_atk, "")); }
 	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_blk, "")); }
 	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_intel, "")); }
 	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_atk, "")); }
 	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_blk, "")); }
 	
-	do { ds_list_add(global.dice_bag, clone_die(global.dice_d4_none, "")); }
+	do { ds_list_add(global.dice_bag, clone_die(global.die_offhand, "")); }
 	until (ds_list_size(global.dice_bag) == global.bag_size);
 }
 
