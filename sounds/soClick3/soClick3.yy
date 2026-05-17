@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"soClick3",
+  "audioGroupId":{
+    "name":"audiogroup_UI",
+    "path":"audiogroups/audiogroup_UI",
+  },
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":0.20172335,
+  "exportDir":"",
+  "name":"soClick3",
+  "parent":{
+    "name":"UI",
+    "path":"folders/sounds/UI.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"soClick3.wav",
+  "volume":1.0,
+}

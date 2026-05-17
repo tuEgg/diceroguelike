@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"soSwordLight3",
+  "audioGroupId":{
+    "name":"audiogroup_sfx",
+    "path":"audiogroups/audiogroup_sfx",
+  },
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":0.6833106,
+  "exportDir":"",
+  "name":"soSwordLight3",
+  "parent":{
+    "name":"SFX",
+    "path":"folders/sounds/SFX.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"soSwordLight3.wav",
+  "volume":1.0,
+}

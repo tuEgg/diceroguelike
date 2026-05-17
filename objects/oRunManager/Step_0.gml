@@ -10,6 +10,12 @@ if key_escape {
 key_restart = keyboard_check(ord("R"));
 if key_restart game_restart();
 
+key_fullscreen = keyboard_check_pressed(vk_f4);
+if key_fullscreen {
+	fullscreen = 1 - fullscreen;
+	window_set_fullscreen(fullscreen);
+}
+
 if (debug_mode) {
 	key_workbench = keyboard_check_pressed(ord("W"));
 	if (key_workbench) room_goto(rmWorkbench);

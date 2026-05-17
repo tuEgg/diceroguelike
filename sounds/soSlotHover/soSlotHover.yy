@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"soSlotHover",
+  "audioGroupId":{
+    "name":"audiogroup_UI",
+    "path":"audiogroups/audiogroup_UI",
+  },
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":0.072970524,
+  "exportDir":"",
+  "name":"soSlotHover",
+  "parent":{
+    "name":"UI",
+    "path":"folders/sounds/UI.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"soSlotHover.wav",
+  "volume":1.0,
+}

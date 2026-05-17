@@ -627,3 +627,12 @@ function get_first_free_item_slot() {
 	
 	return free_slot;
 }
+
+function get_item_by_name(_name) {
+    for (var i = 0; i < ds_list_size(global.master_item_list); i++) {
+        if (global.master_item_list[| i].name == _name) {
+            return global.master_item_list[| i];
+        }
+    }
+    return undefined;
+}

@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"soShieldLight1",
+  "audioGroupId":{
+    "name":"audiogroup_sfx",
+    "path":"audiogroups/audiogroup_sfx",
+  },
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":2.642381,
+  "exportDir":"",
+  "name":"soShieldLight1",
+  "parent":{
+    "name":"SFX",
+    "path":"folders/sounds/SFX.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"soShieldLight1.wav",
+  "volume":1.0,
+}

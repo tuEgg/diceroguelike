@@ -46,13 +46,25 @@ var btn_w = 140;
 var btn_h = sprite_get_height(sEndTurn);
 
 // Determine label dynamically
-var label_text = (state == CombatState.PLAYER_INPUT)
-    ? "END TURN " + string(turn_count)
-    : "PENDING";
+// Need to have it say "Dealing Dice" when its the start of a turn 
+var label_text = "";
+var label_col = c_dkgray;
+
+switch (state) {
+	case CombatState.PLAYER_INPUT:
+		if (dice_to_deal > 0) {
+			label_text = "DEALING DICE";
+			label_col = c_dkgray;
+		} else {
+			label_text = "END TURN " + string(turn_count);
+			label_col = c_lime;
+		}
+	break;
 	
-var label_col = (state == CombatState.PLAYER_INPUT)
-    ? c_lime
-    : c_dkgray;
+	default:
+		label_text = "PENDING";
+		label_col = c_dkgray;
+}
 
 // Draw button using helper
 var play_btn = draw_gui_button(
@@ -65,7 +77,9 @@ var play_btn = draw_gui_button(
     c_green,
     ftDefault,
     (state == CombatState.PLAYER_INPUT) && !show_rewards,         // active
-	false
+	false,
+	soSlotHover,
+	noone
 );
 
 // Update animation state
@@ -98,9 +112,12 @@ for (var i = 0; i < aq_list_size; i++) {
     var draw_y = base_y + (base_h - draw_h) / 2;
 
     // Hover check based on *scaled* rectangle
-    var hover = (mx > draw_x && mx < draw_x + draw_w && my > draw_y && my < draw_y + draw_h && !show_rewards);
+	var hover = mouse_hovering(draw_x, draw_y, draw_w, draw_h, false, soSlotHover, noone, !show_rewards, string(base_x) + "," + string(base_y));
+    //var hover = (mx > draw_x && mx < draw_x + draw_w && my > draw_y && my < draw_y + draw_h && !show_rewards);
 	
-	if (hover) hovered_slot = i;
+	if (hover) {
+		hovered_slot = i;
+	}
 	
 	if (global.main_input_disabled) hover = false;
 
@@ -244,6 +261,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	    slot.current_action_type = opts[next_index];
 		
 		if (next_index != current_index) {
+			sfx_play(soSlotPlace, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
 			combat_trigger_effects("after_change_current_action", {});
 		}
 	}
@@ -379,7 +397,8 @@ for (var i = 0; i < aq_list_size; i++) {
 	    var last_y = base_y + ((base_h - last_h) / 2);
 
 	    // Hover check basesd on *scaled* rectangle
-	    last_hover = (mx > last_x && mx < last_x + last_w && my > last_y && my < last_y + last_h && !show_rewards);
+		last_hover = mouse_hovering(last_x, last_y, last_w, last_h, false, soSlotHover, noone, !show_rewards, string(lx));
+	    //last_hover = (mx > last_x && mx < last_x + last_w && my > last_y && my < last_y + last_h && !show_rewards);
 
 	    // Smooth scale update
 	    var t_scale = last_hover ? 1.2 : 1.0;

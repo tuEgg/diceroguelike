@@ -931,6 +931,8 @@
 					ds_list_destroy(dice_options);
 					
 					global.dice_bag[| die_index] = clone_die(die_struct, "");
+
+					spawn_floating_number("bag", 0, _die.name + "\nreplaced with\n" + die_struct.name, die_struct.color, 0, -1, 0);
 				}
 					
 				oEventManager.event_complete = 1;

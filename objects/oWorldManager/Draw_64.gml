@@ -48,13 +48,13 @@ if (room == rmMap) {
 	if (choices_locked) {
 		pages_alpha = lerp(pages_alpha, 0, 0.3);
 		if (pages_alpha < 0.05)	{
-			world_state = "exploring";
+			world_state = WORLD_STATE.EXPLORING;
 			pages_alpha = 0;
 		}
 	}
 	
 	// Draw the background
-	if (world_state != "exploring") {
+	if (world_state != WORLD_STATE.EXPLORING) {
 		var bg_w = 900;
 		var bg_h = 850;
 		var bg_x = display_get_gui_width() * 3/4 - bg_w/2;
@@ -73,7 +73,7 @@ if (room == rmMap) {
 		draw_outline_text("Choose a page to draft", c_black, c_white, 2, display_get_gui_width() * 3/4, 180, 1, pages_alpha, 0);
 	
 		// If we are healing or workbench
-		if (world_state == "resting") {
+		if (world_state == WORLD_STATE.RESTING) {
 			// Show the option to "recover in the quarters" or "use the workbench"
 			var heal_col = global.color_heal;
 			var workbench_col = global.color_attack;
@@ -121,7 +121,7 @@ if (room == rmMap) {
 				if (mouse_check_button_pressed(mb_left)) {
 					global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
 					particle_emit(650, 25, "burst", c_lime);
-					world_state = "drafting";
+					world_state = WORLD_STATE.DRAFTING;
 				}
 			}
 			
@@ -130,15 +130,16 @@ if (room == rmMap) {
 				
 				if (mouse_check_button_pressed(mb_left)) {
 					room_goto(rmWorkbench);
-					world_state = "drafting";
+					world_state = WORLD_STATE.DRAFTING;
 					resting_alpha = 0;
 				}
 			}
 		} else {
 			resting_alpha = lerp(resting_alpha, 0, 0.2);
 		}
-			
-		if (world_state == "drafting") {
+		
+		// If we are drafting
+		if (world_state == WORLD_STATE.DRAFTING) {
 			if (resting_alpha < 0.05) {
 				if (ds_list_size(pages_shown) == 0) generate_pages();
 				
@@ -149,9 +150,6 @@ if (room == rmMap) {
 				resting_alpha = 0;
 			}
 		}
-		
-		
-			
 	
 		// If there are drafting pages to draw, draw them
 		if (pages_alpha > 0) {
@@ -273,7 +271,7 @@ if (room == rmMap) {
 			var exit_col = c_dkgray;
 			if (pages_drafted == 2) exit_col = c_red;
 
-			var hover_exit = mouse_hovering(display_get_gui_width() * 3/4, gui_h - 100, embark_scale * sprite_get_width(sButtonSmall) * 1.0, embark_scale * sprite_get_height(sButtonSmall) * 0.8, true);
+			var hover_exit = mouse_hovering(display_get_gui_width() * 3/4, gui_h - 100, embark_scale * sprite_get_width(sButtonSmall) * 1.0, embark_scale * sprite_get_height(sButtonSmall) * 0.8, true, noone, soClick2);
 
 			if (hover_exit && exit_col == c_red) {
 				if (mouse_check_button_pressed(mb_left)) {

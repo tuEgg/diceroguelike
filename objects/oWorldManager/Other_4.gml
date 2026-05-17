@@ -12,8 +12,8 @@ if (room == rmMap) {
 	if (!ds_exists(pages_shown, ds_type_list)) pages_shown = ds_list_create();
 	
 	if (nodes_til_drafting == 0) {
-		if (world_state == "exploring") {
-			world_state = "resting";
+		if (world_state == WORLD_STATE.EXPLORING) {
+			world_state =  WORLD_STATE.RESTING;
 		}
 	}
 	

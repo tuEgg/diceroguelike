@@ -1,3 +1,4 @@
+if (ds_exists(global.starter_dice_list, ds_type_list)) ds_list_destroy(global.starter_dice_list);
 if (ds_exists(global.master_dice_list, ds_type_list)) ds_list_destroy(global.master_dice_list);
 if (ds_exists(global.alignment_dice_list, ds_type_list)) ds_list_destroy(global.alignment_dice_list);
 if (ds_exists(global.master_item_list, ds_type_list)) ds_list_destroy(global.master_item_list);

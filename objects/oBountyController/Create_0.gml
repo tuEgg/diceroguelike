@@ -5,6 +5,7 @@ reroll_col = global.color_block;
 condition_list = ds_list_create();
 
 bounty_condition_slots = {
+	_id: "condition_slots",
 	icon: sActionSlotCentered,
 	index: 1,
 	scale: 0.5,
@@ -24,6 +25,7 @@ bounty_condition_slots = {
 ds_list_add(condition_list, bounty_condition_slots);
 
 bounty_condition_potion = {
+	_id: "condition_potion",
 	icon: sConsumables,
 	index: 1,
 	scale: 1.25,
@@ -41,6 +43,7 @@ bounty_condition_potion = {
 ds_list_add(condition_list, bounty_condition_potion);
 
 bounty_condition_block = {
+	_id: "condition_block",
 	icon: sIntentIcons,
 	index: 1,
 	scale: 1.25,
@@ -60,6 +63,7 @@ bounty_condition_block = {
 ds_list_add(condition_list, bounty_condition_block);
 
 bounty_condition_dice = {
+	_id: "condition_dice",
 	icon: sDice,
 	index: 3,
 	scale: 1,
@@ -79,6 +83,7 @@ bounty_condition_dice = {
 ds_list_add(condition_list, bounty_condition_dice);
 
 bounty_condition_intel = {
+	_id: "condition_intel",
 	icon: sIntelEye,
 	index: 2,
 	scale: 1,

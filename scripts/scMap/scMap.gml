@@ -504,7 +504,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	var page_width = sprite_get_width(_sprite);
 	var page_height = sprite_get_height(_sprite);
 		
-	var pages_hover = (!_locked * !page.chosen * mouse_hovering(page_x, page_y, page_width, page_height, true));
+	var pages_hover = mouse_hovering(page_x, page_y, page_width, page_height, true, soPaperHover, soClick4, !_locked * !page.chosen);
 	_scale = lerp(_scale, pages_hover ? 1.2 : 1.0, 0.2);
 		
 	if (_shadow) draw_sprite_ext(_sprite, page.index, page_x + 20, page_y + 20, _scale * 0.98,  _scale * 0.98, 0, c_black, 0.5 * pages_alpha);
@@ -691,4 +691,66 @@ function clone_node_static(_src) {
         x: 0,
         y: 0,
     };
+}
+
+function serialise_page(_page) {
+    var _saved_nodes = [];
+    for (var i = 0; i < ds_list_size(_page.nodes); i++) {
+        var _node = _page.nodes[| i];
+        array_push(_saved_nodes, {
+            name: _node.name,
+            cleared: _node.cleared,
+            disappeared: _node.disappeared,
+            x: _node.x,
+            y: _node.y,
+        });
+    }
+    return {
+        index: _page.index,
+        num_nodes: _page.num_nodes,
+        layout: _page.layout,
+        map_connection_in: _page.map_connection_in,
+        map_connection_out: _page.map_connection_out,
+        margin: _page.margin,
+        chosen: _page.chosen,
+        locked: _page.locked,
+        cleared: _page.cleared,
+        x: _page.x,
+        y: _page.y,
+		x_offset: _page.x_offset,
+        y_offset: _page.y_offset,
+        nodes: _saved_nodes,
+    };
+}
+
+function deserialise_page(_data) {
+    var _page = {
+        index: _data.index,
+        num_nodes: _data.num_nodes,
+        nodes: ds_list_create(),
+        layout: _data.layout,
+        map_connection_in: _data.map_connection_in,
+        map_connection_out: _data.map_connection_out,
+        margin: _data.margin,
+        chosen: _data.chosen,
+        locked: _data.locked,
+        cleared: _data.cleared,
+        x: _data.x,
+        y: _data.y,
+		x_offset: _data.x_offset,
+        y_offset: _data.y_offset,
+    };
+    
+    for (var i = 0; i < array_length(_data.nodes); i++) {
+        var _saved_node = _data.nodes[i];
+        var _base_node = get_node_by_name(_saved_node.name);
+        var _node = clone_node_static(_base_node);
+        _node.cleared = _saved_node.cleared;
+        _node.disappeared = _saved_node.disappeared;
+        _node.x = _saved_node.x;
+        _node.y = _saved_node.y;
+        ds_list_add(_page.nodes, _node);
+    }
+    
+    return _page;
 }

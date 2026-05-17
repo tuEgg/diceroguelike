@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"soRubble2",
+  "audioGroupId":{
+    "name":"audiogroup_sfx",
+    "path":"audiogroups/audiogroup_sfx",
+  },
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":0.44156462,
+  "exportDir":"",
+  "name":"soRubble2",
+  "parent":{
+    "name":"SFX",
+    "path":"folders/sounds/SFX.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"soRubble2.wav",
+  "volume":1.0,
+}

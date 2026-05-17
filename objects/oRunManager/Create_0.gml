@@ -30,8 +30,7 @@ define_enemies();
 define_items();
 define_events();
 
-global.main_input_disabled = false; // allows you to interact with menus and the bag screen without affecting elements behind it
-global.all_input_disabled = false; // prevents player from doing anything
+fullscreen = false;
 
 global.player_max_hp = 40;
 global.player_hp = global.player_max_hp;
@@ -143,6 +142,7 @@ global.color_rare = make_colour_rgb(85, 42, 90);
 global.tooltip_active = false;
 global.tooltip_main = undefined; // main tooltip struct (only one allowed)
 global.tooltip_keywords = [];    // list of keyword tooltip structs
+global.total_tooltip_height = 0; // used to track total tooltip height
 
 max_items = 3;
 items = [undefined, undefined, undefined];
@@ -289,3 +289,6 @@ toolbag_scale = 1.0;
 global.master_tool_list = ds_list_create();
 ds_list_add(global.master_tool_list, tool_hammer);
 ds_list_add(global.master_tool_list, tool_scissors);
+
+// Check if we are loading
+alarm[0] = 1;

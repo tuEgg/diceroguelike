@@ -381,6 +381,13 @@ switch (state) {
 							ds_list_delete(room_enemies, e);
 							particle_emit(enemy.pos_x, enemy.pos_y, "rise", make_color_rgb(20,20,20));
 							enemies_left_this_combat--;
+							
+						    // Remove any debuffs from the enemy
+							for (var d = ds_list_size(enemy.debuffs) - 1; d >= 0 ; d--) {
+						        var inst = enemy.debuffs[| d];
+									ds_list_delete(enemy.debuffs, d);
+						    }
+							
 							if (enemy_target_index == e) {
 								enemy_target_index = irandom(ds_list_size(room_enemies) - 1);
 							}

@@ -44,7 +44,7 @@ function choose_weighting_list(list) {
 ///
 /// @returns { hover: bool, click: bool, scale: real, x: real, y: real, w: real, h: real }
 
-function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rect) {
+function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rect, _hover_sound = noone, _click_sound = soClick2) {
 	
 	// this function needs to be deprecated soon as its leftover from when we originally first did buttons
     var mx = device_mouse_x_to_gui(0);
@@ -57,9 +57,11 @@ function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _f
     var draw_y = _y + ((_base_h - h) / 2);
 
     // Hover & click
-    var hover = (mx > draw_x && mx < draw_x + w && my > draw_y && my < draw_y + h && _active);
+	var hover = false;
 	
-	if (global.main_input_disabled) hover = false;
+	if (_active) {
+		hover = mouse_hovering(draw_x, draw_y, w, h, false, _hover_sound, _click_sound, !global.main_input_disabled, string(_x) + "," + string(_y));
+	}
 	
     var click = hover && mouse_check_button_pressed(mb_left);
 
@@ -69,19 +71,14 @@ function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _f
 
     // --- Draw background ---
 	if (_draw_rect) {
-	    draw_set_alpha(_active ? 1.0 : 0.25);
-	    draw_set_color(_color);
-	    draw_rectangle(draw_x, draw_y, draw_x + w, draw_y + h, false);
+		
+		draw_sprite_ext(sButtonSmall, 0, draw_x + w/2, draw_y + h/2, scale, scale, 0, _color, _active ? 1.0 : 0.25);
+		draw_set_color(c_white);
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_outline_text(_text, c_black, c_white, 2, draw_x + w/2, draw_y + h/2, scale, _active ? 1.0 : 0.25, 0);
 	}
-
-    // --- Draw text ---
-    draw_set_alpha(_active ? 1.0 : 0.4);
-    draw_set_font(_font);
-    draw_set_halign(fa_center);
-    draw_set_valign(fa_middle);
-    draw_set_color(c_white);
-    draw_text(draw_x + w / 2, draw_y + h / 2, _text);
-    draw_set_alpha(1);
 
     return {
         hover: hover,
@@ -438,20 +435,27 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
 function draw_all_tooltips() {
 
     if (global.tooltip_active) {
-
+		
+		//--------------------------
+        // Calculate tooltip height including keywords
         //--------------------------
-        // Draw main tooltip
-        //--------------------------
-        var tt = global.tooltip_main;
-        draw_single_tooltip(tt.x, tt.y, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false);
+		global.total_tooltip_height = 0;
 
         //--------------------------
         // Draw keyword tooltips under it
         //--------------------------
         for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
+			var num_kw = i;
             var kw = global.tooltip_keywords[i];
-            draw_single_tooltip(kw.x + 5, kw.y + 10, kw.name, kw.desc, kw.icon, kw.index, undefined, true);
+            draw_single_tooltip(kw.x + 5, kw.y + 10, kw.name, kw.desc, kw.icon, kw.index, undefined, true, num_kw);
         }
+
+        //--------------------------
+        // Draw main tooltip
+        //--------------------------
+        var tt = global.tooltip_main;
+		var num_keywords = array_length(global.tooltip_keywords);
+        draw_single_tooltip(tt.x, tt.y, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, num_keywords);
     }
 
     // Reset for next frame
@@ -460,7 +464,7 @@ function draw_all_tooltips() {
     global.tooltip_keywords = [];
 }
 
-function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefined, _is_keyword = false) {
+function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefined, _is_keyword = false, _num_keywords = 0) {
     var padding = 15;
     var xx = _x;
     var yy = _y;
@@ -514,10 +518,12 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
 
     var _width  = padding * 2 + max(name_w, actual_desc_w) + icon_space;
     var _height = padding * 1.6 + name_h + desc_h + 10;
+	
+	global.total_tooltip_height += _height;
 
     // Screen Clamping
-    if (xx + _width > room_width) xx = room_width - _width - 10;
-    if (yy + _height > room_height) yy = room_height - _height - 10;
+    if (xx + _width > room_width - 10) xx = room_width - _width - 10;
+    if (yy + global.total_tooltip_height > room_height - 10) yy = room_height - (10*_num_keywords) - global.total_tooltip_height;
 
     // --- 4. DRAW BACKGROUND ---
     draw_set_alpha(0.8);
@@ -816,15 +822,23 @@ function parse_text_with_keywords(str) {
     return out;
 }
 
-/// @function mouse_hovering(_x, _y, _width, _height, _centered)
-function mouse_hovering(_x, _y, _width, _height, _centered) {
+/// @function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound, _click_sound, _conditions_met = true, _id = undefined)
+function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound = noone, _click_sound = soClick4, _conditions_met = true, _id = undefined) {
 	var mx = device_mouse_x_to_gui(0);
 	var my = device_mouse_y_to_gui(0);
+	
+	var _sound_id = _id; // used for playing sound effects between different elements
+	
+	if (_sound_id == undefined) {
+		_sound_id = string(_x) + "," + string(_y);
+	}
 	
 	// This disables inputs for anything when main_input_disabled is true and we aren't the oRunManager object
 	if (global.main_input_disabled && id.object_index != oRunManager) {
 		return false;
 	}
+	
+	if (!_conditions_met) return;
 	
 	//draw_set_colour(c_black);
 	//draw_set_alpha(0.2);
@@ -835,6 +849,9 @@ function mouse_hovering(_x, _y, _width, _height, _centered) {
 				//draw_rectangle(_x, _y, _x + _width, _y + _height, false);
 				//draw_set_alpha(1.0);
 			}
+			global.is_hovering = _sound_id;
+			global.hovering_sound = _hover_sound;
+			global.clicking_sound = _click_sound;
 			return true;
 		}
 	} else {
@@ -843,6 +860,9 @@ function mouse_hovering(_x, _y, _width, _height, _centered) {
 				//draw_rectangle(_x - _width/2, _y - _height/2, _x + _width/2, _y + _height/2, false);
 				//draw_set_alpha(1.0);
 			}
+			global.is_hovering = _sound_id;
+			global.hovering_sound = _hover_sound;
+			global.clicking_sound = _click_sound;
 			return true;
 		}
 	}
@@ -996,4 +1016,73 @@ function get_core_index(_dice) {
 	}
 	
 	return core_index;
+}
+
+// ----------------
+// -- For saving --
+// ----------------
+function ds_list_to_array(_list) {
+    var _arr = [];
+    for (var i = 0; i < ds_list_size(_list); i++) {
+        array_push(_arr, _list[| i]);
+    }
+    return _arr;
+}
+
+function array_to_ds_list(_arr) {
+    var _list = ds_list_create();
+    for (var i = 0; i < array_length(_arr); i++) {
+        ds_list_add(_list, _arr[i]);
+    }
+    return _list;
+}
+
+function deserialise_die(_data) {
+    var _base = get_die_by_name(_data.dice_name);
+    var _die = clone_die(_base, "permanent");
+    
+    // Apply any run-specific modifications
+    _die.dice_value = _data.dice_value;
+	_die.distribution = _data.distribution;
+	_die.min_roll_bonus = _data.min_roll_bonus;
+    
+    return _die;
+}
+
+function get_tool_by_name(_name) {
+    if (_name == "The Hammer") return tool_hammer;
+    if (_name == "The Drill") return tool_drill;
+    if (_name == "The Cutters") return tool_scissors;
+    return undefined;
+}
+
+function get_die_by_name(_name) {
+    for (var i = 0; i < ds_list_size(global.master_dice_list); i++) {
+        if (global.master_dice_list[| i].name == _name) {
+            return global.master_dice_list[| i];
+        }
+	}
+	
+	for (var i = 0; i < ds_list_size(global.starter_dice_list); i++) {
+		if (global.starter_dice_list[| i].name == _name) {
+			return global.starter_dice_list[| i];
+		}
+    }
+	
+    return undefined;
+}
+
+function get_node_by_name(_name) {
+    with (oWorldManager) {
+        if (_name == "Combat") return node_combat;
+        if (_name == "Shop") return node_shop;
+        if (_name == "Event") return node_event;
+        if (_name == "Workbench") return node_workbench;
+        if (_name == "Bounty") return node_bounty;
+        if (_name == "Elite") return node_elite;
+        if (_name == "Boss") return node_boss;
+        if (_name == "Treasure") return node_treasure;
+        if (_name == "Alignment Fight") return node_alignment;
+    }
+    return undefined;
 }

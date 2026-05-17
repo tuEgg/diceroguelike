@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"soEndTurn",
+  "audioGroupId":{
+    "name":"audiogroup_UI",
+    "path":"audiogroups/audiogroup_UI",
+  },
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":0.97156465,
+  "exportDir":"",
+  "name":"soEndTurn",
+  "parent":{
+    "name":"UI",
+    "path":"folders/sounds/UI.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"soEndTurn.wav",
+  "volume":1.0,
+}

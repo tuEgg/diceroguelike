@@ -192,7 +192,13 @@ all_nodes = ds_list_create();
 next_node = undefined;
 node_drift = 0; // used for drifting the last node to the left, resets every time we click
 
-world_state = "drafting"; // "drafting", "resting" or "exploring"
+enum WORLD_STATE {
+	DRAFTING = 0,
+	RESTING = 1,
+	EXPLORING = 2
+}
+world_state = WORLD_STATE.DRAFTING;
+
 heal_scale_target = 2.0;
 heal_scale = heal_scale_target;
 workbench_scale_target = 2.0;
@@ -233,3 +239,10 @@ alarm[0] = 1; // used to delay drafting in cases where we click exit in another 
 can_draft = false;
 
 draw_room_chances = true;
+
+combat_chance =		0;
+event_chance =		0;
+shop_chance =		0;
+bounty_chance =		0;
+elite_chance =		0;
+alignment_chance =	0;

@@ -1,4 +1,5 @@
 // Script assets have changed for v2.3.0 see
+// Script assets have changed for v2.3.0 see
 // https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
 /// @func deal_single_die( _can_discard_this_turn )
 function deal_single_die( _can_discard_this_turn = true) {
@@ -89,23 +90,24 @@ function generate_dice_bag() {
 	global.discard_pile = ds_list_create();
 	global.sacrifice_list = ds_list_create();
 	global.sacrifice_history = ds_list_create();
+	global.starter_dice_list = ds_list_create(); // used to track starter dice for game loading
 	global.master_dice_list = ds_list_create(); // used to track 1 instance of each dice type, for offering random rewards
 	global.alignment_dice_list = ds_list_create(); // used to track 1 instance of each dice type, for offering random rewards
 
 	// Define starter dice structs
 	global.dice_all = make_die_struct(1, 4,"None", "All", "", "Multicolor die", "Counts as anything", "starter");
 	global.dice_d4_none = make_die_struct(1, 4,"None", "None", "", "Generic die", "Upgrades any action type", "starter");
-	//ds_list_add(global.master_dice_list, clone_die(global.dice_d4_none, ""));
+	ds_list_add(global.starter_dice_list, clone_die(global.dice_d4_none, ""));
 	global.dice_d6_atk = make_die_struct(1, 6,"ATK", "ATK", "", "Attack", "Deals damage", "starter");
-	//ds_list_add(global.master_dice_list, clone_die(global.dice_d6_atk, ""));
+	ds_list_add(global.starter_dice_list, clone_die(global.dice_d6_atk, ""));
 	global.dice_d4_atk = make_die_struct(1, 4,"ATK", "ATK", "", "Attack", "Deals damage", "starter");
-	//ds_list_add(global.master_dice_list, clone_die(global.dice_d4_atk, ""));
+	ds_list_add(global.starter_dice_list, clone_die(global.dice_d4_atk, ""));
 	global.dice_d6_blk = make_die_struct(1, 6,"BLK", "BLK", "", "Block", "Blocks damage", "starter");
-	//ds_list_add(global.master_dice_list, clone_die(global.dice_d6_blk, ""));
+	ds_list_add(global.starter_dice_list, clone_die(global.dice_d6_blk, ""));
 	global.dice_d4_blk = make_die_struct(1, 4,"BLK", "BLK", "", "Block", "Blocks damage", "starter");
-	//ds_list_add(global.master_dice_list, clone_die(global.dice_d4_blk, ""));
+	ds_list_add(global.starter_dice_list, clone_die(global.dice_d4_blk, ""));
 	global.dice_d4_intel = make_die_struct(1, 4,"INTEL", "INTEL", "", "Intel", "Provides intel", "starter");
-	//ds_list_add(global.master_dice_list, clone_die(global.dice_d4_intel, ""));
+	ds_list_add(global.starter_dice_list, clone_die(global.dice_d4_intel, ""));
 	global.dice_d4_heal = make_die_struct(1, 4,"HEAL", "HEAL", "", "Heal", "Heals", "starter");
 	
 	// Anchor Die: Gain +3 block if not used
@@ -256,7 +258,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount == 4) {
+					if (_context._d_amount == 4 && _context.die == _context._die_struct_source) {
 						_context._d_amount = 5;
 					}
 	            }
@@ -275,7 +277,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._p_slot_type == "BLK") {
+					if (_context._p_slot_type == "BLK" && _context.die == _context._die_struct_source) {
 	                    with (oCombat) {
 							// Deal flat damage to all enemies, we have to run this backwards in case any enemies die during this roll
 							for (var i = oCombat.enemies_left_this_combat-1; i >= 0 ; i--) {
@@ -318,7 +320,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount >= 5) {
+					if (_context._d_amount >= 5 && _context.die == _context._die_struct_source) {
 						with (oRunManager) deal_single_die(false); // deal a dice that can't be discarded this turn
 					}
 	            }
@@ -337,7 +339,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount == 4) {
+					if (_context._d_amount == 4 && _context.die == _context._die_struct_source) {
 						with (oCombat) {
 							process_action("player", 0, 2, 0, "player", undefined, "BLK");
 						}
@@ -399,7 +401,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount mod 2 == 0) {
+					if (_context._d_amount mod 2 == 0 && _context.die == _context._die_struct_source) {
 						global.player_hp = min(global.player_max_hp, global.player_hp + 2);
 						particle_emit(global.player_x, global.player_y, "burst", c_lime);
 						var num = spawn_floating_number("player", 2, -1, c_lime, 1, -1, 0);
@@ -724,7 +726,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount == _context.min_roll) {
+					if (_context._d_amount == _context.min_roll && _context.die == _context._die_struct_source) {
 						apply_buff("player", oRunManager.buff_might, 1, 1, true, { source: "player", index: -1 });
 					}
 	            }
@@ -742,7 +744,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount == 3) {
+					if (_context._d_amount == 3 && _context.die == _context._die_struct_source) {
 						apply_buff("player", oRunManager.buff_balance, 1, 1, true, { source: "player", index: -1 });
 					}
 	            }
@@ -786,11 +788,11 @@ function generate_dice_bag() {
 	// Add to bag - STARTING DICE SET HERE
 	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_atk, "")); }
 	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_blk, "")); }
-	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_intel, "")); }
+	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_intel, "")); }
 	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_atk, "")); }
 	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_blk, "")); }
 	
-	do { ds_list_add(global.dice_bag, clone_die(global.die_offhand, "")); }
+	do { ds_list_add(global.dice_bag, clone_die(global.dice_d4_none, "")); }
 	until (ds_list_size(global.dice_bag) == global.bag_size);
 }
 
@@ -1018,12 +1020,14 @@ function dice_trigger_effects(_event, _data) {
             if (is_array(die.effects)) {
                 for (var e = 0; e < array_length(die.effects); e++) {
                     var eff = die.effects[e];
+					_data._die_struct_source = die;  // the die whose effect we're about to fire
                     if (eff.trigger == _event && is_callable(eff.modify)) {
                         eff.modify(_data);
                     }
                 }
             } else {
                 var eff = die.effects;
+				_data._die_struct_source = die;  // the die whose effect we're about to fire
                 if (eff.trigger == _event && is_callable(eff.modify)) {
                     eff.modify(_data);
                 }

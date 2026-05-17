@@ -59,3 +59,48 @@ function generate_bounties(_num) {
 		ds_list_destroy(reward_dice);
 	}
 }
+
+function get_condition_by_id(_id) {
+    for (var i = 0; i < ds_list_size(oBountyController.condition_list); i++) {
+        if (oBountyController.condition_list[| i]._id == _id) {
+            return oBountyController.condition_list[| i];
+        }
+    }
+    return undefined;
+}
+
+// Save
+function serialise_bounty(_bounty) {
+    var _saved_rewards = [
+        { type: "item", name: _bounty.rewards[0].name },
+        { type: "keepsake", name: _bounty.rewards[1]._id },
+        { type: "die", name: _bounty.rewards[2].name },
+    ];
+    return {
+        enemy_name: _bounty.enemy_name,
+        condition_id: _bounty.condition._id,
+        rewards: _saved_rewards,
+        elite_encounter: _bounty.elite_encounter,
+        complete: _bounty.complete,
+    };
+}
+
+function deserialise_bounty(_data) {
+    var _rewards = [];
+    for (var i = 0; i < array_length(_data.rewards); i++) {
+        var _r = _data.rewards[i];
+        switch (_r.type) {
+            case "item": array_push(_rewards, clone_item(get_item_by_name(_r.name))); break;
+            case "keepsake": array_push(_rewards, get_keepsake_by_id(_r.name)); break;
+            case "die": array_push(_rewards, clone_die(get_die_by_name(_r.name), "")); break;
+        }
+    }
+    return {
+        enemy_name: _data.enemy_name,
+        condition: get_condition_by_id(_data.condition_id),
+        rewards: _rewards,
+        rewards_scale: array_create(3, 1.0),
+        elite_encounter: _data.elite_encounter,
+        complete: _data.complete,
+    };
+}

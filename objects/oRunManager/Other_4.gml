@@ -15,3 +15,7 @@ for (var i = 0; i < ds_list_size(global.dice_bag); i++) {
 		//show_debug_message("Resetting at the end of combat");
 	}
 }
+
+if (room == rmMap && !global.loading_game) {
+	save_game(1);
+}

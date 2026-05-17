@@ -8,6 +8,9 @@
 
 function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _source, _source_index, _type, _slot_number = -1, _slot_die = undefined, _dice_list_index = 0) {
 	//show_debug_message("this dice has a value of: "+string(_dice_value));
+	
+	// Generate a unique id for this action process
+	var roll_id = string_concat(_target, _dice_amount, _dice_value, _bonus_amount, _source, _source_index, _type, _slot_number, _slot_die, _dice_list_index);
 
     // --- Roll total amount ---
     var amount = 0;
@@ -142,6 +145,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				_d_amount: final_roll,
 				action_type: _type,
 				owner: _source,
+				target: _target
 			}
 			
 			// We need to make sure we update the visuals for enemy intent roll values with these buffs in mind.
@@ -186,6 +190,12 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	}
 
     var inst_color = c_red; // default color for damage
+	
+	// If it's actions from the player
+	if (_source == "player") {
+		var snd_roll = choose(soDiceRolling1, soDiceRolling2, soDiceRolling3);
+		sfx_play(snd_roll, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.4);
+	}
 
     // --- DAMAGE ---
     switch (_type) {
@@ -256,6 +266,13 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					_target.dead = true;
 					enemy_turns_remaining--;
 					enemies_left_this_combat--;
+							
+					// Remove any debuffs from the enemy
+					for (var d = ds_list_size(_target.debuffs) - 1; d >= 0 ; d--) {
+						var inst = _target.debuffs[| d];
+							ds_list_delete(_target.debuffs, d);
+					}
+					
 					enemies_to_fade_out += 1;
 					_target.alpha = 0.5;
 					
@@ -305,6 +322,21 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 
 	            inst_color = c_red;
 	        }
+				
+			switch (amount) {
+				case 1:
+				case 2:
+				case 3:
+				case 4:
+					var snd_atk = choose(soSwordLight1, soSwordLight2, soSwordLight3, soSwordLight4);
+					sfx_play(snd_atk, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 1.0);
+				break;
+					
+				default:
+					var snd_atk = choose(soSwordMedium1, soSwordMedium2);
+					sfx_play(snd_atk, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 1.0);
+				break;
+			}
 		break;
 
 	    // --- BLOCK ---
@@ -331,6 +363,21 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 
 	        spawn_floating_number(_target, amount, -1, global.color_block, 1, -1, _dice_list_index);
 	        inst_color = global.color_block;
+				
+			switch (amount) {
+				case 1:
+				case 2:
+				case 3:
+				case 4:
+					var snd_block = choose(soShieldLight1, soShieldLight2);
+					sfx_play(snd_block, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 1.0);
+				break;
+					
+				default:
+					var snd_block = choose(soShieldMedium, soShieldMedium);
+					sfx_play(snd_block, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 1.0);
+				break;
+			}
 		break;
 
 	    // --- HEAL ---
@@ -656,6 +703,10 @@ function apply_dice_to_slot(_die, _slot_i) {
 		
 		// die statistics
 		die.struct.statistics.times_played_this_combat++;
+
+		var place_sound = choose(soRubble1, soRubble2, soRubble3, soRubble4);
+
+		sfx_play(place_sound, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
 		
 		instance_destroy(die);
     }
@@ -764,6 +815,10 @@ function sacrifice_die(_die) {
 	particle_emit( die.x, die.y, "burst", die.struct.color);
 	
     instance_destroy(die);
+
+	var place_sound = choose(soRubble1, soRubble2, soRubble3, soRubble4);
+
+	sfx_play(place_sound, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
 
     sacrificies_til_new_action_tile--;
 	

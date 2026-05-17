@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"soSlotPlace",
+  "audioGroupId":{
+    "name":"audiogroup_UI",
+    "path":"audiogroups/audiogroup_UI",
+  },
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":0.16353741,
+  "exportDir":"",
+  "name":"soSlotPlace",
+  "parent":{
+    "name":"UI",
+    "path":"folders/sounds/UI.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"soSlotPlace.wav",
+  "volume":1.0,
+}

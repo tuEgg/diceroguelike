@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"soPaperHover",
+  "audioGroupId":{
+    "name":"audiogroup_UI",
+    "path":"audiogroups/audiogroup_UI",
+  },
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":0.6614059,
+  "exportDir":"",
+  "name":"soPaperHover",
+  "parent":{
+    "name":"UI",
+    "path":"folders/sounds/UI.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"soPaperHover.wav",
+  "volume":1.0,
+}
