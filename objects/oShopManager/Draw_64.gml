@@ -51,7 +51,7 @@ for (var c = 0; c < ds_list_size(shop_consumable_options); c++) {
 			die = clone_die(global.dice_d6_atk, "");
 			die.distribution = consumable.distribution;
 		}
-		queue_tooltip(mouse_x, mouse_y, consumable.name, consumable.description, undefined, 0, die);
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), consumable.name, consumable.description, undefined, 0, die);
 		
 		if (mouse_check_button_pressed(mb_left) && !consumable.taken && oRunManager.credits >= consumable.price && oRunManager.has_space_for_item) {
 			oRunManager.credits -= consumable.price;
@@ -87,14 +87,14 @@ for (var d = 0; d < ds_list_size(shop_dice_options); d++) {
 		draw_outline_text(dice.price, c_black, cost_col, 2, dx, dy + coin_offset_y, shop_dice_scale[| d], 1.0, 0);
 	
 		if (hover_die) {
-			queue_tooltip(mouse_x, mouse_y, dice.name, dice.description, undefined, 0, dice);
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), dice.name, dice.description, undefined, 0, dice);
 		
 			if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= dice.price) {
 				oRunManager.credits -= dice.price;
 				
 				var p = instance_create_layer(dx, dy, "Instances", oDiceParticle);
-				p.target_x = GUI_LAYOUT.PLAY_W;
-				p.target_y = display_get_gui_height() - GUI_LAYOUT.PLAY_H / 2;
+				p.target_x = global.gui.play_w;
+				p.target_y = display_get_gui_height() - global.gui.play_h / 2;
 				p.color_main = dice.color;
 				p.die_struct = clone_die(dice, "");
 				
@@ -130,7 +130,7 @@ for (var k = 0; k < ds_list_size(shop_keepsake_options); k++) {
 		draw_outline_text(keepsake.price, c_black, cost_col, 2, kx, ky + coin_offset_y, shop_keepsake_scale[| k], 1.0, 0);
 	
 		if (hover_die) {
-			queue_tooltip(mouse_x, mouse_y, keepsake.name, keepsake.desc);
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), keepsake.name, keepsake.desc);
 		
 			if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= keepsake.price) {
 				oRunManager.credits -= keepsake.price;
@@ -168,7 +168,7 @@ for (var t = 0; t < ds_list_size(shop_tool_options); t++) {
 		draw_outline_text(tool.price, c_black, cost_col, 2, tx, ty + coin_offset_y, shop_tool_scale[| t], 1.0, 0);
 	
 		if (hover_tool) {
-			queue_tooltip(mouse_x, mouse_y, tool.name, tool.desc);
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc);
 		
 			if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= tool.price) {
 				oRunManager.credits -= tool.price;

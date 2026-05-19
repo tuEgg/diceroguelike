@@ -14,7 +14,7 @@ menu_actions = [
 		room_goto(rmMap);
 	},
 	function() {
-		
+		global.show_settings = true;
 	},
 	function() {
 		game_end();

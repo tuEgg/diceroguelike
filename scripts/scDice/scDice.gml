@@ -63,7 +63,7 @@ function deal_single_die( _can_discard_this_turn = true) {
 	trigger_die_effects_single(die_struct, "on_dice_dealt", trigger_data);
 
     // Spawn instance
-    var die_inst = instance_create_layer(200, room_height - 150, "Instances", oDice);
+    var die_inst = instance_create_layer(global.gui.bag_x_deal, global.gui.bag_y_deal, "Instances", oDice);
     die_inst.struct = die_struct;
     die_inst.action_type = die_struct.action_type;
     die_inst.dice_amount = die_struct.dice_amount;

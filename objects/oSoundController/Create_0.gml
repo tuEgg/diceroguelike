@@ -1,6 +1,8 @@
+global.vol_master = 1;
 global.vol_sfx = 1;
 global.vol_music = 1;
 global.vol_ui = 0.5;
+global.muted = false;
 
 audio_group_load(audiogroup_UI);
 audio_group_load(audiogroup_music);

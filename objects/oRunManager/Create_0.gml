@@ -1,15 +1,4 @@
-enum GUI_LAYOUT {
-    ACTION_TILE_W           = 120,
-    ACTION_TILE_PADDING     = 20,
-    PLAY_W					= 200,
-    PLAY_H					= 100,
-    DISCARD_W				= 200,
-    DISCARD_H				= 220,
-	BAG_W					= 120,
-	BAG_H					= 130,
-	BAG_X					= 60,
-	BAG_Y					= 40,
-}
+update_gui_layout();
 
 // color definitions
 global.color_intel = make_color_rgb(210, 210, 0);
@@ -159,10 +148,10 @@ for (var i = 0; i < max_items; i++) {
 	array_push(items_hover_scale, 1.0);
 }
 
-global.dice_safe_area_x1 = 4*(room_width/11);
-global.dice_safe_area_x2 = 7*(room_width/11);
-global.dice_safe_area_y1 = 3*(room_height/4);
-global.dice_safe_area_y2 = room_height - 100;
+global.dice_safe_area_x1 = 4*(display_get_gui_width()/11);
+global.dice_safe_area_x2 = 7*(display_get_gui_width()/11);
+global.dice_safe_area_y1 = 3*(display_get_gui_height()/4);
+global.dice_safe_area_y2 = display_get_gui_height() - 100;
 
 global.player_debuffs = ds_list_create();
 global.enemy_debuffs = ds_list_create();

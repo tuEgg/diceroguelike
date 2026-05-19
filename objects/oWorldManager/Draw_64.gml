@@ -97,8 +97,8 @@ if (room == rmMap) {
 			var workbench_sprite_w = sprite_get_width(sButtonSmall) * workbench_scale * vertical_scale;
 			var workbench_sprite_h = sprite_get_height(sButtonSmall) * workbench_scale * vertical_scale;
 			
-			var hover_heal = mouse_hovering(bg_x + (bg_w * spacing), bg_y + bg_h/2, heal_sprite_w, heal_sprite_h, true);
-			var hover_workbench = mouse_hovering(bg_x + (bg_w * (1 - spacing)), bg_y + bg_h/2, workbench_sprite_w, workbench_sprite_h, true);
+			var hover_heal = mouse_hovering(bg_x + (bg_w * spacing), bg_y + bg_h/2, heal_sprite_w, heal_sprite_h, true, noone, soClick4, !global.all_input_disabled);
+			var hover_workbench = mouse_hovering(bg_x + (bg_w * (1 - spacing)), bg_y + bg_h/2, workbench_sprite_w, workbench_sprite_h, true, noone, soClick4, !global.all_input_disabled);
 			
 			heal_scale = lerp(heal_scale, hover_heal ? heal_scale_target * 1.25 : heal_scale_target, 0.2);
 			workbench_scale = lerp(workbench_scale, hover_workbench ? workbench_scale_target * 1.25 : workbench_scale_target, 0.2);
@@ -116,7 +116,7 @@ if (room == rmMap) {
 				
 				var heal_amount = round(global.player_max_hp * rest_heal);
 				
-				queue_tooltip(mouse_x, mouse_y, "Heal " + string(heal_amount) + "hp", "Heal 10% of your max health - rest up before embarking to the next node");
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Heal " + string(heal_amount) + "hp", "Heal 10% of your max health - rest up before embarking to the next node");
 				
 				if (mouse_check_button_pressed(mb_left)) {
 					global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
@@ -126,7 +126,7 @@ if (room == rmMap) {
 			}
 			
 			if (hover_workbench) {
-				queue_tooltip(mouse_x, mouse_y, "Upgrade", "Upgrade and change the dice in your bag with a variety of tools");
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Upgrade", "Upgrade and change the dice in your bag with a variety of tools");
 				
 				if (mouse_check_button_pressed(mb_left)) {
 					room_goto(rmWorkbench);
@@ -271,7 +271,7 @@ if (room == rmMap) {
 			var exit_col = c_dkgray;
 			if (pages_drafted == 2) exit_col = c_red;
 
-			var hover_exit = mouse_hovering(display_get_gui_width() * 3/4, gui_h - 100, embark_scale * sprite_get_width(sButtonSmall) * 1.0, embark_scale * sprite_get_height(sButtonSmall) * 0.8, true, noone, soClick2);
+			var hover_exit = mouse_hovering(display_get_gui_width() * 3/4, gui_h - 100, embark_scale * sprite_get_width(sButtonSmall) * 1.0, embark_scale * sprite_get_height(sButtonSmall) * 0.8, true, noone, soClick2, !global.all_input_disabled);
 
 			if (hover_exit && exit_col == c_red) {
 				if (mouse_check_button_pressed(mb_left)) {
@@ -302,7 +302,7 @@ if (room == rmMap) {
 	
 	// Draw the boat
 	var boat_hover = mouse_hovering(boat_data.x, boat_data.y - sprite_get_height(sMapShip)/2, sprite_get_width(sMapShip), sprite_get_height(sMapShip), true);
-	if (boat_hover) queue_tooltip(mouse_x, mouse_y, "Your ship", "Where to captain?", undefined, 0, undefined);
+	if (boat_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your ship", "Where to captain?", undefined, 0, undefined);
 	
 	draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 1, 1, boat_data.angle, c_white, 1.0);
 }

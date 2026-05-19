@@ -8,7 +8,7 @@ var my = device_mouse_y(0);
 var hovered = position_meeting(mx, my, self);
 
 if (hovered && !is_dragging) {
-	queue_tooltip(mouse_x, mouse_y, "The Drill", "Drill a new core into your dice using this", undefined, 0, undefined);
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "The Drill", "Drill a new core into your dice using this", undefined, 0, undefined);
 }
 
 // --- Start dragging ---
@@ -59,7 +59,7 @@ if (is_dragging) {
 	// Check if as we smash the hammer we are over the craft button
 	if (mouse_check_button(mb_left)) { 
 		if (over_button) {
-			particle_emit(mouse_x, mouse_y + 270, "burst", c_grey, 1);
+			particle_emit(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0) + 270, "burst", c_grey, 1);
 		
 			if (oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined) {
 				if (drill_change_time <= drill_change_time_min) {

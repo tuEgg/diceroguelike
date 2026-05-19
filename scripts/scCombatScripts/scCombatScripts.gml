@@ -485,7 +485,7 @@ function spawn_floating_number(_target, _amount, _txt, _inst_color, _num_sign, _
 		break;
 		
 		case "slot":
-		inst_x = slot_positions[| _slot_number].x + GUI_LAYOUT.ACTION_TILE_W/2 + random_range(-50, 50);
+		inst_x = slot_positions[| _slot_number].x + global.gui.action_tile_w/2 + random_range(-50, 50);
 		inst_y = slot_positions[| _slot_number].y - 80 + random_range(-50, 50);
 		break;
 		
@@ -684,7 +684,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 			duplicate_die: false
 		};
 		
-		particle_emit(mouse_x, mouse_y, "burst", get_dice_color(die.action_type), 30);
+		particle_emit(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", get_dice_color(die.action_type), 30);
 	
 		combat_trigger_effects("on_dice_played_to_slot", played_data);
 		
@@ -718,8 +718,8 @@ function is_mouse_over_discard_button() {
     var my = device_mouse_y_to_gui(0);
 
     // Bottom-right button area (adjust as needed)
-    var btn_w = GUI_LAYOUT.DISCARD_W;
-    var btn_h = GUI_LAYOUT.DISCARD_H;
+    var btn_w = global.gui.discard_w;
+    var btn_h = global.gui.discard_h;
     var btn_x = display_get_gui_width() - btn_w - 40;
     var btn_y = display_get_gui_height() - btn_h - 40;
 
@@ -812,7 +812,12 @@ function sacrifice_die(_die) {
     var history_copy  = clone_die(die_struct, _perm);
 	ds_list_add(global.sacrifice_history, history_copy ); // persistent record
 	
-	particle_emit( die.x, die.y, "burst", die.struct.color);
+	
+	// get dice position on gui
+	var _dice_gui_x = (die.x - camera_get_view_x(view_camera[0])) * (display_get_gui_width() / camera_get_view_width(view_camera[0]));
+	var _dice_gui_y = (die.y - camera_get_view_y(view_camera[0])) * (display_get_gui_height() / camera_get_view_height(view_camera[0]));
+
+	particle_emit( _dice_gui_x, _dice_gui_y, "burst", die.struct.color);
 	
     instance_destroy(die);
 

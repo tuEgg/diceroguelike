@@ -3,11 +3,15 @@ draw_set_color(c_white);
 
 image_blend = get_dice_color(struct.possible_type);
 
+// Draw relative to GUI
+var _gui_x = (x - camera_get_view_x(view_camera[0])) * (display_get_gui_width() / camera_get_view_width(view_camera[0]));
+var _gui_y = (y - camera_get_view_y(view_camera[0])) * (display_get_gui_height() / camera_get_view_height(view_camera[0]));
+
 draw_sprite_ext(
     sprite_index,
     image_index,
-    x,
-    y,
+    _gui_x,
+    _gui_y,
     scale,
     scale,
     image_angle,
@@ -34,7 +38,7 @@ if (debug_mode) {
 }
 
 if mouse_hovering(x, y, sprite_width, sprite_height, true) {
-	queue_tooltip(mouse_x, mouse_y, string(struct.name), string(struct.description), undefined, 0, struct);
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), string(struct.name), string(struct.description), undefined, 0, struct);
 	
 	if (debug_mode) && (keyboard_check(vk_alt)) {
 		var xx = 0;

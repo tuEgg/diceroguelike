@@ -8,7 +8,7 @@ var my = device_mouse_y(0);
 var hovered = position_meeting(mx, my, self);
 
 if (hovered && !is_dragging) {
-	queue_tooltip(mouse_x, mouse_y, "The Cutters", "Cut two faces off of one of your die", undefined, 0, undefined);
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "The Cutters", "Cut two faces off of one of your die", undefined, 0, undefined);
 }
 
 // --- Start dragging ---

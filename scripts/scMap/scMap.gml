@@ -589,7 +589,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 					
 					node.scale = lerp(node.scale, node_hover ? 1.5 : 1.0, 0.2);
 					
-					if (node_hover) queue_tooltip(mouse_x, mouse_y, node.name, node.text, sMapIcon, node.subimg, undefined);
+					if (node_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), node.name, node.text, sMapIcon, node.subimg, undefined);
 					
 					draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale, node.scale, 0, _icon_blend, _alph);
 				} else if _locked {
@@ -606,7 +606,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 				draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale, node.scale, 0, _icon_blend, _alph);
 			
 				if (node_hover) {
-					queue_tooltip(mouse_x, mouse_y, node.name, node.text, sMapIcon, node.subimg, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), node.name, node.text, sMapIcon, node.subimg, undefined);
 					 
 					if (mouse_check_button_pressed(mb_left) && node_to_move_to == undefined) {
 						if (node == next_node) {

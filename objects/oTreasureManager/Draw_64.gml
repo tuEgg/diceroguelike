@@ -51,7 +51,7 @@ if (chest_open) {
 		var hover_keepsake = mouse_hovering(chest_x, chest_y - 300 + pos/2, 110, 110, true);
 	
 		if (hover_keepsake) {
-			queue_tooltip(mouse_x, mouse_y, keepsake_reward[| 0].name, keepsake_reward[| 0].desc);
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), keepsake_reward[| 0].name, keepsake_reward[| 0].desc);
 		
 			if (mouse_check_button_pressed(mb_left) && keepsake_alpha > 0.8) {
 				gain_keepsake(keepsake_reward[| 0], global.rollable_keepsake_list);

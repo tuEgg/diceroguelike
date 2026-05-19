@@ -5,7 +5,8 @@ var bar_height = sprite_get_height(sTopBar) - 3;
 var bar_half = bar_height/2;
 
 // Draw top bar
-draw_sprite(sTopBar, 1, -3, -4);
+var bar_scale_w = display_get_gui_width() / 1080;
+draw_sprite_ext(sTopBar, 1, -3*bar_scale_w, -4, bar_scale_w, 1, 0, c_white, 1);
 
 // Draw voyage act
 draw_set_font(ftBig);
@@ -25,7 +26,7 @@ switch (voyage) {
 }
 draw_outline_text("Voyage " + act, c_black, c_white, 2, 20, bar_half, 1, 1, 0);
 var voyage_hover = mouse_hovering(20, bar_half, string_width("Voyage III"), string_height("Voyage III"), false);
-if (voyage_hover) queue_tooltip(mouse_x, mouse_y, "Voyages Sailed", "You are on voyage " + string(act) + "/III", undefined, 0, undefined);
+if (voyage_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Voyages Sailed", "You are on voyage " + string(act) + "/III", undefined, 0, undefined);
 
 // Draw pages turned
 draw_set_font(ftBig);
@@ -35,7 +36,7 @@ var pages_x = 190;
 draw_sprite_ext(sPaper, 0, pages_x, bar_half, 0.8, 0.8, 0, c_white, 1.0);
 draw_outline_text(string(oWorldManager.nodes_cleared), c_black, c_white, 2, pages_x + 20, bar_half, 1, 1, 0);
 var pages_hover = mouse_hovering(pages_x, bar_half, sprite_get_width(sPaper), sprite_get_height(sPaper), true);
-if (pages_hover) queue_tooltip(mouse_x, mouse_y, "Events Explored", "You have explored " + string(oWorldManager.nodes_cleared) + " events from the Captain's logbook", undefined, 0, undefined);
+if (pages_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Events Explored", "You have explored " + string(oWorldManager.nodes_cleared) + " events from the Captain's logbook", undefined, 0, undefined);
 
 // Draw money
 draw_set_font(ftBig);
@@ -43,7 +44,7 @@ var nodes_x = pages_x + 80;
 draw_sprite_ext(sCoin, 1, nodes_x, bar_half, credits_scale * 0.8, credits_scale * 0.8, 0, c_white, 1.0);
 draw_outline_text(string(credits), c_black, c_white, 2, nodes_x + 20, bar_half, 1, 1, 0);
 var credits_hover = mouse_hovering(nodes_x, bar_half, sprite_get_width(sPaper), sprite_get_height(sPaper), true);
-if (credits_hover) queue_tooltip(mouse_x, mouse_y, "Gold Doubloons", "You have " + string(credits) + " gold doubloons", undefined, 0, undefined);
+if (credits_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Gold Doubloons", "You have " + string(credits) + " gold doubloons", undefined, 0, undefined);
 credits_scale = lerp(credits_scale, 1.0, 0.05);
 
 // Draw health
@@ -56,7 +57,7 @@ draw_set_font(ftBig);
 draw_outline_text(string(global.player_hp) + "/" +string(global.player_max_hp), c_black, c_white, 2, health_x + 30, bar_half, 1, 1, 0);
 health_scale = lerp(health_scale, 1.0, 0.2);
 var health_hover = mouse_hovering(health_x + 55, bar_half, 135, 50, true);
-if (health_hover) queue_tooltip(mouse_x, mouse_y, "Your Health", "You have " + string(global.player_hp) + "/" +string(global.player_max_hp) + " health");
+if (health_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your Health", "You have " + string(global.player_hp) + "/" +string(global.player_max_hp) + " health");
 
 // Draw cores and consumables
 var core_x = health_x + 185;
@@ -69,8 +70,8 @@ for (var i = 0; i < array_length(items); i++) {
 	
 	if (items[i] != undefined) {
 		if (items[i].dragging) {
-			sprite_x = mouse_x;
-			sprite_y = mouse_y;
+			sprite_x = device_mouse_x_to_gui(0);
+			sprite_y = device_mouse_y_to_gui(0);
 		} else {
 			sprite_x = core_x + i_x;
 			sprite_y = core_y;
@@ -102,7 +103,7 @@ for (var i = 0; i < array_length(items); i++) {
 				die = clone_die(global.dice_d6_atk, "");
 				die.distribution = items[i].distribution;
 			}
-			queue_tooltip(mouse_x, mouse_y, items[i].name, items[i].description, undefined, 0, die);
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), items[i].name, items[i].description, undefined, 0, die);
 		}
 		
 		if (!global.main_input_disabled) {
@@ -226,7 +227,7 @@ if (toolbar_hover) {
 	if mouse_check_button_pressed(mb_left) {
 		show_tools = 1 - show_tools;
 	}
-	queue_tooltip(mouse_x, mouse_y, "Toolbag", "Use tools at the workbench to upgrade your dice");
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Use tools at the workbench to upgrade your dice");
 }
 
 toolbag_scale = lerp(toolbag_scale, toolbar_hover ? 1.2 : 1.0, 0.1);
@@ -255,7 +256,7 @@ if (show_tools) {
 		draw_sprite_ext(sToolSilhouettes, tool.index, tool_x, 130, tools_scale[| i], tools_scale[| i], 0, c_gray, 1.0);
 		
 		if (tool_hover) {
-			queue_tooltip(mouse_x, mouse_y, tool.name, tool.desc);
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc);
 			
 			if (mouse_check_button_pressed(mb_left)) {
 				if (room == rmWorkbench) {
@@ -336,7 +337,7 @@ if (global.player_alignment >= 0 && global.player_alignment < 10) {
 }
 
 if (alignment_hover) {
-	queue_tooltip(mouse_x, mouse_y, "Alignment: " + alignment_text, alignment_description);
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Alignment: " + alignment_text, alignment_description);
 }
 
 // Draw bounty information
@@ -366,7 +367,7 @@ draw_outline_text(bounty_name, c_black, bounty_col, 2, gui_w - 250 + 30, 44, 1, 
 
 var bounty_hover = mouse_hovering(gui_w - 280, 20, 300, 50, false); 
 if (bounty_hover) {
-	queue_tooltip(mouse_x, mouse_y, "Active Bounty: " + bounty_name, bounty_description);
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Active Bounty: " + bounty_name, bounty_description);
 }
 
 // Keep scale list synced with keepsake size
@@ -396,7 +397,7 @@ for (var k = 0; k < ds_list_size(keepsakes); k++) {
 	draw_sprite_ext(sKeepsake, _keepsake.sub_image, ks_x + xx + btn_size/2, ks_y + btn_size/2, keepsake_scale[| k] * 0.8, keepsake_scale[| k] * 0.8, 0, c_white, 1);
 	
 	if (btn.hover) {
-		queue_tooltip(mouse_x, mouse_y, keepsakes[| k].name, keepsakes[| k].desc, undefined, 0, undefined);
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), keepsakes[| k].name, keepsakes[| k].desc, undefined, 0, undefined);
 	}
 }
 
@@ -404,10 +405,10 @@ var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
 
 // Draw bag preview
-var bag_x = GUI_LAYOUT.BAG_X;
-var bag_y = gui_h - GUI_LAYOUT.BAG_Y - GUI_LAYOUT.BAG_H;
-var bag_w = GUI_LAYOUT.BAG_W;
-var bag_h = GUI_LAYOUT.BAG_H;
+var bag_x = global.gui.bag_x;
+var bag_y = global.gui.bag_y;
+var bag_w = global.gui.bag_h;
+var bag_h = global.gui.bag_h;
 bag_hover = (mx > bag_x && mx < bag_x + bag_w && my > bag_y && my < bag_y + bag_h);
 
 // Draw draw bag (discard bag in oCombat)
@@ -434,7 +435,7 @@ if (bag_hover) {
 		bag_hover_locked = 1 - bag_hover_locked;
 		bag_to_show = global.dice_bag;
 	}
-	queue_tooltip(mouse_x, mouse_y, "Click to open", "Details all the dice you have in your bag");
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Click to open", "Details all the dice you have in your bag");
 }
 
 if (bag_hover_locked) {

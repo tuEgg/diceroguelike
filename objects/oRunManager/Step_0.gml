@@ -1,20 +1,16 @@
 key_escape = keyboard_check_pressed(vk_escape);
+
 if key_escape {
 	if (bag_hover_locked) {
 		bag_hover_locked = false;
 	} else {
-		game_end();
+		global.show_settings = 1 - global.show_settings;
+		global.all_input_disabled = 1 - global.all_input_disabled;
 	}
 }
 
 key_restart = keyboard_check(ord("R"));
 if key_restart game_restart();
-
-key_fullscreen = keyboard_check_pressed(vk_f4);
-if key_fullscreen {
-	fullscreen = 1 - fullscreen;
-	window_set_fullscreen(fullscreen);
-}
 
 if (debug_mode) {
 	key_workbench = keyboard_check_pressed(ord("W"));
@@ -105,7 +101,7 @@ for (var i = 0; i < array_length(items); i++) {
 
 if (error_timer > 0) {
 	error_timer--;
-	queue_tooltip(mouse_x, mouse_y, error_message, error_description);
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), error_message, error_description);
 } else {
 	error_message = "";
 	error_description = "";
@@ -116,5 +112,5 @@ global.main_input_disabled = bag_hover_locked;
 global.player_alignment = clamp(global.player_alignment, 0, 100);
 
 //if (mouse_check_button_pressed(mb_left)) {
-//	particle_emit( mouse_x, mouse_y, choose("rise"), c_red);
+//	particle_emit( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), choose("rise"), c_red);
 //}

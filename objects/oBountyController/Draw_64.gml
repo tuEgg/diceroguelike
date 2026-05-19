@@ -47,7 +47,7 @@ if (room == rmBounty) {
 			die = clone_die(global.dice_d6_atk, "");
 			die.distribution = pot.distribution;
 		}
-		queue_tooltip(mouse_x, mouse_y, pot.name, pot.description, undefined, 0, die);
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), pot.name, pot.description, undefined, 0, die);
 		
 		if (mouse_check_button_pressed(mb_left) && !pot.taken && oRunManager.credits >= pot.price && oRunManager.has_space_for_item) {
 			oRunManager.credits -= pot.price;
@@ -185,7 +185,7 @@ if (room == rmBounty) {
 						_desc = _bounty.rewards[r].desc;
 					}
 				
-					queue_tooltip(mouse_x, mouse_y, _bounty.rewards[r].name, _desc, undefined, 0, die);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _bounty.rewards[r].name, _desc, undefined, 0, die);
 				}
 			}
 		
@@ -212,7 +212,7 @@ if (room == rmBounty) {
 	var hover_reroll = mouse_hovering(gui_w/2 + 230, gui_h - 250, reroll_scale*sprite_get_width(sButtonSmall) * 0.75, reroll_scale*sprite_get_height(sButtonSmall) * 0.75, true);
 
 	if (hover_reroll && reroll_col == global.color_block) {
-		queue_tooltip(mouse_x, mouse_y, "Re-roll options", "Spend " + string(price) + " gold to reroll options");
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Re-roll options", "Spend " + string(price) + " gold to reroll options");
 	
 		if (mouse_check_button_pressed(mb_left)) {
 			if (oRunManager.credits >= price) {

@@ -206,3 +206,38 @@ function load_game(_slot) {
 function save_exists(_slot) {
     return file_exists("save_slot_" + string(_slot) + ".json");
 }
+
+function save_settings() {
+	apply_resolution();
+	
+	_save = {
+		resolution_index: global.resolution_index,
+		vol_master: global.vol_master,
+		vol_music: global.vol_music,
+		vol_sfx: global.vol_sfx,
+		vol_ui: global.vol_ui,
+		muted: global.muted,
+		fullscreen: window_get_fullscreen(),
+	}
+	
+	var _json = json_stringify(_save);
+    var _file = file_text_open_write("settings.json");
+    file_text_write_string(_file, _json);
+    file_text_close(_file);
+}
+
+function load_settings() {
+	var _file = file_text_open_read("settings.json");
+    var _json = file_text_read_string(_file);
+    file_text_close(_file);
+
+    var _save = json_parse(_json);
+	global.resolution_index = _save.resolution_index;
+	global.vol_master = _save.vol_master;
+	global.vol_music = _save.vol_music;
+	global.vol_sfx = _save.vol_sfx;
+	global.vol_ui = _save.vol_ui;
+	global.muted = _save.muted;
+	
+	window_set_fullscreen(_save.fullscreen);
+}

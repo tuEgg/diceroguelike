@@ -14,7 +14,7 @@
 			title: "Recruit him as a deckhand",
 			description: "Lose 10 gold, gain 5 alignment, and gain the Deckhand's Token keepsake.",
 			hover: function() {
-				queue_tooltip(mouse_x, mouse_y, oRunManager.ks_deckhands_token.name, oRunManager.ks_deckhands_token.desc, sKeepsake, oRunManager.ks_deckhands_token.sub_image);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), oRunManager.ks_deckhands_token.name, oRunManager.ks_deckhands_token.desc, sKeepsake, oRunManager.ks_deckhands_token.sub_image);
 			},
 			effect: function(_context) {
 				if (oRunManager.credits >= 10) {
@@ -126,7 +126,7 @@
 			title: "Cut rations for everyone",
 			description: "Lose 4 alignment, and gain the Starver's Efficiency keepsake.",
 			hover: function() {
-				queue_tooltip(mouse_x, mouse_y, oRunManager.ks_starvers_efficiency.name, oRunManager.ks_starvers_efficiency.desc, sKeepsake, oRunManager.ks_starvers_efficiency.sub_image);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), oRunManager.ks_starvers_efficiency.name, oRunManager.ks_starvers_efficiency.desc, sKeepsake, oRunManager.ks_starvers_efficiency.sub_image);
 			},
 			effect: function(_context) {
 				gain_alignment(-4);
@@ -239,7 +239,7 @@
 			title: "Use the backup sail",
 			description: "Lose 10 coins to gain the Small Sail keepsake.",
 			hover: function() {
-				queue_tooltip(mouse_x, mouse_y, oRunManager.ks_small_sail.name, oRunManager.ks_small_sail.desc, sKeepsake, oRunManager.ks_small_sail.sub_image);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), oRunManager.ks_small_sail.name, oRunManager.ks_small_sail.desc, sKeepsake, oRunManager.ks_small_sail.sub_image);
 			},
 			effect: function(_context) {
 				if (oRunManager.credits >= 10) {
@@ -257,7 +257,7 @@
 			title: "Repair the sail",
 			description: "Lose a random consumable to gain the Rope of Repair keepsake.",
 			hover: function() {
-				queue_tooltip(mouse_x, mouse_y, oRunManager.ks_rope_of_repair.name, oRunManager.ks_rope_of_repair.desc, sKeepsake, oRunManager.ks_rope_of_repair.sub_image);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), oRunManager.ks_rope_of_repair.name, oRunManager.ks_rope_of_repair.desc, sKeepsake, oRunManager.ks_rope_of_repair.sub_image);
 			},
 			effect: function(_context) {
 
@@ -312,7 +312,7 @@
 			title: "Demand a bigger share",
 			description: "Gain 120 gold and lose 7 alignment.",
 			effect: function(_context) {
-				gain_coins(mouse_x, mouse_y, 120);
+				gain_coins(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), 120);
 				gain_alignment(-7);
 				
 				oEventManager.event_complete = 0;
@@ -324,7 +324,7 @@
 			title: "Take your fair share",
 			description: "Gain 80 gold.",
 			effect: function(_context) {
-				gain_coins(mouse_x, mouse_y, 80);
+				gain_coins(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), 80);
 				
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
@@ -335,7 +335,7 @@
 			title: "Take a smaller share to boost morale",
 			description: "Gain 40 gold and 7 alignment.",
 			effect: function(_context) {
-				gain_coins(mouse_x, mouse_y, 40);
+				gain_coins(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), 40);
 				gain_alignment(7);
 				
 				oEventManager.event_complete = 2;
@@ -1048,7 +1048,7 @@
 			title: "Enhance your buckle",
 			description: "Gain the toolbelt keepsake.",
 			hover: function() {
-				queue_tooltip(mouse_x, mouse_y, oRunManager.ks_toolbelt.name, oRunManager.ks_toolbelt.desc, sKeepsake, oRunManager.ks_toolbelt.sub_image);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), oRunManager.ks_toolbelt.name, oRunManager.ks_toolbelt.desc, sKeepsake, oRunManager.ks_toolbelt.sub_image);
 			},
 			effect: function(_context) {
 				var has_toolbelt = false;

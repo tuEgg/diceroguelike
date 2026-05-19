@@ -230,7 +230,7 @@ function define_items() {
 				eject_dice_in_slot(_context._slot, oCombat.slot_positions[| _context._ind], true);
 				oCombat.dice_allowed_this_turn_bonus = 3;
 				
-				particle_emit( mouse_x, mouse_y, "burst", c_aqua);
+				particle_emit( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", c_aqua);
 			}
 		},
 		price: 25
@@ -313,7 +313,7 @@ function define_items() {
 				// select a random die in play and upgrade it
 				oCombat.dice_allowed_this_turn_bonus += ds_list_size(oCombat.room_enemies);
 				oCombat.dice_played_scale = 1.5;
-				particle_emit( mouse_x, mouse_y, "burst", c_teal);
+				particle_emit( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", c_teal);
 				// when we eventually have multiple enemies, use a loop
 				//for (var i = 0; i < num_enemies; i++) {
 				//}
@@ -531,7 +531,7 @@ function define_items() {
 				with (oRunManager) {
 					dice_to_deal = 4;
 					is_dealing_dice = true;
-					particle_emit( GUI_LAYOUT.BAG_X, display_get_gui_height() - GUI_LAYOUT.BAG_Y, "burst", c_purple);
+					particle_emit( global.gui.bag_x, global.gui.bag_y, "burst", c_purple);
 				}
 			}
 		},

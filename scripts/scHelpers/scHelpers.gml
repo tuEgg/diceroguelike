@@ -822,7 +822,7 @@ function parse_text_with_keywords(str) {
     return out;
 }
 
-/// @function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound, _click_sound, _conditions_met = true, _id = undefined)
+/// @function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound = noone, _click_sound = soClick4, _conditions_met = true, _id = undefined)
 function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound = noone, _click_sound = soClick4, _conditions_met = true, _id = undefined) {
 	var mx = device_mouse_x_to_gui(0);
 	var my = device_mouse_y_to_gui(0);

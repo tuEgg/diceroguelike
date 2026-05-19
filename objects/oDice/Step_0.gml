@@ -13,8 +13,8 @@ if (!still) {
 image_index = get_dice_index(dice_value);
 
 // Get mouse position
-var mx = device_mouse_x(0);
-var my = device_mouse_y(0);
+var mx = device_mouse_x_to_gui(0);
+var my = device_mouse_y_to_gui(0);
 
 // Define sprite bounds
 var half_w = sprite_width * 0.5;

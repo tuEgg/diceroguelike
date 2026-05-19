@@ -104,7 +104,7 @@ if (deleting_die > 0) {
 	draw_outline_text("Make him walk", c_black, c_white, 2, xx , yy, 1, 1, 0, 100);
 
 	if (delete_hover) {
-		queue_tooltip(mouse_x, mouse_y, "Walk the plank", "Drag a die here to make the pirate walk the plank", undefined, 0, undefined);
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Walk the plank", "Drag a die here to make the pirate walk the plank", undefined, 0, undefined);
 		if (mouse_check_button_released(mb_left)) {
 			var dice_dragged = false;
 			var die = instance_nearest(xx, yy, oDice);

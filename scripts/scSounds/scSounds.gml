@@ -11,5 +11,5 @@ function sfx_play(_sound, _audio_group, _pitch_range = 0.00, _gain = 1) {
 		case AUDIO_GROUP.SFX:	_audio_group_vol = global.vol_sfx; break;
 	}
 		
-	audio_play_sound(_sound, 1, false, _gain * _audio_group_vol, 0,  1 + random_range(-_pitch_range, _pitch_range));
+	audio_play_sound(_sound, 1, false, _gain * _audio_group_vol * global.vol_master * (1 - global.muted), 0,  1 + random_range(-_pitch_range, _pitch_range));
 }

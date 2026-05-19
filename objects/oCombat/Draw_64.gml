@@ -37,7 +37,7 @@ draw_sprite_ext(sDice, 3, aq_start_x - aq_tile_w/2 - aq_tile_padding + 32, aq_st
 
 var played_dice_hover = mouse_hovering(aq_start_x - aq_tile_w/2 - aq_tile_padding + 12, aq_start_y + aq_tile_w/2 - 40, 100, 50, true);
 
-if (played_dice_hover && !show_rewards) queue_tooltip(mouse_x, mouse_y, "Played dice", "You can play " + string(dice_allowed_per_turn - dice_played) + " more dice this turn");
+if (played_dice_hover && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Played dice", "You can play " + string(dice_allowed_per_turn - dice_played) + " more dice this turn");
 
 // --- Play Button ---
 var btn_x = aq_start_x - 160;
@@ -119,7 +119,7 @@ for (var i = 0; i < aq_list_size; i++) {
 		hovered_slot = i;
 	}
 	
-	if (global.main_input_disabled) hover = false;
+	if (global.main_input_disabled || global.all_input_disabled) hover = false;
 
     // Smooth scale update
     var target_scale = hover ? 1.2 : 1.0;
@@ -465,7 +465,7 @@ for (var i = 0; i < aq_list_size; i++) {
 			var dice_hovered = mouse_hovering(xx_top, yy_top, sprite_get_width(sDiceIcon), sprite_get_height(sDiceIcon), true);
 			
 			if (dice_hovered && !show_rewards) {
-				queue_tooltip(mouse_x, mouse_y, die_struct.name, die_struct.description, undefined, 0, die_struct);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die_struct.name, die_struct.description, undefined, 0, die_struct);
 			}
 
 	        // Draw sprite
@@ -522,10 +522,10 @@ for (var i = 0; i < aq_list_size; i++) {
 }
 
 // --- Discard Button ---
-var disc_x = gui_w - GUI_LAYOUT.DISCARD_W - 40;
-var disc_y = gui_h - GUI_LAYOUT.DISCARD_H - 40;
-var disc_w = GUI_LAYOUT.DISCARD_W;
-var disc_h = GUI_LAYOUT.DISCARD_H;
+var disc_x = gui_w - global.gui.discard_w - 40;
+var disc_y = gui_h - global.gui.discard_h - 40;
+var disc_w = global.gui.discard_w;
+var disc_h = global.gui.discard_h;
 
 // Dynamic label + color
 var disc_color = is_discarding ? c_red : c_dkgray;
@@ -685,14 +685,14 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	
 		if (hover_enemy && !show_rewards) {
 			if (enemy.intent.move.action_type == "DEBUFF" || enemy.intent.move.action_type == "BUFF") && (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
-				queue_tooltip(mouse_x, mouse_y, enemy.intent.move.debuff.name, enemy.intent.move.debuff.desc, undefined, 0, undefined);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), enemy.intent.move.debuff.name, enemy.intent.move.debuff.desc, undefined, 0, undefined);
 			} else {
 				if (enemy_exiting) {
-					queue_tooltip(mouse_x, mouse_y, "Exiting", "The enemy intents to escape", undefined, 0, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "The enemy intents to escape", undefined, 0, undefined);
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
-					queue_tooltip(mouse_x, mouse_y, move_name, "The enemy intends to perform the following move: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount), undefined, 0, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, "The enemy intends to perform the following move: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount), undefined, 0, undefined);
 				} else {
-					queue_tooltip(mouse_x, mouse_y, "???", "Enemy intentions not revealed", undefined, 0, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "???", "Enemy intentions not revealed", undefined, 0, undefined);
 				}
 			}
 		}
@@ -726,7 +726,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		draw_outline_text("Spare", c_black, c_white, 2, btn2_x, btn2_y, enemy.alignment_option_btn_2_scale, spare_kill_alpha, 0);
 		
 		if (btn_1_hover) {
-			queue_tooltip(mouse_x, mouse_y, "Kill the enemy", "Lose 5 alignment");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Kill the enemy", "Lose 5 alignment");
 			if (mouse_check_button_pressed(mb_left)) {
 				enemy.killed = true;
 				gain_alignment(-5);
@@ -736,7 +736,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		}
 		
 		if (btn_2_hover) {
-			queue_tooltip(mouse_x, mouse_y, "Spare the enemy", "Gain 5 alignment");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Spare the enemy", "Gain 5 alignment");
 			if (mouse_check_button_pressed(mb_left)) {
 				enemy.spared = true;
 				enemy.alignment_choices_shown = false;
@@ -824,7 +824,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		if (_debuff.amount > 0) draw_outline_text(string(_debuff.amount), c_black, c_red, 2, e_bar_x + d_x, d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
 	
 		if (mouse_hovering(e_bar_x + d_x, d_y, sprite_get_width(sDebuffIcon), sprite_get_height(sDebuffIcon), false)) {
-			queue_tooltip(mouse_x, mouse_y, _debuff.template.name, _debuff.template.desc + "[subtext]Turns remaining: [def]" + string(_debuff.remaining) + "   [subtext]Amount: [def]" + string(_debuff.amount), undefined, 0, undefined);
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _debuff.template.name, _debuff.template.desc + "[subtext]Turns remaining: [def]" + string(_debuff.remaining) + "   [subtext]Amount: [def]" + string(_debuff.amount), undefined, 0, undefined);
 		}
 	
 		d_x += sprite_get_width(sDebuffIcon) + d_padding;
@@ -881,7 +881,7 @@ for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
 	if (_debuff.amount > 0) draw_outline_text(string(_debuff.amount), c_black, c_red, 2, p_bar_x + d_x, d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
 
 	if (mouse_hovering(p_bar_x + d_x, d_y, sprite_get_width(sDebuffIcon), sprite_get_height(sDebuffIcon), false)) {
-		queue_tooltip(mouse_x, mouse_y, _debuff.template.name, _debuff.template.desc, undefined, 0, undefined);
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _debuff.template.name, _debuff.template.desc, undefined, 0, undefined);
 	}
 	
 	d_x += sprite_get_width(sDebuffIcon) + d_padding;
@@ -961,7 +961,7 @@ if (intel_hover) {
 		draw_text(	intel_x + intel_pad + 95, intel_y + intel_pad + (intel_row_h * (i+1)), + string(global.player_intel_data[| i].description));
 	}
 	
-	queue_tooltip(mouse_x, mouse_y, "Intel level: "+string(global.player_intel_data[| intel_level].name), "Resets each turn. " + string(global.player_intel_data[| intel_level].description), undefined, 0, undefined);
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Intel level: "+string(global.player_intel_data[| intel_level].name), "Resets each turn. " + string(global.player_intel_data[| intel_level].description), undefined, 0, undefined);
 }
 
 /// DEBUG
@@ -1068,7 +1068,7 @@ if (show_rewards) {
 			    draw_text(btn.x + btn.w / 2, btn.y + btn.h + 20, label);
 		
 				if (btn.hover) {
-					queue_tooltip( mouse_x, mouse_y, keepsake.name, keepsake.desc, undefined, 0, undefined);
+					queue_tooltip( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), keepsake.name, keepsake.desc, undefined, 0, undefined);
 				}
 
 			    // --- Click logic: Take reward ---
@@ -1155,14 +1155,14 @@ if (show_rewards) {
 			    draw_text(btn.x + btn.w / 2, btn.y + btn.h + 20, label);
 		
 				if (btn.hover) {
-					queue_tooltip( mouse_x, mouse_y, die.name, die.description, undefined, 0, die);
+					queue_tooltip( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die.name, die.description, undefined, 0, die);
 				}
 
 			    // --- Click logic: Take reward ---
 			    if (!rewards_dice_taken && btn.click) {
 			        var p = instance_create_layer(btn.x + btn.w / 2, btn.y + btn.h / 2, "Instances", oDiceParticle);
-			        p.target_x = GUI_LAYOUT.PLAY_W;
-			        p.target_y = gui_h - GUI_LAYOUT.PLAY_H / 2;
+			        p.target_x = global.gui.play_w;
+			        p.target_y = gui_h - global.gui.play_h / 2;
 			        p.color_main = die.color;
 			        p.die_struct = clone_die(die, "");
 
@@ -1278,7 +1278,7 @@ if (show_rewards) {
 						die = clone_die(global.dice_d6_atk, "");
 						die.distribution = consumable.distribution;
 					}
-					queue_tooltip( mouse_x, mouse_y, consumable.name, consumable.description, undefined, 0, die);
+					queue_tooltip( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), consumable.name, consumable.description, undefined, 0, die);
 				}
 				
 				// check for item free
@@ -1297,7 +1297,7 @@ if (show_rewards) {
 							throw_error("No space", "Right click to delete an existing item");
 						}
 					} else {
-						gain_coins(mouse_x, mouse_y, consumable.amount);
+						gain_coins(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), consumable.amount);
 						consumable.taken = true;
 						rewards_consumables_first_taken = r;
 					}
@@ -1318,7 +1318,7 @@ if (show_rewards) {
 							throw_error("No space", "Right click to delete an existing item");
 						}
 					} else {
-						gain_coins(mouse_x, mouse_y, consumable.amount);
+						gain_coins(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), consumable.amount);
 						consumable.taken = true;
 						rewards_consumables_second_taken = true;
 					}
@@ -1416,10 +1416,10 @@ draw_set_font(ftBig);
 draw_text(gui_w - 70, gui_h - 55, string(ds_list_size(global.discard_pile)));
 
 // Draw discard preview
-var disc_bag_x = gui_w - GUI_LAYOUT.BAG_X - GUI_LAYOUT.BAG_W;
-var disc_bag_y = gui_h - GUI_LAYOUT.BAG_Y - GUI_LAYOUT.BAG_H;
-var disc_bag_w = GUI_LAYOUT.BAG_W;
-var disc_bag_h = GUI_LAYOUT.BAG_H;
+var disc_bag_x = gui_w - global.gui.bag_x - global.gui.bag_w;
+var disc_bag_y = gui_h - global.gui.bag_y - global.gui.bag_h;
+var disc_bag_w = global.gui.bag_w;
+var disc_bag_h = global.gui.bag_h;
 disc_bag_hover = (mx > disc_bag_x && mx < disc_bag_x + disc_bag_w && my > disc_bag_y && my < disc_bag_y + disc_bag_h);
 
 if (disc_bag_hover) {
