@@ -70,9 +70,8 @@ function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _f
     scale = lerp(scale, target_scale, 0.2);
 
     // --- Draw background ---
-	if (_draw_rect) {
-		
-		draw_sprite_ext(sButtonSmall, 0, draw_x + w/2, draw_y + h/2, scale, scale, 0, _color, _active ? 1.0 : 0.25);
+	if (_draw_rect == true || (_draw_rect == "hover" && hover)) {
+		draw_wonky_rectangle(draw_x + w/2, draw_y + h/2, floor(w * scale), floor(h * scale), _color, c_black, _active ? 1.0 : 0.25, true, true);
 		draw_set_color(c_white);
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);
@@ -1085,4 +1084,158 @@ function get_node_by_name(_name) {
         if (_name == "Alignment Fight") return node_alignment;
     }
     return undefined;
+}
+
+
+
+// Draws our varied stroke rectangles at scale, so we don't have to keep using sprites!
+function draw_wonky_rectangle(_x, _y, _width, _height, _fill_col, _stroke_col, _alpha, _centered, _highlight) {
+	
+	var _scale = 8;
+	var _key = string(_width) + "x" + string(_height) + "_" + string(_fill_col) + "_" + string(_stroke_col);
+	var _cached = ds_map_find_value(global.button_cache, _key);
+	
+	if (!surface_exists(_cached)) {
+		
+		var _sw = _width * _scale;
+		var _sh = _height * _scale;
+		var _surf = surface_create(_sw, _sh);
+		surface_set_target(_surf);
+		draw_clear_alpha(c_black, 0);
+		
+		var c_pos = {
+			top_left:     { xx: 0,   yy: 0 },
+			top_right:    { xx: _sw, yy: 0 },
+			bottom_left:  { xx: 0,   yy: _sh },
+			bottom_right: { xx: _sw, yy: _sh },
+		}
+		
+		var c_offset = {
+			top_left:     random_range(3, 5) * _scale,
+			top_right:    random_range(6, 9)  * _scale,
+			bottom_left:  random_range(4, 6)  * _scale,
+			bottom_right: random_range(3, 5)  * _scale
+		}
+		
+		draw_set_alpha(_alpha);
+		
+		// Fill
+		var highlight_col = _fill_col;
+		draw_triangle_color(
+			c_pos.top_left.xx, c_pos.top_left.yy,
+			c_pos.top_right.xx, c_pos.top_right.yy,
+			c_pos.bottom_left.xx, c_pos.bottom_left.yy,
+			_fill_col, _fill_col, _fill_col, false		
+		);
+		if (_highlight) {
+			var _red =		clamp(color_get_red(_fill_col) + 20, 0, 255);
+			var _green =	clamp(color_get_green(_fill_col) + 20, 0, 255);
+			var _blue =		clamp(color_get_blue(_fill_col) + 20, 0, 255);
+			highlight_col = make_colour_rgb(_red, _green, _blue);
+		}
+		draw_triangle_color(
+			c_pos.bottom_left.xx, c_pos.bottom_left.yy,
+			c_pos.top_right.xx, c_pos.top_right.yy,
+			c_pos.bottom_right.xx, c_pos.bottom_right.yy,
+			highlight_col, highlight_col, highlight_col, false		
+		);
+		
+		// Left side stroke
+		draw_triangle_colour(
+			c_pos.top_left.xx - c_offset.top_left, c_pos.top_left.yy - c_offset.top_left,
+			c_pos.bottom_left.xx - c_offset.bottom_left, c_pos.bottom_left.yy + c_offset.bottom_left,
+			c_pos.top_left.xx + c_offset.top_left, c_pos.top_left.yy + c_offset.top_left,
+			_stroke_col, _stroke_col, _stroke_col, false
+		);
+		draw_triangle_colour(
+			c_pos.top_left.xx + c_offset.top_left, c_pos.top_left.yy - c_offset.top_left,
+			c_pos.bottom_left.xx - c_offset.bottom_left, c_pos.bottom_left.yy + c_offset.bottom_left,
+			c_pos.bottom_left.xx + c_offset.bottom_left, c_pos.bottom_left.yy - c_offset.bottom_left,
+			_stroke_col, _stroke_col, _stroke_col, false
+		);
+		
+		// Top side stroke
+		draw_triangle_colour(
+			c_pos.top_left.xx - c_offset.top_left, c_pos.top_left.yy - c_offset.top_left,
+			c_pos.top_right.xx + c_offset.top_right, c_pos.top_right.yy - c_offset.top_right,
+			c_pos.top_right.xx - c_offset.top_right, c_pos.top_right.yy + c_offset.top_right,
+			_stroke_col, _stroke_col, _stroke_col, false
+		);
+		draw_triangle_colour(
+			c_pos.top_left.xx - c_offset.top_left, c_pos.top_left.yy - c_offset.top_left,
+			c_pos.top_right.xx - c_offset.top_right, c_pos.top_right.yy + c_offset.top_right,
+			c_pos.top_left.xx + c_offset.top_left, c_pos.top_left.yy + c_offset.top_left,
+			_stroke_col, _stroke_col, _stroke_col, false
+		);
+		
+		// Right side stroke
+		draw_triangle_colour(
+			c_pos.top_right.xx + c_offset.top_right, c_pos.top_right.yy - c_offset.top_right,
+			c_pos.bottom_right.xx - c_offset.bottom_right, c_pos.bottom_right.yy + c_offset.bottom_right,
+			c_pos.top_right.xx - c_offset.top_right, c_pos.top_right.yy + c_offset.top_right,
+			_stroke_col, _stroke_col, _stroke_col, false
+		);
+		draw_triangle_colour(
+			c_pos.top_right.xx + c_offset.top_right, c_pos.top_right.yy - c_offset.top_right,
+			c_pos.bottom_right.xx - c_offset.bottom_right, c_pos.bottom_right.yy - c_offset.bottom_right,
+			c_pos.bottom_right.xx + c_offset.bottom_right, c_pos.bottom_right.yy + c_offset.bottom_right,
+			_stroke_col, _stroke_col, _stroke_col, false
+		);
+		
+		// Bottom side stroke
+		draw_triangle_colour(
+			c_pos.bottom_left.xx + c_offset.bottom_left, c_pos.bottom_left.yy - c_offset.bottom_left,
+			c_pos.bottom_right.xx + c_offset.bottom_right, c_pos.bottom_right.yy + c_offset.bottom_right,
+			c_pos.bottom_right.xx - c_offset.bottom_right, c_pos.bottom_right.yy - c_offset.bottom_right,
+			_stroke_col, _stroke_col, _stroke_col, false
+		);
+		draw_triangle_colour(
+			c_pos.bottom_left.xx + c_offset.bottom_left, c_pos.bottom_left.yy - c_offset.bottom_left,
+			c_pos.bottom_right.xx + c_offset.bottom_right, c_pos.bottom_right.yy + c_offset.bottom_right,
+			c_pos.bottom_left.xx - c_offset.bottom_left, c_pos.bottom_left.yy + c_offset.bottom_left,
+			_stroke_col, _stroke_col, _stroke_col, false
+		);
+		
+		draw_set_alpha(1.0);
+		
+		surface_reset_target();
+		
+		// Pass 1: 8x -> 4x
+		var _pass1 = surface_create(_width * 4, _height * 4);
+		surface_set_target(_pass1);
+		draw_clear_alpha(c_black, 0);
+		gpu_set_texfilter(true);
+		draw_surface_ext(_surf, 0, 0, 0.5, 0.5, 0, c_white, 1);
+		gpu_set_texfilter(false);
+		surface_reset_target();
+		surface_free(_surf);
+		
+		// Pass 2: 4x -> 2x
+		var _pass2 = surface_create(_width * 2, _height * 2);
+		surface_set_target(_pass2);
+		draw_clear_alpha(c_black, 0);
+		gpu_set_texfilter(true);
+		draw_surface_ext(_pass1, 0, 0, 0.5, 0.5, 0, c_white, 1);
+		gpu_set_texfilter(false);
+		surface_reset_target();
+		surface_free(_pass1);
+		
+		// Cache the 2x surface
+		_cached = _pass2;
+		ds_map_set(global.button_cache, _key, _cached);
+	}
+	
+	// Draw cached 2x surface at final size
+	var _draw_x, _draw_y;
+	if (_centered) {
+		_draw_x = _x - _width / 2;
+		_draw_y = _y - _height / 2;
+	} else {
+		_draw_x = _x;
+		_draw_y = _y;
+	}
+	
+	gpu_set_texfilter(true);
+	draw_surface_ext(_cached, _draw_x, _draw_y, 0.5, 0.5, 0, c_white, 1);
+	gpu_set_texfilter(false);
 }

@@ -3,21 +3,39 @@ global.all_input_disabled = false; // prevents player from doing anything
 global.loading_game = false;
 
 active_menu_item = -1;
-menu_scale = [1, 1, 1, 1];
-menu_titles = ["Continue", "New Game", "Settings", "Exit"];
-menu_actions = [
-	function() {
-		global.loading_game = true;
-		room_goto(rmMap);
+
+menu = [
+	{
+		title: "Continue",
+		scale: 1,
+		action: function() {
+			global.loading_game = true;
+			room_goto(rmMap);
+		},
+		flag: save_exists(1),
 	},
-	function() {
-		room_goto(rmMap);
+	{
+		title: "New Voyage",
+		scale: 1,
+		action: function() {
+			room_goto(rmMap);
+		},
+		flag: true,
 	},
-	function() {
-		global.show_settings = true;
+	{
+		title: "Settings",
+		scale: 1,
+		action: function() {
+			global.show_settings = true;
+		},
+		flag: true,
 	},
-	function() {
-		game_end();
+	{
+		title: "Exit",
+		scale: 1,
+		action: function() {
+			game_end();
+		},
+		flag: true,
 	},
 ];
-menu_active = [save_exists(1), true, true, true];

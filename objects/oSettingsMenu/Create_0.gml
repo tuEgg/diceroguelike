@@ -91,3 +91,7 @@ if (file_exists("settings.json")) {
 }
 
 depth = -10000;
+
+// used for smoothing out drawn lines, particularly from our wonky rectangles function
+gpu_set_texfilter(true);
+global.button_cache = ds_map_create();

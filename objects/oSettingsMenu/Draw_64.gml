@@ -10,12 +10,12 @@ if (global.show_settings) {
 	draw_set_alpha(1.0);
 	draw_rectangle(0, 0, gui_w, gui_h, false);
 	
-	var total_settings_w = display_get_gui_width() * 0.8;
-	var total_settings_h = display_get_gui_height() * 0.6;
+	var total_settings_w = display_get_gui_width() * 0.7;
+	var total_settings_h = display_get_gui_height() * 0.5;
 	var settings_x = gui_w / 2 - total_settings_w / 2;
 	var settings_y = gui_h / 2 - total_settings_h / 2;
-	var cat_w = 100;
-	var cat_h = 120;
+	var cat_w = 170;
+	var cat_h = 70;
 	var inner_settings_padding = display_get_gui_width() / 40; // 30 pixels on 1920px width screen
 	var setting_h = 60;
 	
@@ -30,8 +30,8 @@ if (global.show_settings) {
 	// draw categories
 	for (var i = 0; i < array_length(categories); i++) {
 		var category = categories[i];
-		var cat_x = settings_x;
-		var cat_y = settings_y + (cat_h*i);
+		var cat_x = settings_x - cat_w/2;
+		var cat_y = settings_y + (cat_h*i) + cat_h/2;
 		
 		var col = c_dkgray;
 		if (i == category_index) col = c_aqua;
@@ -71,7 +71,7 @@ if (global.show_settings) {
 	}
 	
 	// draw save button
-	var exit_btn = draw_gui_button(settings_x, gui_h / 2 + total_settings_h / 2 - cat_h, cat_w, cat_h, exit_scale, "Save", c_lime, ftBig, true, true);
+	var exit_btn = draw_gui_button(settings_x - cat_w/2, gui_h / 2 + total_settings_h / 2 - cat_h * 1.5, cat_w, cat_h, exit_scale, "Save settings", c_lime, ftBig, true, true);
 	exit_scale = exit_btn.scale;
 	
 	if (exit_btn.click) {
@@ -84,7 +84,7 @@ if (global.show_settings) {
 	}
 	
 	// draw quit game button
-	var quit_btn = draw_gui_button(settings_x + (cat_w * 2), gui_h / 2 + total_settings_h / 2 - cat_h, cat_w, cat_h, quit_scale, "Quit", c_red, ftBig, true, true);
+	var quit_btn = draw_gui_button(settings_x - cat_w/2, gui_h / 2 + total_settings_h / 2 - cat_h/2, cat_w, cat_h, quit_scale, "Quit game", c_red, ftBig, true, true);
 	quit_scale = quit_btn.scale;
 	
 	if (quit_btn.click) {

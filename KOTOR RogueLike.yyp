@@ -152,6 +152,8 @@
     {"id":{"name":"sKeepsake","path":"sprites/sKeepsake/sKeepsake.yy",},},
     {"id":{"name":"sKeywordIcons","path":"sprites/sKeywordIcons/sKeywordIcons.yy",},},
     {"id":{"name":"sLogbookPage","path":"sprites/sLogbookPage/sLogbookPage.yy",},},
+    {"id":{"name":"sLogo","path":"sprites/sLogo/sLogo.yy",},},
+    {"id":{"name":"sMainMenuBG","path":"sprites/sMainMenuBG/sMainMenuBG.yy",},},
     {"id":{"name":"sMapIcon","path":"sprites/sMapIcon/sMapIcon.yy",},},
     {"id":{"name":"sMapParchment","path":"sprites/sMapParchment/sMapParchment.yy",},},
     {"id":{"name":"sMapParchmentEmpty","path":"sprites/sMapParchmentEmpty/sMapParchmentEmpty.yy",},},
