@@ -1,0 +1,1 @@
+if (ds_exists(global.button_cache, ds_type_map)) { ds_map_destroy(global.button_cache); }

@@ -3,8 +3,13 @@ function apply_resolution() {
     window_set_size(_res.w, _res.h);
     surface_resize(application_surface, _res.w, _res.h);
     display_set_gui_size(_res.w, _res.h);
-	camera_set_view_size(view_camera[0], _res.w, _res.h);
-	update_gui_layout();
+    camera_set_view_size(view_camera[0], _res.w, _res.h);
+    view_set_wport(0, _res.w);
+    view_set_hport(0, _res.h);
+    view_visible[0] = true;
+    update_gui_layout();
+	
+	show_debug_message("Apply res: " + string(_res.w) + "x" + string(_res.h) + " | View: " + string(camera_get_view_width(view_camera[0])) + "x" + string(camera_get_view_height(view_camera[0])));
 }
 
 function update_gui_layout() {

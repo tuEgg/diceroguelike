@@ -1,4 +1,4 @@
-time++;
+time++; // used for the boat wobble
 
 var gui_w = display_get_gui_width();
 var gui_h = display_get_gui_height();
@@ -55,8 +55,8 @@ if (room == rmMap) {
 	
 	// Draw the background
 	if (world_state != WORLD_STATE.EXPLORING) {
-		var bg_w = 900;
-		var bg_h = 850;
+		var bg_w = display_get_gui_width() / 2.133;
+		var bg_h = display_get_gui_height() / 1.270;
 		var bg_x = display_get_gui_width() * 3/4 - bg_w/2;
 		var bg_y = display_get_gui_height() / 2 - bg_h/2 + 25;
 		
@@ -68,9 +68,9 @@ if (room == rmMap) {
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBigger);
-		draw_outline_text("What happened next?", c_black, c_white, 3, display_get_gui_width() * 3/4, 140, 1, pages_alpha, 0);
+		draw_outline_text("What happened next?", c_black, c_white, 3, display_get_gui_width() * 3/4, display_get_gui_height()/7.7, 1, pages_alpha, 0);
 		draw_set_font(ftDefault);
-		draw_outline_text("Choose a page to draft", c_black, c_white, 2, display_get_gui_width() * 3/4, 180, 1, pages_alpha, 0);
+		draw_outline_text("Choose a page to draft", c_black, c_white, 2, display_get_gui_width() * 3/4, display_get_gui_height()/6, 1, pages_alpha, 0);
 	
 		// If we are healing or workbench
 		if (world_state == WORLD_STATE.RESTING) {

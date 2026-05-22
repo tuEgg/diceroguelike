@@ -1204,9 +1204,7 @@ function draw_wonky_rectangle(_x, _y, _width, _height, _fill_col, _stroke_col, _
 		var _pass1 = surface_create(_width * 4, _height * 4);
 		surface_set_target(_pass1);
 		draw_clear_alpha(c_black, 0);
-		gpu_set_texfilter(true);
 		draw_surface_ext(_surf, 0, 0, 0.5, 0.5, 0, c_white, 1);
-		gpu_set_texfilter(false);
 		surface_reset_target();
 		surface_free(_surf);
 		
@@ -1214,9 +1212,7 @@ function draw_wonky_rectangle(_x, _y, _width, _height, _fill_col, _stroke_col, _
 		var _pass2 = surface_create(_width * 2, _height * 2);
 		surface_set_target(_pass2);
 		draw_clear_alpha(c_black, 0);
-		gpu_set_texfilter(true);
 		draw_surface_ext(_pass1, 0, 0, 0.5, 0.5, 0, c_white, 1);
-		gpu_set_texfilter(false);
 		surface_reset_target();
 		surface_free(_pass1);
 		
@@ -1235,7 +1231,28 @@ function draw_wonky_rectangle(_x, _y, _width, _height, _fill_col, _stroke_col, _
 		_draw_y = _y;
 	}
 	
-	gpu_set_texfilter(true);
 	draw_surface_ext(_cached, _draw_x, _draw_y, 0.5, 0.5, 0, c_white, 1);
-	gpu_set_texfilter(false);
+}
+
+
+// used to update x and y positions when the resolution is not 1080
+function room_to_gui_x(_x) {
+    return (_x - camera_get_view_x(view_camera[0])) * (display_get_gui_width() / camera_get_view_width(view_camera[0]));
+}
+
+function room_to_gui_y(_y) {
+    return (_y - camera_get_view_y(view_camera[0])) * (display_get_gui_height() / camera_get_view_height(view_camera[0]));
+}
+
+function double_tap(_key) {
+	if (global.double_tap_timer > 0) {
+		if (keyboard_check_pressed(_key) && global.double_tap_last_key == _key) {
+			return true;
+		}
+	}
+	
+	if (keyboard_check_pressed(_key)) {
+		global.double_tap_timer = game_get_speed(gamespeed_fps) * 0.5; // if tapped again within a half of a second
+		global.double_tap_last_key = _key;
+	}
 }

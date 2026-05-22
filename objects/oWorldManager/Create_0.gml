@@ -32,8 +32,8 @@ page_scale = ds_list_create();
 ds_list_add(page_scale, 1.0);
 ds_list_add(page_scale, 1.0);
 ds_list_add(page_scale, 1.0);
-page_pos[0] = { x: display_get_gui_width() * 3/4 - 200, y: display_get_gui_height() * 2.4/7 };
-page_pos[1] = { x: display_get_gui_width() * 3/4 + 200, y: display_get_gui_height() * 2.4/7 };
+page_pos[0] = { x: display_get_gui_width() / 1.55, y: display_get_gui_height() * 2.4/7 };
+page_pos[1] = { x: display_get_gui_width() / 1.17, y: display_get_gui_height() * 2.4/7 };
 page_pos[2] = { x: display_get_gui_width() * 3/4, y: display_get_gui_height() * 4.7/7 };
 pages_alpha = 0; // used for fading out pages
 

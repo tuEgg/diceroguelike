@@ -71,10 +71,10 @@ if (global.show_settings) {
 	}
 	
 	// draw save button
-	var exit_btn = draw_gui_button(settings_x - cat_w/2, gui_h / 2 + total_settings_h / 2 - cat_h * 1.5, cat_w, cat_h, exit_scale, "Save settings", c_lime, ftBig, true, true);
-	exit_scale = exit_btn.scale;
+	var save_btn = draw_gui_button(settings_x - cat_w/2, gui_h / 2 + total_settings_h / 2 - cat_h * 1.5, cat_w, cat_h, exit_scale, "Save settings", c_lime, ftBig, true, true);
+	exit_scale = save_btn.scale;
 	
-	if (exit_btn.click) {
+	if (save_btn.click) {
 		// save settings		
 		save_settings();
 		

@@ -51,11 +51,9 @@ if (room == rmMap) {
 	
 	// find the next node
 	if (next_node == undefined) {
-		show_debug_message("Next node is undefined");
 		for (var n = 0; n < ds_list_size(all_nodes); n++) {
 			if (!all_nodes[| n].cleared) {
 				next_node = all_nodes[| n];
-				show_debug_message("Next node: " + next_node.name);
 				break;
 			}
 		}
