@@ -18,7 +18,7 @@ menu = [
 		title: "New Voyage",
 		scale: 1,
 		action: function() {
-			room_goto(rmMap);
+			start_run();
 		},
 		flag: true,
 	},
@@ -39,3 +39,7 @@ menu = [
 		flag: true,
 	},
 ];
+
+show_run_warning = false;
+proceed_new_scale = 1;
+cancel_new_scale = 1;

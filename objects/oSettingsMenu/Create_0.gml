@@ -12,8 +12,11 @@ global.resolution_options = [
     { w: 2560, h: 1440 },
 ];
 
+settings_changed = false; // used to change text from "cancel" to "save changes"
+
 category_index = 0;
-exit_scale = 1;
+save_scale = 1;
+cancel_scale = 1;
 quit_scale = 1;
 starting_mouse_x = undefined;
 
@@ -91,9 +94,22 @@ categories = [
 
 if (file_exists("settings.json")) {
 	load_settings();
+} else {
+	save_settings();
 }
 
 depth = -10000;
 
 // used for smoothing out drawn lines, particularly from our wonky rectangles function
 global.button_cache = ds_map_create();
+
+
+// color definitions
+global.color_intel = make_color_rgb(210, 210, 0);
+global.color_attack = c_red;
+global.color_block = make_color_rgb(30, 160, 255);
+global.color_heal = c_lime;
+global.color_debuff = c_white;
+global.color_unknown = c_dkgray;
+global.color_bg = make_color_rgb(20, 50, 80);
+global.color_error = make_color_rgb(140, 10, 10);

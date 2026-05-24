@@ -9,12 +9,20 @@ for (var i = 0; i < array_length(backgrounds); i++) {
 			var bg = bg_list[b];
 			var animated = bg.animated;
 			
+			var scale_x = _cw / 1920;
+			var scale_y = _ch / 1080;
+			
 			if (animated) {
-				bg.xx++;
+				bg.xx += 0.75;
+				
+				if (bg.xx > 1920) {
+					bg.xx = bg.xx_start;
+				}
+				
+				// draw a second copy to the left
+				draw_sprite_ext(bg.sprite, 0, bg.xx - sprite_get_width(bg.sprite), bg.yy, scale_x, scale_y, 0, c_white, 1.0);
 			}
 			
-			var scale_x = _cw / sprite_get_width(bg.sprite);
-			var scale_y = _ch / sprite_get_height(bg.sprite);
 			draw_sprite_ext(bg.sprite, 0, bg.xx, bg.yy, scale_x, scale_y, 0, c_white, 1.0);
 		}
 	}

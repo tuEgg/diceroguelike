@@ -2,6 +2,17 @@ depth = 10000;
 
 backgrounds = [
 	{
+		room_name: rmMainMenu,
+		background_list: [
+			{
+				sprite: sBackgroundMainMenu,
+				animated: false,
+				xx: 0,
+				yy: 0,
+			}
+		],
+	},
+	{
 		room_name: rmMap,
 		background_list: [
 			{
@@ -22,9 +33,10 @@ backgrounds = [
 				yy: 0,
 			},
 			{
-				sprite: sCloudBG,
+				sprite: sBackgroundClouds,
 				animated: true,
-				xx: 0,
+				xx: -1906,
+				xx_start: -1906,
 				yy: 0,
 			},
 			{

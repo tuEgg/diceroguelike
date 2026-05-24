@@ -1,6 +1,5 @@
 /// oCombat - Clean Up Event
 
-
 // --- Destroy temporary lists ---
 if (ds_exists(global.discard_pile, ds_type_list)) {
 	ds_list_destroy(global.discard_pile); 

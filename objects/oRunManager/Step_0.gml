@@ -87,7 +87,9 @@ if (debug_mode) {
 	}
 }
 
-if (global.player_hp <= 0) game_restart();
+if (global.player_hp <= 0 && oCombat.state != CombatState.PLAYER_DEAD) {
+	lose_run();
+}
 
 for (var i = 0; i < array_length(items); i++) {
 	if (items[i] != undefined) {

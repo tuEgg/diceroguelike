@@ -149,3 +149,19 @@ function draw_setting_dropdown(_setting, _x, _y) {
 		}
 	}
 }
+
+function exit_settings() {
+	global.show_settings = false;
+	global.all_input_disabled = false;
+		
+	// set all dropdowns show_options to false
+	for (var i = 0; i < array_length(categories); i++) {
+		var category = categories[i];
+
+		for (var s = 0; s < array_length(category.settings); s++) {
+			category.settings[s].show_options = false;
+		}
+	}
+	
+	apply_resolution();
+}

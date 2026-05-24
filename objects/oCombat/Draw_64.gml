@@ -203,6 +203,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	//}
 
 	// Draw the main slot sprite
+	//draw_wonky_rectangle(draw_x, draw_y, current_scale * aq_tile_w, current_scale * aq_tile_w, draw_col, c_black, draw_alpha_val, false, true);
 	draw_sprite_ext(sActionSlot, slot_index, draw_x, draw_y, current_scale, current_scale, 0, draw_col, draw_alpha_val);
 	
 	// If slot locked, draw the chain
@@ -902,66 +903,90 @@ if (player_block_amount > 0) {
 	draw_outline_text(string(player_block_amount), c_black, c_white, 2, block_x, block_y - 4, 1, 1.0, 0);
 }
 
-// Draw intel level
-draw_intel = lerp(draw_intel, player_intel, 0.1);
+if (state != CombatState.PLAYER_DEAD) {
+	// Draw intel level
+	draw_intel = lerp(draw_intel, player_intel, 0.1);
 
-var arc_start = 180;
-var arc_end = 181 + (draw_intel / 12 * 179);
-draw_arc_thick_deg_gradient(global.player_x, global.player_y - 175, 50, 60, arc_start, arc_end, 50, global.color_intel, make_color_rgb(210 - (player_intel / 12 * 50), 210 - (player_intel / 12 * 100), 0), 0.7);
+	var arc_start = 180;
+	var arc_end = 181 + (draw_intel / 12 * 179);
+	draw_arc_thick_deg_gradient(global.player_x, global.player_y - 175, 50, 60, arc_start, arc_end, 50, global.color_intel, make_color_rgb(210 - (player_intel / 12 * 50), 210 - (player_intel / 12 * 100), 0), 0.7);
 
-draw_set_alpha(1.0);
-draw_set_color(c_white);
-draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 178, 182, 50);
-draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 223, 227, 50);
-draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 268, 272, 50);
-draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 313, 317, 50);
-draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 358, 2, 50);
+	draw_set_alpha(1.0);
+	draw_set_color(c_white);
+	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 178, 182, 50);
+	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 223, 227, 50);
+	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 268, 272, 50);
+	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 313, 317, 50);
+	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 358, 2, 50);
 
-draw_sprite_ext(sIntelEye, global.player_intel_data[| intel_level].index, global.player_x, global.player_y - 180, intel_scale, intel_scale, 0, c_white, intel_alpha);
-draw_outline_text(string(global.player_intel_data[| intel_level].name), c_black, global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
-var intel_hover = mouse_hovering(global.player_x, global.player_y - 190, sprite_get_width(sIntelEye) * 2, sprite_get_height(sIntelEye) * 2, true);
+	draw_sprite_ext(sIntelEye, global.player_intel_data[| intel_level].index, global.player_x, global.player_y - 180, intel_scale, intel_scale, 0, c_white, intel_alpha);
+	draw_outline_text(string(global.player_intel_data[| intel_level].name), c_black, global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
+	var intel_hover = mouse_hovering(global.player_x, global.player_y - 190, sprite_get_width(sIntelEye) * 2, sprite_get_height(sIntelEye) * 2, true);
 
-intel_scale = intel_hover ? lerp(intel_scale, 1.2, 0.2) : lerp(intel_scale, 1.0, 0.2);
+	intel_scale = intel_hover ? lerp(intel_scale, 1.2, 0.2) : lerp(intel_scale, 1.0, 0.2);
 
-if (player_intel > 0) {
-	draw_outline_text(string(player_intel), c_black, c_white, 2, global.player_x + 30, global.player_y - 170, intel_scale, 1.0, 0);
+	if (player_intel > 0) {
+		draw_outline_text(string(player_intel), c_black, c_white, 2, global.player_x + 30, global.player_y - 170, intel_scale, 1.0, 0);
+	}
+
+	if (intel_hover) {
+		var intel_x = global.player_x - 210;
+		var intel_y = global.player_y - 520;
+		var intel_pad = 20;
+		var intel_row_h = 40;
+	
+		draw_set_color(c_black);
+		draw_set_alpha(0.8);
+		draw_roundrect(intel_x - 1, intel_y - 11, intel_x + 421, intel_y + 256, false);
+	
+		draw_set_color(global.color_bg);
+		draw_roundrect(intel_x, intel_y - 10, intel_x + 420, intel_y + 255, false);
+	
+		draw_set_color(c_white);
+		draw_set_alpha(1.0);
+		draw_set_halign(fa_left);
+		draw_set_valign(fa_middle);
+		draw_set_font(ftDefault);
+		draw_text(intel_x + intel_pad, intel_y + intel_pad, "Intel Levels");
+	
+		// Draw rows
+		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
+			draw_set_font(ftSmall);
+			draw_set_halign(fa_left);
+			draw_sprite_ext(sIntelEye, global.player_intel_data[| i].index,
+						intel_x + intel_pad + 20, intel_y + intel_pad + (intel_row_h * (i+1)), 0.75, 0.75, 0, c_white, intel_alpha);
+			draw_set_font(ftDefault);
+			draw_set_halign(fa_center);
+			draw_text(	intel_x + intel_pad + 70, intel_y + intel_pad + (intel_row_h * (i+1)), + string(global.player_intel_data[| i].name));
+			draw_set_halign(fa_left);
+			draw_set_font(ftSmall); 
+			draw_text(	intel_x + intel_pad + 95, intel_y + intel_pad + (intel_row_h * (i+1)), + string(global.player_intel_data[| i].description));
+		}
+	
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Intel level: "+string(global.player_intel_data[| intel_level].name), "Resets each turn. " + string(global.player_intel_data[| intel_level].description), undefined, 0, undefined);
+	}
 }
 
-if (intel_hover) {
-	var intel_x = global.player_x - 210;
-	var intel_y = global.player_y - 520;
-	var intel_pad = 20;
-	var intel_row_h = 40;
-	
+/// PLAYER DEAD
+if (state == CombatState.PLAYER_DEAD) {
 	draw_set_color(c_black);
 	draw_set_alpha(0.8);
-	draw_roundrect(intel_x - 1, intel_y - 11, intel_x + 421, intel_y + 256, false);
+	draw_rectangle(0, 0, gui_w, gui_h, false);
 	
-	draw_set_color(global.color_bg);
-	draw_roundrect(intel_x, intel_y - 10, intel_x + 420, intel_y + 255, false);
-	
-	draw_set_color(c_white);
-	draw_set_alpha(1.0);
-	draw_set_halign(fa_left);
+	draw_set_font(ftBiggest);
+	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
-	draw_set_font(ftDefault);
-	draw_text(intel_x + intel_pad, intel_y + intel_pad, "Intel Levels");
+	draw_outline_text("You Died.", c_black, c_white, 2, gui_w/2, gui_h/2, 1, 1, 0, -1);
 	
-	// Draw rows
-	for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
-		draw_set_font(ftSmall);
-		draw_set_halign(fa_left);
-		draw_sprite_ext(sIntelEye, global.player_intel_data[| i].index,
-					intel_x + intel_pad + 20, intel_y + intel_pad + (intel_row_h * (i+1)), 0.75, 0.75, 0, c_white, intel_alpha);
-		draw_set_font(ftDefault);
-		draw_set_halign(fa_center);
-		draw_text(	intel_x + intel_pad + 70, intel_y + intel_pad + (intel_row_h * (i+1)), + string(global.player_intel_data[| i].name));
-		draw_set_halign(fa_left);
-		draw_set_font(ftSmall); 
-		draw_text(	intel_x + intel_pad + 95, intel_y + intel_pad + (intel_row_h * (i+1)), + string(global.player_intel_data[| i].description));
+	var try_btn_h = 80;
+	var try_btn_w = 180;
+	var try_again_btn = draw_gui_button(gui_w / 2 - try_btn_w/2, gui_h / 2 - try_btn_h/2 + 100, try_btn_w, try_btn_h, try_btn_scale, "Try Again", c_lime, ftBig, true, true);
+	
+	try_btn_scale = try_again_btn.scale;
+	
+	if (try_again_btn.click) {
+		room_goto(rmMainMenu);
 	}
-	
-	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Intel level: "+string(global.player_intel_data[| intel_level].name), "Resets each turn. " + string(global.player_intel_data[| intel_level].description), undefined, 0, undefined);
 }
 
 /// DEBUG

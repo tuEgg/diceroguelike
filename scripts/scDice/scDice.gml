@@ -1346,7 +1346,7 @@ function get_dice_color(_action) {
 			case "HEAL": _col = global.color_heal; break;
 			case "INTEL": _col = global.color_intel; break;
 		
-			default: _col = c_white;
+			default: _col = c_ltgray;
 		}
 		return _col;
 	}

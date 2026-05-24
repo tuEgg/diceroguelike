@@ -1,3 +1,5 @@
+save_settings();
+
 apply_resolution();
 
 show_debug_message("Surface width: " + string(surface_get_width(application_surface)));

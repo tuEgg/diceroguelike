@@ -49,6 +49,7 @@ reward_next_hover = 1.0;
 btn_scale = 1.0; // play button hover animation 
 disc_btn_scale = 1.0; // discard button hover animation
 last_action_scale = 1.0;
+try_btn_scale = 1.0;
 last_hover = false; // hovering over last button is false
 
 // Combat states
@@ -56,7 +57,8 @@ enum CombatState {
     START_TURN,
     PLAYER_INPUT,
     RESOLVE_ROUND,
-	END_OF_ROUND
+	END_OF_ROUND,
+	PLAYER_DEAD
 }
 
 state = CombatState.START_TURN;

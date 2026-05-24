@@ -1,14 +1,5 @@
 update_gui_layout();
 
-// color definitions
-global.color_intel = make_color_rgb(210, 210, 0);
-global.color_attack = c_red;
-global.color_block = make_color_rgb(30, 160, 255);
-global.color_heal = c_lime;
-global.color_debuff = c_white;
-global.color_unknown = c_dkgray;
-global.color_bg = make_color_rgb(20, 50, 80);
-global.color_error = make_color_rgb(140, 10, 10);
 global.heal_pos = 0;
 
 randomise();

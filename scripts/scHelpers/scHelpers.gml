@@ -1256,3 +1256,25 @@ function double_tap(_key) {
 		global.double_tap_last_key = _key;
 	}
 }
+
+function start_run() {
+	if (save_exists(1)) {
+		oMainMenu.show_run_warning = true;		
+	} else {
+		room_goto(rmMap);
+	}
+}
+
+function lose_run() {
+	show_debug_message("Player died, ending run");
+	
+	if (save_exists(1)) {
+		delete_save(1);
+	}
+	
+	if (instance_exists(oCombat)) {
+		oCombat.state = CombatState.PLAYER_DEAD;
+	} else {
+		room_goto(rmMainMenu);
+	}
+}

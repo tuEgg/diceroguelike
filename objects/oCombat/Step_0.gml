@@ -225,6 +225,10 @@ switch (state) {
 					process_action(room_enemies[| i], 0, 20, 0, "player", -1, "ATK", 0, global.dice_d4_atk, 1);
 				}
 			}
+			
+			if keyboard_check_pressed(vk_backspace) {
+					process_action("player", 0, 20, 0, room_enemies[| 0], -1, "ATK");
+			}
 		}
 
 
@@ -597,8 +601,14 @@ switch (state) {
 			}
 		}
 	break;
-
+	
+	case CombatState.PLAYER_DEAD:
+		discard_dice_in_play();
+		global.main_input_disabled = true;
+	break;
 }
+
+show_debug_message("state: " + string(state));
 		
 dice_allowed_per_turn = dice_allowed_per_turn_original + dice_allowed_this_turn_bonus + oRunManager.bonus_dice_next_combat;
 

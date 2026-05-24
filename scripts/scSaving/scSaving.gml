@@ -207,6 +207,12 @@ function save_exists(_slot) {
     return file_exists("save_slot_" + string(_slot) + ".json");
 }
 
+function delete_save(_slot) {
+    var _path = "save_slot_" + string(_slot) + ".json";
+    file_delete(_path);
+    show_debug_message("Deleted: " + _path + " | Still exists: " + string(file_exists(_path)));
+}
+
 function save_settings() {
 	apply_resolution();
 	
@@ -240,4 +246,27 @@ function load_settings() {
 	global.muted = _save.muted;
 	
 	window_set_fullscreen(_save.fullscreen);
+}
+
+function check_settings() {
+	if (file_exists("settings.json")) {
+		var _file = file_text_open_read("settings.json");
+	    var _json = file_text_read_string(_file);
+	    file_text_close(_file);
+		
+		var _save = json_parse(_json);
+		if (global.resolution_index != _save.resolution_index)
+		|| (global.vol_master != _save.vol_master)
+		|| (global.vol_music != _save.vol_music)
+		|| (global.vol_sfx != _save.vol_sfx)
+		|| (global.vol_ui != _save.vol_ui)
+		|| (global.muted != _save.muted)
+		|| (window_get_fullscreen() != _save.fullscreen) {
+			settings_changed = true;
+		} else {
+			settings_changed = false;
+		}
+	} else {
+		settings_changed = false;
+	}
 }
