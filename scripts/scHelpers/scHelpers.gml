@@ -1259,7 +1259,7 @@ function double_tap(_key) {
 
 function start_run() {
 	if (save_exists(1)) {
-		oMainMenu.show_run_warning = true;		
+		oMainMenu.show_run_warning = true;
 	} else {
 		room_goto(rmMap);
 	}

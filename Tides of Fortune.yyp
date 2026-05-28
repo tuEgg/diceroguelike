@@ -1,6 +1,6 @@
 {
   "$GMProject":"v1",
-  "%Name":"KOTOR RogueLike",
+  "%Name":"Tides of Fortune",
   "AudioGroups":[
     {"$GMAudioGroup":"v1","%Name":"audiogroup_default","exportDir":"","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
     {"$GMAudioGroup":"v1","%Name":"audiogroup_UI","exportDir":"","name":"audiogroup_UI","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
@@ -23,14 +23,16 @@
     {"$GMFolder":"","%Name":"UI","folderPath":"folders/sounds/UI.yy","name":"UI","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"sprites","folderPath":"folders/sprites.yy","name":"sprites","resourceType":"GMFolder","resourceVersion":"2.0",},
   ],
-  "ForcedPrefabProjectReferences":[],
+  "ForcedPrefabProjectReferences":[
+    {"link":"io.gamemaker.sdfshaders-1.0.0","name":"io.gamemaker.sdfshaders-1.0.0","path":"io.gamemaker.sdfshaders-1.0.0.yyp",},
+  ],
   "IncludedFiles":[],
   "isEcma":false,
   "LibraryEmitters":[],
   "MetaData":{
     "IDEVersion":"2024.14.4.222",
   },
-  "name":"KOTOR RogueLike",
+  "name":"Tides of Fortune",
   "resources":[
     {"id":{"name":"ftBig","path":"fonts/ftBig/ftBig.yy",},},
     {"id":{"name":"ftBigger","path":"fonts/ftBigger/ftBigger.yy",},},

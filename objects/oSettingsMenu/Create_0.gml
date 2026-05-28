@@ -6,8 +6,8 @@ global.show_settings = false;
 global.resolution_index = 2;
 
 global.resolution_options = [
-    { w: 1280, h: 720 },
-    { w: 1600, h: 900 },
+    //{ w: 1280, h: 720 },
+    //{ w: 1600, h: 900 },
     { w: 1920, h: 1080 },
     { w: 2560, h: 1440 },
 ];
@@ -84,7 +84,8 @@ categories = [
                 type: "dropdown",
                 get_value: function() { return global.resolution_index; },
                 set_value: function(_val) { global.resolution_index = _val; apply_resolution(); },
-                options: ["1280x720", "1600x900", "1920x1080", "2560x1440"],
+                //options: ["1280x720", "1600x900", "1920x1080", "2560x1440"],
+				options: ["1920x1080", "2560x1440"],
 				show_options: false
             },
         ]
@@ -113,3 +114,5 @@ global.color_debuff = c_white;
 global.color_unknown = c_dkgray;
 global.color_bg = make_color_rgb(20, 50, 80);
 global.color_error = make_color_rgb(140, 10, 10);
+
+global.ui_scale = display_get_gui_width() / 1920;

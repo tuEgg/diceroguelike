@@ -5,7 +5,7 @@ var bar_height = sprite_get_height(sTopBar) - 3;
 var bar_half = bar_height/2;
 
 // Draw top bar
-var bar_scale_w = display_get_gui_width() / 1080;
+var bar_scale_w = global.ui_scale;
 draw_sprite_ext(sTopBar, 1, -3*bar_scale_w, -4, bar_scale_w, 1, 0, c_white, 1);
 
 // Draw voyage act

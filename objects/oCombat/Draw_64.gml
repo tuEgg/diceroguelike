@@ -1,14 +1,12 @@
-gui_w = display_get_gui_width();
-gui_h = display_get_gui_height();
-
 var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
 
 var tooltip = "";
 
+aq_tile_w = 62.48177 * power(1.000414, gui_w); // using desmos graphic calculator, expontential regression at these values: 1600 = 120, 1920 = 140, 2560 = 180
+
 var aq_list_size = ds_list_size(action_queue);
-var aq_tile_w = 140;
-var aq_tile_padding = 20;
+var aq_tile_padding = aq_tile_w / 7;
 var aq_total_w = ((aq_list_size + 1) * aq_tile_w) + ((aq_list_size) * aq_tile_padding);
 var aq_start_x = gui_w / 2 - (aq_total_w / 2);
 var aq_start_y = gui_h / 2;
@@ -26,24 +24,17 @@ if (!variable_instance_exists(id, "slot_positions")) {
 }
 ds_list_clear(slot_positions);
 
-draw_set_font(ftBig);
-draw_set_halign(fa_center);
-draw_set_valign(fa_middle);
-dice_played_scale = lerp(dice_played_scale, 1.0, 0.05);
-dice_played_color = merge_colour(dice_played_color, c_white, 0.05);
-var played_dice_string = string(dice_allowed_per_turn - dice_played);
-draw_outline_text(played_dice_string, c_black, dice_played_color, 2, aq_start_x - aq_tile_w/2 - aq_tile_padding - 8, aq_start_y + aq_tile_w/2 - 40, dice_played_scale, 1.0, 0);
-draw_sprite_ext(sDice, 3, aq_start_x - aq_tile_w/2 - aq_tile_padding + 32, aq_start_y + aq_tile_w/2 - 40, 0.5, 0.5, 0, c_white, 1.0);
-
 var played_dice_hover = mouse_hovering(aq_start_x - aq_tile_w/2 - aq_tile_padding + 12, aq_start_y + aq_tile_w/2 - 40, 100, 50, true);
 
 if (played_dice_hover && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Played dice", "You can play " + string(dice_allowed_per_turn - dice_played) + " more dice this turn");
 
 // --- Play Button ---
-var btn_x = aq_start_x - 160;
-var btn_y = aq_start_y + 70;
-var btn_w = 140;
+var btn_x = aq_start_x - 120 - (30 * global.ui_scale); // top left position of the button
+var btn_y = aq_start_y + (70 * global.ui_scale);
+var btn_w = 120 + ((20 * global.ui_scale));
 var btn_h = sprite_get_height(sEndTurn);
+
+var btn_scaler = btn_w / 140; // used to scale the button at different ui sizes
 
 // Determine label dynamically
 // Need to have it say "Dealing Dice" when its the start of a turn 
@@ -85,12 +76,25 @@ var play_btn = draw_gui_button(
 // Update animation state
 btn_scale = play_btn.scale;
 
-draw_sprite_ext(sEndTurn, 0, btn_x + sprite_get_width(sEndTurn)/2, btn_y + sprite_get_height(sEndTurn)/2, btn_scale, btn_scale, 0, label_col, 1);
+var end_text_pos = btn_x + (btn_w/2) - (20 * global.ui_scale);
+
+draw_sprite_ext(sEndTurn, 0, btn_x + btn_w/2, btn_y + btn_h/2, btn_scale * btn_scaler, btn_scale * btn_scaler, 0, label_col, 1);
 draw_set_color(c_white);
 draw_set_font(ftDefault);
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
-draw_outline_text(label_text, c_black, c_white, 2, btn_x + sprite_get_width(sEndTurn)/2 - 30, btn_y + sprite_get_height(sEndTurn)/2, btn_scale, btn_scale, 0);
+draw_outline_text(label_text, c_black, c_white, 2, end_text_pos, btn_y + (btn_h/2), btn_scale, btn_scale, 0);
+
+// Draw playable dice
+
+draw_set_font(ftBig);
+draw_set_halign(fa_center);
+draw_set_valign(fa_middle);
+dice_played_scale = lerp(dice_played_scale, 1.0, 0.05);
+dice_played_color = merge_colour(dice_played_color, c_white, 0.05);
+var played_dice_string = string(dice_allowed_per_turn - dice_played);
+draw_outline_text(played_dice_string, c_black, dice_played_color, 2, end_text_pos - 12, aq_start_y + aq_tile_w/2 - 40, dice_played_scale, 1.0, 0);
+draw_sprite_ext(sDice, 3, end_text_pos + 28, aq_start_y + aq_tile_w/2 - 40, 0.5, 0.5, 0, c_white, 1.0);
 
 // Click handling
 if (play_btn.click && state == CombatState.PLAYER_INPUT && !is_dealing_dice) {
@@ -99,15 +103,16 @@ if (play_btn.click && state == CombatState.PLAYER_INPUT && !is_dealing_dice) {
 
 hovered_slot = -1;
 
+// Draw action slots
 for (var i = 0; i < aq_list_size; i++) {
 	var base_x = aq_start_x + (i * (aq_tile_w + aq_tile_padding));
-	var base_y = aq_start_y;
+	var base_y = aq_start_y + (aq_tile_w/140);
 	var base_w = aq_tile_w;
 	var base_h = aq_tile_w;
 	
     var current_scale = tile_scale[| i];
-    var draw_w = base_w * current_scale;
-    var draw_h = base_h * current_scale;
+    var draw_w = base_w * current_scale * aq_tile_w/140;
+    var draw_h = base_h * current_scale * aq_tile_w/140;
     var draw_x = base_x + (base_w - draw_w) / 2;
     var draw_y = base_y + (base_h - draw_h) / 2;
 
@@ -193,7 +198,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	        slot_index = 0;
 			
 			// double up the sprite so the visual is more obvious
-			draw_sprite_ext(sActionSlot, slot_index, draw_x, draw_y, current_scale, current_scale, 0, draw_col, 1.0);
+			draw_sprite_ext(sActionSlot, slot_index, draw_x, draw_y, current_scale * aq_tile_w/140, current_scale * aq_tile_w/140, 0, draw_col, 1.0);
 		}
 	}
 	
@@ -204,11 +209,11 @@ for (var i = 0; i < aq_list_size; i++) {
 
 	// Draw the main slot sprite
 	//draw_wonky_rectangle(draw_x, draw_y, current_scale * aq_tile_w, current_scale * aq_tile_w, draw_col, c_black, draw_alpha_val, false, true);
-	draw_sprite_ext(sActionSlot, slot_index, draw_x, draw_y, current_scale, current_scale, 0, draw_col, draw_alpha_val);
+	draw_sprite_ext(sActionSlot, slot_index, draw_x, draw_y, current_scale * aq_tile_w/140, current_scale * aq_tile_w/140, 0, draw_col, draw_alpha_val);
 	
 	// If slot locked, draw the chain
 	if (locked_slot == i) {
-		draw_sprite_ext(sRewardChain, 0, draw_x + draw_w/2, draw_y + draw_h/2, current_scale * 0.75, current_scale * 0.75, 0, c_white, 1.0);
+		draw_sprite_ext(sRewardChain, 0, draw_x + draw_w/2, draw_y + draw_h/2, current_scale * 0.75 * aq_tile_w/140, current_scale * 0.75 * aq_tile_w/140, 0, c_white, 1.0);
 	}
 	
 	var stats = get_slot_stats(action_queue[| i], i);
@@ -391,7 +396,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	if (i == ds_list_size(action_queue) - 1) {
 		
 		var c_scale = last_action_scale;
-	    var last_w = base_w * c_scale;
+	    var last_w = base_w * c_scale
 	    var last_h = base_h * c_scale;
 		var lx = aq_start_x + ( (i+1) * (aq_tile_w + aq_tile_padding) );
 	    var last_x = lx + ((base_w - last_w) / 2);
@@ -411,13 +416,13 @@ for (var i = 0; i < aq_list_size; i++) {
 	    last_x = lx + ((base_w - last_w) / 2);
 	    last_y = base_y + ((base_h - last_h) / 2);
 
-		draw_sprite_ext(sActionSlot, 2, last_x, last_y, c_scale, c_scale, 0, c_white, 1);
+		draw_sprite_ext(sActionSlot, 2, last_x, last_y, c_scale * aq_tile_w/140, c_scale * aq_tile_w/140, 0, c_white, 1);
 
 		// Draw text
 	    draw_set_halign(fa_center);
 	    draw_set_valign(fa_middle);
 		draw_set_font(ftDefault);
-		draw_outline_text("Sacrifice \n" + string(sacrificies_til_new_action_tile)+" dice", c_black, c_white, 2, last_x + last_w / 2, last_y + last_h / 2, 1, 1, 0);
+		draw_outline_text("Sacrifice \n" + string(sacrificies_til_new_action_tile) + " dice", c_black, c_white, 2, last_x + last_w / 2, last_y + last_h / 2, 1, 1, 0);
 		
 		draw_action_type_bars(last_x, last_y + last_h + 30, last_w, type_array, "None");
 	}
@@ -583,6 +588,19 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	draw_set_color(c_black);
 	draw_ellipse(enemy.pos_x - 100 * enemy.data.shadow_scale, enemy.pos_y + 50, enemy.pos_x + 100 * enemy.data.shadow_scale, enemy.pos_y + 70, false);
 	draw_sprite_ext(sEnemies, enemy.data.index, enemy.pos_x, enemy.pos_y + 60, enemy.scale, enemy.scale, 0, c_white, enemy.alpha);
+	
+	// Draw X and Y coordinates for testing purposes
+	if (debug_mode) {
+		var pos_data = "x: " + string(enemy.pos_x) + "\ny: " + string(enemy.pos_y);
+		
+		draw_set_halign(fa_left);
+		draw_set_valign(fa_top);
+		draw_set_font(ftDefault);
+		draw_set_color(c_black);
+		draw_set_alpha(0.5);
+		draw_text(enemy.pos_x + 100, enemy.pos_y, pos_data);
+		draw_set_alpha(1.0);
+	}
 
 	// Show enemy intent
 	if (enemy.intent.alpha > 0.05) {

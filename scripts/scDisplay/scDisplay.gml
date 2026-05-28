@@ -8,6 +8,9 @@ function apply_resolution() {
     view_set_hport(0, _res.h);
     view_visible[0] = true;
     update_gui_layout();
+	if (object_exists(oCombat)) {
+		with (oCombat) define_combat_ui_sizes();
+	}
 	
 	show_debug_message("Apply res: " + string(_res.w) + "x" + string(_res.h) + " | View: " + string(camera_get_view_width(view_camera[0])) + "x" + string(camera_get_view_height(view_camera[0])));
 }

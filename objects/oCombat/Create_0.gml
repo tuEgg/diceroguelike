@@ -127,14 +127,12 @@ room_enemies = ds_list_create();
 
 enemies_left_this_combat = ds_list_size(oWorldManager.room_enemies);
 
-global.enemy_x = display_get_gui_width() / 2 + 650 + (enemies_left_this_combat*110);
-global.enemy_y = display_get_gui_height() / 2 + 200;
-global.player_x = display_get_gui_width() / 2 - 650;
-global.player_xstart = global.player_x;
-global.player_y = global.enemy_y;
+gui_w = display_get_gui_width();
+gui_h = display_get_gui_height();
 
-enemy_x_offset = -460 + (enemies_left_this_combat*80);
-enemy_y_offset = -90;
+show_debug_message("global ui scale: " + string(global.ui_scale));
+
+define_combat_ui_sizes();
 
 for (var i = 0; i < enemies_left_this_combat; i++) {
 	var _enemy = oWorldManager.room_enemies[| i];

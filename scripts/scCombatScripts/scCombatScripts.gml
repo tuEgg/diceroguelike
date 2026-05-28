@@ -1554,8 +1554,8 @@ function add_enemy_to_fight(_enemy) {
 		dead: false,
 		looted: false,
 		turn_done: false,
-		pos_x: global.enemy_x - 200 + (enemy_x_offset * ds_list_size(room_enemies)),
-		pos_x_start: global.enemy_x - 200 + (enemy_x_offset * ds_list_size(room_enemies)),
+		pos_x: global.enemy_x - (gui_w * 0.1) + (enemy_x_offset * ds_list_size(room_enemies)),
+		pos_x_start: global.enemy_x - (gui_w * 0.1) + (enemy_x_offset * ds_list_size(room_enemies)),
 		pos_y: global.enemy_y + (enemy_y_offset * ds_list_size(room_enemies)),
 		pos_y_start: global.enemy_y + (enemy_y_offset * ds_list_size(room_enemies)),
 		start_scale: 1.0 - ((enemies_left_this_combat-1) * 0.1),
@@ -1580,4 +1580,18 @@ function add_enemy_to_fight(_enemy) {
 	}
 	
 	ds_list_add(room_enemies, enemy_template);
+}
+
+
+function define_combat_ui_sizes() {
+	aq_tile_w = 140; // size of an action queue tile, needed to be declared here to reposition enemies in fights. 140 is the default value
+
+	global.enemy_x = (1600 * global.ui_scale) + (enemies_left_this_combat * (100 * global.ui_scale));
+	global.enemy_y = 735 * global.ui_scale;
+	global.player_x = 355 * global.ui_scale - (25 * global.ui_scale);
+	global.player_xstart = global.player_x;
+	global.player_y = global.enemy_y;
+
+	enemy_x_offset = -460 + (enemies_left_this_combat*80);
+	enemy_y_offset = -90;
 }
