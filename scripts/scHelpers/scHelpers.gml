@@ -1,4 +1,4 @@
-/// @function array_contains(_array, _value)
+ /// @function array_contains(_array, _value)
 /// @returns {bool} true if value found in array
 function array_contains(_array, _value) {
     for (var i = 0; i < array_length(_array); i++) {
@@ -1038,7 +1038,7 @@ function array_to_ds_list(_arr) {
 
 function deserialise_die(_data) {
     var _base = get_die_by_name(_data.dice_name);
-    var _die = clone_die(_base, "permanent");
+    var _die = clone_die(_base, "");
     
     // Apply any run-specific modifications
     _die.dice_value = _data.dice_value;
@@ -1277,4 +1277,8 @@ function lose_run() {
 	} else {
 		room_goto(rmMainMenu);
 	}
+}
+
+function add_debug_entry(_name, _value) {
+	array_push(global.debug, { name: _name, value: _value });
 }

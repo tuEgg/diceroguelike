@@ -161,7 +161,7 @@ switch (state) {
 		
 		combat_trigger_effects("on_turn_start", turn_start_data);
 		
-		player_intel = clamp(player_intel, 0, 12);
+		player_intel = clamp(player_intel, 0, global.player_intel_data[| 4].requirement);
 		
 		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
 			if (player_intel >= global.player_intel_data[| i].requirement) {
@@ -174,7 +174,7 @@ switch (state) {
 		dice_allowed_this_turn_bonus = turn_start_data.bonus_dice + (intel_level div 4 > 0);
 			
 		// Deal 3 dice first turn, then 2 every turn after that
-		dice_to_deal += (turn_count == 1 ? global.hand_size : global.hand_size - 1) + (intel_level div 3 > 0);
+		dice_to_deal += (global.hand_size) + (intel_level div 3 > 0);
 		dice_deal_timer = 0;
 		is_dealing_dice = true;
 		
@@ -204,7 +204,9 @@ switch (state) {
 				var slot = action_queue[| i];
 				
 				for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
-					slot.dice_list[| d].permanence = "temporary";
+					if (slot.dice_list[| d].permanence != "sticky") {
+						slot.dice_list[| d].permanence = "temporary";
+					}
 				}
 			}
 		}
@@ -336,8 +338,6 @@ switch (state) {
 				var enemy_turn_start_data = {
 					stunned_enemy: enemy
 				};
-				
-				show_debug_message("checking enemy turn start effects");
 		
 				combat_trigger_effects("on_enemy_turn_start", enemy_turn_start_data);
 			
@@ -404,8 +404,6 @@ switch (state) {
 					}
 					
 					enemy_turns_remaining--;
-					
-					show_debug_message("checking enemy turn end effects");
 				
 					// Trigger end of turn effects for keepsakes
 					var enemy_turn_end_data = {
@@ -467,9 +465,18 @@ switch (state) {
 		        var slot = action_queue[| i];
 		        var slot_pos = slot_positions[| i]; // from Draw GUI
 				slot.possible_type = "";
+				
+				show_debug_message("enemies_to_fade_out: " + string(enemies_to_fade_out));
+				show_debug_message("enemies_left_this_combat: " + string(enemies_left_this_combat));
 
-				// Eject dice in slot, but not ALL of them (just the temporary or loose ones)
-		        eject_dice_in_slot(slot, slot_pos, false);
+				// Only eject all dice when we're out of enemies left this combat
+		        if (enemies_to_fade_out > 0 && enemies_left_this_combat == 0) {
+					// Eject all dice in slot
+					eject_dice_in_slot(slot, slot_pos, true);
+				} else {
+					// Eject only temporary or loose dice from slots
+					eject_dice_in_slot(slot, slot_pos, false);
+				}
 				
 				// Count down buff timers
 				if (slot.buffed > 0) {
@@ -480,14 +487,23 @@ switch (state) {
 						slot.bonus_amount = slot.pre_buff_amount;
 					}
 				}
+			
+				// set all dice in this slot to temporary
+				for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
+					// turn every "base" dice into a temporary one at the end of the turn, note: sticky dice are "sticky" and are not affected by this
+					show_debug_message(slot.dice_list[| d].name + ", " + slot.dice_list[| d].permanence);
+					if (slot.dice_list[| d].permanence == "base") {
+						slot.dice_list[| d].permanence = "temporary";
+					}
+				}
 		    }
+			
 			ejected_dice = true;
 		}
 
 		if (instance_number(oDiceParticle) == 0) {
 		
 			if (enemies_to_fade_out > 0) {
-				show_debug_message("enemies to fade out:" + string(enemies_to_fade_out));
 				for (var e = ds_list_size(room_enemies) - 1; e >= 0; e--) {
 					var enemy_data = room_enemies[| e].data;
 					var enemy = room_enemies[| e];
@@ -554,6 +570,10 @@ switch (state) {
 			}
 			
 			if (!enemies_to_fade_out) {
+				// Reposition enemies based on changing fight conditions
+				enemy_x_offset = -(460 * global.ui_scale) + (enemies_left_this_combat * (75 * global.ui_scale));
+				enemy_y_offset = -(40 * global.ui_scale);
+				
 				if (enemies_left_this_combat == 0) {
 					win_fight();
 				} else {
@@ -607,8 +627,6 @@ switch (state) {
 		global.main_input_disabled = true;
 	break;
 }
-
-show_debug_message("state: " + string(state));
 		
 dice_allowed_per_turn = dice_allowed_per_turn_original + dice_allowed_this_turn_bonus + oRunManager.bonus_dice_next_combat;
 
@@ -644,10 +662,6 @@ if (ds_list_size(feed_queue) > 0) {
         feed_timer = feed_delay; // reset delay
     }
 }
-
-// Reposition enemies based on changing fight conditions
-enemy_x_offset = -(460 * global.ui_scale) + (enemies_left_this_combat * (75 * global.ui_scale));
-enemy_y_offset = -(40 * global.ui_scale);
 
 for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	var enemy_data = room_enemies[| e].data;

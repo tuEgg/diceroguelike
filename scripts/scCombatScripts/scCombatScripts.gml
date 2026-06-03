@@ -72,13 +72,14 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				// need to add a little roll twice animation here
 			}
 			
+			// Get roll amount if we are forcing
 			if (_slot_die.forced_roll != -1) {
-				show_debug_message("forcing roll")
-				weighted_roll = 0;
-				for (var d = 0; d < _slot_die.forced_roll; d++) {
-					weighted_roll += distribution_array[d];
-					show_debug_message("weighted_roll is: " + string(weighted_roll));
-				}
+			    var _clamped_forced = clamp(_slot_die.forced_roll, _min_roll, _max_roll);
+			    weighted_roll = 0;
+    
+			    for (var d = 0; d < (_clamped_forced - _min_roll + 1); d++) {
+			        weighted_roll += distribution_array[d];
+			    }
 			}
 			
 			// used for determining which numbers can actually be rolled when taking into account distribution
@@ -449,9 +450,9 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 			add_enemy_to_fight(enemy_find_by_name(_source.intent.move.summon));
 			enemies_left_this_combat++;
 			
-			global.enemy_x = display_get_gui_width() / 2 + 650 + (enemies_left_this_combat*110);
-			enemy_x_offset = -460 + (enemies_left_this_combat*80);
-			enemy_y_offset = -90;
+			//global.enemy_x = display_get_gui_width() / 2 + 650 + (enemies_left_this_combat*110);
+			//enemy_x_offset = -460 + (enemies_left_this_combat*80);
+			//enemy_y_offset = -90;
 
 			for (var e = 0; e < ds_list_size(room_enemies); e++) {
 				var enemy_data = room_enemies[| e].data;
@@ -553,7 +554,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 		dice_has_more_than_one_type = true;
 	}
 	
-	if (dice_played >= dice_allowed_per_turn) {
+	if (dice_played + 1 > dice_allowed_per_turn) {
 		if (!string_has_keyword(die.struct.description, "coin")) {
 			reject_dice = true;	
 			dice_played_scale = 1.4;
@@ -576,8 +577,8 @@ function apply_dice_to_slot(_die, _slot_i) {
 	        var die_copy = clone_die(die.struct, "base"); // coloured dice added to empty slots become base die
 	        ds_list_add(slot.dice_list, die_copy);
 			
-			var history_copy = clone_die(die.struct, "temporary");
-			ds_list_add(global.sacrifice_history, history_copy ); // persistent record
+			//var history_copy = clone_die(die.struct, "");
+			//ds_list_add(global.sacrifice_history, history_copy ); // persistent record
 	    }
 		// If played to a slot with all types - I think this is deprecated, probably safe to remove, need to check
 	    else if (is_queue_all) {
@@ -590,8 +591,11 @@ function apply_dice_to_slot(_die, _slot_i) {
 			} else {
 		        // Only accept dice as strong or stronger
 		        if (die.struct.dice_value >= stats.highest_value_base || is_dice_coin) {
-		            var die_copy = clone_die(die.struct, string_has_keyword(die.struct.description, "sticky") ? "base" : "temporary");
+		            var die_copy = clone_die(die.struct, string_has_keyword(die.struct.description, "sticky") ? "sticky" : "base");
 		            ds_list_add(slot.dice_list, die_copy);
+					
+					//var history_copy = clone_die(die.struct, "");
+					//ds_list_add(global.sacrifice_history, history_copy); // persistent record
 				
 					// Add possible type if this slot does not have it
 					if (dice_has_more_than_one_type) {
@@ -631,8 +635,8 @@ function apply_dice_to_slot(_die, _slot_i) {
 		        var die_copy = clone_die(die.struct, "base"); // coloured dice added to empty slots become base die
 		        ds_list_add(slot.dice_list, die_copy);
 			
-				var history_copy = clone_die(die.struct, "temporary");
-				ds_list_add(global.sacrifice_history, history_copy ); // persistent record
+				//var history_copy = clone_die(die.struct, "");
+				//ds_list_add(global.sacrifice_history, history_copy ); // persistent record
 			} else {
 				reject_dice = true;
 			}
@@ -645,8 +649,14 @@ function apply_dice_to_slot(_die, _slot_i) {
 	else {
 		// If queue is all types, also deprecated I believe.
 	    if (is_queue_all) {
-	        var die_copy = clone_die(die.struct, string_has_keyword(die.struct.description, "sticky") ? "base" : "temporary");
+			var sticky = string_has_keyword(die.struct.description, "sticky");
+	        var die_copy = clone_die(die.struct, sticky ? "sticky" : "temporary");
 	        ds_list_add(slot.dice_list, die_copy);
+			
+			if (sticky) {
+				//var history_copy = clone_die(die_copy.struct, "");
+				//ds_list_add(global.sacrifice_history, history_copy ); // persistent record
+			}
 
 	        stats.amount += die_copy.dice_amount;
 	        stats.highest_value   = max(die_copy.dice_value, stats.highest_value);
@@ -657,8 +667,14 @@ function apply_dice_to_slot(_die, _slot_i) {
 				reject_dice = true;
 			} else {
 		        if (die.struct.dice_value >= stats.highest_value_base) {
-		            var die_copy = clone_die(die.struct, string_has_keyword(die.struct.description, "sticky") ? "base" : "temporary");
+					var sticky = string_has_keyword(die.struct.description, "sticky");
+		            var die_copy = clone_die(die.struct, sticky ? "sticky" : "temporary");
 		            ds_list_add(slot.dice_list, die_copy);
+					
+					if (sticky) {
+						//var history_copy = clone_die(die_copy.struct, "");
+						//ds_list_add(global.sacrifice_history, history_copy ); // persistent record
+					}
 
 		            stats.amount += die_copy.dice_amount;
 		        } else {
@@ -697,7 +713,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 		}
 	
         add_feed_entry("You used a dice!");
-		if (!string_has_keyword(die.struct.description, "coin")) dice_played++;
+		if (!string_has_keyword(die.struct.description, "coin")) dice_played += 1;
 		dice_played_scale = 1.2;
 		dice_played_color = c_green;
 		
@@ -738,7 +754,7 @@ function discard_dice(_die) {
     }
 
     // --- 2. Clone the struct before adding to discard pile
-    var die_copy = clone_die(die_struct, "temporary");
+    var die_copy = clone_die(die_struct, "");
 
     // --- 3. Add to discard pile
     ds_list_add(global.discard_pile, die_copy);
@@ -763,7 +779,7 @@ function add_dice_to_bag(_die) {
     }
 
     // --- 2. Clone the struct before adding to discard pile
-    var die_copy = clone_die(die_struct, "temporary");
+    var die_copy = clone_die(die_struct, "");
 
     // --- 3. Add to discard pile
     ds_list_add(global.dice_bag, die_copy);
@@ -775,15 +791,15 @@ function add_dice_to_bag(_die) {
 
 
 function sacrifice_die(_die) {
-	if (dice_played >= dice_allowed_per_turn) {
+	if (dice_played + 1 > dice_allowed_per_turn) {
 		if (!string_has_keyword(_die.struct.description, "coin")) {
 			dice_played_scale = 1.4;
 			dice_played_color = c_red;
 			return;
 		}
-	}
+	} 
 	
-	if (!string_has_keyword(_die.struct.description, "coin")) dice_played++;
+	if (!string_has_keyword(_die.struct.description, "coin")) dice_played += 1;
 	dice_played_scale = 1.2;
 	dice_played_color = c_green;
 	
@@ -809,9 +825,8 @@ function sacrifice_die(_die) {
 	
 	//show_debug_message("Added dice to list, new length is: "+string(ds_list_size(global.sacrifice_list)));
 	
-    var history_copy  = clone_die(die_struct, _perm);
-	ds_list_add(global.sacrifice_history, history_copy ); // persistent record
-
+    //var history_copy  = clone_die(die_struct, _perm);
+	//ds_list_add(global.sacrifice_history, history_copy ); // persistent record
 
 	particle_emit( die.x, die.y, "burst", die.struct.color);
 	
@@ -928,6 +943,7 @@ function sacrifice_die(_die) {
 	//sacrificies_til_new_action_tile = global.fib_lookup[slot];
 	sacrificies_til_new_action_tile = max(1, ((slot + 1) div 2) + oCombat.slot_cost_modifier); // 1, 1, 2, 2, 3, 3 etc.
 	
+	// clear sacrifice list
     ds_list_destroy(type_list);
     ds_list_clear(global.sacrifice_list);
 	//show_debug_message("New slot created");
@@ -1131,7 +1147,7 @@ function win_fight() {
 			}
 			
 			var active_bounty_index = ds_list_find_index(oWorldManager.elite_list_before_bounty, oRunManager.active_bounty.elite_encounter);
-			show_debug_message("active bounty index: " + string(active_bounty_index));
+			//show_debug_message("active bounty index: " + string(active_bounty_index));
 			ds_list_delete(oWorldManager.elite_list_before_bounty, active_bounty_index);
 			ds_list_copy(oWorldManager.possible_elites, oWorldManager.elite_list_before_bounty);
 			ds_list_clear(oWorldManager.elite_list_before_bounty);
@@ -1143,19 +1159,28 @@ function win_fight() {
 		if (ds_exists(global.discard_pile, ds_type_list)) {
 		    for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
 		        var discard_die = global.discard_pile[| i];
-		        ds_list_add(global.dice_bag, clone_die(discard_die, "temporary"));
+		        ds_list_add(global.dice_bag, clone_die(discard_die, ""));
 		    }
 		    ds_list_clear(global.discard_pile);
 		}
 
-
+		// When dice used to stay in slots, we did the below
 		// --- Return historically sacrificed dice to bag ---
-		if (ds_exists(global.sacrifice_history, ds_type_list)) {
-		    for (var j = 0; j < ds_list_size(global.sacrifice_history); j++) {
-		        var sac_die = global.sacrifice_history[| j];
-		        ds_list_add(global.dice_bag, clone_die(sac_die, "temporary"));
+		//if (ds_exists(global.sacrifice_history, ds_type_list)) {
+		//    for (var j = 0; j < ds_list_size(global.sacrifice_history); j++) {
+		//        var sac_die = global.sacrifice_history[| j];
+		//        ds_list_add(global.dice_bag, clone_die(sac_die, ""));
+		//    }
+		//    ds_list_clear(global.sacrifice_history);
+		//}
+		
+		// The new method for retrieving die is to eject all repeatedly until there are no dice left, then just return the sacrifice list die back to the bag
+		if (ds_exists(global.sacrifice_list, ds_type_list)) {
+		    for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
+		        var sac_die = global.sacrifice_list[| j];
+		        ds_list_add(global.dice_bag, clone_die(sac_die, ""));
 		    }
-		    ds_list_clear(global.sacrifice_history);
+		    ds_list_clear(global.sacrifice_list);
 		}
 	}
 			
@@ -1453,7 +1478,8 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 		die.rolled_value = -1;
 
 		if (string_pos("temporary", die.permanence) > 0 || (string_has_keyword(die.description, "Loose")) || _all == true) {
-					
+				
+			// Skip slots that don't have an action, keeping neutral dice in empty slots.
 			if (_slot.current_action_type == "None") break;
 			
 			// Clean up sacrifice history
@@ -1462,9 +1488,7 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 					var die_struct = global.sacrifice_history[| s];
 
 					if (is_struct(die_struct)) {
-						if (die_struct.permanence == "temporary none") {
-							ds_list_delete(global.sacrifice_history, s);
-						}
+						ds_list_delete(global.sacrifice_history, s);
 					}
 				}
 			}
@@ -1484,9 +1508,6 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 
 			// Remove from slot
 			ds_list_delete(_slot.dice_list, j);
-					
-			//// END OF HELPER
-					
 		} else {
 			j++;
 		}

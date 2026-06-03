@@ -16,7 +16,7 @@ function deal_single_die( _can_discard_this_turn = true) {
 	        //show_debug_message("Dice bag empty — reshuffling discard pile!");
 	        for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
 	            var discard_die = global.discard_pile[| i];
-	            var die_copy = clone_die(discard_die, "temporary");
+	            var die_copy = clone_die(discard_die, "");
 	            ds_list_add(global.dice_bag, die_copy);
 	        }
 	        ds_list_clear(global.discard_pile);
@@ -83,13 +83,15 @@ function deal_single_die( _can_discard_this_turn = true) {
 
 function generate_dice_bag() {
 	
+	global._die_uid_counter = 0;
+	
 	global.bag_size = 10;
 	
 	/// --- Ensure dice lists exist & are empty ---
 	global.dice_bag = ds_list_create();
 	global.discard_pile = ds_list_create();
-	global.sacrifice_list = ds_list_create();
-	global.sacrifice_history = ds_list_create();
+	global.sacrifice_list = ds_list_create(); // used to track the dice sacrificed to make a new slot
+	global.sacrifice_history = ds_list_create(); // used to track ALL dice that have been sacrificed 
 	global.starter_dice_list = ds_list_create(); // used to track starter dice for game loading
 	global.master_dice_list = ds_list_create(); // used to track 1 instance of each dice type, for offering random rewards
 	global.alignment_dice_list = ds_list_create(); // used to track 1 instance of each dice type, for offering random rewards
@@ -98,6 +100,8 @@ function generate_dice_bag() {
 	global.dice_all = make_die_struct(1, 4,"None", "All", "", "Multicolor die", "Counts as anything", "starter");
 	global.dice_d4_none = make_die_struct(1, 4,"None", "None", "", "Generic die", "Upgrades any action type", "starter");
 	ds_list_add(global.starter_dice_list, clone_die(global.dice_d4_none, ""));
+	global.dice_d6_none = make_die_struct(1, 6,"None", "None", "", "Generic die", "Upgrades any action type", "starter");
+	ds_list_add(global.starter_dice_list, clone_die(global.dice_d6_none, ""));
 	global.dice_d6_atk = make_die_struct(1, 6,"ATK", "ATK", "", "Attack", "Deals damage", "starter");
 	ds_list_add(global.starter_dice_list, clone_die(global.dice_d6_atk, ""));
 	global.dice_d4_atk = make_die_struct(1, 4,"ATK", "ATK", "", "Attack", "Deals damage", "starter");
@@ -205,9 +209,11 @@ function generate_dice_bag() {
 	            trigger: "on_dice_played_to_slot",
 	            modify: function(_context) {
 					with (oRunManager) {
-						deal_single_die();
+						if (_context._d_struct.uid == _context._die_struct_source.uid) {
+							deal_single_die();
+							oCombat.dice_allowed_this_turn_bonus++;
+						}
 					}
-					oCombat.dice_allowed_this_turn_bonus++;
 	            }
 	        }
 	    ]
@@ -258,7 +264,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount == 4 && _context.die == _context._die_struct_source) {
+					if (_context._d_amount == 4 && _context.die.uid == _context._die_struct_source.uid) {
 						_context._d_amount = 5;
 					}
 	            }
@@ -277,7 +283,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._p_slot_type == "BLK" && _context.die == _context._die_struct_source) {
+					if (_context._p_slot_type == "BLK" && _context.die.uid == _context._die_struct_source.uid) {
 	                    with (oCombat) {
 							// Deal flat damage to all enemies, we have to run this backwards in case any enemies die during this roll
 							for (var i = oCombat.enemies_left_this_combat-1; i >= 0 ; i--) {
@@ -320,7 +326,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount >= 5 && _context.die == _context._die_struct_source) {
+					if (_context._d_amount >= 5 && _context.die.uid == _context._die_struct_source.uid) {
 						with (oRunManager) deal_single_die(false); // deal a dice that can't be discarded this turn
 					}
 	            }
@@ -339,7 +345,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount == 4 && _context.die == _context._die_struct_source) {
+					if (_context._d_amount == 4 && _context.die.uid == _context._die_struct_source.uid) {
 						with (oCombat) {
 							process_action("player", 0, 2, 0, "player", undefined, "BLK");
 						}
@@ -401,7 +407,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount mod 2 == 0 && _context.die == _context._die_struct_source) {
+					if (_context._d_amount mod 2 == 0 && _context.die.uid == _context._die_struct_source.uid) {
 						global.player_hp = min(global.player_max_hp, global.player_hp + 2);
 						particle_emit(global.player_x, global.player_y, "burst", c_lime);
 						var num = spawn_floating_number("player", 2, -1, c_lime, 1, -1, 0);
@@ -726,7 +732,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount == _context.min_roll && _context.die == _context._die_struct_source) {
+					if (_context._d_amount == _context.min_roll && _context.die.uid == _context._die_struct_source.uid) {
 						apply_buff("player", oRunManager.buff_might, 1, 1, true, { source: "player", index: -1 });
 					}
 	            }
@@ -744,7 +750,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount == 3 && _context.die == _context._die_struct_source) {
+					if (_context._d_amount == 3 && _context.die.uid == _context._die_struct_source.uid) {
 						apply_buff("player", oRunManager.buff_balance, 1, 1, true, { source: "player", index: -1 });
 					}
 	            }
@@ -792,7 +798,7 @@ function generate_dice_bag() {
 	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_atk, "")); }
 	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_blk, "")); }
 	
-	do { ds_list_add(global.dice_bag, clone_die(global.dice_d4_none, "")); }
+	do { ds_list_add(global.dice_bag, clone_die(global.dice_d6_none, "")); }
 	until (ds_list_size(global.dice_bag) == global.bag_size);
 }
 
@@ -874,8 +880,10 @@ function make_die_struct(_amount, _value, _action, _poss, _perm, _name, _desc, _
 			times_rolled_this_combat: 0,
 			times_played_this_combat: 0,
 			roll_history: [],			
-		}
+		},
+		uid: global._die_uid_counter++, // random id assigned to this die
     };
+	
 }
 
 /// @func clone_die(_die_struct, _perm)

@@ -3,7 +3,7 @@ global.double_tap_timer = 0;
 
 global.show_settings = false;
 
-global.resolution_index = 2;
+global.resolution_index = 0;
 
 global.resolution_options = [
     //{ w: 1280, h: 720 },
@@ -95,8 +95,6 @@ categories = [
 
 if (file_exists("settings.json")) {
 	load_settings();
-} else {
-	save_settings();
 }
 
 depth = -10000;

@@ -30,7 +30,7 @@ function stock_shop() {
 
 /// @func generate_dice_rewards(_reward_list, _item_list, _num)
 function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", _filter = "all") {
-	show_debug_message("Generating dice rewards");
+	//show_debug_message("Generating dice rewards");
 	
 	var total_dice = ds_list_size(_item_list);
 	var indices_dice_common = ds_list_create();

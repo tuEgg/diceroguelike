@@ -16,7 +16,7 @@ global.player_max_hp = 40;
 global.player_hp = global.player_max_hp;
 global.player_alignment = 50;
 global.alignment_stage = 0;
-global.hand_size = 5;
+global.hand_size = 6;
 global.player_luck = 50; // used for reward generation
 keepsakes = ds_list_create();
 keepsake_scale = ds_list_create();
@@ -130,9 +130,8 @@ items_hover = [];
 items_hover_scale = [];
 has_space_for_item = true;
 
-if (debug_mode) {
-	items[0] = clone_item(item_consumable_mirage_brew);
-}
+var core_to_gain = choose("Weighted Core", "Edge Core", "Odd Core", "Bell Core", "Dual Core");
+gain_item(clone_item(get_item_by_name(core_to_gain)));
 	
 for (var i = 0; i < max_items; i++) {
 	array_push(items_hover, 0);
@@ -272,3 +271,17 @@ ds_list_add(global.master_tool_list, tool_scissors);
 
 // Check if we are loading
 alarm[0] = 1;
+
+// Gain a random die - need to replace this with a proper dice picking screen at some point
+var dice_options = ds_list_create();
+generate_dice_rewards(dice_options, global.master_dice_list, 1);
+				
+var die_struct = dice_options[| 0];
+				
+ds_list_destroy(dice_options);
+
+var die_copy = clone_die(die_struct, "");
+
+ds_list_add(global.dice_bag, die_copy);
+	
+spawn_floating_number("bag", 0, die_struct.name + string(" gained"), die_struct.color, 0, -1, 0);

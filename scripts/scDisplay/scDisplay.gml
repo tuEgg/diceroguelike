@@ -12,7 +12,7 @@ function apply_resolution() {
 		with (oCombat) define_combat_ui_sizes();
 	}
 	
-	show_debug_message("Apply res: " + string(_res.w) + "x" + string(_res.h) + " | View: " + string(camera_get_view_width(view_camera[0])) + "x" + string(camera_get_view_height(view_camera[0])));
+	//show_debug_message("Apply res: " + string(_res.w) + "x" + string(_res.h) + " | View: " + string(camera_get_view_width(view_camera[0])) + "x" + string(camera_get_view_height(view_camera[0])));
 }
 
 function update_gui_layout() {

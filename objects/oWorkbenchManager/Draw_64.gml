@@ -154,6 +154,11 @@ switch (crafting_state) {
 					craft_col = c_lime;
 				}
 			break;
+			case "Hammered":
+				if (workbench_slot[0].dice != undefined && workbench_slot[1].dice != undefined && workbench_slot[1].core == undefined && workbench_slot[2].dice == undefined) {
+					craft_col = c_lime;
+				}
+			break;
 		}
 	
 		button_text_w = string_width(button_text);
@@ -185,7 +190,7 @@ switch (crafting_state) {
 	case "hammered":
 		if (bang_timer == 15) {
 			var new_dice = clone_die(workbench_slot[0].dice, "");
-			new_dice.distribution = workbench_slot[1].core.distribution;
+			// gain something from second die
 			workbench_slot[2].dice = new_dice;
 			workbench_slot[0].dice = undefined;
 			workbench_slot[1].core = undefined;

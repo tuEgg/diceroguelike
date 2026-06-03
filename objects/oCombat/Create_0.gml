@@ -130,7 +130,7 @@ enemies_left_this_combat = ds_list_size(oWorldManager.room_enemies);
 gui_w = display_get_gui_width();
 gui_h = display_get_gui_height();
 
-show_debug_message("global ui scale: " + string(global.ui_scale));
+//show_debug_message("global ui scale: " + string(global.ui_scale));
 
 define_combat_ui_sizes();
 
@@ -162,7 +162,7 @@ rewards_keepsake_taken = false;
 rewards_all_taken = false;
 
 dice_played = 0;
-dice_allowed_per_turn_original = 2;
+dice_allowed_per_turn_original = 4;
 dice_allowed_per_turn = dice_allowed_per_turn_original;
 dice_allowed_this_turn_bonus = 0;
 dice_played_scale = 1;

@@ -17,6 +17,6 @@ if (room == rmMap) {
 		}
 	}
 	
-	show_debug_message("Possible elites " + string(ds_list_size(possible_elites)));
-	show_debug_message("Elite list before bounty " + string(ds_list_size(elite_list_before_bounty)));
+	//show_debug_message("Possible elites " + string(ds_list_size(possible_elites)));
+	//show_debug_message("Elite list before bounty " + string(ds_list_size(elite_list_before_bounty)));
 }

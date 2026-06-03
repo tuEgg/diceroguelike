@@ -463,8 +463,8 @@ for (var i = 0; i < aq_list_size; i++) {
 				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, lerp(1.5, abs(_angle) + 1.5, 0.2), lerp(1.5, abs(_angle) + 1.5, 0.2), _angle, _col, 0.4);
 			}
 
-	        // Outline ones that are permanent
-			if (die_struct.permanence == "base") {
+	        // Outline ones that are sticky or played this turn
+			if (die_struct.permanence == "sticky" || die_struct.permanence == "base") {
 				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, 1.15, 1.15, _angle, c_black, 1);
 			}
 			
@@ -926,8 +926,8 @@ if (state != CombatState.PLAYER_DEAD) {
 	draw_intel = lerp(draw_intel, player_intel, 0.1);
 
 	var arc_start = 180;
-	var arc_end = 181 + (draw_intel / 12 * 179);
-	draw_arc_thick_deg_gradient(global.player_x, global.player_y - 175, 50, 60, arc_start, arc_end, 50, global.color_intel, make_color_rgb(210 - (player_intel / 12 * 50), 210 - (player_intel / 12 * 100), 0), 0.7);
+	var arc_end = 181 + (draw_intel / global.player_intel_data[| 4].requirement * 179);
+	draw_arc_thick_deg_gradient(global.player_x, global.player_y - 175, 50, 60, arc_start, arc_end, 50, global.color_intel, make_color_rgb(210 - (player_intel / global.player_intel_data[| 4].requirement * 50), 210 - (player_intel / global.player_intel_data[| 4].requirement * 100), 0), 0.7);
 
 	draw_set_alpha(1.0);
 	draw_set_color(c_white);
