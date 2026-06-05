@@ -1,24 +1,5 @@
-var gui_w = display_get_gui_width();
-var gui_h = display_get_gui_height();
-
-var mx = device_mouse_x_to_gui(0);
-var my = device_mouse_y_to_gui(0);
-
-// Draw "choose a tool" below toolbag
-//draw_set_font(ftDefault);
-//draw_set_halign(fa_center);
-//draw_set_valign(fa_top);
-
-//draw_outline_text("Choose a tool from your toolbag", c_black, c_white, 2, gui_w - 860, 110, 1, 1, 0);
-
-var wb_list_size = array_length(workbench_slot);
-var wb_tile_size = sprite_get_width(sActionSlotCentered);
-var wb_tile_padding = 50;
-	
-var start_x = gui_w/2 - wb_tile_padding - wb_tile_size;
-var start_y = gui_h/2 - 50;
-
 hovered_slot_1 = false;
+hovered_slot_2 = false;
 	
 for (var i = 0; i < wb_list_size; i++) {
 	
@@ -37,7 +18,7 @@ for (var i = 0; i < wb_list_size; i++) {
 	if (hovering_slot) {
 		wb_scale[i] = lerp(wb_scale[i], 1.2, 0.2);
 		
-		// Place core into slot
+		// Place core into middle slot
 		for (var n = 0; n < array_length(oRunManager.items); n++) {
 			if (oRunManager.items[n] != undefined) {
 				if (oRunManager.items[n].dragging) {
@@ -61,9 +42,13 @@ for (var i = 0; i < wb_list_size; i++) {
 		hovered_slot_1 = true;
 	}
 	
+	if (hovering_slot && i == 1) {
+		hovered_slot_2 = true;
+	}
+	
 	slot_alpha = 1.0;
 	if (instance_exists(oDice)) {
-		if (i == 1 || i == 2) {
+		if (i == 2) {
 			with (oDice) {
 				if (is_dragging) {
 					other.slot_alpha = 0.5;
@@ -94,7 +79,7 @@ for (var i = 0; i < wb_list_size; i++) {
 			core_scale = lerp(core_scale, 1.2, 0.2);
 			
 			// Pick core back up
-			if (mouse_check_button(mb_left)) {
+			if (mouse_check_button(mb_left)) || (workbench_slot[i].dice != undefined) {
 				oRunManager.items[core_prev_item_slot] = workbench_slot[i].core;
 				workbench_slot[i].core = undefined;
 			}			
@@ -190,10 +175,13 @@ switch (crafting_state) {
 	case "hammered":
 		if (bang_timer == 15) {
 			var new_dice = clone_die(workbench_slot[0].dice, "");
+			
+			new_dice.dice_value += workbench_slot[1].dice.dice_value;
+			
 			// gain something from second die
 			workbench_slot[2].dice = new_dice;
 			workbench_slot[0].dice = undefined;
-			workbench_slot[1].core = undefined;
+			workbench_slot[1].dice = undefined;
 			with (oDice) if (in_slot) instance_destroy();
 			
 			discard_dice_in_play();
@@ -201,7 +189,7 @@ switch (crafting_state) {
 			//show_debug_message("New dice created.");
 			
 			// Spawn instance
-			var xx = start_x + (2 * (wb_tile_padding + wb_tile_size));
+			var xx = workbench_slot[2].xx;
 			var die_inst = instance_create_layer(xx, start_y, "Instances", oDice);
 			die_inst.struct = new_dice;
 			die_inst.action_type = new_dice.action_type;
@@ -234,7 +222,7 @@ switch (crafting_state) {
 		//show_debug_message("New dice created.");
 			
 		// Spawn instance
-		var xx = start_x + (2 * (wb_tile_padding + wb_tile_size));
+		var xx = workbench_slot[2].xx;
 		var die_inst = instance_create_layer(xx, start_y, "Instances", oDice);
 		die_inst.struct = new_dice;
 		die_inst.action_type = new_dice.action_type;
@@ -254,20 +242,24 @@ switch (crafting_state) {
 		var new_dice = clone_die(workbench_slot[0].dice, "");
 		new_dice.dice_value = workbench_slot[0].dice.dice_value - 2;
 		
-		var base_coin = global.dice_d4_none;
+		if (new_dice.dice_value == 2) {
+			new_dice.description = string_concat("Coin. ", new_dice.description);
+		}
+		
+		var base_coin = global.dice_d2_none;
 		
 		switch(workbench_slot[0].dice.action_type) {
 			case "ATK":
-				base_coin = global.dice_d4_atk;
+				base_coin = global.dice_d2_atk;
 			break;
 			case "BLK":
-				base_coin = global.dice_d4_blk;
+				base_coin = global.dice_d2_blk;
 			break;
 			case "INTEL":
-				base_coin = global.dice_d4_intel;
+				base_coin = global.dice_d2_intel;
 			break;
 			case "HEAL":
-				base_coin = global.dice_d4_heal;
+				base_coin = global.dice_d2_heal;
 			break;
 		}
 		
@@ -284,7 +276,7 @@ switch (crafting_state) {
 		//show_debug_message("New dice created.");
 			
 		// Spawn instance
-		var coin_xx = start_x + (1 * (wb_tile_padding + wb_tile_size));
+		var coin_xx = workbench_slot[1].xx;
 		var coin_inst = instance_create_layer(coin_xx, start_y, "Instances", oDice);
 		coin_inst.struct = new_coin;
 		coin_inst.action_type = new_coin.action_type;
@@ -295,7 +287,7 @@ switch (crafting_state) {
 		coin_inst.target_y = start_y;
 		coin_inst.still = true;
 		
-		var die_xx = start_x + (2 * (wb_tile_padding + wb_tile_size));
+		var die_xx = workbench_slot[2].xx;
 		var die_inst = instance_create_layer(die_xx, start_y, "Instances", oDice);
 		die_inst.struct = new_dice;
 		die_inst.action_type = new_dice.action_type;
@@ -327,8 +319,8 @@ draw_outline_text("=", c_black, c_white, 2, gui_w/2 + wb_tile_size/2 + wb_tile_p
 
 // Draw exit button
 var exit_col = c_dkgray;
-if	(workbench_slot[2].dice != undefined && instance_number(oDice) == 0 && instance_number(oDiceParticle) == 0) ||
-	(workbench_slot[0].dice == undefined && workbench_slot[1].core == undefined && workbench_slot[2].dice == undefined) exit_col = c_red;
+if	(workbench_slot[2].dice == undefined && instance_number(oDice) == 0 && instance_number(oDiceParticle) == 0) ||
+	(workbench_slot[0].dice == undefined && workbench_slot[1].core == undefined && workbench_slot[1].dice == undefined && workbench_slot[2].dice == undefined) exit_col = c_red;
 
 var hover_exit = mouse_hovering(gui_w - 150, gui_h - 200, exit_scale*sprite_get_width(sButtonSmall)*0.75, exit_scale*sprite_get_height(sButtonSmall)*0.75, true);
 

@@ -98,6 +98,13 @@ function generate_dice_bag() {
 
 	// Define starter dice structs
 	global.dice_all = make_die_struct(1, 4,"None", "All", "", "Multicolor die", "Counts as anything", "starter");
+	
+	global.dice_d2_none = make_die_struct(1, 2,"None", "None", "", "Generic.", "Coin. Upgrades any action type", "template");
+	global.dice_d2_atk = make_die_struct(1, 2,"ATK", "ATK", "", "Attack.", "Coin. Deals damage", "template");
+	global.dice_d2_blk = make_die_struct(1, 2,"BLK", "BLK", "", "Block.", "Coin. Blocks damage", "template");
+	global.dice_d2_intel = make_die_struct(1, 2,"INTEL", "INTEL", "", "Intel.", "Coin. Provides intel", "template");
+	global.dice_d2_heal = make_die_struct(1, 2,"HEAL", "HEAL", "", "Heal.", "Coin. Heals", "template");
+	
 	global.dice_d4_none = make_die_struct(1, 4,"None", "None", "", "Generic die", "Upgrades any action type", "starter");
 	ds_list_add(global.starter_dice_list, clone_die(global.dice_d4_none, ""));
 	global.dice_d6_none = make_die_struct(1, 6,"None", "None", "", "Generic die", "Upgrades any action type", "starter");
@@ -585,45 +592,56 @@ function generate_dice_bag() {
 		100,
 	    [
 	        {
-	            trigger: "on_sacrifice_die",
-	            modify: function(_context) {
-					var consumable_options = ds_list_create();
-					
-					generate_item_rewards(consumable_options, global.master_item_list, 1, "consumable");
-				
-					gain_item(consumable_options[| 0]);
-				
-					ds_list_destroy(consumable_options);
-	            }
-	        }
+			    trigger: "on_sacrifice_die",
+			    modify: function(_context) {
+			        var consumable_options = ds_list_create();
+			        for (var i = 0; i < ds_list_size(global.master_item_list); i++) {
+			            if (global.master_item_list[| i].type == "consumable") {
+			                ds_list_add(consumable_options, global.master_item_list[| i]);
+			            }
+			        }
+			        if (ds_list_size(consumable_options) > 0) {
+			            var picked = consumable_options[| irandom(ds_list_size(consumable_options) - 1)];
+			            gain_item(clone_item(picked));
+			        }
+			        ds_list_destroy(consumable_options);
+			    }
+			}
 	    ]
 	);
 	ds_list_add(global.master_dice_list, clone_die(global.die_barrel, ""));
 	
 	global.die_harvest = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Harvest Die",
-	    "At the end of combat gain 4 gold for each die in this slot",
+	    "Gain 1 gold every time this die is either played or ejected",
 		"common",
 		85,
 	    [
 	        {
-	            trigger: "on_combat_end",
-	            modify: function(_context) {
-					var slot_num;
-					var amount;
-					// loop through all slots
-					for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
-						for (var d = 0; d < ds_list_size(oCombat.action_queue[| i].dice_list); d++) {
-							if (oCombat.action_queue[| i].dice_list[| d].name == "Harvest Die") {
-								slot_num = i;
-								amount = ds_list_size(oCombat.action_queue[| i].dice_list) * 4;
-							}
-						}
+	            trigger: "on_dice_ejected",
+	            modify: function(_context) {		
+					if (_context._ejected_die.uid == _context._die_struct_source.uid) {
+						gain_coins(_context._ejected_slot_pos_x, _context._ejected_slot_pos_y, 1);
 					}
-					
-					gain_coins(oCombat.slot_positions[| slot_num].x, oCombat.slot_positions[| slot_num].y, amount);
 	            }
-	        }
+	        },
+			{
+	            trigger: "on_dice_played_to_slot",
+	            modify: function(_context) {
+					if (_context._d_struct.uid == _context._die_struct_source.uid) {
+						gain_coins(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), 1);
+					}
+	            }
+	        },
+			{
+	            trigger: "on_sacrifice_die",
+	            modify: function(_context) {
+					if (_context._d_struct.uid == _context._die_struct_source.uid) {
+						gain_coins(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), 1);
+					}
+	            }
+	        },
+			
 	    ]
 	);
 	ds_list_add(global.master_dice_list, clone_die(global.die_harvest, ""));
@@ -1050,12 +1068,14 @@ function trigger_die_effects_single(_die_struct, _event, _data) {
     if (is_array(_die_struct.effects)) {
         for (var e = 0; e < array_length(_die_struct.effects); e++) {
             var eff = _die_struct.effects[e];
+			_data._die_struct_source = _die_struct;  // the die whose effect we're about to fire
             if (eff.trigger == _event && is_callable(eff.modify)) {
                 eff.modify(_data);
             }
         }
     } else {
         var eff = _die_struct.effects;
+		_data._die_struct_source = _die_struct;  // the die whose effect we're about to fire
         if (eff.trigger == _event && is_callable(eff.modify)) {
             eff.modify(_data);
         }

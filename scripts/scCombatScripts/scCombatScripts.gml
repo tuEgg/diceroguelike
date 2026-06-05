@@ -808,6 +808,7 @@ function sacrifice_die(_die) {
 	
 	var sacrifice_data = {
 		die: die,
+		_d_struct: die_struct,
 		slot_index: ds_list_size(oCombat.action_queue) // 1 more than the highest index currently of the action queue
 	};
 	
@@ -1398,7 +1399,7 @@ function discard_dice_in_play(_all = false) {
 	}
 }
 
-/// @func combat_trigger_effects(_event, _ctx, _filter)
+/// @func combat_trigger_effects(_event, _ctx, [_filter])
 function combat_trigger_effects(_event, _ctx, _filter = "all") { // filter to either "player", a specific enemy, or "all"
 
     // 1) dice effects	
@@ -1505,6 +1506,15 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 
 			// Clone the die struct so the particle has its own independent copy
 			p.die_struct = clone_die(die, "");
+		
+			var _context = {
+				_ejected_die: die,
+				_ejected_slot: _slot,
+				_ejected_slot_pos_x: start_x,
+				_ejected_slot_pos_y: start_y,
+			}
+		
+			combat_trigger_effects("on_dice_ejected", _context);
 
 			// Remove from slot
 			ds_list_delete(_slot.dice_list, j);

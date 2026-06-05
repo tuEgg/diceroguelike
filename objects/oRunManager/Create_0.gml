@@ -258,6 +258,8 @@ tool_scissors = {
 }
 
 ds_list_add(tools, tool_drill);
+ds_list_add(tools, tool_hammer);
+ds_list_add(tools, tool_scissors);
 
 tools_scale = ds_list_create();
 ds_list_add(tools_scale, 0.5);
@@ -268,6 +270,8 @@ toolbag_scale = 1.0;
 global.master_tool_list = ds_list_create();
 ds_list_add(global.master_tool_list, tool_hammer);
 ds_list_add(global.master_tool_list, tool_scissors);
+
+can_visit_workbench = true; // allow the player to visit the workbench once between nodes
 
 // Check if we are loading
 alarm[0] = 1;

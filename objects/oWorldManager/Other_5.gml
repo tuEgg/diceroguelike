@@ -7,7 +7,10 @@ if (room == rmMap) {
 	if (nodes_cleared > 100) {
 		oRunManager.voyage++;
 	} else {
-		if (room != rmWorkbench) nodes_cleared++;
+		if (room != rmWorkbench) {
+			nodes_cleared++;
+			oRunManager.can_visit_workbench = true;
+		}
 			
 		// The second time we draft:
 		if (nodes_cleared == 1) {

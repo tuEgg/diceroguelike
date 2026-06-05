@@ -96,26 +96,54 @@ if (is_dragging) {
 	        is_dragging = false;
 		
 			with (oWorkbenchManager) { 
-				if (workbench_slot[0].dice == undefined) {
-					if (hovered_slot_1) {
+				function reject_dice() {
+					if (other.in_slot > 0) {
+						workbench_slot[other.in_slot-1].dice = undefined;
+						other.in_slot = false;
+					}
+				}
+			
+				if (hovered_slot_1) {
+					if (workbench_slot[0].dice == undefined) {
 						// Reject coins
 						if (other.struct.dice_value == 2) {
-							throw_error("Can't upgrade coins", "Coins aren't dice, they are too small to receive a core");
+							throw_error("Can't upgrade coins", "Coins are are too small to receive a core");
+							reject_dice();
 						} else {
-							workbench_slot[0].dice = other.struct;
-							other.x = workbench_slot[0].xx;
-							other.y = workbench_slot[0].yy;
-							other.in_slot = true;
+							// only accept dice that didn't come from another slot
+							if (other.in_slot == 0) {
+								workbench_slot[0].dice = other.struct;
+								other.x = workbench_slot[0].xx;
+								other.y = workbench_slot[0].yy;
+								other.in_slot = 1;
+							} else {
+								reject_dice();
+							}
 						}
 					} else {
-						other.in_slot = false;
-						workbench_slot[0].dice = undefined;
+						reject_dice();
+					}
+				} else if (hovered_slot_2) {
+					if (workbench_slot[1].dice == undefined) {
+						if (workbench_slot[1].core != undefined) {
+							throw_error("Core already here", "Remove the core before placing a dice here");
+							reject_dice();
+						} else {
+							// only accept dice that didn't come from another slot
+							if (other.in_slot == 0) {
+								workbench_slot[1].dice = other.struct;
+								other.x = workbench_slot[1].xx;
+								other.y = workbench_slot[1].yy;
+								other.in_slot = 2;
+							} else {
+								reject_dice();
+							}
+						}
+					} else {
+						reject_dice();
 					}
 				} else {
-					if (other.in_slot) {
-						other.in_slot = false;
-						workbench_slot[0].dice = undefined;
-					}
+					reject_dice();
 				}
 			}
 	    }

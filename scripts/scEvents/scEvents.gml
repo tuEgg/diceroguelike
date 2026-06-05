@@ -1027,7 +1027,7 @@
 			title: "Fashion a new tool",
 			description: "Gain a random tool for the workbench.",
 			effect: function(_context) {
-				if (ds_list_size(global.master_tool_list) > 0) {
+				if (ds_list_size(global.master_tool_list) > 0 && ds_list_size(oRunManager.tools) < 3) {
 					// Generate a random tool
 					var tool_options = ds_list_create();
 					generate_tool_rewards(tool_options, global.master_tool_list, 1);

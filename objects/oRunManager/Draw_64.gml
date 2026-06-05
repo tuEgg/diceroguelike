@@ -226,8 +226,21 @@ var toolbar_hover = mouse_hovering(gui_w - 860, bar_half, sprite_get_width(sTool
 if (toolbar_hover) {
 	if mouse_check_button_pressed(mb_left) {
 		show_tools = 1 - show_tools;
+		
+		if (room == rmMap && can_visit_workbench) {
+			room_goto(rmWorkbench);
+			can_visit_workbench = false;
+		}
 	}
-	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Use tools at the workbench to upgrade your dice");
+	if (room == rmMap) {
+		if (can_visit_workbench) {
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Click to go to the workbench");
+		} else {
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Visit the workbench after completing an encounter");
+		}
+	} else {
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Holds your tools");
+	}
 }
 
 toolbag_scale = lerp(toolbag_scale, toolbar_hover ? 1.2 : 1.0, 0.1);

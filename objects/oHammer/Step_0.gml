@@ -46,8 +46,16 @@ if (is_dragging) {
 	// Check if as we smash the hammer we are over the craft button
 	if (mouse_check_button(mb_left)) { 
 		if (over_button) {
-			if (oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined) {
-				oWorkbenchManager.crafting_state = "hammered";
+			if (oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].dice != undefined && oWorkbenchManager.workbench_slot[1].core == undefined && oWorkbenchManager.workbench_slot[2].dice == undefined) {
+				if (oWorkbenchManager.workbench_slot[0].dice.dice_value + oWorkbenchManager.workbench_slot[1].dice.dice_value <= 12) {
+					if (oWorkbenchManager.workbench_slot[0].dice.action_type == oWorkbenchManager.workbench_slot[1].dice.action_type) {
+						oWorkbenchManager.crafting_state = "hammered";
+					} else {
+						throw_error("Differing types", "Dice must have the same type");
+					}
+				} else {
+					throw_error("Dice too big!", "Cannot make dice bigger than 12 sides");
+				}
 			} else {
 				oWorkbenchManager.error_shake = true;
 			}

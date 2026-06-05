@@ -364,7 +364,7 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none",
 			var coin_chance = 10;
 			
 			if (item_struct.name == "Coins" || rand_num_100 < coin_chance) {
-				if (room == rmShop || room = rmEvent) { // we don't want to generate coins as a reward in shops or events
+				if (room == rmShop || room == rmEvent) { // we don't want to generate coins as a reward in shops or events
 					continue;
 				} else {
 					item_struct = clone_item(oRunManager.item_coins);
