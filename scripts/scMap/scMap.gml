@@ -608,7 +608,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 				if (node_hover) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), node.name, node.text, sMapIcon, node.subimg, undefined);
 					 
-					if (mouse_check_button_pressed(mb_left) && node_to_move_to == undefined) {
+					if (mouse_check_button_pressed(mb_left) && node_to_move_to == undefined && global.ui_layer == UI_LAYER.BASE) {
 						if (node == next_node) {
 							node_to_move_to = node;
 							node_to_move_to.y += 10;

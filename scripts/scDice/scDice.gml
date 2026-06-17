@@ -126,7 +126,7 @@ function generate_dice_bag() {
 	    1, 6, "BLK", "BLK", "", "Anchor die",
 	    "Stowaway: +5 block if not used.",
 		"common",
-		60,
+		30,
 	    [
 	        {
 	            trigger: "on_not_used",
@@ -145,7 +145,7 @@ function generate_dice_bag() {
 	    1, 4, "ATK", "ATK", "", "Slipstream die",
 	    "Stowaway: Play 1 extra dice next turn.",
 		"common",
-		70,
+		40,
 	    [
 	        {
 	            trigger: "on_not_used",
@@ -162,7 +162,7 @@ function generate_dice_bag() {
 	    1, 2, "HEAL", "HEAL BLK", "", "Defensive coin",
 	    "Coin. Favourite. Multitype: Can create HEAL and BLK slots.",
 		"rare",
-		100,
+		70,
 	    []
 	);
 	ds_list_add(global.master_dice_list, clone_die(global.die_defensive, ""));
@@ -172,7 +172,7 @@ function generate_dice_bag() {
 	    1, 6, "ATK", "ATK", "", "Tidebreaker die",
 	    "Followthrough: If previous slot was BLK, deal +2 damage to attacking rolls.",
 		"common",
-		80,
+		50,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -191,7 +191,7 @@ function generate_dice_bag() {
 	    1, 2, "BLK", "BLK", "", "Power penny",
 	    "Coin. +1 bonus to this coin for the number of dice in this slot.",
 		"common",
-		80,
+		50,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -210,7 +210,7 @@ function generate_dice_bag() {
 	    1, 4, "None", "None", "", "Invisible die",
 	    "When Played: draw 1 dice and play +1 dice this turn.",
 		"common",
-		60,
+		30,
 	    [
 	        {
 	            trigger: "on_dice_played_to_slot",
@@ -232,7 +232,7 @@ function generate_dice_bag() {
 	    1, 4, "BLK", "BLK", "", "Surge die",
 	    "+1 bonus to this dice for every subsequent slot.",
 		"uncommon",
-		70,
+		40,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -249,7 +249,7 @@ function generate_dice_bag() {
 	    1, 2, "ATK", "ATK", "", "Kill coin",
 	    "Coin. +2 bonus if placed in the last slot in your queue.",
 		"uncommon",
-		70,
+		40,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -266,7 +266,7 @@ function generate_dice_bag() {
 	    1, 4, "HEAL", "HEAL", "", "Tidepusher die",
 	    "Exclusive. If this die rolls a 4, heal 1 more.",
 		"rare",
-		120,
+		90,
 	    [
 	        {
 	            trigger: "after_roll_die",
@@ -285,7 +285,7 @@ function generate_dice_bag() {
 	    1, 8, "BLK", "BLK", "", "Bulwark die",
 	    "Followthrough: If previous slot was block, deal double this die's minimum roll as damage to all enemies.",
 		"rare",
-		100,
+		70,
 	    [
 	        {
 	            trigger: "after_roll_die",
@@ -311,7 +311,7 @@ function generate_dice_bag() {
 	    1, 8, "ATK", "ATK", "", "Crescendo die",
 	    "Increase this die's minimum roll by 1 (up to 4) each time it rolls (resets each combat).",
 		"rare",
-		110,
+		80,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -328,7 +328,7 @@ function generate_dice_bag() {
 	    1, 6, "None", "None", "", "Squall die",
 	    "If this die rolls 5 or higher, draw a die.",
 		"common",
-		80,
+		50,
 	    [
 	        {
 	            trigger: "after_roll_die",
@@ -347,7 +347,7 @@ function generate_dice_bag() {
 	    1, 4, "BLK", "BLK", "", "Reed snap die",
 	    "If this die rolls a 4, gain 2 block.",
 		"common",
-		60,
+		30,
 	    [
 	        {
 	            trigger: "after_roll_die",
@@ -368,7 +368,7 @@ function generate_dice_bag() {
 	    1, 6, "ATK", "ATK", "", "Blood Reef die",
 	    "If this deals damage, gain +2 damage but lose 1 HP.",
 		"rare",
-		110,
+		80,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -390,7 +390,7 @@ function generate_dice_bag() {
 	    1, 4, "ATK", "ATK", "", "Muzzle die",
 	    "Followthrough: +1 bonus to this dice for every previous slot",
 		"uncommon",
-		90,
+		60,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -409,7 +409,7 @@ function generate_dice_bag() {
 	    1, 6, "None", "None", "", "Bilge die",
 	    "Sticky. If this roll is even, heal 2.",
 		"rare",
-		110,
+		80,
 	    [
 	        {
 	            trigger: "after_roll_die",
@@ -432,7 +432,7 @@ function generate_dice_bag() {
 	    1, 4, "None", "None", "", "Sticky die",
 	    "Sticky.",
 		"uncommon",
-		80,
+		50,
 		[]
 	);
 	ds_list_add(global.master_dice_list, clone_die(global.die_sticky, ""));
@@ -442,7 +442,7 @@ function generate_dice_bag() {
 	    1, 4, "BLK", "BLK", "", "Fogcaller Die",
 	    "Followthrough: Gain +1 and draw a dice if the previous slot contained a coin.",
 		"common",
-		70,
+		40,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -476,7 +476,7 @@ function generate_dice_bag() {
 	    1, 6, "None", "None", "", "Deepdiver Die",
 	    "When played: discard all remaining dice in play then draw 2 more.",
 		"uncommon",
-		80,
+		50,
 	    [
 	        {
 	            trigger: "on_dice_played_to_slot",
@@ -498,7 +498,7 @@ function generate_dice_bag() {
 	    1, 4, "INTEL", "INTEL", "", "Inteli Die",
 	    "Gain +1 for each unique action in the action queue",
 		"uncommon",
-		80,
+		50,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -528,7 +528,7 @@ function generate_dice_bag() {
 	    1, 6, "BLK", "BLK INTEL", "", "Deflect Die",
 	    "Multitype. Can create BLK and INTEL slots.",
 		"uncommon",
-		100,
+		70,
 		[]
 	);
 	ds_list_add(global.master_dice_list, clone_die(global.die_deflect, ""));
@@ -537,7 +537,7 @@ function generate_dice_bag() {
 	    1, 4, "BLK", "BLK", "", "Bolster Die",
 	    "When sacrificed: gain block equal to double this die's max value",
 		"common",
-		80,
+		50,
 	    [
 	        {
 	            trigger: "on_sacrifice_die",
@@ -555,7 +555,7 @@ function generate_dice_bag() {
 	    1, 4, "None", "None", "", "Echo Die",
 	    "When played: create another copy of this dice in the sacrificed slot",
 		"rare",
-		90,
+		60,
 	    [
 	        {
 	            trigger: "on_dice_played_to_slot",
@@ -571,7 +571,7 @@ function generate_dice_bag() {
 	    1, 4, "ATK", "ATK", "", "Accurate Die",
 	    "Rolls itself twice and takes the higher of the two",
 		"common",
-		70,
+		40,
 	    [
 	        {
 				trigger: "on_roll_die",
@@ -589,7 +589,7 @@ function generate_dice_bag() {
 	    1, 6, "BLK", "BLK", "", "Barrel Die",
 	    "When sacrificed: generate a random potion",
 		"rare",
-		100,
+		70,
 	    [
 	        {
 			    trigger: "on_sacrifice_die",
@@ -615,7 +615,7 @@ function generate_dice_bag() {
 	    1, 6, "BLK", "BLK", "", "Harvest Die",
 	    "Gain 1 gold every time this die is either played or ejected",
 		"common",
-		85,
+		50,
 	    [
 	        {
 	            trigger: "on_dice_ejected",
@@ -650,7 +650,7 @@ function generate_dice_bag() {
 	    1, 6, "INTEL", "INTEL", "", "Lookout die",
 	    "Stowaway: Gain 3 intel.",
 		"common",
-		70,
+		40,
 	    [
 	        {
 	            trigger: "on_not_used",
@@ -670,7 +670,7 @@ function generate_dice_bag() {
 	    1, 4, "ATK", "ATK", "", "Bouncing Die",
 	    "When this die rolls to deal damage, randomly change targets",
 		"common",
-		70,
+		40,
 	    [
 	        {
 				trigger: "on_roll_die",
@@ -705,7 +705,7 @@ function generate_dice_bag() {
 	    1, 2, "INTEL", "INTEL", "", "Guerrilla Coin",
 	    "Coin. When sacrificed, deal damage to a random enemy equal to the amount of intel you have.",
 		"common",
-		70,
+		40,
 	    [
 	        {
 				trigger: "on_sacrifice_die",
@@ -725,7 +725,7 @@ function generate_dice_bag() {
 	    1, 6, "INTEL", "INTEL", "", "Radar die",
 	    "When sacrificed, gain 3 intel for the next 2 turns.",
 		"common",
-		70,
+		40,
 	    [
 	        {
 	            trigger: "on_sacrifice_die",
@@ -745,7 +745,7 @@ function generate_dice_bag() {
 	    1, 6, "ATK", "ATK", "", "Offhand die",
 	    "Gain 1 might next turn if this dice rolls its minimum value",
 		"common",
-		60,
+		30,
 	    [
 	        {
 	            trigger: "after_roll_die",
@@ -763,7 +763,7 @@ function generate_dice_bag() {
 	    1, 6, "BLK", "BLK", "", "Balanced die",
 	    "Gain 1 balance next turn if this dice rolls a 3",
 		"common",
-		60,
+		30,
 	    [
 	        {
 	            trigger: "after_roll_die",
@@ -781,7 +781,7 @@ function generate_dice_bag() {
 	    1, 8, "None", "None", "", "Holy die",
 	    "Alignment: The higher your alignment, the higher this dice's mininimum roll",
 		"rare",
-		60,
+		30,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -797,7 +797,7 @@ function generate_dice_bag() {
 	    1, 6, "None", "None", "", "Unholy die",
 	    "Alignment: The lower your alignment, the higher this dice's maximum roll",
 		"rare",
-		60,
+		30,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -810,13 +810,13 @@ function generate_dice_bag() {
 	ds_list_add(global.alignment_dice_list, clone_die(global.die_unholy, ""));
 	
 	// Add to bag - STARTING DICE SET HERE
-	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_atk, "")); }
-	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_blk, "")); }
+	repeat(3)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_atk, "")); }
+	repeat(3)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_blk, "")); }
 	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_intel, "")); }
-	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_atk, "")); }
-	repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_blk, "")); }
+	//repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_atk, "")); }
+	//repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_blk, "")); }
 	
-	do { ds_list_add(global.dice_bag, clone_die(global.dice_d6_none, "")); }
+	do { ds_list_add(global.dice_bag, clone_die(global.dice_d4_none, "")); }
 	until (ds_list_size(global.dice_bag) == global.bag_size);
 }
 

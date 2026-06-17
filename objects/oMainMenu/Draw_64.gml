@@ -46,7 +46,7 @@ if (room == rmMainMenu && !global.all_input_disabled) {
 		}
 	} else {
 		for (var i = 0; i < array_length(menu); i++) {
-		var menu_item = draw_gui_button(menu_x - button_w/2, menu_y + (vertical_spacer * i) - button_h/2, button_w, button_h, menu[i].scale, menu[i].title, make_color_rgb(60, 78, 181), ftBig, menu[i].flag, "hover", soClick1, soClick4);
+		var menu_item = draw_gui_button(menu_x - button_w/2, menu_y + (vertical_spacer * i) - button_h/2, button_w, button_h, menu[i].scale, menu[i].title, make_color_rgb(60, 78, 181), ftBig, menu[i].flag, "hover", UI_LAYER.BASE, soClick1, soClick4);
 		draw_set_color(c_white);
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);

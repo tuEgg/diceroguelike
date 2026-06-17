@@ -44,7 +44,7 @@ function choose_weighting_list(list) {
 ///
 /// @returns { hover: bool, click: bool, scale: real, x: real, y: real, w: real, h: real }
 
-function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rect, _hover_sound = noone, _click_sound = soClick2) {
+function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rect, _layer = UI_LAYER.BASE, _hover_sound = noone, _click_sound = soClick2) {
 	
 	// this function needs to be deprecated soon as its leftover from when we originally first did buttons
     var mx = device_mouse_x_to_gui(0);
@@ -60,7 +60,7 @@ function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _f
 	var hover = false;
 	
 	if (_active) {
-		hover = mouse_hovering(draw_x, draw_y, w, h, false, _hover_sound, _click_sound, !global.main_input_disabled, string(_x) + "," + string(_y));
+		hover = mouse_hovering(draw_x, draw_y, w, h, false, _hover_sound, _click_sound, !global.all_input_disabled, _layer, string(_x) + "," + string(_y));
 	}
 	
     var click = hover && mouse_check_button_pressed(mb_left);
@@ -821,8 +821,8 @@ function parse_text_with_keywords(str) {
     return out;
 }
 
-/// @function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound = noone, _click_sound = soClick4, _conditions_met = true, _id = undefined)
-function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound = noone, _click_sound = soClick4, _conditions_met = true, _id = undefined) {
+/// @function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound = noone, _click_sound = soClick4, _conditions_met = true, _layer = UI_LAYER.BASE, _id = undefined)
+function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound = noone, _click_sound = soClick4, _conditions_met = true, _layer = UI_LAYER.BASE, _id = undefined) {
 	var mx = device_mouse_x_to_gui(0);
 	var my = device_mouse_y_to_gui(0);
 	
@@ -833,11 +833,13 @@ function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound = noone
 	}
 	
 	// This disables inputs for anything when main_input_disabled is true and we aren't the oRunManager object
-	if (global.main_input_disabled && id.object_index != oRunManager) {
+	if (global.all_input_disabled && id.object_index != oRunManager) {
 		return false;
 	}
 	
-	if (!_conditions_met) return;
+	if (!_conditions_met) return false;
+	
+	if (global.ui_layer > _layer) return false;
 	
 	//draw_set_colour(c_black);
 	//draw_set_alpha(0.2);

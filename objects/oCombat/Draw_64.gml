@@ -69,6 +69,7 @@ var play_btn = draw_gui_button(
     ftDefault,
     (state == CombatState.PLAYER_INPUT) && !show_rewards,         // active
 	false,
+	UI_LAYER.BASE,
 	soSlotHover,
 	noone
 );
@@ -117,14 +118,14 @@ for (var i = 0; i < aq_list_size; i++) {
     var draw_y = base_y + (base_h - draw_h) / 2;
 
     // Hover check based on *scaled* rectangle
-	var hover = mouse_hovering(draw_x, draw_y, draw_w, draw_h, false, soSlotHover, noone, !show_rewards, string(base_x) + "," + string(base_y));
+	var hover = mouse_hovering(draw_x, draw_y, draw_w, draw_h, false, soSlotHover, noone, !show_rewards, UI_LAYER.BASE, string(base_x) + "," + string(base_y));
     //var hover = (mx > draw_x && mx < draw_x + draw_w && my > draw_y && my < draw_y + draw_h && !show_rewards);
 	
 	if (hover) {
 		hovered_slot = i;
 	}
 	
-	if (global.main_input_disabled || global.all_input_disabled) hover = false;
+	if (global.ui_layer > UI_LAYER.BASE) hover = false;
 
     // Smooth scale update
     var target_scale = hover ? 1.2 : 1.0;
@@ -403,7 +404,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	    var last_y = base_y + ((base_h - last_h) / 2);
 
 	    // Hover check basesd on *scaled* rectangle
-		last_hover = mouse_hovering(last_x, last_y, last_w, last_h, false, soSlotHover, noone, !show_rewards, string(lx));
+		last_hover = mouse_hovering(last_x, last_y, last_w, last_h, false, soSlotHover, noone, !show_rewards, UI_LAYER.BASE, string(lx));
 	    //last_hover = (mx > last_x && mx < last_x + last_w && my > last_y && my < last_y + last_h && !show_rewards);
 
 	    // Smooth scale update
@@ -1078,7 +1079,8 @@ if (show_rewards) {
 			        c_white,
 			        ftDefault,
 			        !rewards_keepsake_taken,         // active
-					false
+					false,
+					UI_LAYER.POPUP
 			    );
 
 			    // Update scale for animation
@@ -1163,7 +1165,8 @@ if (show_rewards) {
 			        die.color,
 			        ftDefault,
 			        !rewards_dice_taken,         // active
-					false
+					false,
+					UI_LAYER.POPUP
 			    );
 
 			    // Update scale for animation
@@ -1259,7 +1262,8 @@ if (show_rewards) {
 			        c_white,
 			        ftDefault,
 			        !consumable.taken,         // active
-					false
+					false,
+					UI_LAYER.POPUP
 			    );
 
 			    // Update scale for animation
@@ -1394,7 +1398,7 @@ if (show_rewards) {
 	var next_x = gui_w - 300;
 	var next_y = gui_h/2;
 	
-	var next_hover = mouse_hovering(next_x, next_y, sprite_get_width(sButtonSmall), sprite_get_height(sButtonSmall), true);
+	var next_hover = mouse_hovering(next_x, next_y, sprite_get_width(sButtonSmall), sprite_get_height(sButtonSmall), true, noone, soClick4, true, UI_LAYER.POPUP);
 	
 	var next_btn_col = c_lime;
 	if (rewards_stage == ds_list_size(reward_list)) next_btn_col = c_red;

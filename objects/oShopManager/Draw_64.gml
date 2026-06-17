@@ -145,51 +145,53 @@ for (var k = 0; k < ds_list_size(shop_keepsake_options); k++) {
 	kx += 130;
 }
 
-for (var t = 0; t < ds_list_size(shop_tool_options); t++) {
-	var tool = shop_tool_options[| t];
-	var width = shop_tool_scale[| t] * sprite_get_width(sHammer) * 0.5;
-	var height =  shop_tool_scale[| t] * sprite_get_height(sHammer) * 0.5;
+if (ds_list_size(oRunManager.tools) < 3) {
+	for (var t = 0; t < ds_list_size(shop_tool_options); t++) {
+		var tool = shop_tool_options[| t];
+		var width = shop_tool_scale[| t] * sprite_get_width(sHammer) * 0.5;
+		var height =  shop_tool_scale[| t] * sprite_get_height(sHammer) * 0.5;
 	
-	if (tool != undefined) {
-		var hover_tool = mouse_hovering(tx, ty, width, height, true);
-		shop_tool_scale[| t] = lerp(shop_tool_scale[| t], hover_tool ? 1.2 : 1.0, 0.2);
+		if (tool != undefined) {
+			var hover_tool = mouse_hovering(tx, ty, width, height, true);
+			shop_tool_scale[| t] = lerp(shop_tool_scale[| t], hover_tool ? 1.2 : 1.0, 0.2);
 	
-		draw_set_alpha(0.4);
-		draw_set_color(c_black);
-		draw_ellipse(tx - sprite_get_width(sHammer)/2, ty + sprite_get_height(sHammer)/2 - 15, tx + sprite_get_width(sHammer)/2, ty + sprite_get_height(sHammer)/2 - 3, false);
-		draw_sprite_ext(tool.sprite, 0, tx, ty, shop_tool_scale[| t] * 0.5, shop_tool_scale[| t] * 0.5, 0, c_white, 1.0);
+			draw_set_alpha(0.4);
+			draw_set_color(c_black);
+			draw_ellipse(tx - sprite_get_width(sHammer)/2, ty + sprite_get_height(sHammer)/2 - 15, tx + sprite_get_width(sHammer)/2, ty + sprite_get_height(sHammer)/2 - 3, false);
+			draw_sprite_ext(tool.sprite, 0, tx, ty, shop_tool_scale[| t] * 0.5, shop_tool_scale[| t] * 0.5, 0, c_white, 1.0);
 	
-		// Draw cost
-		draw_sprite_ext(sCoin, 0, tx + coin_offset_x, ty + coin_offset_y, shop_tool_scale[| t] * coin_scale, shop_tool_scale[| t] * coin_scale, 0, c_white, 1.0);
-		draw_set_halign(fa_left);
-		draw_set_valign(fa_middle);
-		draw_set_font(ftBig);
-		var cost_col = tool.price > oRunManager.credits ? c_red : c_white;
-		draw_outline_text(tool.price, c_black, cost_col, 2, tx, ty + coin_offset_y, shop_tool_scale[| t], 1.0, 0);
+			// Draw cost
+			draw_sprite_ext(sCoin, 0, tx + coin_offset_x, ty + coin_offset_y, shop_tool_scale[| t] * coin_scale, shop_tool_scale[| t] * coin_scale, 0, c_white, 1.0);
+			draw_set_halign(fa_left);
+			draw_set_valign(fa_middle);
+			draw_set_font(ftBig);
+			var cost_col = tool.price > oRunManager.credits ? c_red : c_white;
+			draw_outline_text(tool.price, c_black, cost_col, 2, tx, ty + coin_offset_y, shop_tool_scale[| t], 1.0, 0);
 	
-		if (hover_tool) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc);
+			if (hover_tool) {
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc);
 		
-			if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= tool.price) {
-				oRunManager.credits -= tool.price;
+				if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= tool.price) {
+					oRunManager.credits -= tool.price;
 				
-				ds_list_add(oRunManager.tools, tool);
-				ds_list_add(oRunManager.tools_scale, 0.5);
+					ds_list_add(oRunManager.tools, tool);
+					ds_list_add(oRunManager.tools_scale, 0.5);
 				
-				shop_tool_options[| t] = undefined;
+					shop_tool_options[| t] = undefined;
 				
-				oRunManager.show_tools = true;
+					oRunManager.show_tools = true;
 						
-				var tool_index = ds_list_find_index(global.master_tool_list, tool);
-				show_debug_message("tool index: " + string(tool_index));
+					var tool_index = ds_list_find_index(global.master_tool_list, tool);
+					show_debug_message("tool index: " + string(tool_index));
 				
-				ds_list_delete(global.master_tool_list, tool_index);
-				show_debug_message(ds_list_size(global.master_tool_list));
+					ds_list_delete(global.master_tool_list, tool_index);
+					show_debug_message(ds_list_size(global.master_tool_list));
+				}
 			}
 		}
-	}
 	
-	kx += 130;
+		kx += 130;
+	}
 }
 
 // Draw exit 1761 622

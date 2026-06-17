@@ -1,0 +1,26 @@
+{
+  "$GMSound":"v2",
+  "%Name":"sIntro",
+  "audioGroupId":{
+    "name":"audiogroup_music",
+    "path":"audiogroups/audiogroup_music",
+  },
+  "bitDepth":1,
+  "channelFormat":0,
+  "compression":0,
+  "compressionQuality":4,
+  "conversionMode":0,
+  "duration":18.414967,
+  "exportDir":"",
+  "name":"sIntro",
+  "parent":{
+    "name":"Cutscenes",
+    "path":"folders/sounds/Cutscenes.yy",
+  },
+  "preload":false,
+  "resourceType":"GMSound",
+  "resourceVersion":"2.0",
+  "sampleRate":44100,
+  "soundFile":"sIntro.wav",
+  "volume":1.0,
+}

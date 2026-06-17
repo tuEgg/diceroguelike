@@ -139,7 +139,7 @@ switch (crafting_state) {
 					craft_col = c_lime;
 				}
 			break;
-			case "Hammered":
+			case "Combine":
 				if (workbench_slot[0].dice != undefined && workbench_slot[1].dice != undefined && workbench_slot[1].core == undefined && workbench_slot[2].dice == undefined) {
 					craft_col = c_lime;
 				}

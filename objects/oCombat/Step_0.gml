@@ -624,7 +624,7 @@ switch (state) {
 	
 	case CombatState.PLAYER_DEAD:
 		discard_dice_in_play();
-		global.main_input_disabled = true;
+		global.all_input_disabled = true;
 	break;
 }
 		

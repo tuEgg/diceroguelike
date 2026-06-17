@@ -4,6 +4,163 @@ gui_h = display_get_gui_height();
 var bar_height = sprite_get_height(sTopBar) - 3;
 var bar_half = bar_height/2;
 
+// New run offering
+if (new_run_offering) {
+	draw_set_alpha(0.9);
+	draw_set_color(c_black);
+	draw_rectangle(0, 70, gui_w, gui_h, false);
+	
+	var reward_width = 1200;
+	var reward_height = 550;
+	
+	draw_set_alpha(1.0);
+	draw_set_color(c_white);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_top);
+	draw_set_font(ftBigger);
+	draw_outline_text("New Run Offering", c_black, c_white, 2, gui_w/2, gui_h/2 - 200, 1, 1, 0);
+	
+	draw_set_font(ftDefault);
+	draw_outline_text("Choose one die and core pair", c_black, c_white, 2, gui_w/2, gui_h/2 - 140, 1, 1, 0);
+	
+	for (var r = 0; r < array_length(offering); r++) {
+		var die = offering[r].dice;
+		var core = offering[r].core;
+		var die_scale = offering[r].dice_scale;
+		var core_scale = offering[r].core_scale;
+		var bg_scale = offering[r].bg_scale;
+
+		// --- Layout ---
+		var reward_w = 70;
+		var reward_h = 70;
+		var reward_padding = 210;
+		var reward_total_w = (array_length(offering) * reward_w) + ((array_length(offering) - 1) * reward_padding);
+		var reward_x = gui_w / 2 - (reward_total_w / 2);
+		var base_x = reward_x + (r * (reward_w + reward_padding));
+		var base_y = gui_h/2;
+		var base_w = reward_w;
+		var base_h = reward_h;
+		
+		// --- Draw dice sprite using hoverable scaling ---
+		var bg_btn = draw_gui_button(
+			base_x - 55, base_y - 55,
+			base_w + 110, base_h + 110,
+			bg_scale,
+			"", // no text (we’ll draw sprite manually)
+			die.color,
+			ftDefault,
+			true,         // active
+			false,
+			UI_LAYER.POPUP,
+		);
+		
+		offering[r].bg_scale = bg_btn.scale;
+				
+		// Draw background sprite
+		var btn_col = make_colour_rgb(52, 55, 73);
+		var wobble = sin(((current_time / 1000) + r) * 3) * 3;
+		draw_sprite_ext(sRewardFrame, 0, base_x + base_w/2, base_y + base_w/2 - 10, bg_scale * 0.8, bg_scale * 0.8, wobble, btn_col, 1.0);
+
+		// --- Draw dice sprite using hoverable scaling ---
+		var dice_btn = draw_gui_button(
+			base_x - 20, base_y - 30,
+			base_w, base_h,
+			die_scale,
+			"", // no text (we’ll draw sprite manually)
+			die.color,
+			ftDefault,
+			true,         // active
+			false,
+			UI_LAYER.POPUP,
+		);
+
+		// Update scale for animation
+		offering[r].dice_scale = dice_btn.scale;
+
+		// --- Choose sprite index based on dice value ---
+		var spr_index = get_dice_index( die.dice_value );
+
+		// --- Draw the dice sprite ---
+		draw_sprite_ext(
+			sDice,
+			spr_index,
+			dice_btn.x + dice_btn.w / 2,
+			dice_btn.y + dice_btn.h / 2,
+			dice_btn.scale,
+			dice_btn.scale,
+			0,
+			get_dice_color(die.possible_type),
+			1.0
+		);
+		
+		draw_dice_keywords(die, dice_btn.x + dice_btn.w / 2, dice_btn.y + dice_btn.h / 2, 1, 1.0);
+		
+		if (dice_btn.hover) {
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die.name, die.description, undefined, 0, die);
+		}
+		
+		var core_btn = draw_gui_button(
+			base_x + 35, base_y + 25,
+			base_w, base_h,
+			core_scale,
+			"", // no text (we’ll draw sprite manually)
+			die.color,
+			ftDefault,
+			true,         // active
+			false,
+			UI_LAYER.POPUP,
+		);
+		
+		// --- Draw the core sprite ---
+		draw_sprite_ext(
+			sCores,
+			core.index,
+			core_btn.x + core_btn.w / 2,
+			core_btn.y + core_btn.h / 2,
+			core_btn.scale,
+			core_btn.scale,
+			0,
+			c_white,
+			1.0
+		);
+
+		// Update scale for animation
+		offering[r].core_scale = core_btn.scale;
+		
+		if (core_btn.hover) {
+			var cored_die = undefined;
+			cored_die = clone_die(global.dice_d6_atk, "");
+			cored_die.distribution = core.distribution;
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), core.name, core.description, undefined, 0, cored_die);
+		}
+		
+				// --- Draw dice name ---
+		var label = string(die.name);
+		var core_label = string(core.name);
+		draw_set_color(c_white);
+		draw_set_alpha(1.0);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_set_font(ftDefault);
+		draw_text(bg_btn.x + bg_btn.w / 2, bg_btn.y + bg_btn.h + 70, label + " &\n " + core_label);
+		
+		// --- Click logic: Take reward ---
+		if (bg_btn.click || dice_btn.click || core_btn.click) {
+			var p = instance_create_layer(core_btn.x + core_btn.w / 2, core_btn.y + core_btn.h / 2, "Instances", oDiceParticle);
+			p.target_x = global.gui.play_w;
+			p.target_y = gui_h - global.gui.play_h / 2;
+			p.color_main = die.color;
+			p.die_struct = clone_die(die, "");
+			
+			gain_item(clone_item(core));
+
+			new_run_offering = false;
+			global.ui_layer = UI_LAYER.BASE;
+			global.bag_size++;
+		}
+	}
+}
+
 // Draw top bar
 var bar_scale_w = global.ui_scale;
 draw_sprite_ext(sTopBar, 1, -3*bar_scale_w, -4, bar_scale_w, 1, 0, c_white, 1);
@@ -106,7 +263,7 @@ for (var i = 0; i < array_length(items); i++) {
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), items[i].name, items[i].description, undefined, 0, die);
 		}
 		
-		if (!global.main_input_disabled) {
+		if (global.ui_layer == UI_LAYER.BASE) {
 			if (items_hover[i] && mouse_check_button(mb_left)) {
 				items[i].show_item_delete_confirmation = false;
 			}
@@ -444,15 +601,15 @@ draw_set_font(ftBig);
 draw_text(70, gui_h - 55, string(ds_list_size(global.dice_bag)));
 
 if (bag_hover) {
-	if (mouse_check_button_pressed(mb_left)) {
+	if (mouse_check_button_pressed(mb_left) && !global.all_input_disabled) {
 		bag_hover_locked = 1 - bag_hover_locked;
 		bag_to_show = global.dice_bag;
+		global.ui_layer = UI_LAYER.BAG;
 	}
 	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Click to open", "Details all the dice you have in your bag");
 }
 
 if (bag_hover_locked) {
-	
 	var bag_inner_padding = 200; // offset from the edges to start drawing dice
 	var bag_outer_padding = 170;
 	
@@ -702,6 +859,7 @@ if (bag_hover_locked) {
 	}
 } else {
 	dice_hover = undefined;
+	global.ui_layer = UI_LAYER.BASE;
 }
 	
 if (dice_selection != false) {

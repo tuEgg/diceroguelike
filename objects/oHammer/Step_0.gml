@@ -17,7 +17,7 @@ if (!is_dragging && hovered && mouse_check_button_pressed(mb_left) && !oRunManag
 	drag_offset_x = mx - x;
 	drag_offset_y = my - y;
 	first_selected = true;
-	oWorkbenchManager.button_text = "Craft";
+	oWorkbenchManager.button_text = "Combine";
 }
 
 if (is_dragging && mouse_check_button_pressed(mb_right)) {
@@ -27,7 +27,6 @@ if (is_dragging && mouse_check_button_pressed(mb_right)) {
 // --- Dragging movement ---
 if (is_dragging) {
 	oRunManager.holding_item = true;
-    x = mx;
     y = my;
 	
 	// Smash the hammer

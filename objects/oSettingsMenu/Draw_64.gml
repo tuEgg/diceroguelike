@@ -36,7 +36,7 @@ if (global.show_settings) {
 		var col = c_dkgray;
 		if (i == category_index) col = c_aqua;
 		
-		var category_btn = draw_gui_button(cat_x, cat_y, cat_w, cat_h, category.scale, category.name, col, ftBig, true, true);
+		var category_btn = draw_gui_button(cat_x, cat_y, cat_w, cat_h, category.scale, category.name, col, ftBig, true, true, UI_LAYER.SETTINGS);
 		
 		category.scale = category_btn.scale;
 		

@@ -1,5 +1,12 @@
-global.main_input_disabled = false; // allows you to interact with menus and the bag screen without affecting elements behind it
-global.all_input_disabled = false; // prevents player from doing anything
+enum UI_LAYER {
+    BASE,
+    POPUP,
+    BAG,
+    SETTINGS
+}
+global.ui_layer = UI_LAYER.BASE;
+global.all_input_disabled = false;
+
 global.loading_game = false;
 
 active_menu_item = -1;

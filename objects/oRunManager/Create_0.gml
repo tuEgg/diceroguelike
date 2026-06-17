@@ -129,9 +129,6 @@ items = [undefined, undefined, undefined];
 items_hover = [];
 items_hover_scale = [];
 has_space_for_item = true;
-
-var core_to_gain = choose("Weighted Core", "Edge Core", "Odd Core", "Bell Core", "Dual Core");
-gain_item(clone_item(get_item_by_name(core_to_gain)));
 	
 for (var i = 0; i < max_items; i++) {
 	array_push(items_hover, 0);
@@ -247,7 +244,6 @@ tool_drill = {
 	object: oDrill
 }
 
-
 tool_scissors = {
 	name: "The Cutters",
 	desc: "Cut two faces off of one of your die",
@@ -276,16 +272,30 @@ can_visit_workbench = true; // allow the player to visit the workbench once betw
 // Check if we are loading
 alarm[0] = 1;
 
-// Gain a random die - need to replace this with a proper dice picking screen at some point
+// Used for offering a dice and core at the start of a new run
+new_run_offering = true;
+global.ui_layer = UI_LAYER.POPUP;
+
+// Populate offerings with a random dice and random core pairing
+offering = [];
+var consumable_options = ds_list_create();
+generate_item_rewards(consumable_options, global.master_item_list, 3, "core");
+					
 var dice_options = ds_list_create();
-generate_dice_rewards(dice_options, global.master_dice_list, 1);
-				
-var die_struct = dice_options[| 0];
-				
-ds_list_destroy(dice_options);
+generate_dice_rewards(dice_options, global.master_dice_list, 3);
 
-var die_copy = clone_die(die_struct, "");
-
-ds_list_add(global.dice_bag, die_copy);
+for (var i = 0; i < 3; i++) {
+	var random_core = consumable_options[| i];
+	var random_die = dice_options[| i];
 	
-spawn_floating_number("bag", 0, die_struct.name + string(" gained"), die_struct.color, 0, -1, 0);
+	offering[i] = {
+		core: random_core,
+		dice: random_die,
+		core_scale: 1,
+		dice_scale: 1,
+		bg_scale: 1
+	}
+}
+
+ds_list_destroy(dice_options);
+ds_list_destroy(consumable_options);

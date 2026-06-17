@@ -1,5 +1,5 @@
 if (global.show_settings) {
-	global.all_input_disabled = true;
+	global.ui_layer = UI_LAYER.SETTINGS;
 }
 
 if (global.double_tap_timer > 0) {

@@ -5,7 +5,7 @@ if key_escape {
 		bag_hover_locked = false;
 	} else {
 		global.show_settings = 1 - global.show_settings;
-		global.all_input_disabled = 1 - global.all_input_disabled;
+		global.ui_layer = UI_LAYER.SETTINGS;
 	}
 }
 
@@ -108,8 +108,6 @@ if (error_timer > 0) {
 	error_message = "";
 	error_description = "";
 }
-
-global.main_input_disabled = bag_hover_locked;
 
 global.player_alignment = clamp(global.player_alignment, 0, 100);
 
