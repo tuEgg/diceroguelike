@@ -27,6 +27,7 @@ if (is_dragging && mouse_check_button_pressed(mb_right)) {
 // --- Dragging movement ---
 if (is_dragging) {
 	oRunManager.holding_item = true;
+	x = mx;
     y = my;
 	
 	// Smash the hammer

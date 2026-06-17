@@ -4,9 +4,6 @@ if (cutscene_state != CUTSCENE_STATE.FINISHED) exit;
 for (var i = 0; i < array_length(cutscenes); i++) {
 	var cutscene = cutscenes[i];
 	
-	var _seen = cutscene.seen ? "Yes" : "No";
-	show_debug_message("Cutscene seen? " + _seen);
-	
 	if (cutscene.seen) continue;
 	
 	var conditions_met = true; // set this to true - the cutscene will only run if none of the triggers set it to false

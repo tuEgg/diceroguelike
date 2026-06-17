@@ -308,6 +308,33 @@ if (room == rmMap) {
 	if (boat_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your ship", "Where to captain?", undefined, 0, undefined);
 	
 	draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 1, 1, boat_data.angle, c_white, 1.0);
+	
+	if (world_state == WORLD_STATE.EXPLORING) {
+		// Draw the button to visit the workbench
+		var workbench_btn = draw_gui_button(
+			gui_w - gui_w/8,
+			gui_h - gui_h/10,
+			gui_w/10,
+			gui_h/15,
+			workbench_scale,
+			"Visit the\nworkbench",
+			c_orange,
+			ftBig,
+			oRunManager.can_visit_workbench,
+			true
+		);
+		
+		if (workbench_btn.hover) {
+			workbench_scale = lerp(workbench_scale, 1.2, 0.2);
+		} else {
+			workbench_scale = lerp(workbench_scale, 1.0, 0.2);
+		}
+		
+		if (workbench_btn.click) {
+			room_goto(rmWorkbench);
+			oRunManager.can_visit_workbench = false;
+		}
+	}
 }
 
 if (debug_mode) && draw_room_chances {

@@ -4,8 +4,10 @@ if key_escape {
 	if (bag_hover_locked) {
 		bag_hover_locked = false;
 	} else {
-		global.show_settings = 1 - global.show_settings;
-		global.ui_layer = UI_LAYER.SETTINGS;
+		if (oCutsceneManager.cutscene_state == CUTSCENE_STATE.FINISHED) {
+			global.show_settings = 1 - global.show_settings;
+			global.ui_layer = UI_LAYER.SETTINGS;
+		}
 	}
 }
 

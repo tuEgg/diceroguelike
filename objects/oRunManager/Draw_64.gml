@@ -604,7 +604,14 @@ if (bag_hover) {
 	if (mouse_check_button_pressed(mb_left) && !global.all_input_disabled) {
 		bag_hover_locked = 1 - bag_hover_locked;
 		bag_to_show = global.dice_bag;
-		global.ui_layer = UI_LAYER.BAG;
+		
+		if (global.ui_layer != UI_LAYER.BAG) {
+			pre_bag_open_ui_layer = global.ui_layer;
+			global.ui_layer = UI_LAYER.BAG;
+			show_debug_message("pre_bag_open_ui_layer: " + string(pre_bag_open_ui_layer));
+		} else {
+			global.ui_layer = pre_bag_open_ui_layer;
+		}
 	}
 	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Click to open", "Details all the dice you have in your bag");
 }
@@ -859,7 +866,6 @@ if (bag_hover_locked) {
 	}
 } else {
 	dice_hover = undefined;
-	global.ui_layer = UI_LAYER.BASE;
 }
 	
 if (dice_selection != false) {

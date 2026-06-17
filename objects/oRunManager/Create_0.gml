@@ -196,6 +196,7 @@ bag_hover = false;
 bag_hover_locked = false; // used to click on the bag and lock the view
 bag_to_show = global.dice_bag;
 bag_title = "";
+pre_bag_open_ui_layer = UI_LAYER.BASE; // used for restoring the correct UI layer once the bag is closed
 scroll_y = 0;
 m_grab_y = 0;
 s_grab_y = 0;

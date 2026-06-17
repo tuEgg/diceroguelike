@@ -207,6 +207,7 @@ resting_alpha = 0;
 rest_amount = 0.25;
 
 embark_scale = 1.0;
+workbench_scale = 1.0;
 
 possible_encounters = ds_list_create();
 ds_list_add(possible_encounters, "Early 1");
