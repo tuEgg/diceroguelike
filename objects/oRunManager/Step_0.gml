@@ -6,7 +6,13 @@ if key_escape {
 	} else {
 		if (oCutsceneManager.cutscene_state == CUTSCENE_STATE.FINISHED) {
 			global.show_settings = 1 - global.show_settings;
-			global.ui_layer = UI_LAYER.SETTINGS;
+			
+			if (global.show_settings) {
+				pre_settings_open_ui_layer = global.ui_layer;
+				global.ui_layer = UI_LAYER.SETTINGS;
+			} else {
+				global.ui_layer = pre_settings_open_ui_layer;
+			}
 		}
 	}
 }

@@ -70,8 +70,8 @@ function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _f
     scale = lerp(scale, target_scale, 0.2);
 
     // --- Draw background ---
-	if (_draw_rect == true || (_draw_rect == "hover" && hover)) {
-		draw_wonky_rectangle(draw_x + w/2, draw_y + h/2, floor(w * scale), floor(h * scale), _color, c_black, _active ? 1.0 : 0.25, true, true);
+	if (_draw_rect == true || (_draw_rect == "hover" && hover)) {		
+		draw_wonky_rectangle(draw_x + w/2, draw_y + h/2, floor(w * scale), floor(h * scale), _color, c_black, _active ? 1.0 : 0.5, true, true);
 		draw_set_color(c_white);
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);
@@ -1119,7 +1119,8 @@ function draw_wonky_rectangle(_x, _y, _width, _height, _fill_col, _stroke_col, _
 			bottom_right: random_range(3, 5)  * _scale
 		}
 		
-		draw_set_alpha(_alpha);
+		// Always draw at full alpha - alpha is applied at draw time instead
+		draw_set_alpha(1.0);
 		
 		// Fill
 		var highlight_col = _fill_col;
@@ -1199,7 +1200,6 @@ function draw_wonky_rectangle(_x, _y, _width, _height, _fill_col, _stroke_col, _
 		);
 		
 		draw_set_alpha(1.0);
-		
 		surface_reset_target();
 		
 		// Pass 1: 8x -> 4x
@@ -1223,7 +1223,7 @@ function draw_wonky_rectangle(_x, _y, _width, _height, _fill_col, _stroke_col, _
 		ds_map_set(global.button_cache, _key, _cached);
 	}
 	
-	// Draw cached 2x surface at final size
+	// Draw cached 2x surface at final size, applying alpha here instead of baking it in
 	var _draw_x, _draw_y;
 	if (_centered) {
 		_draw_x = _x - _width / 2;
@@ -1233,7 +1233,7 @@ function draw_wonky_rectangle(_x, _y, _width, _height, _fill_col, _stroke_col, _
 		_draw_y = _y;
 	}
 	
-	draw_surface_ext(_cached, _draw_x, _draw_y, 0.5, 0.5, 0, c_white, 1);
+	draw_surface_ext(_cached, _draw_x, _draw_y, 0.5, 0.5, 0, c_white, _alpha);
 }
 
 

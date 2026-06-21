@@ -197,6 +197,7 @@ bag_hover_locked = false; // used to click on the bag and lock the view
 bag_to_show = global.dice_bag;
 bag_title = "";
 pre_bag_open_ui_layer = UI_LAYER.BASE; // used for restoring the correct UI layer once the bag is closed
+pre_settings_open_ui_layer = UI_LAYER.BASE; // same as above but for settings
 scroll_y = 0;
 m_grab_y = 0;
 s_grab_y = 0;
@@ -268,7 +269,7 @@ global.master_tool_list = ds_list_create();
 ds_list_add(global.master_tool_list, tool_hammer);
 ds_list_add(global.master_tool_list, tool_scissors);
 
-can_visit_workbench = true; // allow the player to visit the workbench once between nodes
+can_visit_workbench = false; // allow the player to visit the workbench once between nodes
 
 // Check if we are loading
 alarm[0] = 1;

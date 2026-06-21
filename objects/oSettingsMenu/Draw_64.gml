@@ -78,7 +78,7 @@ if (global.show_settings) {
 	if (settings_changed) {
 		cancel_txt = "Cancel";
 		
-		var save_btn = draw_gui_button(settings_x - cat_w/2, gui_h / 2 + total_settings_h / 2 - cat_h*1.5, cat_w, cat_h, save_scale, "Save", c_lime, ftBig, true, true);
+		var save_btn = draw_gui_button(settings_x - cat_w/2, gui_h / 2 + total_settings_h / 2 - cat_h*1.5, cat_w, cat_h, save_scale, "Save", c_lime, ftBig, true, true, UI_LAYER.SETTINGS);
 		save_scale = save_btn.scale;
 	
 		if (save_btn.click) {
@@ -89,7 +89,7 @@ if (global.show_settings) {
 		}
 	}
 	
-	var cancel_btn = draw_gui_button(settings_x - cat_w/2, gui_h / 2 + total_settings_h / 2 - cat_h/2, cat_w, cat_h, cancel_scale, cancel_txt, c_red, ftBig, true, true);
+	var cancel_btn = draw_gui_button(settings_x - cat_w/2, gui_h / 2 + total_settings_h / 2 - cat_h/2, cat_w, cat_h, cancel_scale, cancel_txt, c_red, ftBig, true, true, UI_LAYER.SETTINGS);
 	cancel_scale = cancel_btn.scale;
 	
 	if (cancel_btn.click) {
@@ -101,7 +101,7 @@ if (global.show_settings) {
 	}
 	
 	// draw quit game button
-	var quit_btn = draw_gui_button(settings_x + total_settings_w - cat_w/2, gui_h / 2 + total_settings_h / 2 - cat_h/2, cat_w, cat_h, quit_scale, "Main Menu", c_dkgray, ftBig, true, true);
+	var quit_btn = draw_gui_button(settings_x + total_settings_w - cat_w/2, gui_h / 2 + total_settings_h / 2 - cat_h/2, cat_w, cat_h, quit_scale, "Main Menu", c_dkgray, ftBig, true, true, UI_LAYER.SETTINGS);
 	quit_scale = quit_btn.scale;
 	
 	if (quit_btn.click) {

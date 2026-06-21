@@ -6,7 +6,7 @@ var bar_half = bar_height/2;
 
 // New run offering
 if (new_run_offering) {
-	draw_set_alpha(0.9);
+	draw_set_alpha(0.99);
 	draw_set_color(c_black);
 	draw_rectangle(0, 70, gui_w, gui_h, false);
 	
@@ -383,20 +383,15 @@ var toolbar_hover = mouse_hovering(gui_w - 860, bar_half, sprite_get_width(sTool
 if (toolbar_hover) {
 	if mouse_check_button_pressed(mb_left) {
 		show_tools = 1 - show_tools;
-		
-		if (room == rmMap && can_visit_workbench) {
-			room_goto(rmWorkbench);
-			can_visit_workbench = false;
-		}
 	}
 	if (room == rmMap) {
 		if (can_visit_workbench) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Click to go to the workbench");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools used to manipulate your dice at the workbench.");
 		} else {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Visit the workbench after completing an encounter");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Visit the workbench after completing an encounter to manipulate your dice.");
 		}
 	} else {
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Holds your tools");
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools used to manipulate your dice at the workbench.");
 	}
 }
 
@@ -651,9 +646,11 @@ if (bag_hover_locked) {
 			if (room == rmCombat) {
 				if (!oCombat.disc_bag_hover) {
 					bag_hover_locked = false;
+					global.ui_layer = UI_LAYER.BASE;
 				}
 			} else {
 				bag_hover_locked = false;
+				global.ui_layer = UI_LAYER.BASE;
 			}
 		}
 	}

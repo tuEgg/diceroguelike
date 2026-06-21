@@ -32,7 +32,7 @@ function draw_setting_slider(_setting, _x, _y) {
 	
 	// allow player to drag the dial
 	var _tolerance = 20;
-	if (mouse_hovering(_x - _tolerance/2, _y + _line_vertical_offset - _tolerance/2, slider_length + _tolerance/2, slider_w + _tolerance/2, false, noone, soClick3)) {
+	if (mouse_hovering(_x - _tolerance/2, _y + _line_vertical_offset - _tolerance/2, slider_length + _tolerance/2, slider_w + _tolerance/2, false, noone, soClick3, true, UI_LAYER.SETTINGS)) {
 		if (mouse_check_button_pressed(mb_left)) {
 			starting_mouse_x = device_mouse_x_to_gui(0);
 			
@@ -76,7 +76,7 @@ function draw_setting_toggle(_setting, _x, _y) {
 	}
 	
 	// changed toggle state
-	if (mouse_hovering(_x, _y, _size, _size, false, noone, soClick3)) {
+	if (mouse_hovering(_x, _y, _size, _size, false, noone, soClick3, true, UI_LAYER.SETTINGS)) {
 		if (mouse_check_button_pressed(mb_left)) {
 			var new_value = 1 - _setting.get_value();
 			_setting.set_value(new_value);
@@ -114,7 +114,7 @@ function draw_setting_dropdown(_setting, _x, _y) {
 	draw_text(_x + 5, _y + 5, string(_setting.options[_setting.get_value()]));
 	
 	// activate dropdown
-	if (mouse_hovering(_x, _y, box_length, box_height, false, noone, soClick3)) {
+	if (mouse_hovering(_x, _y, box_length, box_height, false, noone, soClick3, true, UI_LAYER.SETTINGS)) {
 		if (mouse_check_button_pressed(mb_left)) {
 			_setting.show_options = 1 - _setting.show_options;
 		}
@@ -141,7 +141,7 @@ function draw_setting_dropdown(_setting, _x, _y) {
 			
 			draw_text(choice_x, choice_y, string(_setting.options[i]));
 		
-			if (mouse_hovering(choice_x, choice_y, box_length, box_height, false, noone, soClick3)) {
+			if (mouse_hovering(choice_x, choice_y, box_length, box_height, false, noone, soClick3, true, UI_LAYER.SETTINGS)) {
 				if (mouse_check_button_pressed(mb_left)) {
 					_setting.set_value(i);
 				}
@@ -153,6 +153,7 @@ function draw_setting_dropdown(_setting, _x, _y) {
 function exit_settings() {
 	global.show_settings = false;
 	global.all_input_disabled = false;
+	global.ui_layer = UI_LAYER.BASE;
 		
 	// set all dropdowns show_options to false
 	for (var i = 0; i < array_length(categories); i++) {
