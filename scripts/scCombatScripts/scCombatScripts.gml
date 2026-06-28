@@ -28,7 +28,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		if (_source == "player") {
 			var dice_output = get_dice_output(_slot_die, _slot_number, _dice_list_index, false, "player");
 			
-			_min_roll = dice_output.min_roll + _slot_die.min_roll_bonus;			
+			_min_roll = dice_output.min_roll;			
 			_max_roll = dice_output.max_roll;
 			
 			if (_min_roll > _max_roll) _min_roll = _max_roll;

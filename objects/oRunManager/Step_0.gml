@@ -1,8 +1,9 @@
 key_escape = keyboard_check_pressed(vk_escape);
 
 if key_escape {
-	if (bag_hover_locked) {
-		bag_hover_locked = false;
+	if (show_bag_contents) {
+		show_bag_contents = false;
+		global.ui_layer = UI_LAYER.BASE;
 	} else {
 		if (oCutsceneManager.cutscene_state == CUTSCENE_STATE.FINISHED) {
 			global.show_settings = 1 - global.show_settings;

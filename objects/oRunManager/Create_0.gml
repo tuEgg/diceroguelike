@@ -193,7 +193,7 @@ ds_list_add(global.player_intel_data, {
 
 show_dice_list = false; // used for displaying all the dice in the master list
 bag_hover = false;
-bag_hover_locked = false; // used to click on the bag and lock the view
+show_bag_contents = false; // used to click on the bag and lock the view
 bag_to_show = global.dice_bag;
 bag_title = "";
 pre_bag_open_ui_layer = UI_LAYER.BASE; // used for restoring the correct UI layer once the bag is closed

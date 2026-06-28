@@ -128,7 +128,7 @@ if (deleting_die > 0) {
 var exit_col = c_dkgray;
 if (event_complete >= 0) exit_col = c_red;
 
-var hover_exit = (event_complete >= 0) * mouse_hovering(gui_w - 150, gui_h - 200, exit_scale * sprite_get_width(sButtonSmall) * 0.75, exit_scale * sprite_get_height(sButtonSmall) * 0.75, true);
+var hover_exit = mouse_hovering(gui_w - 150, gui_h - 130, exit_scale * sprite_get_width(sButtonSmall) * 0.75, exit_scale * sprite_get_height(sButtonSmall) * 0.75, true);
 
 if (hover_exit && exit_col == c_red) {
 	if (mouse_check_button_pressed(mb_left)) {
@@ -142,5 +142,5 @@ if (hover_exit && exit_col == c_red) {
 draw_set_font(ftBigger);
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
-draw_sprite_ext(sButtonSmall, 0, gui_w - 150, gui_h - 200, exit_scale*0.75, exit_scale*0.75, 0, exit_col, 1.0);
-draw_outline_text("Exit", c_black, c_white, 2, gui_w - 150, gui_h - 200, 1, 1, 0);
+draw_sprite_ext(sButtonSmall, 0, gui_w - 150, gui_h - 130, exit_scale*0.75, exit_scale*0.75, 0, exit_col, 1.0);
+draw_outline_text("Exit", c_black, c_white, 2, gui_w - 150, gui_h - 130, 1, 1, 0);

@@ -457,16 +457,21 @@ for (var i = 0; i < aq_list_size; i++) {
 			var _index = get_dice_index(die_struct.dice_value);
 			
 			var _angle = 0;
+			var this_dice_spin = 0;
+			var this_dice_scale = 1;
 			
 			// Emphasise rolled dice
 			if (d == draw_dice_index && state == CombatState.RESOLVE_ROUND && i == draw_action_index && !player_turn_done) {
 				_angle = sin(((current_time / 1000) + 20) * 3.33) * 3;
+				dice_spin = lerp(dice_spin, 360, 0.15);
+				this_dice_spin =- dice_spin;
+				this_dice_scale = 1 - ((360/this_dice_spin)*0.3);
 				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, lerp(1.5, abs(_angle) + 1.5, 0.2), lerp(1.5, abs(_angle) + 1.5, 0.2), _angle, _col, 0.4);
 			}
 
 	        // Outline ones that are sticky or played this turn
 			if (die_struct.permanence == "sticky" || die_struct.permanence == "base") {
-				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, 1.15, 1.15, _angle, c_black, 1);
+				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, 1.15 * this_dice_scale, 1.15 * this_dice_scale, this_dice_spin, c_black, 1);
 			}
 			
 			var dice_hovered = mouse_hovering(xx_top, yy_top, sprite_get_width(sDiceIcon), sprite_get_height(sDiceIcon), true);
@@ -476,7 +481,7 @@ for (var i = 0; i < aq_list_size; i++) {
 			}
 
 	        // Draw sprite
-			draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, 1, 1, 0, _col, 1);
+			draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, 1 * this_dice_scale, 1 * this_dice_scale, this_dice_spin, _col, 1);
 			
 			// Draw keyword icons above
 			draw_dice_keywords(die_struct, xx_top + 3, yy_top - 34, 1);
@@ -515,12 +520,11 @@ for (var i = 0; i < aq_list_size; i++) {
 				draw_outline_text(string(die_struct.forced_roll + _bonus), c_black, c_white, 2, xx_top + off_x, yy_top + off_y, 1, 1, 0);
 			}
 			
-			if (die_struct.min_roll_bonus > 0) {
-				draw_outline_text("+" + string(die_struct.min_roll_bonus) + " min", c_black, c_white, 2, xx_top + off_x, yy_top + off_y - 24, 1, 1, 0);
-			}
+			//if (die_struct.min_roll_bonus > 0) {
+			//	draw_outline_text("+" + string(die_struct.min_roll_bonus) + " min", c_black, c_white, 2, xx_top + off_x, yy_top + off_y - 24, 1, 1, 0);
+			//}
 	    }
 	}
-
 
 	// === Draw colored bars BELOW each slot for possible action types ===
 	var pos_type = slot.possible_type;
@@ -988,6 +992,8 @@ if (state != CombatState.PLAYER_DEAD) {
 
 /// PLAYER DEAD
 if (state == CombatState.PLAYER_DEAD) {
+	global.ui_layer = UI_LAYER.POPUP;
+	
 	draw_set_color(c_black);
 	draw_set_alpha(0.8);
 	draw_rectangle(0, 0, gui_w, gui_h, false);
@@ -999,7 +1005,7 @@ if (state == CombatState.PLAYER_DEAD) {
 	
 	var try_btn_h = 80;
 	var try_btn_w = 180;
-	var try_again_btn = draw_gui_button(gui_w / 2 - try_btn_w/2, gui_h / 2 - try_btn_h/2 + 100, try_btn_w, try_btn_h, try_btn_scale, "Try Again", c_lime, ftBig, true, true);
+	var try_again_btn = draw_gui_button(gui_w / 2 - try_btn_w/2, gui_h / 2 - try_btn_h/2 + 100, try_btn_w, try_btn_h, try_btn_scale, "Try Again", c_lime, ftBig, true, true, UI_LAYER.POPUP);
 	
 	try_btn_scale = try_again_btn.scale;
 	
@@ -1471,7 +1477,7 @@ disc_bag_hover = (mx > disc_bag_x && mx < disc_bag_x + disc_bag_w && my > disc_b
 
 if (disc_bag_hover) {
     if (mouse_check_button_pressed(mb_left)) {
-		oRunManager.bag_hover_locked = 1 - oRunManager.bag_hover_locked;
+		oRunManager.show_bag_contents = 1 - oRunManager.show_bag_contents;
 		oRunManager.bag_to_show = global.discard_pile;
 	}
 }

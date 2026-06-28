@@ -3,7 +3,7 @@ cutscenes = [
 		voiceover: sIntro,
 		music: undefined,
 		length: 19, // length in seconds
-		seen: false,
+		seen: debug_mode ? true : false,
 		triggers: [
 			{
 				variable: "room",

@@ -296,6 +296,7 @@ switch (state) {
 							
 							draw_action_index = action_index;
 							draw_dice_index = dice_index;
+							dice_spin = 0;
 							
 							dice_index++;
 							dice_timer = dice_delay;
@@ -624,7 +625,6 @@ switch (state) {
 	
 	case CombatState.PLAYER_DEAD:
 		discard_dice_in_play();
-		global.all_input_disabled = true;
 	break;
 }
 		

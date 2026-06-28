@@ -345,14 +345,14 @@ function generate_dice_bag() {
 	// Reed snap die
 	global.die_reed_snap = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Reed snap die",
-	    "If this die rolls a 4, gain 2 block.",
+	    "If this die rolls a 4 or higher, gain 2 block.",
 		"common",
 		30,
 	    [
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount == 4 && _context.die.uid == _context._die_struct_source.uid) {
+					if (_context._d_amount >= 4 && _context.die.uid == _context._die_struct_source.uid) {
 						with (oCombat) {
 							process_action("player", 0, 2, 0, "player", undefined, "BLK");
 						}
@@ -743,7 +743,7 @@ function generate_dice_bag() {
 	
 	global.die_offhand = make_die_struct(
 	    1, 6, "ATK", "ATK", "", "Offhand die",
-	    "Gain 1 might next turn if this dice rolls its minimum value",
+	    "Gain 1 might this turn if this dice rolls its minimum value",
 		"common",
 		30,
 	    [
@@ -751,7 +751,7 @@ function generate_dice_bag() {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._d_amount == _context.min_roll && _context.die.uid == _context._die_struct_source.uid) {
-						apply_buff("player", oRunManager.buff_might, 1, 1, true, { source: "player", index: -1 });
+						apply_buff("player", oRunManager.buff_might, 1, 1, false, { source: "player", index: -1 });
 					}
 	            }
 	        }
@@ -761,15 +761,15 @@ function generate_dice_bag() {
 	
 	global.die_balanced = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Balanced die",
-	    "Gain 1 balance next turn if this dice rolls a 3",
+	    "Gain 1 balance this turn if this dice rolls its maximum value",
 		"common",
 		30,
 	    [
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount == 3 && _context.die.uid == _context._die_struct_source.uid) {
-						apply_buff("player", oRunManager.buff_balance, 1, 1, true, { source: "player", index: -1 });
+					if (_context._d_amount == _context.max_roll && _context.die.uid == _context._die_struct_source.uid) {
+						apply_buff("player", oRunManager.buff_balance, 1, 1, false, { source: "player", index: -1 });
 					}
 	            }
 	        }
@@ -809,12 +809,97 @@ function generate_dice_bag() {
 	);
 	ds_list_add(global.alignment_dice_list, clone_die(global.die_unholy, ""));
 	
+	global.die_ninja = make_die_struct(
+	    1, 4, "BLK", "BLK", "", "Ninja die",
+	    "Followthrough: Gains +2 if the previous slot was intel.",
+		"common",
+		40,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					if (_context.previous_slot_action_type == "INTEL") {
+	                    _context._d_amount += 2;
+	                }
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_ninja, ""));
+	
+	global.die_warrior = make_die_struct(
+	    1, 4, "ATK", "ATK", "", "Warrior die",
+	    "If this dice rolls its minimum value, change it to its max value instead.",
+		"common",
+		30,
+	    [
+	        {
+	            trigger: "after_roll_die",
+	            modify: function(_context) {
+					if (_context._d_amount == _context.min_roll) {
+	                    _context._d_amount = _context.max_roll;
+						show_debug_message("Rolled a 1, no changing to max");
+	                }
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_warrior, ""));
+	
+	global.die_assassin = make_die_struct(
+	    1, 4, "ATK", "ATK INTEL", "", "Assassin Die",
+	    "Multitype. Can create ATK and INTEL slots. Gains +1 minimum roll for every intel level.",
+		"rare",
+		70,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					_context._d_amount = oCombat.intel_level;
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_assassin, ""));
+	
+	global.die_last_stand = make_die_struct(
+	    1, 6, "ATK", "ATK", "", "Last Stand Die",
+	    "Gains +1 minimum roll for every 20% hp missing.",
+		"uncommon",
+		60,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					_context.min_roll += round((global.player_hp/global.player_max_hp) * -5 + 5);
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_last_stand, ""));
+	
+	global.die_splash = make_die_struct(
+	    1, 10, "BLK", "BLK", "", "Splash Die",
+	    "-2 on every roll.",
+		"common",
+		60,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					_context._d_amount = -2;
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_last_stand, ""));
+	
 	// Add to bag - STARTING DICE SET HERE
 	repeat(3)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_atk, "")); }
 	repeat(3)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_blk, "")); }
 	repeat(2)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_intel, "")); }
-	//repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_atk, "")); }
-	//repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d6_blk, "")); }
+	//repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.die_warrior, "")); }
+	//repeat(1)		{ ds_list_add(global.dice_bag, clone_die(global.die_offhand, "")); }
 	
 	do { ds_list_add(global.dice_bag, clone_die(global.dice_d4_none, "")); }
 	until (ds_list_size(global.dice_bag) == global.bag_size);
@@ -822,7 +907,6 @@ function generate_dice_bag() {
 
 /// generate_valid_targets(num_dice, min_dist)
 /// returns array of [x, y] positions spaced at least min_dist apart
-
 function generate_valid_targets(_num, _min_dist) {
     var positions = [];
     var tries, xx, yy, valid;
@@ -911,16 +995,18 @@ function clone_die(_src, _perm)
     var c = variable_clone(_src);
 
     // --- Deep copy effects array (you already do this) ---
-    if (variable_struct_exists(c, "effects") && is_array(c.effects)) {
-        var new_arr = array_create(array_length(c.effects));
-        for (var i = 0; i < array_length(c.effects); i++) {
-            if (is_struct(c.effects[i])) {
-                new_arr[i] = variable_clone(c.effects[i]);
-            } else {
-                new_arr[i] = c.effects[i];
-            }
-        }
-        c.effects = new_arr;
+    if (variable_struct_exists(c, "effects")) {
+		if is_array(c.effects) {
+	        var new_arr = array_create(array_length(c.effects));
+	        for (var i = 0; i < array_length(c.effects); i++) {
+	            if (is_struct(c.effects[i])) {
+	                new_arr[i] = variable_clone(c.effects[i]);
+	            } else {
+	                new_arr[i] = c.effects[i];
+	            }
+	        }
+	        c.effects = new_arr;
+		}
     }
 
     if (variable_struct_exists(c, "statistics") && is_struct(c.statistics)) {
@@ -1003,7 +1089,7 @@ function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
 	var roll_data = {
 		previous_slot_action_type: prev_slot_type,
 		action_type: action,
-		min_roll: 1,
+		min_roll: 1 + _die.min_roll_bonus,
 		max_roll: _die.dice_value,
 		_d_amount: 0,
 		_die_struct: _die,
@@ -1108,6 +1194,7 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0) {
     }
 }
 
+// draw_dice_distribution(_die, _x, _y, _centered = false)
 function draw_dice_distribution(_die, _x, _y, _centered = false) {
 	var dice_output = get_dice_output(_die, undefined, -1, true, "player");
 			
@@ -1138,7 +1225,12 @@ function draw_dice_distribution(_die, _x, _y, _centered = false) {
 		draw_sprite_ext(sSmallBar, 0, xx, yy, 1, bar_height + 0.2, 0, c_white, 1.0);
 		draw_set_font(ftSmall);
 		draw_set_halign(fa_center);
-		draw_text(xx, yy + 10, string(i + _min_roll));
+		if (distribution_array[i] > 0) {
+			draw_set_color(c_black);
+		} else {
+			draw_set_color(c_white);
+		}
+		draw_text(xx, yy - 8, string(i + _min_roll));
 		xx += sprite_get_width(sSmallBar);
 	}
 }

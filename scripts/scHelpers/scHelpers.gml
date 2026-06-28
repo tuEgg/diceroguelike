@@ -521,8 +521,8 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
 	global.total_tooltip_height += _height;
 
     // Screen Clamping
-    if (xx + _width > room_width - 10) xx = room_width - _width - 10;
-    if (yy + global.total_tooltip_height > room_height - 10) yy = room_height - (10*_num_keywords) - global.total_tooltip_height;
+    if (xx + _width > display_get_gui_width() - 10) xx = display_get_gui_width() - _width - 10;
+    if (yy + global.total_tooltip_height > display_get_gui_height() - 10) yy = display_get_gui_height() - (10*_num_keywords) - global.total_tooltip_height;
 
     // --- 4. DRAW BACKGROUND ---
     draw_set_alpha(0.8);
@@ -556,7 +556,7 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
 
     if (icon_sprite != undefined) {
         draw_sprite_ext(icon_sprite, icon_idx, content_x + 16, yy + (_height/2), icon_scale, icon_scale, 0, c_white, 1);
-        if (_dice != undefined && variable_struct_exists(_dice, "distribution") && _dice.distribution != "") {
+        if (_dice != undefined && variable_struct_exists(_dice, "distribution")) {
              draw_dice_distribution(_dice, content_x + 35, yy);
         }
         content_x += icon_space;

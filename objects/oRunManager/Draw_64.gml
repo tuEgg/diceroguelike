@@ -182,7 +182,7 @@ switch (voyage) {
 	break;
 }
 draw_outline_text("Voyage " + act, c_black, c_white, 2, 20, bar_half, 1, 1, 0);
-var voyage_hover = mouse_hovering(20, bar_half, string_width("Voyage III"), string_height("Voyage III"), false);
+var voyage_hover = mouse_hovering(20, bar_half, string_width("Voyage III"), string_height("Voyage III"), false, noone, noone);
 if (voyage_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Voyages Sailed", "You are on voyage " + string(act) + "/III", undefined, 0, undefined);
 
 // Draw pages turned
@@ -192,7 +192,7 @@ draw_set_valign(fa_top);
 var pages_x = 190;
 draw_sprite_ext(sPaper, 0, pages_x, bar_half, 0.8, 0.8, 0, c_white, 1.0);
 draw_outline_text(string(oWorldManager.nodes_cleared), c_black, c_white, 2, pages_x + 20, bar_half, 1, 1, 0);
-var pages_hover = mouse_hovering(pages_x, bar_half, sprite_get_width(sPaper), sprite_get_height(sPaper), true);
+var pages_hover = mouse_hovering(pages_x, bar_half, sprite_get_width(sPaper), sprite_get_height(sPaper), true, noone, noone);
 if (pages_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Events Explored", "You have explored " + string(oWorldManager.nodes_cleared) + " events from the Captain's logbook", undefined, 0, undefined);
 
 // Draw money
@@ -213,7 +213,7 @@ draw_set_valign(fa_middle);
 draw_set_font(ftBig);
 draw_outline_text(string(global.player_hp) + "/" +string(global.player_max_hp), c_black, c_white, 2, health_x + 30, bar_half, 1, 1, 0);
 health_scale = lerp(health_scale, 1.0, 0.2);
-var health_hover = mouse_hovering(health_x + 55, bar_half, 135, 50, true);
+var health_hover = mouse_hovering(health_x + 55, bar_half, 135, 50, true, noone, noone);
 if (health_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your Health", "You have " + string(global.player_hp) + "/" +string(global.player_max_hp) + " health");
 
 // Draw cores and consumables
@@ -467,7 +467,7 @@ if (show_tools) {
 var alignment_color = make_color_rgb(250, 166, 20);
 var alignment_x = gui_w - 450;
 
-var alignment_hover = mouse_hovering(alignment_x - 25, bar_half, sprite_get_width(sAlignmentBar) + 50, sprite_get_height(sAlignmentBar), true);
+var alignment_hover = mouse_hovering(alignment_x - 25, bar_half, sprite_get_width(sAlignmentBar) + 50, sprite_get_height(sAlignmentBar), true, noone, noone);
 draw_sprite_ext(sMapIcon, 8, alignment_x - 170, bar_half, 1, 1, 0, c_white, 1.0);
 draw_sprite_ext(sAlignmentBar, 0, alignment_x, bar_half, alignment_scale, alignment_scale, 0, c_white, 1.0);
 alignment_scale = lerp(alignment_scale, 1.0, 0.2);
@@ -530,7 +530,7 @@ draw_set_halign(fa_left);
 draw_set_valign(fa_middle);
 draw_outline_text(bounty_name, c_black, bounty_col, 2, gui_w - 250 + 30, 44, 1, 1, 0);
 
-var bounty_hover = mouse_hovering(gui_w - 280, 20, 300, 50, false); 
+var bounty_hover = mouse_hovering(gui_w - 280, 20, 300, 50, false, noone, noone); 
 if (bounty_hover) {
 	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Active Bounty: " + bounty_name, bounty_description);
 }
@@ -574,10 +574,10 @@ var bag_x = global.gui.bag_x;
 var bag_y = global.gui.bag_y;
 var bag_w = global.gui.bag_h;
 var bag_h = global.gui.bag_h;
-bag_hover = (mx > bag_x && mx < bag_x + bag_w && my > bag_y && my < bag_y + bag_h);
+bag_hover = mouse_hovering(bag_x, bag_y, bag_w, bag_h, false);
 
 // Draw draw bag (discard bag in oCombat)
-if (bag_hover || bag_hover_locked) {
+if (bag_hover || show_bag_contents) {
 	draw_sprite_ext(sDiceBag, 0, 56, gui_h - 36, 1.07, 1.07, 0, c_black, 1);
 }
 draw_sprite(sDiceBag, 0, 60, gui_h - 40);
@@ -597,7 +597,7 @@ draw_text(70, gui_h - 55, string(ds_list_size(global.dice_bag)));
 
 if (bag_hover) {
 	if (mouse_check_button_pressed(mb_left) && !global.all_input_disabled) {
-		bag_hover_locked = 1 - bag_hover_locked;
+		show_bag_contents = 1 - show_bag_contents;
 		bag_to_show = global.dice_bag;
 		
 		if (global.ui_layer != UI_LAYER.BAG) {
@@ -611,7 +611,8 @@ if (bag_hover) {
 	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Click to open", "Details all the dice you have in your bag");
 }
 
-if (bag_hover_locked) {
+// show bag contents
+if (show_bag_contents) {
 	var bag_inner_padding = 200; // offset from the edges to start drawing dice
 	var bag_outer_padding = 170;
 	
@@ -641,15 +642,15 @@ if (bag_hover_locked) {
 	var bag_width =		display_get_gui_width() - (bag_inner_padding * 2);
 	var bag_height =	display_get_gui_height() - (bag_inner_padding * 2);
 
-	if ((mouse_check_button_pressed(mb_left) || mouse_check_button_pressed(mb_right)) && !mouse_hovering(bag_outer_padding, bag_outer_padding, display_get_gui_width() - bag_outer_padding*2, display_get_gui_height() - bag_outer_padding*2, false)) {
-		if (bag_hover_locked && !bag_hover) {
+	if ((mouse_check_button_pressed(mb_left) || mouse_check_button_pressed(mb_right)) && !mouse_hovering(bag_outer_padding, bag_outer_padding, display_get_gui_width() - bag_outer_padding*2, display_get_gui_height() - bag_outer_padding*2, false, noone, soClick4, true, UI_LAYER.BAG)) {
+		if (show_bag_contents && !bag_hover) {
 			if (room == rmCombat) {
 				if (!oCombat.disc_bag_hover) {
-					bag_hover_locked = false;
+					show_bag_contents = false;
 					global.ui_layer = UI_LAYER.BASE;
 				}
 			} else {
-				bag_hover_locked = false;
+				show_bag_contents = false;
 				global.ui_layer = UI_LAYER.BASE;
 			}
 		}
@@ -685,10 +686,15 @@ if (bag_hover_locked) {
 			edge_overlap = max(top_edge_overlap, bottom_edge_overlap);
 			var dice_alpha = min(1, 1 - (edge_overlap / (box_height/1.5)));
 		
-			var info_hover = mouse_hovering(dice_x - box_width/2, dice_y - box_height/2, box_width, box_height, false);
+			var info_hover = mouse_hovering(dice_x - box_width/2, dice_y - box_height/2, box_width, box_height, false, noone, soClick4, true, UI_LAYER.BAG);
 		
 			if (info_hover) {
 				dice_hover = dice;
+				
+				// Give highlighted dice a white border
+				draw_set_alpha(dice_alpha);
+				draw_set_color(c_white);
+				draw_roundrect(dice_x - box_width/2 - 2, dice_y - box_height/2 - 2, dice_x + box_width/2 + 2, dice_y + box_height/2 + 2, false);
 			}
 			
 			// Functionality for selection events
@@ -727,13 +733,6 @@ if (bag_hover_locked) {
 					}
 				}
 			}
-	
-			// Give highlighted dice a white border
-			if (info_hover) {
-				draw_set_alpha(dice_alpha);
-				draw_set_color(c_white);
-				draw_roundrect(dice_x - box_width/2 - 2, dice_y - box_height/2 - 2, dice_x + box_width/2 + 2, dice_y + box_height/2 + 2, false);
-			}
 			
 			// Give each dice its own background
 			draw_set_alpha(dice_alpha);
@@ -751,6 +750,37 @@ if (bag_hover_locked) {
 		
 			// Draw dice keywords
 			draw_dice_keywords(dice, dice_x - box_width/3.75, dice_y - box_height/3.75, 1, dice_alpha);
+			
+			// Draw dice range
+			var dice_output = get_dice_output(dice, -1, -1, false, "player");
+	
+			var off_x = 0;
+			var off_y = 0;
+	
+			switch (image_index) {
+				case 1:
+				off_x = -4;
+				off_y = 3;
+				break;
+				case 2:
+				off_x = -2;
+				off_y = 1;
+				break;
+				case 3:
+				case 4:
+				case 5:
+				off_x = -2;
+				off_y = -1;
+				break;
+			}
+			
+			var _min_roll = dice_output.min_roll;			
+			var _max_roll = dice_output.max_roll;
+	
+			draw_set_font(ftSmall);
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_outline_text(string(_min_roll) + "-" + string(_max_roll), c_black, c_white, 2, dice_x - box_width/3.75 + off_x, dice_y - box_height/3.75 + off_y, 1, 1, 0, -1);
 		
 			// Draw dice name
 			draw_set_font(ftDefault);
@@ -866,7 +896,7 @@ if (bag_hover_locked) {
 }
 	
 if (dice_selection != false) {
-	bag_hover_locked = true;
+	show_bag_contents = true;
 	
 	bag_title = dice_selection_message;
 		
@@ -900,6 +930,9 @@ if (dice_selection != false) {
 				// Perform the function
 				global.dice_bag[| i].selected = false;
 			}
+			
+			show_bag_contents = false;
+			global.ui_layer = UI_LAYER.BASE;
 		}
 		dice_selection_scale = lerp(dice_selection_scale, 1.2, 0.2);
 	} else {

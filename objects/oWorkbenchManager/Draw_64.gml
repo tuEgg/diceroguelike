@@ -114,7 +114,7 @@ for (var i = 0; i < wb_list_size; i++) {
 		d.distribution = workbench_slot[i].core.distribution;
 		
 		draw_dice_distribution(d, slot_x, slot_y - wb_tile_size/2, true);
-		draw_set_font(ftBig);
+		draw_set_font(ftDescriptions);
 		draw_outline_text(string(d.distribution), c_black, c_white, 2, slot_x, slot_y - wb_tile_size, 1, 1, 0);
 	}
 	

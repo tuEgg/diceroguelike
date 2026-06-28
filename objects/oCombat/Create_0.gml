@@ -88,6 +88,7 @@ action_index = 0;
 action_timer = 0;
 draw_action_index = 0;
 draw_dice_index = 0;
+dice_spin = 0; // resets every time we roll a die to animate the angle
 action_delay = game_get_speed(gamespeed_fps) * 0.75; // time between actions
 dice_index = 0;
 dice_timer = 0;
