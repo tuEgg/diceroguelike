@@ -17,39 +17,40 @@ function generate_pages() {
 		var _bottom = 0;
 		
 		// offset the position of the nodes and lines depending on the page sprite index
-		switch(_index) {
-			case 0:
-				_left = 60;
-				_right = 55;
-				_top = 20;
-			break;
-			case 1:
-				_left = 40;
-				_right = 30;
-			break;
-			case 2:
-				_left = 40;
-				_right = 50;
-				_bottom = 20;
-			break;
-			case 3:
-				_left = 40;
-				_right = 60;
-				_bottom = 20;
-			break;
-			case 4:
-				_left = 60;
-				_right = 30;
-			break;
-			case 5:
-				_left = 40;
-				_right = 30;
-			break;
-		}
+		//switch(_index) {
+		//	case 0:
+		//		_left = 60;
+		//		_right = 55;
+		//		_top = 20;
+		//	break;
+		//	case 1:
+		//		_left = 40;
+		//		_right = 30;
+		//	break;
+		//	case 2:
+		//		_left = 40;
+		//		_right = 50;
+		//		_bottom = 20;
+		//	break;
+		//	case 3:
+		//		_left = 40;
+		//		_right = 60;
+		//		_bottom = 20;
+		//	break;
+		//	case 4:
+		//		_left = 60;
+		//		_right = 30;
+		//	break;
+		//	case 5:
+		//		_left = 40;
+		//		_right = 30;
+		//	break;
+		//}
 		
 		// create the page data
 		var _page = {
 			index: _index,
+			island_index: irandom(3),
 			num_nodes: _num_nodes,
 			nodes: ds_list_create(),
 			layout: _num_nodes == 1 ? "single" : choose("horizontal", "diagonal-down"),
@@ -94,10 +95,9 @@ function generate_pages() {
 			
 			var rand = irandom_range(1,100);
 			
-			
 			// after 4, 12, 20 pages etc.
 			if ((oWorldManager.pages_cleared + 4) mod 8 == 0) && (ds_list_size(_page.nodes) == 0) {
-				chosen_node = node_treasure;
+				chosen_node = node_treasure; // add a treasure node
 			} else {
 				if (rand <= combat_chance) {
 					if (num_combat < 5) {
@@ -217,8 +217,6 @@ function enemy_find_by_name(_name) {
 }
 
 function enter_node(_node) {
-	
-	if (last_node != undefined) last_node.disappeared = true;
 	
 	if (_node.type == NODE_TYPE.EVENT) {
 		var rand = irandom_range(1, 100);
@@ -468,27 +466,22 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 		}
 	}
 		
-	var _sprite = _locked ? sMapParchmentEmpty : sMapParchment;
+	var _sprite = sMapParchment;
 	
 	var _alpha;
 
-	if (all_nodes_cleared) {
+	if (all_nodes_cleared || _locked) {
 	    _alpha = 0.0;
-	} else if (_sprite == sMapParchmentEmpty && ds_list_size(pages_shown) == 0) {
-		_alpha = 0.0;
-	} else if (choices_locked) {
-	    _alpha = pages_alpha;
 	} else  {
 		_alpha = 1.0;
 	}
-
 	
 	var _blend;
 	var _icon_blend = c_white;
 
 	if (page.chosen && !page.locked) {
 	    // highest priority
-	    _blend = make_color_rgb(80, 180, 90); 
+	    _blend = make_color_rgb(100, 186, 186); 
 	}
 	else if (!page.chosen || all_nodes_cleared) {
 	    // either unselected or fully cleared
@@ -511,7 +504,64 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	
 	var draw_scale = _scale;
 	if (!_shadow) draw_scale = 1;
-	draw_sprite_ext(_sprite, page.index, page_x, page_y, draw_scale,  draw_scale, 0, _blend, _alpha);
+	draw_sprite_ext(_sprite, page.index, page_x, page_y, draw_scale,  draw_scale, 0, _blend, _alpha * pages_alpha);
+	
+	
+	
+	// Draw islands - they draw to their own surface so we can mask them out
+	var surf_w = global.resolution_options[global.resolution_index].w;
+	var surf_h = global.resolution_options[global.resolution_index].h;
+	
+	if (_alpha == 1) {
+		if (!surface_exists(island_surf)) {
+			island_surf = surface_create(surf_w, surf_h);
+		}
+	
+		if (!surface_exists(island_mask_surf)) {
+			island_mask_surf = surface_create(surf_w, surf_h);
+		}
+		
+		// build the mask
+		surface_set_target(island_mask_surf);
+		draw_clear_alpha(c_black, 0);
+		draw_sprite_ext(_sprite, page.index, page_x, page_y, draw_scale * 1.0,  draw_scale * 1.0, 0, _blend, _alpha);
+		surface_reset_target();
+
+		surface_set_target(island_surf);
+		draw_clear_alpha(c_black, 0);
+
+		// content — correct alpha accumulation
+		gpu_set_blendmode_ext_sepalpha(bm_src_alpha, bm_inv_src_alpha, bm_one, bm_inv_src_alpha);
+	}
+	
+	// draw sprites
+	var island_alpha = !_locked ? pages_alpha : 1;
+	
+	shader_set(shWhiteFill)
+	for (var i = 0; i < 3; i++) {
+		draw_sprite_ext(sIslands, page.island_index, page_x, page_y, 1 + i / 3, 1 + i / 3, 0, c_white, 0.2);
+	}
+	shader_reset();
+	
+	draw_sprite_ext(sIslands, page.island_index, page_x, page_y, 1, 1, 0, c_white, island_alpha);
+
+	if (_alpha == 1) {
+		// apply mask across the whole surface
+		shader_set(shErode);
+		shader_set_uniform_f(u_erode_texel, 1 / surf_w, 1 / surf_h);
+		shader_set_uniform_f(u_erode_radius, 5);
+		gpu_set_blendmode_ext(bm_zero, bm_src_alpha);
+		draw_surface(island_mask_surf, 0, 0);
+		shader_reset();
+		gpu_set_blendmode(bm_normal);
+		surface_reset_target();
+	
+		// draw out premultiplied
+		gpu_set_blendmode_ext(bm_one, bm_inv_src_alpha);
+		draw_surface(island_surf, 0, 0);
+		gpu_set_blendmode(bm_normal);
+	}
+	
 		
 	var paper_w = sprite_get_width(_sprite);
 	var paper_h = sprite_get_height(_sprite);
@@ -547,13 +597,10 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 		if (n == num_nodes) {
 			node_x[num_nodes + 1] = page_x + paper_w/2 - page.margin.right;
 			node_y[num_nodes + 1] = page_y;
-			
-			page.map_connection_out.x = node_x[num_nodes + 1] + page_width/2 + 20;
-			page.map_connection_out.y = node_y[num_nodes + 1];
 		}
 			
 		if (!choices_locked) {
-			draw_dotted_path(page, n, num_nodes, node_x, node_y);
+			//draw_dotted_path(page, n, num_nodes, node_x, node_y);
 		}
 	}
 		
@@ -566,54 +613,73 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 		
 		if (node.x < -30) node.disappeared = true;
 	
+		// if the node isn't off screen yet
 		if (!node.disappeared) {
 			var _alph;
 
+			// if we haven't locked our page choices or this is the next node we can reach
 			if (!choices_locked || node == next_node) {
 			    _alph = 1.0;
 			}
+			// or if the node is cleared
 			else if (node.cleared) {
 			    _alph = 1.0;
 			}
+			// or if the choices are locked and the page is chosen
 			else if (choices_locked && page.chosen) {
 			    _alph = pages_alpha;
 			}
+			// otherwise they show up slightly grey
 			else {
-			    _alph = 0.75;
+			    _alph = 1.0;
+				_icon_blend = c_grey;
 			}
 
+			// if we haven't locked our two page choices
 			if (!choices_locked) {
+				// and this particular page isn't locked
 				if (!_locked) {
 					
+					// check if we are hovering this node
 					var node_hover = mouse_hovering( node.x, node.y, sprite_get_width(sMapIcon) * node.scale, sprite_get_height(sMapIcon) * node.scale, true);
 					
+					// animate scale
 					node.scale = lerp(node.scale, node_hover ? 1.5 : 1.0, 0.2);
 					
+					// show tooltip
 					if (node_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), node.name, node.text, sMapIcon, node.subimg, undefined);
 					
+					// draw the node
 					draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale, node.scale, 0, _icon_blend, _alph);
 				} else if _locked {
+					// if this page is locked, don't animate scale or show tooltip
 					draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, 1, 1, 0, _icon_blend, _alph);
 				}
-			} else {
+			}
+			// if our page choices are locked
+			else {
+				
+				// check if we are hovering this node
 				var node_hover = mouse_hovering( node.x, node.y, sprite_get_width(sMapIcon) * node.scale, sprite_get_height(sMapIcon) * node.scale, true);
 			
 				draw_set_color(c_black);
 				draw_set_halign(fa_left);
 				draw_set_font(ftDefault);
 			
+				// animate scale and draw node
 				node.scale = lerp(node.scale, node_hover ? 1.5 : 1.0, 0.2);
 				draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale, node.scale, 0, _icon_blend, _alph);
 			
+				// if we are hovering this node
 				if (node_hover) {
+					// show tooltip
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), node.name, node.text, sMapIcon, node.subimg, undefined);
 					 
+					// on click, if we haven't picked a node to move to and we are on the base layer of the UI, set this node as the next node ot move to.
 					if (mouse_check_button_pressed(mb_left) && node_to_move_to == undefined && global.ui_layer == UI_LAYER.BASE) {
 						if (node == next_node) {
 							node_to_move_to = node;
 							node_to_move_to.y += 10;
-							map_offset.x += boat_data.x - node_to_move_to.x;
-							map_offset.y += boat_data.y - node_to_move_to.y;
 						} else {
 							throw_error("You can't reach that yet!", "Complete the next room before continuing.");
 						}
@@ -621,12 +687,15 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 				}
 			}
 		
-			if (node.cleared) draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale*1.2, node.scale*1.2, 0, c_green, _alph);
+			// show completed nodes as green
+			if (node.cleared) draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale*1.2, node.scale*1.2, 0, make_color_rgb(126, 183, 131), _alph);
 		}
 	}
 	
+	// if this page is locked draw a chain over it
 	if (page.locked) draw_sprite_ext(sRewardChain, 0, page_x, page_y, 1.4, 1.4, 0, c_white, pages_alpha);
 	
+	// update page scale ds list for next frame
 	if (_index != -1) {
 	    page_scale[| _index] = _scale;
 	}
@@ -639,6 +708,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 function clone_page(_src) {
     var c = {
         index: _src.index,
+		island_index: _src.island_index,
         num_nodes: _src.num_nodes,
         nodes: ds_list_create(),
         layout: _src.layout,
@@ -717,7 +787,6 @@ function serialise_page(_page) {
         cleared: _page.cleared,
         x: _page.x,
         y: _page.y,
-		x_offset: _page.x_offset,
         y_offset: _page.y_offset,
         nodes: _saved_nodes,
     };
@@ -737,7 +806,6 @@ function deserialise_page(_data) {
         cleared: _data.cleared,
         x: _data.x,
         y: _data.y,
-		x_offset: _data.x_offset,
         y_offset: _data.y_offset,
     };
     
@@ -753,4 +821,12 @@ function deserialise_page(_data) {
     }
     
     return _page;
+}
+
+function start_drafting() {
+	world_state = WORLD_STATE.DRAFTING;
+	for (var n = 0; n < ds_list_size(all_nodes); n++) {
+		if (!all_nodes[| n].disappeared) all_nodes[| n].disappeared = true;
+	}
+	current_page_turn = 1;
 }

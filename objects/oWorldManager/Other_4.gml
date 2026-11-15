@@ -13,7 +13,7 @@ if (room == rmMap) {
 	
 	if (nodes_til_drafting == 0) {
 		if (world_state == WORLD_STATE.EXPLORING) {
-			world_state =  WORLD_STATE.RESTING;
+			world_state =  WORLD_STATE.TURNING;
 		}
 	}
 	

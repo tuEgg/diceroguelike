@@ -1223,14 +1223,14 @@ function draw_dice_distribution(_die, _x, _y, _centered = false) {
 	for (var i = 0; i < array_length(distribution_array); i++) {
 		var bar_height = distribution_array[i]/max_size;
 		draw_sprite_ext(sSmallBar, 0, xx, yy, 1, bar_height + 0.2, 0, c_white, 1.0);
-		draw_set_font(ftSmall);
+		draw_set_font(ftTiny);
 		draw_set_halign(fa_center);
 		if (distribution_array[i] > 0) {
 			draw_set_color(c_black);
 		} else {
 			draw_set_color(c_white);
 		}
-		draw_text(xx, yy - 8, string(i + _min_roll));
+		draw_text(xx - 1, yy - 8, string(i + _min_roll));
 		xx += sprite_get_width(sSmallBar);
 	}
 }

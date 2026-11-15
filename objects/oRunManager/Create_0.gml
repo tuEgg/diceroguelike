@@ -275,8 +275,8 @@ can_visit_workbench = false; // allow the player to visit the workbench once bet
 alarm[0] = 1;
 
 // Used for offering a dice and core at the start of a new run
-new_run_offering = true;
-global.ui_layer = UI_LAYER.POPUP;
+new_run_offering = false;
+//global.ui_layer = UI_LAYER.POPUP;
 
 // Populate offerings with a random dice and random core pairing
 offering = [];

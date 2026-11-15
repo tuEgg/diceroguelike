@@ -8,6 +8,7 @@ alignment_nodes_this_voyage = 0;
 
 nodes_cleared = 0; // how many nodes in the captains logbook have we cleared
 pages_cleared = 0; // how many pages have we cleared
+spreads_cleared = 0 // how many spreads have we cleared
 nodes_til_page_cleared = 0; // resets every time we start a new page
 time = 0; // used to pulse animate next node
 page_previous = undefined;
@@ -29,12 +30,13 @@ room_enemies = ds_list_create();
 
 pages_shown = ds_list_create();
 page_scale = ds_list_create();
+current_page_turn = 1;
 ds_list_add(page_scale, 1.0);
 ds_list_add(page_scale, 1.0);
 ds_list_add(page_scale, 1.0);
-page_pos[0] = { x: display_get_gui_width() / 1.55, y: display_get_gui_height() * 2.4/7 };
-page_pos[1] = { x: display_get_gui_width() / 1.17, y: display_get_gui_height() * 2.4/7 };
-page_pos[2] = { x: display_get_gui_width() * 3/4, y: display_get_gui_height() * 4.7/7 };
+page_pos[0] = { x: display_get_gui_width() * 0.3, y: display_get_gui_height() * 0.55 };
+page_pos[1] = { x: display_get_gui_width() * 0.5, y: display_get_gui_height() * 0.55 };
+page_pos[2] = { x: display_get_gui_width() * 0.7, y: display_get_gui_height() * 0.55 };
 pages_alpha = 0; // used for fading out pages
 
 node_combat = {
@@ -162,18 +164,6 @@ boat_data = {
 	spd: 0
 }
 
-// The absolute position in the world of the map
-map_position = {
-	x: 0,
-	y: 0,
-}
-
-// The difference in position between the maps absolute position and the nodes absolute position, set only when choosing a destination or arriving at one
-map_offset = {
-	x: 0,
-	y: 0,
-}
-
 circle_list = ds_list_create();
 node_x[0] = 0;
 node_y[0] = 0;
@@ -193,11 +183,28 @@ next_node = undefined;
 node_drift = 0; // used for drifting the last node to the left, resets every time we click
 
 enum WORLD_STATE {
-	DRAFTING = 0,
-	RESTING = 1,
-	EXPLORING = 2
+	OPENING,
+	DRAFTING,
+	TURNING,
+	EXPLORING
 }
-world_state = WORLD_STATE.DRAFTING;
+world_state = WORLD_STATE.OPENING;
+
+book_open_scale = 0;
+page_turn_scale = 1;
+page_image_indices = array_create(8);
+
+// generate page indexes, make sure we don't get 2 the same back to back
+var last_index = -1;
+for (var i = 0; i < 8; i++) {
+	var rand_index;
+	do {
+		rand_index = irandom_range(2, 7);
+	} until (rand_index != last_index);
+	
+    page_image_indices[i] = rand_index;
+	last_index = rand_index;
+}
 
 heal_scale_target = 2.0;
 heal_scale = heal_scale_target;
@@ -215,15 +222,15 @@ ds_list_add(possible_encounters, "Early 2");
 ds_list_add(possible_encounters, "Early 3");
 
 // comment out the below when not testing
-if (debug_mode) {
-	ds_list_add(possible_encounters, "Encounter 1");
-	ds_list_add(possible_encounters, "Encounter 2");
-	ds_list_add(possible_encounters, "Encounter 3");
-	ds_list_add(possible_encounters, "Encounter 4");
-	ds_list_add(possible_encounters, "Encounter 5");
-	ds_list_add(possible_encounters, "Encounter 6");
-	ds_list_add(possible_encounters, "Encounter 7");
-}
+//if (debug_mode) {
+//	ds_list_add(possible_encounters, "Encounter 1");
+//	ds_list_add(possible_encounters, "Encounter 2");
+//	ds_list_add(possible_encounters, "Encounter 3");
+//	ds_list_add(possible_encounters, "Encounter 4");
+//	ds_list_add(possible_encounters, "Encounter 5");
+//	ds_list_add(possible_encounters, "Encounter 6");
+//	ds_list_add(possible_encounters, "Encounter 7");
+//}
 
 possible_elites = ds_list_create();
 elite_list_before_bounty = ds_list_create(); // for restoring remaining elite fights this voyage after a bounty
@@ -247,3 +254,10 @@ shop_chance =		0;
 bounty_chance =		0;
 elite_chance =		0;
 alignment_chance =	0;
+
+island_surf = -1; // used for tracking if we have created the surface to draw masked islands with
+island_mask_surf = -1;
+
+// Create
+u_erode_texel  = shader_get_uniform(shErode, "u_texel");
+u_erode_radius = shader_get_uniform(shErode, "u_radius");

@@ -54,8 +54,6 @@ function save_game(_slot) {
         keepsakes: _saved_keepsakes,
         dice_bag: _saved_bag,
 		chosen_pages: _saved_pages,
-		map_position: oWorldManager.map_position,
-		map_offset: oWorldManager.map_offset,
 		last_node: _last_node,
 		choices_locked: oWorldManager.choices_locked,
 		nodes_til_drafting: oWorldManager.nodes_til_drafting,
@@ -105,8 +103,6 @@ function load_game(_slot) {
     global.player_hp = _save.player_hp;
     global.player_max_hp = _save.player_max_hp;
     global.player_alignment = _save.alignment;
-	oWorldManager.map_position = _save.map_position;
-	oWorldManager.map_offset = _save.map_offset;
 	oWorldManager.pages_drafted = _save.pages_drafted;
 	oRunManager.active_bounty = (_save.active_bounty != undefined) ? deserialise_bounty(_save.active_bounty) : undefined;
 	oWorldManager.choices_locked = _save.choices_locked;

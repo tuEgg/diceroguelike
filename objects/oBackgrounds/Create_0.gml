@@ -16,7 +16,7 @@ backgrounds = [
 		room_name: rmMap,
 		background_list: [
 			{
-				sprite: sBackgroundMap,
+				sprite: sBackgroundWorld,
 				animated: false,
 				xx: 0,
 				yy: 0,

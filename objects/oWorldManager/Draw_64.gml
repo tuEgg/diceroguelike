@@ -7,73 +7,153 @@ if (room == rmMap) {
 	
 	// Rock the boat
 	boat_data.y += sin(time * 0.05) * 0.4;
-	//map_position.y += sin(time * 0.05) * 0.4;
 	boat_data.angle += cos(time * 0.05) * 0.2;
-
-	var final_map_x = boat_data.x + map_position.x;
-	var final_map_y = boat_data.y + map_position.y;
 	
-	// Draw the trail
-	if (time mod 8 == 0) && ds_list_size(circle_list) < 200 {
-		var map_x = boat_data.x - map_position.x;
-		var map_y = boat_data.y - map_position.y;
-		ds_list_add(circle_list, {x: map_x, y: map_y});
+	var page_w = sprite_get_width(sWorldBookWater);
+	var page_xscale = 0.9;
+	var page_yscale = 0.9;
+	var page_y = gui_h * 0.52;
+	var page_pos_offset = -(page_w*page_xscale)/16;
+	var cover_offset = 40;
+			
+	draw_sprite_ext(sWorldBook, 0, gui_w/2 - page_pos_offset - cover_offset, page_y, -page_xscale * book_open_scale, page_yscale, 0, c_white, 1.0);
+	draw_sprite_ext(sWorldBook, 1, gui_w/2 + page_pos_offset + cover_offset, page_y, page_xscale * book_open_scale, page_yscale, 0, c_white, 1.0);
+	
+	var pages_left = spreads_cleared;
+	var pages_right = 7 - spreads_cleared;
+	var page_offset = 10;
+		
+	// show turning page
+	if (world_state == WORLD_STATE.TURNING) {
+		// turn the page 
+		current_page_turn = lerp(current_page_turn, -1.0, 0.06);
 	}
 	
-	for (var i = ds_list_size(circle_list) - 1; i >= 0; i--) {
-	    var circle = circle_list[| i];
-
-	    // Drift backwards only when idle
-	    if (node_to_move_to == undefined) {
-	        circle.x -= 1.5;
-	    }
-
-	    // Convert map-local space to GUI
-	    var gui_x = circle.x + map_position.x;
-	    var gui_y = circle.y + map_position.y;
-
-	    draw_set_alpha(0.8);
-	    draw_set_color(c_white);
-	    draw_circle(gui_x, gui_y, 4, false);
-
-	    // Cull offscreen (in map space, not GUI)
-	    if (circle.x < -100) {
-	        ds_list_delete(circle_list, i);
-	    }
+	// draw left pages
+	for (var i = 0; i <= spreads_cleared; i++) {
+		// for animating current page
+		var x_scale = page_xscale * -1 * book_open_scale;
+					
+		// if we're looking at the top page
+		if (i == spreads_cleared) {
+			// and we are turning
+			if (world_state == WORLD_STATE.TURNING) {
+				// if the current page scale has gone from 1 -> 0 and is now below 0
+				if (current_page_turn < 0) {
+					// multiply our x scale by the amount under 0 it is
+					x_scale *= abs(current_page_turn);
+				}
+				// don't show if it is above 0
+				else {
+					x_scale = 0;
+				}
+			}
+		}
+		
+		// draw the paper pages
+		draw_sprite_ext(sWorldBook, page_image_indices[i], gui_w/2 + (page_pos_offset * -1) + (page_offset * i * -1), page_y, x_scale, page_yscale, 0, c_white, 1.0);
+		
+		// draw the water page on top and below
+		if (i == spreads_cleared || i == spreads_cleared - 1) {
+			draw_sprite_ext(sWorldBookWater, page_image_indices[i] - 2, gui_w/2 + (page_pos_offset * -1) + (page_offset * i * -1), page_y, x_scale, page_yscale, 0, c_white, 1.0);
+		}
+	}
+	
+	// draw right pages
+	for (var i = 7; i >= spreads_cleared; i--) {
+		// for animating current page
+		var x_scale = page_xscale * book_open_scale;
+					
+		if (i == spreads_cleared) {
+			if (world_state == WORLD_STATE.TURNING) {
+				if (current_page_turn > 0) {
+					x_scale *= abs(current_page_turn);
+				} else {
+					x_scale = 0;
+				}
+			} else {
+				x_scale = 0;
+			}
+		}
+		
+		// draw the paper pages
+		draw_sprite_ext(sWorldBook, page_image_indices[i], gui_w/2 + (page_pos_offset) + (page_offset * i), page_y, x_scale, page_yscale, 0, c_white, 1.0);
+		
+		// draw the water page on top
+		if (i == spreads_cleared || i == spreads_cleared + 1) {
+			draw_sprite_ext(sWorldBookWater, page_image_indices[i] - 2, gui_w/2 + (page_pos_offset) + (page_offset * i), page_y, x_scale, page_yscale, 0, c_white, 1.0);
+		}
 	}
 	
 	draw_set_alpha(1.0);
 
 	// Draw the pages
 	if (choices_locked) {
-		pages_alpha = lerp(pages_alpha, 0, 0.3);
+		pages_alpha = lerp(pages_alpha, 0, 0.2);
 		if (pages_alpha < 0.05)	{
 			world_state = WORLD_STATE.EXPLORING;
 			pages_alpha = 0;
 		}
 	}
 	
-	// Draw the background
+	// Draw chosen pages
+	for (var p = 0; p < ds_list_size(chosen_pages); p++) {
+		var page = chosen_pages[| p];
+		
+		// if we are drafting, only show the number of pages we've locked in, otherwise only show the most recent 2
+		switch (world_state) {
+			case WORLD_STATE.DRAFTING:
+			case WORLD_STATE.TURNING:
+				if (p >= ds_list_size(chosen_pages) - pages_drafted) {
+					draw_page(page, page.x, page.y, -1, false, true);
+				}
+			break;
+			
+			// need to make it so that as the pages turn, the island warp with the page turn (might require restructuring of how pages are drawn entirely).
+			
+			default:
+				if (p >= ds_list_size(chosen_pages) - 2) {
+					draw_page(page, page.x, page.y, -1, false, true);
+				}
+			break;
+		}
+	}
+	
+	// Draw the drafting panel background
 	if (world_state != WORLD_STATE.EXPLORING) {
-		var bg_w = display_get_gui_width() / 2.133;
-		var bg_h = display_get_gui_height() / 1.270;
-		var bg_x = display_get_gui_width() * 3/4 - bg_w/2;
-		var bg_y = display_get_gui_height() / 2 - bg_h/2 + 25;
+		var bg_w = gui_w;
+		var bg_h = gui_h;
+		var bg_x = 0;
+		var bg_y = 0;
 		
 		draw_set_color(c_black);
-		draw_set_alpha(0.7 * (max(pages_alpha, resting_alpha)));
+		draw_set_alpha(0.55 * (max(pages_alpha, resting_alpha)));
 		draw_roundrect(bg_x, bg_y, bg_x + bg_w, bg_y + bg_h, false);
 		draw_set_alpha(1.0);
 		
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBigger);
-		draw_outline_text("What happened next?", c_black, c_white, 3, display_get_gui_width() * 3/4, display_get_gui_height()/7.7, 1, pages_alpha, 0);
+		draw_outline_text("What happened next?", c_black, c_white, 3, gui_w/2, gui_h * 0.25, 1, pages_alpha, 0);
 		draw_set_font(ftDefault);
-		draw_outline_text("Choose a page to draft", c_black, c_white, 2, display_get_gui_width() * 3/4, display_get_gui_height()/6, 1, pages_alpha, 0);
+		draw_outline_text("Choose a page to draft", c_black, c_white, 2, bg_w/2, gui_h * 0.29, 1, pages_alpha, 0);
+	
+		if (world_state == WORLD_STATE.OPENING) {		
+			book_open_scale = lerp(book_open_scale, 1.0, 0.08);
+			
+			if (book_open_scale > 0.99) {
+				world_state = WORLD_STATE.DRAFTING;
+			}
+			
+		}
 	
 		// If we are healing or workbench
-		if (world_state == WORLD_STATE.RESTING) {
+		if (world_state == WORLD_STATE.TURNING) {
+			
+			// reset boat position
+			boat_data.x = lerp(boat_data.x, 300, 0.06);
+			boat_data.y = lerp(boat_data.y, display_get_gui_height()/2, 0.06);
+			
 			// Show the option to "recover in the quarters" or "use the workbench"
 			var heal_col = global.color_heal;
 			var workbench_col = global.color_attack;
@@ -83,22 +163,26 @@ if (room == rmMap) {
 			var spacing = 0.25;
 			var vertical_scale = 0.7;
 			
-			draw_sprite_ext(sButtonSmall, 0, bg_x + (bg_w * spacing), bg_y + bg_h/2, heal_scale, heal_scale * vertical_scale, 0, heal_col, resting_alpha);
-			draw_sprite_ext(sButtonSmall, 0, bg_x + (bg_w * (1 - spacing)), bg_y + bg_h/2, workbench_scale, workbench_scale * vertical_scale, 0, workbench_col, resting_alpha);
+			var button_x = gui_w - gui_w/4;
+			var button_y1 = bg_y + bg_h/2 - 100;
+			var button_y2 = bg_y + bg_h/2 + 100;
+			
+			draw_sprite_ext(sButtonSmall, 0, button_x, button_y1, heal_scale, heal_scale * vertical_scale, 0, heal_col, resting_alpha);
+			draw_sprite_ext(sButtonSmall, 0, button_x, button_y2, workbench_scale, workbench_scale * vertical_scale, 0, workbench_col, resting_alpha);
 
 			draw_set_font(ftBig);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
-			draw_outline_text("Recover below deck", c_black, c_white, 2, bg_x + (bg_w * spacing), bg_y + bg_h/2, 1, resting_alpha, 0, 300);
-			draw_outline_text("Gain a random core", c_black, c_white, 2, bg_x + (bg_w * (1 - spacing)), bg_y + bg_h/2, 1, resting_alpha, 0, 300);
+			draw_outline_text("Recover below deck", c_black, c_white, 2, button_x, button_y1, 1, resting_alpha, 0, 300);
+			draw_outline_text("Gain a random core", c_black, c_white, 2, button_x, button_y2, 1, resting_alpha, 0, 300);
 			
 			var heal_sprite_w = sprite_get_width(sButtonSmall) * heal_scale;
 			var heal_sprite_h = sprite_get_height(sButtonSmall) * heal_scale;
 			var workbench_sprite_w = sprite_get_width(sButtonSmall) * workbench_scale * vertical_scale;
 			var workbench_sprite_h = sprite_get_height(sButtonSmall) * workbench_scale * vertical_scale;
 			
-			var hover_heal = mouse_hovering(bg_x + (bg_w * spacing), bg_y + bg_h/2, heal_sprite_w, heal_sprite_h, true, noone, soClick4, global.ui_layer == UI_LAYER.BASE);
-			var hover_core = mouse_hovering(bg_x + (bg_w * (1 - spacing)), bg_y + bg_h/2, workbench_sprite_w, workbench_sprite_h, true, noone, soClick4, global.ui_layer == UI_LAYER.BASE);
+			var hover_heal = mouse_hovering(button_x, button_y1, heal_sprite_w, heal_sprite_h, true, noone, soClick4, global.ui_layer == UI_LAYER.BASE);
+			var hover_core = mouse_hovering(button_x, button_y2, workbench_sprite_w, workbench_sprite_h, true, noone, soClick4, global.ui_layer == UI_LAYER.BASE);
 			
 			heal_scale = lerp(heal_scale, hover_heal ? heal_scale_target * 1.25 : heal_scale_target, 0.2);
 			workbench_scale = lerp(workbench_scale, hover_core ? workbench_scale_target * 1.25 : workbench_scale_target, 0.2);
@@ -121,7 +205,7 @@ if (room == rmMap) {
 				if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
 					global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
 					particle_emit(650, 25, "burst", c_lime);
-					world_state = WORLD_STATE.DRAFTING;
+					start_drafting();
 				}
 			}
 			
@@ -134,7 +218,7 @@ if (room == rmMap) {
 					generate_item_rewards(consumable_options, global.master_item_list, 1, "core");
 					gain_item(consumable_options[| 0]);
 					ds_list_destroy(consumable_options);
-					world_state = WORLD_STATE.DRAFTING;
+					start_drafting();
 				}
 			}
 		} else {
@@ -159,27 +243,25 @@ if (room == rmMap) {
 		
 			var page_count = ds_list_size(pages_shown);
 	
-			// Draw every page
+			// Draw each page onto the map
 			for (var p = 0; p < page_count; p++) {
 				var page = pages_shown[| p];
 		
+				// check if we're hovering
 				var page_hover = draw_page(page, page_pos[p].x, page_pos[p].y, p, true, false);
-	
+
+				// if we're hovering a draftable page but haven't selected it yet,
 				if (page_hover && !page.chosen) {
 					var page_offset_x = sprite_get_width(sMapParchment)/2 + 30;
 					var page_offset_y = sprite_get_height(sMapParchment)/2 - page.map_connection_in.x - 20 - page.margin.top + page.margin.bottom;
 			
-					var drawn_page_x =	final_map_x + page_offset_x;
-					var drawn_page_y = final_map_y + page_offset_y;
+					var left_or_right_page = ds_list_size(chosen_pages) mod 2;
+					
+					var drawn_page_x = gui_w * (0.333 + (0.333 * left_or_right_page));
+					var drawn_page_y = gui_h * 0.5;
 			
-					var chosen_page_list_size = ds_list_size(chosen_pages)
 			
-					if (chosen_page_list_size > 0) {
-						drawn_page_x = chosen_pages[| chosen_page_list_size - 1].map_connection_out.x;
-						drawn_page_y = chosen_pages[| chosen_page_list_size - 1].map_connection_out.y;
-					}
-			
-					draw_page(page, drawn_page_x, drawn_page_y, p, false, false);
+					//draw_page(page, drawn_page_x, drawn_page_y, p, false, false);
 			
 					if (mouse_check_button_pressed(mb_left) && can_draft && global.ui_layer == UI_LAYER.BASE) {
 					
@@ -187,8 +269,6 @@ if (room == rmMap) {
 						var _page_clone = clone_page(page);
 						_page_clone.x = drawn_page_x;
 						_page_clone.y = drawn_page_y;
-						_page_clone.y_offset = _page_clone.y - final_map_y;
-						_page_clone.x_offset = _page_clone.x - final_map_x;
 				
 						// Add this locked in page to chosen_pages
 						ds_list_add(chosen_pages, _page_clone);
@@ -293,14 +373,6 @@ if (room == rmMap) {
 		} else {
 			ds_list_clear(pages_shown);
 		}
-	}
-	
-	// Draw chosen pages
-	for (var p = 0; p < ds_list_size(chosen_pages); p++) {
-		var page = chosen_pages[| p];
-		page.x = final_map_x + page.x_offset;
-		page.y = final_map_y + page.y_offset;
-		draw_page(page, page.x, page.y, -1, false, true);
 	}
 	
 	// Draw the boat
