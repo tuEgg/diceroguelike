@@ -224,7 +224,7 @@ function enter_node(_node) {
 		var rand = irandom_range(1, 100);
 		if (rand <= 8) {
 			_node = clone_node_static(node_combat);
-		} else if (rand <= 16) {
+		} else if (rand <= 16 && !oRunManager.dutchman_taken) { // no shops once the Dutchman has sailed through
 			_node = clone_node_static(node_shop);
 		}
 	}
@@ -242,7 +242,12 @@ function enter_node(_node) {
 function get_combat_enemies(_node) {
 	
 	if (_node.type == NODE_TYPE.COMBAT) {
-		
+
+		// Refill the pool if we've fought everything, so we never start an empty fight
+		if (ds_list_size(possible_encounters) == 0) {
+			for (var i = 1; i <= 7; i++) ds_list_add(possible_encounters, "Encounter " + string(i));
+		}
+
 		// Find a random encounter in the list of possible encounters
 		var rand_encounter = irandom(ds_list_size(possible_encounters) - 1);
 		
@@ -308,7 +313,12 @@ function get_combat_enemies(_node) {
 		ds_list_delete(possible_encounters, rand_encounter);
 		
 	} else if (_node.type == NODE_TYPE.ELITE) {
-		
+
+		// Refill the pool if it's empty, so we never start an empty fight
+		if (ds_list_size(possible_elites) == 0) {
+			for (var i = 1; i <= 3; i++) ds_list_add(possible_elites, "Elite " + string(i));
+		}
+
 		// Find a random encounter in the list of possible encounters
 		var rand_encounter = irandom(ds_list_size(possible_elites) - 1);
 		
@@ -331,7 +341,12 @@ function get_combat_enemies(_node) {
 		// Remove it from the list of possible encounters
 		ds_list_delete(possible_elites, rand_encounter);
 	} else if (_node.type == NODE_TYPE.ALIGNMENT) {
-		
+
+		// Refill the pool if it's empty, so we never start an empty fight
+		if (ds_list_size(possible_alignment_encounters) == 0) {
+			ds_list_add(possible_alignment_encounters, "Alignment 1");
+		}
+
 		// Find a random encounter in the list of possible encounters
 		var rand_encounter = irandom(ds_list_size(possible_alignment_encounters) - 1);
 		

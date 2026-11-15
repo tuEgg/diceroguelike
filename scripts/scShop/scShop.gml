@@ -88,7 +88,9 @@ function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", 
 	var die_1 = clone_die(global.dice_all, "");
 	var die_2 = clone_die(global.dice_all, "");
 
+	var _attempts = 0; // safety net so an impossible filter can never freeze the game
 	do {
+		_attempts++;
 		if (oRunManager.active_bounty != undefined && oWorldManager.current_node_type == NODE_TYPE.ELITE) {
 			if (oRunManager.active_bounty.complete) {
 				// third item is always a dice, so add that here
@@ -125,6 +127,7 @@ function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", 
 		if (chance <= rare_dice_chance) {
 			var rare_index = irandom(ds_list_size(indices_dice_rare)-1);
 			var die_struct = indices_dice_rare[| rare_index ];
+			if (die_struct == undefined) continue; // that rarity pool is empty
 				
 			if (die_struct != die_1 && die_struct != die_2) {
 				switch (_filter) {
@@ -151,6 +154,7 @@ function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", 
 		} else if (chance <= uncommon_dice_chance) {
 			var uncommon_index = irandom(ds_list_size(indices_dice_uncommon)-1);
 			var die_struct = indices_dice_uncommon[| uncommon_index ];
+			if (die_struct == undefined) continue; // that rarity pool is empty
 				
 			if (die_struct != die_1 && die_struct != die_2) {
 				switch (_filter) {
@@ -178,6 +182,7 @@ function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", 
 		} else if (chance <= common_dice_chance) {
 			var common_index = irandom(ds_list_size(indices_dice_common)-1);
 			var die_struct = indices_dice_common[| common_index ];
+			if (die_struct == undefined) continue; // that rarity pool is empty
 				
 			if (die_struct != die_1 && die_struct != die_2) {
 				switch (_filter) {
@@ -204,7 +209,7 @@ function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", 
 			continue;
 		}
 	}
-	until (ds_list_size(_reward_list) == num_rewards);
+	until (ds_list_size(_reward_list) == num_rewards || _attempts >= 500);
 
 	// clean up lists
 	ds_list_destroy(indices_dice_common);
@@ -259,7 +264,9 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none",
 	// pick up to 3 unique entries
 	var num_rewards = _num;
 
+	var _attempts = 0; // safety net so an impossible filter can never freeze the game
 	do {
+		_attempts++;
 		if (oRunManager.active_bounty != undefined) {
 			if (oRunManager.active_bounty.complete) {
 				// third item is always a dice, so add that here
@@ -297,6 +304,7 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none",
 				
 		if (chance <= rare_item_chance) {
 			var item_struct = indices_items_rare[| irandom(ds_list_size(indices_items_rare)-1) ];
+			if (item_struct == undefined) continue; // that rarity pool is empty
 			
 			show_debug_message("Item struct generated: " + string(item_struct));
 			
@@ -329,6 +337,7 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none",
 			}
 		} else if (chance <= uncommon_item_chance) {
 			var item_struct = indices_items_uncommon[| irandom(ds_list_size(indices_items_uncommon)-1) ];
+			if (item_struct == undefined) continue; // that rarity pool is empty
 			switch(_filter) {
 				case "consumable":
 					if (item_struct.type != "consumable") {
@@ -359,6 +368,7 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none",
 		} else if (chance <= common_item_chance) {
 			// Generate a random item
 			var item_struct = indices_items_common[| irandom(ds_list_size(indices_items_common)-1) ];
+			if (item_struct == undefined) continue; // that rarity pool is empty
 			
 			var rand_num_100 = irandom(100);
 			var coin_chance = 10;
@@ -403,7 +413,7 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none",
 		}
 			    
 	}
-	until (ds_list_size(_reward_list) == num_rewards);
+	until (ds_list_size(_reward_list) == num_rewards || _attempts >= 500);
 	
 	ds_list_destroy(indices_items_common);
 	ds_list_destroy(indices_items_uncommon);
@@ -426,7 +436,9 @@ function generate_keepsake_rewards(_reward_list, _keepsake_list, _num) {
 	// pick up to 3 unique entries
 	var num_rewards = _num;
 
+	var _attempts = 0; // safety net so an impossible filter can never freeze the game
 	do {
+		_attempts++;
 		if (oRunManager.active_bounty != undefined) {
 			if (oRunManager.active_bounty.complete) {
 				if (oRunManager.active_bounty.rewards[1] != undefined) {
@@ -441,11 +453,12 @@ function generate_keepsake_rewards(_reward_list, _keepsake_list, _num) {
 		var rand_index = irandom(ds_list_size(indices_keepsakes)-1);
 		
 		var keepsake_struct = indices_keepsakes[| rand_index];
+		if (keepsake_struct == undefined) break; // pool has run dry, return what we have
 		ds_list_add(_reward_list, clone_keepsake(keepsake_struct));
 		ds_list_delete( indices_keepsakes, ds_list_find_index( indices_keepsakes, keepsake_struct));
 		continue;  
 	}
-	until (ds_list_size(_reward_list) == num_rewards);
+	until (ds_list_size(_reward_list) == num_rewards || _attempts >= 500);
 	
 	ds_list_destroy(indices_keepsakes);
 }
@@ -466,16 +479,19 @@ function generate_tool_rewards(_reward_list, _tool_list, _num) {
 	// pick up to X unique entries
 	var num_rewards = _num;
 
-	do {		
+	var _attempts = 0; // safety net so an impossible filter can never freeze the game
+	do {
+		_attempts++;
 		var rand_index = irandom(ds_list_size(indices_tools)-1);
 		
 		var tool_struct = indices_tools[| rand_index];
+		if (tool_struct == undefined) break; // pool has run dry, return what we have
 		ds_list_add(_reward_list, tool_struct);
 		ds_list_delete( indices_tools, ds_list_find_index( indices_tools, tool_struct));
 		
 		continue;  
 	}
-	until (ds_list_size(_reward_list) == num_rewards);
+	until (ds_list_size(_reward_list) == num_rewards || _attempts >= 500);
 	
 	ds_list_destroy(indices_tools);
 }

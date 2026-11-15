@@ -26,6 +26,27 @@ if (exiting) {
 	} else if (instance_exists(oDiceParticle)) {
 		
 	} else {
+		// Hand back a core left in the middle slot so it isn't lost on exit
+		if (workbench_slot[1].core != undefined) {
+			var _return_slot = -1;
+			if (core_prev_item_slot != -1 && oRunManager.items[core_prev_item_slot] == undefined) {
+				_return_slot = core_prev_item_slot;
+			} else {
+				for (var i = 0; i < array_length(oRunManager.items); i++) {
+					if (oRunManager.items[i] == undefined) {
+						_return_slot = i;
+						break;
+					}
+				}
+			}
+
+			if (_return_slot != -1) {
+				workbench_slot[1].core.dragging = false;
+				oRunManager.items[_return_slot] = workbench_slot[1].core;
+			}
+			workbench_slot[1].core = undefined;
+		}
+
 		room_goto(rmMap);
 	}
 }

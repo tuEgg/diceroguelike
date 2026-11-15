@@ -327,7 +327,8 @@ for (var i = 0; i < array_length(items); i++) {
 			}
 			
 			// Add core dragging functionality
-			if (room == rmWorkbench) {
+			// (the item may have just been deleted above)
+			if (room == rmWorkbench && items[i] != undefined) {
 				if (items[i].type == "core") {
 					// drag the core
 					if (items_hover[i] && mouse_check_button(mb_left)) {
