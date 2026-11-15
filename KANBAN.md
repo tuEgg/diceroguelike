@@ -16,10 +16,16 @@
 | ID | Task | Notes |
 |---|---|---|
 | H05 | Make the debug toggle a single `#macro DEBUG` | `debug_mode` is used in places, while some debug keys ship in release builds (see B01). |
-| H06 | Set up GitHub pushing again (HTTPS sign-in or a new SSH key) | Needed before the first push. |
+| H06 | Sign in to GitHub on the first push | Remote switched to HTTPS (2026-11-15). The first push opens a browser sign-in; no SSH key needed. |
 | H07 | **Web build smoke test**: export HTML5/GX, upload privately to itch.io, list what breaks | Surfaces (`draw_wonky_rectangle`), shaders, file saves, fonts and resolution are the usual web trouble spots. Do this early so web problems are fixed alongside other bugs. |
 
 ---
+
+## 🧪 IN TESTING: waiting for Jared's playtest
+
+| Batch | Cards | Branch / commit | Status |
+|---|---|---|---|
+| 1: crashes, softlocks, lost runs | B01–B10 | `fix/batch-1` @ `264dcc8` | Fixed in code, **not yet play-tested**. Merges cleanly into `wip/world-map`. |
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -169,6 +175,9 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F40 Individual Balatro-style trigger animations per die
 - F41 Room transitions, death animation, enemy sprites, particles for coins/potions/sacrifice
 - F42 Unique visual per die
+
+**Art direction (parked, Jared wants to discuss later)**
+- F50 Decide an art style for the game. Jared isn't an artist and wants to explore AI-assisted art workflows (he's been following r/aigamedev). Covers dice, enemies, map/book, UI and backgrounds. Don't start until he raises it.
 
 ---
 
