@@ -1256,6 +1256,10 @@ function generate_event() {
 		rand = irandom(ds_list_size(global.master_event_list) - 1);
 	}
 	
+	// The F1 debug menu can ask for a specific event
+	var _debug_index = debug_take_forced_event_index();
+	if (_debug_index != -1) rand = _debug_index;
+	
 	event = global.master_event_list[| rand];
 
 	chosen_event = event;

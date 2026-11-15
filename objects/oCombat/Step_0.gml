@@ -150,7 +150,7 @@ switch (state) {
 		dice_allowed_this_turn_bonus = 0;
 		ejected_dice = false;
 		
-		player_intel = debug_mode ? 6 : 0;
+		player_intel = debug_turn_intel(); // 0 unless set in the F1 debug menu
 		
 		// Modify dice allowed this turn
 		var turn_start_data = {

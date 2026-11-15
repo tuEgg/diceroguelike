@@ -25,8 +25,9 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 1: crashes, softlocks, lost runs | B01–B10 | `fix/batch-1` @ `264dcc8` | Merged into `wip/world-map`. Jared played the combined build and it felt good; individual cards not yet confirmed. |
-| 2: world-map save and stability | M01–M04 | `wip/world-map` | Fixed in code, **not yet play-tested**. |
+| 1: crashes, softlocks, lost runs | B01–B10 | `fix/batch-1` @ `264dcc8` | Merged to `main` and pushed 2026-11-15. Jared played the combined build and it felt good; individual cards not yet confirmed. |
+| 2: world-map save and stability | M01–M04 | `wip/world-map` | Merged to `main` and pushed 2026-11-15. |
+| 3: debug menu (T14) | T14, part of H05 | `feature/debug-menu` | Built, **not yet play-tested**. Press F1 in a run started from GameMaker. |
 
 **Batch 2 cards (world-map work)**
 - M01 Islands are now saved with each page (Continue would have crashed).

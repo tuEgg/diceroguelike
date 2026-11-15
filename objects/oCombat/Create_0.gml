@@ -1,3 +1,6 @@
+// Lets the F1 debug menu choose the enemies for this fight (does nothing otherwise)
+debug_apply_pending_fight();
+
 turn_count = 0;
 
 if (!ds_exists(global.discard_pile, ds_type_list)) {

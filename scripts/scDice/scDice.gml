@@ -3,6 +3,9 @@
 // https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
 /// @func deal_single_die( _can_discard_this_turn )
 function deal_single_die( _can_discard_this_turn = true) {
+	// The F1 debug menu can ask for a specific die to be dealt next
+	var _debug_die = debug_take_next_die();
+	
 	if (room == rmCombat) {
 		if (ds_list_size(global.dice_bag) == 1) {
 			combat_trigger_effects("on_bag_empty", {});
@@ -10,7 +13,7 @@ function deal_single_die( _can_discard_this_turn = true) {
 	}
 		
 	// --- Reshuffle if empty ---
-	if (ds_list_size(global.dice_bag) == 0) {
+	if (_debug_die == undefined && ds_list_size(global.dice_bag) == 0) {
 			
 	    if (ds_list_size(global.discard_pile) > 0) {
 	        //show_debug_message("Dice bag empty — reshuffling discard pile!");
@@ -52,6 +55,12 @@ function deal_single_die( _can_discard_this_turn = true) {
 		}
 	}
 	
+	// a debug die doesn't come out of the bag
+	if (_debug_die != undefined) {
+		die_struct = clone_die(_debug_die, "");
+		index = -1;
+	}
+	
 	// if we haven't set die_struct
 	if (die_struct == undefined) {
 	    index = irandom(ds_list_size(global.dice_bag) - 1);
@@ -76,7 +85,7 @@ function deal_single_die( _can_discard_this_turn = true) {
     die_inst.target_y = target[1];
 
     // Remove from bag
-    ds_list_delete(global.dice_bag, index);
+    if (index != -1) ds_list_delete(global.dice_bag, index);
 	
 	return die_inst;
 }

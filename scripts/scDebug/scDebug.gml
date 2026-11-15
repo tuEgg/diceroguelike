@@ -1,5 +1,6 @@
-// Script assets have changed for v2.3.0 see
-// https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
+// Debug tools only exist when the game is run from the IDE, never in an exported build
+#macro DEBUG_TOOLS (debug_mode || GM_build_type == "run")
+
 function trace() {
 	/// trace(...values)
 	var r = string(argument[0]), i;
@@ -7,4 +8,732 @@ function trace() {
 	    r += ", " + string(argument[i]);
 	}
 	show_debug_message(r);
+}
+
+// =====================================================================
+// DEBUG MENU (F1)
+// State lives in global.dbg, created by oDebugger. The game reads a few
+// of these values through the small debug_* hooks at the bottom.
+// =====================================================================
+
+/// Create the debug state. Called once from oDebugger Create.
+function debug_menu_init() {
+	global.dbg = {
+		open: false,
+		tab: 0,
+		scroll: 0,
+		prev_ui_layer: UI_LAYER.BASE,
+
+		tabs: ["Run", "Fight", "Combat", "Dice", "Keepsakes", "Items", "Events", "Rooms"],
+
+		// Fight builder
+		enemy_names: ["Deckhand", "Baby Kraken", "Seagull", "Thug", "Pirate Ruffian", "Parrot", "Peg-leg", "Elizabeak", "Bill",
+			"Pufferfish", "Corsair Gunner", "Turtle", "Barrel o' Fish", "Driftnet Fish", "Pirate Captain", "Giant Conch", "Barnacle Titan"],
+		fight_picks: [],			// enemy names in the fight being built
+		fight_type: 0,				// index into fight_types
+		fight_types: [
+			{ name: "Normal",		node_type: NODE_TYPE.COMBAT },
+			{ name: "Elite",		node_type: NODE_TYPE.ELITE },
+			{ name: "Alignment",	node_type: NODE_TYPE.ALIGNMENT },
+			{ name: "Boss",			node_type: NODE_TYPE.BOSS },
+		],
+		pending_fight: undefined,	// { names, node_type } picked up by oCombat when it is created
+
+		// Events
+		event_names: ["Pirate Prisoner", "A Great Storm", "Clear skies", "Broken sails", "Dividing up the bounty", "A Hidden Trunk",
+			"Some old loot", "Spare Ammunition", "A bird flies aboard", "The Wishing Well", "An island dream", "The Flying Dutchman",
+			"Rough tides", "The constellation", "A precious ingot", "The Siren's Call"],
+		forced_event: "",			// name of the event the next event room must show
+
+		// Dice
+		dice_to_hand: false,		// false = add to bag, true = deal straight to hand (combat only)
+		next_dice: [],				// dice structs the next deals will hand out instead of drawing from the bag
+		bag_snapshot: undefined,	// the bag as it was when the current fight started
+
+		// Combat
+		turn_intel: 0,				// intel granted at the start of every turn
+
+		// Misc
+		base_speed: game_get_speed(gamespeed_fps),
+		speed_multiplier: 1,
+		message: "",
+		message_timer: 0,
+		clicked: false,				// was the left mouse button pressed this frame (set while drawing)
+	};
+}
+
+/// Show a short confirmation line at the bottom of the menu.
+function debug_say(_text) {
+	global.dbg.message = _text;
+	global.dbg.message_timer = game_get_speed(gamespeed_fps) * 2.5;
+	show_debug_message("[debug menu] " + _text);
+}
+
+/// Are we inside a run (the run and world managers exist)?
+function debug_in_run() {
+	if (instance_exists(oRunManager) && instance_exists(oWorldManager)) return true;
+	debug_say("Start a run first");
+	return false;
+}
+
+function debug_menu_open() {
+	var dbg = global.dbg;
+	dbg.open = true;
+	dbg.prev_ui_layer = global.ui_layer;
+	global.ui_layer = UI_LAYER.DEBUG; // blocks hovers and clicks on the game underneath
+}
+
+/// @param _reset_layer  true after jumping rooms, so we never carry a popup layer into the new room
+function debug_menu_close(_reset_layer = false) {
+	var dbg = global.dbg;
+	dbg.open = false;
+	global.ui_layer = _reset_layer ? UI_LAYER.BASE : dbg.prev_ui_layer;
+}
+
+/// Called every step from oDebugger.
+function debug_menu_step() {
+	if (!DEBUG_TOOLS) exit;
+
+	var dbg = global.dbg;
+
+	if (keyboard_check_pressed(vk_f1)) {
+		if (dbg.open) debug_menu_close(); else debug_menu_open();
+	}
+
+	if (dbg.open) {
+		// Other code may change the layer while we're open (escape, popups), remember it and keep ours on top
+		if (global.ui_layer != UI_LAYER.DEBUG) {
+			dbg.prev_ui_layer = global.ui_layer;
+			global.ui_layer = UI_LAYER.DEBUG;
+		}
+
+		if (mouse_wheel_up())	dbg.scroll = max(0, dbg.scroll - 3);
+		if (mouse_wheel_down())	dbg.scroll += 3;
+	}
+
+	if (dbg.message_timer > 0) dbg.message_timer--;
+}
+
+/// Called on every room start from oDebugger.
+function debug_menu_room_start() {
+	if (!DEBUG_TOOLS) exit;
+
+	// Remember the bag as the fight begins, so abandoning a fight through the menu can't lose dice
+	if (room == rmCombat) {
+		debug_snapshot_bag();
+	} else {
+		global.dbg.bag_snapshot = undefined;
+	}
+}
+
+function debug_snapshot_bag() {
+	var _snapshot = [];
+	for (var i = 0; i < ds_list_size(global.dice_bag); i++) {
+		array_push(_snapshot, clone_die(global.dice_bag[| i], ""));
+	}
+	global.dbg.bag_snapshot = _snapshot;
+}
+
+/// Leaving a fight part-way through would lose every die in hand, in slots and in the discard pile.
+/// Put the bag back to how it was when the fight started.
+function debug_restore_bag_if_abandoning_fight() {
+	var dbg = global.dbg;
+
+	if (room != rmCombat || dbg.bag_snapshot == undefined) exit;
+	if (!instance_exists(oCombat) || oCombat.show_rewards) exit; // fight already won, dice are back in the bag
+
+	ds_list_clear(global.dice_bag);
+	for (var i = 0; i < array_length(dbg.bag_snapshot); i++) {
+		ds_list_add(global.dice_bag, dbg.bag_snapshot[i]);
+	}
+	dbg.bag_snapshot = undefined;
+	dbg.next_dice = [];
+}
+
+/// Jump to a room from anywhere in a run.
+function debug_goto_room(_room) {
+	if (!debug_in_run()) exit;
+
+	debug_restore_bag_if_abandoning_fight();
+	debug_menu_close(true);
+	room_goto(_room);
+}
+
+/// Start a fight against the given enemy names.
+function debug_start_fight(_names, _node_type) {
+	if (!debug_in_run()) exit;
+
+	if (array_length(_names) == 0) {
+		debug_say("Pick at least one enemy");
+		exit;
+	}
+
+	debug_restore_bag_if_abandoning_fight();
+
+	// oCombat picks this up as it is created (leaving a fight clears the enemy list, so we can't fill it here)
+	var _copy = [];
+	array_copy(_copy, 0, _names, 0, array_length(_names));
+	global.dbg.pending_fight = { names: _copy, node_type: _node_type };
+
+	debug_menu_close(true);
+	room_goto(rmCombat);
+}
+
+/// Give a die to the bag, or deal it straight to the hand when in combat.
+function debug_give_die(_die_struct) {
+	if (!debug_in_run()) exit;
+
+	var dbg = global.dbg;
+
+	if (dbg.dice_to_hand && room == rmCombat && instance_exists(oCombat)) {
+		array_push(dbg.next_dice, _die_struct);
+		oCombat.dice_to_deal += 1;
+		oCombat.is_dealing_dice = true;
+		debug_say("Dealt " + _die_struct.name + " to hand (joins your bag after the fight)");
+	} else {
+		ds_list_add(global.dice_bag, clone_die(_die_struct, ""));
+
+		// keep the snapshot in step, so the die survives abandoning the fight
+		if (dbg.bag_snapshot != undefined) array_push(dbg.bag_snapshot, clone_die(_die_struct, ""));
+
+		debug_say("Added " + _die_struct.name + " to bag");
+	}
+}
+
+/// Does the player own this keepsake? Returns its index in oRunManager.keepsakes, or -1.
+function debug_keepsake_index(_keepsake) {
+	for (var i = 0; i < ds_list_size(oRunManager.keepsakes); i++) {
+		if (oRunManager.keepsakes[| i]._id == _keepsake._id) return i;
+	}
+	return -1;
+}
+
+/// Deal lethal damage to one enemy, through the normal damage code so death effects fire.
+function debug_kill_enemy(_enemy) {
+	if (_enemy == undefined || _enemy.dead) exit;
+
+	with (oCombat) {
+		_enemy.block_amount = 0;
+		process_action(_enemy, 0, 99999, 0, "player", -1, "ATK", 0, global.dice_d4_atk, 1);
+	}
+}
+
+// ---------------------------------------------------------------------
+// Drawing. Simple immediate-mode widgets: draw it and get back whether it was clicked.
+// ---------------------------------------------------------------------
+
+/// @returns {bool} true if this button was clicked this frame
+function debug_button(_x, _y, _w, _h, _label, _highlight = false, _enabled = true) {
+	var mx = device_mouse_x_to_gui(0);
+	var my = device_mouse_y_to_gui(0);
+	var _hover = _enabled && (mx >= _x && mx < _x + _w && my >= _y && my < _y + _h);
+
+	var _col = make_color_rgb(52, 58, 70);
+	if (_highlight)	_col = make_color_rgb(40, 120, 80);
+	if (_hover)		_col = make_color_rgb(90, 110, 160);
+
+	draw_set_alpha(_enabled ? 1.0 : 0.4);
+	draw_set_color(_col);
+	draw_rectangle(_x, _y, _x + _w - 2, _y + _h - 2, false);
+
+	draw_set_color(c_white);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_middle);
+	draw_text(_x + 8, _y + _h/2, _label);
+	draw_set_alpha(1.0);
+
+	return _hover && global.dbg.clicked;
+}
+
+function debug_label(_x, _y, _text, _col = c_white) {
+	draw_set_color(_col);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	draw_text(_x, _y, _text);
+}
+
+/// Called from oDebugger Draw GUI.
+function debug_menu_draw() {
+	if (!DEBUG_TOOLS) exit;
+
+	var dbg = global.dbg;
+	if (!dbg.open) exit;
+
+	var gui_w = display_get_gui_width();
+	var gui_h = display_get_gui_height();
+
+	dbg.clicked = mouse_check_button_pressed(mb_left);
+
+	draw_set_font(ftDefault);
+	var row_h = string_height("Ag") + 12;
+
+	// Panel
+	var px = 20;
+	var py = 20;
+	var pw = min(gui_w - 40, max(780, gui_w * 0.45));
+	var ph = gui_h - 40;
+	var pad = 14;
+
+	draw_set_alpha(0.92);
+	draw_set_color(make_color_rgb(18, 20, 26));
+	draw_rectangle(px, py, px + pw, py + ph, false);
+	draw_set_alpha(1.0);
+
+	debug_label(px + pad, py + pad, "DEBUG MENU   (F1 to close, mouse wheel to scroll)", c_yellow);
+
+	// Tabs down the left side
+	var tab_w = 150;
+	var tab_x = px + pad;
+	var tab_y = py + pad + row_h + 6;
+
+	for (var t = 0; t < array_length(dbg.tabs); t++) {
+		if (debug_button(tab_x, tab_y + t * row_h, tab_w, row_h, dbg.tabs[t], dbg.tab == t)) {
+			dbg.tab = t;
+			dbg.scroll = 0;
+		}
+	}
+
+	// Content area
+	var cx = tab_x + tab_w + pad;
+	var cy = tab_y;
+	var cw = px + pw - pad - cx;
+	var ch = py + ph - pad - row_h - cy; // leave a row at the bottom for the message line
+	var max_rows = floor(ch / row_h);
+	var half_w = floor(cw / 2);
+	var third_w = floor(cw / 3);
+	var quarter_w = floor(cw / 4);
+
+	var in_run = instance_exists(oRunManager) && instance_exists(oWorldManager);
+	var in_combat = in_run && room == rmCombat && instance_exists(oCombat);
+
+	switch (dbg.tabs[dbg.tab]) {
+
+		// -------------------------------------------------------------
+		case "Run":
+			if (!in_run) {
+				debug_label(cx, cy, "Start a run first.");
+				break;
+			}
+
+			var yy = cy;
+
+			debug_label(cx, yy + 6, "HP  " + string(global.player_hp) + " / " + string(global.player_max_hp));
+			yy += row_h;
+			if (debug_button(cx,				yy, quarter_w, row_h, "-10"))		global.player_hp = max(1, global.player_hp - 10);
+			if (debug_button(cx + quarter_w,	yy, quarter_w, row_h, "+10"))		global.player_hp = min(global.player_max_hp, global.player_hp + 10);
+			if (debug_button(cx + quarter_w*2,	yy, quarter_w, row_h, "Full"))		global.player_hp = global.player_max_hp;
+			if (debug_button(cx + quarter_w*3,	yy, quarter_w, row_h, "Set to 1"))	global.player_hp = 1;
+			yy += row_h;
+			if (debug_button(cx,				yy, quarter_w, row_h, "Max -10")) {
+				global.player_max_hp = max(1, global.player_max_hp - 10);
+				global.player_hp = min(global.player_hp, global.player_max_hp);
+			}
+			if (debug_button(cx + quarter_w,	yy, quarter_w, row_h, "Max +10"))	global.player_max_hp += 10;
+			yy += row_h * 1.5;
+
+			debug_label(cx, yy + 6, "Gold  " + string(oRunManager.credits));
+			yy += row_h;
+			if (debug_button(cx,				yy, quarter_w, row_h, "+100"))		oRunManager.credits += 100;
+			if (debug_button(cx + quarter_w,	yy, quarter_w, row_h, "+1000"))		oRunManager.credits += 1000;
+			if (debug_button(cx + quarter_w*2,	yy, quarter_w, row_h, "Set to 0"))	oRunManager.credits = 0;
+			yy += row_h * 1.5;
+
+			debug_label(cx, yy + 6, "Alignment  " + string(global.player_alignment) + "  (0 to 100)");
+			yy += row_h;
+			if (debug_button(cx,				yy, quarter_w, row_h, "-10"))		global.player_alignment = clamp(global.player_alignment - 10, 0, 100);
+			if (debug_button(cx + quarter_w,	yy, quarter_w, row_h, "+10"))		global.player_alignment = clamp(global.player_alignment + 10, 0, 100);
+			if (debug_button(cx + quarter_w*2,	yy, quarter_w, row_h, "Set to 50"))	global.player_alignment = 50;
+			yy += row_h * 1.5;
+
+			debug_label(cx, yy + 6, "Luck  " + string(global.player_luck) + "  (50 is normal)");
+			yy += row_h;
+			if (debug_button(cx,				yy, quarter_w, row_h, "-10"))		global.player_luck -= 10;
+			if (debug_button(cx + quarter_w,	yy, quarter_w, row_h, "+10"))		global.player_luck += 10;
+			if (debug_button(cx + quarter_w*2,	yy, quarter_w, row_h, "Set to 50"))	global.player_luck = 50;
+			yy += row_h * 1.5;
+
+			debug_label(cx, yy + 6, "Intel at the start of every turn  " + string(dbg.turn_intel));
+			yy += row_h;
+			var intel_steps = [0, 3, 6, 9, 12];
+			var intel_w = floor(cw / array_length(intel_steps));
+			for (var i = 0; i < array_length(intel_steps); i++) {
+				if (debug_button(cx + intel_w * i, yy, intel_w, row_h, string(intel_steps[i]), dbg.turn_intel == intel_steps[i])) {
+					dbg.turn_intel = intel_steps[i];
+				}
+			}
+			yy += row_h * 1.5;
+
+			debug_label(cx, yy + 6, "Game speed  x" + string(dbg.speed_multiplier));
+			yy += row_h;
+			var speed_steps = [0.5, 1, 2, 4];
+			for (var i = 0; i < array_length(speed_steps); i++) {
+				if (debug_button(cx + quarter_w * i, yy, quarter_w, row_h, "x" + string(speed_steps[i]), dbg.speed_multiplier == speed_steps[i])) {
+					dbg.speed_multiplier = speed_steps[i];
+					game_set_speed(dbg.base_speed * speed_steps[i], gamespeed_fps);
+				}
+			}
+		break;
+
+		// -------------------------------------------------------------
+		case "Fight":
+			if (!in_run) {
+				debug_label(cx, cy, "Start a run first.");
+				break;
+			}
+
+			var yy = cy;
+
+			// Current line-up
+			var lineup = "Line-up: ";
+			if (array_length(dbg.fight_picks) == 0) lineup += "(click enemies below, up to 3)";
+			for (var i = 0; i < array_length(dbg.fight_picks); i++) {
+				lineup += (i > 0 ? " + " : "") + dbg.fight_picks[i];
+			}
+			debug_label(cx, yy + 6, lineup, c_aqua);
+			yy += row_h;
+
+			// Fight type
+			for (var i = 0; i < array_length(dbg.fight_types); i++) {
+				if (debug_button(cx + quarter_w * i, yy, quarter_w, row_h, dbg.fight_types[i].name, dbg.fight_type == i)) dbg.fight_type = i;
+			}
+			yy += row_h;
+
+			if (debug_button(cx, yy, half_w, row_h, "START FIGHT", true, array_length(dbg.fight_picks) > 0)) {
+				debug_start_fight(dbg.fight_picks, dbg.fight_types[dbg.fight_type].node_type);
+			}
+			if (debug_button(cx + half_w, yy, half_w, row_h, "Clear line-up")) dbg.fight_picks = [];
+			yy += row_h * 1.5;
+
+			// Enemy list, two columns
+			for (var i = 0; i < array_length(dbg.enemy_names); i++) {
+				var col = i mod 2;
+				var row = i div 2;
+				if (debug_button(cx + half_w * col, yy + row * row_h, half_w, row_h, dbg.enemy_names[i])) {
+					if (array_length(dbg.fight_picks) < 3) {
+						array_push(dbg.fight_picks, dbg.enemy_names[i]);
+					} else {
+						debug_say("A fight holds 3 enemies at most");
+					}
+				}
+			}
+		break;
+
+		// -------------------------------------------------------------
+		case "Combat":
+			if (!in_combat) {
+				debug_label(cx, cy, "Only works during a fight.");
+				break;
+			}
+
+			var yy = cy;
+
+			if (debug_button(cx, yy, half_w, row_h, "Kill targeted enemy")) {
+				debug_kill_enemy(oCombat.room_enemies[| oCombat.enemy_target_index]);
+				debug_say("Killed the targeted enemy");
+			}
+			if (debug_button(cx + half_w, yy, half_w, row_h, "Kill all enemies (win)")) {
+				for (var i = 0; i < ds_list_size(oCombat.room_enemies); i++) {
+					debug_kill_enemy(oCombat.room_enemies[| i]);
+				}
+				debug_say("Killed all enemies, end the turn to finish the fight");
+			}
+			yy += row_h;
+
+			if (debug_button(cx, yy, half_w, row_h, "All enemies to 1 HP")) {
+				for (var i = 0; i < ds_list_size(oCombat.room_enemies); i++) {
+					var enemy = oCombat.room_enemies[| i];
+					if (!enemy.dead) enemy.hp = 1;
+				}
+			}
+			if (debug_button(cx + half_w, yy, half_w, row_h, "Strip enemy block")) {
+				for (var i = 0; i < ds_list_size(oCombat.room_enemies); i++) {
+					oCombat.room_enemies[| i].block_amount = 0;
+				}
+			}
+			yy += row_h * 1.5;
+
+			if (debug_button(cx, yy, half_w, row_h, "Draw 1 die")) {
+				oCombat.dice_to_deal += 1;
+				oCombat.is_dealing_dice = true;
+			}
+			if (debug_button(cx + half_w, yy, half_w, row_h, "+1 die playable this turn")) {
+				oCombat.dice_allowed_this_turn_bonus += 1;
+			}
+			yy += row_h;
+
+			if (debug_button(cx, yy, half_w, row_h, "+20 block")) {
+				oCombat.player_block_amount += 20;
+			}
+			if (debug_button(cx + half_w, yy, half_w, row_h, "Clear my buffs and debuffs")) {
+				ds_list_clear(global.player_debuffs);
+			}
+			yy += row_h * 1.5;
+
+			// Live read-out
+			debug_label(cx, yy, "Turn " + string(oCombat.turn_count)
+				+ "   Intel " + string(oCombat.player_intel) + " (level " + string(oCombat.intel_level) + ")"
+				+ "   Dice played " + string(oCombat.dice_played) + " / " + string(oCombat.dice_allowed_per_turn));
+			yy += row_h;
+			debug_label(cx, yy, "Bag " + string(ds_list_size(global.dice_bag))
+				+ "   Discard " + string(ds_list_size(global.discard_pile))
+				+ "   Slots " + string(ds_list_size(oCombat.action_queue)));
+			yy += row_h;
+
+			for (var i = 0; i < ds_list_size(oCombat.room_enemies); i++) {
+				var enemy = oCombat.room_enemies[| i];
+				var line = enemy.data.name + "   HP " + string(enemy.hp) + "/" + string(enemy.max_hp) + "   Block " + string(enemy.block_amount);
+				if (enemy.dead) line += "   (dead)";
+				if (!enemy.dead) line += "   Next: " + enemy.intent.move.move_name;
+
+				for (var d = 0; d < ds_list_size(enemy.debuffs); d++) {
+					var buff = enemy.debuffs[| d];
+					line += "   [" + buff.template.name + " x" + string(buff.amount) + (buff.permanent ? " perm" : " " + string(buff.remaining) + "t") + "]";
+				}
+				debug_label(cx, yy, line, i == oCombat.enemy_target_index ? c_yellow : c_white);
+				yy += row_h;
+			}
+
+			var my_buffs = "You:";
+			for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
+				var buff = global.player_debuffs[| d];
+				my_buffs += "   [" + buff.template.name + " x" + string(buff.amount) + (buff.permanent ? " perm" : " " + string(buff.remaining) + "t") + "]";
+			}
+			debug_label(cx, yy, my_buffs, c_lime);
+		break;
+
+		// -------------------------------------------------------------
+		case "Dice":
+			if (!in_run) {
+				debug_label(cx, cy, "Start a run first.");
+				break;
+			}
+
+			var yy = cy;
+
+			debug_label(cx, yy + 6, "Clicking a die gives it to:");
+			yy += row_h;
+			if (debug_button(cx,			yy, half_w, row_h, "Bag", !dbg.dice_to_hand))								dbg.dice_to_hand = false;
+			if (debug_button(cx + half_w,	yy, half_w, row_h, "Hand right now (in a fight)", dbg.dice_to_hand))		dbg.dice_to_hand = true;
+			yy += row_h * 1.5;
+
+			// Every die the game defines: rewards, starters and alignment dice
+			var all_dice = [];
+			var sources = [global.master_dice_list, global.starter_dice_list, global.alignment_dice_list];
+			for (var s = 0; s < array_length(sources); s++) {
+				var source_list = sources[s];
+				for (var i = 0; i < ds_list_size(source_list); i++) array_push(all_dice, source_list[| i]);
+			}
+
+			var list_rows = max(1, floor((cy + ch - yy) / row_h));
+			var per_page = list_rows * 2;
+			dbg.scroll = clamp(dbg.scroll, 0, max(0, ceil(array_length(all_dice) / 2) - list_rows));
+
+			var first = dbg.scroll * 2;
+			for (var i = first; i < min(array_length(all_dice), first + per_page); i++) {
+				var die = all_dice[i];
+				var slot = i - first;
+				var label = die.name + "   d" + string(die.dice_value) + " " + string(die.possible_type);
+				if (debug_button(cx + half_w * (slot mod 2), yy + (slot div 2) * row_h, half_w, row_h, label)) {
+					debug_give_die(die);
+				}
+			}
+		break;
+
+		// -------------------------------------------------------------
+		case "Keepsakes":
+			if (!in_run) {
+				debug_label(cx, cy, "Start a run first.");
+				break;
+			}
+
+			var yy = cy;
+
+			debug_label(cx, yy + 6, "Click to gain. Click a green one to remove it.");
+			yy += row_h;
+			if (debug_button(cx, yy, half_w, row_h, "Remove all keepsakes")) {
+				ds_list_clear(oRunManager.keepsakes);
+				debug_say("Removed all keepsakes");
+			}
+			yy += row_h * 1.5;
+
+			var total = ds_list_size(global.master_keepsake_list);
+			var list_rows = max(1, floor((cy + ch - yy) / row_h));
+			var per_page = list_rows * 2;
+			dbg.scroll = clamp(dbg.scroll, 0, max(0, ceil(total / 2) - list_rows));
+
+			var first = dbg.scroll * 2;
+			for (var i = first; i < min(total, first + per_page); i++) {
+				var keepsake = global.master_keepsake_list[| i];
+				var slot = i - first;
+				var owned_index = debug_keepsake_index(keepsake);
+
+				if (debug_button(cx + half_w * (slot mod 2), yy + (slot div 2) * row_h, half_w, row_h, keepsake.name, owned_index != -1)) {
+					if (owned_index != -1) {
+						ds_list_delete(oRunManager.keepsakes, owned_index);
+						debug_say("Removed " + keepsake.name);
+					} else {
+						gain_keepsake(keepsake);
+						debug_say("Gained " + keepsake.name);
+					}
+				}
+			}
+		break;
+
+		// -------------------------------------------------------------
+		case "Items":
+			if (!in_run) {
+				debug_label(cx, cy, "Start a run first.");
+				break;
+			}
+
+			var yy = cy;
+
+			debug_label(cx, yy + 6, "Click to add to a free item slot.");
+			yy += row_h;
+			if (debug_button(cx, yy, half_w, row_h, "Empty my item slots")) {
+				for (var i = 0; i < array_length(oRunManager.items); i++) oRunManager.items[i] = undefined;
+				oRunManager.holding_item = false;
+			}
+			yy += row_h * 1.5;
+
+			var total = ds_list_size(global.master_item_list);
+			var list_rows = max(1, floor((cy + ch - yy) / row_h));
+			var per_page = list_rows * 2;
+			dbg.scroll = clamp(dbg.scroll, 0, max(0, ceil(total / 2) - list_rows));
+
+			var first = dbg.scroll * 2;
+			for (var i = first; i < min(total, first + per_page); i++) {
+				var item = global.master_item_list[| i];
+				var slot = i - first;
+
+				if (debug_button(cx + half_w * (slot mod 2), yy + (slot div 2) * row_h, half_w, row_h, item.name + "   (" + string(item.type) + ")")) {
+					if (get_first_free_item_slot() == -1) {
+						debug_say("No free item slot");
+					} else {
+						gain_item(item);
+						debug_say("Gained " + item.name);
+					}
+				}
+			}
+		break;
+
+		// -------------------------------------------------------------
+		case "Events":
+			if (!in_run) {
+				debug_label(cx, cy, "Start a run first.");
+				break;
+			}
+
+			var yy = cy;
+
+			debug_label(cx, yy + 6, "Click an event to play it now.");
+			yy += row_h * 1.5;
+
+			for (var i = 0; i < array_length(dbg.event_names); i++) {
+				if (debug_button(cx + half_w * (i mod 2), yy + (i div 2) * row_h, half_w, row_h, dbg.event_names[i])) {
+					dbg.forced_event = dbg.event_names[i];
+					debug_goto_room(rmEvent);
+				}
+			}
+		break;
+
+		// -------------------------------------------------------------
+		case "Rooms":
+			if (!in_run) {
+				debug_label(cx, cy, "Start a run first.");
+				break;
+			}
+
+			var yy = cy;
+
+			debug_label(cx, yy + 6, "Jump straight to a room.");
+			yy += row_h * 1.5;
+
+			var room_list = [
+				{ name: "Map",				target: rmMap },
+				{ name: "Shop",				target: rmShop },
+				{ name: "Workbench",		target: rmWorkbench },
+				{ name: "Treasure",			target: rmTreasure },
+				{ name: "Bounty board",		target: rmBounty },
+				{ name: "Random event",		target: rmEvent },
+			];
+
+			for (var i = 0; i < array_length(room_list); i++) {
+				if (debug_button(cx + half_w * (i mod 2), yy + (i div 2) * row_h, half_w, row_h, room_list[i].name)) {
+					debug_goto_room(room_list[i].target);
+				}
+			}
+		break;
+	}
+
+	// Message line
+	if (dbg.message_timer > 0) {
+		debug_label(cx, py + ph - pad - row_h + 6, dbg.message, c_lime);
+	}
+
+	// Leave the draw state as other code expects it
+	draw_set_alpha(1.0);
+	draw_set_color(c_white);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+}
+
+// =====================================================================
+// HOOKS: the only places the game itself touches the debug menu.
+// Each one does nothing unless the menu has asked for something.
+// =====================================================================
+
+/// oCombat Create: replace the enemy line-up with the one built in the menu.
+function debug_apply_pending_fight() {
+	if (!DEBUG_TOOLS) exit;
+
+	var _fight = global.dbg.pending_fight;
+	if (_fight == undefined) exit;
+
+	global.dbg.pending_fight = undefined;
+
+	with (oWorldManager) {
+		ds_list_clear(room_enemies);
+		for (var i = 0; i < array_length(_fight.names); i++) {
+			var _enemy = enemy_find_by_name(_fight.names[i]);
+			if (_enemy != undefined) ds_list_add(room_enemies, _enemy);
+		}
+		current_node_type = _fight.node_type;
+	}
+}
+
+/// deal_single_die: the next die the menu wants dealt to hand, or undefined to draw from the bag as normal.
+function debug_take_next_die() {
+	if (!DEBUG_TOOLS) return undefined;
+	if (array_length(global.dbg.next_dice) == 0) return undefined;
+
+	var _die = global.dbg.next_dice[0];
+	array_delete(global.dbg.next_dice, 0, 1);
+	return _die;
+}
+
+/// generate_event: index in global.master_event_list of the event the menu asked for, or -1 for a random one.
+function debug_take_forced_event_index() {
+	if (!DEBUG_TOOLS) return -1;
+
+	var _name = global.dbg.forced_event;
+	if (_name == "") return -1;
+
+	global.dbg.forced_event = "";
+
+	// The event may already have been used this run, in which case rebuild the list and look again
+	repeat (2) {
+		for (var i = 0; i < ds_list_size(global.master_event_list); i++) {
+			if (global.master_event_list[| i].name == _name) return i;
+		}
+		define_events();
+	}
+
+	return -1;
+}
+
+/// oCombat START_TURN: intel granted at the start of every turn.
+function debug_turn_intel() {
+	if (!DEBUG_TOOLS) return 0;
+	return global.dbg.turn_intel;
 }

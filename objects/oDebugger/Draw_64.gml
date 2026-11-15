@@ -20,3 +20,5 @@ if (draw_debug) {
 		draw_text(debug_x, debug_y + (i*debug_entry_h), string(global.debug[i].name) + ", " + string(global.debug[i].value));
 	}
 }
+
+debug_menu_draw();

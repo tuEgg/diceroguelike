@@ -2,7 +2,8 @@ enum UI_LAYER {
     BASE,
     POPUP,
     BAG,
-    SETTINGS
+    SETTINGS,
+    DEBUG // the F1 debug menu, sits above everything so the game underneath ignores the mouse
 }
 global.ui_layer = UI_LAYER.BASE;
 global.all_input_disabled = false;

@@ -1,6 +1,6 @@
 key_escape = keyboard_check_pressed(vk_escape);
 
-if key_escape {
+if (key_escape && global.ui_layer != UI_LAYER.DEBUG) {
 	if (show_bag_contents) {
 		show_bag_contents = false;
 		global.ui_layer = UI_LAYER.BASE;
@@ -19,7 +19,7 @@ if key_escape {
 }
 
 // Restart shortcut only works when run from the IDE, never in an exported build
-key_restart = keyboard_check_pressed(ord("R")) && (debug_mode || GM_build_type == "run");
+key_restart = keyboard_check_pressed(ord("R")) && DEBUG_TOOLS;
 if key_restart game_restart();
 
 if (debug_mode) {
