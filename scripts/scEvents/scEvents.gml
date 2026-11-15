@@ -833,7 +833,12 @@
 						for (var n = 0; n < page.num_nodes; n++) {
 							var node = page.nodes[| n];
 							if (node.type == NODE_TYPE.SHOP && !node.cleared) {
-								chosen_pages[| p].nodes[| n] = clone_node_static(node_combat);
+								// Convert the node in place, all_nodes and next_node hold references to it
+								node.type = node_combat.type;
+								node.name = node_combat.name;
+								node.subimg = node_combat.subimg;
+								node.text = node_combat.text;
+								node.linked_room = node_combat.linked_room;
 							}
 						}
 					}
@@ -1098,29 +1103,6 @@
 		options: ds_list_create(),
 	}
 	
-	function fail_sirens() {
-		var has_rigging = false;
-				
-		for (var i = 0; i < ds_list_size(oRunManager.keepsakes); i++) {
-			var keepsake = oRunManager.keepsakes[| i];
-					
-			if (keepsake._id == "protective_rigging") {
-				has_rigging = true;
-				break;
-			}
-		}
-				
-		var hp_to_lose = has_rigging ? 0 : 5;
-				
-		if (global.player_hp > hp_to_lose) {
-			global.player_hp -= hp_to_lose;
-					
-			// change this so that we go to the shop on pressing exit
-			oEventManager.alternate_exit = rmShop;
-		} else {
-			throw_error("This would kill you", "At least try first!.");
-		}
-	}
 		event_sirens_opt_1 = {
 			title: "Sing a song of your own",
 			description: "Higher chance of success the higher your alignment. If successful, upgrade all of your intel die.",
@@ -1236,6 +1218,31 @@
 	ds_list_add(event_sirens.options, event_sirens_opt_2);
 	ds_list_add(event_sirens.options, event_sirens_opt_3);
 	ds_list_add(global.master_event_list, event_sirens);
+}
+
+/// Shared by the Siren event options. Lives at script level so the option structs can call it.
+function fail_sirens() {
+	var has_rigging = false;
+			
+	for (var i = 0; i < ds_list_size(oRunManager.keepsakes); i++) {
+		var keepsake = oRunManager.keepsakes[| i];
+				
+		if (keepsake._id == "protective_rigging") {
+			has_rigging = true;
+			break;
+		}
+	}
+			
+	var hp_to_lose = has_rigging ? 0 : 5;
+			
+	if (global.player_hp > hp_to_lose) {
+		global.player_hp -= hp_to_lose;
+				
+		// change this so that we go to the shop on pressing exit
+		oEventManager.alternate_exit = rmShop;
+	} else {
+		throw_error("This would kill you", "At least try first!.");
+	}
 }
 
 function generate_event() {

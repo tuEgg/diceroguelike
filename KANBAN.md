@@ -1,0 +1,204 @@
+# Tides of Fortune: KANBAN
+
+> Repo: `C:\Users\Jared\Projects\TidesOfFortune`. Baseline: `main` @ `fddd600` (2026-06-28); all `file:line` references are against it.
+> The island/world-map WIP lives on branch `wip/world-map` (commit `661e2ec`) and has **not** been audited yet.
+> **Work order (agreed):** 1. bug-fix batches → 2. debug menu (T14) → 3. finish the world-map rework → 4. revisit intel.
+> **Workflow:** Claude batches fixes into commits with a test checklist. Jared play-tests, gives feedback and approves. Nothing is pushed or merged without approval.
+> Audit date: 2026-11-15. Tags: **[C]** = cause seen in code, **[L]** = likely, needs repro in-game.
+> Size: S (< 1 session) · M (1–3 sessions) · L (a refactor arc).
+
+**How to use:** move cards between the columns. IDs are stable, so commits can reference them (e.g. `fix B07`).
+
+---
+
+## 🔥 NOW: Housekeeping (before any code)
+
+| ID | Task | Notes |
+|---|---|---|
+| H05 | Make the debug toggle a single `#macro DEBUG` | `debug_mode` is used in places, while some debug keys ship in release builds (see B01). |
+| H06 | Sign in to GitHub on the first push | Remote switched to HTTPS (2026-11-15). The first push opens a browser sign-in; no SSH key needed. |
+| H07 | **Web build smoke test**: export HTML5/GX, upload privately to itch.io, list what breaks | Surfaces (`draw_wonky_rectangle`), shaders, file saves, fonts and resolution are the usual web trouble spots. Do this early so web problems are fixed alongside other bugs. |
+
+---
+
+## 🧪 IN TESTING: waiting for Jared's playtest
+
+| Batch | Cards | Branch / commit | Status |
+|---|---|---|---|
+| 1: crashes, softlocks, lost runs | B01–B10 | `fix/batch-1` @ `264dcc8` | Fixed in code, **not yet play-tested**. Merges cleanly into `wip/world-map`. |
+
+## 🐞 BUGS: P0 crashes, softlocks, lost runs
+
+| ID | Bug | Where | Size |
+|---|---|---|---|
+| B01 | **Pressing R restarts the game in release builds** | `oRunManager/Step_0.gml:21-22` (outside `debug_mode`) | S [C] |
+| B02 | Dying outside combat crashes: events take HP with no floor, then the code reads `oCombat.state` when no oCombat exists | `scEvents.gml:87`, `oRunManager/Step_0.gml:99` | S [C] |
+| B03 | Deleting an item in the workbench crashes: `items[i] = undefined` is followed by a read of `items[i].type` | `oRunManager/Draw_64.gml:324-331` | S [C] |
+| B04 | Flying Dutchman softlock: swapped shop nodes aren't in `all_nodes`, so the next node is unreachable | `scEvents.gml:836`, `oWorldManager/Step_0.gml:54-58`, `scMap.gml:612` | S [C] |
+| B05 | Barnacle Titan's Barnacle Bind move has no `duration`/`amount`, but the DEBUFF case reads them | `scEnemies.gml:199`, `scCombatScripts.gml:409` | S [L] |
+| B06 | Sirens: nested `fail_sirens` is probably not visible from the option methods | `scEvents.gml:1101` | S [L] |
+| B07 | Reward generators can loop forever when a filtered pool is empty (core+rare, coin) | `scShop.gml:131,298-329` | S [L] |
+| B08 | Encounter pools never refill, and a bounty shrinks `possible_elites` to 1, so you can get empty fights | `scMap.gml:247,313`, `oWorldManager/Other_5.gml:95` | S [L] |
+| B09 | Leaving the workbench with a core in slot 2 deletes the core | `oWorkbenchManager/Draw_64.gml:322` | S [C] |
+| B10 | Persistent coin/alignment particles outlive the run → crash on `oRunManager.credits` | `oParticleCoin`, `oParticleAlignment` Destroy | S [L] |
+
+## 🐞 BUGS: P1 rules behave wrongly
+
+**Combat core**
+| ID | Bug | Where | Size |
+|---|---|---|---|
+| B20 | **Enemy templates are shared, not copied per fight.** Shiny Scales does `owner.data.moves[|1].dice_amount += 1` on the global template, so all fish buff, and the buff carries into later fights. Stunned, Heartache and the HEALTH-50 `weight = -1` do the same (the Captain's barrel summon fires once per *run*). → fixed by T01 | `scDebuffs.gml:158,174,254,471`, `oCombat/Step_0.gml:122`, `scCombatScripts.gml:1568` | M [C] |
+| B21 | Debuff duration ticks and removal happen *inside* the per-effect loop: a debuff with 2 effects ticks twice, and can delete its neighbour | `scCombatScripts.gml:1456` | S [C] |
+| B22 | `apply_buff` merges by `_id` only, so temporary Might merged into permanent Might becomes permanent (and vice versa). Re-applying doesn't refresh `remove_next_turn` | `scDebuffs.gml:27-34` | M [C] |
+| B23 | Code writes `remove_next_turn` onto the shared move.debuff template | `scCombatScripts.gml:415,432` | S [C] |
+| B24 | Enemy Might never applies (the `owner != target` gate fails for enemy rolls). Captain's "Command" (target other) buffs itself. Elizabeak's −2 Might on the player shows as a Might icon with no number ("player gains Might" report) | `scDebuffs.gml:353-385`, `scCombatScripts.gml:145,433`, `scEnemies.gml:97`, `oCombat/Draw_64.gml:905` | S [C] |
+| B25 | Block absorbs the raw `amount` instead of the post-modifier `final_damage` | `scCombatScripts.gml:235,309` | S [C] |
+| B26 | Cloned dice keep the same `uid`, so duplicates (Echo, Mirage, a second purchase) double-fire Squall, Reed Snap, etc. | `scDice.gml:992-1034` | S [C] |
+| B27 | Warrior die's `after_roll_die` has no uid check: *any* die that rolls its minimum becomes its maximum | `scDice.gml:839` | S [C] |
+| B28 | "Hit all enemies" loops index `room_enemies` by `enemies_left_this_combat`, so they hit corpses and skip living enemies | `scDice.gml:296`, `scKeepsakes.gml:308,871` | S [C] |
+| B29 | `slot.bonus_amount` is a single mutable int: Rigger's Tonic, Bandage, Single Focus and Repeater Rail (`=`) fight over it, and end-of-round resets it to `pre_buff_amount` | `scKeepsakes.gml:443`, `oCombat/Step_0.gml:488` | M [C] |
+| B30 | Reserve and Barnacle Bind *assign* `bonus_dice`, which wipes Pickled Cucumber, Kraken's Grasp and Medallion | `scDebuffs.gml:109,312` | S [C] |
+| B31 | Enemy pseudo-random move picker: the `all_same` loop only compares the last item, and 1 move of history counts as "all same" | `oCombat/Step_0.gml:58-66` | S [C] |
+| B32 | Target failsafe uses `>` instead of `>=`. An EXIT enemy doesn't shift `enemy_target_index` when target > e | `oCombat/Step_0.gml:215`, EXIT branch | S [C] |
+| B33 | Intel level is only recalculated at turn start, so intel gained mid-turn never raises the level (*"intel 4 doesn't add the 3rd die"*) | `oCombat/Step_0.gml:164-177` | S [L] (design call: see Q3) |
+| B34 | Negative intel draws an almost-full ring. Intel above 12 overflows it | `oCombat/Draw_64.gml:934`, `scHelpers.gml:950` | S [L] |
+| B35 | `can_place_dice_in_slot` (highlights) and `apply_dice_to_slot` (real rule) disagree on exclusive, coin, multitype and the play limit | `scCombatScripts.gml:518,1082` | M [C] → fixed by T08 |
+| B36 | `"None!"` typo, so the condition is always true. `is_slot_exclusive \|\| is_slot_exclusive` | `scCombatScripts.gml:993,666` | S [C] |
+
+**Dice / keepsakes / items**
+| ID | Bug | Where | Size |
+|---|---|---|---|
+| B40 | **Accurate and Splash dice are never offered** (Echo and Last Stand are registered twice instead) | `scDice.gml:586,895` | S [C] |
+| B41 | Hover descriptions are wrong after upgrades: static text, the hover preview uses slot −1 (type bonuses never show), duplicated oDice fields drift, and `get_dice_output(read_only=false)` runs every frame and fires keepsake side-effects | `oDice/Draw_64.gml:39`, `scDice.gml:1078`, `oWorkbenchManager/Draw_64.gml:177,246` | M [C] → T04 |
+| B42 | `string_has_keyword` is fragile (colons, single sentences, the "Favourite." prefix). `get_keywords_in_string` doesn't trim at all, so Offhand/Balanced show the wrong icons | `scHelpers.gml:580-635` | → T04 [C] |
+| B43 | Lead Line re-fires the full dispatcher, so *all* keepsakes double-trigger | `scKeepsakes.gml:549` | S [C] |
+| B44 | Chainmaster's `first_die` is never reset | `scKeepsakes.gml:475-493` | S [C] |
+| B45 | Crossword Puzzle is dead (checks the slot type for "None"). Lucky Coin compares a number to `"2"` | `scKeepsakes.gml:783,825` | S [C]/[L] |
+| B46 | Cannon Splitter fires on enemy attacks and per die rather than per slot | `scCombatScripts.gml:168` | S [C] |
+| B47 | Consumables: Artisan's Ember picks no die with chance 1/(N+1); Mirage Brew is off by one; Navigator's Brew reads oCombat in the workbench; Bilge-Purge uses `=` not `+=` | `scItems.gml:231,268,358,518` | S [C] |
+| B48 | Dome core is named "Binary Core", which also restores the wrong core on load | `scItems.gml:99` | S [C] |
+| B49 | `oRunManager.turn_count` is stuck at 1, so Squall, Fogcaller and Invisible always draw Favourites first | `oRunManager/Create_0.gml:149` | S [C] |
+| B50 | Room-start temp-die cleanup deletes while iterating forward and skips dice | `oRunManager/Other_4.gml:6-16` | S [C] |
+| B51 | Multitype dice don't show their colours in the bag, shop, particles or combat tiles (callers pass `action_type`) | `scDice.gml:1401`, multiple | S [C] |
+| B52 | Assassin's description ("+1 min") doesn't match the code (flat bonus) | `scDice.gml:858` | S [C] |
+
+**Map / events / bounty / workbench**
+| ID | Bug | Where | Size |
+|---|---|---|---|
+| B60 | Two bounties are offered (`generate_bounties(2)`). Reroll doesn't clear `active_bounty`. "Elite 3" is labelled "Unfinished Elite" | `oBountyController/Create_0.gml:106`, `Draw_64.gml:220`, `scBounties.gml:28` | S [C] |
+| B61 | Can't take the bounty potion: the price check is invisible, with no error and no full-slot message | `oBountyController/Draw_64.gml:52` | S [C] |
+| B62 | Duplicate keepsakes: the bounty reward stays in the pool, and owned keepsakes are never filtered out (shop, rewards, after Continue) | `scShop.gml:430-445`, `scBounties.gml:48` | S [C] |
+| B63 | Workbench drop doesn't register: a die already in a slot is rejected, and the hover flags lag a frame (set in Draw, read in Step) | `oDice/Step_0.gml:112-140`, `oWorkbenchManager/Draw_64.gml:9` | S [C] |
+| B64 | Sirens "Block your ears" checks `"BLOCK"`, but dice use `"BLK"` | `scEvents.gml:1179` | S [C] |
+| B65 | Broken Sails "Repair" deletes `items[rand]` instead of `items[item_pool[rand]]` (free keepsake) | `scEvents.gml:275` | S [C] |
+| B66 | Shipwright gives a duplicate tool (not removed from `master_tool_list`) | `scEvents.gml:1030` | S [C] |
+| B67 | Albatross text says −7 alignment, the code applies −4. 29 options still say "Result" | `scEvents.gml:606/614` | S [C] |
+| B68 | Wrong arguments: `clamp(0,x,100)`, `object_exists(oCombat)`, `room = rmMainMenu` | `oWorldManager/Other_5.gml:102`, `scDisplay.gml:11`, `oSettingsMenu/Draw_64.gml:108` | S [C] |
+| B69 | Intro cutscene replays every launch (`seen` isn't saved) | `oCutsceneManager` | S [C] |
+
+**Save / load**
+| ID | Bug | Size |
+|---|---|---|
+| B70 | Not saved: luck, `pages_cleared`, `pages_shown` (drafts reroll on reload), dutchman, voyage, `bonus_dice_next_combat`, `max_items`, seen events, keepsake/shop/tool pools, keepsake internal state | M [C] |
+| B71 | The RNG *seed* is stored rather than the RNG state, so Continue replays the run's random sequence from the start | S [C] |
+| B72 | Duplicate keys in the save struct. `version` is never checked. No file/parse guard. Toolbelt loads 5 slots while `max_items` is 3 | S [C] |
+
+## 🐞 BUGS: P2 UI / polish
+
+| ID | Bug | Where |
+|---|---|---|
+| B80 | Bag hover box uses `bag_h` for its width. Bag text offsets switch on the wrong `image_index`. The rarity colour is overwritten | `oRunManager/Draw_64.gml:575,739-760` |
+| B81 | Scrollbar drag sticks (room vs GUI y, `m_grab_y` never reset) | `oRunManager/Draw_64.gml:880-891` |
+| B82 | `draw_outline_text` coloured mode wraps every word and ignores halign/alpha. `queue_tooltip` changes the caller's font | `scHelpers.gml:290-426` |
+| B83 | Fixed 1080p coordinates break at 1440p: shop, bounty, tools, cutters hitbox, cutscene, backgrounds, particle targets | see audit notes |
+| B84 | Rest heals with `round()`, potion uses `ceil()`, so they're inconsistent | `oWorldManager/Draw_64.gml:116` |
+
+---
+
+## 🧱 TECH DEBT / REFACTORS (highest-payoff first)
+
+| ID | Refactor | Fixes | Size |
+|---|---|---|---|
+| T01 | **Per-fight enemy instances**: deep-copy the enemy and its moves in `add_enemy_to_fight`, never write to templates | B20, B23 | M |
+| T02 | **Buff system v2**: instances keyed by (id, permanent); a buff scales *either* stacks *or* duration (the GDD already plans this); tick once per event, outside the effect loop; source-tagged slot modifiers instead of `bonus_amount` | B21, B22, B29, B30 | M |
+| T03 | **One effect dispatcher**: dice, keepsakes, items and debuffs register `handlers[$ event]`; the dispatcher does the `owner_only` uid check; fresh uid on clone | B26, B27, B43, perf | M |
+| T04 | **Keywords and descriptions as data**: a `keywords: []` field on dice; descriptions generated from templates (`"+{min} min"`) so upgrades update the text | B41, B42, B52 | M |
+| T05 | **`run` struct**: one object owns gold, HP, bag, keepsakes, items, tools, alignment and pools; `new_run()`/`end_run()` create and free everything; the save serialises this one struct with a version + RNG state | B70–72, leaks, 130 globals | L |
+| T06 | **Split input/state from Draw GUI** (update in Step, render in Draw). The code currently relies on draw order for clicks and on positions computed a frame late | B63, ordering bugs | L (incremental, room by room) |
+| T07 | **UI kit**: one markup format + one colour table; cached outlined text; shared `draw_die`, panel, button, scrollbar and exit-button widgets on `global.gui`; fix the `draw_wonky_rectangle` surface leak (new surfaces every frame while hovering) | B80–83, perf | M |
+| T08 | **Single placement rule**: `can_place` returns `{ok, reason}` and `apply_dice_to_slot` uses it, so the reason can feed the tooltip (playtesters asked for this) | B35 | S |
+| T09 | **Enums instead of strings** for action types, permanence and node types (`"BLK"` vs `"BLOCK"` bugs go away) | B64, B36 | M |
+| T10 | **Data tables**: `register_die()`, a cores table, an encounters table, a bounty table, `spawn_die()`, `pick_from_pool()` with empty-pool guards, an `oTool` parent for Hammer/Cutters/Drill | B07, B40, duplication | M |
+| T11 | Memory hygiene: CleanUp for oShopManager, treasure, bounty, world (`room_enemies`, page node lists), combat (action queue + slot lists, enemy move_history/debuffs, feed lists), oRunManager lists, event option lists | leaks | S–M |
+| T12 | Per-frame performance: map `path_add` every frame; `settings.json` parsed every frame while settings is open; `clone_die` per frame in hover/workbench; `get_slot_stats`/`get_action_name` per slot per frame; 1,300 particle *instances* (Dutchman) → part system | perf | S–M |
+| T13 | Delete dead code: `parse_text`, `room_to_gui_*`, `add_debug_entry`, `draw_dice_history`, `roll_id`, `global.enemy_debuffs`, `tool_list`, the deprecated "All" slot type, and the redundant deep copy in `clone_die` | | S |
+| T14 | **Seeded debug harness**: start any fight/event/shop with chosen dice and keepsakes from a debug menu. This is the main thing that makes Claude-driven fixes verifiable | | M |
+
+---
+
+## ✨ FEATURES: proposed vertical slice (⚠️ NOT agreed yet, see Open Questions)
+
+Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
+
+**Core loop**
+- F01 Boss node + boss reward chest (Barnacle Titan exists but is unreachable; `node_boss` is never generated)
+- F02 Act structure / "14 pages then boss" / page-turn heal of 20%
+- F03 Elite/boss chest reward
+- F04 Starting choice (die + core) at run start *(classes cut, 2026-11-15)*
+- F05 Death / win screens, run summary, die roll-history stats page
+
+**Combat clarity** (the most common playtest feedback)
+- F10 Always show the enemy intent *type*; intel reveals the numbers
+- F11 Enemy targeting indicator; floating arrows at intel ≥ 6
+- F12 Placement feedback tooltips (why a die can't go here: exclusive, size, limit)
+- F13 Slower / configurable action speed (Jack)
+- F14 Colour-blind-safe palette (Jack can't tell the blues apart)
+- F15 Summon intent icon, buff animation, clearer "Nav Chart fired" feedback
+
+**Content**
+- F20 Enemies: 17 now (Giant Conch is a stub) → target ~15 normals + 2 elites + 2 bosses that *work*
+- F21 Dice: 37 now → target? (GDD says 100 for 0.1; the playtest list says +30)
+- F22 Keepsakes: 42 now (25 rollable) → finish the stubs (Deep Lens, Bandage, Lucky Coin, Crossword)
+- F23 Events: 16 now → 25; "craft your own die" event
+- F24 Consumables: 10 now; make them stronger (Molly didn't use any)
+- F25 New debuffs from the notes: Salt Spray, Undertow, Encumbered, Rust, Frozen, Chained
+
+**Systems**
+- F30 Shop reroll + die-removal service
+- F31 Workbench: choose which dice to draw; Dye tool; multiple crafts per visit?
+- F32 Alignment/compass effects that actually matter mid-run
+- F33 Rarity on every item + rolled offers
+- F34 Tutorial path (fight 1 has no intel → intel die reward → fight 2 teaches intel)
+- F35 Pause menu (Resume / Settings / Main Menu)
+
+**Juice**
+- F40 Individual Balatro-style trigger animations per die
+- F41 Room transitions, death animation, enemy sprites, particles for coins/potions/sacrifice
+- F42 Unique visual per die
+
+**Art direction (parked, Jared wants to discuss later)**
+- F50 Decide an art style for the game. Jared isn't an artist and wants to explore AI-assisted art workflows (he's been following r/aigamedev). Covers dice, enemies, map/book, UI and backgrounds. Don't start until he raises it.
+
+---
+
+## ❓ OPEN QUESTIONS (design decisions blocking work)
+
+- Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
+- Q3 Intel redesign (incl. B33): **parked until after bug fixes, the debug menu and the world map.**
+- Q5 One bounty or two? (B60)
+- Q7 Resolution targets: just 1080p + 1440p, or arbitrary? (decides how much layout work T07 needs)
+
+## 📌 DECISIONS
+
+- 2026-11-15 **Action queue:** settled as "permanent dice eject on their second turn". Other ideas stay in the notes.
+- 2026-11-15 **Map lock stays.** It's a design pillar: "pick 1, lose 1, gain the last" choices like the rewards. Look for more places to use it.
+- 2026-11-15 **Scope cuts:** no four Act III regions, no 3 classes (F04 classes removed). **Alignment stays** in this build (F32).
+- 2026-11-15 **Platform:** a web build on itch.io for early playtests (keep exe as the dev/reference build); Steam is the long-term goal. See H07.
+
+---
+
+## ✅ DONE
+
+- 2026-11-15 Full code audit; this board created.
+- 2026-11-15 H01 leaked SSH key deleted on GitHub · H02/H03 repo moved off Google Drive to `C:\Users\Jared\Projects\TidesOfFortune` (Drive copy left as a backup) · H04 `.gitignore` covers keys and builds · world-map WIP saved to `wip/world-map`.
+- (Healing potion rounding: already `ceil` in fddd600.)

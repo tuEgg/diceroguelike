@@ -18,7 +18,8 @@ if key_escape {
 	}
 }
 
-key_restart = keyboard_check(ord("R"));
+// Restart shortcut only works when run from the IDE, never in an exported build
+key_restart = keyboard_check_pressed(ord("R")) && (debug_mode || GM_build_type == "run");
 if key_restart game_restart();
 
 if (debug_mode) {
@@ -96,8 +97,11 @@ if (debug_mode) {
 	}
 }
 
-if (global.player_hp <= 0 && oCombat.state != CombatState.PLAYER_DEAD) {
-	lose_run();
+// oCombat only exists in combat, hp can also hit zero in events
+if (global.player_hp <= 0) {
+	if (!instance_exists(oCombat) || oCombat.state != CombatState.PLAYER_DEAD) {
+		lose_run();
+	}
 }
 
 for (var i = 0; i < array_length(items); i++) {
