@@ -1,3 +1,6 @@
+// Bump this whenever the save format changes, older saves are then ignored instead of loading wrongly
+#macro SAVE_VERSION 2
+
 function save_game(_slot) {
 	// Serialise dice bag
     var _saved_bag = [];
@@ -44,7 +47,10 @@ function save_game(_slot) {
 	} : undefined;
 
 	var _save = {
-        version: 1,
+        version: SAVE_VERSION,
+		pages_cleared: oWorldManager.pages_cleared,
+		spreads_cleared: oWorldManager.spreads_cleared,
+		page_image_indices: oWorldManager.page_image_indices,
         credits: oRunManager.credits,
         player_hp: global.player_hp,
         player_max_hp: global.player_max_hp,
@@ -108,6 +114,11 @@ function load_game(_slot) {
 	oWorldManager.choices_locked = _save.choices_locked;
 	//oWorldManager.next_node = _save.next_node;
     oWorldManager.world_state = _save.world_state;
+	oWorldManager.pages_cleared = _save.pages_cleared;
+	oWorldManager.spreads_cleared = _save.spreads_cleared;
+	oWorldManager.page_image_indices = _save.page_image_indices;
+	// The book only animates open in the OPENING state, so show it already open when resuming mid-run
+	if (oWorldManager.world_state != WORLD_STATE.OPENING) oWorldManager.book_open_scale = 1;
     oWorldManager.combat_chance = _save.combat_chance;
     oWorldManager.event_chance = _save.event_chance;
     oWorldManager.elite_chance = _save.elite_chance;
@@ -200,7 +211,21 @@ function load_game(_slot) {
 }
 
 function save_exists(_slot) {
-    return file_exists("save_slot_" + string(_slot) + ".json");
+    var _path = "save_slot_" + string(_slot) + ".json";
+    if (!file_exists(_path)) return false;
+
+	// Only count saves written by this version of the game, so Continue never loads an incompatible file
+	try {
+		var _file = file_text_open_read(_path);
+		var _json = file_text_read_string(_file);
+		file_text_close(_file);
+
+		var _save = json_parse(_json);
+		return (variable_struct_exists(_save, "version") && _save.version == SAVE_VERSION);
+	} catch (_error) {
+		show_debug_message("Unreadable save ignored: " + _path);
+		return false;
+	}
 }
 
 function delete_save(_slot) {

@@ -19,8 +19,10 @@ if (room == rmMap) {
 	draw_sprite_ext(sWorldBook, 0, gui_w/2 - page_pos_offset - cover_offset, page_y, -page_xscale * book_open_scale, page_yscale, 0, c_white, 1.0);
 	draw_sprite_ext(sWorldBook, 1, gui_w/2 + page_pos_offset + cover_offset, page_y, page_xscale * book_open_scale, page_yscale, 0, c_white, 1.0);
 	
+	// The book only has art for a fixed number of spreads, so hold on the last one rather than read past it
+	var book_spread = min(spreads_cleared, array_length(page_image_indices) - 1);
 	var pages_left = spreads_cleared;
-	var pages_right = 7 - spreads_cleared;
+	var pages_right = 7 - book_spread;
 	var page_offset = 10;
 		
 	// show turning page
@@ -30,12 +32,12 @@ if (room == rmMap) {
 	}
 	
 	// draw left pages
-	for (var i = 0; i <= spreads_cleared; i++) {
+	for (var i = 0; i <= book_spread; i++) {
 		// for animating current page
 		var x_scale = page_xscale * -1 * book_open_scale;
 					
 		// if we're looking at the top page
-		if (i == spreads_cleared) {
+		if (i == book_spread) {
 			// and we are turning
 			if (world_state == WORLD_STATE.TURNING) {
 				// if the current page scale has gone from 1 -> 0 and is now below 0
@@ -54,17 +56,17 @@ if (room == rmMap) {
 		draw_sprite_ext(sWorldBook, page_image_indices[i], gui_w/2 + (page_pos_offset * -1) + (page_offset * i * -1), page_y, x_scale, page_yscale, 0, c_white, 1.0);
 		
 		// draw the water page on top and below
-		if (i == spreads_cleared || i == spreads_cleared - 1) {
+		if (i == book_spread || i == book_spread - 1) {
 			draw_sprite_ext(sWorldBookWater, page_image_indices[i] - 2, gui_w/2 + (page_pos_offset * -1) + (page_offset * i * -1), page_y, x_scale, page_yscale, 0, c_white, 1.0);
 		}
 	}
 	
 	// draw right pages
-	for (var i = 7; i >= spreads_cleared; i--) {
+	for (var i = 7; i >= book_spread; i--) {
 		// for animating current page
 		var x_scale = page_xscale * book_open_scale;
 					
-		if (i == spreads_cleared) {
+		if (i == book_spread) {
 			if (world_state == WORLD_STATE.TURNING) {
 				if (current_page_turn > 0) {
 					x_scale *= abs(current_page_turn);
@@ -80,7 +82,7 @@ if (room == rmMap) {
 		draw_sprite_ext(sWorldBook, page_image_indices[i], gui_w/2 + (page_pos_offset) + (page_offset * i), page_y, x_scale, page_yscale, 0, c_white, 1.0);
 		
 		// draw the water page on top
-		if (i == spreads_cleared || i == spreads_cleared + 1) {
+		if (i == book_spread || i == book_spread + 1) {
 			draw_sprite_ext(sWorldBookWater, page_image_indices[i] - 2, gui_w/2 + (page_pos_offset) + (page_offset * i), page_y, x_scale, page_yscale, 0, c_white, 1.0);
 		}
 	}

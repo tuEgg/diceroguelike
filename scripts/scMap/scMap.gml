@@ -527,6 +527,12 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	var surf_w = global.resolution_options[global.resolution_index].w;
 	var surf_h = global.resolution_options[global.resolution_index].h;
 	
+	// Rebuild the surfaces if the resolution has changed since they were made
+	if (surface_exists(island_surf) && (surface_get_width(island_surf) != surf_w || surface_get_height(island_surf) != surf_h)) {
+		surface_free(island_surf);
+		if (surface_exists(island_mask_surf)) surface_free(island_mask_surf);
+	}
+	
 	if (_alpha == 1) {
 		if (!surface_exists(island_surf)) {
 			island_surf = surface_create(surf_w, surf_h);
@@ -792,6 +798,7 @@ function serialise_page(_page) {
     }
     return {
         index: _page.index,
+        island_index: _page.island_index,
         num_nodes: _page.num_nodes,
         layout: _page.layout,
         map_connection_in: _page.map_connection_in,
@@ -810,6 +817,7 @@ function serialise_page(_page) {
 function deserialise_page(_data) {
     var _page = {
         index: _data.index,
+        island_index: _data.island_index,
         num_nodes: _data.num_nodes,
         nodes: ds_list_create(),
         layout: _data.layout,

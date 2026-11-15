@@ -25,7 +25,14 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 1: crashes, softlocks, lost runs | B01–B10 | `fix/batch-1` @ `264dcc8` | Fixed in code, **not yet play-tested**. Merges cleanly into `wip/world-map`. |
+| 1: crashes, softlocks, lost runs | B01–B10 | `fix/batch-1` @ `264dcc8` | Merged into `wip/world-map`. Jared played the combined build and it felt good; individual cards not yet confirmed. |
+| 2: world-map save and stability | M01–M04 | `wip/world-map` | Fixed in code, **not yet play-tested**. |
+
+**Batch 2 cards (world-map work)**
+- M01 Islands are now saved with each page (Continue would have crashed).
+- M02 Saves carry a version number; older saves are ignored so Continue never loads an incompatible file. Pages/spreads cleared and the book's page art are saved, and the book shows already open when resuming.
+- M03 The book holds on its last spread instead of crashing past spread 8 (stop-gap until acts exist, see F06).
+- M04 Island surfaces are freed on cleanup and rebuilt when the resolution changes.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -146,6 +153,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F03 Elite/boss chest reward
 - F04 Starting choice (die + core) at run start *(classes cut, 2026-11-15)*
 - F05 Death / win screens, run summary, die roll-history stats page
+- F06 **Acts as chapters of one long book.** When the pages of a chapter run out, the run moves to the next act. Needs: a clear on-screen sign that the chapter is about to end (bookmark ribbon on the boss page, thinning page stack), a chapter title page between acts, and a tie-in to the story. Design not settled.
 
 **Combat clarity** (the most common playtest feedback)
 - F10 Always show the enemy intent *type*; intel reveals the numbers
