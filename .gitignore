@@ -57,3 +57,16 @@ Temporary Items
 # GameMaker temporary files
 *.resource_order
 *.old
+
+# Secrets - never commit
+keys.txt
+keys.txt.pub
+*.pem
+id_rsa*
+id_ed25519*
+.env
+
+# Builds and exports
+builds/
+*.yyz
+*.zip
