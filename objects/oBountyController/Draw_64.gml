@@ -222,6 +222,7 @@ if (room == rmBounty) {
 			if (oRunManager.credits >= price) {
 				oRunManager.credits -= price;
 				bounty_selected = -1;
+				oRunManager.active_bounty = undefined; // the contract you had picked is no longer on the board
 				generate_bounties(2);
 				reroll_col = c_dkgray;
 			} else {

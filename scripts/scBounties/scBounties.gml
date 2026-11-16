@@ -26,7 +26,7 @@ function generate_bounties(_num) {
 			break;
 			
 			case "Elite 3":
-				random_elite = "Unfinished Elite";
+				random_elite = "Pirate Captain"; // Elite 3 is currently the same fight as Elite 1 (see get_combat_enemies)
 			break;
 		}
 		
