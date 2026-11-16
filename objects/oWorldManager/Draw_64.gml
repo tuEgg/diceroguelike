@@ -20,7 +20,7 @@ if (room == rmMap) {
 	draw_sprite_ext(sWorldBook, 1, gui_w/2 + page_pos_offset + cover_offset, page_y, page_xscale * book_open_scale, page_yscale, 0, c_white, 1.0);
 	
 	// The book only has art for a fixed number of spreads, so hold on the last one rather than read past it
-	var book_spread = min(spreads_cleared, array_length(page_image_indices) - 1);
+	var book_spread = min(spreads_cleared, array_length(page_image_indices) - 2); // never past the boss spread
 	var pages_left = spreads_cleared;
 	var pages_right = 7 - book_spread;
 	var page_offset = 10;
@@ -62,7 +62,7 @@ if (room == rmMap) {
 	}
 	
 	// draw right pages
-	for (var i = 7; i >= book_spread; i--) {
+	for (var i = array_length(page_image_indices) - 1; i >= book_spread; i--) {
 		// for animating current page
 		var x_scale = page_xscale * book_open_scale;
 					
@@ -84,6 +84,39 @@ if (room == rmMap) {
 		// draw the water page on top
 		if (i == book_spread || i == book_spread + 1) {
 			draw_sprite_ext(sWorldBookWater, page_image_indices[i] - 2, gui_w/2 + (page_pos_offset) + (page_offset * i), page_y, x_scale, page_yscale, 0, c_white, 1.0);
+		}
+	}
+	
+	// Ribbon bookmark on the boss page (the last page of the book), so the end of the chapter is always in sight.
+	// Placeholder shapes until there is art: nudge these four numbers to move or resize it.
+	var ribbon_inset_x = 205;	// how far in from the right edge of the page
+	var ribbon_overhang = 20;	// how far it hangs below the page
+	var ribbon_length = 170;
+	var ribbon_w = 30;
+	
+	var ribbon_page = array_length(page_image_indices) - 1;
+	var ribbon_x = gui_w/2 + page_pos_offset + (page_offset * ribbon_page) + (sprite_get_width(sWorldBook) * page_xscale * book_open_scale) - ribbon_inset_x;
+	var ribbon_bottom = page_y + (sprite_get_height(sWorldBook) * page_yscale * 0.5) + ribbon_overhang;
+	var ribbon_top = ribbon_bottom - ribbon_length;
+	
+	if (book_open_scale > 0.5) {
+		draw_set_alpha(book_open_scale);
+		
+		// black outline, then the ribbon, each a strip ending in a point
+		draw_set_color(c_black);
+		draw_rectangle(ribbon_x - 4, ribbon_top - 4, ribbon_x + ribbon_w + 4, ribbon_bottom, false);
+		draw_triangle(ribbon_x - 4, ribbon_bottom, ribbon_x + ribbon_w + 4, ribbon_bottom, ribbon_x + ribbon_w/2, ribbon_bottom + 26, false);
+		
+		draw_set_color(make_color_rgb(190, 40, 45));
+		draw_rectangle(ribbon_x, ribbon_top, ribbon_x + ribbon_w, ribbon_bottom, false);
+		draw_triangle(ribbon_x, ribbon_bottom, ribbon_x + ribbon_w, ribbon_bottom, ribbon_x + ribbon_w/2, ribbon_bottom + 18, false);
+		
+		if (mouse_hovering(ribbon_x, ribbon_top, ribbon_w, ribbon_length + 18, false)) {
+			var spreads_to_boss = max(0, CHAPTER_SPREADS - spreads_cleared);
+			var ribbon_text = "The boss is on this spread.";
+			if (spreads_to_boss == 1) ribbon_text = "1 more spread until the boss.";
+			if (spreads_to_boss > 1) ribbon_text = string(spreads_to_boss) + " more spreads until the boss.";
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Chapter " + string(chapter) + ": " + chapter_title(chapter), ribbon_text);
 		}
 	}
 	
@@ -114,7 +147,9 @@ if (room == rmMap) {
 			// need to make it so that as the pages turn, the island warp with the page turn (might require restructuring of how pages are drawn entirely).
 			
 			default:
-				if (p >= ds_list_size(chosen_pages) - 2) {
+				// the boss spread is a single page, so don't show the previous spread's island beside it
+				var _pages_on_spread = page_is_boss(chosen_pages[| ds_list_size(chosen_pages) - 1]) ? 1 : 2;
+				if (p >= ds_list_size(chosen_pages) - _pages_on_spread) {
 					draw_page(page, page.x, page.y, -1, false, true);
 				}
 			break;
@@ -230,7 +265,14 @@ if (room == rmMap) {
 		// If we are drafting
 		if (world_state == WORLD_STATE.DRAFTING) {
 			if (resting_alpha < 0.05) {
-				if (ds_list_size(pages_shown) == 0) generate_pages();
+				if (ds_list_size(pages_shown) == 0) {
+					// after the last drafted spread comes the boss, which isn't drafted
+					if (spreads_cleared >= CHAPTER_SPREADS) {
+						if (!boss_page_placed) place_boss_page();
+					} else {
+						generate_pages();
+					}
+				}
 				
 				if (!choices_locked) {
 					pages_alpha = lerp(pages_alpha, 1, 0.2);
@@ -382,6 +424,44 @@ if (room == rmMap) {
 	if (boat_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your ship", "Where to captain?", undefined, 0, undefined);
 	
 	draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 1, 1, boat_data.angle, c_white, 1.0);
+	
+	// Chapter complete: shown once the boss is beaten, until the player turns to the next chapter
+	if (world_state == WORLD_STATE.CHAPTER_END) {
+		chapter_end_alpha = lerp(chapter_end_alpha, 1, 0.1);
+		
+		draw_set_color(c_black);
+		draw_set_alpha(0.7 * chapter_end_alpha);
+		draw_rectangle(0, 0, gui_w, gui_h, false);
+		draw_set_alpha(1.0);
+		
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_set_font(ftBigger);
+		draw_outline_text("Chapter " + string(chapter) + " complete", c_black, c_white, 3, gui_w/2, gui_h * 0.34, 1, chapter_end_alpha, 0);
+		draw_set_font(ftBig);
+		draw_outline_text(chapter_title(chapter), c_black, c_white, 2, gui_w/2, gui_h * 0.41, 1, chapter_end_alpha, 0);
+		draw_set_font(ftDefault);
+		draw_outline_text("Next: Chapter " + string(chapter + 1) + ", " + chapter_title(chapter + 1) + ". The seas grow more dangerous.", c_black, c_white, 2, gui_w/2, gui_h * 0.50, 1, chapter_end_alpha, 0);
+		
+		var chapter_btn = draw_gui_button(
+			gui_w/2 - gui_w/10,
+			gui_h * 0.58,
+			gui_w/5,
+			gui_h/12,
+			chapter_btn_scale,
+			"Turn the page",
+			c_orange,
+			ftBig,
+			chapter_end_alpha > 0.9,
+			true
+		);
+		
+		chapter_btn_scale = lerp(chapter_btn_scale, chapter_btn.hover ? 1.2 : 1.0, 0.2);
+		
+		if (chapter_btn.click) {
+			start_new_chapter();
+		}
+	}
 	
 	if (world_state == WORLD_STATE.EXPLORING) {
 		// Draw the button to visit the workbench

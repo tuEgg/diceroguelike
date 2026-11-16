@@ -11,11 +11,7 @@ if (room == rmMap) {
 	
 	if (!ds_exists(pages_shown, ds_type_list)) pages_shown = ds_list_create();
 	
-	if (nodes_til_drafting == 0) {
-		if (world_state == WORLD_STATE.EXPLORING) {
-			world_state =  WORLD_STATE.TURNING;
-		}
-	}
+	world_finish_spread_if_done();
 	
 	//show_debug_message("Possible elites " + string(ds_list_size(possible_elites)));
 	//show_debug_message("Elite list before bounty " + string(ds_list_size(elite_list_before_bounty)));

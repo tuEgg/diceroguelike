@@ -5,6 +5,8 @@ if (nodes_til_drafting == 0) {
 
 if (room == rmMap) {
     
+	world_finish_spread_if_done();
+	
 	// if we have a node to move to, animate the ship moving
     if (node_to_move_to != undefined) {
 		

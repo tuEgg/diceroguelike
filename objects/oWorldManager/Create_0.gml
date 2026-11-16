@@ -9,6 +9,10 @@ alignment_nodes_this_voyage = 0;
 nodes_cleared = 0; // how many nodes in the captains logbook have we cleared
 pages_cleared = 0; // how many pages have we cleared
 spreads_cleared = 0 // how many spreads have we cleared
+chapter = 1; // which chapter of the logbook we are in, each ends with a boss
+boss_page_placed = false; // has this chapter's boss spread been laid out yet
+chapter_end_alpha = 0; // fades in the chapter complete screen
+chapter_btn_scale = 1.0; // hover animation for the "Turn the page" button
 nodes_til_page_cleared = 0; // resets every time we start a new page
 time = 0; // used to pulse animate next node
 page_previous = undefined;
@@ -186,25 +190,15 @@ enum WORLD_STATE {
 	OPENING,
 	DRAFTING,
 	TURNING,
-	EXPLORING
+	EXPLORING,
+	CHAPTER_END // the boss is beaten, waiting for the player to turn to the next chapter
 }
 world_state = WORLD_STATE.OPENING;
 
 book_open_scale = 0;
 page_turn_scale = 1;
-page_image_indices = array_create(8);
-
-// generate page indexes, make sure we don't get 2 the same back to back
-var last_index = -1;
-for (var i = 0; i < 8; i++) {
-	var rand_index;
-	do {
-		rand_index = irandom_range(2, 7);
-	} until (rand_index != last_index);
-	
-    page_image_indices[i] = rand_index;
-	last_index = rand_index;
-}
+// pick the paper art for each page of the book
+generate_book_pages();
 
 heal_scale_target = 2.0;
 heal_scale = heal_scale_target;

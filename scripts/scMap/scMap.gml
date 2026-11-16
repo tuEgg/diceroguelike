@@ -730,6 +730,7 @@ function clone_page(_src) {
     var c = {
         index: _src.index,
 		island_index: _src.island_index,
+		is_boss: page_is_boss(_src),
         num_nodes: _src.num_nodes,
         nodes: ds_list_create(),
         layout: _src.layout,
@@ -799,6 +800,7 @@ function serialise_page(_page) {
     return {
         index: _page.index,
         island_index: _page.island_index,
+        is_boss: page_is_boss(_page),
         num_nodes: _page.num_nodes,
         layout: _page.layout,
         map_connection_in: _page.map_connection_in,
@@ -818,6 +820,7 @@ function deserialise_page(_data) {
     var _page = {
         index: _data.index,
         island_index: _data.island_index,
+        is_boss: variable_struct_exists(_data, "is_boss") ? _data.is_boss : false,
         num_nodes: _data.num_nodes,
         nodes: ds_list_create(),
         layout: _data.layout,
@@ -852,4 +855,159 @@ function start_drafting() {
 		if (!all_nodes[| n].disappeared) all_nodes[| n].disappeared = true;
 	}
 	current_page_turn = 1;
+}
+
+// =====================================================================
+// CHAPTERS
+// The book is one long logbook. Each chapter is CHAPTER_SPREADS drafted
+// spreads followed by a boss spread, then the next chapter begins.
+// =====================================================================
+
+#macro CHAPTER_SPREADS 7				// drafted spreads before the boss spread
+#macro CHAPTER_ENEMY_HP_GROWTH 0.5		// each chapter after the first adds this fraction of an enemy's health
+#macro CHAPTER_ENEMY_BONUS_GROWTH 3		// each chapter after the first adds this to every enemy attack and block
+
+/// @desc Picks the paper art for every page of this chapter's book, never the same twice in a row.
+///       One page per spread plus the two outer pages, so the boss spread still has a right-hand page.
+function generate_book_pages() {
+	var _count = CHAPTER_SPREADS + 2;
+	page_image_indices = array_create(_count);
+	
+	var _last_index = -1;
+	for (var i = 0; i < _count; i++) {
+		var _rand_index;
+		do {
+			_rand_index = irandom_range(2, 7);
+		} until (_rand_index != _last_index);
+		
+		page_image_indices[i] = _rand_index;
+		_last_index = _rand_index;
+	}
+}
+
+/// @desc Is this the page that holds the chapter's boss?
+function page_is_boss(_page) {
+	return variable_struct_exists(_page, "is_boss") && _page.is_boss;
+}
+
+/// @desc Name shown on the chapter title screen.
+function chapter_title(_chapter) {
+	switch (_chapter) {
+		case 1: return "The Wreck of the Dawnchaser";
+		case 2: return "The Ragged Coast";
+		default: return "Uncharted Waters";
+	}
+}
+
+/// @desc The boss spread isn't drafted. Lay the boss page straight onto the right-hand page and set sail.
+function place_boss_page() {
+	var _page = {
+		index: 0,
+		island_index: irandom(3),
+		num_nodes: 1,
+		nodes: ds_list_create(),
+		layout: "single",
+		map_connection_in: { x: 0, y: 0 },
+		map_connection_out: { x: 0, y: 0 },
+		margin: { left: 0, right: 0, bottom: 0, top: 0 },
+		x: display_get_gui_width() * 0.666,
+		y: display_get_gui_height() * 0.5,
+		y_offset: 0,
+		chosen: true,
+		locked: false,
+		cleared: false,
+		is_boss: true,
+	};
+	
+	var _node = clone_node_static(node_boss);
+	ds_list_add(_page.nodes, _node);
+	
+	ds_list_add(chosen_pages, _page);
+	ds_list_add(all_nodes, _node);
+	
+	// the same bookkeeping drafting two pages would have done
+	nodes_til_drafting = 1;
+	nodes_til_page_cleared = 1;
+	pages_drafted = 1;
+	choices_locked = true;
+	next_node = undefined;
+	
+	boss_page_placed = true;
+}
+
+/// @desc Called once the boss is beaten and the player continues: a fresh book for the next chapter.
+function start_new_chapter() {
+	chapter++;
+	
+	// the old chapter's pages are finished with
+	for (var p = 0; p < ds_list_size(chosen_pages); p++) {
+		var _nodes = chosen_pages[| p].nodes;
+		if (ds_exists(_nodes, ds_type_list)) ds_list_destroy(_nodes);
+	}
+	ds_list_clear(chosen_pages);
+	ds_list_clear(all_nodes);
+	ds_list_clear(pages_shown);
+	
+	next_node = undefined;
+	last_node = undefined;
+	node_to_move_to = undefined;
+	
+	// the boss spread was a single page, keep the page count even so spreads still tick over after two pages
+	if (pages_cleared mod 2 != 0) pages_cleared++;
+	spreads_cleared = 0;
+	boss_page_placed = false;
+	nodes_til_drafting = 0;
+	nodes_til_page_cleared = 0;
+	pages_drafted = 0;
+	choices_locked = false;
+	pages_alpha = 0;
+	resting_alpha = 0;
+	current_page_turn = 1;
+	
+	// every regular and elite encounter is available again
+	ds_list_clear(possible_encounters);
+	for (var i = 1; i <= 7; i++) ds_list_add(possible_encounters, "Encounter " + string(i));
+	ds_list_clear(possible_elites);
+	for (var i = 1; i <= 3; i++) ds_list_add(possible_elites, "Elite " + string(i));
+	
+	// a new book opens
+	generate_book_pages();
+	book_open_scale = 0;
+	chapter_end_alpha = 0;
+	world_state = WORLD_STATE.OPENING;
+	
+	boat_data.x = 300;
+	boat_data.y = display_get_gui_height() / 2;
+	
+	// the chapter break is a safe place to resume from
+	save_game(1);
+}
+
+/// @desc Enemies get tougher each chapter. Works on the per-fight copy, never the shared definition.
+function enemy_apply_chapter_scaling(_enemy_copy) {
+	var _extra_chapters = oWorldManager.chapter - 1;
+	if (_extra_chapters <= 0) return;
+	
+	_enemy_copy.max_hp = round(_enemy_copy.max_hp * (1 + CHAPTER_ENEMY_HP_GROWTH * _extra_chapters));
+	_enemy_copy.current_hp = _enemy_copy.max_hp;
+	
+	for (var m = 0; m < ds_list_size(_enemy_copy.moves); m++) {
+		var _move = _enemy_copy.moves[| m];
+		if (string_pos("ATK", _move.action_type) > 0 || string_pos("BLK", _move.action_type) > 0 || _move.action_type == "MIMIC") {
+			_move.bonus_amount += CHAPTER_ENEMY_BONUS_GROWTH * _extra_chapters;
+		}
+	}
+}
+
+/// @desc When every node on the current spread is done: turn the page, or end the chapter if that was the boss.
+///       Called on room start and every step on the map, so a loaded game can never be left with nowhere to go.
+function world_finish_spread_if_done() {
+	if (world_state != WORLD_STATE.EXPLORING || nodes_til_drafting != 0 || node_to_move_to != undefined) return;
+	
+	var _last_page = chosen_pages[| ds_list_size(chosen_pages) - 1];
+	if (_last_page != undefined && page_is_boss(_last_page)) {
+		world_state = WORLD_STATE.CHAPTER_END;
+	} else {
+		world_state = WORLD_STATE.TURNING;
+	}
 }

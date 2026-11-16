@@ -24,8 +24,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-
-Nothing is waiting for a playtest right now.
+| Chapter ending | F01, F02, F06 | `feature/chapter-ending` | Built, **not yet play-tested**. Boss on the 8th spread, ribbon bookmark, boss keepsake reward, chapter 2 with tougher enemies. |
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -104,12 +103,12 @@ All known P0 bugs are fixed, see DONE.
 Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
 
 **Core loop**
-- F01 Boss node + boss reward chest (Barnacle Titan exists but is unreachable; `node_boss` is never generated)
-- F02 Act structure / "14 pages then boss" / page-turn heal of 20%
+- F01 Boss node + boss reward: the boss is now placed on the 8th spread and pays out boss keepsakes (see F06)
+- F02 Act structure: "14 pages then boss" is built (see F06). Still open: the page-turn heal amount (design says 20%, the code heals 25% as a choice against a core)
 - F03 Elite/boss chest reward
 - F04 Starting choice (die + core) at run start *(classes cut, 2026-11-15)*
 - F05 Death / win screens, run summary, die roll-history stats page
-- F06 **Acts as chapters of one long book.** When the pages of a chapter run out, the run moves to the next act. Needs: a clear on-screen sign that the chapter is about to end (bookmark ribbon on the boss page, thinning page stack), a chapter title page between acts, and a tie-in to the story. Design not settled.
+- F06 **Acts as chapters of one long book.** Built: each chapter is 7 drafted spreads then a boss spread (`CHAPTER_SPREADS` in scMap). A ribbon bookmark sits on the boss page. Beating the boss gives a choice of boss keepsakes, then a "chapter complete" screen, then a fresh book for the next chapter. Enemies gain +50% health and +3 to attacks and blocks per chapter (placeholder numbers, macros in scMap). Still to do: real ribbon art, a second boss (chapter 2 reuses Barnacle Titan), story tie-in, proper balance.
 
 **Combat clarity** (the most common playtest feedback)
 - F10 Always show the enemy intent *type*; intel reveals the numbers

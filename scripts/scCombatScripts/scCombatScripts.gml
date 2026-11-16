@@ -1201,8 +1201,10 @@ function win_fight() {
 			
 		repeat(3 + all_enemies_spared) ds_list_add(reward_scale, 0.1);
 		
-		if (oWorldManager.current_node_type == NODE_TYPE.ELITE) {
-			generate_keepsake_rewards(reward_keepsake_options, global.rollable_keepsake_list, 3);
+		if (oWorldManager.current_node_type == NODE_TYPE.ELITE || oWorldManager.current_node_type == NODE_TYPE.BOSS) {
+			// bosses pay out from their own keepsake list
+			var _keepsake_pool = (oWorldManager.current_node_type == NODE_TYPE.BOSS) ? global.boss_keepsake_list : global.rollable_keepsake_list;
+			generate_keepsake_rewards(reward_keepsake_options, _keepsake_pool, 3);
 			ds_list_add(reward_list, "keepsakes");
 			ds_list_add(reward_list, "dice");
 			generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
@@ -1567,6 +1569,7 @@ function add_enemy_to_fight(_enemy) {
 	// Every enemy in a fight gets its own copy of its data and moves, so changes made mid-fight
 	// (Shiny Scales, Stunned, used-up triggers) never reach other enemies or later fights
 	_enemy = enemy_copy_for_fight(_enemy);
+	enemy_apply_chapter_scaling(_enemy);
 	
 	var _rand_move = irandom(ds_list_size(_enemy.moves) - 1);
 	

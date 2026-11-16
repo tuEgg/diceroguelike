@@ -539,7 +539,7 @@ switch (state) {
 							}
 						}
 						
-						if (oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT && enemy.killed || oWorldManager.current_node_type == NODE_TYPE.COMBAT || oWorldManager.current_node_type == NODE_TYPE.ELITE && enemy.killed) {
+						if (oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT && enemy.killed || oWorldManager.current_node_type == NODE_TYPE.COMBAT || oWorldManager.current_node_type == NODE_TYPE.BOSS || oWorldManager.current_node_type == NODE_TYPE.ELITE && enemy.killed) {
 							all_enemies_spared = false;
 							
 							if (!enemy.looted) {

@@ -50,6 +50,8 @@ function save_game(_slot) {
         version: SAVE_VERSION,
 		pages_cleared: oWorldManager.pages_cleared,
 		spreads_cleared: oWorldManager.spreads_cleared,
+		chapter: oWorldManager.chapter,
+		boss_page_placed: oWorldManager.boss_page_placed,
 		page_image_indices: oWorldManager.page_image_indices,
         credits: oRunManager.credits,
         player_hp: global.player_hp,
@@ -117,6 +119,12 @@ function load_game(_slot) {
 	oWorldManager.pages_cleared = _save.pages_cleared;
 	oWorldManager.spreads_cleared = _save.spreads_cleared;
 	oWorldManager.page_image_indices = _save.page_image_indices;
+	// chapter fields arrived after save version 2, so fall back to sensible values for saves without them
+	oWorldManager.chapter = variable_struct_exists(_save, "chapter") ? _save.chapter : 1;
+	oWorldManager.boss_page_placed = variable_struct_exists(_save, "boss_page_placed") ? _save.boss_page_placed : false;
+	if (array_length(oWorldManager.page_image_indices) < CHAPTER_SPREADS + 2) {
+		with (oWorldManager) generate_book_pages();
+	}
 	// The book only animates open in the OPENING state, so show it already open when resuming mid-run
 	if (oWorldManager.world_state != WORLD_STATE.OPENING) oWorldManager.book_open_scale = 1;
     oWorldManager.combat_chance = _save.combat_chance;

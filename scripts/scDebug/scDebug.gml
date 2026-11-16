@@ -363,6 +363,14 @@ function debug_menu_draw() {
 			}
 			yy += row_h * 1.5;
 
+			debug_label(cx, yy + 6, "Chapter " + string(oWorldManager.chapter) + "   spread " + string(oWorldManager.spreads_cleared + 1) + " of " + string(CHAPTER_SPREADS + 1) + " (the last is the boss)");
+			yy += row_h;
+			if (debug_button(cx, yy, half_w, row_h, "Make the next spread the boss")) {
+				oWorldManager.spreads_cleared = CHAPTER_SPREADS;
+				debug_say("The boss appears when the next spread starts");
+			}
+			yy += row_h * 1.5;
+			
 			debug_label(cx, yy + 6, "Game speed  x" + string(dbg.speed_multiplier));
 			yy += row_h;
 			var speed_steps = [0.5, 1, 2, 4];
