@@ -15,7 +15,7 @@
 
 | ID | Task | Notes |
 |---|---|---|
-| H07 | **Web build smoke test**: export HTML5/GX, upload privately to itch.io, list what breaks | Surfaces (`draw_wonky_rectangle`), shaders, file saves, fonts and resolution are the usual web trouble spots. Do this early so web problems are fixed alongside other bugs. |
+| H07 | **Web build smoke test**: export HTML5/GX, upload privately to itch.io, list what breaks | Prepped in batch 8: browser fixes behind `IS_BROWSER`, and `docs/web-build.md` (export, itch.io upload, smoke test). Waiting on Jared to export and report. |
 
 ---
 
@@ -23,8 +23,11 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 8: web build | H07 | `feature/web-build` | **Ready to test.** Follow `docs/web-build.md`: export HTML5, upload privately to itch.io, run the smoke test, report what breaks. |
 
-Nothing is waiting for a playtest right now.
+**Batch 8 test list**
+- H07 Desktop build first (Run as usual): nothing changed. Settings still has Resolution and Fullscreen, Exit quits, double Escape quits.
+- H07 Web: follow the smoke test in `docs/web-build.md`. Specifically for this batch: no Exit button, no Resolution row, the canvas stays 16:9 and refits when you resize the window or use itch's fullscreen, clicks line up with buttons.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 

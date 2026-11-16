@@ -48,6 +48,9 @@ menu = [
 	},
 ];
 
+// a web build can't quit, so it has no Exit button (Exit is the last item)
+if (IS_BROWSER) array_pop(menu);
+
 show_run_warning = false;
 proceed_new_scale = 1;
 cancel_new_scale = 1;

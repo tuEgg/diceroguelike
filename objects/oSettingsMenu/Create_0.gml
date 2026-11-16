@@ -93,6 +93,9 @@ categories = [
 		
 ];
 
+// a web build has no resolution choice: it always fits the page (apply_browser_resolution)
+if (IS_BROWSER) array_delete(categories[1].settings, 1, 1);
+
 if (file_exists("settings.json")) {
 	load_settings();
 }

@@ -12,6 +12,10 @@ if (global.double_tap_timer > 0) {
 
 var key_exit = vk_escape;
 
-if (double_tap(key_exit)) game_end();
+// a web build can't quit (and Escape leaves fullscreen there), so only the desktop build quits on double Escape
+if (!IS_BROWSER && double_tap(key_exit)) game_end();
+
+// web builds refit the canvas when the page changes size
+browser_check_resize();
 
 global.ui_scale = display_get_gui_width() / 1920;

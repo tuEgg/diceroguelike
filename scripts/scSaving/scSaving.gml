@@ -389,7 +389,8 @@ function load_settings() {
 	global.vol_ui = _save.vol_ui;
 	global.muted = _save.muted;
 	
-	window_set_fullscreen(_save.fullscreen);
+	// a browser only allows fullscreen from a click, so a web build doesn't restore it at start-up
+	if (!IS_BROWSER) window_set_fullscreen(_save.fullscreen);
 }
 
 function check_settings() {
