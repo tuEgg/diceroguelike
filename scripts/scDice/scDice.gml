@@ -1561,3 +1561,21 @@ function die_description(_die) {
 	_text = string_replace_all(_text, "{max}", string(_max));
 	return _text;
 }
+
+/// @func die_remove_keyword(_die, _keyword)
+/// @desc Take a keyword off a die, and its "Keyword. " sentence off the front of its description if it has one.
+function die_remove_keyword(_die, _keyword) {
+	for (var i = array_length(_die.keywords) - 1; i >= 0; i--) {
+		if (string_lower(_die.keywords[i]) == string_lower(_keyword)) array_delete(_die.keywords, i, 1);
+	}
+	var _prefix = _keyword + ". ";
+	if (string_pos(_prefix, _die.description) == 1) _die.description = string_delete(_die.description, 1, string_length(_prefix));
+}
+
+/// @func die_size_changed(_die)
+/// @desc Call after anything changes a die's size (Hammer, Cutters, events, Artisan's Ember...).
+///       A die is a coin exactly when it is a d2, so the Coin keyword (rules, icon, text) follows its size.
+///       Its description's numbers need nothing: die_description reads the size when shown.
+function die_size_changed(_die) {
+	if (_die.dice_value == 2) die_add_keyword(_die, "Coin"); else die_remove_keyword(_die, "Coin");
+}

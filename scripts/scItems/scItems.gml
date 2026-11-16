@@ -268,8 +268,10 @@ function define_items() {
 						dice.scale = 1.5;
 						dice.struct.dice_value += 4;
 						dice.dice_value += 4;
+						die_size_changed(dice.struct);
 						dice.struct.reset_at_end_combat = function(_dice) {
 							_dice.dice_value -= 4;
+							die_size_changed(_dice);
 						}
 						particle_emit( dice.x, dice.y, "burst", get_dice_color(dice.possible_type));
 					}

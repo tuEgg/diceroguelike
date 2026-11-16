@@ -177,6 +177,7 @@ switch (crafting_state) {
 			var new_dice = clone_die(workbench_slot[0].dice, "");
 			
 			new_dice.dice_value += workbench_slot[1].dice.dice_value;
+			die_size_changed(new_dice); // a hammered coin is no longer a coin
 			
 			// gain something from second die
 			workbench_slot[2].dice = new_dice;
@@ -242,9 +243,7 @@ switch (crafting_state) {
 		var new_dice = clone_die(workbench_slot[0].dice, "");
 		new_dice.dice_value = workbench_slot[0].dice.dice_value - 2;
 		
-		if (new_dice.dice_value == 2) {
-			die_add_keyword(new_dice, "Coin"); // cut down to a d2, it plays as a coin
-		}
+		die_size_changed(new_dice); // cut down to a d2, it plays as a coin
 		
 		var base_coin = global.dice_d2_none;
 		

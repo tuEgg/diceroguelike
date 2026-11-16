@@ -31,6 +31,7 @@
 - B42 Upgrades: cut a d4 down to a coin at the workbench (Cutters): it gains Coin and plays as a coin, also after Continue. Friendship Bracelet adds Favourite and that die is drawn first on turn 1.
 - B41 Descriptions: F1 / Dice, give Bolster, Warrior, Offhand, Balanced, Bulwark and Crescendo. Their text shows numbers (e.g. Bolster "gain 8 block"). Hammer a Bolster together with another block die at the workbench: its text should show double its new size. Use Chainshot (Spare Ammunition event) on a Warrior: its minimum in the text goes up.
 - B41 Hover numbers: with Weapon Polish (F1 / Keepsakes), hovering an attack die in hand shows its minimum raised by 1 before you play it. Hovering dice or opening the bag never makes a keepsake icon pop. Use Artisan's Ember on a die in hand: its size and hover range update straight away.
+- B41 Every upgrade path: Hammer two coins together (they should stop being coins: Coin icon and free play gone); Roundshot on a coin (it becomes a d4 and stops being a coin); Chainshot on Warrior (its text minimum goes up); Drill a core into Bolster (text unchanged, roll chart changes); Artisan's Ember on a coin in hand (it plays as a d6 that fight, a coin again after).
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 

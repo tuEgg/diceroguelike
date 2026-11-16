@@ -29,5 +29,5 @@ One keepsake from the node's `treasure_keepsake` (or rolled), revealed by openin
 
 - Three slots: `workbench_slot[0]` die, `[1]` die or core, `[2]` output. Dice are dealt from the bag as `oDice` instances; drag tools onto the Craft button.
 - Dropping a die (`oDice/Step_0`, on release) works out the target slot from the mouse position there and then; a die can move between the two input slots or be dropped back on its own.
-- Hammer merges two same-type dice; Cutters take faces off and output a coin; Drill applies a core's distribution. One craft per visit (`crafting_state`).
+- Hammer merges two same-type dice; Cutters take faces off and output a coin; Drill applies a core's distribution. One craft per visit (`crafting_state`). Hammer and Cutters call `die_size_changed`, so a die cut to a d2 becomes a coin (gains Coin) and a hammered coin stops being one; Cutters' output coin is a fresh d2 coin. Descriptions update by themselves (see dice-keepsakes-items.md).
 - Reached from the map's "Visit the workbench" button after each node (`oRunManager.can_visit_workbench`); whether that stays is open (KANBAN F02/Q8).

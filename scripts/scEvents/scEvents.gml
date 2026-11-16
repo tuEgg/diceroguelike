@@ -111,6 +111,7 @@
 				var rand_die = heal_block_list[| rand_ind];
 				
 				rand_die.dice_value += 2;
+				die_size_changed(rand_die);
 				
 				particle_emit( 115, 1000, "rise", rand_die.color);
 				spawn_floating_number("bag", 0, rand_die.name + " upgraded", rand_die.color, 0, -1, 0);
@@ -208,6 +209,7 @@
 					var die = global.dice_bag[| attack_list[| rand_index]];
 					
 					die.dice_value += 2;
+					die_size_changed(die);
 					particle_emit( 115, 1000, "rise", die.color);
 					spawn_floating_number("bag", 0, die.name, die.color, 0, -1, 0);
 					
@@ -510,6 +512,7 @@
 				oRunManager.dice_selection_message = "Choose a dice to gain +2 max roll";
 				oRunManager.dice_selection_event = function(_die) {
 					_die.dice_value += 2;
+					die_size_changed(_die);
 					
 					particle_emit(115, 1000, "rise", get_dice_color(_die.possible_type), 30);
 					spawn_floating_number("bag", 0, _die.name + " +2 max roll", _die.color, 0, -1, 0);
@@ -1135,6 +1138,7 @@
 						var intel_die = intel_list[| i];
 						
 						intel_die.dice_value += 2;
+						die_size_changed(intel_die);
 						spawn_floating_number("bag", 0, intel_die.name + " upgraded", intel_die.color, 0, -1, 0);
 					}
 				
@@ -1190,6 +1194,7 @@
 						var block_die = block_list[| i];
 						
 						block_die.dice_value += 2;
+						die_size_changed(block_die);
 						spawn_floating_number("bag", 0, block_die.name + " upgraded", block_die.color, 0, -1, 0);
 					}
 				
