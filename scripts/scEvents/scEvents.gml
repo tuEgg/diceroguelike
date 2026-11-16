@@ -1259,6 +1259,13 @@ function generate_event() {
 		rand = irandom(ds_list_size(global.master_event_list) - 1);
 	}
 	
+	// An event node that was entered before (then the game was closed) shows the same event again
+	var _node = oWorldManager.current_node;
+	if (_node != undefined && variable_struct_exists(_node, "event_name") && is_string(_node.event_name) && _node.event_name != "") {
+		var _remembered = event_index_by_name(_node.event_name);
+		if (_remembered != -1) rand = _remembered;
+	}
+	
 	// The F1 debug menu can ask for a specific event
 	var _debug_index = debug_take_forced_event_index();
 	if (_debug_index != -1) rand = _debug_index;
@@ -1267,4 +1274,16 @@ function generate_event() {
 
 	chosen_event = event;
 	ds_list_delete(global.master_event_list, rand);
+}
+
+/// @desc Index of an event in global.master_event_list by name, rebuilding the list once if it has
+///       already been drawn this run. Returns -1 if there's no such event.
+function event_index_by_name(_name) {
+	repeat (2) {
+		for (var i = 0; i < ds_list_size(global.master_event_list); i++) {
+			if (global.master_event_list[| i].name == _name) return i;
+		}
+		define_events();
+	}
+	return -1;
 }

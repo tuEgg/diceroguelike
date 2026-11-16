@@ -236,6 +236,7 @@ ds_list_add(possible_elites, "Elite 3");
 possible_alignment_encounters = ds_list_create();
 ds_list_add(possible_alignment_encounters, "Alignment 1");
 current_node_type = undefined;
+current_node = undefined; // the map node being played, it remembers what it rolled so Continue can bring it back
 
 alarm[0] = 1; // used to delay drafting in cases where we click exit in another room 
 can_draft = false;

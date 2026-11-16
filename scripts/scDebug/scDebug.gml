@@ -153,6 +153,9 @@ function debug_restore_bag_if_abandoning_fight() {
 /// Jump to a room from anywhere in a run.
 function debug_goto_room(_room) {
 	if (!debug_in_run()) exit;
+	
+	// a jump isn't a map node, so nothing should be remembered against one
+	oWorldManager.current_node = undefined;
 
 	debug_restore_bag_if_abandoning_fight();
 	debug_menu_close(true);
@@ -169,6 +172,7 @@ function debug_start_fight(_names, _node_type) {
 	}
 
 	debug_restore_bag_if_abandoning_fight();
+	oWorldManager.current_node = undefined; // not a map node
 
 	// oCombat picks this up as it is created (leaving a fight clears the enemy list, so we can't fill it here)
 	var _copy = [];

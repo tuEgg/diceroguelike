@@ -38,21 +38,21 @@ if (debug_mode) {
 	key_combat = keyboard_check_pressed(ord("C"));
 	if (key_combat) {		
 		with (oWorldManager) {
-			enter_node(node_combat);
+			enter_node(clone_node_static(node_combat)); // a copy, so the template never remembers an encounter
 		}
 	}
 	
 	key_elite = keyboard_check_pressed(ord("L"));
 	if (key_elite) {
 		with (oWorldManager) {
-			enter_node(node_elite);
+			enter_node(clone_node_static(node_elite)); // a copy, so the template never remembers an encounter
 		}
 	}
 	
 	key_alignment = keyboard_check_pressed(ord("A"));
 	if (key_alignment) {
 		with (oWorldManager) {
-			enter_node(node_alignment);
+			enter_node(clone_node_static(node_alignment)); // a copy, so the template never remembers an encounter
 		}
 	}
 	

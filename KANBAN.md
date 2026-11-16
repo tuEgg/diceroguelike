@@ -24,8 +24,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-
-Nothing is waiting for a playtest right now.
+| Continue keeps the same node | B73 | `fix/b73-continue` | Fixed in code, **not yet play-tested**. Fights and events only; shops, treasure and bounties are B74. |
+| B74 | Shops, treasure rooms and the bounty board still reroll on Continue (stock, keepsake choices and contracts are picked when the room opens, and none of it is saved). Lets a player re-roll a shop by quitting. Fix like B73: roll once, keep it on the node, save it. | M [C] |
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs

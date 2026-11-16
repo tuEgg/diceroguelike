@@ -1,4 +1,7 @@
 if (room == rmMap) {
+	// back on the map, so no node is in progress
+	current_node = undefined;
+	
 	if (nodes_cleared == 0) {
 		// Define variables at start of game
 		combat_chance = 15;

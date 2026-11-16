@@ -217,9 +217,14 @@ function enemy_find_by_name(_name) {
 }
 
 function enter_node(_node) {
+	// Everything random about this node is decided once and kept on the node, and the game is saved
+	// on the way in, so quitting and pressing Continue brings back the same fight or event
+	var _memory_node = _node;
+	current_node = _node;
 	
 	if (_node.type == NODE_TYPE.EVENT) {
-		var rand = irandom_range(1, 100);
+		if (!variable_struct_exists(_node, "event_roll")) _node.event_roll = irandom_range(1, 100);
+		var rand = _node.event_roll;
 		if (rand <= 8) {
 			_node = clone_node_static(node_combat);
 		} else if (rand <= 16 && !oRunManager.dutchman_taken) { // no shops once the Dutchman has sailed through
@@ -231,13 +236,27 @@ function enter_node(_node) {
 		alignment_chance = 0;
 	}
 	
-	get_combat_enemies(_node);
+	get_combat_enemies(_node, _memory_node);
 	current_node_type = _node.type;
+	
+	// an event node picks its event now (the event room shows it), so it can be saved with the node
+	if (_node.type == NODE_TYPE.EVENT) {
+		var _has_event = variable_struct_exists(_memory_node, "event_name") && is_string(_memory_node.event_name) && _memory_node.event_name != "";
+		if (!_has_event) {
+			if (ds_list_size(global.master_event_list) == 0) define_events();
+			_memory_node.event_name = global.master_event_list[| irandom(ds_list_size(global.master_event_list) - 1)].name;
+		}
+	}
+	
+	// saved before the node is marked cleared, so Continue comes back to the map with this node still to play
+	save_game(1);
 	
 	room_goto(_node.linked_room);
 }
 
-function get_combat_enemies(_node) {
+/// @param _node			the node being entered (an event may have turned into a combat clone)
+/// @param _memory_node	the node on the map, which remembers the encounter it rolled
+function get_combat_enemies(_node, _memory_node = _node) {
 	
 	if (_node.type == NODE_TYPE.COMBAT) {
 
@@ -247,10 +266,10 @@ function get_combat_enemies(_node) {
 		}
 
 		// Find a random encounter in the list of possible encounters
-		var rand_encounter = irandom(ds_list_size(possible_encounters) - 1);
+		var encounter_key = node_pick_encounter(_memory_node, possible_encounters);
 		
 		// Add the relevant enemies
-		switch (possible_encounters[| rand_encounter]) {
+		switch (encounter_key) {
 			case "Early 1":
 				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
 			break;
@@ -306,9 +325,7 @@ function get_combat_enemies(_node) {
 				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pufferfish"));
 			break;
 		}
-		
-		// Remove it from the list of possible encounters
-		ds_list_delete(possible_encounters, rand_encounter);
+
 		
 	} else if (_node.type == NODE_TYPE.ELITE) {
 
@@ -318,9 +335,9 @@ function get_combat_enemies(_node) {
 		}
 
 		// Find a random encounter in the list of possible encounters
-		var rand_encounter = irandom(ds_list_size(possible_elites) - 1);
+		var encounter_key = node_pick_encounter(_memory_node, possible_elites);
 		
-		switch (possible_elites[| rand_encounter]) {
+		switch (encounter_key) {
 			case "Elite 1":
 				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Captain"));
 				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
@@ -335,9 +352,7 @@ function get_combat_enemies(_node) {
 				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Deckhand"));
 			break;
 		}
-		
-		// Remove it from the list of possible encounters
-		ds_list_delete(possible_elites, rand_encounter);
+
 	} else if (_node.type == NODE_TYPE.ALIGNMENT) {
 
 		// Refill the pool if it's empty, so we never start an empty fight
@@ -346,17 +361,15 @@ function get_combat_enemies(_node) {
 		}
 
 		// Find a random encounter in the list of possible encounters
-		var rand_encounter = irandom(ds_list_size(possible_alignment_encounters) - 1);
+		var encounter_key = node_pick_encounter(_memory_node, possible_alignment_encounters);
 		
-		switch (possible_alignment_encounters[| rand_encounter]) {
+		switch (encounter_key) {
 			case "Alignment 1":
 				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Elizabeak"));
 				ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Bill"))
 			break;
 		}
-		
-		// Remove it from the list of possible encounters
-		ds_list_delete(possible_alignment_encounters, rand_encounter);
+
 	} else if (_node.type == NODE_TYPE.BOSS) {
 		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Barnacle Titan"));
 	}
@@ -795,6 +808,9 @@ function serialise_page(_page) {
             disappeared: _node.disappeared,
             x: _node.x,
             y: _node.y,
+            encounter: variable_struct_exists(_node, "encounter") ? _node.encounter : "", // "" and -1 mean "not rolled yet" (JSON null would load back as pointer_null)
+            event_roll: variable_struct_exists(_node, "event_roll") ? _node.event_roll : -1,
+            event_name: variable_struct_exists(_node, "event_name") ? _node.event_name : "",
         });
     }
     return {
@@ -843,6 +859,10 @@ function deserialise_page(_data) {
         _node.disappeared = _saved_node.disappeared;
         _node.x = _saved_node.x;
         _node.y = _saved_node.y;
+        // what this node already rolled, so Continue brings back the same fight or event
+        if (variable_struct_exists(_saved_node, "encounter") && is_string(_saved_node.encounter) && _saved_node.encounter != "") _node.encounter = _saved_node.encounter;
+        if (variable_struct_exists(_saved_node, "event_roll") && is_real(_saved_node.event_roll) && _saved_node.event_roll > 0) _node.event_roll = _saved_node.event_roll;
+        if (variable_struct_exists(_saved_node, "event_name") && is_string(_saved_node.event_name) && _saved_node.event_name != "") _node.event_name = _saved_node.event_name;
         ds_list_add(_page.nodes, _node);
     }
     
@@ -1060,4 +1080,19 @@ function draw_page_turning(_page, _turn, _pivot_x, _cover_x, _page_w) {
 ///       Fades out over _fade_w pixels as the page edge passes over it.
 function page_turn_cover_alpha(_x, _cover_edge, _fade_w) {
 	return clamp((_cover_edge - _x) / _fade_w + 0.5, 0, 1);
+}
+
+/// @desc The encounter for a fight node. Rolled from _pool the first time the node is entered,
+///       then remembered on the node, so re-entering it (after Continue) gives the same fight.
+function node_pick_encounter(_memory_node, _pool) {
+	if (variable_struct_exists(_memory_node, "encounter") && is_string(_memory_node.encounter) && _memory_node.encounter != "") {
+		return _memory_node.encounter;
+	}
+	
+	var _index = irandom(ds_list_size(_pool) - 1);
+	var _key = _pool[| _index];
+	ds_list_delete(_pool, _index);
+	
+	_memory_node.encounter = _key;
+	return _key;
 }
