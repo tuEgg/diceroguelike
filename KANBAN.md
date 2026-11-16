@@ -24,7 +24,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| Chapter ending | F01, F02, F06 | `feature/chapter-ending` | Built, **not yet play-tested**. Boss on the 8th spread, ribbon bookmark, boss keepsake reward, chapter 2 with tougher enemies. |
+| Chapter ending | F01, F02, F06 | `feature/chapter-ending` | Jared play-tested 2026-11-16: boss reward and chapter 2 work. Follow-up fixes **not yet play-tested**: ribbon drawn under the pages, tooltip titles no longer wrap, Deep Lens replaces Looking Glass in place, debug kill no longer shows a giant red number, Alt panels removed (map odds moved to the F1 Rooms tab). Boss on the 8th spread, ribbon bookmark, boss keepsake reward, chapter 2 with tougher enemies. |
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -66,6 +66,7 @@ All known P0 bugs are fixed, see DONE.
 | B70 | Not saved: luck, `pages_cleared`, `pages_shown` (drafts reroll on reload), dutchman, voyage, `bonus_dice_next_combat`, `max_items`, seen events, keepsake/shop/tool pools, keepsake internal state | M [C] |
 | B71 | The RNG *seed* is stored rather than the RNG state, so Continue replays the run's random sequence from the start | S [C] |
 | B72 | Duplicate keys in the save struct. `version` is never checked. No file/parse guard. Toolbelt loads 5 slots while `max_items` is 3 | S [C] |
+| B73 | **Fix soon (reported by Jared 2026-11-16).** Quitting during a node and pressing Continue rerolls that node: going back to the same node starts a different fight. The game only saves on the map, before the node is entered, and the encounter is picked at random when you enter. Fix: save the chosen encounter (and the node being entered) when entering a node, and reuse it on load. Check the same for events, shops and treasure. | M [C] |
 
 ## 🐞 BUGS: P2 UI / polish
 
@@ -94,7 +95,7 @@ All known P0 bugs are fixed, see DONE.
 | T10 | **Data tables**: `register_die()`, a cores table, an encounters table, a bounty table, `spawn_die()`, `pick_from_pool()` with empty-pool guards, an `oTool` parent for Hammer/Cutters/Drill | B07, B40, duplication | M |
 | T11 | Memory hygiene (enemy lists in combat done in batch 2): CleanUp for oShopManager, treasure, bounty, world (`room_enemies`, page node lists), combat (action queue + slot lists, enemy move_history/debuffs, feed lists), oRunManager lists, event option lists | leaks | S–M |
 | T12 | Per-frame performance: map `path_add` every frame; `settings.json` parsed every frame while settings is open; `clone_die` per frame in hover/workbench; `get_slot_stats`/`get_action_name` per slot per frame; 1,300 particle *instances* (Dutchman) → part system | perf | S–M |
-| T13 | Delete dead code: `parse_text`, `room_to_gui_*`, `add_debug_entry`, `draw_dice_history`, `roll_id`, `global.enemy_debuffs`, `tool_list`, the deprecated "All" slot type, and the redundant deep copy in `clone_die` | | S |
+| T13 | Delete dead code: `parse_text`, `room_to_gui_*`, ~~`add_debug_entry`~~ (removed 2026-11-16), `draw_dice_history`, `roll_id`, `global.enemy_debuffs`, `tool_list`, the deprecated "All" slot type, and the redundant deep copy in `clone_die` | | S |
 
 ---
 

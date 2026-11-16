@@ -19,4 +19,4 @@ if (age > lifespan * 0.6) {
 if (age >= lifespan) instance_destroy();
 
 // larger hits = bigger numbers
-size = amount/15 + 0.5;
+size = min(amount/15 + 0.5, 3); // capped, so a huge hit can't fill the screen

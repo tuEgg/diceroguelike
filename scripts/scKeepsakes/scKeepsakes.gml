@@ -976,6 +976,7 @@ function define_keepsakes() {
 	    _id: "deep_lens",
 	    name: "Deep Lens",
 	    desc: "Start the first 2 turns of combat with 12 Intel, replaces starting keepsake",
+		replaces: "looking_glass", // takes the starting keepsake's place in the keepsake bar
 		sub_image: 35,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
@@ -1057,7 +1058,23 @@ function get_keepsake_by_id(_id) {
 /// @param _list	The list to remove this keepsake from
 function gain_keepsake(_keepsake_struct, _list = undefined) {
 	with (oRunManager) {
-		ds_list_add(keepsakes, _keepsake_struct);
+		// some keepsakes replace another one, taking its exact spot in the keepsake bar
+		var _replaced_index = -1;
+		if (variable_struct_exists(_keepsake_struct, "replaces")) {
+			for (var k = 0; k < ds_list_size(keepsakes); k++) {
+				if (keepsakes[| k]._id == _keepsake_struct.replaces) {
+					_replaced_index = k;
+					break;
+				}
+			}
+		}
+		
+		if (_replaced_index != -1) {
+			keepsakes[| _replaced_index] = _keepsake_struct;
+			if (_replaced_index < ds_list_size(keepsake_scale)) keepsake_scale[| _replaced_index] = 4.0; // same pop-in as a new keepsake
+		} else {
+			ds_list_add(keepsakes, _keepsake_struct);
+		}
 	
 		if (_list != undefined) {
 			show_debug_message("Removing keepsake from list: " + string(_list));
@@ -1075,7 +1092,7 @@ function gain_keepsake(_keepsake_struct, _list = undefined) {
 			
 			show_debug_message("Index found " + string(index));
 		
-			ds_list_delete( _list, index); // remove from future shop keepsakes
+			if (index != -1) ds_list_delete( _list, index); // remove from future shop keepsakes
 			show_debug_message("List length is now: " + string(ds_list_size(_list)));
 		}
 	}

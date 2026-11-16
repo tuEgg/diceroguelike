@@ -74,7 +74,3 @@ if (combat_chance + event_chance + shop_chance + bounty_chance + elite_chance + 
 	combat_chance = ceil(combat_chance);
 	event_chance = floor(event_chance);
 }
-
-if (keyboard_check_pressed(vk_alt)) {
-	draw_room_chances = 1 - draw_room_chances;
-}

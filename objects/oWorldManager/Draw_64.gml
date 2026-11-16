@@ -61,6 +61,19 @@ if (room == rmMap) {
 		}
 	}
 	
+	// Ribbon bookmark on the boss page (the last page of the book), so the end of the chapter is always in sight.
+	// It is drawn on the boss page, before the pages stacked on top of it, so only the tail hanging below the book shows.
+	// Placeholder shapes until there is art: nudge these four numbers to move or resize it.
+	var ribbon_inset_x = 205;	// how far in from the right edge of the page
+	var ribbon_overhang = 20;	// how far it hangs below the page
+	var ribbon_length = 170;
+	var ribbon_w = 30;
+	
+	var ribbon_page = array_length(page_image_indices) - 1;
+	var ribbon_x = gui_w/2 + page_pos_offset + (page_offset * ribbon_page) + (sprite_get_width(sWorldBook) * page_xscale * book_open_scale) - ribbon_inset_x;
+	var ribbon_bottom = page_y + (sprite_get_height(sWorldBook) * page_yscale * 0.5) + ribbon_overhang;
+	var ribbon_top = ribbon_bottom - ribbon_length;
+	
 	// draw right pages
 	for (var i = array_length(page_image_indices) - 1; i >= book_spread; i--) {
 		// for animating current page
@@ -85,39 +98,31 @@ if (room == rmMap) {
 		if (i == book_spread || i == book_spread + 1) {
 			draw_sprite_ext(sWorldBookWater, page_image_indices[i] - 2, gui_w/2 + (page_pos_offset) + (page_offset * i), page_y, x_scale, page_yscale, 0, c_white, 1.0);
 		}
+		
+		// the ribbon lies on the boss page, under every page drawn after it
+		if (i == ribbon_page && book_open_scale > 0.5) {
+			draw_set_alpha(book_open_scale);
+			
+			// black outline, then the ribbon, each a strip ending in a point
+			draw_set_color(c_black);
+			draw_rectangle(ribbon_x - 4, ribbon_top - 4, ribbon_x + ribbon_w + 4, ribbon_bottom, false);
+			draw_triangle(ribbon_x - 4, ribbon_bottom, ribbon_x + ribbon_w + 4, ribbon_bottom, ribbon_x + ribbon_w/2, ribbon_bottom + 26, false);
+			
+			draw_set_color(make_color_rgb(190, 40, 45));
+			draw_rectangle(ribbon_x, ribbon_top, ribbon_x + ribbon_w, ribbon_bottom, false);
+			draw_triangle(ribbon_x, ribbon_bottom, ribbon_x + ribbon_w, ribbon_bottom, ribbon_x + ribbon_w/2, ribbon_bottom + 18, false);
+			
+			draw_set_alpha(1.0);
+		}
 	}
 	
-	// Ribbon bookmark on the boss page (the last page of the book), so the end of the chapter is always in sight.
-	// Placeholder shapes until there is art: nudge these four numbers to move or resize it.
-	var ribbon_inset_x = 205;	// how far in from the right edge of the page
-	var ribbon_overhang = 20;	// how far it hangs below the page
-	var ribbon_length = 170;
-	var ribbon_w = 30;
-	
-	var ribbon_page = array_length(page_image_indices) - 1;
-	var ribbon_x = gui_w/2 + page_pos_offset + (page_offset * ribbon_page) + (sprite_get_width(sWorldBook) * page_xscale * book_open_scale) - ribbon_inset_x;
-	var ribbon_bottom = page_y + (sprite_get_height(sWorldBook) * page_yscale * 0.5) + ribbon_overhang;
-	var ribbon_top = ribbon_bottom - ribbon_length;
-	
-	if (book_open_scale > 0.5) {
-		draw_set_alpha(book_open_scale);
-		
-		// black outline, then the ribbon, each a strip ending in a point
-		draw_set_color(c_black);
-		draw_rectangle(ribbon_x - 4, ribbon_top - 4, ribbon_x + ribbon_w + 4, ribbon_bottom, false);
-		draw_triangle(ribbon_x - 4, ribbon_bottom, ribbon_x + ribbon_w + 4, ribbon_bottom, ribbon_x + ribbon_w/2, ribbon_bottom + 26, false);
-		
-		draw_set_color(make_color_rgb(190, 40, 45));
-		draw_rectangle(ribbon_x, ribbon_top, ribbon_x + ribbon_w, ribbon_bottom, false);
-		draw_triangle(ribbon_x, ribbon_bottom, ribbon_x + ribbon_w, ribbon_bottom, ribbon_x + ribbon_w/2, ribbon_bottom + 18, false);
-		
-		if (mouse_hovering(ribbon_x, ribbon_top, ribbon_w, ribbon_length + 18, false)) {
-			var spreads_to_boss = max(0, CHAPTER_SPREADS - spreads_cleared);
-			var ribbon_text = "The boss is on this spread.";
-			if (spreads_to_boss == 1) ribbon_text = "1 more spread until the boss.";
-			if (spreads_to_boss > 1) ribbon_text = string(spreads_to_boss) + " more spreads until the boss.";
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Chapter " + string(chapter) + ": " + chapter_title(chapter), ribbon_text);
-		}
+	// hovering the visible tail of the ribbon explains it
+	if (book_open_scale > 0.5 && mouse_hovering(ribbon_x, ribbon_bottom - 60, ribbon_w, 60 + 26, false)) {
+		var spreads_to_boss = max(0, CHAPTER_SPREADS - spreads_cleared);
+		var ribbon_text = "The boss is on this spread.";
+		if (spreads_to_boss == 1) ribbon_text = "1 more spread until the boss.";
+		if (spreads_to_boss > 1) ribbon_text = string(spreads_to_boss) + " more spreads until the boss.";
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Chapter " + string(chapter), chapter_title(chapter) + ". " + ribbon_text);
 	}
 	
 	draw_set_alpha(1.0);
@@ -491,31 +496,3 @@ if (room == rmMap) {
 	}
 }
 
-if (debug_mode) && draw_room_chances {
-	var world_debug = [];
-	array_push(world_debug, string(combat_chance) + " (" + string(combat_nodes_this_voyage) + ")" );
-	array_push(world_debug, string(event_chance) + " (" + string(event_nodes_this_voyage) + ")" );
-	array_push(world_debug, string(shop_chance) + " (" + string(shop_nodes_this_voyage) + ")" );
-	array_push(world_debug, string(bounty_chance) + " (" + string(bounty_nodes_this_voyage) + ")" );
-	array_push(world_debug, string(elite_chance) + " (" + string(elite_nodes_this_voyage) + ")" );
-	array_push(world_debug, string(alignment_chance) + " (" + string(alignment_nodes_this_voyage) + ")" );
-	
-	draw_set_alpha(0.8);
-	draw_set_color(c_black);
-	draw_set_font(ftSmall);
-	draw_set_halign(fa_left);
-	draw_set_valign(fa_top);
-	
-	var _h = (30) * array_length(world_debug);
-	
-	
-	draw_rectangle(gui_w, 100, gui_w - 225, 100 + _h + 50, false);
-	draw_set_alpha(1.0);
-	draw_set_color(c_white);
-	for (var i = 0; i < array_length(world_debug); i++) {
-		var lookup = ["combat", "event", "shop", "bounty", "elite", "alignment", "combat nodes", "event nodes", "shop nodes", "bounty nodes", "elite nodes", "alignment nodes"];
-		
-		draw_text(gui_w - 200, 125 + (i * 30), lookup[i] + ": ");
-		draw_text(gui_w - 75, 125 + (i * 30), world_debug[i]);
-	}
-}

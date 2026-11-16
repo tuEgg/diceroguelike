@@ -568,7 +568,8 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
     draw_set_color(c_white);
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
-	draw_outline_text(_name, c_black, c_white, 2, content_x, yy + padding, 1, 1, 0, max_desc_w);
+	// the title is drawn on one line, the box is already sized to its full width
+	draw_outline_text(_name, c_black, c_white, 2, content_x, yy + padding, 1, 1, 0);
 
     // --- 7. DRAW DESCRIPTION ---
     var colored_desc = colorcode_text(_desc);
@@ -1280,8 +1281,4 @@ function lose_run() {
 	} else {
 		room_goto(rmMainMenu);
 	}
-}
-
-function add_debug_entry(_name, _value) {
-	array_push(global.debug, { name: _name, value: _value });
 }

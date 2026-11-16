@@ -214,7 +214,8 @@ function debug_kill_enemy(_enemy) {
 
 	with (oCombat) {
 		_enemy.block_amount = 0;
-		process_action(_enemy, 0, 99999, 0, "player", -1, "ATK", 0, global.dice_d4_atk, 1);
+		// exactly enough to kill, a huge number would be drawn screen-sized
+		process_action(_enemy, 0, max(1, _enemy.hp), 0, "player", -1, "ATK", 0, global.dice_d4_atk, 1);
 	}
 }
 
@@ -670,7 +671,25 @@ function debug_menu_draw() {
 				if (debug_button(cx + half_w * (i mod 2), yy + (i div 2) * row_h, half_w, row_h, room_list[i].name)) {
 					debug_goto_room(room_list[i].target);
 				}
+			}			
+			// What the map will roll for the next draft (this used to be the Alt panel)
+			var odds_y = yy + (ceil(array_length(room_list) / 2) + 1) * row_h;
+			debug_label(cx, odds_y, "Next draft odds (nodes of this type so far)", c_yellow);
+			odds_y += row_h;
+			with (oWorldManager) {
+				var odds = [
+					["Combat",		combat_chance,		combat_nodes_this_voyage],
+					["Event",		event_chance,		event_nodes_this_voyage],
+					["Shop",		shop_chance,		shop_nodes_this_voyage],
+					["Bounty",		bounty_chance,		bounty_nodes_this_voyage],
+					["Elite",		elite_chance,		elite_nodes_this_voyage],
+					["Alignment",	alignment_chance,	alignment_nodes_this_voyage],
+				];
+				for (var o = 0; o < array_length(odds); o++) {
+					debug_label(cx + half_w * (o mod 2), odds_y + (o div 2) * row_h, odds[o][0] + "  " + string(odds[o][1]) + "%  (" + string(odds[o][2]) + ")");
+				}
 			}
+
 		break;
 	}
 

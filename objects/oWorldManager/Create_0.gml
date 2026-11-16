@@ -240,7 +240,6 @@ current_node_type = undefined;
 alarm[0] = 1; // used to delay drafting in cases where we click exit in another room 
 can_draft = false;
 
-draw_room_chances = true;
 
 combat_chance =		0;
 event_chance =		0;
