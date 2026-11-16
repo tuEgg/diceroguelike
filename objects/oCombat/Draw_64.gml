@@ -624,6 +624,11 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 
 	    var xx = enemy.pos_x; // enemy position on screen
 	    var yy = enemy.pos_y - 10 - (enemy.scale * 180);  // slightly above their head
+
+		// Quill: an intent you can rewrite this turn pulses and glows, with a quill beside it, so it can't be missed
+		var _rewritable = (intel_level >= 2 && !intel_is_blotted() && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards && enemy_can_rewrite_intent(enemy));
+		var _quill_pulse = 0.5 + 0.5 * sin(current_time / 200);
+		if (_rewritable) enemy.intent.scale = enemy.intent.start_scale * (1 + 0.12 * _quill_pulse);
 		
 		// Draw combined intents
 		var intent_array = string_split(enemy.intent.move.action_type, "/");
@@ -673,6 +678,15 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		
 		var enemy_exiting = false;
 		
+		if (_rewritable) {
+			var _glow_w = text_w / 2 + 18;
+			draw_set_color(global.color_intel);
+			draw_set_alpha(enemy.intent.alpha * (0.15 + 0.25 * _quill_pulse));
+			draw_roundrect_ext(xx - _glow_w, yy - 30, xx + _glow_w, yy + 30, 20, 20, false);
+			draw_set_alpha(1.0);
+			draw_insight_icon("quill", xx - _glow_w - 26, yy - 4 * _quill_pulse, 0.7, enemy.intent.alpha);
+		}
+
 		// Draw enemy intent
 		for (var i = 0; i < array_length(intent_array); i++) {
 			
