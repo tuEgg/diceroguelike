@@ -24,8 +24,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| Continue keeps the same node | B73 | `fix/b73-continue` | Jared play-tested 2026-11-17: works. Not merged yet. Fights and events only; shops, treasure and bounties are B74. |
-| Chapter tab and debug additions | F06 (tab), T14 (additions) | `feature/chapter-tab` | Built, **not yet play-tested**. The ribbon is replaced by a teal divider tab out of the right side of the book reading "Chapter 2"; F1 menu gains "Complete this spread" (Run tab) and closes with Escape. |
+
+Nothing is waiting for a playtest right now.
 | B74 | Shops, treasure rooms and the bounty board still reroll on Continue (stock, keepsake choices and contracts are picked when the room opens, and none of it is saved). Lets a player re-roll a shop by quitting. Fix like B73: roll once, keep it on the node, save it. | M [C] |
 
 
@@ -68,7 +68,6 @@ All known P0 bugs are fixed, see DONE.
 | B70 | Not saved: luck, `pages_cleared`, `pages_shown` (drafts reroll on reload), dutchman, voyage, `bonus_dice_next_combat`, `max_items`, seen events, keepsake/shop/tool pools, keepsake internal state | M [C] |
 | B71 | The RNG *seed* is stored rather than the RNG state, so Continue replays the run's random sequence from the start | S [C] |
 | B72 | Duplicate keys in the save struct. `version` is never checked. No file/parse guard. Toolbelt loads 5 slots while `max_items` is 3 | S [C] |
-| B73 | **Fix soon (reported by Jared 2026-11-16).** Quitting during a node and pressing Continue rerolls that node: going back to the same node starts a different fight. The game only saves on the map, before the node is entered, and the encounter is picked at random when you enter. Fix: save the chosen encounter (and the node being entered) when entering a node, and reuse it on load. Check the same for events, shops and treasure. | M [C] |
 
 ## 🐞 BUGS: P2 UI / polish
 
@@ -217,6 +216,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | F01 | Boss node and boss reward: boss on the 8th spread of each chapter, choice of boss keepsakes | Chapter ending | 2026-11-16 |
 | M05 | Islands and node icons turn with the page: the right-hand page squashes in towards the spine as it lifts, and the left-hand page is covered as the turned page comes down. | Page-turn polish | 2026-11-17 |
 | M07 | The boat's position is saved, so Continue puts it back where it was moored. | Page-turn polish | 2026-11-17 |
+| B73 | Continue rerolled the node you were in: nodes now remember their fight or event, and the game saves as you enter a node | Continue fix | 2026-11-17 |
 
 **Milestones**
 
@@ -225,3 +225,4 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - (Healing potion rounding: already `ceil` in fddd600.)
 - 2026-11-16 **Chapters (F06 core):** 7 drafted spreads then a boss spread, ribbon bookmark on the boss page, boss keepsake reward, "chapter complete" screen, chapter 2 with tougher enemies. Deep Lens replaces Looking Glass in place. Alt debug panels retired, map odds moved to the F1 Rooms tab.
 - 2026-11-17 **Page-turn polish:** islands and icons turn with the page, boat position saved. A dotted route (M06) was tried and removed at Jared's request.
+- 2026-11-17 **Chapter tab and debug additions:** the boss page carries a "Chapter 2" divider tab out of the side of the book (replacing the ribbon); F1 menu gains "Complete this spread" and closes with Escape.
