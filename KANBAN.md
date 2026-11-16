@@ -30,7 +30,7 @@
 - F35 Pause mid-fight while your dice or the enemy are resolving: everything stops until you resume, then carries on.
 - F35 Settings from the pause menu: Escape (or Save/Cancel) goes back to the pause menu, not straight to the game. Escape again resumes.
 - F35 Save and quit, then Continue from the menu: you're back at the last stop you reached (mid-fight quits replay that fight, as before).
-- F35 Settings (from the pause menu or the main menu) has no Main Menu button any more: Save and Cancel only.
+- F35 Settings (from the pause menu or the main menu) has no Main Menu button any more: Save and Cancel only. On the main menu, Settings now hides the logo and menu buttons (they used to draw on top of it).
 - F35 Escape with the bag open closes the bag first. The new-run die + core offer still can't be skipped by pausing and resuming.
 - F05 (fixed: the web build went black on death, reading the enemy name from the wrong place) Die in a fight, desktop and web: "Lost at sea", "Sunk by <enemy names>", chapter and spread, and the stats (fights won with elites/bosses, damage dealt, biggest hit, damage taken, dice played, gold earned, dice in your bag, keepsakes). Back to the menu: no Continue.
 - F05 Die outside a fight (an event that takes HP to 0): same screen, "Your hull gave out on the voyage".
