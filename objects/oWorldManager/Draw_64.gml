@@ -137,23 +137,38 @@ if (room == rmMap) {
 	}
 	
 	// Draw chosen pages
+	// the boss spread is a single page, so don't show the previous spread's island beside it
+	var _pages_on_spread = 2;
+	if (ds_list_size(chosen_pages) > 0 && page_is_boss(chosen_pages[| ds_list_size(chosen_pages) - 1])) _pages_on_spread = 1;
+	
+	// the route sits under the islands and icons
+	if (world_state == WORLD_STATE.EXPLORING) draw_spread_route(_pages_on_spread);
+	
+	// where the turning page is hinged, matching the page drawing above
+	var turn_pivot_x = gui_w/2 + page_pos_offset + (page_offset * book_spread);
+	var turn_cover_x = gui_w/2 - page_pos_offset - (page_offset * book_spread);
+	var turn_page_w = sprite_get_width(sWorldBook) * page_xscale * book_open_scale;
+	
 	for (var p = 0; p < ds_list_size(chosen_pages); p++) {
 		var page = chosen_pages[| p];
 		
-		// if we are drafting, only show the number of pages we've locked in, otherwise only show the most recent 2
 		switch (world_state) {
+			// while drafting, only show the pages we've locked in so far
 			case WORLD_STATE.DRAFTING:
-			case WORLD_STATE.TURNING:
 				if (p >= ds_list_size(chosen_pages) - pages_drafted) {
 					draw_page(page, page.x, page.y, -1, false, true);
 				}
 			break;
 			
-			// need to make it so that as the pages turn, the island warp with the page turn (might require restructuring of how pages are drawn entirely).
+			// the finished spread turns over with the page
+			case WORLD_STATE.TURNING:
+				if (p >= ds_list_size(chosen_pages) - 2) {
+					draw_page_turning(page, current_page_turn, turn_pivot_x, turn_cover_x, turn_page_w);
+				}
+			break;
 			
+			// otherwise show the current spread
 			default:
-				// the boss spread is a single page, so don't show the previous spread's island beside it
-				var _pages_on_spread = page_is_boss(chosen_pages[| ds_list_size(chosen_pages) - 1]) ? 1 : 2;
 				if (p >= ds_list_size(chosen_pages) - _pages_on_spread) {
 					draw_page(page, page.x, page.y, -1, false, true);
 				}

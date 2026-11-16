@@ -24,8 +24,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-
-Nothing is waiting for a playtest right now.
+| Page-turn polish | M05–M07 | `feature/page-turn-polish` | Built, **not yet play-tested**. |
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -134,6 +133,11 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F33 Rarity on every item + rolled offers
 - F34 Tutorial path (fight 1 has no intel → intel die reward → fight 2 teaches intel)
 - F35 Pause menu (Resume / Settings / Main Menu)
+
+**World map polish**
+- M05 Islands and node icons turn with the page: the right-hand page squashes in towards the spine as it lifts, and the left-hand page is covered as the turned page comes down.
+- M06 Dotted route through the current spread's nodes in visiting order, plus a lead from the boat to the next node. Travelled legs are fainter.
+- M07 The boat's position is saved, so Continue puts it back where it was moored.
 
 **Juice**
 - F40 Individual Balatro-style trigger animations per die

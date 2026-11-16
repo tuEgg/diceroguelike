@@ -1011,3 +1011,96 @@ function world_finish_spread_if_done() {
 		world_state = WORLD_STATE.TURNING;
 	}
 }
+
+/// @desc Draws a finished spread's page while the book page turns over it. Islands and node icons
+///       follow the turning page: the right-hand page squashes in towards the spine as it lifts,
+///       and the left-hand page is covered as the turned page comes down over it.
+///       Draw only, nothing here can be hovered or clicked.
+/// @param _page		a page from chosen_pages
+/// @param _turn		current_page_turn: 1 = flat on the right, 0 = upright, -1 = flat on the left
+/// @param _pivot_x		where the turning page is hinged, for the right-hand page
+/// @param _cover_x		where the turned page lands from, for the left-hand page
+/// @param _page_w		on-screen width of a book page
+function draw_page_turning(_page, _turn, _pivot_x, _cover_x, _page_w) {
+	var _on_right = (_page.x > _pivot_x);
+	
+	// right-hand page: everything squashes towards the hinge, and is gone once the page is upright
+	if (_on_right && _turn <= 0) return;
+	var _xscale = _on_right ? _turn : 1;
+	
+	// left-hand page: the turned page sweeps from the spine outwards, hiding whatever it has passed over
+	var _cover_edge = (_turn < 0) ? _cover_x - abs(_turn) * _page_w : -infinity;
+	
+	// island, with the same white glow draw_page gives it
+	var _island_x = _on_right ? _pivot_x + (_page.x - _pivot_x) * _xscale : _page.x;
+	var _island_alpha = _on_right ? 1 : page_turn_cover_alpha(_island_x, _cover_edge, 150);
+	
+	if (_island_alpha > 0) {
+		shader_set(shWhiteFill);
+		for (var i = 0; i < 3; i++) {
+			draw_sprite_ext(sIslands, _page.island_index, _island_x, _page.y, (1 + i / 3) * _xscale, 1 + i / 3, 0, c_white, 0.2 * _island_alpha);
+		}
+		shader_reset();
+		draw_sprite_ext(sIslands, _page.island_index, _island_x, _page.y, _xscale, 1, 0, c_white, _island_alpha);
+	}
+	
+	// node icons, at the positions they were last drawn at
+	for (var n = 0; n < ds_list_size(_page.nodes); n++) {
+		var _node = _page.nodes[| n];
+		var _node_x = _on_right ? _pivot_x + (_node.x - _pivot_x) * _xscale : _node.x;
+		var _node_alpha = _on_right ? 1 : page_turn_cover_alpha(_node_x, _cover_edge, 30);
+		if (_node_alpha <= 0) continue;
+		
+		draw_sprite_ext(sMapIcon, _node.subimg, _node_x, _node.y, _xscale, 1, 0, c_white, _node_alpha);
+		if (_node.cleared) draw_sprite_ext(sMapIcon, _node.subimg, _node_x, _node.y, 1.2 * _xscale, 1.2, 0, make_color_rgb(126, 183, 131), _node_alpha);
+	}
+}
+
+/// @desc How visible something on the left-hand page is while the turned page covers it.
+///       Fades out over _fade_w pixels as the page edge passes over it.
+function page_turn_cover_alpha(_x, _cover_edge, _fade_w) {
+	return clamp((_cover_edge - _x) / _fade_w + 0.5, 0, 1);
+}
+
+/// @desc Dotted route through the current spread's nodes, in the order they are visited,
+///       plus a lead from the boat to the next node. Travelled legs are drawn fainter.
+/// @param _pages_on_spread	how many of the most recent chosen pages are on screen
+function draw_spread_route(_pages_on_spread) {
+	var _route = [];
+	var _first_page = max(0, ds_list_size(chosen_pages) - _pages_on_spread);
+	for (var p = _first_page; p < ds_list_size(chosen_pages); p++) {
+		var _nodes = chosen_pages[| p].nodes;
+		for (var n = 0; n < ds_list_size(_nodes); n++) {
+			var _node = _nodes[| n];
+			if (_node.x == 0 && _node.y == 0) continue; // not drawn yet, so no position
+			array_push(_route, _node);
+		}
+	}
+	
+	for (var i = 0; i < array_length(_route) - 1; i++) {
+		var _from = _route[i];
+		var _to = _route[i + 1];
+		draw_dotted_line(_from.x, _from.y, _to.x, _to.y, _to.cleared ? 0.25 : 0.6);
+	}
+	
+	// from the boat to where it can sail next
+	if (next_node != undefined && node_to_move_to == undefined && !next_node.cleared && !(next_node.x == 0 && next_node.y == 0)) {
+		draw_dotted_line(boat_data.x, boat_data.y, next_node.x, next_node.y, 0.6);
+	}
+}
+
+/// @desc A row of small dots between two points, leaving a gap at each end for the icons.
+function draw_dotted_line(_x1, _y1, _x2, _y2, _alpha) {
+	var _spacing = 14;
+	var _gap = 28; // keep clear of the node icons
+	var _len = point_distance(_x1, _y1, _x2, _y2);
+	if (_len <= _gap * 2) return;
+	
+	var _dir = point_direction(_x1, _y1, _x2, _y2);
+	draw_set_color(c_black);
+	draw_set_alpha(_alpha);
+	for (var d = _gap; d <= _len - _gap; d += _spacing) {
+		draw_circle(_x1 + lengthdir_x(d, _dir), _y1 + lengthdir_y(d, _dir), 3, false);
+	}
+	draw_set_alpha(1.0);
+}
