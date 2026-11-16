@@ -1655,7 +1655,7 @@ function tutorial_steps() {
 		// turn 1: a slot, stacking, a slot from a sacrifice, generic dice, how long dice stay
 		{
 			id: "intent", target: "intent", allow: [], button: "Next",
-			text: "Read your enemy first. Its intent shows what it will do this turn, and roughly how much.",
+			text: "Read your enemy first. Its intent shows what it will do this turn. With 0 to 4 insight you only see a range of how much; at 5 you see the exact number.",
 		},
 		{
 			id: "claim", target: "slot0", allow: ["place"], die_types: ["ATK"], slot: 0,
@@ -1693,7 +1693,7 @@ function tutorial_steps() {
 		// turn 2: insight, a slot with two actions, right-click to switch
 		{
 			id: "insight", target: "insight", allow: [], button: "Next",
-			text: "Your insight came in. At 5 the enemy's numbers turn exact (Legible). At 10 you take up the Quill and can rewrite an intent.",
+			text: "Your insight came in. Below 5 you only see ranges (Faded); at 5 the enemy's numbers turn exact (Legible). At 10 you take up the Quill and can rewrite an intent.",
 		},
 		{
 			id: "two_types", target: "sacrifice", allow: ["sacrifice"], die_types: ["ATK", "BLK"],
@@ -1936,8 +1936,8 @@ function tutorial_map_notes() {
 			done: function() { return oWorldManager.choices_locked; },
 		},
 		{
-			id: "map_sail", target: "boat",
-			text: "Click a stop next to your ship to sail there. Your first fight will walk you through the dice.",
+			id: "map_sail", target: "first_stop",
+			text: "Click your first stop to sail there. Your first fight will walk you through the dice.",
 			when: function() { return oWorldManager.world_state == WORLD_STATE.EXPLORING; },
 			done: function() { return oWorldManager.node_to_move_to != undefined; },
 		},
@@ -1978,6 +1978,18 @@ function tutorial_map_rect(_target) {
 			case "embark":
 				var _ew = sprite_get_width(sButtonSmall), _eh = sprite_get_height(sButtonSmall) * 0.8;
 				return { x: display_get_gui_width() * 3/4 - _ew / 2, y: display_get_gui_height() - 100 - _eh / 2, w: _ew, h: _eh };
+			case "first_stop":
+				// the first stop not yet cleared, in the order the pages were chosen
+				for (var p = 0; p < ds_list_size(chosen_pages); p++) {
+					var _nodes = chosen_pages[| p].nodes;
+					for (var n = 0; n < ds_list_size(_nodes); n++) {
+						var _node = _nodes[| n];
+						if (_node.cleared || !variable_struct_exists(_node, "x")) continue; // not drawn yet: no position
+						var _iw = sprite_get_width(sMapIcon) * _node.scale, _ih = sprite_get_height(sMapIcon) * _node.scale;
+						return { x: _node.x - _iw / 2, y: _node.y - _ih / 2, w: _iw, h: _ih };
+					}
+				}
+				return undefined;
 			case "boat":
 				var _bw = sprite_get_width(sMapShip), _bh = sprite_get_height(sMapShip);
 				return { x: boat_data.x - _bw / 2, y: boat_data.y - _bh, w: _bw, h: _bh };
