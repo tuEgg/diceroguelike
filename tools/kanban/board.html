@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kanban</title>
+<style>
+:root {
+  --bg: #eef1f5; --col: #e2e7ee; --card: #ffffff; --text: #1c2430; --muted: #5d6b7c;
+  --line: #cfd6e0; --accent: #1f6feb; --code: #eef1f5; --shadow: 0 1px 2px rgba(20,30,50,.12);
+  --flash: #fff3bf;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161c; --col: #1a2029; --card: #242c38; --text: #e4e9f0; --muted: #94a2b5;
+    --line: #333d4c; --accent: #6aa7ff; --code: #1a2029; --shadow: 0 1px 2px rgba(0,0,0,.4);
+    --flash: #5a4a12;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, "Segoe UI", sans-serif;
+  display: flex; flex-direction: column; }
+header { padding: 10px 16px 8px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+h1 { font-size: 17px; margin: 0; margin-right: auto; }
+.live { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #2da44e; }
+.live.off .dot { background: #d1242f; }
+input[type=search] { width: 240px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--card); color: var(--text); font: inherit; }
+button { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.seg { display: flex; gap: 4px; align-items: center; color: var(--muted); font-size: 12px; }
+nav { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+nav button { white-space: nowrap; font-size: 12px; padding: 3px 9px; border-radius: 999px; }
+nav .n { color: var(--muted); margin-left: 4px; }
+#about { display: none; padding: 10px 16px; border-bottom: 1px solid var(--line); color: var(--muted);
+  font-size: 13px; max-height: 30vh; overflow: auto; }
+#about.show { display: block; }
+#about p { margin: 0 0 4px; }
+#board { flex: 1; min-height: 0; display: flex; gap: 12px; padding: 12px 16px; overflow-x: auto; align-items: stretch; }
+.column { flex: 0 0 330px; background: var(--col); border-radius: 10px; display: flex; flex-direction: column; min-height: 0; }
+.column.flash { outline: 2px solid var(--accent); }
+.colhead { padding: 10px 12px 8px; display: flex; gap: 8px; align-items: baseline; }
+.colhead .t { font-weight: 700; font-size: 13px; flex: 1; }
+.colhead .t span { font-weight: 400; color: var(--muted); }
+.count { font-size: 12px; color: var(--muted); background: var(--card); border-radius: 999px; padding: 0 8px; }
+.cards { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 10px; display: flex; flex-direction: column; gap: 8px; }
+.group { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+  padding: 8px 4px 0; position: sticky; top: 0; background: var(--col); z-index: 1; }
+.note { font-size: 12px; color: var(--muted); padding: 0 4px; }
+.empty { font-size: 12px; color: var(--muted); padding: 4px; font-style: italic; }
+.card { background: var(--card); border-radius: 8px; padding: 9px 10px; box-shadow: var(--shadow); cursor: pointer;
+  border-left: 4px solid var(--hue, var(--line)); }
+.card:hover { outline: 1px solid var(--accent); }
+.card.flash { animation: flash 1.6s ease-out; }
+@keyframes flash { from { background: var(--flash); } to { background: var(--card); } }
+.meta { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-bottom: 4px; }
+.id { font: 700 12px ui-monospace, Consolas, monospace; color: var(--hue, var(--muted)); }
+.chip { font-size: 11px; padding: 0 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.chip.test { background: #8250df; border-color: #8250df; color: #fff; }
+.chip.size { font-weight: 700; color: var(--text); }
+.title { overflow-wrap: anywhere; }
+.preview { color: var(--muted); font-size: 12px; margin-top: 4px; overflow-wrap: anywhere; }
+.card:not(.open) .title { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.card:not(.open) .preview { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.details { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12px; }
+.card.open .details { display: block; }
+.details .k { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.details .v { margin-bottom: 6px; overflow-wrap: anywhere; }
+code { font: 12px ui-monospace, Consolas, monospace; background: var(--code); padding: 1px 4px; border-radius: 4px; }
+a.ref { color: var(--accent); text-decoration: none; font-weight: 600; cursor: pointer; }
+a.ref:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1 id="h1">Kanban</h1>
+    <div class="live" id="live"><span class="dot"></span><span id="liveText">Connecting…</span></div>
+    <input type="search" id="q" placeholder="Search cards…  ( / )">
+    <div class="seg">Size
+      <button data-size="S">S</button><button data-size="M">M</button><button data-size="L">L</button>
+    </div>
+    <button id="hideTest" title="Hide cards that are already in a testing batch">Hide in-testing</button>
+    <button id="expand">Expand all</button>
+    <button id="aboutBtn">About</button>
+  </div>
+  <nav id="nav"></nav>
+</header>
+<div id="about"></div>
+<main id="board"></main>
+
+<script>
+const HUES = { B: '#d1242f', H: '#bf8700', T: '#8250df', F: '#2da44e', M: '#1f6feb', Q: '#1b9aaa' };
+const state = { q: '', sizes: new Set(), hideTest: false, expandAll: false, open: new Set() };
+let board = null, ids = new Set(), prevRaw = null;
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ---------- parsing ----------
+function splitRow(line) {
+  let s = line.trim();
+  if (s.startsWith('|')) s = s.slice(1);
+  if (s.endsWith('|') && !s.endsWith('\\|')) s = s.slice(0, -1);
+  const cells = []; let cur = '', code = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === '\\' && s[i + 1] === '|') { cur += '|'; i++; continue; }
+    if (c === '`') code = !code;
+    if (c === '|' && !code) { cells.push(cur.trim()); cur = ''; continue; }
+    cur += c;
+  }
+  cells.push(cur.trim());
+  return cells;
+}
+
+function parse(md) {
+  const lines = md.split(/\r?\n/);
+  const b = { title: 'Kanban', intro: [], sections: [] };
+  let sec = null, group = null;
+  const grp = () => group || (group = { label: '', items: [] }, sec.groups.push(group), group);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line || /^-{3,}$/.test(line)) continue;
+    if (/^# /.test(line)) { b.title = line.slice(2).trim(); continue; }
+    if (/^## /.test(line)) { sec = { title: line.slice(3).trim(), groups: [] }; group = null; b.sections.push(sec); continue; }
+    if (!sec) { b.intro.push(line.replace(/^>\s?/, '')); continue; }
+    const g = line.match(/^\*\*([^*]+)\*\*$/);
+    if (g) { group = { label: g[1], items: [] }; sec.groups.push(group); continue; }
+    if (line.startsWith('|')) {
+      const head = splitRow(line);
+      i++; // separator row
+      const hasId = /^id$/i.test(head[0]);
+      while (i + 1 < lines.length && lines[i + 1].trim().startsWith('|')) {
+        const raw = lines[++i];
+        const c = splitRow(raw);
+        if (c.length > head.length) c.splice(head.length - 1, c.length, c.slice(head.length - 1).join(' | '));
+        const card = { raw, id: hasId ? c[0] : '', title: hasId ? c[1] || '' : c[0], fields: [] };
+        for (let k = hasId ? 2 : 1; k < head.length; k++) {
+          const v = c[k] || '';
+          if (!v) continue;
+          if (/^size$/i.test(head[k])) {
+            const m = v.match(/^(S–M|S|M|L)\b/);
+            if (m) card.size = m[1];
+            card.tags = [...v.matchAll(/\[([A-Z])\]/g)].map(x => x[1]);
+            const rest = v.replace(/^(S–M|S|M|L)\b/, '').replace(/\[[A-Z]\]/g, '').replace(/^[\s/]+|[\s/]+$/g, '');
+            if (rest) card.fields.push({ k: 'Note', v: rest });
+          } else card.fields.push({ k: head[k], v });
+        }
+        grp().items.push(card);
+      }
+      continue;
+    }
+    if (/^[-*] /.test(line)) {
+      const text = line.slice(2).trim();
+      const card = { raw: line, id: '', title: text, fields: [] };
+      let m;
+      if ((m = text.match(/^([A-Z]\d{1,3})\s+(.*)$/))) { card.id = m[1]; card.title = m[2]; }
+      else if ((m = text.match(/^(\d{4}-\d{2}-\d{2})\s+(.*)$/))) { card.date = m[1]; card.title = m[2]; }
+      grp().items.push(card);
+      continue;
+    }
+    grp().items.push({ note: line });
+  }
+
+  // Cards listed in a "testing" section's batch table get a badge wherever they live.
+  const testing = {};
+  for (const s of b.sections) {
+    s.isTesting = /testing/i.test(s.title);
+    if (!s.isTesting) continue;
+    for (const g of s.groups) for (const c of g.items) {
+      const f = c.fields && c.fields.find(f => /^cards?$/i.test(f.k));
+      if (!f) continue;
+      const label = (c.title.match(/^(\d+)\s*:/) || [])[1];
+      for (const m of f.v.matchAll(/([A-Z])(\d{1,3})(?:\s*[–-]\s*[A-Z]?(\d{1,3}))?/g)) {
+        const from = +m[2], to = m[3] ? +m[3] : from;
+        for (let n = from; n <= to && n - from < 200; n++)
+          testing[m[1] + String(n).padStart(m[2].length, '0')] = label ? 'batch ' + label : 'testing';
+      }
+    }
+  }
+  ids = new Set();
+  for (const s of b.sections) for (const g of s.groups) for (const c of g.items) {
+    if (c.note) continue;
+    c.key = c.id || s.title + '|' + c.title;
+    if (c.id) { ids.add(c.id); if (testing[c.id]) c.testing = testing[c.id]; }
+    c.hay = (c.id + ' ' + c.title + ' ' + c.fields.map(f => f.v).join(' ')).toLowerCase();
+  }
+  return b;
+}
+
+// ---------- rendering ----------
+function inline(s, self) {
+  return s.split('`').map((part, i) => {
+    if (i % 2) return '<code>' + esc(part) + '</code>';
+    return esc(part)
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+      .replace(/\*([^*]+)\*/g, '<i>$1</i>')
+      .replace(/\b[A-Z]\d{1,3}\b/g, m => ids.has(m) && m !== self ? `<a class="ref" data-ref="${m}">${m}</a>` : m);
+  }).join('');
+}
+
+function visible(c) {
+  if (state.q && !c.hay.includes(state.q)) return false;
+  if (state.sizes.size && !(c.size && [...state.sizes].some(s => c.size.includes(s)))) return false;
+  if (state.hideTest && c.testing) return false;
+  return true;
+}
+
+function cardHtml(c, changed) {
+  const hue = c.id ? HUES[c.id[0]] : '';
+  const open = state.expandAll || state.open.has(c.key);
+  const chips = [];
+  if (c.id) chips.push(`<span class="id">${esc(c.id)}</span>`);
+  if (c.date) chips.push(`<span class="chip">${c.date}</span>`);
+  if (c.size) chips.push(`<span class="chip size" title="Size">${c.size}</span>`);
+  for (const t of c.tags || [])
+    chips.push(`<span class="chip" title="${t === 'C' ? 'Cause seen in code' : t === 'L' ? 'Likely, needs repro in-game' : t}">${t === 'C' ? 'confirmed' : t === 'L' ? 'likely' : t}</span>`);
+  if (c.testing) chips.push(`<span class="chip test">in testing · ${esc(c.testing)}</span>`);
+  const pv = c.fields.find(f => /^(notes?|status)$/i.test(f.k));
+  return `<div class="card${open ? ' open' : ''}${changed ? ' flash' : ''}" data-key="${esc(c.key)}"${c.id ? ` data-id="${esc(c.id)}"` : ''}${hue ? ` style="--hue:${hue}"` : ''}>
+    ${chips.length ? `<div class="meta">${chips.join('')}</div>` : ''}
+    <div class="title">${inline(c.title, c.id)}</div>
+    ${pv ? `<div class="preview">${inline(pv.v, c.id)}</div>` : ''}
+    ${c.fields.filter(f => f !== pv).length ? `<div class="details">${c.fields.filter(f => f !== pv).map(f =>
+      `<div class="k">${esc(f.k)}</div><div class="v">${inline(f.v, c.id)}</div>`).join('')}</div>` : ''}
+  </div>`;
+}
+
+function render(flashChanges) {
+  const el = $('#board');
+  const scroll = { x: el.scrollLeft, cols: [...el.querySelectorAll('.cards')].map(c => c.scrollTop) };
+  const raw = new Map();
+  let nav = '', html = '';
+  board.sections.forEach((s, si) => {
+    let total = 0, shown = 0, body = '';
+    for (const g of s.groups) {
+      let inner = '';
+      for (const c of g.items) {
+        if (c.note) { if (!state.q) inner += `<div class="note">${inline(c.note)}</div>`; continue; }
+        total++; raw.set(c.key, c.raw + (c.testing || ''));
+        if (!visible(c)) continue;
+        shown++;
+        inner += cardHtml(c, flashChanges && prevRaw && prevRaw.get(c.key) !== raw.get(c.key));
+      }
+      if (inner) body += (g.label ? `<div class="group">${inline(g.label)}</div>` : '') + inner;
+    }
+    const [name, ...rest] = s.title.split(':');
+    const count = shown === total ? total : `${shown}/${total}`;
+    nav += `<button data-col="${si}">${esc(name)}${rest.length ? ':' + esc(rest.join(':').split(/[ ,]+/).slice(0, 2).join(' ')) : ''}<span class="n">${count}</span></button>`;
+    html += `<section class="column" data-col="${si}">
+      <div class="colhead"><div class="t">${esc(name)}${rest.length ? `<span>:${esc(rest.join(':'))}</span>` : ''}</div><span class="count">${count}</span></div>
+      <div class="cards">${body || '<div class="empty">No matching cards</div>'}</div></section>`;
+  });
+  el.innerHTML = html;
+  $('#nav').innerHTML = nav;
+  $('#h1').textContent = board.title;
+  document.title = board.title;
+  $('#about').innerHTML = board.intro.map(l => `<p>${inline(l)}</p>`).join('');
+  el.scrollLeft = scroll.x;
+  el.querySelectorAll('.cards').forEach((c, i) => { c.scrollTop = scroll.cols[i] || 0; });
+  prevRaw = raw;
+}
+
+function goTo(id) {
+  let card = document.querySelector(`.card[data-id="${id}"]`);
+  if (!card) { // hidden by a filter: clear filters and try again
+    state.q = ''; $('#q').value = ''; state.sizes.clear(); state.hideTest = false; syncButtons(); render();
+    card = document.querySelector(`.card[data-id="${id}"]`);
+  }
+  if (!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+  card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
+}
+
+function syncButtons() {
+  document.querySelectorAll('[data-size]').forEach(b => b.classList.toggle('on', state.sizes.has(b.dataset.size)));
+  $('#hideTest').classList.toggle('on', state.hideTest);
+  $('#expand').classList.toggle('on', state.expandAll);
+  $('#expand').textContent = state.expandAll ? 'Collapse all' : 'Expand all';
+}
+
+// ---------- events ----------
+$('#board').addEventListener('click', e => {
+  const ref = e.target.closest('a.ref');
+  if (ref) { goTo(ref.dataset.ref); return; }
+  const card = e.target.closest('.card');
+  if (!card || state.expandAll || String(getSelection())) return;
+  const k = card.dataset.key;
+  state.open.has(k) ? state.open.delete(k) : state.open.add(k);
+  card.classList.toggle('open');
+});
+$('#about').addEventListener('click', e => { const r = e.target.closest('a.ref'); if (r) goTo(r.dataset.ref); });
+$('#nav').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const col = document.querySelector(`.column[data-col="${b.dataset.col}"]`);
+  col.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+  col.classList.add('flash'); setTimeout(() => col.classList.remove('flash'), 900);
+});
+$('#q').addEventListener('input', e => { state.q = e.target.value.trim().toLowerCase(); render(); });
+document.querySelectorAll('[data-size]').forEach(b => b.addEventListener('click', () => {
+  const s = b.dataset.size; state.sizes.has(s) ? state.sizes.delete(s) : state.sizes.add(s); syncButtons(); render();
+}));
+$('#hideTest').addEventListener('click', () => { state.hideTest = !state.hideTest; syncButtons(); render(); });
+$('#expand').addEventListener('click', () => { state.expandAll = !state.expandAll; state.open.clear(); syncButtons(); render(); });
+$('#aboutBtn').addEventListener('click', () => { $('#about').classList.toggle('show'); $('#aboutBtn').classList.toggle('on'); });
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement !== $('#q')) { e.preventDefault(); $('#q').focus(); }
+  if (e.key === 'Escape' && document.activeElement === $('#q')) { $('#q').value = ''; state.q = ''; render(); $('#q').blur(); }
+});
+
+// ---------- live data ----------
+let lastMd = null;
+async function load() {
+  const res = await fetch('/kanban.md', { cache: 'no-store' });
+  if (!res.ok) throw new Error(await res.text());
+  const md = await res.text();
+  if (md !== lastMd) { const first = lastMd === null; lastMd = md; board = parse(md); render(!first); }
+  $('#live').classList.remove('off');
+  $('#liveText').textContent = 'Live · updated ' + new Date().toLocaleTimeString();
+}
+function offline(msg) { $('#live').classList.add('off'); $('#liveText').textContent = msg; }
+const es = new EventSource('/events');
+es.onopen = () => load().catch(e => offline(e.message));
+es.onmessage = () => load().catch(e => offline(e.message));
+es.onerror = () => offline('Server not running, retrying…');
+</script>
+</body>
+</html>
