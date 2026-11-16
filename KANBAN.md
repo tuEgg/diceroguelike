@@ -23,12 +23,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 6: placement rule and feedback | B35, T08, F12 | `fix/placement-rule` | Fixed in code, one commit per card, **not yet play-tested**. One placement rule (`slot_placement_check`) drives the real placement, the slot highlight and the hover hint; when a die can't go in a slot, a tooltip says why. |
 
-**Batch 6 test list**
-- T08 Placing works as before: coloured dice start empty slots, matching dice of the same size or bigger join a slot, coins join any matching slot, neutral dice join slots that have a type, an Exclusive die clears a slot of another type and takes it, and Exclusive dice never share a slot. After your plays run out only coins can be placed, and the dice-played counter flashes red.
-- B35 Drag dice over slots: exactly the slots that light up are the ones that accept the die. Check the cases that used to disagree: an Exclusive die (Tidepusher) over a slot of another type lights up (it takes the slot); an Exclusive die over a matching slot with dice in it does not; a coin over a matching slot with bigger dice lights up; a multitype die (Deflect) over a slot of either of its types lights up; with no plays left, only coins light anything up.
-- F12 Drag a die over a slot it can't go in: a "Can't place here" tooltip says why (e.g. "Needs a d6 or bigger to join this slot.", "Exclusive dice need a slot to themselves.", "Neutral dice can't start a slot.", "No plays left this turn."). Drop it there anyway: the same message flashes up. Over a slot it can go in, the hint above the slot says what will happen (Start a 1d6 ATK slot / Add 1d4 (2d4) / Clear this slot and take it).
+Nothing is waiting for a playtest right now.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -43,7 +39,6 @@ All known P0 bugs are fixed, see DONE.
 | ID | Bug | Where | Size |
 |---|---|---|---|
 | B33 | Intel level is only recalculated at turn start, so intel gained mid-turn never raises the level (*"intel 4 doesn't add the 3rd die"*) | `oCombat/Step_0.gml:164-177` | S [L] (design call: see Q3) |
-| B35 | `can_place_dice_in_slot` (highlights) and `apply_dice_to_slot` (real rule) disagree on exclusive, coin, multitype and the play limit | `scCombatScripts.gml:518,1082` | M [C] → fixed by T08 |
 | B36 | `"None!"` in `get_slot_stats` makes its condition always true. Left alone on purpose: it looks like a deliberate switch-off, and removing it would change how neutral dice count in a slot. Needs Jared's call. (The doubled `is_slot_exclusive` check was fixed in batch 2.) | `scCombatScripts.gml` | S [C] |
 
 **Dice / keepsakes / items**
@@ -77,7 +72,6 @@ All known P0 bugs are fixed, see DONE.
 | T05 | **`run` struct**: one object owns gold, HP, bag, keepsakes, items, tools, alignment and pools; `new_run()`/`end_run()` create and free everything; the save serialises this one struct with a version + RNG state | B70–72, leaks, 130 globals | L |
 | T06 | **Split input/state from Draw GUI** (update in Step, render in Draw). The code currently relies on draw order for clicks and on positions computed a frame late | B63, ordering bugs | L (incremental, room by room) |
 | T07 | **UI kit**: one markup format + one colour table; cached outlined text; shared `draw_die`, panel, button, scrollbar and exit-button widgets on `global.gui`; fix the `draw_wonky_rectangle` surface leak (new surfaces every frame while hovering) | B80–83, perf | M |
-| T08 | **Single placement rule**: `can_place` returns `{ok, reason}` and `apply_dice_to_slot` uses it, so the reason can feed the tooltip (playtesters asked for this) | B35 | S |
 | T09 | **Enums instead of strings** for action types, permanence and node types (`"BLK"` vs `"BLOCK"` bugs go away) | B64, B36 | M |
 | T10 | **Data tables**: `register_die()`, a cores table, an encounters table, a bounty table, `spawn_die()`, `pick_from_pool()` with empty-pool guards, an `oTool` parent for Hammer/Cutters/Drill | B07, B40, duplication | M |
 | T11 | Memory hygiene (enemy lists in combat done in batch 2): CleanUp for oShopManager, treasure, bounty, world (`room_enemies`, page node lists), combat (action queue + slot lists, enemy move_history/debuffs, feed lists), oRunManager lists, event option lists | leaks | S–M |
@@ -100,7 +94,6 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 **Combat clarity** (the most common playtest feedback)
 - F10 Always show the enemy intent *type*; intel reveals the numbers
 - F11 Enemy targeting indicator; floating arrows at intel ≥ 6
-- F12 Placement feedback tooltips (why a die can't go here: exclusive, size, limit)
 - F13 Slower / configurable action speed (Jack)
 - F14 Colour-blind-safe palette (Jack can't tell the blues apart)
 - F15 Summon intent icon, buff animation, clearer "Nav Chart fired" feedback
@@ -222,6 +215,9 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | B41 | Hover descriptions are wrong after upgrades: static text, the hover preview uses slot −1 (type bonuses never show), duplicated oDice fields drift, and `get_dice_output(read_only=false)` runs every frame and fires keepsake side-effects | Batch 5: dice text from data | 2026-11-17 |
 | B42 | `string_has_keyword` is fragile (colons, single sentences, the "Favourite." prefix). `get_keywords_in_string` doesn't trim at all, so Offhand/Balanced show the wrong icons | Batch 5: dice text from data | 2026-11-17 |
 | T04 | **Keywords and descriptions as data**: a `keywords: []` field on dice; descriptions generated from templates (`"+{min} min"`) so upgrades update the text | Batch 5: dice text from data | 2026-11-17 |
+| T08 | One placement rule, `slot_placement_check`, returning ok, action and a reason | Batch 6: placement rule | 2026-11-17 |
+| B35 | Slot highlight and real placement disagreed: both now use the one rule | Batch 6: placement rule | 2026-11-17 |
+| F12 | Placement feedback: a tooltip says why a die can't go in a slot, and the hint says what placing will do | Batch 6: placement rule | 2026-11-17 |
 
 **Milestones**
 
