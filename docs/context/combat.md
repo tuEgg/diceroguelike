@@ -12,6 +12,7 @@ Room `rmCombat`, object `oCombat` (not persistent). Created with the enemies `oW
 - **END_OF_ROUND**: ejects temporary/Loose dice (`eject_dice_in_slot`), `slot_tick_bonuses`, turns "base" dice into temporary (permanent dice leave on their second turn), fades out dead enemies, then `win_fight()` or `on_round_end` and the next turn.
 
 `oCombat/Draw_64.gml` (~1500 lines) draws everything and handles most clicks: slots, dice in slots (with slot-bonus badges), enemies, intents, buffs, rewards screen.
+- Intel: `player_intel` can go negative (Overwhelm). The intel ring above the player is clamped between empty and full; the number shows whenever intel isn't zero, red when negative.
 
 ## Rolling and damage: `process_action` (scCombatScripts)
 

@@ -11,7 +11,7 @@ Room `rmMap`, object `oWorldManager` (persistent for the run). Logic in `oWorldM
 
 ## States (`world_state`, enum `WORLD_STATE`)
 
-`OPENING` (book opens) → `DRAFTING` (pick pages; Embark) → `EXPLORING` (sail node to node) → `TURNING` (spread done: heal or core choice, page turns) → `DRAFTING`... and `CHAPTER_END` after a boss. `world_finish_spread_if_done()` (Room Start and Step) moves EXPLORING to TURNING or CHAPTER_END.
+`OPENING` (book opens) → `DRAFTING` (pick pages; Embark) → `EXPLORING` (sail node to node) → `TURNING` (spread done: heal or core choice, page turns). The rest heal is `ceil(max_hp * rest_amount)` (25%, raised by Salted Pork via `on_rest`), rounding up like the healing potion, and its tooltip shows the real percentage → `DRAFTING`... and `CHAPTER_END` after a boss. `world_finish_spread_if_done()` (Room Start and Step) moves EXPLORING to TURNING or CHAPTER_END.
 
 ## Pages and nodes
 

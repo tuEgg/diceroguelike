@@ -8,6 +8,7 @@
 - Text: `draw_outline_text(str, outline, fill, width, x, y, scale, alpha, angle, max_width)`; `[tag]` colour markup via `colorcode_text`. Fonts `ftDefault`, `ftDescriptions`, `ftSmall`, `ftTiny`, `ftBig`, `ftBigger`, `ftDamage`.
 - Buttons: `draw_gui_button(...)` returns `{ hover, click, ... }` (old, slated for replacement); `draw_wonky_rectangle` draws hand-drawn panels (caches surfaces, known leak, KANBAN T07).
 - `throw_error(title, desc)` shows a red tooltip for ~1.5s.
+- Bag view (`oRunManager/Draw_64`) and the debug dice list (`oRunManager/Draw_75`): each die box is edged in its rarity colour; scrollbars drag while `scroll_dragging` is true, which clears whenever the mouse button is up. Use GUI-space mouse positions (`device_mouse_y_to_gui`), never `mouse_y`, for anything drawn in Draw GUI.
 
 ## Display: scDisplay, scSettings
 

@@ -10,6 +10,7 @@ Each room has a manager object created by the room; most of its logic and clicks
 ## Events: `oEventManager`, `scEvents`
 
 - `define_events()` builds `global.master_event_list`: structs `{ name, description, options: ds_list }`, each option `{ title, description, effect(ctx), result }`. Effects set `oEventManager.event_complete` and `event_selected`; `alternate_exit` can redirect the exit (Sirens → shop).
+- After an option is chosen, the event text is replaced by that option's `result` line, so every option needs a real sentence there (never a placeholder).
 - `generate_event()` picks the node's remembered `event_name`, or a debug-forced one, or random, and removes it from the list (seen events are saved).
 - Many option effects open a dice picker via `oRunManager.dice_selection` and `dice_selection_event`.
 
@@ -17,6 +18,7 @@ Each room has a manager object created by the room; most of its logic and clicks
 
 - Created once per run in `rmMap`; drawn only in `rmBounty`. Offers 2 contracts (intended) and a free potion.
 - Contract `{ enemy_name, condition, rewards [item, keepsake, die], elite_encounter, complete }`; conditions in `condition_list` have `trigger(event, data)` that sets `failed`. Taking one sets `oRunManager.active_bounty`; the bounty elite replaces `possible_elites` until fought.
+- Rerolling the board (10 gold) clears `oRunManager.active_bounty`, so a contract can only be active while it is on the board. Contract names come from `generate_bounties` (Elite 1 and Elite 3 are both Pirate Captain fights).
 - Saved with the run: `serialise_bounty_board` / `deserialise_bounty_board`.
 
 ## Treasure: `oTreasureManager`
