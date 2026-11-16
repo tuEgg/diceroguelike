@@ -14,13 +14,14 @@ function choose_weighting_list(list) {
 
     // sum weights
     for (var i = 0; i < array_length(list); i++) {
-        total += list[i].weight;
+        total += max(0, list[i].weight);
     }
 
     var roll = random(total);
     var cumulative = 0;
 
     for (var i = 0; i < array_length(list); i++) {
+        if (list[i].weight <= 0) continue; // a weight of zero or less can never be picked
         cumulative += list[i].weight;
         if (roll <= cumulative) return list[i].value;
     }

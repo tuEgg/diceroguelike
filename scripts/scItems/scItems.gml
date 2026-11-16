@@ -370,6 +370,7 @@ function define_items() {
 				dice.scale = 1.5;
 						
 				var die_struct = clone_die(dice.struct, "");
+				die_struct.uid = global._die_uid_counter++; // the copy is its own die
 
 				// Spawn instance
 				var die_inst = instance_create_layer(dice.x + choose(-50,0, 50), dice.y + choose(-50, 50), "Instances", oDice);

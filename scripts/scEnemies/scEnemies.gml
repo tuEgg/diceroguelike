@@ -201,3 +201,27 @@ function define_enemies() {
 	var titan = enemy_create("Barnacle Titan", 0, 1.5, 125, 151, 0, titan_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, titan);
 }
+
+/// @func enemy_copy_for_fight(_enemy)
+/// @desc Returns a copy of an enemy definition with its own move list and its own move structs.
+///       The buff templates the moves point at are shared on purpose, apply_buff clones those itself.
+function enemy_copy_for_fight(_enemy) {
+	var _copy = {};
+	var _names = variable_struct_get_names(_enemy);
+	for (var i = 0; i < array_length(_names); i++) {
+		variable_struct_set(_copy, _names[i], variable_struct_get(_enemy, _names[i]));
+	}
+	
+	_copy.moves = ds_list_create();
+	for (var m = 0; m < ds_list_size(_enemy.moves); m++) {
+		var _move = _enemy.moves[| m];
+		var _move_copy = {};
+		var _move_names = variable_struct_get_names(_move);
+		for (var i = 0; i < array_length(_move_names); i++) {
+			variable_struct_set(_move_copy, _move_names[i], variable_struct_get(_move, _move_names[i]));
+		}
+		ds_list_add(_copy.moves, _move_copy);
+	}
+	
+	return _copy;
+}

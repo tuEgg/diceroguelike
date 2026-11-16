@@ -128,6 +128,7 @@ type_array = [];
 
 // Enemies
 room_enemies = ds_list_create();
+fight_enemy_records = []; // every enemy that has been in this fight, used to free their lists in Clean Up
 
 enemies_left_this_combat = ds_list_size(oWorldManager.room_enemies);
 

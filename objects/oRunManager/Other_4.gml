@@ -6,6 +6,9 @@ if (room == rmCombat) {
 for (var i = 0; i < ds_list_size(global.dice_bag); i++) {
 	var die = global.dice_bag[| i];
 	
+	// Two copies of the same die (bought twice, say) would otherwise share an id and fire each other's effects
+	die.uid = global._die_uid_counter++;
+	
 	die.statistics.times_rolled_this_combat = 0;
 	die.statistics.times_played_this_combat = 0;
 	

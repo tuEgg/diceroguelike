@@ -55,13 +55,12 @@ switch (state) {
 				}
 			
 				if (array_length(latest_moves) > 0) {
-					var all_same = false;
+					// only counts once we have three moves of history and every one of them matches
+					var all_same = (array_length(latest_moves) == 3);
 				
 					for (var o = 0; o < array_length(latest_moves); o++) {
 						if (latest_moves[o] != latest_moves[0]) {
 							all_same = false;
-						} else {
-							all_same = true;
 						}
 					}
 					// If all three moves are the same
@@ -117,9 +116,9 @@ switch (state) {
 						break;
 						
 						case "HEALTH 50":
-							if (enemy.hp <= enemy.max_hp/2 && _move.weight != -1) {
+							if (enemy.hp <= enemy.max_hp/2 && !variable_struct_exists(_move, "trigger_used")) {
 								enemy.intent.move = _move;
-								_move.weight = -1;
+								_move.trigger_used = true; // once per fight, this move struct belongs to this enemy only
 							}
 						break;
 						
@@ -212,7 +211,7 @@ switch (state) {
 		}
 		
 		// Failsafe for targeting in case enemy_target_index is outside of the room_enemies size.
-		if (enemy_target_index < 0 || enemy_target_index > enemies_left_this_combat) {
+		if (enemy_target_index < 0 || enemy_target_index >= ds_list_size(room_enemies)) {
 			enemy_target_index = irandom(ds_list_size(room_enemies) - 1);
 		}
 		
@@ -362,15 +361,14 @@ switch (state) {
 						}
 					
 						if (_target == "other") {
-							var _target_index;
-						
-							if (enemies_left_this_combat > 1) {
-								do {
-									_target_index = irandom(enemies_left_this_combat-1);
-								} until (_target_index != e);
-							} else {
-								_target_index = e;
+							// pick a living ally, or ourselves if there are none
+							var _others = [];
+							for (var o = 0; o < ds_list_size(room_enemies); o++) {
+								if (o != e && !room_enemies[| o].dead) array_push(_others, o);
 							}
+							
+							var _target_index = e;
+							if (array_length(_others) > 0) _target_index = _others[irandom(array_length(_others) - 1)];
 						
 							_target = room_enemies[| _target_index];
 						
@@ -395,6 +393,8 @@ switch (state) {
 							
 							if (enemy_target_index == e) {
 								enemy_target_index = irandom(ds_list_size(room_enemies) - 1);
+							} else if (enemy_target_index > e) {
+								enemy_target_index--; // the list shifted down, keep pointing at the same enemy
 							}
 						} else {
 							process_action(_target, enemy.intent.move.dice_amount, enemy.intent.move.dice_value, enemy.intent.move.bonus_amount, _source, e, intent_array[i]);

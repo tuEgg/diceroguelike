@@ -146,7 +146,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				_d_amount: final_roll,
 				action_type: _type,
 				owner: _source,
-				target: _target
+				target: _source, // the roller, same meaning as for player rolls (buffs check owner == target)
 			}
 			
 			// We need to make sure we update the visuals for enemy intent roll values with these buffs in mind.
@@ -232,7 +232,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 			
 	            // If the enemy has block
 	            if (_target.block_amount > 0) {
-	                block_used = min(_target.block_amount, amount);
+	                block_used = clamp(final_damage, 0, _target.block_amount);
 	                _target.block_amount -= block_used;
 	                final_damage -= block_used;
 	
@@ -306,7 +306,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				if (_dice_amount != 0) _source.pos_x -= 50;
 				
 	            if (player_block_amount > 0) {
-	                block_used = min(player_block_amount, amount);
+	                block_used = clamp(final_damage, 0, player_block_amount);
 	                player_block_amount -= block_used;
 	                final_damage -= block_used;
 
@@ -412,9 +412,8 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					_duration = 1;
 					_permanent = true;
 				}
-				_source.intent.move.debuff.remove_next_turn = true;
-				
-			    apply_buff("player", _source.intent.move.debuff, _duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index }, _permanent);
+				// enemy debuffs land after the player has acted, so they always last through the following turn
+			    apply_buff("player", _source.intent.move.debuff, _duration, _source.intent.move.amount, true, { source: _source, index: _source_index }, _permanent);
 				particle_emit(global.player_x, global.player_y, "burst", _source.intent.move.debuff.color);
 				
 				combat_trigger_effects( "on_player_debuffed", {});
@@ -429,8 +428,8 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					_duration = 1;
 					_permanent = true;
 				}
-				_source.intent.move.debuff.remove_next_turn = true;
-			    apply_buff(_source, _source.intent.move.debuff, _duration, _source.intent.move.amount, _source.intent.move.debuff.remove_next_turn, { source: _source, index: _source_index }, _permanent);
+				// _target is the enemy itself, or an ally when the move targets "other"
+			    apply_buff(_target, _source.intent.move.debuff, _duration, _source.intent.move.amount, true, { source: _source, index: _source_index }, _permanent);
 			}
 		break;
 		
@@ -663,7 +662,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 	    }
 		// If the slot is not empty
 	    else if (!is_queue_none) {
-			if (is_dice_exclusive || is_slot_exclusive || is_slot_exclusive) {
+			if (is_dice_exclusive || is_slot_exclusive) {
 				reject_dice = true;
 			} else {
 		        if (die.struct.dice_value >= stats.highest_value_base) {
@@ -706,6 +705,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 		
 		if (played_data.duplicate_die) {
 			var die_copy2 = clone_die(die.struct, "temporary");
+			die_copy2.uid = global._die_uid_counter++; // a duplicate is its own die, so the two never answer for each other's rolls
 			die_copy2.reset_at_end_combat = function(_dice) {
 				ds_list_delete(global.dice_bag, ds_list_find_index(global.dice_bag, _dice));
 			}
@@ -1452,22 +1452,23 @@ function trigger_debuff_list(_list, _event, _ctx) {
                 // Directly call the function
                 eff.modify(_ctx);
 			}
-			
-			if (debuff.removal_event == _event && is_callable(eff.modify)) {
-				
-				// When this debuffs removal_event is called and if it isn't permanent, and we aren't removing it next turn, lower its remaining duration
-				if (!inst.permanent) {
-					if (!inst.remove_next_turn) {
-						inst.remaining--;
-					}
-				}
-				
-				// Remove any debuffs which duration reaches zero
-				if (inst.remaining <= 0 && !inst.permanent) {
-					ds_list_delete(_list, i);
-				}
-            }
         }
+		
+		// Count down once per debuff (not once per effect), after its effects have fired
+		if (debuff.removal_event == _event && !inst.permanent) {
+			
+			// Debuffs flagged remove_next_turn skip their first countdown, so they last through the following turn
+			if (!inst.remove_next_turn) {
+				inst.remaining--;
+			}
+			
+			// Remove any debuffs which duration reaches zero
+			if (inst.remaining <= 0) {
+				// look the instance up again, an effect above may have added to this list
+				var _index = ds_list_find_index(_list, inst);
+				if (_index != -1) ds_list_delete(_list, _index);
+			}
+		}
     }
 }
 
@@ -1562,6 +1563,10 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 }
 
 function add_enemy_to_fight(_enemy) {
+	// Every enemy in a fight gets its own copy of its data and moves, so changes made mid-fight
+	// (Shiny Scales, Stunned, used-up triggers) never reach other enemies or later fights
+	_enemy = enemy_copy_for_fight(_enemy);
+	
 	var _rand_move = irandom(ds_list_size(_enemy.moves) - 1);
 	
 	enemy_template = {
@@ -1611,6 +1616,7 @@ function add_enemy_to_fight(_enemy) {
 	}
 	
 	ds_list_add(room_enemies, enemy_template);
+	array_push(fight_enemy_records, enemy_template); // kept for clean up, even after the enemy leaves room_enemies
 }
 
 

@@ -305,7 +305,8 @@ function define_keepsakes() {
 	            if (data.type == "ATK" && !self.state.used) {
 	                with (oCombat) {
 						// Deal flat damage to all enemies, we have to run this backwards in case any enemies die during this roll
-						for (var i = oCombat.enemies_left_this_combat-1; i >= 0 ; i--) {
+						for (var i = ds_list_size(oCombat.room_enemies)-1; i >= 0 ; i--) {
+							if (oCombat.room_enemies[| i].dead) continue;
 							if (i != enemy_target_index) process_action(oCombat.room_enemies[| i], 0, floor(data.final_amount * 0.75), 0, "player", -1, "ATK", undefined, undefined, 0);
 						}
 					}
@@ -868,7 +869,8 @@ function define_keepsakes() {
 	            case "on_bag_empty":
 					with (oCombat) {
 						// Deal flat damage to all enemies, we have to run this backwards in case any enemies die during this roll
-						for (var i = oCombat.enemies_left_this_combat-1; i >= 0 ; i--) {
+						for (var i = ds_list_size(oCombat.room_enemies)-1; i >= 0 ; i--) {
+							if (oCombat.room_enemies[| i].dead) continue;
 							process_action(oCombat.room_enemies[| i], 0, 5, 0, "player", -1, "ATK", undefined, undefined, 0);
 						}
 					}

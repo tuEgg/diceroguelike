@@ -25,14 +25,20 @@ function apply_buff(_target, _template, _duration, _amount, _remove_next_turn, _
 	// see if this debuff already exists and extend it if so
 	if (ds_list_size(_target_list) > 0) {
 		for (var d = 0; d < ds_list_size(_target_list); d++) {
-			if (_target_list[| d].template._id == _template._id) {
-				if (_template.stackable) {
-					_target_list[| d].amount += _amount;
-				} else {
-					_target_list[| d].remaining += _duration;
-				}
-				return;
+			var _existing = _target_list[| d];
+
+			// Permanent and temporary versions of the same buff are kept apart, so one can never change how long the other lasts
+			if (_existing.template._id != _template._id || _existing.permanent != _permanent) continue;
+
+			if (_template.stackable) {
+				// Stacks only merge when they will run out together, otherwise the new stack is tracked on its own
+				if (_existing.remove_next_turn != _remove_next_turn) continue;
+
+				_existing.amount += _amount;
+			} else {
+				_existing.remaining += _duration;
 			}
+			return;
 		}
 	}
 

@@ -58,6 +58,7 @@ function deal_single_die( _can_discard_this_turn = true) {
 	// a debug die doesn't come out of the bag
 	if (_debug_die != undefined) {
 		die_struct = clone_die(_debug_die, "");
+		die_struct.uid = global._die_uid_counter++;
 		index = -1;
 	}
 	
@@ -302,7 +303,8 @@ function generate_dice_bag() {
 					if (_context._p_slot_type == "BLK" && _context.die.uid == _context._die_struct_source.uid) {
 	                    with (oCombat) {
 							// Deal flat damage to all enemies, we have to run this backwards in case any enemies die during this roll
-							for (var i = oCombat.enemies_left_this_combat-1; i >= 0 ; i--) {
+							for (var i = ds_list_size(oCombat.room_enemies)-1; i >= 0 ; i--) {
+								if (oCombat.room_enemies[| i].dead) continue;
 								process_action(oCombat.room_enemies[| i], 0, _context.min_roll * 2, 0, "player", -1, "ATK", undefined, undefined, 0);
 								show_debug_message("Dealing damage to enemy index: " + string(i));
 							}
@@ -569,7 +571,9 @@ function generate_dice_bag() {
 	        {
 	            trigger: "on_dice_played_to_slot",
 	            modify: function(_context) {
-					_context.duplicate_die = true;
+					if (_context._d_struct.uid == _context._die_struct_source.uid) {
+						_context.duplicate_die = true;
+					}
 	            }
 	        }
 	    ]
@@ -592,7 +596,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
-	ds_list_add(global.master_dice_list, clone_die(global.die_echo, ""));
+	ds_list_add(global.master_dice_list, clone_die(global.die_accurate, ""));
 	
 	global.die_barrel = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Barrel Die",
@@ -845,7 +849,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount == _context.min_roll) {
+					if (_context._d_amount == _context.min_roll && _context.die.uid == _context._die_struct_source.uid) {
 	                    _context._d_amount = _context.max_roll;
 						show_debug_message("Rolled a 1, no changing to max");
 	                }
@@ -901,7 +905,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
-	ds_list_add(global.master_dice_list, clone_die(global.die_last_stand, ""));
+	ds_list_add(global.master_dice_list, clone_die(global.die_splash, ""));
 	
 	// Add to bag - STARTING DICE SET HERE
 	repeat(3)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_atk, "")); }

@@ -28,6 +28,7 @@
 | 1: crashes, softlocks, lost runs | B01–B10 | `fix/batch-1` @ `264dcc8` | Merged to `main` and pushed 2026-11-15. Jared played the combined build and it felt good; individual cards not yet confirmed. |
 | 2: world-map save and stability | M01–M04 | `wip/world-map` | Merged to `main` and pushed 2026-11-15. |
 | 3: debug menu (T14) | T14, part of H05 | `main` | Merged and pushed 2026-11-16. Press F1 in a run started from GameMaker. |
+| 4: combat rules | T01, B20–B28, B31, B32, B40, part of B36 and T11 | `fix/batch-2` | Fixed in code, **not yet play-tested**. |
 
 **Batch 2 cards (world-map work)**
 - M01 Islands are now saved with each page (Continue would have crashed).
