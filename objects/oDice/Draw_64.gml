@@ -34,7 +34,7 @@ if (debug_mode) {
 }
 
 if mouse_hovering(x, y, sprite_width, sprite_height, true) {
-	queue_tooltip(x - sprite_width/2, y + sprite_height/2, string(struct.name), string(struct.description), undefined, 0, struct);
+	queue_tooltip(x - sprite_width/2, y + sprite_height/2, string(struct.name), die_description(struct), undefined, 0, struct);
 	
 	var dice_output = get_dice_output(struct, -1, -1, false, "player");
 	

@@ -693,7 +693,7 @@ function debug_menu_draw() {
 				var label = die.name + "   d" + string(die.dice_value) + " " + string(die.possible_type);
 				var bx = cx + half_w * (slot mod 2);
 				var by = yy + (slot div 2) * row_h;
-				if (debug_hovered(bx, by, half_w, row_h)) debug_tip(die.name, die.description, sDiceIcon, get_dice_index(die.dice_value), die);
+				if (debug_hovered(bx, by, half_w, row_h)) debug_tip(die.name, die_description(die), sDiceIcon, get_dice_index(die.dice_value), die);
 				if (debug_button(bx, by, half_w, row_h, label)) {
 					debug_give_die(die);
 				}

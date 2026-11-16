@@ -487,7 +487,7 @@ for (var i = 0; i < aq_list_size; i++) {
 			var dice_hovered = mouse_hovering(xx_top, yy_top, sprite_get_width(sDiceIcon), sprite_get_height(sDiceIcon), true);
 			
 			if (dice_hovered && !show_rewards) {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die_struct.name, die_struct.description, undefined, 0, die_struct);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die_struct.name, die_description(die_struct), undefined, 0, die_struct);
 			}
 
 	        // Draw sprite
@@ -1235,7 +1235,7 @@ if (show_rewards) {
 			    draw_text(btn.x + btn.w / 2, btn.y + btn.h + 20, label);
 		
 				if (btn.hover) {
-					queue_tooltip( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die.name, die.description, undefined, 0, die);
+					queue_tooltip( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die.name, die_description(die), undefined, 0, die);
 				}
 
 			    // --- Click logic: Take reward ---

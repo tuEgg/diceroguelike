@@ -56,7 +56,7 @@ if (show_dice_list) {
 		
 		// Draw dice description
 		draw_set_font(ftSmall);
-	    var parsed = parse_text_with_keywords(dice.description);
+	    var parsed = parse_text_with_keywords(die_description(dice));
 	    var cursor_x = dice_x + col_spacing;
 	    var cursor_y = dice_y + 10;
 

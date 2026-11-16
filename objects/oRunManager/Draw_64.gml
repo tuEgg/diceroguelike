@@ -96,7 +96,7 @@ if (new_run_offering) {
 		draw_dice_keywords(die, dice_btn.x + dice_btn.w / 2, dice_btn.y + dice_btn.h / 2, 1, 1.0);
 		
 		if (dice_btn.hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die.name, die.description, undefined, 0, die);
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die.name, die_description(die), undefined, 0, die);
 		}
 		
 		var core_btn = draw_gui_button(
@@ -799,7 +799,7 @@ if (show_bag_contents) {
 		    var desc_x = dice_x - box_width/2 + 20;
 		    var desc_y = dice_y;
 			
-			var colored_desc = colorcode_text(dice.description);
+			var colored_desc = colorcode_text(die_description(dice));
 			draw_outline_text(colored_desc, c_black, c_white, 2, desc_x, desc_y, 1, dice_alpha, 0, col_spacing - 40);
 			
 			// Draw distribution

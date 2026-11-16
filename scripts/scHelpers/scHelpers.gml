@@ -409,7 +409,7 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
             var key = key_array[k];
 
             // a die's own tooltip lists the keywords it has; any other text is searched for keyword words
-            var _about_die = is_struct(_dice) && variable_struct_exists(_dice, "keywords") && variable_struct_exists(_dice, "description") && _desc == _dice.description;
+            var _about_die = is_struct(_dice) && variable_struct_exists(_dice, "keywords") && variable_struct_exists(_dice, "description") && _desc == die_description(_dice);
             if (_about_die ? die_has_keyword(_dice, key) : string_has_keyword(_desc, key)) {
                 var data = global.keywords[$ key];
 

@@ -308,7 +308,7 @@ function generate_dice_bag() {
 	// Bulwark die
 	global.die_bulwark = make_die_struct(
 	    1, 8, "BLK", "BLK", "", "Bulwark die",
-	    "Followthrough: If previous slot was block, deal double this die's minimum roll as damage to all enemies.",
+	    "Followthrough: If previous slot was block, deal {min2} damage (double this die's minimum roll) to all enemies.",
 		"rare",
 		70,
 	    [
@@ -336,7 +336,7 @@ function generate_dice_bag() {
 	// Bulwark die
 	global.die_crescendo = make_die_struct(
 	    1, 8, "ATK", "ATK", "", "Crescendo die",
-	    "Increase this die's minimum roll by 1 (up to 4) each time it rolls (resets each combat).",
+	    "Increase this die's minimum roll by 1 (up to {half}) each time it rolls (resets each combat).",
 		"rare",
 		80,
 	    [
@@ -482,7 +482,7 @@ function generate_dice_bag() {
 						var prev_has_coin = false;
 					
 						for (var i = 0; i < ds_list_size(prev_slot_list); i++) {
-							if (string_pos("Coin", string(prev_slot_list[| i].description)) > 0) {
+							if (die_has_keyword(prev_slot_list[| i], "Coin")) {
 								prev_has_coin = true;
 								_context._d_amount += 1;
 								break;
@@ -567,7 +567,7 @@ function generate_dice_bag() {
 	
 	global.die_bolster = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Bolster Die",
-	    "When sacrificed: gain block equal to double this die's max value",
+	    "When sacrificed: gain {max2} block (double this die's max value).",
 		"common",
 		50,
 	    [
@@ -779,7 +779,7 @@ function generate_dice_bag() {
 	
 	global.die_offhand = make_die_struct(
 	    1, 6, "ATK", "ATK", "", "Offhand die",
-	    "Gain 1 might this turn if this dice rolls its minimum value",
+	    "Gain 1 might this turn if this dice rolls its minimum value ({min}).",
 		"common",
 		30,
 	    [
@@ -797,7 +797,7 @@ function generate_dice_bag() {
 	
 	global.die_balanced = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Balanced die",
-	    "Gain 1 balance this turn if this dice rolls its maximum value",
+	    "Gain 1 balance this turn if this dice rolls its maximum value ({max}).",
 		"common",
 		30,
 	    [
@@ -866,7 +866,7 @@ function generate_dice_bag() {
 	
 	global.die_warrior = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Warrior die",
-	    "If this dice rolls its minimum value, change it to its max value instead.",
+	    "If this dice rolls its minimum value ({min}), change it to its max value ({max}) instead.",
 		"common",
 		30,
 	    [
@@ -1540,4 +1540,23 @@ function die_add_keyword(_die, _keyword) {
 	if (die_has_keyword(_die, _keyword)) return;
 	array_insert(_die.keywords, 0, _keyword);
 	_die.description = _keyword + ". " + _die.description;
+}
+
+
+/// @func die_description(_die)
+/// @desc The text to show for a die. Descriptions can hold its numbers as tokens, filled in from the die
+///       as it is now, so the text stays right after an upgrade: {min} and {max} (its lowest and highest
+///       roll), {min2} and {max2} (double them) and {half} (half its highest roll).
+function die_description(_die) {
+	var _text = _die.description;
+	if (string_pos("{", _text) == 0) return _text;
+	
+	var _max = _die.dice_value;
+	var _min = min(1 + _die.min_roll_bonus, _max);
+	_text = string_replace_all(_text, "{min2}", string(_min * 2));
+	_text = string_replace_all(_text, "{max2}", string(_max * 2));
+	_text = string_replace_all(_text, "{half}", string(floor(_max / 2)));
+	_text = string_replace_all(_text, "{min}", string(_min));
+	_text = string_replace_all(_text, "{max}", string(_max));
+	return _text;
 }
