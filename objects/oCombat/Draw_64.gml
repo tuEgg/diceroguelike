@@ -700,6 +700,15 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		
 		draw_outline_text(text, c_black, c_white, 2, text_x, yy, enemy.intent.scale, enemy.intent.alpha - enemy.info_alpha);
 
+		// outguessed by intel this turn: the move does half
+		if (intent_is_fumbled(enemy)) {
+			draw_set_font(ftDefault);
+			draw_set_halign(fa_center);
+			draw_outline_text("Outguessed: half", c_black, c_orange, 2, xx, yy + 30, 1, enemy.intent.alpha - enemy.info_alpha);
+			draw_set_halign(fa_left);
+			draw_set_font(ftTopBar);
+		}
+
 		// intel level III: a small faded icon to the right shows next turn's planned move
 		var _next_move = enemy.planned_move;
 		var _show_next = (intel_level >= 3 && is_struct(_next_move));
@@ -748,7 +757,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "The enemy intents to escape", undefined, 0, undefined);
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
 					if (intel_level >= 1) {
-						var _intent_desc = "This turn: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount) + ".";
+						var _intent_desc = "This turn: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount) + (intent_is_fumbled(enemy) ? ", outguessed by your intel so it does half." : ".");
 						if (_show_next) _intent_desc += " Next turn: " + string(_next_move.move_name) + (intent_has_numbers(_next_move) ? ", " + get_dice_name_and_bonus(_next_move, _next_move.bonus_amount) : "") + ".";
 						queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, _intent_desc, undefined, 0, undefined);
 					} else {

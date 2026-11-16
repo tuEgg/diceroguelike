@@ -23,12 +23,13 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 7: intel rework | F10, F17, F18 | `feature/intel-rework` | **Ready to play-test.** Built: intents always shown (I ranges, II exact), III shows next turn's move, IV rewrites one intent per turn. Instant intel rolls (B33) tried and reverted: intel dice roll in the queue and count next turn. |
+| 7: intel rework | F10, F17, F18, F19 | `feature/intel-rework` | **Ready to play-test.** Built: intents always shown (I ranges, II exact), III shows next turn's move, IV rewrites one intent per turn. F19 Outguess: an intel slot that beats your target's number makes its move do half. Instant intel rolls (B33) tried and reverted: intel dice roll in the queue and count next turn. |
 
 **Batch 7 test list**
 - F10 Start any fight with 0 intel (F1 / Run, intel 0): every enemy shows what it will do (attack, block, debuff...) with "?" for the number. Set intel 3 (the F1 setting applies from the start of each turn, so end a turn or start a new fight): the number becomes a range. Set intel 6: it becomes one exact number, and the enemy hits for exactly that. Bill's Sharpen Cutlass (Might) raises the exact number. Hovering shows the dice only from intel 3.
 - F17 Set intel 9 (F1 / Run): beside each enemy's intent a small faded icon after a ">" shows what it will do next turn, and the icon sits clear of the number with a gap either side of the ">", and hovering the enemy says "This turn: ... Next turn: ..." on wrapped lines. End the turn: the enemy does the move that was shown. (A move triggered by low health, or a stun, can still change it.)
 - F18 Set intel 12: hover an enemy's intent and a "Rewrite intent" tooltip shows. Click it: the intent pops and changes to a different move with new numbers, the next-turn icon may change too, and the feed says what it became. You get one rewrite per turn (a second click does nothing until next turn). On a stunned enemy, or one with only one move, the tooltip says "Can't rewrite". With 2+ enemies try it on each.
+- F19 Target an enemy that intends a small attack or block (intel 6 helps: you see its exact number). Put an intel slot early in the queue and end the turn. If the slot's total is as high or higher, "Outguessed!" pops over that enemy, the feed says so, its intent shows "Outguessed: half" and the number halves, and it really does half. If the slot rolls lower, nothing happens. Buffs, debuffs and stuns can't be outguessed, and one enemy can only be outguessed once a turn. The intel still counts next turn.
 - Hover the intel eye above the player: the Intel Levels panel wraps every description inside the panel, each row as tall as its text. Play an intel die: its slot rolls when the queue resolves (not when placed), and the intel shows at the start of next turn.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -104,6 +105,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F15 Summon intent icon, buff animation, clearer "Nav Chart fired" feedback
 - F17 Intel level III: see what each enemy plans to do next turn too. (building in batch 7)
 - F18 Intel level IV: rewrite one enemy's intent this turn (it chooses again). (building in batch 7)
+- F19 Outguess: intel's this-turn effect. As an intel slot resolves, if its total beats your target's intended number, that enemy's move does half this turn (building in batch 7)
 
 **Content**
 - F20 Enemies: 17 now (Giant Conch is a stub) → target ~15 normals + 2 elites + 2 bosses that *work*

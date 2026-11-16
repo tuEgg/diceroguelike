@@ -232,6 +232,7 @@ function enemy_copy_for_fight(_enemy) {
 ///       intel level II can show the exact result in advance, and the enemy's turn uses those same rolls.
 function enemy_set_intent(_enemy, _move) {
 	_enemy.intent.move = _move;
+	_enemy.intent.fumbled = false; // a new intent hasn't been outguessed
 
 	_enemy.intent.rolls = [];
 	repeat (max(0, _move.dice_amount)) {
@@ -258,6 +259,19 @@ function intent_has_numbers(_move) {
 /// @desc What the enemy's move will come to, from the rolls made when the intent was set, plus its bonus and
 ///       any of its own buffs that change rolls (Might, Balance). Shown at intel level II.
 function intent_exact_value(_enemy) {
+	var _total = intent_rolled_value(_enemy);
+	return intent_is_fumbled(_enemy) ? _total div 2 : _total;
+}
+
+/// @func intent_is_fumbled(_enemy)
+/// @desc Has the player outguessed this enemy's intent this turn (it does half)?
+function intent_is_fumbled(_enemy) {
+	return variable_struct_exists(_enemy.intent, "fumbled") && _enemy.intent.fumbled;
+}
+
+/// @func intent_rolled_value(_enemy)
+/// @desc What the enemy's move comes to before any fumble: rolls + bonus + its own roll buffs.
+function intent_rolled_value(_enemy) {
 	var _move = _enemy.intent.move;
 	var _type = string_split(_move.action_type, "/")[0];
 	if (_type == "MIMIC") _type = oCombat.player_last_action_type;
@@ -276,7 +290,11 @@ function intent_exact_value(_enemy) {
 function intent_number_text(_enemy, _intel_level) {
 	if (!intent_has_numbers(_enemy.intent.move)) return _enemy.intent.text;
 	if (_intel_level >= 2) return string(intent_exact_value(_enemy));
-	if (_intel_level >= 1) return _enemy.intent.text;
+	if (_intel_level >= 1) {
+		if (!intent_is_fumbled(_enemy)) return _enemy.intent.text;
+		var _move = _enemy.intent.move;
+		return string((_move.dice_amount + _move.bonus_amount) div 2) + "-" + string(((_move.dice_amount * _move.dice_value) + _move.bonus_amount) div 2);
+	}
 	return "?";
 }
 
@@ -444,4 +462,32 @@ function intent_icon(_move) {
 		case "NONE": return { sprite: sIntentIcons, index: 3, col: c_white };
 	}
 	return { sprite: sIntentIcons, index: 4, col: c_dkgray };
+}
+
+
+/// @func intel_try_outguess(_slot_number, _dice_list_index)
+/// @desc Intel's this-turn effect. As an intel slot resolves, if its total so far is at least the targeted
+///       enemy's intended number (before any fumble), that enemy fumbles: its move does half this turn.
+///       Only attacks, blocks and heals can be outguessed, and each intent only once.
+function intel_try_outguess(_slot_number, _dice_list_index) {
+	if (_slot_number < 0) return;
+	with (oCombat) {
+		if (enemy_target_index < 0 || enemy_target_index >= ds_list_size(room_enemies)) return;
+		var _enemy = room_enemies[| enemy_target_index];
+		if (_enemy.dead || !intent_has_numbers(_enemy.intent.move) || intent_is_fumbled(_enemy)) return;
+
+		var _slot = action_queue[| _slot_number];
+		var _total = 0;
+		for (var d = 0; d <= min(_dice_list_index, ds_list_size(_slot.dice_list) - 1); d++) {
+			var _die = _slot.dice_list[| d];
+			if (variable_struct_exists(_die, "rolled_value")) _total += _die.rolled_value;
+		}
+
+		if (_total >= intent_rolled_value(_enemy)) {
+			_enemy.intent.fumbled = true;
+			spawn_floating_number(_enemy, 0, "Outguessed!", c_orange, 0);
+			particle_emit(_enemy.pos_x, _enemy.pos_y - 100, "burst", c_orange);
+			add_feed_entry("Your intel outguessed " + string(_enemy.data.name) + ": " + string(_enemy.intent.move.move_name) + " does half.");
+		}
+	}
 }
