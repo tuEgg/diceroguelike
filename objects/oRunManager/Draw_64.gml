@@ -756,7 +756,7 @@ if (show_bag_contents) {
 			draw_dice_keywords(dice, dice_x - box_width/3.75, dice_y - box_height/3.75, 1, dice_alpha);
 			
 			// Draw dice range
-			var dice_output = get_dice_output(dice, -1, -1, false, "player");
+			var dice_output = get_dice_output(dice, -1, -1, true, "player"); // read only: viewing the bag must never trigger keepsakes
 	
 			var off_x = 0;
 			var off_y = 0;

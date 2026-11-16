@@ -1116,7 +1116,8 @@ function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
 	var action = "";
 	
 	if (_slot_num == undefined || _slot_num == -1) {
-		
+		// not in a slot yet (in hand, the bag, a shop): preview it as its own type, so type bonuses (Weapon Polish, Might...) show
+		action = _die.action_type;
 	} else {
 		if (_slot_num > 0) {
 			prev_slot_type = oCombat.action_queue[| _slot_num-1].current_action_type;

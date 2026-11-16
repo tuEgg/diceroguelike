@@ -11,6 +11,7 @@ All three are structs with effects that hook named events. Definitions are built
 - Keywords (Coin, Sticky, Exclusive, Loose, Stowaway, Favourite, Multitype, Followthrough) are data: each die has a `keywords` array, set right after its definition (`global.die_x.keywords = ["Coin"];`). Check with `die_has_keyword(die, "Coin")`, add with `die_add_keyword(die, "Coin")` (also prefixes the description). Saved with each bag die. Icons (`draw_dice_keywords`) and a die's own tooltip keyword boxes read the list too; `string_has_keyword` is only for searching other text (keepsake and item descriptions).
 - Show a die's text with `die_description(die)`, never `die.description` directly: descriptions can hold `{min}`, `{max}`, `{min2}`, `{max2}`, `{half}`, filled in from the die's current value and min_roll_bonus, so upgrades change the text too.
 - `deal_single_die` draws from `global.dice_bag` (reshuffles the discard pile; the F1 menu can inject a die via `debug_take_next_die`). `oDice` is the in-hand instance (`struct` holds the die).
+- `get_dice_output(die, slot, index, read_only, owner)`: with no slot (-1 or undefined) the die is previewed as its own `action_type`. Hover and bag previews must pass `read_only` true. `oDice` copies `action_type`, `dice_amount`, `dice_value`, `possible_type` from its `struct` every step; the struct is the truth.
 - Permanence strings: `"base"` (stays a turn), `"temporary"`, `"temporary none"`, `"sticky"`.
 - Colour: `get_dice_color(die.possible_type)` (not `action_type`), so multitype dice blend their types' colours.
 

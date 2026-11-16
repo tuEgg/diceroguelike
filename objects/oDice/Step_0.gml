@@ -1,3 +1,11 @@
+// The struct is the die; these copies are kept in step with it every frame, so an upgrade made while the die is in hand (Artisan's Ember, an event) can't leave them out of date
+if (is_struct(struct)) {
+	action_type = struct.action_type;
+	dice_amount = struct.dice_amount;
+	dice_value = struct.dice_value;
+	possible_type = struct.possible_type;
+}
+
 if (!still) {
 	if distance_to_point(target_x, target_y) < 150 && !has_rolled {
 		speed = lerp(speed, 0, 0.15);

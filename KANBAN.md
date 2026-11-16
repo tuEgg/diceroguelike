@@ -23,12 +23,14 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 5: dice text from data | B41, B42, T04 | `fix/dice-data` | In progress, **not yet play-tested**. Steps 1-3 done: every die has a `keywords` list (saved with the bag) that every keyword rule, icon and tooltip reads, and descriptions show the die's current numbers. |
+| 5: dice text from data | B41, B42, T04 | `fix/dice-data` | Fixed in code, **not yet play-tested**. All 4 steps done, one commit each: every die has a `keywords` list (saved with the bag) that every keyword rule, icon and tooltip reads; descriptions show the die's current numbers; hover previews show the die's real range. |
 
 **Batch 5 test list**
+- T04 Keywords and text as data: start a fresh run and play a normal fight. Every die looks and behaves as before (same icons, same text apart from the six dice that now show numbers). Quit and Continue with an upgraded die in the bag: its keywords and text come back.
 - B42 Keywords: Sticky (Bilge die) stays in its slot, Exclusive (Tidepusher) can't share a slot, coins don't count against dice played, Loose dice leave at end of turn. Keyword icons above dice and keyword boxes in die tooltips match the die. Give Offhand or Balanced (F1 / Dice): no Might or Balance icon on them.
 - B42 Upgrades: cut a d4 down to a coin at the workbench (Cutters): it gains Coin and plays as a coin, also after Continue. Friendship Bracelet adds Favourite and that die is drawn first on turn 1.
-- B41 Descriptions: F1 / Dice, give Bolster, Warrior, Offhand, Balanced, Bulwark and Crescendo. Their text shows numbers (e.g. Bolster "gain 8 block"). Hammer a Bolster up to a d6 at the workbench: it should now say "gain 12 block". Use Chainshot (Spare Ammunition event) on a Warrior: its minimum in the text goes up.
+- B41 Descriptions: F1 / Dice, give Bolster, Warrior, Offhand, Balanced, Bulwark and Crescendo. Their text shows numbers (e.g. Bolster "gain 8 block"). Hammer a Bolster together with another block die at the workbench: its text should show double its new size. Use Chainshot (Spare Ammunition event) on a Warrior: its minimum in the text goes up.
+- B41 Hover numbers: with Weapon Polish (F1 / Keepsakes), hovering an attack die in hand shows its minimum raised by 1 before you play it. Hovering dice or opening the bag never makes a keepsake icon pop. Use Artisan's Ember on a die in hand: its size and hover range update straight away.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
