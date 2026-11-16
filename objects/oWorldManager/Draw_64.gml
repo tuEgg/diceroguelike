@@ -267,9 +267,9 @@ if (room == rmMap) {
 				
 				rest_heal = heal_ctx.rest_amount;
 				
-				var heal_amount = round(global.player_max_hp * rest_heal);
+				var heal_amount = ceil(global.player_max_hp * rest_heal); // rounds up, like the healing potion
 				
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Heal " + string(heal_amount) + "hp", "Heal 10% of your max health - rest up before embarking to the next node");
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Heal " + string(heal_amount) + "hp", "Heal " + string(round(rest_heal * 100)) + "% of your max health - rest up before embarking to the next node");
 				
 				if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
 					global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
