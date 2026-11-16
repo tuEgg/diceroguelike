@@ -56,7 +56,7 @@ All known P0 bugs are fixed, see DONE.
 | ID | Bug | Where | Size |
 |---|---|---|---|
 | B69 | Intro cutscene replays every launch (`seen` isn't saved) | `oCutsceneManager` | S [C] |
-| B85 | Web build: after finishing an event, going on to the next combat shows a black screen. Needs the browser console error (F12 > Console) to find the cause. | web build, event > map > combat | ? |
+| B85 | Web build: black screen going on to the next combat after the event "A precious ingot" > Enhance your buckle (gains the Toolbelt keepsake, +2 item slots). Console: "unable to convert undefined to a number" in a game event; names are scrambled in a normal Run, so the next step is the same repro with Debug (F6), whose trace shows real names. Also check whether the desktop build does it too. | web build, event > map > combat | ? |
 
 **Save / load**
 | ID | Bug | Size |
