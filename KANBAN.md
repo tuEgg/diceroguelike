@@ -23,15 +23,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 5: dice text from data | B41, B42, T04 | `fix/dice-data` | Fixed in code, **not yet play-tested**. All 4 steps done, one commit each: every die has a `keywords` list (saved with the bag) that every keyword rule, icon and tooltip reads; descriptions show the die's current numbers; hover previews show the die's real range. |
 
-**Batch 5 test list**
-- T04 Keywords and text as data: start a fresh run and play a normal fight. Every die looks and behaves as before (same icons, same text apart from the six dice that now show numbers). Quit and Continue with an upgraded die in the bag: its keywords and text come back.
-- B42 Keywords: Sticky (Bilge die) stays in its slot, Exclusive (Tidepusher) can't share a slot, coins don't count against dice played, Loose dice leave at end of turn. Keyword icons above dice and keyword boxes in die tooltips match the die. Give Offhand or Balanced (F1 / Dice): no Might or Balance icon on them.
-- B42 Upgrades: cut a d4 down to a coin at the workbench (Cutters): it gains Coin and plays as a coin, also after Continue. Friendship Bracelet adds Favourite and that die is drawn first on turn 1.
-- B41 Descriptions: F1 / Dice, give Bolster, Warrior, Offhand, Balanced, Bulwark and Crescendo. Their text shows numbers (e.g. Bolster "gain 8 block"). Hammer a Bolster together with another block die at the workbench: its text should show double its new size. Use Chainshot (Spare Ammunition event) on a Warrior: its minimum in the text goes up.
-- B41 Hover numbers: with Weapon Polish (F1 / Keepsakes), hovering an attack die in hand shows its minimum raised by 1 before you play it. Hovering dice or opening the bag never makes a keepsake icon pop. Use Artisan's Ember on a die in hand: its size and hover range update straight away. Hover Surge and Kill Coin in the F1 Dice list during a fight: no crash (Jared hit one 2026-11-17, fixed).
-- B41 Every upgrade path: Hammer two coins together (they should stop being coins: Coin icon and free play gone); Roundshot on a coin (it becomes a d4 and stops being a coin); Chainshot on Warrior (its text minimum goes up); Drill a core into Bolster (text unchanged, roll chart changes); Artisan's Ember on a coin in hand (it plays as a d6 that fight, a coin again after).
+Nothing is waiting for a playtest right now.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -52,8 +45,6 @@ All known P0 bugs are fixed, see DONE.
 **Dice / keepsakes / items**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B41 | Hover descriptions are wrong after upgrades: static text, the hover preview uses slot −1 (type bonuses never show), duplicated oDice fields drift, and `get_dice_output(read_only=false)` runs every frame and fires keepsake side-effects | `oDice/Draw_64.gml:39`, `scDice.gml:1078`, `oWorkbenchManager/Draw_64.gml:177,246` | M [C] → T04 |
-| B42 | `string_has_keyword` is fragile (colons, single sentences, the "Favourite." prefix). `get_keywords_in_string` doesn't trim at all, so Offhand/Balanced show the wrong icons | `scHelpers.gml:580-635` | → T04 [C] |
 
 **Map / events / bounty / workbench**
 | ID | Bug | Where | Size |
@@ -79,7 +70,6 @@ All known P0 bugs are fixed, see DONE.
 |---|---|---|---|
 | T02 | **Buff system v2**: instances keyed by (id, permanent); a buff scales *either* stacks *or* duration (the GDD already plans this); tick once per event, outside the effect loop; source-tagged slot modifiers instead of `bonus_amount` | B21, B22, B29, B30 | M |
 | T03 | **One effect dispatcher**: dice, keepsakes, items and debuffs register `handlers[$ event]`; the dispatcher does the `owner_only` uid check; fresh uid on clone | B26, B27, B43, perf | M |
-| T04 | **Keywords and descriptions as data**: a `keywords: []` field on dice; descriptions generated from templates (`"+{min} min"`) so upgrades update the text | B41, B42, B52 | M |
 | T05 | **`run` struct**: one object owns gold, HP, bag, keepsakes, items, tools, alignment and pools; `new_run()`/`end_run()` create and free everything; the save serialises this one struct with a version + RNG state | B70–72, leaks, 130 globals | L |
 | T06 | **Split input/state from Draw GUI** (update in Step, render in Draw). The code currently relies on draw order for clicks and on positions computed a frame late | B63, ordering bugs | L (incremental, room by room) |
 | T07 | **UI kit**: one markup format + one colour table; cached outlined text; shared `draw_die`, panel, button, scrollbar and exit-button widgets on `global.gui`; fix the `draw_wonky_rectangle` surface leak (new surfaces every frame while hovering) | B80–83, perf | M |
@@ -225,6 +215,9 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | B80 | Bag hover box uses `bag_h` for its width. Bag text offsets switch on the wrong `image_index`. The rarity colour is overwritten | Batch 4: quick bug sweep | 2026-11-17 |
 | B81 | Scrollbar drag sticks (room vs GUI y, `m_grab_y` never reset) | Batch 4: quick bug sweep | 2026-11-17 |
 | B84 | Rest heals with `round()`, potion uses `ceil()`, so they're inconsistent | Batch 4: quick bug sweep | 2026-11-17 |
+| B41 | Hover descriptions are wrong after upgrades: static text, the hover preview uses slot −1 (type bonuses never show), duplicated oDice fields drift, and `get_dice_output(read_only=false)` runs every frame and fires keepsake side-effects | Batch 5: dice text from data | 2026-11-17 |
+| B42 | `string_has_keyword` is fragile (colons, single sentences, the "Favourite." prefix). `get_keywords_in_string` doesn't trim at all, so Offhand/Balanced show the wrong icons | Batch 5: dice text from data | 2026-11-17 |
+| T04 | **Keywords and descriptions as data**: a `keywords: []` field on dice; descriptions generated from templates (`"+{min} min"`) so upgrades update the text | Batch 5: dice text from data | 2026-11-17 |
 
 **Milestones**
 
@@ -237,3 +230,4 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - 2026-11-17 **Three-chapter voyage and testing tools:** a divider tab and a short page stack for every chapter still to come (Chapter 2 teal, Chapter 3 violet); the open spread stays still while turned pages build up on the left; a voyage progress track under the book (a marker per spread, a diamond per boss); beating chapter 3 ends the run with "Voyage complete"; testing hotkeys (Space kills all, H, D, N, Backspace) with an F1 Hotkeys tab; the intro is skipped when run from GameMaker, with a toggle.
 - 2026-11-17 **Slot bonuses and testing tools:** tagged slot bonuses (each die or first die), hover breakdown and die badges; Rigger's Tonic is +1 per die; F2/F3/F4 game speed; F1 lists show tooltips on hover.
 - 2026-11-17 **Context docs:** root `CLAUDE.md` (workflow, code map, gotchas) and `docs/context/*.md`, one per system, to orient future sessions quickly. Kept up to date in the same commit as code changes.
+- 2026-11-17 **Dice as data:** every die has a keywords list that all keyword rules, icons and tooltips read; descriptions show the die's current numbers; the Coin keyword follows die size on every upgrade; hover previews show real ranges.
