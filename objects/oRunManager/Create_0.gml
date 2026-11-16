@@ -158,38 +158,32 @@ bonus_dice_next_combat = 0;
 holding_item = false; // used for holding the hammer in the workbench, will eventually change cursor type, right now just blocks inputs in that room. Could also do it for dice.
 show_consumables_chance = 30; // percentage chance to show consumables after any given fight
 
-// player intel 
+// player intel: three states, read like an old captain's logbook. Below 0 intel the page is Blotted (intents hidden).
+// requirement is the intel needed; index is the sIntelEye frame (icons for these states still to be designed)
 global.player_intel_data = ds_list_create();
 ds_list_add(global.player_intel_data, {
 	requirement: 0,
-	name: "-",
-	description: "Enemy intents are shown, but not their numbers.",
-	index: 0,
-});
-ds_list_add(global.player_intel_data, {
-	requirement: 3,
-	name: "I",
-	description: "See roughly how much each enemy will attack, block or heal for (a range).",
+	name: "Faded",
+	description: "The page is faded: you see what each enemy will do, and roughly how much (a range).",
 	index: 1,
 });
 ds_list_add(global.player_intel_data, {
-	requirement: 6,
-	name: "II",
-	description: "See exactly how much each enemy will attack, block or heal for.",
+	requirement: 5,
+	name: "Legible",
+	description: "The ink is clear: you see exactly how much each enemy will attack, block or heal for.",
 	index: 2,
 });
 ds_list_add(global.player_intel_data, {
-	requirement: 9,
-	name: "III",
-	description: "See what each enemy plans to do next turn too.",
-	index: 3,
-});
-ds_list_add(global.player_intel_data, {
-	requirement: 12,
-	name: "IV",
-	description: "Rewrite one enemy's intent this turn: click its intent to make it choose again.",
+	requirement: 10,
+	name: "Quill",
+	description: "Take up the quill: once per turn, click an enemy's intent to rewrite it. The enemy picks a different move.",
 	index: 4,
 });
+global.intel_blotted = {
+	name: "Blotted",
+	description: "Below 0 intel the page is smudged: enemy intents are hidden.",
+	index: 0,
+};
 
 show_dice_list = false; // used for displaying all the dice in the master list
 bag_hover = false;

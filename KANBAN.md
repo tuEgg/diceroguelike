@@ -23,15 +23,14 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 7: intel rework | F10, F17, F18, F19 | `feature/intel-rework` | **Ready to play-test.** Built: intents always shown (I ranges, II exact), III shows next turn's move, IV rewrites one intent per turn. F19 Outguess: an intel slot that beats your target's number makes its move do half. Instant intel rolls (B33) tried and reverted: intel dice roll in the queue and count next turn. |
+| 7: intel rework | F10, F18, F19, B33 | `feature/intel-rework` | **Ready to play-test.** Intel has three states, read like a logbook: Faded (range, 0+), Legible (exact, 5+), Quill (rewrite one intent per turn, 10+). Below 0 intel the page is Blotted: intents hidden. Outguess works at any intel. Next-turn intents (F17) were cut. You can always change target. |
 
 **Batch 7 test list**
-- F10 Start any fight with 0 intel (F1 / Run, intel 0): every enemy shows what it will do (attack, block, debuff...) with "?" for the number. Set intel 3 (the F1 setting applies from the start of each turn, so end a turn or start a new fight): the number becomes a range. Set intel 6: it becomes one exact number, and the enemy hits for exactly that. Bill's Sharpen Cutlass (Might) raises the exact number. Hovering shows the dice only from intel 3.
-- F17 Set intel 9 (F1 / Run): beside each enemy's intent a small faded icon after a ">" shows what it will do next turn, and the icon sits clear of the number with a gap either side of the ">", and hovering the enemy says "This turn: ... Next turn: ..." on wrapped lines. End the turn: the enemy does the move that was shown. (A move triggered by low health, or a stun, can still change it.)
-- F18 Set intel 12: hover an enemy's intent and a "Rewrite intent" tooltip shows. Click it: the intent pops and changes to a different move with new numbers, the next-turn icon may change too, and the feed says what it became. You get one rewrite per turn (a second click does nothing until next turn). On a stunned enemy, or one with only one move, the tooltip says "Can't rewrite". With 2+ enemies try it on each.
-- F19 Target an enemy that intends a small attack or block (intel 6 helps: you see its exact number). Put an intel slot early in the queue and end the turn. If the slot's total is as high or higher, "Outguessed!" pops over that enemy, the feed says so, its intent shows "Outguessed: half" and the number halves, and it really does half. If the slot rolls lower, nothing happens. Buffs, debuffs and stuns can't be outguessed, and one enemy can only be outguessed once a turn. The intel still counts next turn.
+- F10 Start a fight with 0 intel (F1 / Run, intel 0; the F1 setting applies from the start of each turn, so end a turn or start a new fight): every enemy shows what it will do with its range (e.g. "5-10") and its dice, and the eye says Faded. Set intel 5: the number becomes exact (Legible) and the enemy hits for exactly that. Set intel -3: the eye says Blotted in red, every intent shows a grey "?" and hovering says the page is smudged.
+- F18 Set intel 10: the eye says Quill. Hover an enemy's intent: "Quill: rewrite intent". Click it: the intent pops and changes to a different move with new numbers, and the feed says what it became. One rewrite per turn. A stunned enemy, or one with only one move, says "Can't rewrite". Looking Glass now starts fights at 5 (Legible), Deep Lens at 10 (Quill), Crow's Nest gives 10 next turn.
+- F19 Outguess at any intel: target an enemy with a small attack and play two intel slots. As they resolve, all the intel you rolled this turn adds up; once it reaches the enemy's number, "Outguessed!" pops, the intent shows "Outguessed: half" and the halved number, and the enemy really does half. More intel slots = better odds. Buffs, debuffs and stuns can't be outguessed; once per enemy per turn. The intel still counts next turn.
 - Target change: at intel 0, click any enemy and the target marker moves to it.
-- Hover the intel eye above the player: the Intel Levels panel wraps every description inside the panel, each row as tall as its text. Play an intel die: its slot rolls when the queue resolves (not when placed), and the intel shows at the start of next turn.
+- Hover the intel eye: the panel lists Blotted, Faded 0+, Legible 5+, Quill 10+, each description wrapped. The tooltip says how much more intel reaches the next state. The ring has a tick at the start, middle and end. Intel dice roll when their slot resolves and count next turn.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -45,7 +44,6 @@ All known P0 bugs are fixed, see DONE.
 **Combat core**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B33 | Intel only counts next turn (instant rolling was tried in batch 7 and reverted, 2026-11-16: it felt wrong. Kept as next-turn; a separate this-turn effect for intel is being discussed) | `oCombat/Step_0.gml:164-177` | S [L] (design call: see Q3) |
 | B36 | `"None!"` in `get_slot_stats` makes its condition always true. Left alone on purpose: it looks like a deliberate switch-off, and removing it would change how neutral dice count in a slot. Needs Jared's call. (The doubled `is_slot_exclusive` check was fixed in batch 2.) | `scCombatScripts.gml` | S [C] |
 
 **Dice / keepsakes / items**
@@ -104,9 +102,9 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F13 Slower / configurable action speed (Jack)
 - F14 Colour-blind-safe palette (Jack can't tell the blues apart)
 - F15 Summon intent icon, buff animation, clearer "Nav Chart fired" feedback
-- F17 Intel level III: see what each enemy plans to do next turn too. (building in batch 7)
-- F18 Intel level IV: rewrite one enemy's intent this turn (it chooses again). (building in batch 7)
-- F19 Outguess: intel's this-turn effect. As an intel slot resolves, if its total beats your target's intended number, that enemy's move does half this turn (building in batch 7)
+- F17 ~~Intel level III: see next turn's intents~~ cut 2026-11-16: it removed the reason to play intel next turn.
+- F18 Quill (top intel state, 10+): rewrite one enemy's intent per turn. You choose to change it, the enemy picks the new move (like the I-cut-you-choose picks on rewards and the map) (building in batch 7)
+- F19 Outguess: intel's this-turn effect at any intel. As intel dice resolve, if all the intel rolled this turn beats your target's intended number, its move does half this turn (building in batch 7)
 
 **Content**
 - F20 Enemies: 17 now (Giant Conch is a stub) → target ~15 normals + 2 elites + 2 bosses that *work*
@@ -131,6 +129,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 **Art direction (parked, Jared wants to discuss later)**
 - F50 Decide an art style for the game. Jared isn't an artist and wants to explore AI-assisted art workflows (he's been following r/aigamedev). Covers dice, enemies, map/book, UI and backgrounds. Don't start until he raises it.
+- F51 Icons for the intel states: Blotted (smudged page), Faded, Legible and Quill. Today they borrow the old eye frames (sIntelEye 0, 1, 2, 4). Part of F50.
 
 ---
 
@@ -147,7 +146,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - 2026-11-15 **Scope cuts:** no four Act III regions, no 3 classes (F04 classes removed). **Alignment stays** in this build (F32).
 - 2026-11-15 **Platform:** a web build on itch.io for early playtests (keep exe as the dev/reference build); Steam is the long-term goal. See H07.
 - 2026-11-16 **Bounty board:** two bounties are offered, on purpose (Jared likes the choice). The potion on the bounty board is free.
-- 2026-11-17 **Intel rework:** enemy intents (what each enemy will do) are always shown. Intel dice roll in the queue and count next turn (rolling on play was tried and reverted 2026-11-16). This turn, an intel slot that beats your target's number halves its move (Outguess, F19). You can always change target. Levels: I rough ranges, II exact numbers, III next turn's intents, IV rewrite one enemy's intent. Intel no longer grants extra draws or plays. Revisit after playtests.
+- 2026-11-16 **Intel rework:** enemy intents are always shown. Intel has three states, named like reading an old logbook: **Faded** (0+, see ranges), **Legible** (5+, exact numbers), **Quill** (10+, rewrite one intent per turn; you choose to change it, the enemy picks the move). Below 0 intel (Overwhelm) the page is **Blotted** and intents are hidden. Intel dice roll in the queue and count next turn; this turn they can **Outguess** (all intel rolled this turn beats your target's number: its move does half), at any intel. Next-turn intents were cut (they removed the reason to play intel next turn). Rolling intel on play was tried and reverted. You can always change target. Open: is "Intel" the right word?
 
 ---
 

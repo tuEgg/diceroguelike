@@ -147,7 +147,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				}
 			}
 		} else {
-			// an enemy uses the dice it rolled when its intent was set (shown at intel level II)
+			// an enemy uses the dice it rolled when its intent was set (shown when Legible)
 			if (is_struct(_source) && variable_struct_exists(_source.intent, "rolls") && _enemy_roll_index < array_length(_source.intent.rolls) && _source.intent.move.dice_value == _dice_value) {
 				final_roll = _source.intent.rolls[_enemy_roll_index];
 			} else {
@@ -459,8 +459,9 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				num.x += 20;
 				num.y -= 20;
 
-				// this turn: if the slot's intel so far beats the target's intended number, it fumbles
-				intel_try_outguess(_slot_number, _dice_list_index);
+				// this turn: if all the intel rolled so far this turn beats the target's intended number, it fumbles
+				intel_rolled_this_turn += amount;
+				intel_try_outguess();
 			} else {
 			    apply_buff("player", oRunManager.debuff_overwhelm, 1, 3, oRunManager.debuff_overwhelm.remove_next_turn, { source: _source, index: _source_index });
 				particle_emit(global.player_x, global.player_y, "burst", oRunManager.debuff_overwhelm.color);
@@ -1498,8 +1499,7 @@ function add_enemy_to_fight(_enemy) {
 		},
 		turns_since_last_block: 1,
 		move_number: -1,
-		planned_move: undefined,	// next turn's move, decided a turn ahead (enemy_plan_next_move), shown at intel level III
-		move_history: ds_list_create(),
+move_history: ds_list_create(),
 		max_hp: _enemy.max_hp,
 		hp: _enemy.current_hp, // debug_mode ? 1 : _enemy.current_hp,
 		hp_display: _enemy.current_hp,

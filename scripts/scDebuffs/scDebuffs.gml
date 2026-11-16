@@ -218,7 +218,7 @@ function define_buffs_and_debuffs() {
 		name: "Overwhelm",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Lowers the players intel and forces the player to target this creature",
+	    desc: "Lowers your intel (below 0, enemy intents are hidden) and turns your aim to this creature at the start of the turn.",
 	    icon_index: 2,
 		debuff: true,
 		color: c_red,

@@ -229,7 +229,7 @@ function enemy_copy_for_fight(_enemy) {
 
 /// @func enemy_set_intent(_enemy, _move)
 /// @desc Sets what an enemy will do this turn, and rolls its dice now. The rolls are kept on the intent so
-///       intel level II can show the exact result in advance, and the enemy's turn uses those same rolls.
+///       the Legible state can show the exact result in advance, and the enemy's turn uses those same rolls.
 function enemy_set_intent(_enemy, _move) {
 	_enemy.intent.move = _move;
 	_enemy.intent.fumbled = false; // a new intent hasn't been outguessed
@@ -239,7 +239,7 @@ function enemy_set_intent(_enemy, _move) {
 		array_push(_enemy.intent.rolls, irandom_range(1, max(1, _move.dice_value)));
 	}
 
-	// the range shown at intel level I (and the name shown for moves with no numbers)
+	// the range shown when Faded (and the name shown for moves with no numbers)
 	if (_move.action_type == "DEBUFF" || _move.action_type == "BUFF") {
 		_enemy.intent.text = "";
 	} else if (_move.action_type == "NONE" || _move.action_type == "EXIT") {
@@ -257,7 +257,7 @@ function intent_has_numbers(_move) {
 
 /// @func intent_exact_value(_enemy)
 /// @desc What the enemy's move will come to, from the rolls made when the intent was set, plus its bonus and
-///       any of its own buffs that change rolls (Might, Balance). Shown at intel level II.
+///       any of its own buffs that change rolls (Might, Balance). Shown when Legible.
 function intent_exact_value(_enemy) {
 	var _total = intent_rolled_value(_enemy);
 	return intent_is_fumbled(_enemy) ? _total div 2 : _total;
@@ -286,30 +286,25 @@ function intent_rolled_value(_enemy) {
 }
 
 /// @func intent_number_text(_enemy, _intel_level)
-/// @desc The number shown beside an enemy's intent: "?" with no intel, the range at level I, the exact result from level II.
+/// @desc The number shown beside an enemy's intent: the range when Faded, the exact result from Legible, "?" when Blotted.
 function intent_number_text(_enemy, _intel_level) {
+	if (intel_is_blotted()) return "?";
 	if (!intent_has_numbers(_enemy.intent.move)) return _enemy.intent.text;
-	if (_intel_level >= 2) return string(intent_exact_value(_enemy));
-	if (_intel_level >= 1) {
-		if (!intent_is_fumbled(_enemy)) return _enemy.intent.text;
-		var _move = _enemy.intent.move;
-		return string((_move.dice_amount + _move.bonus_amount) div 2) + "-" + string(((_move.dice_amount * _move.dice_value) + _move.bonus_amount) div 2);
-	}
-	return "?";
+	if (_intel_level >= 1) return string(intent_exact_value(_enemy));
+	if (!intent_is_fumbled(_enemy)) return _enemy.intent.text;
+	var _move = _enemy.intent.move;
+	return string((_move.dice_amount + _move.bonus_amount) div 2) + "-" + string(((_move.dice_amount * _move.dice_value) + _move.bonus_amount) div 2);
 }
 
 
 
 // =====================================================================
-// PICKING AND PLANNING MOVES
-// Each turn an enemy follows the move it planned last turn, then plans the next one, so intel level III can
-// show it. Triggered moves (FIRST, HEALTH 50, PRIORITY, Stunned) still override the plan when they fire.
+// PICKING AND REWRITING MOVES
 // =====================================================================
 
-/// @func enemy_pick_move_index(_enemy, _latest_extra)
-/// @desc Choose the index of an enemy's next move by its move_order. _latest_extra is a move to count as the
-///       most recent one (this turn's, when planning next turn), or undefined.
-function enemy_pick_move_index(_enemy, _latest_extra) {
+/// @func enemy_pick_move_index(_enemy)
+/// @desc Choose the index of an enemy's move this turn by its move_order (read only: it doesn't change the enemy).
+function enemy_pick_move_index(_enemy) {
 	var _data = _enemy.data;
 	var _index = 0;
 
@@ -345,9 +340,8 @@ function enemy_pick_move_index(_enemy, _latest_extra) {
 		var move_index = irandom(ds_list_size(_data.moves) - 1);
 		
 		// Add last 3 moves name to array; NEED TO FIX SO THAT IT FLEXES TO LIST SIZE
-		if (_latest_extra != undefined) array_push(latest_moves, _latest_extra); // planning next turn: this turn's move is the latest
 		var num_previous_moves = ds_list_size(_enemy.move_history);
-		for (var m = num_previous_moves; m > max(0, num_previous_moves - 3) && array_length(latest_moves) < 3; m--) {
+		for (var m = num_previous_moves; m > max(0, num_previous_moves - 3); m--) {
 			var move = _enemy.move_history[| m - 1];
 		
 			array_push(latest_moves, move);
@@ -406,15 +400,8 @@ function enemy_pick_move_index(_enemy, _latest_extra) {
 	return _index;
 }
 
-/// @func enemy_plan_next_move(_enemy)
-/// @desc Decide now what the enemy will do next turn (after its current intent).
-function enemy_plan_next_move(_enemy) {
-	var _index = enemy_pick_move_index(_enemy, _enemy.intent.move);
-	_enemy.planned_move = _enemy.data.moves[| _index];
-}
-
 /// @func enemy_can_rewrite_intent(_enemy)
-/// @desc Intel level IV: can this enemy's intent be rewritten? Forced moves (triggers, Stunned) can't, and
+/// @desc Quill (top intel state): can this enemy's intent be rewritten? Forced moves (triggers, Stunned) can't, and
 ///       nor can an enemy with only one move to choose from.
 function enemy_can_rewrite_intent(_enemy) {
 	if (variable_struct_exists(_enemy.intent.move, "use_trigger")) return false;
@@ -436,58 +423,59 @@ function enemy_rewrite_options(_enemy) {
 }
 
 /// @func enemy_rewrite_intent(_enemy)
-/// @desc Intel level IV: the enemy chooses again, a different move, rolled fresh. Its plan for next turn is redone too.
+/// @desc Quill (top intel state): the enemy chooses again, a different move, rolled fresh..
 function enemy_rewrite_intent(_enemy) {
 	var _options = enemy_rewrite_options(_enemy);
 	if (array_length(_options) == 0) return false;
 	var _index = _options[irandom(array_length(_options) - 1)];
 	_enemy.move_number = _index;
 	enemy_set_intent(_enemy, _enemy.data.moves[| _index]);
-	enemy_plan_next_move(_enemy);
 	return true;
 }
 
-/// @func intent_icon(_move)
-/// @desc The sprite, frame and colour for a move's intent icon (used for the small next-turn icon).
-function intent_icon(_move) {
-	var _type = string_split(_move.action_type, "/")[0];
-	switch (_type) {
-		case "ATK": return { sprite: sIntentIcons, index: 0, col: global.color_attack };
-		case "BLK": return { sprite: sIntentIcons, index: 1, col: global.color_block };
-		case "HEAL": return { sprite: sIntentIcons, index: 2, col: global.color_heal };
-		case "EXIT": return { sprite: sIntentIcons, index: 5, col: c_orange };
-		case "DEBUFF": case "BUFF":
-			if (variable_struct_exists(_move, "debuff")) return { sprite: sDebuffIcon, index: _move.debuff.icon_index, col: _move.debuff.color };
-			return { sprite: sIntentIcons, index: 3, col: c_white };
-		case "NONE": return { sprite: sIntentIcons, index: 3, col: c_white };
-	}
-	return { sprite: sIntentIcons, index: 4, col: c_dkgray };
-}
-
-
-/// @func intel_try_outguess(_slot_number, _dice_list_index)
-/// @desc Intel's this-turn effect. As an intel slot resolves, if its total so far is at least the targeted
-///       enemy's intended number (before any fumble), that enemy fumbles: its move does half this turn.
-///       Only attacks, blocks and heals can be outguessed, and each intent only once.
-function intel_try_outguess(_slot_number, _dice_list_index) {
-	if (_slot_number < 0) return;
+/// @func intel_try_outguess()
+/// @desc Intel's this-turn effect, whatever the intel state. As intel dice resolve, if all the intel rolled this turn
+///       (intel_rolled_this_turn) is at least the targeted enemy's intended number (before any fumble), that enemy
+///       fumbles: its move does half this turn. Only attacks, blocks and heals, and each intent only once.
+function intel_try_outguess() {
 	with (oCombat) {
 		if (enemy_target_index < 0 || enemy_target_index >= ds_list_size(room_enemies)) return;
 		var _enemy = room_enemies[| enemy_target_index];
 		if (_enemy.dead || !intent_has_numbers(_enemy.intent.move) || intent_is_fumbled(_enemy)) return;
 
-		var _slot = action_queue[| _slot_number];
-		var _total = 0;
-		for (var d = 0; d <= min(_dice_list_index, ds_list_size(_slot.dice_list) - 1); d++) {
-			var _die = _slot.dice_list[| d];
-			if (variable_struct_exists(_die, "rolled_value")) _total += _die.rolled_value;
-		}
-
-		if (_total >= intent_rolled_value(_enemy)) {
+		if (intel_rolled_this_turn >= intent_rolled_value(_enemy)) {
 			_enemy.intent.fumbled = true;
 			spawn_floating_number(_enemy, 0, "Outguessed!", c_orange, 0);
 			particle_emit(_enemy.pos_x, _enemy.pos_y - 100, "burst", c_orange);
 			add_feed_entry("Your intel outguessed " + string(_enemy.data.name) + ": " + string(_enemy.intent.move.move_name) + " does half.");
 		}
 	}
+}
+
+/// @func intel_max()
+/// @desc The intel needed for the top state (Quill). Intel is capped here.
+function intel_max() {
+	return global.player_intel_data[| ds_list_size(global.player_intel_data) - 1].requirement;
+}
+
+/// @func intel_level_for(_intel)
+/// @desc The intel state (0 Faded, 1 Legible, 2 Quill) this much intel reaches. Below 0 is still 0, but Blotted (intel_is_blotted).
+function intel_level_for(_intel) {
+	var _level = 0;
+	for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
+		if (_intel >= global.player_intel_data[| i].requirement) _level = i;
+	}
+	return _level;
+}
+
+/// @func intel_is_blotted()
+/// @desc Below 0 intel (Overwhelm) the logbook page is smudged: enemy intents are hidden.
+function intel_is_blotted() {
+	return instance_exists(oCombat) && oCombat.player_intel < 0;
+}
+
+/// @func intel_state(_level)
+/// @desc The state to show (name, description, eye frame): Blotted below 0 intel, otherwise this level's.
+function intel_state(_level) {
+	return intel_is_blotted() ? global.intel_blotted : global.player_intel_data[| _level];
 }

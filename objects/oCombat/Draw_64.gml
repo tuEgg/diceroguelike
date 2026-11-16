@@ -610,9 +610,9 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 
 	// Show enemy intent
 	if (enemy.intent.alpha > 0.05) {
-		// every enemy's intent is always shown; intel only sharpens the numbers ("?" → range → exact)
-		var reveal_intent_single = true;
-		var reveal_intent_all = true;
+		// intents are always shown (range when Faded, exact when Legible), unless intel is below 0 (Blotted)
+		var reveal_intent_single = !intel_is_blotted();
+		var reveal_intent_all = !intel_is_blotted();
 	
 	    var text = intent_number_text(enemy, intel_level);
 
@@ -622,8 +622,8 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		// Draw combined intents
 		var intent_array = string_split(enemy.intent.move.action_type, "/");
 		
-		// Draw dice in move (from intel level I: the dice show how big the move can be)
-		if (intel_level >= 1) {
+		// Draw dice in move (the dice show how big the move can be), unless Blotted
+		if (reveal_intent_all) {
 			for (var d = 0; d < enemy.intent.move.dice_amount; d++) {
 				var d_index = get_dice_index(enemy.intent.move.dice_value);
 				
@@ -709,31 +709,14 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			draw_set_font(ftTopBar);
 		}
 
-		// intel level III: a small faded icon to the right shows next turn's planned move
-		var _next_move = enemy.planned_move;
-		var _show_next = (intel_level >= 3 && is_struct(_next_move));
-		if (_show_next) {
-			var _next_icon = intent_icon(_next_move);
-			var _next_alpha = (enemy.intent.alpha - enemy.info_alpha) * 0.7;
-			var _next_scale = enemy.intent.scale * 0.6;
-			// start after the number (or after the icon when there is no number), then a gap, the ">", a gap, the icon
-			var _text_end = (text == "") ? icon_x + (sprite_get_width(sprite) / 2) * enemy.intent.scale * bonus_scale : text_x + string_width(text) * enemy.intent.scale;
-			draw_set_font(ftDefault);
-			var _arrow_x = _text_end + 16;
-			draw_outline_text(">", c_black, c_white, 2, _arrow_x, yy, 1, _next_alpha);
-			var _next_icon_x = _arrow_x + string_width(">") + 12 + (sprite_get_width(_next_icon.sprite) / 2) * _next_scale;
-			draw_sprite_ext(_next_icon.sprite, _next_icon.index, _next_icon_x, yy, _next_scale, _next_scale, 0, _next_icon.col, _next_alpha);
-			draw_set_font(ftTopBar);
-		}
-
-		// intel level IV: click an intent to make the enemy choose again (once per turn)
+		// Quill: click an intent to make the enemy choose again (once per turn)
 		var _intent_hover = mouse_hovering(xx, yy, text_w + 20, 50, true);
-		var _can_rewrite = (intel_level >= 4 && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards);
+		var _can_rewrite = (intel_level >= 2 && !intel_is_blotted() && !intel_rewrite_used&& state == CombatState.PLAYER_INPUT && !show_rewards);
 		if (_can_rewrite && _intent_hover) {
 			if (!enemy_can_rewrite_intent(enemy)) {
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't rewrite", "This move is forced, or the enemy has nothing else to choose.", undefined, 0, undefined);
 			} else {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rewrite intent", "Click to make this enemy choose a different move. Once per turn.", undefined, 0, undefined);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Quill: rewrite intent", "Click to rewrite this enemy's intent. You choose to change it; the enemy picks a different move. Once per turn.", undefined, 0, undefined);
 				if (mouse_check_button_pressed(mb_left) && enemy_rewrite_intent(enemy)) {
 					intel_rewrite_used = true;
 					enemy.intent.scale = enemy.intent.start_scale * 1.4; // pop, so the change is noticed
@@ -756,15 +739,12 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 				if (enemy_exiting) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "The enemy intents to escape", undefined, 0, undefined);
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
-					if (intel_level >= 1) {
-						var _intent_desc = "This turn: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount) + (intent_is_fumbled(enemy) ? ", outguessed by your intel so it does half." : ".");
-						if (_show_next) _intent_desc += " Next turn: " + string(_next_move.move_name) + (intent_has_numbers(_next_move) ? ", " + get_dice_name_and_bonus(_next_move, _next_move.bonus_amount) : "") + ".";
-						queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, _intent_desc, undefined, 0, undefined);
-					} else {
-						queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, "Gain intel to see how much this enemy will roll.", undefined, 0, undefined);
-					}
+					var _intent_desc = "This turn: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount);
+					if (intent_has_numbers(enemy.intent.move)) _intent_desc += (intel_level >= 1) ? ", exactly " + string(intent_exact_value(enemy)) : ". Reach " + string(global.player_intel_data[| 1].requirement) + " intel (Legible) to see the exact number";
+					_intent_desc += intent_is_fumbled(enemy) ? ". Outguessed by your intel, so it does half." : ".";
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, _intent_desc, undefined, 0, undefined);
 				} else {
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "???", "Enemy intentions not revealed", undefined, 0, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Your intel is below 0, so the page is smudged and enemy intents are hidden.", undefined, 0, undefined);
 				}
 			}
 		}
@@ -980,20 +960,23 @@ if (state != CombatState.PLAYER_DEAD) {
 
 	var arc_start = 180;
 	// the ring runs from empty to full: below zero it would wrap round into an almost-full circle, above the max it would overflow
-	var intel_fill = clamp(draw_intel / global.player_intel_data[| 4].requirement, 0, 1);
+	var _intel_max = intel_max();
+	var intel_fill = clamp(draw_intel / _intel_max, 0, 1);
 	var arc_end = 181 + (intel_fill * 179);
-	draw_arc_thick_deg_gradient(global.player_x, global.player_y - 175, 50, 60, arc_start, arc_end, 50, global.color_intel, make_color_rgb(210 - (player_intel / global.player_intel_data[| 4].requirement * 50), 210 - (player_intel / global.player_intel_data[| 4].requirement * 100), 0), 0.7);
+	var _intel_ratio = clamp(player_intel / _intel_max, 0, 1);
+	draw_arc_thick_deg_gradient(global.player_x, global.player_y - 175, 50, 60, arc_start, arc_end, 50, global.color_intel, make_color_rgb(210 - (_intel_ratio * 50), 210 - (_intel_ratio * 100), 0), 0.7);
 
+	// a tick at each state (Faded at the start, Legible, Quill at the end)
 	draw_set_alpha(1.0);
 	draw_set_color(c_white);
-	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 178, 182, 50);
-	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 223, 227, 50);
-	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 268, 272, 50);
-	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 313, 317, 50);
-	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 358, 2, 50);
+	for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
+		var _tick = 180 + (global.player_intel_data[| i].requirement / _intel_max) * 180;
+		draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, (_tick - 2 + 360) mod 360, (_tick + 2) mod 360, 50);
+	}
 
-	draw_sprite_ext(sIntelEye, global.player_intel_data[| intel_level].index, global.player_x, global.player_y - 180, intel_scale, intel_scale, 0, c_white, intel_alpha);
-	draw_outline_text(string(global.player_intel_data[| intel_level].name), c_black, global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
+	var _intel_state = intel_state(intel_level);
+	draw_sprite_ext(sIntelEye, _intel_state.index, global.player_x, global.player_y - 180, intel_scale, intel_scale, 0, c_white, intel_alpha);
+	draw_outline_text(string(_intel_state.name), c_black, intel_is_blotted() ? c_red : global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
 	var intel_hover = mouse_hovering(global.player_x, global.player_y - 190, sprite_get_width(sIntelEye) * 2, sprite_get_height(sIntelEye) * 2, true);
 
 	intel_scale = intel_hover ? lerp(intel_scale, 1.2, 0.2) : lerp(intel_scale, 1.0, 0.2);
@@ -1005,8 +988,12 @@ if (state != CombatState.PLAYER_DEAD) {
 
 	if (intel_hover) {
 		var intel_pad = 20;
-		var intel_w = 440;
-		var intel_desc_x = intel_pad + 95;
+		var intel_w = 500;
+		var intel_desc_x = intel_pad + 150;
+
+		// Blotted (below 0) first, then the three states
+		var intel_rows = [global.intel_blotted];
+		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) array_push(intel_rows, global.player_intel_data[| i]);
 		var intel_desc_w = intel_w - intel_desc_x - intel_pad;
 		var intel_line_sep = 20;
 		var intel_min_row_h = 40;
@@ -1015,8 +1002,8 @@ if (state != CombatState.PLAYER_DEAD) {
 		draw_set_font(ftSmall);
 		var intel_row_heights = [];
 		var intel_h = intel_pad + 30;
-		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
-			var _row_h = max(intel_min_row_h, string_height_ext(string(global.player_intel_data[| i].description), intel_line_sep, intel_desc_w) + 12);
+		for (var i = 0; i < array_length(intel_rows); i++) {
+			var _row_h = max(intel_min_row_h, string_height_ext(string(intel_rows[i].description), intel_line_sep, intel_desc_w) + 12);
 			intel_row_heights[i] = _row_h;
 			intel_h += _row_h;
 		}
@@ -1041,21 +1028,26 @@ if (state != CombatState.PLAYER_DEAD) {
 	
 		// Draw rows (each centred in its own height)
 		var _row_y = intel_y + intel_pad + 30;
-		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
+		for (var i = 0; i < array_length(intel_rows); i++) {
+			var _row = intel_rows[i];
 			var _row_mid = _row_y + intel_row_heights[i] / 2 - 10;
 			draw_set_halign(fa_left);
-			draw_sprite_ext(sIntelEye, global.player_intel_data[| i].index,
+			draw_sprite_ext(sIntelEye, _row.index,
 						intel_x + intel_pad + 20, _row_mid, 0.75, 0.75, 0, c_white, intel_alpha);
 			draw_set_font(ftDefault);
-			draw_set_halign(fa_center);
-			draw_text(	intel_x + intel_pad + 70, _row_mid, string(global.player_intel_data[| i].name));
-			draw_set_halign(fa_left);
+			draw_text(	intel_x + intel_pad + 48, _row_mid, string(_row.name) + (i == 0 ? "" : "  " + string(_row.requirement) + "+"));
 			draw_set_font(ftSmall);
-			draw_text_ext(intel_x + intel_desc_x, _row_mid, string(global.player_intel_data[| i].description), intel_line_sep, intel_desc_w);
+			draw_text_ext(intel_x + intel_desc_x, _row_mid, string(_row.description), intel_line_sep, intel_desc_w);
 			_row_y += intel_row_heights[i];
 		}
 	
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Intel level: "+string(global.player_intel_data[| intel_level].name), "Intel dice you play this turn count next turn. " + string(global.player_intel_data[| intel_level].description), undefined, 0, undefined);
+		var _intel_tip = string(_intel_state.description);
+		if (!intel_is_blotted() && intel_level < ds_list_size(global.player_intel_data) - 1) {
+			var _next_state = global.player_intel_data[| intel_level + 1];
+			_intel_tip += " " + string(_next_state.requirement - player_intel) + " more intel: " + string(_next_state.name) + ".";
+		}
+		_intel_tip += " Intel dice you play count next turn. This turn, if your intel rolls beat your target's number, you outguess it: its move does half.";
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Intel: " + string(_intel_state.name), _intel_tip, undefined, 0, undefined);
 	}
 }
 

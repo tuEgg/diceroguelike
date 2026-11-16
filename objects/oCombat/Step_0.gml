@@ -2,7 +2,8 @@ switch (state) {
     case CombatState.START_TURN:
 		turn_count++;
 		player_turn_done = false;
-		intel_rewrite_used = false; // intel level IV: one rewrite per turn
+		intel_rewrite_used = false; // Quill: one rewrite per turn
+		intel_rolled_this_turn = 0; // Outguess compares everything rolled into intel this turn
 		delayed_enemy_attack = false;
 		
 		if (turn_count == 1) {
@@ -16,9 +17,8 @@ switch (state) {
 			
 			if (enemy.dead) continue;
 			
-			// follow the move planned last turn (shown at intel level III), or pick one if there is no plan
-			var _planned_index = is_struct(enemy.planned_move) ? ds_list_find_index(enemy_data.moves, enemy.planned_move) : -1;
-			enemy.move_number = (_planned_index >= 0) ? _planned_index : enemy_pick_move_index(enemy, undefined);
+			// pick this turn's move by the enemy's move_order (triggers below can override it)
+			enemy.move_number = enemy_pick_move_index(enemy);
 			
 			var _intent_move = enemy_data.moves[| enemy.move_number];
 			
@@ -47,9 +47,6 @@ switch (state) {
 			
 			// sets the move and rolls its dice now, so intel can reveal the exact result
 			enemy_set_intent(enemy, _intent_move);
-
-			// decide next turn's move now, so intel level III can show it (triggers can still override it)
-			enemy_plan_next_move(enemy);
 
 			enemy_turns_remaining++;
 			
@@ -82,13 +79,9 @@ switch (state) {
 		
 		combat_trigger_effects("on_turn_start", turn_start_data);
 		
-		player_intel = clamp(player_intel, 0, global.player_intel_data[| 4].requirement);
-		
-		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
-			if (player_intel >= global.player_intel_data[| i].requirement) {
-				intel_level = i;
-			}
-		}
+		// capped at the top state; it can go below 0 (Overwhelm), which hides enemy intents
+		player_intel = min(player_intel, intel_max());
+		intel_level = intel_level_for(player_intel);
 		//show_debug_message("Player intel amount: "+string(player_intel));
 		//show_debug_message("Player intel level: "+string(intel_level));
 		
@@ -586,3 +579,6 @@ global.player_x = lerp(global.player_x, global.player_xstart, 0.2);
 if (keyboard_check_pressed(vk_enter) && state == CombatState.PLAYER_INPUT && !is_dealing_dice) {
     actions_submitted = true;
 }
+
+// intel can change mid-turn (keepsakes), so its state is kept up to date every frame
+intel_level = intel_level_for(player_intel);
