@@ -3,23 +3,22 @@ if (new_run_offering && global.ui_layer == UI_LAYER.BASE) global.ui_layer = UI_L
 
 key_escape = keyboard_check_pressed(vk_escape);
 
-if (key_escape && global.ui_layer != UI_LAYER.DEBUG) {
-	if (show_bag_contents) {
+// Escape closes Settings (back to the pause menu), then the bag, then opens or closes the pause menu (F35)
+if (key_escape && global.ui_layer != UI_LAYER.DEBUG && run_over == undefined) {
+	if (global.show_settings) {
+		with (oSettingsMenu) exit_settings();
+	} else if (show_bag_contents) {
 		show_bag_contents = false;
 		global.ui_layer = UI_LAYER.BASE;
-	} else {
-		if (oCutsceneManager.cutscene_state == CUTSCENE_STATE.FINISHED) {
-			global.show_settings = 1 - global.show_settings;
-			
-			if (global.show_settings) {
-				pre_settings_open_ui_layer = global.ui_layer;
-				global.ui_layer = UI_LAYER.SETTINGS;
-			} else {
-				global.ui_layer = pre_settings_open_ui_layer;
-			}
-		}
+	} else if (paused) {
+		pause_close();
+	} else if (oCutsceneManager.cutscene_state == CUTSCENE_STATE.FINISHED) {
+		pause_open();
 	}
 }
+
+// the pause menu holds the layer, also after Settings (opened from it) hands back the base layer
+if (paused && !global.show_settings) global.ui_layer = UI_LAYER.SETTINGS;
 
 // Restart shortcut only works when run from the IDE, never in an exported build
 key_restart = keyboard_check_pressed(ord("R")) && DEBUG_TOOLS;
@@ -102,7 +101,7 @@ if (DEBUG_TOOLS) {
 }
 
 // oCombat only exists in combat, hp can also hit zero in events
-if (global.player_hp <= 0) {
+if (global.player_hp <= 0 && run_over == undefined) {
 	if (!instance_exists(oCombat) || oCombat.state != CombatState.PLAYER_DEAD) {
 		lose_run();
 	}

@@ -126,6 +126,7 @@ function save_game(_slot) {
 		rollable_keepsakes: _rollable_keepsakes,
 		shop_keepsakes: _shop_keepsakes,
 		tool_pool: _tool_pool,
+		run_stats: oRunManager.run_stats, // F05 end-of-voyage summary
     };
 
 	var _json = json_stringify(_save);
@@ -322,6 +323,14 @@ function load_game(_slot) {
 		}
 	}
 
+	// the end-of-voyage summary stats (older saves start from zero)
+	if (variable_struct_exists(_save, "run_stats") && is_struct(_save.run_stats)) {
+		var _keys = variable_struct_get_names(oRunManager.run_stats);
+		for (var i = 0; i < array_length(_keys); i++) {
+			if (variable_struct_exists(_save.run_stats, _keys[i])) oRunManager.run_stats[$ _keys[i]] = _save.run_stats[$ _keys[i]];
+		}
+	}
+
 	// last of all, so nothing above uses up random numbers: carry on the random sequence from the save
 	random_set_seed(_save.rng_seed);
 
@@ -372,6 +381,7 @@ function save_settings() {
 		vol_ui: global.vol_ui,
 		muted: global.muted,
 		fullscreen: window_get_fullscreen(),
+		combat_speed_index: global.combat_speed_index,
 	}
 	
 	var _json = json_stringify(_save);
@@ -392,7 +402,8 @@ function load_settings() {
 	global.vol_sfx = _save.vol_sfx;
 	global.vol_ui = _save.vol_ui;
 	global.muted = _save.muted;
-	
+	if (variable_struct_exists(_save, "combat_speed_index")) global.combat_speed_index = _save.combat_speed_index;
+
 	// a browser only allows fullscreen from a click, so a web build doesn't restore it at start-up
 	if (!IS_BROWSER) window_set_fullscreen(_save.fullscreen);
 }
@@ -410,7 +421,8 @@ function check_settings() {
 		|| (global.vol_sfx != _save.vol_sfx)
 		|| (global.vol_ui != _save.vol_ui)
 		|| (global.muted != _save.muted)
-		|| (window_get_fullscreen() != _save.fullscreen) {
+		|| (window_get_fullscreen() != _save.fullscreen)
+		|| (variable_struct_exists(_save, "combat_speed_index") ? global.combat_speed_index != _save.combat_speed_index : global.combat_speed_index != 1) {
 			settings_changed = true;
 		} else {
 			settings_changed = false;

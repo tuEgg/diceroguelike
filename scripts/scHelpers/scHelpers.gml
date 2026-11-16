@@ -1265,16 +1265,23 @@ function start_run() {
 
 function lose_run() {
 	show_debug_message("Player died, ending run");
-	
-	if (save_exists(1)) {
-		delete_save(1);
-	}
-	
+	if (instance_exists(oRunManager) && oRunManager.run_over != undefined) return;
+
+	// what did it: the enemies still standing, or the voyage itself
+	var _cause = "Your hull gave out on the voyage";
 	if (instance_exists(oCombat)) {
 		oCombat.state = CombatState.PLAYER_DEAD;
-	} else {
-		room_goto(rmMainMenu);
+		var _names = [];
+		for (var i = 0; i < ds_list_size(oCombat.room_enemies); i++) {
+			var _e = oCombat.room_enemies[| i];
+			if (!_e.dead && !array_contains(_names, _e.name)) array_push(_names, _e.name);
+		}
+		if (array_length(_names) > 0) {
+			_cause = "Sunk by ";
+			for (var i = 0; i < array_length(_names); i++) _cause += ((i == 0) ? "" : (i == array_length(_names) - 1 ? " and " : ", ")) + _names[i];
+		}
 	}
+	run_end(false, _cause); // deletes the save and shows the summary
 }
 
 /// @func draw_insight_icon(_icon, _x, _y, _scale, _alpha)
@@ -1375,4 +1382,186 @@ function dragged_item_draw() {
 			draw_sprite_ext(items[i].sprite, items[i].index, device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), items_hover_scale[i], items_hover_scale[i], _angle, c_white, 1.0);
 		}
 	}
+}
+
+// =====================================================================
+// RUN STATS, PAUSE MENU, RUN SUMMARY (F05, F35)
+// oRunManager holds run_stats (saved with the run), paused and run_over. The pause menu and the summary are drawn in
+// oRunManager Draw GUI End, above every window.
+// =====================================================================
+
+/// @func run_stats_new()
+function run_stats_new() {
+	return {
+		fights_won: 0,
+		elites_won: 0,
+		bosses_won: 0,
+		damage_dealt: 0,	// to enemies, from every source on your side
+		biggest_hit: 0,		// the most one die (or effect) dealt at once
+		damage_taken: 0,	// in fights, after block
+		dice_played: 0,
+		gold_earned: 0,
+	};
+}
+
+/// @func run_stat_add(_key, _amount)
+function run_stat_add(_key, _amount) {
+	if (!instance_exists(oRunManager) || oRunManager.run_over != undefined) return;
+	oRunManager.run_stats[$ _key] += _amount;
+}
+
+/// @func run_stat_max(_key, _value)
+function run_stat_max(_key, _value) {
+	if (!instance_exists(oRunManager) || oRunManager.run_over != undefined) return;
+	oRunManager.run_stats[$ _key] = max(oRunManager.run_stats[$ _key], _value);
+}
+
+/// @func run_end(_won, _cause)
+/// @desc The voyage is over: deletes the save and shows the summary (run_summary_draw) until the player goes back to
+///       the menu. _cause is the line under the title ("Sunk by Pirate Ruffian").
+function run_end(_won, _cause) {
+	if (!instance_exists(oRunManager)) { room_goto(rmMainMenu); return; }
+	if (oRunManager.run_over != undefined) return;
+	if (save_exists(1)) delete_save(1);
+	with (oRunManager) {
+		run_over = { won: _won, cause: _cause, alpha: 0, btn_scale: 1 };
+		paused = false;
+		show_bag_contents = false;
+	}
+	global.show_settings = false;
+	global.ui_layer = UI_LAYER.POPUP;
+}
+
+/// @func pause_open()
+function pause_open() {
+	with (oRunManager) {
+		if (paused || run_over != undefined) return;
+		paused = true;
+		pre_pause_ui_layer = global.ui_layer;
+		pause_scales = [1, 1, 1];
+	}
+	global.ui_layer = UI_LAYER.SETTINGS;
+}
+
+/// @func pause_close()
+function pause_close() {
+	with (oRunManager) {
+		if (!paused) return;
+		paused = false;
+		global.ui_layer = pre_pause_ui_layer;
+	}
+}
+
+/// @func pause_draw()
+/// @desc oRunManager Draw GUI End: Resume, Settings, Save and quit. Hidden while Settings is open on top of it.
+function pause_draw() {
+	if (!instance_exists(oRunManager) || !oRunManager.paused || global.show_settings) return;
+	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+
+	draw_set_alpha(0.7);
+	draw_set_color(c_black);
+	draw_rectangle(0, 0, _gw, _gh, false);
+	draw_set_alpha(1);
+
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_font(ftBigger);
+	draw_outline_text("Paused", c_black, c_white, 3, _gw / 2, _gh * 0.3, 1, 1, 0);
+
+	var _labels = ["Resume", "Settings", "Save and quit"];
+	var _bw = 320, _bh = 80;
+	with (oRunManager) {
+		for (var i = 0; i < 3; i++) {
+			var _b = draw_gui_button(_gw / 2 - _bw / 2, _gh * 0.4 + i * (_bh + 30), _bw, _bh, pause_scales[i], _labels[i], (i == 0) ? c_lime : c_orange, ftBig, true, true, UI_LAYER.SETTINGS);
+			pause_scales[i] = _b.scale;
+			if (!_b.click) continue;
+			switch (i) {
+				case 0: pause_close(); break;
+				case 1:
+					// Settings opens over the pause menu; closing it comes back here
+					global.show_settings = true;
+					global.ui_layer = UI_LAYER.SETTINGS;
+					break;
+				case 2:
+					paused = false;
+					global.ui_layer = UI_LAYER.BASE;
+					room_goto(rmMainMenu);
+					break;
+			}
+		}
+	}
+	draw_set_font(ftDefault);
+	draw_outline_text("Your voyage is saved at the last stop you reached.", c_black, c_ltgray, 2, _gw / 2, _gh * 0.4 + 3 * (_bh + 30) + 20, 1, 1, 0);
+}
+
+/// @func run_summary_draw()
+/// @desc oRunManager Draw GUI End: the end of a voyage, won or lost. Title, cause, how far you got and the run's stats,
+///       then Back to the menu.
+function run_summary_draw() {
+	if (!instance_exists(oRunManager) || oRunManager.run_over == undefined) return;
+	var _r = oRunManager.run_over;
+	var _s = oRunManager.run_stats;
+	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+	_r.alpha = lerp(_r.alpha, 1, 0.08);
+	var _a = _r.alpha;
+	global.ui_layer = UI_LAYER.POPUP;
+
+	draw_set_alpha(0.85 * _a);
+	draw_set_color(c_black);
+	draw_rectangle(0, 0, _gw, _gh, false);
+	draw_set_alpha(1);
+
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_font(ftBiggest);
+	draw_outline_text(_r.won ? "Voyage complete" : "Lost at sea", c_black, _r.won ? c_yellow : c_white, 3, _gw / 2, _gh * 0.16, 1, _a, 0);
+	draw_set_font(ftBig);
+	draw_outline_text(_r.cause, c_black, c_ltgray, 2, _gw / 2, _gh * 0.25, 1, _a, 0);
+
+	// how far you got
+	var _where = "";
+	if (instance_exists(oWorldManager)) {
+		with (oWorldManager) _where = "Chapter " + string(chapter) + ", " + chapter_title(chapter) + "  -  spread " + string(min(spreads_cleared + 1, CHAPTER_SPREADS + 1)) + " of " + string(CHAPTER_SPREADS + 1);
+	}
+	draw_set_font(ftDefault);
+	draw_outline_text(_where, c_black, c_white, 2, _gw / 2, _gh * 0.31, 1, _a, 0);
+
+	// the stats, two columns
+	var _fights = string(_s.fights_won);
+	if (_s.elites_won > 0 || _s.bosses_won > 0) _fights += "  (" + string(_s.elites_won) + " elite, " + string(_s.bosses_won) + " boss)";
+	var _rows = [
+		["Fights won", _fights],
+		["Damage dealt", string(_s.damage_dealt)],
+		["Biggest hit", string(_s.biggest_hit)],
+		["Damage taken", string(_s.damage_taken)],
+		["Dice played", string(_s.dice_played)],
+		["Gold earned", string(_s.gold_earned)],
+		["Dice in your bag", string(ds_list_size(global.dice_bag))],
+		["Keepsakes", string(ds_list_size(oRunManager.keepsakes))],
+	];
+	var _panel_w = 760, _row_h = 46;
+	var _px = _gw / 2 - _panel_w / 2, _py = _gh * 0.37;
+	var _panel_h = ceil(array_length(_rows) / 2) * _row_h + 30;
+	draw_set_alpha(0.8 * _a);
+	draw_set_color(global.color_bg);
+	draw_roundrect(_px, _py, _px + _panel_w, _py + _panel_h, false);
+	draw_set_alpha(1);
+	for (var i = 0; i < array_length(_rows); i++) {
+		var _cx = _px + 30 + (i mod 2) * (_panel_w / 2);
+		var _cy = _py + 15 + _row_h / 2 + (i div 2) * _row_h;
+		draw_set_halign(fa_left);
+		draw_outline_text(_rows[i][0], c_black, c_ltgray, 2, _cx, _cy, 1, _a, 0);
+		draw_set_halign(fa_right);
+		draw_outline_text(_rows[i][1], c_black, c_white, 2, _cx + _panel_w / 2 - 60, _cy, 1, _a, 0);
+	}
+
+	// back to the menu
+	var _bw = 360, _bh = 80;
+	var _b = draw_gui_button(_gw / 2 - _bw / 2, _py + _panel_h + 50, _bw, _bh, _r.btn_scale, "Back to the menu", c_orange, ftBig, _a > 0.9, true, UI_LAYER.POPUP);
+	_r.btn_scale = _b.scale;
+	if (_b.click) {
+		global.ui_layer = UI_LAYER.BASE;
+		room_goto(rmMainMenu);
+	}
+	draw_set_halign(fa_center);
 }

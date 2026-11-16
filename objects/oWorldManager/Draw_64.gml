@@ -493,7 +493,7 @@ if (room == rmMap) {
 			gui_w/5,
 			gui_h/12,
 			chapter_btn_scale,
-			voyage_over ? "Back to the menu" : "Turn the page",
+			voyage_over ? "Finish the voyage" : "Turn the page",
 			c_orange,
 			ftBig,
 			chapter_end_alpha > 0.9,
@@ -504,9 +504,8 @@ if (room == rmMap) {
 
 		if (chapter_btn.click) {
 			if (voyage_over) {
-				// the run is won: there's nothing left to continue
-				if (save_exists(1)) delete_save(1);
-				room_goto(rmMainMenu);
+				// the run is won: the summary deletes the save and leads back to the menu
+				run_end(true, "All " + string(CHAPTER_COUNT) + " chapters of the logbook sailed");
 			} else {
 				start_new_chapter();
 			}

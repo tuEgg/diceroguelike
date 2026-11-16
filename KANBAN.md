@@ -23,6 +23,19 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 10: playtest-ready | F35, F05, F13 | `feature/playtest-ready` | **Ready to test.** Escape opens a pause menu (Resume, Settings, Save and quit) that freezes the fight. Death and victory show a voyage summary with run stats. Settings > Gameplay > Combat speed. |
+
+**Batch 10 test list**
+- F35 In a fight, on the map, in a shop and the workbench: Escape opens "Paused" with Resume, Settings, Save and quit. Nothing behind it can be clicked. Escape or Resume closes it and everything works again.
+- F35 Pause mid-fight while your dice or the enemy are resolving: everything stops until you resume, then carries on.
+- F35 Settings from the pause menu: Escape (or Save/Cancel) goes back to the pause menu, not straight to the game. Escape again resumes.
+- F35 Save and quit, then Continue from the menu: you're back at the last stop you reached (mid-fight quits replay that fight, as before).
+- F35 Escape with the bag open closes the bag first. The new-run die + core offer still can't be skipped by pausing and resuming.
+- F05 Die in a fight: "Lost at sea", "Sunk by <enemy names>", chapter and spread, and the stats (fights won with elites/bosses, damage dealt, biggest hit, damage taken, dice played, gold earned, dice in your bag, keepsakes). Back to the menu: no Continue.
+- F05 Die outside a fight (an event that takes HP to 0): same screen, "Your hull gave out on the voyage".
+- F05 Win the voyage (F1 can skip ahead): "Chapter 3 complete" then "Finish the voyage" shows "Voyage complete" with the stats.
+- F05 Quit mid-run and Continue: the stats carry on from the save (older saves start at zero).
+- F13 Settings > Gameplay > Combat speed: Slow, Normal (default), Fast, Fastest. Changing it mid-fight changes the time between dice and actions. Save keeps it after a relaunch; Cancel puts it back. F2/F3/F4 debug speed still work.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
