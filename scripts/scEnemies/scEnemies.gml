@@ -479,3 +479,105 @@ function intel_is_blotted() {
 function intel_state(_level) {
 	return intel_is_blotted() ? global.intel_blotted : global.player_intel_data[| _level];
 }
+
+/// @func draw_outguess_bar(_enemy, _x, _y, _alpha)
+/// @desc The outguess meter under the targeted enemy's intent (call from oCombat's Draw GUI). It fills yellow with the
+///       insight rolled this turn; while you plan, a faint fill shows what your insight slots could roll. The number to
+///       beat is a line when Legible, a band (its range) when Faded, and hidden when Blotted. Orange once outguessed.
+function draw_outguess_bar(_enemy, _x, _y, _alpha) {
+	var _move = _enemy.intent.move;
+	var _w = 130, _h = 12;
+	var _left = _x - _w / 2, _top = _y - _h / 2;
+	var _hidden = intel_is_blotted();
+	var _exact_known = !_hidden && oCombat.intel_level >= 1;
+	var _range_min = _move.dice_amount + _move.bonus_amount;
+	var _range_max = _move.dice_amount * _move.dice_value + _move.bonus_amount;
+	var _exact = intent_rolled_value(_enemy);
+	var _rolled = oCombat.intel_rolled_this_turn;
+	var _planning = (oCombat.state == CombatState.PLAYER_INPUT);
+
+	// while planning: what the insight slots in the queue could roll
+	var _proj_low = 0, _proj_high = 0;
+	if (_planning) {
+		with (oCombat) {
+			for (var i = 0; i < ds_list_size(action_queue); i++) {
+				var _slot = action_queue[| i];
+				if (i == locked_slot || _slot.current_action_type != "INTEL" || ds_list_size(_slot.dice_list) == 0) continue;
+				var _stats = get_slot_stats(_slot, i);
+				_proj_low += _stats.low_roll;
+				_proj_high += _stats.high_roll;
+			}
+		}
+	}
+
+	// the bar's scale: big enough for the number to beat (as far as you can know it) and everything you could roll
+	var _scale_max = max(1, _rolled, _proj_high, _hidden ? 0 : _range_max, _exact_known ? _exact : 0);
+	var _px = function(_v, _left, _w, _scale_max) { return _left + _w * clamp(_v / _scale_max, 0, 1); };
+
+	oCombat.outguess_draw = lerp(oCombat.outguess_draw, _rolled, 0.15);
+	var _old_alpha = draw_get_alpha();
+
+	// background
+	draw_set_alpha(_alpha * 0.6);
+	draw_set_color(c_black);
+	draw_rectangle(_left, _top, _left + _w, _top + _h, false);
+
+	// faint: what you could roll (strongest up to your lowest possible total)
+	if (_planning && _proj_high > 0) {
+		draw_set_color(global.color_intel);
+		draw_set_alpha(_alpha * 0.22);
+		draw_rectangle(_left, _top, _px(_proj_high, _left, _w, _scale_max), _top + _h, false);
+		draw_set_alpha(_alpha * 0.4);
+		draw_rectangle(_left, _top, _px(_proj_low, _left, _w, _scale_max), _top + _h, false);
+	}
+
+	// solid: what you have rolled this turn
+	if (oCombat.outguess_draw > 0.05) {
+		draw_set_color(global.color_intel);
+		draw_set_alpha(_alpha);
+		draw_rectangle(_left, _top, _px(oCombat.outguess_draw, _left, _w, _scale_max), _top + _h, false);
+	}
+
+	// the number to beat: a line when Legible, its range as a band when Faded
+	if (_exact_known) {
+		var _lx = _px(_exact, _left, _w, _scale_max);
+		draw_set_color(c_white);
+		draw_set_alpha(_alpha);
+		draw_line_width(_lx, _top - 5, _lx, _top + _h + 5, 3);
+	} else if (!_hidden) {
+		var _bx1 = _px(_range_min, _left, _w, _scale_max), _bx2 = _px(_range_max, _left, _w, _scale_max);
+		draw_set_color(c_white);
+		draw_set_alpha(_alpha * 0.25);
+		draw_rectangle(_bx1, _top - 3, _bx2, _top + _h + 3, false);
+		draw_set_alpha(_alpha * 0.8);
+		draw_line_width(_bx1, _top - 4, _bx1, _top + _h + 4, 2);
+		draw_line_width(_bx2, _top - 4, _bx2, _top + _h + 4, 2);
+	}
+
+	// outguessed: the whole bar turns orange
+	var _fumbled = intent_is_fumbled(_enemy);
+	if (_fumbled) {
+		draw_set_color(c_orange);
+		draw_set_alpha(_alpha * 0.85);
+		draw_rectangle(_left, _top, _left + _w, _top + _h, false);
+	}
+
+	// outline
+	draw_set_alpha(_alpha);
+	draw_set_color(c_black);
+	draw_rectangle(_left, _top, _left + _w, _top + _h, true);
+
+	// label to the right: rolled / to beat
+	var _label;
+	if (_fumbled) _label = "Outguessed!";
+	else if (_hidden) _label = string(_rolled);
+	else if (_exact_known) _label = string(_rolled) + " / " + string(_exact);
+	else _label = string(_rolled) + " / " + string(_range_min) + "-" + string(_range_max);
+	draw_set_font(ftSmall);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_middle);
+	draw_outline_text(_label, c_black, _fumbled ? c_orange : global.color_intel, 2, _left + _w + 8, _y, 1, _alpha, 0);
+
+	draw_set_alpha(_old_alpha);
+	draw_set_color(c_white);
+}

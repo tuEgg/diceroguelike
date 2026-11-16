@@ -720,8 +720,13 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		
 		draw_outline_text(text, c_black, c_white, 2, text_x, yy, enemy.intent.scale, enemy.intent.alpha - enemy.info_alpha);
 
-		// outguessed by intel this turn: the move does half
-		if (intent_is_fumbled(enemy)) {
+		// the targeted enemy shows the outguess bar: your insight this turn against the number to beat
+		if (e == enemy_target_index && intent_has_numbers(enemy.intent.move)) {
+			draw_outguess_bar(enemy, xx, yy + 40, enemy.intent.alpha);
+		}
+
+		// outguessed by intel this turn: the move does half (the target's bar says it, others get a label)
+		if (intent_is_fumbled(enemy) && e != enemy_target_index) {
 			draw_set_font(ftDefault);
 			draw_set_halign(fa_center);
 			draw_outline_text("Outguessed: half", c_black, c_orange, 2, xx, yy + 30, 1, enemy.intent.alpha - enemy.info_alpha);
