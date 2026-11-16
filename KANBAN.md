@@ -15,7 +15,7 @@
 
 | ID | Task | Notes |
 |---|---|---|
-| H07 | **Web build smoke test**: export HTML5/GX, upload privately to itch.io, list what breaks | Prepped in batch 8: browser fixes behind `IS_BROWSER`, and `docs/web-build.md` (export, itch.io upload, smoke test). Launch steps: `docs/itch-launch.md`. Waiting on Jared to export and report. |
+| | Nothing right now. Jared: itch.io launch when ready (`docs/itch-launch.md`). | |
 
 ---
 
@@ -23,36 +23,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 8: web build | H07, H08, F19, F51, B85, B86, F04 | `feature/web-build` | **Ready to test.** Browser fixes (16:9, dark page behind it), sounds compressed to Ogg (H08), Outguess cut (F19). Insight icons without paper (F51). Tooltips above the event window (B86). Second-fight black screen fixed (B85). New runs start by choosing a die and core pair again (F04). Then follow `docs/web-build.md` and `docs/itch-launch.md`. |
-| 9: tutorial | F54, B69, B87, B88, B89, B90, F55, B91 | `feature/tutorial` (from `feature/web-build`) | **Ready to test.** Part 1: progress.json, intro once ever, Settings > Gameplay > Tutorial next run. Part 2: map notes for the first voyage and a two-turn guided first fight. Fixes: discard bag click spot (B87), End Turn outline (B88). Part 3: one-time tips the first time things come up. Then: insight panel over the notes (B89), cores drop into the workbench's middle slot (B90), runs start with only the Drill (F55). Deepdiver fires only when it is the die played (B91). |
 
-**Batch 8 test list**
-- H07 Desktop build first (Run as usual): nothing changed. Settings still has Resolution and Fullscreen, Exit quits, double Escape quits.
-- H07 Web: follow the smoke test in `docs/web-build.md`. Specifically for this batch: no Exit button, no Resolution row, the canvas stays 16:9 and refits when you resize the window or use itch's fullscreen, clicks line up with buttons.
-- H07 Web: the page around the 16:9 game is dark navy, not white.
-- H08 Every sound still plays (clicks, dice, swords, shields, rubble, end turn) and the intro music plays. Open one sound in GameMaker: it says Compressed. The exported zip should be far smaller (sounds were about 20 MB as WAV).
-- F19 Outguess is gone: no bar under the target, no "Outguessed!", no halving. Insight dice still count next turn; the panel footer says so. Enemies hit for the number shown.
-- F51 The insight icons have no paper now: Blotted is a dark ink spill with a red edge, Faded an outlined yellow drop, Legible a filled yellow drop, Quill a yellow quill. Check them above the player (bigger now), in the insight panel and beside rewritable intents.
-- B86 Open an event (e.g. A precious ingot) and hover the toolbag or a keepsake in the top bar: the tooltip draws on top of the event window. Tooltips everywhere else (combat, shop, F1 menu) still show on top.
-- B85 Web build: play two or three fights in a row (and an event between two of them): every fight loads, no black screen. Check the console (F12) stays free of red errors. Desktop: fights still start normally.
-- F04 Start a new voyage: before drafting pages, a "New Run Offering" screen offers 3 die + core pairs. Pick one: the die flies to your bag and the core lands in your item bar, then you draft pages as usual. The map can't be clicked while it's up, even after opening and closing the bag or settings. Quit to the menu before picking and Continue: the offering shows again. Continue a run that has already picked: no offering.
-
-**Batch 9 test list**
-- B69 Start a new voyage with the intro turned on (F1 > Hotkeys: Playing): it plays. Quit the game completely, launch again, start another voyage: no intro. In F1 click it back to Playing: the next voyage plays it again.
-- F54 Settings has a new Gameplay tab with "Tutorial next run". It starts on for a new player. Turn it off, close Settings, quit and relaunch: still off. Turn it on: on. (It does nothing else yet: the guided fight is part 2.)
-- F54 Everything else in Settings (volumes, Save/Cancel, Display) still works.
-- F54 Map notes (turn "Tutorial next run" on, start a new voyage): a note over the die + core offering; then on the drafting book a note pointing at the pages (choose 2, the first choice locks one away); after 2 picks a note on Embark; once sailing, a note pointing at your first stop (outlined), not the ship. Each shows once ever (they come back only when the setting is turned on again).
-- F54 Guided fight, turn 1 (a lone Pirate Ruffian; hand Attack, Attack, Insight, Generic, Block, Block from your bag): intent (says 0 to 4 insight shows a range, 5 the exact number) (Next) > Attack die in the empty slot > the other Attack die on top > sacrifice the Insight die on the new-slot tile (it becomes the new slot with the die in it) > the Generic die into the Attack slot > note on dice lasting 2 turns, Generic 1, bold outline (Next) > End Turn.
-- F54 Guided fight, turn 2 (starts with an Attack and a Block die): insight note (ranges below 5, exact at 5, Quill at 10) (Next) > sacrifice the Attack and Block dice to build a slot that can do either > right-click that slot to switch its action > "The rest is yours" (Set sail).
-- F54 While a step waits, other moves are refused with "Not yet: Follow the logbook...": the wrong die in a slot, sacrificing the wrong die, the discard button, End Turn or Enter before its step. The yellow outline sits right round the End Turn button (B88).
-- B87 Click the DISCARD bag at the bottom right of a fight: the discard pile opens. Clicking the top right corner no longer opens it.
-- F54 One-time tips (parchment note at the top or pointing at the thing, with "Got it"; each shows once): after your first stop, the map's "Visit the workbench" button; inside the workbench (slots, Hammer, Cutters, Drill); when a spread is done (rest or core); in a fight, reaching 5 insight (Legible), 10 (Quill), going below 0 (Blotted); your first shop, event, bounty board and treasure. Not shown during the guided fight, a cutscene, Settings, the bag view or the start offering.
-- F54 Skip tutorial in the guided fight also marks every tip seen. Turning "Tutorial next run" back on brings the tips back too.
-- B89 In the guided fight (and with the Legible/Quill/Blotted tips up), hover the insight eye: its panel draws on top of the note, not under it.
-- B90 At the workbench, drag a core from the top bar over the middle slot: the core stays on top of the slot while you carry it, and letting go puts it in (the distribution shows above). Click it to take it back. With a die already in the middle slot, the core goes back to the bar. Potions still drag and drink as before (in a fight).
-- F55 A new voyage starts with only the Drill in the toolbag (the count says 1). Shops offer the Hammer and Cutters; buying one adds it to the toolbag. The "random tool" event can still give one. Continue an older save: it keeps the tools it had. The workbench tip is short and only mentions the Drill.
-- B91 Play a Deepdiver Die into a slot: it discards your remaining dice and draws 2. Then play another die into that slot (or any slot): nothing is discarded or drawn. Invisible and Echo dice still work only for themselves.
-- F54 Skip tutorial (top right) ends it at once; so does winning or losing. Start another voyage: no Ruffian set-up, no notes. Settings > Gameplay shows Tutorial next run off. Turn it on again: the next voyage is guided again.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -75,7 +46,6 @@ All known P0 bugs are fixed, see DONE.
 **Map / events / bounty / workbench**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B85 | Web build: black screen starting any fight after the first (seen after an event). Each fight's CleanUp sets its lists to undefined and the next fight's Create called ds_exists(undefined), which desktop allows and the web build doesn't. Fixed in batch 8: `ds_safe_exists` everywhere. | `oCombat/Create_0`, all ds_exists | S |
 
 **Save / load**
 | ID | Bug | Size |
@@ -114,8 +84,6 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 **Core loop**
 - F02 **Rethink what happens between pages (Jared, 2026-11-17).** Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
 - F03 Elite/boss chest reward
-- F04 Starting choice (die + core) at run start *(classes cut, 2026-11-15)* (re-enabled in batch 8)
-- F54 **Tutorial** (agreed 2026-11-16): logbook margin notes with an arrow. Part 1 progress file + replay setting (batch 9). Part 2 the first combat of a first-ever run is guided: set enemy and hand, only the pointed-at action allowed, Skip button; teaches intents, laying a die in a slot, stacking, ending the turn, sacrificing for a new slot, the insight die. Part 3 one-time tips: the workbench after the first room (on the map and inside), first Legible, first Quill; later shop, event, bounty. Part 3 built in batch 9 (also: rest/core after a spread, Blotted, treasure).
 - F05 Death / win screens, run summary, die roll-history stats page
 - F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
 
@@ -147,15 +115,14 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F42 Unique visual per die
 
 **Art direction (parked, Jared wants to discuss later)**
-- F50 Decide an art style for the game. Jared isn't an artist and wants to explore AI-assisted art workflows (he's been following r/aigamedev). Covers dice, enemies, map/book, UI and backgrounds. Don't start until he raises it.
-- F51 Icons for the insight states: Blotted (smudged page), Faded, Legible and Quill. Placeholders are drawn in code by `draw_insight_icon` (scHelpers); swap in sprites there. Part of F50.
+- F50 Decide an art style for the game. Jared isn't an artist and wants to explore AI-assisted art workflows (he's been following r/aigamedev). Covers dice, enemies, map/book, UI and backgrounds. Don't start until he raises it. Includes real sprites for the insight states (placeholders drawn by `draw_insight_icon` in scHelpers, F51).
 
 ---
 
 ## ❓ OPEN QUESTIONS (design decisions blocking work)
 
 - Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
-- Q7 Resolution targets: just 1080p + 1440p, or arbitrary? (decides how much layout work T07 needs)
+- Q7 Resolution targets: just 1080p + 1440p, or arbitrary? (decides how much layout work T07 needs)
 - Q8 Between pages: what should the choices be, and should the workbench stay available after every node? (see F02)
 
 ## 📌 DECISIONS
@@ -253,6 +220,20 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | F19 | ~~Outguess~~ (cut 2026-11-16 in batch 8: too complex, a minigame of its own): insight rolled this turn that beats your target's number halves its move; outguess bar under the target's intent | Batch 7: intel rework | 2026-11-16 |
 | F52 | Intel is called Insight on screen; logbook states Blotted/Faded/Legible/Quill; placeholder page icons; compact panel | Batch 7: intel rework | 2026-11-16 |
 | F53 | Overwhelm stays on you for your turn, lowers insight and locks your target | Batch 7: intel rework | 2026-11-16 |
+| H07 | Web build: fits the browser at 16:9 on a dark page, no Exit/Resolution/double-Escape in the browser; `docs/web-build.md`, `docs/itch-launch.md` | Batch 8: web build | 2026-11-16 |
+| H08 | Sounds compressed to Ogg (were ~20 MB of WAV) | Batch 8: web build | 2026-11-16 |
+| F51 | Insight state icons, placeholders drawn in code without the paper (spill, outlined drop, filled drop, quill); real sprites wait for F50 | Batch 8: web build | 2026-11-16 |
+| B85 | Web build went black starting a second fight: `ds_exists(undefined)` throws in HTML5; `ds_safe_exists` everywhere | Batch 8: web build | 2026-11-16 |
+| B86 | Tooltips drawn in Draw GUI End, above the event window and every other window | Batch 8: web build | 2026-11-16 |
+| F04 | New runs start by choosing a die + core pair again | Batch 8: web build | 2026-11-16 |
+| F54 | Tutorial: progress.json, map notes, two-turn guided first fight with Skip, one-time tips, Settings > Gameplay > Tutorial next run | Batch 9: tutorial | 2026-11-16 |
+| B69 | The intro plays once ever (progress.json), not every new voyage | Batch 9: tutorial | 2026-11-16 |
+| B87 | Discard bag opens from the bag itself, not the top right corner | Batch 9: tutorial | 2026-11-16 |
+| B88 | Tutorial End Turn outline sits round the button | Batch 9: tutorial | 2026-11-16 |
+| B89 | Insight hover panel draws over tutorial notes and tips | Batch 9: tutorial | 2026-11-16 |
+| B90 | Cores drop into the workbench's middle slot reliably and draw on top while carried | Batch 9: tutorial | 2026-11-16 |
+| F55 | Runs start with only the Drill; the Hammer and Cutters are bought in shops | Batch 9: tutorial | 2026-11-16 |
+| B91 | Deepdiver fires only when it is the die played, not for every die after it | Batch 9: tutorial | 2026-11-16 |
 
 **Milestones**
 
