@@ -220,17 +220,7 @@ switch (state) {
 
     case CombatState.PLAYER_INPUT:
 		
-		if (debug_mode) {
-			if keyboard_check_pressed(vk_space) {
-				for (var i = 0; i < ds_list_size(room_enemies); i++) {
-					process_action(room_enemies[| i], 0, 20, 0, "player", -1, "ATK", 0, global.dice_d4_atk, 1);
-				}
-			}
-			
-			if keyboard_check_pressed(vk_backspace) {
-					process_action("player", 0, 20, 0, room_enemies[| 0], -1, "ATK");
-			}
-		}
+		// (the Space and Backspace testing keys now live in scDebug, debug_hotkeys)
 
 
         // Wait for player input

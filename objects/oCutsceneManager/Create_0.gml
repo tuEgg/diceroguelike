@@ -3,7 +3,7 @@ cutscenes = [
 		voiceover: sIntro,
 		music: undefined,
 		length: 19, // length in seconds
-		seen: debug_mode ? true : false,
+		seen: debug_skip_intro(), // skipped when run from GameMaker, unless turned back on in the F1 menu (Hotkeys tab)
 		triggers: [
 			{
 				variable: "room",

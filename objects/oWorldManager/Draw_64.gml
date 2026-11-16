@@ -61,23 +61,22 @@ if (room == rmMap) {
 		}
 	}
 	
-	// Chapter tab: a divider tab on the boss page (the last page of this chapter's book), sticking out of
-	// the right-hand side of the book like a folder divider. It names the chapter that starts after the boss.
-	// It is drawn before the boss page, so the page covers its base and only the part past the edge shows.
-	// Placeholder shapes until there is art: nudge these numbers to move or resize it.
+	// Chapter tabs: folder-style divider tabs on the boss page (the last page of this chapter's book),
+	// sticking out of the right-hand side of the book. There is one for every chapter still to come, so the
+	// player can see how long the voyage is. Each is drawn before the boss page, so only the part past the
+	// paper shows. Placeholder shapes until there is art: nudge these numbers to move or resize them.
 	var tab_edge_inset = 50;	// how far in from the sprite's right edge the paper actually ends
-	var tab_out = 46;			// how far the tab sticks out past the paper
-	var tab_h = 230;			// length of the tab along the edge of the book
-	var tab_y_offset = -150;	// tab centre, relative to the middle of the page
+	var tab_out = 90;			// how far each tab sticks out past the paper
+	var tab_h = 230;			// length of a tab along the edge of the book
+	var tab_gap = 16;			// space between one tab and the next
+	var tab_y_offset = -150;	// first tab's centre, relative to the middle of the page
 	var tab_slant = 22;			// how much the outer corners are cut, like a folder tab
-	
+
 	var tab_page = array_length(page_image_indices) - 1;
 	var tab_x0 = gui_w/2 + page_pos_offset + (page_offset * tab_page) + (sprite_get_width(sWorldBook) * page_xscale * book_open_scale) - tab_edge_inset - 30;
 	var tab_x1 = tab_x0 + 30 + tab_out;
-	var tab_y0 = page_y + tab_y_offset - tab_h/2;
-	var tab_y1 = page_y + tab_y_offset + tab_h/2;
-	var tab_label = "Chapter " + string(chapter + 1);
-	
+	var tab_first_y0 = page_y + tab_y_offset - tab_h/2;
+
 	// draw right pages
 	for (var i = array_length(page_image_indices) - 1; i >= book_spread; i--) {
 		// for animating current page
@@ -97,7 +96,10 @@ if (room == rmMap) {
 		
 		// the chapter tab sits under the boss page, which covers its base
 		if (i == tab_page && book_open_scale > 0.5) {
-			draw_chapter_tab(tab_x0, tab_y0, tab_x1, tab_y1, tab_slant, tab_label, tab_out, book_open_scale);
+			for (var c = chapter + 1; c <= CHAPTER_COUNT; c++) {
+				var tab_y0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
+				draw_chapter_tab(tab_x0, tab_y0, tab_x1, tab_y0 + tab_h, tab_slant, "Chapter " + string(c), chapter_tab_colour(c), tab_out, book_open_scale);
+			}
 		}
 		
 		// draw the paper pages
@@ -109,15 +111,24 @@ if (room == rmMap) {
 		}
 	}
 	
-	// hovering the part of the tab that sticks out explains it
-	if (book_open_scale > 0.5 && mouse_hovering(tab_x1 - tab_out, tab_y0, tab_out, tab_h, false)) {
-		var spreads_to_boss = max(0, CHAPTER_SPREADS - spreads_cleared);
-		var tab_text = "The boss is on this spread.";
-		if (spreads_to_boss == 1) tab_text = "1 more spread until the boss.";
-		if (spreads_to_boss > 1) tab_text = string(spreads_to_boss) + " more spreads until the boss.";
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Chapter " + string(chapter) + ": " + chapter_title(chapter), tab_text + " Chapter " + string(chapter + 1) + " begins after it.");
+	// hovering the part of a tab that sticks out explains it
+	for (var c = chapter + 1; c <= CHAPTER_COUNT && book_open_scale > 0.5; c++) {
+		var tab_y0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
+		if (!mouse_hovering(tab_x1 - tab_out, tab_y0, tab_out, tab_h, false)) continue;
+
+		var tab_text;
+		if (c == chapter + 1) {
+			var spreads_to_boss = max(0, CHAPTER_SPREADS - spreads_cleared);
+			tab_text = "The boss is on this spread.";
+			if (spreads_to_boss == 1) tab_text = "1 more spread until the boss.";
+			if (spreads_to_boss > 1) tab_text = string(spreads_to_boss) + " more spreads until the boss.";
+			tab_text += " Chapter " + string(c) + " begins after it.";
+		} else {
+			tab_text = "Chapter " + string(c) + " of " + string(CHAPTER_COUNT) + ", after the chapter before it.";
+		}
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Chapter " + string(c) + ": " + chapter_title(c), tab_text);
 	}
-	
+
 	draw_set_alpha(1.0);
 
 	// Draw the pages
@@ -454,32 +465,43 @@ if (room == rmMap) {
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBigger);
-		draw_outline_text("Chapter " + string(chapter) + " complete", c_black, c_white, 3, gui_w/2, gui_h * 0.34, 1, chapter_end_alpha, 0);
+		var voyage_over = (chapter >= CHAPTER_COUNT);
+
+		draw_outline_text(voyage_over ? "Voyage complete" : "Chapter " + string(chapter) + " complete", c_black, c_white, 3, gui_w/2, gui_h * 0.34, 1, chapter_end_alpha, 0);
 		draw_set_font(ftBig);
 		draw_outline_text(chapter_title(chapter), c_black, c_white, 2, gui_w/2, gui_h * 0.41, 1, chapter_end_alpha, 0);
 		draw_set_font(ftDefault);
-		draw_outline_text("Next: Chapter " + string(chapter + 1) + ", " + chapter_title(chapter + 1) + ". The seas grow more dangerous.", c_black, c_white, 2, gui_w/2, gui_h * 0.50, 1, chapter_end_alpha, 0);
-		
+		var next_text = voyage_over
+			? "You have sailed all " + string(CHAPTER_COUNT) + " chapters of the logbook."
+			: "Next: Chapter " + string(chapter + 1) + ", " + chapter_title(chapter + 1) + ". The seas grow more dangerous.";
+		draw_outline_text(next_text, c_black, c_white, 2, gui_w/2, gui_h * 0.50, 1, chapter_end_alpha, 0);
+
 		var chapter_btn = draw_gui_button(
 			gui_w/2 - gui_w/10,
 			gui_h * 0.58,
 			gui_w/5,
 			gui_h/12,
 			chapter_btn_scale,
-			"Turn the page",
+			voyage_over ? "Back to the menu" : "Turn the page",
 			c_orange,
 			ftBig,
 			chapter_end_alpha > 0.9,
 			true
 		);
-		
+
 		chapter_btn_scale = lerp(chapter_btn_scale, chapter_btn.hover ? 1.2 : 1.0, 0.2);
-		
+
 		if (chapter_btn.click) {
-			start_new_chapter();
+			if (voyage_over) {
+				// the run is won: there's nothing left to continue
+				if (save_exists(1)) delete_save(1);
+				room_goto(rmMainMenu);
+			} else {
+				start_new_chapter();
+			}
 		}
 	}
-	
+
 	if (world_state == WORLD_STATE.EXPLORING) {
 		// Draw the button to visit the workbench
 		var workbench_btn = draw_gui_button(

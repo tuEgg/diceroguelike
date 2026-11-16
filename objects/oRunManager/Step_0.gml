@@ -22,7 +22,8 @@ if (key_escape && global.ui_layer != UI_LAYER.DEBUG) {
 key_restart = keyboard_check_pressed(ord("R")) && DEBUG_TOOLS;
 if key_restart game_restart();
 
-if (debug_mode) {
+// testing keys, listed on the F1 menu's Hotkeys tab
+if (DEBUG_TOOLS) {
 	key_workbench = keyboard_check_pressed(ord("W"));
 	if (key_workbench) room_goto(rmWorkbench);
 	

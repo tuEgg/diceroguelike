@@ -899,6 +899,7 @@ function start_drafting() {
 // =====================================================================
 
 #macro CHAPTER_SPREADS 7				// drafted spreads before the boss spread
+#macro CHAPTER_COUNT 3				// chapters in a voyage, beating the last boss wins the run
 #macro CHAPTER_ENEMY_HP_GROWTH 0.5		// each chapter after the first adds this fraction of an enemy's health
 #macro CHAPTER_ENEMY_BONUS_GROWTH 3		// each chapter after the first adds this to every enemy attack and block
 
@@ -1115,8 +1116,7 @@ function node_pick_encounter(_memory_node, _pool) {
 /// @desc A folder-style divider tab sticking out to the right, with its label running down it.
 ///       x0 is the inner end (hidden under the page), x1 the outer end; the outer corners are cut.
 ///       _visible_w is how much sticks out past the page, the label is centred on that part.
-function draw_chapter_tab(_x0, _y0, _x1, _y1, _slant, _label, _visible_w, _alpha) {
-	var _col = make_color_rgb(70, 190, 170);	// teal, like a divider tab
+function draw_chapter_tab(_x0, _y0, _x1, _y1, _slant, _label, _col, _visible_w, _alpha) {
 	var _outline = 4;
 	
 	draw_set_alpha(_alpha);
@@ -1144,4 +1144,13 @@ function draw_tab_shape(_x0, _y0, _x1, _y1, _slant) {
 	draw_rectangle(_x1 - _slant, _y0 + _slant, _x1, _y1 - _slant, false);
 	draw_triangle(_x1 - _slant, _y0, _x1, _y0 + _slant, _x1 - _slant, _y0 + _slant, false);
 	draw_triangle(_x1 - _slant, _y1, _x1, _y1 - _slant, _x1 - _slant, _y1 - _slant, false);
+}
+
+/// @desc The colour of a chapter's divider tab: teal for chapter 2, violet for chapter 3.
+function chapter_tab_colour(_chapter) {
+	switch (_chapter) {
+		case 2: return make_color_rgb(70, 190, 170);
+		case 3: return make_color_rgb(140, 95, 200);
+		default: return make_color_rgb(200, 150, 70);
+	}
 }

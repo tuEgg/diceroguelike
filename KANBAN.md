@@ -24,7 +24,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| Remaining save gaps | B70, B71, B72 | `fix/save-gaps` | Fixed in code, **not yet play-tested**. Keepsake internal state is deliberately not saved: every keepsake `state` only tracks per-turn or per-fight flags. |
+| Remaining save gaps | B70, B71, B72 | `fix/save-gaps` | Jared play-tested 2026-11-17: works. Not merged yet. Keepsake internal state is deliberately not saved: every keepsake `state` only tracks per-turn or per-fight flags. |
+| Chapter tabs, voyage end, hotkeys, intro skip | F06 (tabs), H05, T14 (additions) | `feature/tabs-hotkeys-intro` | Built, **not yet play-tested**. Tabs stick out further, one per chapter still to come (Chapter 3 is violet); beating the chapter 3 boss ends the run ("Voyage complete"); testing hotkeys (Space kills all) listed on a new F1 Hotkeys tab; old letter keys now work whenever run from GameMaker; intro skipped from GameMaker, with a toggle on the Hotkeys tab. |
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs

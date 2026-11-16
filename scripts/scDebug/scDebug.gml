@@ -24,7 +24,7 @@ function debug_menu_init() {
 		scroll: 0,
 		prev_ui_layer: UI_LAYER.BASE,
 
-		tabs: ["Run", "Fight", "Combat", "Dice", "Keepsakes", "Items", "Events", "Rooms"],
+		tabs: ["Run", "Fight", "Combat", "Dice", "Keepsakes", "Items", "Events", "Rooms", "Hotkeys"],
 
 		// Fight builder
 		enemy_names: ["Deckhand", "Baby Kraken", "Seagull", "Thug", "Pirate Ruffian", "Parrot", "Peg-leg", "Elizabeak", "Bill",
@@ -59,7 +59,37 @@ function debug_menu_init() {
 		message: "",
 		message_timer: 0,
 		clicked: false,				// was the left mouse button pressed this frame (set while drawing)
+
+		// Kept between sessions in debug_settings.json (see debug_settings_save)
+		skip_intro: true,			// skip the intro cutscene when the game is run from GameMaker
 	};
+
+	debug_settings_load();
+}
+
+/// Debug settings live in their own small file, next to the save, so they survive restarts.
+function debug_settings_load() {
+	if (!file_exists("debug_settings.json")) return;
+	try {
+		var _file = file_text_open_read("debug_settings.json");
+		var _settings = json_parse(file_text_read_string(_file));
+		file_text_close(_file);
+		if (variable_struct_exists(_settings, "skip_intro")) global.dbg.skip_intro = _settings.skip_intro;
+	} catch (_error) {
+		show_debug_message("Couldn't read debug_settings.json: " + string(_error));
+	}
+}
+
+function debug_settings_save() {
+	var _file = file_text_open_write("debug_settings.json");
+	file_text_write_string(_file, json_stringify({ skip_intro: global.dbg.skip_intro }));
+	file_text_close(_file);
+}
+
+/// oCutsceneManager Create: should the intro count as already seen? Only ever true when run from GameMaker.
+function debug_skip_intro() {
+	if (!DEBUG_TOOLS) return false;
+	return global.dbg.skip_intro;
 }
 
 /// Show a short confirmation line at the bottom of the menu.
@@ -118,7 +148,58 @@ function debug_menu_step() {
 		if (mouse_wheel_down())	dbg.scroll += 3;
 	}
 
+	if (!dbg.open) debug_hotkeys();
+
 	if (dbg.message_timer > 0) dbg.message_timer--;
+}
+
+/// The testing shortcut keys, listed on the Hotkeys tab. Only when run from GameMaker, and never during a cutscene.
+function debug_hotkeys() {
+	if (global.all_input_disabled) exit;
+
+	var in_run = instance_exists(oRunManager) && instance_exists(oWorldManager);
+	if (!in_run) exit;
+
+	var in_combat = (room == rmCombat && instance_exists(oCombat));
+
+	// Space: kill every enemy and finish the fight
+	if (keyboard_check_pressed(vk_space) && in_combat) {
+		debug_kill_all_and_end_turn();
+	}
+
+	// Backspace: the first enemy hits you for 20
+	if (keyboard_check_pressed(vk_backspace) && in_combat && ds_list_size(oCombat.room_enemies) > 0) {
+		with (oCombat) process_action("player", 0, 20, 0, room_enemies[| 0], -1, "ATK");
+	}
+
+	// H: heal to full
+	if (keyboard_check_pressed(ord("H"))) {
+		global.player_hp = global.player_max_hp;
+	}
+
+	// D: draw a die
+	if (keyboard_check_pressed(ord("D")) && in_combat) {
+		oCombat.dice_to_deal += 1;
+		oCombat.is_dealing_dice = true;
+	}
+
+	// N: complete this spread (on the map)
+	if (keyboard_check_pressed(ord("N")) && room == rmMap) {
+		debug_complete_spread();
+	}
+}
+
+/// Kill every enemy, then end the turn if the player is mid-turn, so the fight wraps up on its own.
+function debug_kill_all_and_end_turn() {
+	if (!instance_exists(oCombat)) exit;
+
+	for (var i = 0; i < ds_list_size(oCombat.room_enemies); i++) {
+		debug_kill_enemy(oCombat.room_enemies[| i]);
+	}
+
+	with (oCombat) {
+		if (state == CombatState.PLAYER_INPUT && !is_dealing_dice && !show_rewards) actions_submitted = true;
+	}
 }
 
 /// Called on every room start from oDebugger.
@@ -321,6 +402,43 @@ function debug_menu_draw() {
 	switch (dbg.tabs[dbg.tab]) {
 
 		// -------------------------------------------------------------
+		case "Hotkeys":
+			var yy = cy;
+
+			debug_label(cx, yy + 6, "Skip the intro cutscene when run from GameMaker:");
+			yy += row_h;
+			if (debug_button(cx, yy, half_w, row_h, dbg.skip_intro ? "Skipping (click to play it)" : "Playing (click to skip it)", dbg.skip_intro)) {
+				dbg.skip_intro = !dbg.skip_intro;
+				debug_settings_save();
+				// takes effect on the next run, or right away if a run hasn't reached the map yet
+				if (instance_exists(oCutsceneManager)) oCutsceneManager.cutscenes[0].seen = dbg.skip_intro;
+				debug_say(dbg.skip_intro ? "The intro will be skipped" : "The intro will play when a run reaches the map");
+			}
+			yy += row_h * 1.5;
+
+			var keys = [
+				["F1 / Escape",	"Open and close this menu"],
+				["Space",		"Kill all enemies and finish the fight"],
+				["Backspace",	"An enemy hits you for 20"],
+				["H",			"Heal to full"],
+				["D",			"Draw a die (in a fight)"],
+				["N",			"Complete this spread (on the map)"],
+				["R",			"Restart the game"],
+				["C / L / A",	"Go to a normal / elite / alignment fight"],
+				["S / E / B / T / W / X", "Shop / event / bounty / treasure / workbench / map"],
+				["G",			"Gain every keepsake"],
+				["Q",			"Show the dice in your bag"],
+			];
+			debug_label(cx, yy, "Hotkeys (only when run from GameMaker, with this menu closed)", c_yellow);
+			yy += row_h;
+			for (var k = 0; k < array_length(keys); k++) {
+				debug_label(cx, yy, keys[k][0], c_aqua);
+				debug_label(cx + third_w, yy, keys[k][1]);
+				yy += row_h;
+			}
+		break;
+
+		// -------------------------------------------------------------
 		case "Run":
 			if (!in_run) {
 				debug_label(cx, cy, "Start a run first.");
@@ -455,10 +573,8 @@ function debug_menu_draw() {
 				debug_say("Killed the targeted enemy");
 			}
 			if (debug_button(cx + half_w, yy, half_w, row_h, "Kill all enemies (win)")) {
-				for (var i = 0; i < ds_list_size(oCombat.room_enemies); i++) {
-					debug_kill_enemy(oCombat.room_enemies[| i]);
-				}
-				debug_say("Killed all enemies, end the turn to finish the fight");
+				debug_kill_all_and_end_turn();
+				debug_say("Killed all enemies");
 			}
 			yy += row_h;
 
