@@ -24,7 +24,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| Chapter ending | F01, F02, F06 | `feature/chapter-ending` | Jared play-tested 2026-11-16: boss reward and chapter 2 work. Follow-up fixes **not yet play-tested**: ribbon drawn under the pages, tooltip titles no longer wrap, Deep Lens replaces Looking Glass in place, debug kill no longer shows a giant red number, Alt panels removed (map odds moved to the F1 Rooms tab). Boss on the 8th spread, ribbon bookmark, boss keepsake reward, chapter 2 with tougher enemies. |
+
+Nothing is waiting for a playtest right now.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -104,12 +105,11 @@ All known P0 bugs are fixed, see DONE.
 Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
 
 **Core loop**
-- F01 Boss node + boss reward: the boss is now placed on the 8th spread and pays out boss keepsakes (see F06)
-- F02 Act structure: "14 pages then boss" is built (see F06). Still open: the page-turn heal amount (design says 20%, the code heals 25% as a choice against a core)
+- F02 Page-turn heal amount: the design says 20%, the code heals 25% (offered as a choice against a free core). Pick one. The "14 pages then boss" part is done (F06).
 - F03 Elite/boss chest reward
 - F04 Starting choice (die + core) at run start *(classes cut, 2026-11-15)*
 - F05 Death / win screens, run summary, die roll-history stats page
-- F06 **Acts as chapters of one long book.** Built: each chapter is 7 drafted spreads then a boss spread (`CHAPTER_SPREADS` in scMap). A ribbon bookmark sits on the boss page. Beating the boss gives a choice of boss keepsakes, then a "chapter complete" screen, then a fresh book for the next chapter. Enemies gain +50% health and +3 to attacks and blocks per chapter (placeholder numbers, macros in scMap). Still to do: real ribbon art, a second boss (chapter 2 reuses Barnacle Titan), story tie-in, proper balance.
+- F06 Chapters, what's left: real ribbon art, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
 
 **Combat clarity** (the most common playtest feedback)
 - F10 Always show the enemy intent *type*; intel reveals the numbers
@@ -212,9 +212,11 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | B65 | Broken Sails "Repair" deletes `items[rand]` instead of `items[item_pool[rand]]` (free keepsake) | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
 | B66 | Shipwright gives a duplicate tool (not removed from `master_tool_list`) | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
 | B68 | Wrong arguments: `clamp(0,x,100)`, `object_exists(oCombat)`, `room = rmMainMenu` | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| F01 | Boss node and boss reward: boss on the 8th spread of each chapter, choice of boss keepsakes | Chapter ending | 2026-11-16 |
 
 **Milestones**
 
 - 2026-11-15 Full code audit; this board created.
 - 2026-11-15 H01 leaked SSH key deleted on GitHub · H02/H03 repo moved off Google Drive to `C:\Users\Jared\Projects\TidesOfFortune` (Drive copy left as a backup) · H04 `.gitignore` covers keys and builds · world-map WIP saved to `wip/world-map`.
 - (Healing potion rounding: already `ceil` in fddd600.)
+- 2026-11-16 **Chapters (F06 core):** 7 drafted spreads then a boss spread, ribbon bookmark on the boss page, boss keepsake reward, "chapter complete" screen, chapter 2 with tougher enemies. Deep Lens replaces Looking Glass in place. Alt debug panels retired, map odds moved to the F1 Rooms tab.
