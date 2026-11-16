@@ -61,10 +61,12 @@ if (room == rmMap) {
 		}
 	}
 	
-	// Chapter tabs: folder-style divider tabs on the boss page (the last page of this chapter's book),
-	// sticking out of the right-hand side of the book. There is one for every chapter still to come, so the
-	// player can see how long the voyage is. Each is drawn before the boss page, so only the part past the
-	// paper shows. Placeholder shapes until there is art: nudge these numbers to move or resize them.
+	// Chapters still to come: the book carries a short stack of pages for each one behind this chapter's
+	// pages, and a folder-style divider tab on the first page of each, sticking out of the right-hand side.
+	// Each tab is drawn just before its page, so the pages in front cover its base, and the pages of the
+	// chapter in between show as edges between one tab and the next.
+	// Placeholder shapes until there is art: nudge these numbers to move or resize them.
+	var future_pages_per_chapter = 5;	// pages drawn for each chapter still to come
 	var tab_edge_inset = 50;	// how far in from the sprite's right edge the paper actually ends
 	var tab_out = 90;			// how far each tab sticks out past the paper
 	var tab_h = 230;			// length of a tab along the edge of the book
@@ -72,16 +74,17 @@ if (room == rmMap) {
 	var tab_y_offset = -150;	// first tab's centre, relative to the middle of the page
 	var tab_slant = 22;			// how much the outer corners are cut, like a folder tab
 
-	var tab_page = array_length(page_image_indices) - 1;
-	var tab_x0 = gui_w/2 + page_pos_offset + (page_offset * tab_page) + (sprite_get_width(sWorldBook) * page_xscale * book_open_scale) - tab_edge_inset - 30;
-	var tab_x1 = tab_x0 + 30 + tab_out;
+	var chapter_pages = array_length(page_image_indices);
+	var future_chapters = max(0, CHAPTER_COUNT - chapter);
+	var last_page = chapter_pages - 1 + future_chapters * future_pages_per_chapter;
+	var page_w_on_screen = sprite_get_width(sWorldBook) * page_xscale * book_open_scale;
 	var tab_first_y0 = page_y + tab_y_offset - tab_h/2;
 
-	// draw right pages
-	for (var i = array_length(page_image_indices) - 1; i >= book_spread; i--) {
+	// draw right pages, back to front (the chapters still to come are at the back)
+	for (var i = last_page; i >= book_spread; i--) {
 		// for animating current page
 		var x_scale = page_xscale * book_open_scale;
-					
+
 		if (i == book_spread) {
 			if (world_state == WORLD_STATE.TURNING) {
 				if (current_page_turn > 0) {
@@ -93,17 +96,18 @@ if (room == rmMap) {
 				x_scale = 0;
 			}
 		}
-		
-		// the chapter tab sits under the boss page, which covers its base
-		if (i == tab_page && book_open_scale > 0.5) {
-			for (var c = chapter + 1; c <= CHAPTER_COUNT; c++) {
-				var tab_y0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
-				draw_chapter_tab(tab_x0, tab_y0, tab_x1, tab_y0 + tab_h, tab_slant, "Chapter " + string(c), chapter_tab_colour(c), tab_out, book_open_scale);
-			}
+
+		// a later chapter's first page carries its tab, drawn first so this page covers its base
+		var future_index = i - chapter_pages;
+		if (future_index >= 0 && future_index mod future_pages_per_chapter == 0 && book_open_scale > 0.5) {
+			var c = chapter + 1 + (future_index div future_pages_per_chapter);
+			var tab_x0 = gui_w/2 + page_pos_offset + (page_offset * i) + page_w_on_screen - tab_edge_inset - 30;
+			var tab_y0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
+			draw_chapter_tab(tab_x0, tab_y0, tab_x0 + 30 + tab_out, tab_y0 + tab_h, tab_slant, "Chapter " + string(c), chapter_tab_colour(c), tab_out, book_open_scale);
 		}
-		
-		// draw the paper pages
-		draw_sprite_ext(sWorldBook, page_image_indices[i], gui_w/2 + (page_pos_offset) + (page_offset * i), page_y, x_scale, page_yscale, 0, c_white, 1.0);
+
+	// draw the paper pages
+		draw_sprite_ext(sWorldBook, page_image_indices[i mod chapter_pages], gui_w/2 + (page_pos_offset) + (page_offset * i), page_y, x_scale, page_yscale, 0, c_white, 1.0);
 		
 		// draw the water page on top
 		if (i == book_spread || i == book_spread + 1) {
@@ -113,6 +117,8 @@ if (room == rmMap) {
 	
 	// hovering the part of a tab that sticks out explains it
 	for (var c = chapter + 1; c <= CHAPTER_COUNT && book_open_scale > 0.5; c++) {
+		var tab_page_index = chapter_pages + (c - chapter - 1) * future_pages_per_chapter;
+		var tab_x1 = gui_w/2 + page_pos_offset + (page_offset * tab_page_index) + page_w_on_screen - tab_edge_inset + tab_out;
 		var tab_y0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
 		if (!mouse_hovering(tab_x1 - tab_out, tab_y0, tab_out, tab_h, false)) continue;
 
