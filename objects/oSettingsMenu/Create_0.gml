@@ -4,6 +4,7 @@ global.double_tap_timer = 0;
 global.show_settings = false;
 
 global.resolution_index = 0;
+global.combat_speed_index = 1; // Settings > Gameplay > Combat speed: Slow, Normal, Fast, Fastest (F13)
 
 global.resolution_options = [
     //{ w: 1280, h: 720 },
@@ -99,6 +100,14 @@ categories = [
                 type: "toggle",
                 get_value: function() { return !progress_get("tutorial_done"); },
                 set_value: function(_val) { progress_set_tutorial(_val); }, // saved straight away, separate from Save/Cancel
+            },
+            {
+                name: "Combat speed",
+                type: "dropdown",
+                get_value: function() { return global.combat_speed_index; },
+                set_value: function(_val) { global.combat_speed_index = _val; },
+				options: ["Slow", "Normal", "Fast", "Fastest"],
+				show_options: false
             },
         ]
     },

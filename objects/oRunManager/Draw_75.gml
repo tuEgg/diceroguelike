@@ -193,5 +193,9 @@ insight_panel_draw();
 // a core or potion being carried, above the workbench and every window
 dragged_item_draw();
 
+// the pause menu and the end-of-voyage summary, above everything but tooltips
+pause_draw();
+run_summary_draw();
+
 // tooltips last, after every window and panel (Draw GUI End), so nothing draws over them
 draw_all_tooltips();

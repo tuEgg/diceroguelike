@@ -1,3 +1,10 @@
+// the pause menu freezes the fight (F35); it is still drawn behind the menu
+if (instance_exists(oRunManager) && oRunManager.paused) exit;
+
+// Settings > Gameplay > Combat speed, also when changed mid-fight (F13)
+action_delay = action_delay_base * combat_delay_scale();
+dice_delay = dice_delay_base * combat_delay_scale();
+
 switch (state) {
     case CombatState.START_TURN:
 		turn_count++;

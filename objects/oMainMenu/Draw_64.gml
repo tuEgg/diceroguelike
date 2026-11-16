@@ -1,4 +1,5 @@
-if (room == rmMainMenu && !global.all_input_disabled) {
+// hidden while Settings is open: Settings covers the screen, and the menu could otherwise draw over it (draw order)
+if (room == rmMainMenu && !global.all_input_disabled && !global.show_settings) {
 	var gui_w = display_get_gui_width();
 	var gui_h = display_get_gui_height();
 	var menu_x = gui_w/2;

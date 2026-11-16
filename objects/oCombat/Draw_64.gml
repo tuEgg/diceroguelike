@@ -1018,26 +1018,8 @@ if (state != CombatState.PLAYER_DEAD) {
 
 /// PLAYER DEAD
 if (state == CombatState.PLAYER_DEAD) {
+	// the end-of-voyage summary (run_summary_draw, oRunManager Draw GUI End) covers the fight
 	global.ui_layer = UI_LAYER.POPUP;
-	
-	draw_set_color(c_black);
-	draw_set_alpha(0.8);
-	draw_rectangle(0, 0, gui_w, gui_h, false);
-	
-	draw_set_font(ftBiggest);
-	draw_set_halign(fa_center);
-	draw_set_valign(fa_middle);
-	draw_outline_text("You Died.", c_black, c_white, 2, gui_w/2, gui_h/2, 1, 1, 0, -1);
-	
-	var try_btn_h = 80;
-	var try_btn_w = 180;
-	var try_again_btn = draw_gui_button(gui_w / 2 - try_btn_w/2, gui_h / 2 - try_btn_h/2 + 100, try_btn_w, try_btn_h, try_btn_scale, "Try Again", c_lime, ftBig, true, true, UI_LAYER.POPUP);
-	
-	try_btn_scale = try_again_btn.scale;
-	
-	if (try_again_btn.click) {
-		room_goto(rmMainMenu);
-	}
 }
 
 /// DEBUG

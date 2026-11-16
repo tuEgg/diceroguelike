@@ -10,7 +10,9 @@
 
 - `start_run()` (scHelpers): from the main menu; if a save exists, asks before overwriting; goes to `rmMap` where the run objects are created.
 - Continue sets `global.loading_game`; `oRunManager/Alarm_0` calls `load_game(1)` one step after creation. A new run instead sets `new_run_offering` (F04): oRunManager Draw GUI shows 3 die + core pairs as a popup (map locked; Step re-asserts `UI_LAYER.POPUP`), and picking one sends the die to the bag and the core to the item bar. The flag is saved, so reloading before picking offers again.
-- `lose_run()`: deletes the save; in combat sets `PLAYER_DEAD`, otherwise back to the menu. Beating the last chapter also deletes the save.
+- `lose_run()`: in combat sets `PLAYER_DEAD`; names the enemies still standing; then `run_end(false, cause)`. Beating the last chapter calls `run_end(true, ...)` from the chapter-end "Finish the voyage" button. `run_end` deletes the save and sets `oRunManager.run_over`; `run_summary_draw` (Draw GUI End) shows the stats until Back to the menu.
+- Run stats (F05): `oRunManager.run_stats` (`run_stats_new`), bumped with `run_stat_add` / `run_stat_max` (fights/elites/bosses in `win_fight`, damage dealt and taken in `process_action`, dice played, gold in `oParticleCoin` Destroy). Saved with the run as `run_stats` (optional on load).
+- Pause (F35): Escape in a run closes Settings, then the bag, then toggles `pause_open` / `pause_close` (oRunManager Step). `paused` holds `UI_LAYER.SETTINGS`; oCombat Step exits while paused. Settings opened from the pause menu returns to it.
 - Returning to `rmMainMenu` destroys `oRunManager`, `oWorldManager`, `oBountyController` (`oMainMenu/Other_4`).
 
 ## Saving: scSaving
@@ -25,6 +27,6 @@
 
 ## Settings
 
-`settings.json` (resolution, volumes, fullscreen) via `save_settings` / `load_settings` / `check_settings`; UI in `oSettingsMenu` and `scSettings`. Debug settings live separately in `debug_settings.json` (see ui-and-debug.md).
+`settings.json` (resolution, volumes, fullscreen, `combat_speed_index`) via `save_settings` / `load_settings` / `check_settings`; UI in `oSettingsMenu` and `scSettings`. Debug settings live separately in `debug_settings.json` (see ui-and-debug.md).
 
 `progress.json` (scSaving, PROGRESS): what this player has seen, apart from runs: `intro_seen`, `tutorial_done`, `tips_seen`. Loaded in oSettingsMenu Create (`progress_load`), read with `progress_get`, changed with `progress_set` (saves at once). One-time tips: `tip_seen(id)` / `tip_mark_seen(id)`. Settings > Gameplay > Tutorial next run calls `progress_set_tutorial` (on also clears the tips). The intro cutscene has `progress_key: "intro_seen"`, so it plays once ever.

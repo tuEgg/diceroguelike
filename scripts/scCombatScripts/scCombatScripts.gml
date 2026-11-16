@@ -271,6 +271,8 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					
 	                _target.hp = max(0, _target.hp - final_damage);
 	                spawn_floating_number(_target, final_damage, -1, c_red, -1, -1, _dice_list_index);
+					run_stat_add("damage_dealt", final_damage);
+					run_stat_max("biggest_hit", final_damage);
 	            }
 
 	            inst_color = c_red;
@@ -333,6 +335,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	            if (final_damage > 0) {
 	                global.player_hp = max(0, global.player_hp - final_damage);
 	                spawn_floating_number("player", final_damage, -1, c_red, -1, -1, _dice_list_index);
+					run_stat_add("damage_taken", final_damage);
 				
 	            }
 
@@ -655,7 +658,8 @@ function apply_dice_to_slot(_die, _slot_i) {
 		particle_emit(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", get_dice_color(die.struct.possible_type), 30);
 	
 		combat_trigger_effects("on_dice_played_to_slot", played_data);
-		
+		run_stat_add("dice_played", 1);
+
 		if (played_data.duplicate_die) {
 			var die_copy2 = clone_die(die.struct, "temporary");
 			die_copy2.uid = global._die_uid_counter++; // a duplicate is its own die, so the two never answer for each other's rolls
@@ -1092,7 +1096,11 @@ function win_fight() {
 	}
 			
 	if (!show_rewards && combat_end_effects_triggered) {
-				
+		// once per fight won, for the end-of-voyage summary
+		run_stat_add("fights_won", 1);
+		if (oWorldManager.current_node_type == NODE_TYPE.ELITE) run_stat_add("elites_won", 1);
+		if (oWorldManager.current_node_type == NODE_TYPE.BOSS) run_stat_add("bosses_won", 1);
+
 		// pop up rewards screen - dice reward - offered 3 dice, choose 1 to keep and credits
 		reward_dice_options = ds_list_create();
 		reward_consumable_options = ds_list_create();
@@ -1961,7 +1969,7 @@ function tutorial_map_notes() {
 ///       during the guided fight, a cutscene, Settings, the bag view or a popup.
 function tips_draw() {
 	if (tutorial_active() || global.all_input_disabled || global.show_settings) return;
-	if (instance_exists(oRunManager) && oRunManager.show_bag_contents) return;
+	if (instance_exists(oRunManager) && (oRunManager.show_bag_contents || oRunManager.paused || oRunManager.run_over != undefined)) return;
 
 	// the map notes of a first voyage
 	if (room == rmMap && instance_exists(oWorldManager) && tutorial_wanted()) {

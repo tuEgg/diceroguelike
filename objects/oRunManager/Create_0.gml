@@ -270,6 +270,13 @@ alarm[0] = 1;
 
 // Used for offering a dice and core at the start of a new run
 new_run_offering = false;
+
+// F05/F35: stats for the end-of-voyage summary (saved with the run), the pause menu, and the summary itself
+run_stats = run_stats_new();
+run_over = undefined; // { won, cause, alpha, btn_scale } once the voyage has ended (run_end)
+paused = false;
+pre_pause_ui_layer = UI_LAYER.BASE;
+pause_scales = [1, 1, 1];
 //global.ui_layer = UI_LAYER.POPUP;
 
 // Populate offerings with a random dice and random core pairing

@@ -166,3 +166,12 @@ function exit_settings() {
 	
 	apply_resolution();
 }
+
+/// @func combat_delay_scale()
+/// @desc How long the fight waits between actions and dice, from Settings > Gameplay > Combat speed (F13):
+///       Slow 1.5x, Normal 1x, Fast 0.6x, Fastest 0.35x. The debug F2-F4 game speed still works on top.
+function combat_delay_scale() {
+	var _scales = [1.5, 1, 0.6, 0.35];
+	if (!variable_global_exists("combat_speed_index")) return 1;
+	return _scales[clamp(global.combat_speed_index, 0, array_length(_scales) - 1)];
+}

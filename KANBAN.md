@@ -84,12 +84,11 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 **Core loop**
 - F02 **Rethink what happens between pages (Jared, 2026-11-17).** Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
 - F03 Elite/boss chest reward
-- F05 Death / win screens, run summary, die roll-history stats page
+- F05 Die roll-history stats page (death/win screens and the run summary were done in batch 10)
 - F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
 
 **Combat clarity** (the most common playtest feedback)
 - F11 Enemy targeting indicator; floating arrows at intel ≥ 6
-- F13 Slower / configurable action speed (Jack)
 - F14 Colour-blind-safe palette (Jack can't tell the blues apart)
 - F15 Summon intent icon, buff animation, clearer "Nav Chart fired" feedback
 
@@ -106,7 +105,6 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F31 Workbench: choose which dice to draw; Dye tool; multiple crafts per visit?
 - F32 Alignment/compass effects that actually matter mid-run
 - F33 Rarity on every item + rolled offers
-- F35 Pause menu (Resume / Settings / Main Menu)
 
 **Juice**
 - F40 Individual Balatro-style trigger animations per die
@@ -233,6 +231,10 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | B90 | Cores drop into the workbench's middle slot reliably and draw on top while carried | Batch 9: tutorial | 2026-11-16 |
 | F55 | Runs start with only the Drill; the Hammer and Cutters are bought in shops | Batch 9: tutorial | 2026-11-16 |
 | B91 | Deepdiver fires only when it is the die played, not for every die after it | Batch 9: tutorial | 2026-11-16 |
+| F35 | Pause menu on Escape (Resume, Settings, Save and quit); freezes the fight; Settings returns to it and lost its Main Menu button | Batch 10: playtest-ready | 2026-11-16 |
+| F05 | Death and victory show a voyage summary: cause, chapter and spread, run stats (saved with the run). Fixed a crash on death in the web build | Batch 10: playtest-ready | 2026-11-16 |
+| F13 | Settings > Gameplay > Combat speed: Slow, Normal, Fast, Fastest | Batch 10: playtest-ready | 2026-11-16 |
+| B92 | Main menu drew over Settings; it now hides while Settings is open | Batch 10: playtest-ready | 2026-11-16 |
 
 **Milestones**
 
