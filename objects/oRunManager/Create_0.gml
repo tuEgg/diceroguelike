@@ -175,7 +175,7 @@ ds_list_add(global.player_intel_data, {
 ds_list_add(global.player_intel_data, {
 	requirement: 6,
 	name: "II",
-	description: "See exactly how much each enemy will attack, block or heal for, and change your target.",
+	description: "See exactly how much each enemy will attack, block or heal for.",
 	index: 2,
 });
 ds_list_add(global.player_intel_data, {

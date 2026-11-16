@@ -30,6 +30,7 @@
 - F17 Set intel 9 (F1 / Run): beside each enemy's intent a small faded icon after a ">" shows what it will do next turn, and the icon sits clear of the number with a gap either side of the ">", and hovering the enemy says "This turn: ... Next turn: ..." on wrapped lines. End the turn: the enemy does the move that was shown. (A move triggered by low health, or a stun, can still change it.)
 - F18 Set intel 12: hover an enemy's intent and a "Rewrite intent" tooltip shows. Click it: the intent pops and changes to a different move with new numbers, the next-turn icon may change too, and the feed says what it became. You get one rewrite per turn (a second click does nothing until next turn). On a stunned enemy, or one with only one move, the tooltip says "Can't rewrite". With 2+ enemies try it on each.
 - F19 Target an enemy that intends a small attack or block (intel 6 helps: you see its exact number). Put an intel slot early in the queue and end the turn. If the slot's total is as high or higher, "Outguessed!" pops over that enemy, the feed says so, its intent shows "Outguessed: half" and the number halves, and it really does half. If the slot rolls lower, nothing happens. Buffs, debuffs and stuns can't be outguessed, and one enemy can only be outguessed once a turn. The intel still counts next turn.
+- Target change: at intel 0, click any enemy and the target marker moves to it.
 - Hover the intel eye above the player: the Intel Levels panel wraps every description inside the panel, each row as tall as its text. Play an intel die: its slot rolls when the queue resolves (not when placed), and the intel shows at the start of next turn.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -146,7 +147,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - 2026-11-15 **Scope cuts:** no four Act III regions, no 3 classes (F04 classes removed). **Alignment stays** in this build (F32).
 - 2026-11-15 **Platform:** a web build on itch.io for early playtests (keep exe as the dev/reference build); Steam is the long-term goal. See H07.
 - 2026-11-16 **Bounty board:** two bounties are offered, on purpose (Jared likes the choice). The potion on the bounty board is free.
-- 2026-11-17 **Intel rework:** enemy intents (what each enemy will do) are always shown. Intel dice roll the moment you play them, so intel is a scouting move inside your turn. Levels: I rough ranges, II exact numbers (and change target), III next turn's intents, IV rewrite one enemy's intent. Intel no longer grants extra draws or plays. Revisit after playtests.
+- 2026-11-17 **Intel rework:** enemy intents (what each enemy will do) are always shown. Intel dice roll in the queue and count next turn (rolling on play was tried and reverted 2026-11-16). This turn, an intel slot that beats your target's number halves its move (Outguess, F19). You can always change target. Levels: I rough ranges, II exact numbers, III next turn's intents, IV rewrite one enemy's intent. Intel no longer grants extra draws or plays. Revisit after playtests.
 
 ---
 

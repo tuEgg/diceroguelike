@@ -571,7 +571,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	enemy.scale = lerp(enemy.scale, hover_enemy ? enemy.start_scale : enemy.start_scale, 0.2);
 	enemy.info_alpha = lerp(enemy.info_alpha, hover_enemy ? 1.0 : 0, 0.4);
 	
-	if (hover_enemy && mouse_check_button_pressed(mb_left) && state == CombatState.PLAYER_INPUT && intel_level >= 2) {
+	if (hover_enemy && mouse_check_button_pressed(mb_left) && state == CombatState.PLAYER_INPUT) { // you can always pick your target; intel no longer gates it
 		enemy_target_index = e;
 	}
 	
