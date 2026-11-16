@@ -23,8 +23,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| Slot bonuses | B29, B75 | `fix/b29-slot-bonuses` | Also: F1 menu lists (Dice, Keepsakes, Items) show a tooltip with icon, name and description on hover, **not yet play-tested**. Jared reviewed 2026-11-17. Follow-up **not yet play-tested**: Rigger's Tonic is now +1 to each die; each die in a slot shows its bonus as a small green badge in its bottom-right corner (F16, simple version); F2/F3/F4 set game speed x1/x2/x4. Earlier: Fixed in code, **not yet play-tested**. Decided 2026-11-17: a bonus applies to every die unless its description says otherwise; Repeater Rail is first die only. Slot labels show the true total and hovering a slot lists each bonus. |
-| B75 | **Decided 2026-11-17: every die unless the description says otherwise.** A slot's flat bonus is added to *every die* in the slot when it rolls (process_action), but the slot tooltip and range show it once ("3d4+1" really rolls 3d4+3). Decide: bonus per die (and fix the display) or once per slot (and fix the roll). Rigger's Tonic's text ("+2 on all rolls") reads as per die. | S [C] |
+
+Nothing is waiting for a playtest right now.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -39,7 +39,6 @@ All known P0 bugs are fixed, see DONE.
 **Combat core**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B29 | `slot.bonus_amount` is a single mutable int: Rigger's Tonic, Bandage, Single Focus and Repeater Rail (`=`) fight over it, and end-of-round resets it to `pre_buff_amount` | `scKeepsakes.gml:443`, `oCombat/Step_0.gml:488` | M [C] |
 | B33 | Intel level is only recalculated at turn start, so intel gained mid-turn never raises the level (*"intel 4 doesn't add the 3rd die"*) | `oCombat/Step_0.gml:164-177` | S [L] (design call: see Q3) |
 | B34 | Negative intel draws an almost-full ring. Intel above 12 overflows it | `oCombat/Draw_64.gml:934`, `scHelpers.gml:950` | S [L] |
 | B35 | `can_place_dice_in_slot` (highlights) and `apply_dice_to_slot` (real rule) disagree on exclusive, coin, multitype and the play limit | `scCombatScripts.gml:518,1082` | M [C] → fixed by T08 |
@@ -130,9 +129,6 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F34 Tutorial path (fight 1 has no intel → intel die reward → fight 2 teaches intel)
 - F35 Pause menu (Resume / Settings / Main Menu)
 
-**Combat clarity (from B75)**
-- F16 Slot bonuses on the dice: a simple version is built (a "+N" badge in each die's bottom-right corner, first-die bonuses on the first die only). Could get proper art later.
-
 **Juice**
 - F40 Individual Balatro-style trigger animations per die
 - F41 Room transitions, death animation, enemy sprites, particles for coins/potions/sacrifice
@@ -220,6 +216,9 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | B71 | Continue carries on the random sequence (each save reseeds and stores the seed) | Save gaps | 2026-11-17 |
 | B72 | Save file fixes: duplicate keys, load guards, Toolbelt item slots | Save gaps | 2026-11-17 |
 | H05 | Old debug letter keys use `DEBUG_TOOLS`, so they work whenever run from GameMaker | Tabs, hotkeys, intro | 2026-11-17 |
+| B29 | Slot bonuses overwrote each other: now separate bonuses tagged by source | Slot bonuses | 2026-11-17 |
+| B75 | Slot bonus per die vs per slot: every die unless the description says otherwise; Repeater Rail first die only; labels show true totals | Slot bonuses | 2026-11-17 |
+| F16 | Slot bonuses shown on the dice as a "+N" badge (simple version) | Slot bonuses | 2026-11-17 |
 
 **Milestones**
 
@@ -230,3 +229,4 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - 2026-11-17 **Page-turn polish:** islands and icons turn with the page, boat position saved. A dotted route (M06) was tried and removed at Jared's request.
 - 2026-11-17 **Chapter tab and debug additions:** the boss page carries a "Chapter 2" divider tab out of the side of the book (replacing the ribbon); F1 menu gains "Complete this spread" and closes with Escape.
 - 2026-11-17 **Three-chapter voyage and testing tools:** a divider tab and a short page stack for every chapter still to come (Chapter 2 teal, Chapter 3 violet); the open spread stays still while turned pages build up on the left; a voyage progress track under the book (a marker per spread, a diamond per boss); beating chapter 3 ends the run with "Voyage complete"; testing hotkeys (Space kills all, H, D, N, Backspace) with an F1 Hotkeys tab; the intro is skipped when run from GameMaker, with a toggle.
+- 2026-11-17 **Slot bonuses and testing tools:** tagged slot bonuses (each die or first die), hover breakdown and die badges; Rigger's Tonic is +1 per die; F2/F3/F4 game speed; F1 lists show tooltips on hover.
