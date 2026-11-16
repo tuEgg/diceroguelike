@@ -1493,6 +1493,7 @@ function add_enemy_to_fight(_enemy) {
 		},
 		turns_since_last_block: 1,
 		move_number: -1,
+		planned_move: undefined,	// next turn's move, decided a turn ahead (enemy_plan_next_move), shown at intel level III
 		move_history: ds_list_create(),
 		max_hp: _enemy.max_hp,
 		hp: _enemy.current_hp, // debug_mode ? 1 : _enemy.current_hp,

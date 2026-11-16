@@ -6,7 +6,7 @@ Room `rmCombat`, object `oCombat` (not persistent). Created with the enemies `oW
 
 `state` (enum `CombatState`): `START_TURN` → `PLAYER_INPUT` → `RESOLVE_ROUND` → `END_OF_ROUND` → back to `START_TURN`; `PLAYER_DEAD` on death.
 
-- **START_TURN**: picks each enemy's intent (`move_order`: `true_random`, `ordered`, `weighted` via `choose_weighting_list`, `pseudo_random` = no 4 in a row). `use_trigger` on a move overrides: `FIRST` (turn 1), `HEALTH 50` (once, flagged `trigger_used` on the per-fight move copy), `PRIORITY`. Fires `on_turn_start`, sets intel (`debug_turn_intel()` + buffs), works out `intel_level`, deals dice (`dice_to_deal`).
+- **START_TURN**: each enemy follows the move it planned last turn (`planned_move`), or picks one with `enemy_pick_move_index` (scEnemies; `move_order`: `true_random`, `ordered`, `weighted` via `choose_weighting_list`, `pseudo_random` = no 4 in a row). `use_trigger` on a move overrides: `FIRST` (turn 1), `HEALTH 50` (once, flagged `trigger_used` on the per-fight move copy), `PRIORITY`. Fires `on_turn_start`, sets intel (`debug_turn_intel()` + buffs), works out `intel_level`, deals dice (`dice_to_deal`).
 - **PLAYER_INPUT**: waits for `actions_submitted` (Enter or the End Turn button in Draw GUI).
 - **RESOLVE_ROUND**: discards dice still in hand, then each slot's dice roll one by one through `process_action`, then each enemy acts once, with delays between.
 - **END_OF_ROUND**: ejects temporary/Loose dice (`eject_dice_in_slot`), `slot_tick_bonuses`, turns "base" dice into temporary (permanent dice leave on their second turn), fades out dead enemies, then `win_fight()` or `on_round_end` and the next turn.
@@ -44,6 +44,8 @@ Room `rmCombat`, object `oCombat` (not persistent). Created with the enemies `oW
 - Every enemy's intent (what it will do this turn) is always shown. `enemy_set_intent(enemy, move)` sets it and **rolls its dice then** (`intent.rolls`); the enemy's turn uses those rolls (`process_action`), so the exact number shown in advance is what happens. Never set `intent.move` directly.
 - The number beside an intent comes from `intent_number_text(enemy, intel_level)`: "?" at level 0, the range at I, `intent_exact_value` (rolls + bonus + the enemy's Might/Balance) from II. Level II also lets you change target. Intel levels are `global.player_intel_data` (thresholds 3, 6, 9, 12); they no longer give extra draws or plays.
 - Intel dice roll the moment they are in an intel slot (`slot_roll_intel`: on placement, when a slot is switched to intel, and at turn start for dice left in slots), marking each die `intel_rolled`; intel slots are skipped when the queue resolves. `player_intel` counts at once and `intel_level` is recalculated every frame (`intel_level_for`). A slot that has given intel can't change type that turn. Intel resets each round.
+- Enemies plan a turn ahead: after setting this turn's intent, START_TURN calls `enemy_plan_next_move`, storing `enemy.planned_move`; next turn uses it unless a trigger overrides. Intel level III draws it as a small icon beside the intent (`intent_icon`) and in the hover tooltip.
+- Intel level IV: clicking an intent calls `enemy_rewrite_intent` (a different, untriggered move, rolled fresh, and the plan redone), once per turn (`intel_rewrite_used`, reset at START_TURN). Triggered moves and Stunned can't be rewritten (`enemy_can_rewrite_intent`).
 
 ## Enemies: scEnemies
 

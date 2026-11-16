@@ -279,3 +279,169 @@ function intent_number_text(_enemy, _intel_level) {
 	if (_intel_level >= 1) return _enemy.intent.text;
 	return "?";
 }
+
+
+
+// =====================================================================
+// PICKING AND PLANNING MOVES
+// Each turn an enemy follows the move it planned last turn, then plans the next one, so intel level III can
+// show it. Triggered moves (FIRST, HEALTH 50, PRIORITY, Stunned) still override the plan when they fire.
+// =====================================================================
+
+/// @func enemy_pick_move_index(_enemy, _latest_extra)
+/// @desc Choose the index of an enemy's next move by its move_order. _latest_extra is a move to count as the
+///       most recent one (this turn's, when planning next turn), or undefined.
+function enemy_pick_move_index(_enemy, _latest_extra) {
+	var _data = _enemy.data;
+	var _index = 0;
+
+	if (_data.move_order == "true_random") {
+		_index = irandom(ds_list_size(_data.moves) - 1);
+	} else if (_data.move_order == "ordered") {
+		// the move after the current one (reading only: planning a turn ahead must not move the enemy along)
+		if (_enemy.move_number < ds_list_size(_data.moves) - 1) {
+			_index = _enemy.move_number + 1;
+		} else {
+			_index = 0;
+		}
+	} else if (_data.move_order == "weighted") {
+		var num_moves = ds_list_size(_data.moves);
+
+		var weighted = [];
+		array_resize(weighted, num_moves);
+
+		for (var i = 0; i < num_moves; i++) {
+		    weighted[i] = {
+		        value: i,
+		        weight: _data.moves[| i].weight  // or 1 if no weight
+		    };
+		}
+
+		_index = choose_weighting_list(weighted);
+
+	} else if (_data.move_order == "pseudo_random") {
+		// look through three latest moves, don't allow for 4 in a row, and weight odds to something else after every move
+		var latest_moves = [];
+		var move_index_avoid = -1;
+		var move_index_completely_avoid = -1;
+		var move_index = irandom(ds_list_size(_data.moves) - 1);
+		
+		// Add last 3 moves name to array; NEED TO FIX SO THAT IT FLEXES TO LIST SIZE
+		if (_latest_extra != undefined) array_push(latest_moves, _latest_extra); // planning next turn: this turn's move is the latest
+		var num_previous_moves = ds_list_size(_enemy.move_history);
+		for (var m = num_previous_moves; m > max(0, num_previous_moves - 3) && array_length(latest_moves) < 3; m--) {
+			var move = _enemy.move_history[| m - 1];
+		
+			array_push(latest_moves, move);
+		}
+	
+		if (array_length(latest_moves) > 0) {
+			// only counts once we have three moves of history and every one of them matches
+			var all_same = (array_length(latest_moves) == 3);
+		
+			for (var o = 0; o < array_length(latest_moves); o++) {
+				if (latest_moves[o] != latest_moves[0]) {
+					all_same = false;
+				}
+			}
+			// If all three moves are the same
+			if (all_same) {
+				for (var i = 0; i < ds_list_size(_data.moves); i++) {
+					if (latest_moves[0].move_name == _data.moves[| i].move_name) move_index_completely_avoid = i;
+				}
+			} else {
+				// just avoid the last move
+				for (var i = 0; i < ds_list_size(_data.moves); i++) {
+					if (latest_moves[0].move_name == _data.moves[| i].move_name) {
+						move_index_avoid = i;
+					}
+				}
+			}
+	
+			// If we are avoiding a move
+			if (move_index_completely_avoid != -1) {
+				// Randomise until we don't get that index
+				var rand_index;
+				
+				do {
+					rand_index = irandom(ds_list_size(_data.moves) - 1);
+				} until (rand_index != move_index_completely_avoid);
+				
+				move_index = rand_index;
+			// otherwise
+			} else if (move_index_avoid != -1) {
+				// randomise twice and if the first one is our index, take the second regardless
+				var rand_1 = irandom(ds_list_size(_data.moves) - 1);
+				var rand_2 = irandom(ds_list_size(_data.moves) - 1);
+		
+				if (rand_1 == move_index_avoid) {
+					move_index = rand_2;
+				} else {
+					move_index = rand_1;
+				}
+			}
+		}
+	
+		_index = move_index;
+	}
+
+	return _index;
+}
+
+/// @func enemy_plan_next_move(_enemy)
+/// @desc Decide now what the enemy will do next turn (after its current intent).
+function enemy_plan_next_move(_enemy) {
+	var _index = enemy_pick_move_index(_enemy, _enemy.intent.move);
+	_enemy.planned_move = _enemy.data.moves[| _index];
+}
+
+/// @func enemy_can_rewrite_intent(_enemy)
+/// @desc Intel level IV: can this enemy's intent be rewritten? Forced moves (triggers, Stunned) can't, and
+///       nor can an enemy with only one move to choose from.
+function enemy_can_rewrite_intent(_enemy) {
+	if (variable_struct_exists(_enemy.intent.move, "use_trigger")) return false;
+	return array_length(enemy_rewrite_options(_enemy)) > 0;
+}
+
+/// @func enemy_rewrite_options(_enemy)
+/// @desc The moves a rewritten intent can become: the enemy's own untriggered moves, other than the current one.
+function enemy_rewrite_options(_enemy) {
+	var _options = [];
+	var _moves = _enemy.data.moves;
+	for (var i = 0; i < ds_list_size(_moves); i++) {
+		var _move = _moves[| i];
+		if (_move == _enemy.intent.move || _move.move_name == _enemy.intent.move.move_name) continue;
+		if (variable_struct_exists(_move, "use_trigger")) continue;
+		array_push(_options, i);
+	}
+	return _options;
+}
+
+/// @func enemy_rewrite_intent(_enemy)
+/// @desc Intel level IV: the enemy chooses again, a different move, rolled fresh. Its plan for next turn is redone too.
+function enemy_rewrite_intent(_enemy) {
+	var _options = enemy_rewrite_options(_enemy);
+	if (array_length(_options) == 0) return false;
+	var _index = _options[irandom(array_length(_options) - 1)];
+	_enemy.move_number = _index;
+	enemy_set_intent(_enemy, _enemy.data.moves[| _index]);
+	enemy_plan_next_move(_enemy);
+	return true;
+}
+
+/// @func intent_icon(_move)
+/// @desc The sprite, frame and colour for a move's intent icon (used for the small next-turn icon).
+function intent_icon(_move) {
+	var _type = string_split(_move.action_type, "/")[0];
+	switch (_type) {
+		case "ATK": return { sprite: sIntentIcons, index: 0, col: global.color_attack };
+		case "BLK": return { sprite: sIntentIcons, index: 1, col: global.color_block };
+		case "HEAL": return { sprite: sIntentIcons, index: 2, col: global.color_heal };
+		case "EXIT": return { sprite: sIntentIcons, index: 5, col: c_orange };
+		case "DEBUFF": case "BUFF":
+			if (variable_struct_exists(_move, "debuff")) return { sprite: sDebuffIcon, index: _move.debuff.icon_index, col: _move.debuff.color };
+			return { sprite: sIntentIcons, index: 3, col: c_white };
+		case "NONE": return { sprite: sIntentIcons, index: 3, col: c_white };
+	}
+	return { sprite: sIntentIcons, index: 4, col: c_dkgray };
+}

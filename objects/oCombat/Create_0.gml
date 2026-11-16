@@ -109,6 +109,7 @@ player_block_amount = 0;
 player_intel = 0;
 draw_intel = 0; // used to draw intel
 intel_level = 0;
+intel_rewrite_used = false; // intel level IV lets you rewrite one enemy intent per turn
 intel_scale = 1.0;
 intel_alpha = 1.0;
 is_discarding = false;

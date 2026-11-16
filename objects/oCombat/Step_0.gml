@@ -2,6 +2,7 @@ switch (state) {
     case CombatState.START_TURN:
 		turn_count++;
 		player_turn_done = false;
+		intel_rewrite_used = false; // intel level IV: one rewrite per turn
 		delayed_enemy_attack = false;
 		
 		if (turn_count == 1) {
@@ -15,94 +16,9 @@ switch (state) {
 			
 			if (enemy.dead) continue;
 			
-			// Pick a random move struct from the enemy's move list
-			if (enemy_data.move_order == "true_random") {
-				enemy.move_number = irandom(ds_list_size(enemy_data.moves) - 1);
-			} else if (enemy_data.move_order == "ordered") {
-				if (enemy.move_number < ds_list_size(enemy_data.moves) - 1) {
-					enemy.move_number += 1;
-				} else {
-					enemy.move_number = 0;
-				}
-			} else if (enemy_data.move_order == "weighted") {
-				var num_moves = ds_list_size(enemy_data.moves);
-
-				var weighted = [];
-				array_resize(weighted, num_moves);
-
-				for (var i = 0; i < num_moves; i++) {
-				    weighted[i] = {
-				        value: i,
-				        weight: enemy_data.moves[| i].weight  // or 1 if no weight
-				    };
-				}
-
-				enemy.move_number = choose_weighting_list(weighted);
-
-			} else if (enemy_data.move_order == "pseudo_random") {
-				// look through three latest moves, don't allow for 4 in a row, and weight odds to something else after every move
-				var latest_moves = [];
-				var move_index_avoid = -1;
-				var move_index_completely_avoid = -1;
-				var move_index = irandom(ds_list_size(enemy_data.moves) - 1);
-				
-				// Add last 3 moves name to array; NEED TO FIX SO THAT IT FLEXES TO LIST SIZE
-				var num_previous_moves = ds_list_size(enemy.move_history);
-				for (var m = num_previous_moves; m > max(0, num_previous_moves - 3); m--) {
-					var move = enemy.move_history[| m - 1];
-				
-					array_push(latest_moves, move);
-				}
-			
-				if (array_length(latest_moves) > 0) {
-					// only counts once we have three moves of history and every one of them matches
-					var all_same = (array_length(latest_moves) == 3);
-				
-					for (var o = 0; o < array_length(latest_moves); o++) {
-						if (latest_moves[o] != latest_moves[0]) {
-							all_same = false;
-						}
-					}
-					// If all three moves are the same
-					if (all_same) {
-						for (var i = 0; i < ds_list_size(enemy_data.moves); i++) {
-							if (latest_moves[0].move_name == enemy_data.moves[| i].move_name) move_index_completely_avoid = i;
-						}
-					} else {
-						// just avoid the last move
-						for (var i = 0; i < ds_list_size(enemy_data.moves); i++) {
-							if (latest_moves[0].move_name == enemy_data.moves[| i].move_name) {
-								move_index_avoid = i;
-							}
-						}
-					}
-			
-					// If we are avoiding a move
-					if (move_index_completely_avoid != -1) {
-						// Randomise until we don't get that index
-						var rand_index;
-						
-						do {
-							rand_index = irandom(ds_list_size(enemy_data.moves) - 1);
-						} until (rand_index != move_index_completely_avoid);
-						
-						move_index = rand_index;
-					// otherwise
-					} else if (move_index_avoid != -1) {
-						// randomise twice and if the first one is our index, take the second regardless
-						var rand_1 = irandom(ds_list_size(enemy_data.moves) - 1);
-						var rand_2 = irandom(ds_list_size(enemy_data.moves) - 1);
-				
-						if (rand_1 == move_index_avoid) {
-							move_index = rand_2;
-						} else {
-							move_index = rand_1;
-						}
-					}
-				}
-			
-				enemy.move_number = move_index;
-			}
+			// follow the move planned last turn (shown at intel level III), or pick one if there is no plan
+			var _planned_index = is_struct(enemy.planned_move) ? ds_list_find_index(enemy_data.moves, enemy.planned_move) : -1;
+			enemy.move_number = (_planned_index >= 0) ? _planned_index : enemy_pick_move_index(enemy, undefined);
 			
 			var _intent_move = enemy_data.moves[| enemy.move_number];
 			
@@ -131,6 +47,9 @@ switch (state) {
 			
 			// sets the move and rolls its dice now, so intel can reveal the exact result
 			enemy_set_intent(enemy, _intent_move);
+
+			// decide next turn's move now, so intel level III can show it (triggers can still override it)
+			enemy_plan_next_move(enemy);
 
 			enemy_turns_remaining++;
 			

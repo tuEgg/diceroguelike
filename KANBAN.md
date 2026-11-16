@@ -23,11 +23,13 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 7: intel rework | F10, B33, F17, F18 | `feature/intel-rework` | In progress, **not yet play-tested**. F10 and B33 done: intents always shown (I ranges, II exact), and intel dice roll the moment they are played. |
+| 7: intel rework | F10, B33, F17, F18 | `feature/intel-rework` | **Ready to play-test.** All four built: intents always shown (I ranges, II exact), intel dice roll the moment they are played, III shows next turn's move, IV rewrites one intent per turn. |
 
 **Batch 7 test list**
 - F10 Start any fight with 0 intel (F1 / Run, intel 0): every enemy shows what it will do (attack, block, debuff...) with "?" for the number. Set intel 3: the number becomes a range. Set intel 6: it becomes one exact number, and the enemy hits for exactly that. Bill's Sharpen Cutlass (Might) raises the exact number. Hovering shows the dice only from intel 3.
 - B33 Play an intel die (e.g. the starting d4 intel) into an empty slot: it rolls at once, the intel ring and level go up, and the enemy numbers sharpen before you end your turn. Reach 12 intel in one turn and the level shows IV straight away. That slot can't be right-clicked to another type afterwards. Ending the turn, the intel slot doesn't roll again. Crow's Nest Clarity gives its intel at once.
+- F17 Set intel 9 (F1 / Run): beside each enemy's intent a small faded icon after a ">" shows what it will do next turn, and hovering the enemy adds "Next turn: ..." to the tooltip. End the turn: the enemy does the move that was shown. (A move triggered by low health, or a stun, can still change it.)
+- F18 Set intel 12: hover an enemy's intent and a "Rewrite intent" tooltip shows. Click it: the intent pops and changes to a different move with new numbers, the next-turn icon may change too, and the feed says what it became. You get one rewrite per turn (a second click does nothing until next turn). On a stunned enemy, or one with only one move, the tooltip says "Can't rewrite". With 2+ enemies try it on each.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -100,8 +102,8 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F13 Slower / configurable action speed (Jack)
 - F14 Colour-blind-safe palette (Jack can't tell the blues apart)
 - F15 Summon intent icon, buff animation, clearer "Nav Chart fired" feedback
-- F17 Intel level III: see what each enemy plans to do next turn too.
-- F18 Intel level IV: rewrite one enemy's intent this turn (it chooses again).
+- F17 Intel level III: see what each enemy plans to do next turn too. (building in batch 7)
+- F18 Intel level IV: rewrite one enemy's intent this turn (it chooses again). (building in batch 7)
 
 **Content**
 - F20 Enemies: 17 now (Giant Conch is a stub) → target ~15 normals + 2 elites + 2 bosses that *work*

@@ -702,6 +702,35 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		}
 		
 		draw_outline_text(text, c_black, c_white, 2, text_x, yy, enemy.intent.scale, enemy.intent.alpha - enemy.info_alpha);
+
+		// intel level III: a small faded icon to the right shows next turn's planned move
+		var _next_move = enemy.planned_move;
+		var _show_next = (intel_level >= 3 && is_struct(_next_move));
+		var _next_x = xx + text_w/2 + 34;
+		if (_show_next) {
+			var _next_icon = intent_icon(_next_move);
+			var _next_alpha = (enemy.intent.alpha - enemy.info_alpha) * 0.7;
+			draw_set_font(ftDefault);
+			draw_outline_text(">", c_black, c_white, 2, _next_x - 20, yy, 1, _next_alpha);
+			draw_sprite_ext(_next_icon.sprite, _next_icon.index, _next_x + 8, yy, enemy.intent.scale * 0.6, enemy.intent.scale * 0.6, 0, _next_icon.col, _next_alpha);
+			draw_set_font(ftTopBar);
+		}
+
+		// intel level IV: click an intent to make the enemy choose again (once per turn)
+		var _intent_hover = mouse_hovering(xx, yy, text_w + 20, 50, true);
+		var _can_rewrite = (intel_level >= 4 && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards);
+		if (_can_rewrite && _intent_hover) {
+			if (!enemy_can_rewrite_intent(enemy)) {
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't rewrite", "This move is forced, or the enemy has nothing else to choose.", undefined, 0, undefined);
+			} else {
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rewrite intent", "Click to make this enemy choose a different move. Once per turn.", undefined, 0, undefined);
+				if (mouse_check_button_pressed(mb_left) && enemy_rewrite_intent(enemy)) {
+					intel_rewrite_used = true;
+					enemy.intent.scale = enemy.intent.start_scale * 1.4; // pop, so the change is noticed
+					add_feed_entry("You rewrote " + string(enemy.data.name) + "'s intent: " + string(enemy.intent.move.move_name));
+				}
+			}
+		}
 	
 	    draw_set_halign(fa_center);
 	
@@ -718,7 +747,9 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "The enemy intents to escape", undefined, 0, undefined);
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
 					if (intel_level >= 1) {
-						queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, "The enemy intends to perform the following move: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount), undefined, 0, undefined);
+						var _intent_desc = "The enemy intends to perform the following move: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount);
+						if (_show_next) _intent_desc += "\nNext turn: " + string(_next_move.move_name) + (intent_has_numbers(_next_move) ? " (" + get_dice_name_and_bonus(_next_move, _next_move.bonus_amount) + ")" : "");
+						queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, _intent_desc, undefined, 0, undefined);
 					} else {
 						queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, "Gain intel to see how much this enemy will roll.", undefined, 0, undefined);
 					}
