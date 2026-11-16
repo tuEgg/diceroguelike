@@ -1,9 +1,9 @@
 # Tides of Fortune: KANBAN
 
-> Repo: `C:\Users\Jared\Projects\TidesOfFortune`. Baseline: `main` @ `fddd600` (2026-06-28); all `file:line` references are against it.
-> The island/world-map WIP lives on branch `wip/world-map` (commit `661e2ec`) and has **not** been audited yet.
-> **Work order (agreed):** 1. bug-fix batches → 2. debug menu (T14) → 3. finish the world-map rework → 4. revisit intel.
-> **Workflow:** Claude batches fixes into commits with a test checklist. Jared play-tests, gives feedback and approves. Nothing is pushed or merged without approval.
+> Repo: `C:\Users\Jared\Projects\TidesOfFortune`, branch `main`, pushed to GitHub. `file:line` references on open cards come from the 2026-11-15 audit and may have drifted by a few lines.
+> **Work order (agreed):** 1. bug-fix batches → 2. debug menu (done) → 3. finish the world-map rework → 4. revisit intel.
+> **Workflow:** Claude batches fixes into commits with a test checklist. Jared play-tests, gives feedback and approves. Nothing is merged or pushed without approval.
+> **Keeping this board current:** it is updated in the same commit as the work. A card stays in its bug or debt section while open, is listed in the IN TESTING table while its batch waits for a playtest, and moves to the DONE table once Jared approves the merge.
 > Audit date: 2026-11-15. Tags: **[C]** = cause seen in code, **[L]** = likely, needs repro in-game.
 > Size: S (< 1 session) · M (1–3 sessions) · L (a refactor arc).
 
@@ -15,8 +15,7 @@
 
 | ID | Task | Notes |
 |---|---|---|
-| H05 | Make the debug toggle a single `#macro DEBUG` | `debug_mode` is used in places, while some debug keys ship in release builds (see B01). |
-| H06 | Sign in to GitHub on the first push | Remote switched to HTTPS (2026-11-15). The first push opens a browser sign-in; no SSH key needed. |
+| H05 | Move the remaining debug keys onto the `DEBUG_TOOLS` macro | The macro exists (scDebug) and gates the F1 menu and the R restart key. The older letter keys in oRunManager and oCombat still use `debug_mode`. |
 | H07 | **Web build smoke test**: export HTML5/GX, upload privately to itch.io, list what breaks | Surfaces (`draw_wonky_rectangle`), shaders, file saves, fonts and resolution are the usual web trouble spots. Do this early so web problems are fixed alongside other bugs. |
 
 ---
@@ -25,59 +24,32 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 1: crashes, softlocks, lost runs | B01–B10 | `fix/batch-1` @ `264dcc8` | Merged to `main` and pushed 2026-11-15. Jared played the combined build and it felt good; individual cards not yet confirmed. |
-| 2: world-map save and stability | M01–M04 | `wip/world-map` | Merged to `main` and pushed 2026-11-15. |
-| 3: debug menu (T14) | T14, part of H05 | `main` | Merged and pushed 2026-11-16. Press F1 in a run started from GameMaker. |
-| 4: combat rules | T01, B20–B28, B31, B32, B40, part of B36 and T11 | `fix/batch-2` | Fixed in code, **not yet play-tested**. |
 
-**Batch 2 cards (world-map work)**
-- M01 Islands are now saved with each page (Continue would have crashed).
-- M02 Saves carry a version number; older saves are ignored so Continue never loads an incompatible file. Pages/spreads cleared and the book's page art are saved, and the book shows already open when resuming.
-- M03 The book holds on its last spread instead of crashing past spread 8 (stop-gap until acts exist, see F06).
-- M04 Island surfaces are freed on cleanup and rebuilt when the resolution changes.
+Nothing is waiting for a playtest right now.
+
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B01 | **Pressing R restarts the game in release builds** | `oRunManager/Step_0.gml:21-22` (outside `debug_mode`) | S [C] |
-| B02 | Dying outside combat crashes: events take HP with no floor, then the code reads `oCombat.state` when no oCombat exists | `scEvents.gml:87`, `oRunManager/Step_0.gml:99` | S [C] |
-| B03 | Deleting an item in the workbench crashes: `items[i] = undefined` is followed by a read of `items[i].type` | `oRunManager/Draw_64.gml:324-331` | S [C] |
-| B04 | Flying Dutchman softlock: swapped shop nodes aren't in `all_nodes`, so the next node is unreachable | `scEvents.gml:836`, `oWorldManager/Step_0.gml:54-58`, `scMap.gml:612` | S [C] |
-| B05 | Barnacle Titan's Barnacle Bind move has no `duration`/`amount`, but the DEBUFF case reads them | `scEnemies.gml:199`, `scCombatScripts.gml:409` | S [L] |
-| B06 | Sirens: nested `fail_sirens` is probably not visible from the option methods | `scEvents.gml:1101` | S [L] |
-| B07 | Reward generators can loop forever when a filtered pool is empty (core+rare, coin) | `scShop.gml:131,298-329` | S [L] |
-| B08 | Encounter pools never refill, and a bounty shrinks `possible_elites` to 1, so you can get empty fights | `scMap.gml:247,313`, `oWorldManager/Other_5.gml:95` | S [L] |
-| B09 | Leaving the workbench with a core in slot 2 deletes the core | `oWorkbenchManager/Draw_64.gml:322` | S [C] |
-| B10 | Persistent coin/alignment particles outlive the run → crash on `oRunManager.credits` | `oParticleCoin`, `oParticleAlignment` Destroy | S [L] |
+
+All known P0 bugs are fixed, see DONE.
 
 ## 🐞 BUGS: P1 rules behave wrongly
 
 **Combat core**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B20 | **Enemy templates are shared, not copied per fight.** Shiny Scales does `owner.data.moves[|1].dice_amount += 1` on the global template, so all fish buff, and the buff carries into later fights. Stunned, Heartache and the HEALTH-50 `weight = -1` do the same (the Captain's barrel summon fires once per *run*). → fixed by T01 | `scDebuffs.gml:158,174,254,471`, `oCombat/Step_0.gml:122`, `scCombatScripts.gml:1568` | M [C] |
-| B21 | Debuff duration ticks and removal happen *inside* the per-effect loop: a debuff with 2 effects ticks twice, and can delete its neighbour | `scCombatScripts.gml:1456` | S [C] |
-| B22 | `apply_buff` merges by `_id` only, so temporary Might merged into permanent Might becomes permanent (and vice versa). Re-applying doesn't refresh `remove_next_turn` | `scDebuffs.gml:27-34` | M [C] |
-| B23 | Code writes `remove_next_turn` onto the shared move.debuff template | `scCombatScripts.gml:415,432` | S [C] |
-| B24 | Enemy Might never applies (the `owner != target` gate fails for enemy rolls). Captain's "Command" (target other) buffs itself. Elizabeak's −2 Might on the player shows as a Might icon with no number ("player gains Might" report) | `scDebuffs.gml:353-385`, `scCombatScripts.gml:145,433`, `scEnemies.gml:97`, `oCombat/Draw_64.gml:905` | S [C] |
-| B25 | Block absorbs the raw `amount` instead of the post-modifier `final_damage` | `scCombatScripts.gml:235,309` | S [C] |
-| B26 | Cloned dice keep the same `uid`, so duplicates (Echo, Mirage, a second purchase) double-fire Squall, Reed Snap, etc. | `scDice.gml:992-1034` | S [C] |
-| B27 | Warrior die's `after_roll_die` has no uid check: *any* die that rolls its minimum becomes its maximum | `scDice.gml:839` | S [C] |
-| B28 | "Hit all enemies" loops index `room_enemies` by `enemies_left_this_combat`, so they hit corpses and skip living enemies | `scDice.gml:296`, `scKeepsakes.gml:308,871` | S [C] |
 | B29 | `slot.bonus_amount` is a single mutable int: Rigger's Tonic, Bandage, Single Focus and Repeater Rail (`=`) fight over it, and end-of-round resets it to `pre_buff_amount` | `scKeepsakes.gml:443`, `oCombat/Step_0.gml:488` | M [C] |
 | B30 | Reserve and Barnacle Bind *assign* `bonus_dice`, which wipes Pickled Cucumber, Kraken's Grasp and Medallion | `scDebuffs.gml:109,312` | S [C] |
-| B31 | Enemy pseudo-random move picker: the `all_same` loop only compares the last item, and 1 move of history counts as "all same" | `oCombat/Step_0.gml:58-66` | S [C] |
-| B32 | Target failsafe uses `>` instead of `>=`. An EXIT enemy doesn't shift `enemy_target_index` when target > e | `oCombat/Step_0.gml:215`, EXIT branch | S [C] |
 | B33 | Intel level is only recalculated at turn start, so intel gained mid-turn never raises the level (*"intel 4 doesn't add the 3rd die"*) | `oCombat/Step_0.gml:164-177` | S [L] (design call: see Q3) |
 | B34 | Negative intel draws an almost-full ring. Intel above 12 overflows it | `oCombat/Draw_64.gml:934`, `scHelpers.gml:950` | S [L] |
 | B35 | `can_place_dice_in_slot` (highlights) and `apply_dice_to_slot` (real rule) disagree on exclusive, coin, multitype and the play limit | `scCombatScripts.gml:518,1082` | M [C] → fixed by T08 |
-| B36 | `"None!"` typo, so the condition is always true. `is_slot_exclusive \|\| is_slot_exclusive` | `scCombatScripts.gml:993,666` | S [C] |
+| B36 | `"None!"` in `get_slot_stats` makes its condition always true. Left alone on purpose: it looks like a deliberate switch-off, and removing it would change how neutral dice count in a slot. Needs Jared's call. (The doubled `is_slot_exclusive` check was fixed in batch 2.) | `scCombatScripts.gml` | S [C] |
 
 **Dice / keepsakes / items**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B40 | **Accurate and Splash dice are never offered** (Echo and Last Stand are registered twice instead) | `scDice.gml:586,895` | S [C] |
 | B41 | Hover descriptions are wrong after upgrades: static text, the hover preview uses slot −1 (type bonuses never show), duplicated oDice fields drift, and `get_dice_output(read_only=false)` runs every frame and fires keepsake side-effects | `oDice/Draw_64.gml:39`, `scDice.gml:1078`, `oWorkbenchManager/Draw_64.gml:177,246` | M [C] → T04 |
 | B42 | `string_has_keyword` is fragile (colons, single sentences, the "Favourite." prefix). `get_keywords_in_string` doesn't trim at all, so Offhand/Balanced show the wrong icons | `scHelpers.gml:580-635` | → T04 [C] |
 | B43 | Lead Line re-fires the full dispatcher, so *all* keepsakes double-trigger | `scKeepsakes.gml:549` | S [C] |
@@ -128,7 +100,6 @@
 
 | ID | Refactor | Fixes | Size |
 |---|---|---|---|
-| T01 | **Per-fight enemy instances**: deep-copy the enemy and its moves in `add_enemy_to_fight`, never write to templates | B20, B23 | M |
 | T02 | **Buff system v2**: instances keyed by (id, permanent); a buff scales *either* stacks *or* duration (the GDD already plans this); tick once per event, outside the effect loop; source-tagged slot modifiers instead of `bonus_amount` | B21, B22, B29, B30 | M |
 | T03 | **One effect dispatcher**: dice, keepsakes, items and debuffs register `handlers[$ event]`; the dispatcher does the `owner_only` uid check; fresh uid on clone | B26, B27, B43, perf | M |
 | T04 | **Keywords and descriptions as data**: a `keywords: []` field on dice; descriptions generated from templates (`"+{min} min"`) so upgrades update the text | B41, B42, B52 | M |
@@ -138,10 +109,9 @@
 | T08 | **Single placement rule**: `can_place` returns `{ok, reason}` and `apply_dice_to_slot` uses it, so the reason can feed the tooltip (playtesters asked for this) | B35 | S |
 | T09 | **Enums instead of strings** for action types, permanence and node types (`"BLK"` vs `"BLOCK"` bugs go away) | B64, B36 | M |
 | T10 | **Data tables**: `register_die()`, a cores table, an encounters table, a bounty table, `spawn_die()`, `pick_from_pool()` with empty-pool guards, an `oTool` parent for Hammer/Cutters/Drill | B07, B40, duplication | M |
-| T11 | Memory hygiene: CleanUp for oShopManager, treasure, bounty, world (`room_enemies`, page node lists), combat (action queue + slot lists, enemy move_history/debuffs, feed lists), oRunManager lists, event option lists | leaks | S–M |
+| T11 | Memory hygiene (enemy lists in combat done in batch 2): CleanUp for oShopManager, treasure, bounty, world (`room_enemies`, page node lists), combat (action queue + slot lists, enemy move_history/debuffs, feed lists), oRunManager lists, event option lists | leaks | S–M |
 | T12 | Per-frame performance: map `path_add` every frame; `settings.json` parsed every frame while settings is open; `clone_die` per frame in hover/workbench; `get_slot_stats`/`get_action_name` per slot per frame; 1,300 particle *instances* (Dutchman) → part system | perf | S–M |
 | T13 | Delete dead code: `parse_text`, `room_to_gui_*`, `add_debug_entry`, `draw_dice_history`, `roll_id`, `global.enemy_debuffs`, `tool_list`, the deprecated "All" slot type, and the redundant deep copy in `clone_die` | | S |
-| T14 | **Seeded debug harness**: start any fight/event/shop with chosen dice and keepsakes from a debug menu. This is the main thing that makes Claude-driven fixes verifiable | | M |
 
 ---
 
@@ -208,6 +178,42 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 ---
 
 ## ✅ DONE
+
+**Fixed, play-tested by Jared, merged to `main` and pushed**
+
+| ID | Bug or task | Batch | Merged |
+|---|---|---|---|
+| B01 | **Pressing R restarts the game in release builds** | Batch 1: crashes and softlocks | 2026-11-15 |
+| B02 | Dying outside combat crashes: events take HP with no floor, then the code reads `oCombat.state` when no oCombat exists | Batch 1: crashes and softlocks | 2026-11-15 |
+| B03 | Deleting an item in the workbench crashes: `items[i] = undefined` is followed by a read of `items[i].type` | Batch 1: crashes and softlocks | 2026-11-15 |
+| B04 | Flying Dutchman softlock: swapped shop nodes aren't in `all_nodes`, so the next node is unreachable | Batch 1: crashes and softlocks | 2026-11-15 |
+| B05 | Barnacle Titan's Barnacle Bind move has no `duration`/`amount`, but the DEBUFF case reads them | Batch 1: crashes and softlocks | 2026-11-15 |
+| B06 | Sirens: nested `fail_sirens` is probably not visible from the option methods | Batch 1: crashes and softlocks | 2026-11-15 |
+| B07 | Reward generators can loop forever when a filtered pool is empty (core+rare, coin) | Batch 1: crashes and softlocks | 2026-11-15 |
+| B08 | Encounter pools never refill, and a bounty shrinks `possible_elites` to 1, so you can get empty fights | Batch 1: crashes and softlocks | 2026-11-15 |
+| B09 | Leaving the workbench with a core in slot 2 deletes the core | Batch 1: crashes and softlocks | 2026-11-15 |
+| B10 | Persistent coin/alignment particles outlive the run → crash on `oRunManager.credits` | Batch 1: crashes and softlocks | 2026-11-15 |
+| M01 | Islands are now saved with each page (Continue would have crashed). | World-map save fixes | 2026-11-15 |
+| M02 | Saves carry a version number; older saves are ignored so Continue never loads an incompatible file. Pages/spreads cleared and the book's page art are saved, and the book shows already open when resuming. | World-map save fixes | 2026-11-15 |
+| M03 | The book holds on its last spread instead of crashing past spread 8 (stop-gap until acts exist, see F06). | World-map save fixes | 2026-11-15 |
+| M04 | Island surfaces are freed on cleanup and rebuilt when the resolution changes. | World-map save fixes | 2026-11-15 |
+| T14 | **Seeded debug harness**: start any fight/event/shop with chosen dice and keepsakes from a debug menu. This is the main thing that makes Claude-driven fixes verifiable | Debug menu | 2026-11-16 |
+| T01 | **Per-fight enemy instances**: deep-copy the enemy and its moves in `add_enemy_to_fight`, never write to templates | Batch 2: combat rules | 2026-11-16 |
+| B20 | **Enemy templates are shared, not copied per fight.** Shiny Scales does `owner.data.moves[ | Batch 2: combat rules | 2026-11-16 |
+| B21 | Debuff duration ticks and removal happen *inside* the per-effect loop: a debuff with 2 effects ticks twice, and can delete its neighbour | Batch 2: combat rules | 2026-11-16 |
+| B22 | `apply_buff` merges by `_id` only, so temporary Might merged into permanent Might becomes permanent (and vice versa). Re-applying doesn't refresh `remove_next_turn` | Batch 2: combat rules | 2026-11-16 |
+| B23 | Code writes `remove_next_turn` onto the shared move.debuff template | Batch 2: combat rules | 2026-11-16 |
+| B24 | Enemy Might never applies (the `owner != target` gate fails for enemy rolls). Captain's "Command" (target other) buffs itself. Elizabeak's −2 Might on the player shows as a Might icon with no number ("player gains Might" report) | Batch 2: combat rules | 2026-11-16 |
+| B25 | Block absorbs the raw `amount` instead of the post-modifier `final_damage` | Batch 2: combat rules | 2026-11-16 |
+| B26 | Cloned dice keep the same `uid`, so duplicates (Echo, Mirage, a second purchase) double-fire Squall, Reed Snap, etc. | Batch 2: combat rules | 2026-11-16 |
+| B27 | Warrior die's `after_roll_die` has no uid check: *any* die that rolls its minimum becomes its maximum | Batch 2: combat rules | 2026-11-16 |
+| B28 | "Hit all enemies" loops index `room_enemies` by `enemies_left_this_combat`, so they hit corpses and skip living enemies | Batch 2: combat rules | 2026-11-16 |
+| B31 | Enemy pseudo-random move picker: the `all_same` loop only compares the last item, and 1 move of history counts as "all same" | Batch 2: combat rules | 2026-11-16 |
+| B32 | Target failsafe uses `>` instead of `>=`. An EXIT enemy doesn't shift `enemy_target_index` when target > e | Batch 2: combat rules | 2026-11-16 |
+| B40 | **Accurate and Splash dice are never offered** (Echo and Last Stand are registered twice instead) | Batch 2: combat rules | 2026-11-16 |
+| H06 | Sign in to GitHub on the first push | Housekeeping | 2026-11-15 |
+
+**Milestones**
 
 - 2026-11-15 Full code audit; this board created.
 - 2026-11-15 H01 leaked SSH key deleted on GitHub · H02/H03 repo moved off Google Drive to `C:\Users\Jared\Projects\TidesOfFortune` (Drive copy left as a backup) · H04 `.gitignore` covers keys and builds · world-map WIP saved to `wip/world-map`.
