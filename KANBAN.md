@@ -23,18 +23,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 4: quick bug sweep | B34, B51, B60, B63, B67, B80, B81, B84 | `fix/batch-4` | Fixed in code, one commit per card, **not yet play-tested**. Test list below. |
 
-**Batch 4 test list**
-- B51 Give yourself an Assassin die (F1 / Dice): its colour should pulse between attack and intel in the bag view, the shop and the small dice above a slot.
-- B60 On the bounty board, pick a contract, then reroll: no contract should stay picked. The Elite 3 contract should say Pirate Captain.
-- B63 At the workbench, drop a die on the left slot, then drag it to the middle slot: it should move. Dropping quickly should always register.
-- B67 Play a few events (F1 / Events): the text after choosing should be a sentence, never "Result". The Albatross trinket costs 7 alignment.
-- B84 Finish a spread with odd max HP: the rest heal should round up and the tooltip should say 25%.
-- B34 Fight Driftnet Fish until Overwhelm drops your intel below zero: the ring should be empty and the number red. Set intel to 12 (F1 / Run): the ring should be full, not overflow.
-- B80 Hover the bag: the whole bag should highlight. Open the bag: each die has a coloured edge for its rarity and its numbers sit centred.
-- B81 Drag the bag scrollbar, release off the bar, then click elsewhere: the list should not scroll.
-
+Nothing is waiting for a playtest right now.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -49,7 +39,6 @@ All known P0 bugs are fixed, see DONE.
 | ID | Bug | Where | Size |
 |---|---|---|---|
 | B33 | Intel level is only recalculated at turn start, so intel gained mid-turn never raises the level (*"intel 4 doesn't add the 3rd die"*) | `oCombat/Step_0.gml:164-177` | S [L] (design call: see Q3) |
-| B34 | Negative intel draws an almost-full ring. Intel above 12 overflows it | `oCombat/Draw_64.gml:934`, `scHelpers.gml:950` | S [L] |
 | B35 | `can_place_dice_in_slot` (highlights) and `apply_dice_to_slot` (real rule) disagree on exclusive, coin, multitype and the play limit | `scCombatScripts.gml:518,1082` | M [C] → fixed by T08 |
 | B36 | `"None!"` in `get_slot_stats` makes its condition always true. Left alone on purpose: it looks like a deliberate switch-off, and removing it would change how neutral dice count in a slot. Needs Jared's call. (The doubled `is_slot_exclusive` check was fixed in batch 2.) | `scCombatScripts.gml` | S [C] |
 
@@ -58,14 +47,10 @@ All known P0 bugs are fixed, see DONE.
 |---|---|---|---|
 | B41 | Hover descriptions are wrong after upgrades: static text, the hover preview uses slot −1 (type bonuses never show), duplicated oDice fields drift, and `get_dice_output(read_only=false)` runs every frame and fires keepsake side-effects | `oDice/Draw_64.gml:39`, `scDice.gml:1078`, `oWorkbenchManager/Draw_64.gml:177,246` | M [C] → T04 |
 | B42 | `string_has_keyword` is fragile (colons, single sentences, the "Favourite." prefix). `get_keywords_in_string` doesn't trim at all, so Offhand/Balanced show the wrong icons | `scHelpers.gml:580-635` | → T04 [C] |
-| B51 | Multitype dice don't show their colours in the bag, shop, particles or combat tiles (callers pass `action_type`) | `scDice.gml:1401`, multiple | S [C] |
 
 **Map / events / bounty / workbench**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B60 | (Two bounties is intended, decided 2026-11-16.) Reroll doesn't clear `active_bounty`. "Elite 3" is labelled "Unfinished Elite" | `oBountyController/Create_0.gml:106`, `Draw_64.gml:220`, `scBounties.gml:28` | S [C] |
-| B63 | Workbench drop doesn't register: a die already in a slot is rejected, and the hover flags lag a frame (set in Draw, read in Step) | `oDice/Step_0.gml:112-140`, `oWorkbenchManager/Draw_64.gml:9` | S [C] |
-| B67 | Albatross text says −7 alignment, the code applies −4. 29 options still say "Result" | `scEvents.gml:606/614` | S [C] |
 | B69 | Intro cutscene replays every launch (`seen` isn't saved) | `oCutsceneManager` | S [C] |
 
 **Save / load**
@@ -76,11 +61,8 @@ All known P0 bugs are fixed, see DONE.
 
 | ID | Bug | Where |
 |---|---|---|
-| B80 | Bag hover box uses `bag_h` for its width. Bag text offsets switch on the wrong `image_index`. The rarity colour is overwritten | `oRunManager/Draw_64.gml:575,739-760` |
-| B81 | Scrollbar drag sticks (room vs GUI y, `m_grab_y` never reset) | `oRunManager/Draw_64.gml:880-891` |
 | B82 | `draw_outline_text` coloured mode wraps every word and ignores halign/alpha. `queue_tooltip` changes the caller's font | `scHelpers.gml:290-426` |
 | B83 | Fixed 1080p coordinates break at 1440p: shop, bounty, tools, cutters hitbox, cutscene, backgrounds, particle targets | see audit notes |
-| B84 | Rest heals with `round()`, potion uses `ceil()`, so they're inconsistent | `oWorldManager/Draw_64.gml:116` |
 
 ---
 
@@ -228,6 +210,14 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | B29 | Slot bonuses overwrote each other: now separate bonuses tagged by source | Slot bonuses | 2026-11-17 |
 | B75 | Slot bonus per die vs per slot: every die unless the description says otherwise; Repeater Rail first die only; labels show true totals | Slot bonuses | 2026-11-17 |
 | F16 | Slot bonuses shown on the dice as a "+N" badge (simple version) | Slot bonuses | 2026-11-17 |
+| B34 | Negative intel draws an almost-full ring. Intel above 12 overflows it | Batch 4: quick bug sweep | 2026-11-17 |
+| B51 | Multitype dice don't show their colours in the bag, shop, particles or combat tiles (callers pass `action_type`) | Batch 4: quick bug sweep | 2026-11-17 |
+| B60 | (Two bounties is intended, decided 2026-11-16.) Reroll doesn't clear `active_bounty`. "Elite 3" is labelled "Unfinished Elite" | Batch 4: quick bug sweep | 2026-11-17 |
+| B63 | Workbench drop doesn't register: a die already in a slot is rejected, and the hover flags lag a frame (set in Draw, read in Step) | Batch 4: quick bug sweep | 2026-11-17 |
+| B67 | Albatross text says −7 alignment, the code applies −4. 29 options still say "Result" | Batch 4: quick bug sweep | 2026-11-17 |
+| B80 | Bag hover box uses `bag_h` for its width. Bag text offsets switch on the wrong `image_index`. The rarity colour is overwritten | Batch 4: quick bug sweep | 2026-11-17 |
+| B81 | Scrollbar drag sticks (room vs GUI y, `m_grab_y` never reset) | Batch 4: quick bug sweep | 2026-11-17 |
+| B84 | Rest heals with `round()`, potion uses `ceil()`, so they're inconsistent | Batch 4: quick bug sweep | 2026-11-17 |
 
 **Milestones**
 
