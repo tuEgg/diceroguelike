@@ -23,13 +23,13 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 7: intel rework | F10, B33, F17, F18 | `feature/intel-rework` | **Ready to play-test.** All four built: intents always shown (I ranges, II exact), intel dice roll the moment they are played, III shows next turn's move, IV rewrites one intent per turn. |
+| 7: intel rework | F10, F17, F18 | `feature/intel-rework` | **Ready to play-test.** Built: intents always shown (I ranges, II exact), III shows next turn's move, IV rewrites one intent per turn. Instant intel rolls (B33) tried and reverted: intel dice roll in the queue and count next turn. |
 
 **Batch 7 test list**
-- F10 Start any fight with 0 intel (F1 / Run, intel 0): every enemy shows what it will do (attack, block, debuff...) with "?" for the number. Set intel 3: the number becomes a range. Set intel 6: it becomes one exact number, and the enemy hits for exactly that. Bill's Sharpen Cutlass (Might) raises the exact number. Hovering shows the dice only from intel 3.
-- B33 Play an intel die (e.g. the starting d4 intel) into an empty slot: it rolls at once, the intel ring and level go up, and the enemy numbers sharpen before you end your turn. Reach 12 intel in one turn and the level shows IV straight away. That slot can't be right-clicked to another type afterwards. Ending the turn, the intel slot doesn't roll again. Crow's Nest Clarity gives its intel at once.
-- F17 Set intel 9 (F1 / Run): beside each enemy's intent a small faded icon after a ">" shows what it will do next turn, and hovering the enemy adds "Next turn: ..." to the tooltip. End the turn: the enemy does the move that was shown. (A move triggered by low health, or a stun, can still change it.)
+- F10 Start any fight with 0 intel (F1 / Run, intel 0): every enemy shows what it will do (attack, block, debuff...) with "?" for the number. Set intel 3 (the F1 setting applies from the start of each turn, so end a turn or start a new fight): the number becomes a range. Set intel 6: it becomes one exact number, and the enemy hits for exactly that. Bill's Sharpen Cutlass (Might) raises the exact number. Hovering shows the dice only from intel 3.
+- F17 Set intel 9 (F1 / Run): beside each enemy's intent a small faded icon after a ">" shows what it will do next turn, and the icon sits clear of the number with a gap either side of the ">", and hovering the enemy says "This turn: ... Next turn: ..." on wrapped lines. End the turn: the enemy does the move that was shown. (A move triggered by low health, or a stun, can still change it.)
 - F18 Set intel 12: hover an enemy's intent and a "Rewrite intent" tooltip shows. Click it: the intent pops and changes to a different move with new numbers, the next-turn icon may change too, and the feed says what it became. You get one rewrite per turn (a second click does nothing until next turn). On a stunned enemy, or one with only one move, the tooltip says "Can't rewrite". With 2+ enemies try it on each.
+- Hover the intel eye above the player: the Intel Levels panel wraps every description inside the panel, each row as tall as its text. Play an intel die: its slot rolls when the queue resolves (not when placed), and the intel shows at the start of next turn.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -43,7 +43,7 @@ All known P0 bugs are fixed, see DONE.
 **Combat core**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B33 | Intel only counted next turn and its level only updated at turn start (now: intel dice roll when played, level updates live; in testing batch 7) | `oCombat/Step_0.gml:164-177` | S [L] (design call: see Q3) |
+| B33 | Intel only counts next turn (instant rolling was tried in batch 7 and reverted, 2026-11-16: it felt wrong. Kept as next-turn; a separate this-turn effect for intel is being discussed) | `oCombat/Step_0.gml:164-177` | S [L] (design call: see Q3) |
 | B36 | `"None!"` in `get_slot_stats` makes its condition always true. Left alone on purpose: it looks like a deliberate switch-off, and removing it would change how neutral dice count in a slot. Needs Jared's call. (The doubled `is_slot_exclusive` check was fixed in batch 2.) | `scCombatScripts.gml` | S [C] |
 
 **Dice / keepsakes / items**

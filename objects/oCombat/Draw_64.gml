@@ -249,9 +249,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	}
 	
 	// Change action style based on possibilities
-	if (hover && mouse_check_button_pressed(mb_right) && state == CombatState.PLAYER_INPUT && slot_has_rolled_intel(action_queue[| i])) {
-		throw_error("Intel already gathered", "This slot has given its intel this turn, so it can't change type.");
-	} else if (hover && mouse_check_button_pressed(mb_right) && state == CombatState.PLAYER_INPUT) {
+	if (hover && mouse_check_button_pressed(mb_right) && state == CombatState.PLAYER_INPUT) {
 	    var slot = action_queue[| i];
 	    var opts;
 
@@ -277,7 +275,6 @@ for (var i = 0; i < aq_list_size; i++) {
 		if (next_index != current_index) {
 			sfx_play(soSlotPlace, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
 			combat_trigger_effects("after_change_current_action", {});
-			slot_roll_intel(i); // switched to intel: its dice give their intel now
 		}
 	}
 	
@@ -706,13 +703,17 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		// intel level III: a small faded icon to the right shows next turn's planned move
 		var _next_move = enemy.planned_move;
 		var _show_next = (intel_level >= 3 && is_struct(_next_move));
-		var _next_x = xx + text_w/2 + 34;
 		if (_show_next) {
 			var _next_icon = intent_icon(_next_move);
 			var _next_alpha = (enemy.intent.alpha - enemy.info_alpha) * 0.7;
+			var _next_scale = enemy.intent.scale * 0.6;
+			// start after the number (or after the icon when there is no number), then a gap, the ">", a gap, the icon
+			var _text_end = (text == "") ? icon_x + (sprite_get_width(sprite) / 2) * enemy.intent.scale * bonus_scale : text_x + string_width(text) * enemy.intent.scale;
 			draw_set_font(ftDefault);
-			draw_outline_text(">", c_black, c_white, 2, _next_x - 20, yy, 1, _next_alpha);
-			draw_sprite_ext(_next_icon.sprite, _next_icon.index, _next_x + 8, yy, enemy.intent.scale * 0.6, enemy.intent.scale * 0.6, 0, _next_icon.col, _next_alpha);
+			var _arrow_x = _text_end + 16;
+			draw_outline_text(">", c_black, c_white, 2, _arrow_x, yy, 1, _next_alpha);
+			var _next_icon_x = _arrow_x + string_width(">") + 12 + (sprite_get_width(_next_icon.sprite) / 2) * _next_scale;
+			draw_sprite_ext(_next_icon.sprite, _next_icon.index, _next_icon_x, yy, _next_scale, _next_scale, 0, _next_icon.col, _next_alpha);
 			draw_set_font(ftTopBar);
 		}
 
@@ -747,8 +748,8 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "The enemy intents to escape", undefined, 0, undefined);
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
 					if (intel_level >= 1) {
-						var _intent_desc = "The enemy intends to perform the following move: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount);
-						if (_show_next) _intent_desc += "\nNext turn: " + string(_next_move.move_name) + (intent_has_numbers(_next_move) ? " (" + get_dice_name_and_bonus(_next_move, _next_move.bonus_amount) + ")" : "");
+						var _intent_desc = "This turn: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount) + ".";
+						if (_show_next) _intent_desc += " Next turn: " + string(_next_move.move_name) + (intent_has_numbers(_next_move) ? ", " + get_dice_name_and_bonus(_next_move, _next_move.bonus_amount) : "") + ".";
 						queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, _intent_desc, undefined, 0, undefined);
 					} else {
 						queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, "Gain intel to see how much this enemy will roll.", undefined, 0, undefined);
@@ -994,17 +995,33 @@ if (state != CombatState.PLAYER_DEAD) {
 	}
 
 	if (intel_hover) {
-		var intel_x = global.player_x - 210;
-		var intel_y = global.player_y - 520;
 		var intel_pad = 20;
-		var intel_row_h = 40;
-	
+		var intel_w = 440;
+		var intel_desc_x = intel_pad + 95;
+		var intel_desc_w = intel_w - intel_desc_x - intel_pad;
+		var intel_line_sep = 20;
+		var intel_min_row_h = 40;
+
+		// each row is as tall as its wrapped description
+		draw_set_font(ftSmall);
+		var intel_row_heights = [];
+		var intel_h = intel_pad + 30;
+		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
+			var _row_h = max(intel_min_row_h, string_height_ext(string(global.player_intel_data[| i].description), intel_line_sep, intel_desc_w) + 12);
+			intel_row_heights[i] = _row_h;
+			intel_h += _row_h;
+		}
+		intel_h += intel_pad / 2;
+
+		var intel_x = global.player_x - intel_w / 2;
+		var intel_y = global.player_y - 270 - intel_h;
+
 		draw_set_color(c_black);
 		draw_set_alpha(0.8);
-		draw_roundrect(intel_x - 1, intel_y - 11, intel_x + 421, intel_y + 256, false);
-	
+		draw_roundrect(intel_x - 1, intel_y - 11, intel_x + intel_w + 1, intel_y + intel_h + 1, false);
+
 		draw_set_color(global.color_bg);
-		draw_roundrect(intel_x, intel_y - 10, intel_x + 420, intel_y + 255, false);
+		draw_roundrect(intel_x, intel_y - 10, intel_x + intel_w, intel_y + intel_h, false);
 	
 		draw_set_color(c_white);
 		draw_set_alpha(1.0);
@@ -1013,21 +1030,23 @@ if (state != CombatState.PLAYER_DEAD) {
 		draw_set_font(ftDefault);
 		draw_text(intel_x + intel_pad, intel_y + intel_pad, "Intel Levels");
 	
-		// Draw rows
+		// Draw rows (each centred in its own height)
+		var _row_y = intel_y + intel_pad + 30;
 		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
-			draw_set_font(ftSmall);
+			var _row_mid = _row_y + intel_row_heights[i] / 2 - 10;
 			draw_set_halign(fa_left);
 			draw_sprite_ext(sIntelEye, global.player_intel_data[| i].index,
-						intel_x + intel_pad + 20, intel_y + intel_pad + (intel_row_h * (i+1)), 0.75, 0.75, 0, c_white, intel_alpha);
+						intel_x + intel_pad + 20, _row_mid, 0.75, 0.75, 0, c_white, intel_alpha);
 			draw_set_font(ftDefault);
 			draw_set_halign(fa_center);
-			draw_text(	intel_x + intel_pad + 70, intel_y + intel_pad + (intel_row_h * (i+1)), + string(global.player_intel_data[| i].name));
+			draw_text(	intel_x + intel_pad + 70, _row_mid, string(global.player_intel_data[| i].name));
 			draw_set_halign(fa_left);
-			draw_set_font(ftSmall); 
-			draw_text(	intel_x + intel_pad + 95, intel_y + intel_pad + (intel_row_h * (i+1)), + string(global.player_intel_data[| i].description));
+			draw_set_font(ftSmall);
+			draw_text_ext(intel_x + intel_desc_x, _row_mid, string(global.player_intel_data[| i].description), intel_line_sep, intel_desc_w);
+			_row_y += intel_row_heights[i];
 		}
 	
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Intel level: "+string(global.player_intel_data[| intel_level].name), "Resets each turn. " + string(global.player_intel_data[| intel_level].description), undefined, 0, undefined);
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Intel level: "+string(global.player_intel_data[| intel_level].name), "Intel dice you play this turn count next turn. " + string(global.player_intel_data[| intel_level].description), undefined, 0, undefined);
 	}
 }
 

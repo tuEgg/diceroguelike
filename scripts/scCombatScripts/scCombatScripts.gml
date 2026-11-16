@@ -449,8 +449,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 		case "INTEL":
 			if (_source == "player") {
-				// counts straight away: intel dice roll the moment they are played, so this turn's intents sharpen while you plan
-				player_intel += amount;
+				apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
 				var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, _dice_list_index);
 				num.x += 20;
 				num.y -= 20;
@@ -664,9 +663,6 @@ function apply_dice_to_slot(_die, _slot_i) {
 			ds_list_add(slot.dice_list, die_copy2);
 		}
 	
-		// an intel slot rolls its new die straight away
-		slot_roll_intel(_slot_i);
-
         add_feed_entry("You used a dice!");
 		if (!die_has_keyword(die.struct, "coin")) dice_played += 1;
 		dice_played_scale = 1.2;
@@ -1627,47 +1623,4 @@ function slot_bonus_breakdown(_slot) {
 function slot_total_bonus(_slot, _dice_count) {
 	if (_dice_count <= 0) return 0;
 	return _slot.bonus_amount * _dice_count + _slot.first_die_bonus;
-}
-
-
-// =====================================================================
-// INTEL
-// Intel dice roll the moment they are in an intel slot, so the intel they give counts while the player is
-// still planning (enemy numbers sharpen, intel level IV can rewrite an intent). They don't roll again when
-// the queue resolves. Intel resets at the end of each round.
-// =====================================================================
-
-/// @func slot_roll_intel(_slot_i)
-/// @desc Roll every die in this slot that hasn't given its intel yet, if the slot is an intel slot.
-///       Called when a die is placed, when a slot is switched to intel, and at the start of each turn for dice left in slots.
-function slot_roll_intel(_slot_i) {
-	var _slot = action_queue[| _slot_i];
-	if (_slot.current_action_type != "INTEL") return;
-
-	for (var d = 0; d < ds_list_size(_slot.dice_list); d++) {
-		var _die = _slot.dice_list[| d];
-		if (variable_struct_exists(_die, "intel_rolled") && _die.intel_rolled) continue;
-		_die.intel_rolled = true;
-		process_action("player", _die.dice_amount, _die.dice_value, _slot.bonus_amount, "player", undefined, "INTEL", _slot_i, _die, d);
-	}
-}
-
-/// @func slot_has_rolled_intel(_slot)
-/// @desc Has this slot already given intel this turn? Then it can't be switched to another type.
-function slot_has_rolled_intel(_slot) {
-	for (var d = 0; d < ds_list_size(_slot.dice_list); d++) {
-		var _die = _slot.dice_list[| d];
-		if (variable_struct_exists(_die, "intel_rolled") && _die.intel_rolled) return true;
-	}
-	return false;
-}
-
-/// @func intel_level_for(_intel)
-/// @desc The intel level (0 to 4) this much intel reaches.
-function intel_level_for(_intel) {
-	var _level = 0;
-	for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
-		if (_intel >= global.player_intel_data[| i].requirement) _level = i;
-	}
-	return _level;
 }
