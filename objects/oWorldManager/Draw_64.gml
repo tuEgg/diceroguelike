@@ -23,7 +23,9 @@ if (room == rmMap) {
 	var book_spread = min(spreads_cleared, array_length(page_image_indices) - 2); // never past the boss spread
 	var pages_left = spreads_cleared;
 	var pages_right = 7 - book_spread;
-	var page_offset = 10;
+	// Pages are stacked by their depth from the open spread, so the open spread stays still: the turned pages
+	// build up on the left and the pages still to read get thinner on the right as the voyage goes on
+	var page_offset = 6; // gap between one page edge and the next
 		
 	// show turning page
 	if (world_state == WORLD_STATE.TURNING) {
@@ -53,11 +55,11 @@ if (room == rmMap) {
 		}
 		
 		// draw the paper pages
-		draw_sprite_ext(sWorldBook, page_image_indices[i], gui_w/2 + (page_pos_offset * -1) + (page_offset * i * -1), page_y, x_scale, page_yscale, 0, c_white, 1.0);
+		draw_sprite_ext(sWorldBook, page_image_indices[i], gui_w/2 + (page_pos_offset * -1) - (page_offset * (book_spread - i)), page_y, x_scale, page_yscale, 0, c_white, 1.0);
 		
 		// draw the water page on top and below
 		if (i == book_spread || i == book_spread - 1) {
-			draw_sprite_ext(sWorldBookWater, page_image_indices[i] - 2, gui_w/2 + (page_pos_offset * -1) + (page_offset * i * -1), page_y, x_scale, page_yscale, 0, c_white, 1.0);
+			draw_sprite_ext(sWorldBookWater, page_image_indices[i] - 2, gui_w/2 + (page_pos_offset * -1) - (page_offset * (book_spread - i)), page_y, x_scale, page_yscale, 0, c_white, 1.0);
 		}
 	}
 	
@@ -101,24 +103,24 @@ if (room == rmMap) {
 		var future_index = i - chapter_pages;
 		if (future_index >= 0 && future_index mod future_pages_per_chapter == 0 && book_open_scale > 0.5) {
 			var c = chapter + 1 + (future_index div future_pages_per_chapter);
-			var tab_x0 = gui_w/2 + page_pos_offset + (page_offset * i) + page_w_on_screen - tab_edge_inset - 30;
+			var tab_x0 = gui_w/2 + page_pos_offset + (page_offset * max(0, i - book_spread - 1)) + page_w_on_screen - tab_edge_inset - 30;
 			var tab_y0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
 			draw_chapter_tab(tab_x0, tab_y0, tab_x0 + 30 + tab_out, tab_y0 + tab_h, tab_slant, "Chapter " + string(c), chapter_tab_colour(c), tab_out, book_open_scale);
 		}
 
 	// draw the paper pages
-		draw_sprite_ext(sWorldBook, page_image_indices[i mod chapter_pages], gui_w/2 + (page_pos_offset) + (page_offset * i), page_y, x_scale, page_yscale, 0, c_white, 1.0);
+		draw_sprite_ext(sWorldBook, page_image_indices[i mod chapter_pages], gui_w/2 + (page_pos_offset) + (page_offset * max(0, i - book_spread - 1)), page_y, x_scale, page_yscale, 0, c_white, 1.0);
 		
 		// draw the water page on top
 		if (i == book_spread || i == book_spread + 1) {
-			draw_sprite_ext(sWorldBookWater, page_image_indices[i] - 2, gui_w/2 + (page_pos_offset) + (page_offset * i), page_y, x_scale, page_yscale, 0, c_white, 1.0);
+			draw_sprite_ext(sWorldBookWater, page_image_indices[i] - 2, gui_w/2 + (page_pos_offset) + (page_offset * max(0, i - book_spread - 1)), page_y, x_scale, page_yscale, 0, c_white, 1.0);
 		}
 	}
 	
 	// hovering the part of a tab that sticks out explains it
 	for (var c = chapter + 1; c <= CHAPTER_COUNT && book_open_scale > 0.5; c++) {
 		var tab_page_index = chapter_pages + (c - chapter - 1) * future_pages_per_chapter;
-		var tab_x1 = gui_w/2 + page_pos_offset + (page_offset * tab_page_index) + page_w_on_screen - tab_edge_inset + tab_out;
+		var tab_x1 = gui_w/2 + page_pos_offset + (page_offset * max(0, tab_page_index - book_spread - 1)) + page_w_on_screen - tab_edge_inset + tab_out;
 		var tab_y0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
 		if (!mouse_hovering(tab_x1 - tab_out, tab_y0, tab_out, tab_h, false)) continue;
 
@@ -134,6 +136,9 @@ if (room == rmMap) {
 		}
 		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Chapter " + string(c) + ": " + chapter_title(c), tab_text);
 	}
+	
+	// where we are in the whole voyage, under the book
+	draw_voyage_progress(gui_w/2, gui_h - 45, book_open_scale);
 
 	draw_set_alpha(1.0);
 
@@ -152,8 +157,8 @@ if (room == rmMap) {
 	if (ds_list_size(chosen_pages) > 0 && page_is_boss(chosen_pages[| ds_list_size(chosen_pages) - 1])) _pages_on_spread = 1;
 	
 	// where the turning page is hinged, matching the page drawing above
-	var turn_pivot_x = gui_w/2 + page_pos_offset + (page_offset * book_spread);
-	var turn_cover_x = gui_w/2 - page_pos_offset - (page_offset * book_spread);
+	var turn_pivot_x = gui_w/2 + page_pos_offset;
+	var turn_cover_x = gui_w/2 - page_pos_offset;
 	var turn_page_w = sprite_get_width(sWorldBook) * page_xscale * book_open_scale;
 	
 	for (var p = 0; p < ds_list_size(chosen_pages); p++) {

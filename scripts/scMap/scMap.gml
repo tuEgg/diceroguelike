@@ -1154,3 +1154,60 @@ function chapter_tab_colour(_chapter) {
 		default: return make_color_rgb(200, 150, 70);
 	}
 }
+
+/// @desc The voyage at a glance, like a floor counter: a row of markers under the book, one per spread,
+///       grouped by chapter, with the boss as a larger diamond at the end of each chapter.
+///       Done spreads are filled, the current one pulses, the rest are hollow. Hover any marker for detail.
+function draw_voyage_progress(_cx, _y, _alpha) {
+	if (_alpha <= 0) return;
+	
+	var _spacing = 22;		// between markers
+	var _chapter_gap = 34;	// between chapters
+	var _radius = 6;
+	var _per_chapter = CHAPTER_SPREADS + 1; // drafted spreads, then the boss
+	var _total_w = CHAPTER_COUNT * (_per_chapter - 1) * _spacing + (CHAPTER_COUNT - 1) * _chapter_gap;
+	var _x = _cx - _total_w / 2;
+	var _pulse = 1 + 0.25 * sin(current_time / 180);
+	
+	draw_set_alpha(_alpha);
+	
+	for (var c = 1; c <= CHAPTER_COUNT; c++) {
+		var _col = chapter_tab_colour(c);
+		
+		for (var s = 0; s < _per_chapter; s++) {
+			var _is_boss = (s == _per_chapter - 1);
+			
+			// how far along is this marker?
+			var _done = (c < chapter) || (c == chapter && (s < spreads_cleared || world_state == WORLD_STATE.CHAPTER_END));
+			var _current = (c == chapter && s == spreads_cleared && world_state != WORLD_STATE.CHAPTER_END);
+			
+			var _r = _is_boss ? _radius + 4 : _radius;
+			if (_current) _r *= _pulse;
+			
+			// black outline, then the fill (hollow for markers still to come)
+			draw_set_color(c_black);
+			if (_is_boss) draw_diamond(_x, _y, _r + 3); else draw_circle(_x, _y, _r + 3, false);
+			
+			draw_set_color(_done || _current ? (_current ? c_white : _col) : make_color_rgb(90, 70, 50));
+			if (_is_boss) draw_diamond(_x, _y, _r); else draw_circle(_x, _y, _r, false);
+			
+			if (mouse_hovering(_x, _y, _spacing, _spacing, true)) {
+				var _what = _is_boss ? "Boss" : "Spread " + string(s + 1) + " of " + string(CHAPTER_SPREADS);
+				var _when = _done ? "Done." : (_current ? "You are here." : "Still to come.");
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Chapter " + string(c) + ": " + _what, chapter_title(c) + ". " + _when);
+			}
+			
+			if (s < _per_chapter - 1) _x += _spacing;
+		}
+		
+		_x += _chapter_gap;
+	}
+	
+	draw_set_alpha(1.0);
+}
+
+/// @desc A filled diamond (a square on its point), used for boss markers.
+function draw_diamond(_x, _y, _r) {
+	draw_triangle(_x - _r, _y, _x, _y - _r, _x + _r, _y, false);
+	draw_triangle(_x - _r, _y, _x, _y + _r, _x + _r, _y, false);
+}
