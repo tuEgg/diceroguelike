@@ -23,7 +23,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| Slot bonuses | B29, B75 | `fix/b29-slot-bonuses` | Jared reviewed 2026-11-17. Follow-up **not yet play-tested**: Rigger's Tonic is now +1 to each die; each die in a slot shows its bonus as a small green badge in its bottom-right corner (F16, simple version); F2/F3/F4 set game speed x1/x2/x4. Earlier: Fixed in code, **not yet play-tested**. Decided 2026-11-17: a bonus applies to every die unless its description says otherwise; Repeater Rail is first die only. Slot labels show the true total and hovering a slot lists each bonus. |
+| Slot bonuses | B29, B75 | `fix/b29-slot-bonuses` | Also: F1 menu lists (Dice, Keepsakes, Items) show a tooltip with icon, name and description on hover, **not yet play-tested**. Jared reviewed 2026-11-17. Follow-up **not yet play-tested**: Rigger's Tonic is now +1 to each die; each die in a slot shows its bonus as a small green badge in its bottom-right corner (F16, simple version); F2/F3/F4 set game speed x1/x2/x4. Earlier: Fixed in code, **not yet play-tested**. Decided 2026-11-17: a bonus applies to every die unless its description says otherwise; Repeater Rail is first die only. Slot labels show the true total and hovering a slot lists each bonus. |
 | B75 | **Decided 2026-11-17: every die unless the description says otherwise.** A slot's flat bonus is added to *every die* in the slot when it rolls (process_action), but the slot tooltip and range show it once ("3d4+1" really rolls 3d4+3). Decide: bonus per die (and fix the display) or once per slot (and fix the roll). Rigger's Tonic's text ("+2 on all rolls") reads as per die. | S [C] |
 
 

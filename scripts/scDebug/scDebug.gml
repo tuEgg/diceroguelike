@@ -59,6 +59,7 @@ function debug_menu_init() {
 		message: "",
 		message_timer: 0,
 		clicked: false,				// was the left mouse button pressed this frame (set while drawing)
+		hover_tip: undefined,		// { name, desc, icon, index, dice } for whatever list entry the mouse is over
 
 		// Kept between sessions in debug_settings.json (see debug_settings_save)
 		skip_intro: true,			// skip the intro cutscene when the game is run from GameMaker
@@ -343,6 +344,18 @@ function debug_button(_x, _y, _w, _h, _label, _highlight = false, _enabled = tru
 	return _hover && global.dbg.clicked;
 }
 
+/// @returns {bool} is the mouse over this rectangle
+function debug_hovered(_x, _y, _w, _h) {
+	var mx = device_mouse_x_to_gui(0);
+	var my = device_mouse_y_to_gui(0);
+	return (mx >= _x && mx < _x + _w && my >= _y && my < _y + _h);
+}
+
+/// Show a tooltip for a list entry. The game's own tooltips are drawn underneath this menu, so the menu draws its own.
+function debug_tip(_name, _desc, _icon = undefined, _index = 0, _dice = undefined) {
+	global.dbg.hover_tip = { name: _name, desc: _desc, icon: _icon, index: _index, dice: _dice };
+}
+
 function debug_label(_x, _y, _text, _col = c_white) {
 	draw_set_color(_col);
 	draw_set_halign(fa_left);
@@ -361,6 +374,7 @@ function debug_menu_draw() {
 	var gui_h = display_get_gui_height();
 
 	dbg.clicked = mouse_check_button_pressed(mb_left);
+	dbg.hover_tip = undefined;
 
 	draw_set_font(ftDefault);
 	var row_h = string_height("Ag") + 12;
@@ -677,7 +691,10 @@ function debug_menu_draw() {
 				var die = all_dice[i];
 				var slot = i - first;
 				var label = die.name + "   d" + string(die.dice_value) + " " + string(die.possible_type);
-				if (debug_button(cx + half_w * (slot mod 2), yy + (slot div 2) * row_h, half_w, row_h, label)) {
+				var bx = cx + half_w * (slot mod 2);
+				var by = yy + (slot div 2) * row_h;
+				if (debug_hovered(bx, by, half_w, row_h)) debug_tip(die.name, die.description, sDiceIcon, get_dice_index(die.dice_value), die);
+				if (debug_button(bx, by, half_w, row_h, label)) {
 					debug_give_die(die);
 				}
 			}
@@ -711,7 +728,10 @@ function debug_menu_draw() {
 				var slot = i - first;
 				var owned_index = debug_keepsake_index(keepsake);
 
-				if (debug_button(cx + half_w * (slot mod 2), yy + (slot div 2) * row_h, half_w, row_h, keepsake.name, owned_index != -1)) {
+				var bx = cx + half_w * (slot mod 2);
+				var by = yy + (slot div 2) * row_h;
+				if (debug_hovered(bx, by, half_w, row_h)) debug_tip(keepsake.name, keepsake.desc, sKeepsake, keepsake.sub_image);
+				if (debug_button(bx, by, half_w, row_h, keepsake.name, owned_index != -1)) {
 					if (owned_index != -1) {
 						ds_list_delete(oRunManager.keepsakes, owned_index);
 						debug_say("Removed " + keepsake.name);
@@ -750,7 +770,17 @@ function debug_menu_draw() {
 				var item = global.master_item_list[| i];
 				var slot = i - first;
 
-				if (debug_button(cx + half_w * (slot mod 2), yy + (slot div 2) * row_h, half_w, row_h, item.name + "   (" + string(item.type) + ")")) {
+				var bx = cx + half_w * (slot mod 2);
+				var by = yy + (slot div 2) * row_h;
+				if (debug_hovered(bx, by, half_w, row_h)) {
+					var core_die = undefined;
+					if (item.type == "core") {
+						core_die = clone_die(global.dice_d6_atk, "");
+						core_die.distribution = item.distribution;
+					}
+					debug_tip(item.name, item.description, item.sprite, item.index, core_die);
+				}
+				if (debug_button(bx, by, half_w, row_h, item.name + "   (" + string(item.type) + ")")) {
 					if (get_first_free_item_slot() == -1) {
 						debug_say("No free item slot");
 					} else {
@@ -826,6 +856,13 @@ function debug_menu_draw() {
 			}
 
 		break;
+	}
+
+	// Tooltip for the list entry under the mouse, on top of everything
+	if (dbg.hover_tip != undefined && instance_exists(oRunManager)) {
+		var _tip = dbg.hover_tip;
+		global.total_tooltip_height = 0;
+		draw_single_tooltip(device_mouse_x_to_gui(0) + 20, device_mouse_y_to_gui(0) + 20, _tip.name, _tip.desc, _tip.icon, _tip.index, _tip.dice);
 	}
 
 	// Message line
