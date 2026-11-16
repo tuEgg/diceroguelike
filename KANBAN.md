@@ -24,8 +24,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-
-Nothing is waiting for a playtest right now.
+| Remaining save gaps | B70, B71, B72 | `fix/save-gaps` | Fixed in code, **not yet play-tested**. Keepsake internal state is deliberately not saved: every keepsake `state` only tracks per-turn or per-fight flags. |
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs

@@ -282,6 +282,9 @@ if (room == rmMap) {
 					} else {
 						generate_pages();
 					}
+					
+					// save the new draft, so quitting can't reroll it
+					save_game(1);
 				}
 				
 				if (!choices_locked) {
@@ -399,6 +402,9 @@ if (room == rmMap) {
 							removed_option.locked = true;
 							ds_list_destroy(temp_list);
 						}
+						
+						// save each pick, so quitting mid-draft keeps it (and the page it locked)
+						save_game(1);
 					}
 				}
 
@@ -413,6 +419,7 @@ if (room == rmMap) {
 			if (hover_exit && exit_col == c_red) {
 				if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
 					choices_locked = true;
+					save_game(1);
 				}
 				embark_scale = lerp(embark_scale, 1.2, 0.2);
 			} else {

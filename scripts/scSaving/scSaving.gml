@@ -38,6 +38,27 @@ function save_game(_slot) {
 	    array_push(_saved_pages, serialise_page(oWorldManager.chosen_pages[| i]));
 	}
 	
+	// the three pages on offer while drafting, so quitting mid-draft can't reroll them
+	var _saved_pages_shown = [];
+	for (var i = 0; i < ds_list_size(oWorldManager.pages_shown); i++) {
+	    array_push(_saved_pages_shown, serialise_page(oWorldManager.pages_shown[| i]));
+	}
+
+	// what is left to find this run: events not yet seen, keepsakes and tools still in their pools
+	var _events_remaining = [];
+	for (var i = 0; i < ds_list_size(global.master_event_list); i++) array_push(_events_remaining, global.master_event_list[| i].name);
+	var _rollable_keepsakes = [];
+	for (var i = 0; i < ds_list_size(global.rollable_keepsake_list); i++) array_push(_rollable_keepsakes, global.rollable_keepsake_list[| i]._id);
+	var _shop_keepsakes = [];
+	for (var i = 0; i < ds_list_size(global.shop_keepsake_list); i++) array_push(_shop_keepsakes, global.shop_keepsake_list[| i]._id);
+	var _tool_pool = [];
+	for (var i = 0; i < ds_list_size(global.master_tool_list); i++) array_push(_tool_pool, global.master_tool_list[| i].name);
+
+	// GameMaker can't read back where the random number generator is up to, so start it from a fresh
+	// seed now and save that seed. Continue then carries on with exactly the same random numbers.
+	var _rng_seed = irandom(2147483646);
+	random_set_seed(_rng_seed);
+
 	var _last_node = (oWorldManager.last_node != undefined) ? {
 		name: oWorldManager.last_node.name,
 		cleared: oWorldManager.last_node.cleared,
@@ -69,7 +90,7 @@ function save_game(_slot) {
 		choices_locked: oWorldManager.choices_locked,
 		nodes_til_drafting: oWorldManager.nodes_til_drafting,
 		pages_drafted: oWorldManager.pages_drafted,
-        active_bounty: oRunManager.active_bounty,
+		pages_shown: _saved_pages_shown,
         world_state: oWorldManager.world_state,
         combat_chance: oWorldManager.combat_chance,
         event_chance: oWorldManager.event_chance,
@@ -77,7 +98,6 @@ function save_game(_slot) {
         alignment_chance: oWorldManager.alignment_chance,
         bounty_chance: oWorldManager.bounty_chance,
         shop_chance: oWorldManager.shop_chance,
-        nodes_til_drafting: oWorldManager.nodes_til_drafting,
 		nodes_cleared: oWorldManager.nodes_cleared,
 		bounty_nodes_this_voyage: oWorldManager.bounty_nodes_this_voyage,
 		elite_nodes_this_voyage: oWorldManager.elite_nodes_this_voyage,
@@ -92,7 +112,17 @@ function save_game(_slot) {
 		possible_encounters: ds_list_to_array(oWorldManager.possible_encounters),
 		active_bounty: (oRunManager.active_bounty != undefined) ? serialise_bounty(oRunManager.active_bounty) : undefined,
 		
-        rng_seed: random_get_seed(),
+        rng_seed: _rng_seed,
+
+		luck: global.player_luck,
+		dutchman_taken: oRunManager.dutchman_taken,
+		voyage: oRunManager.voyage,
+		bonus_dice_next_combat: oRunManager.bonus_dice_next_combat,
+		show_consumables_chance: oRunManager.show_consumables_chance,
+		events_remaining: _events_remaining,
+		rollable_keepsakes: _rollable_keepsakes,
+		shop_keepsakes: _shop_keepsakes,
+		tool_pool: _tool_pool,
     };
 
 	var _json = json_stringify(_save);
@@ -102,12 +132,26 @@ function save_game(_slot) {
 }
 
 
+/// @returns {bool} false if there was no readable save of this version, in which case nothing is changed
 function load_game(_slot) {
-    var _file = file_text_open_read("save_slot_" + string(_slot) + ".json");
-    var _json = file_text_read_string(_file);
-    file_text_close(_file);
+	var _path = "save_slot_" + string(_slot) + ".json";
+	if (!file_exists(_path)) return false;
 
-    var _save = json_parse(_json);
+	var _save;
+	try {
+	    var _file = file_text_open_read(_path);
+	    var _json = file_text_read_string(_file);
+	    file_text_close(_file);
+	    _save = json_parse(_json);
+	} catch (_error) {
+		show_debug_message("Couldn't read " + _path + ": " + string(_error));
+		return false;
+	}
+
+	if (!variable_struct_exists(_save, "version") || _save.version != SAVE_VERSION) {
+		show_debug_message("Ignoring " + _path + ", it was saved by a different version of the game");
+		return false;
+	}
 
     // Basic state
     oRunManager.credits = _save.credits;
@@ -155,8 +199,6 @@ function load_game(_slot) {
 	oWorldManager.shop_nodes_this_voyage = _save.shop_nodes_this_voyage;
 	oWorldManager.workbench_nodes_this_voyage = _save.workbench_nodes_this_voyage;
 	
-    random_set_seed(_save.rng_seed);
-	
 	oRunManager.items = [];
 	for (var i = 0; i < array_length(_save.items); i++) {
 		if (_save.items[i] == undefined) {
@@ -166,12 +208,22 @@ function load_game(_slot) {
 	    array_push(oRunManager.items, clone_item(get_item_by_name(_save.items[i])));
 	}
 
+	// Toolbelt adds item slots when it is picked up, which doesn't happen again on load,
+	// so the slot count comes from the save and the hover arrays are rebuilt to match
+	oRunManager.max_items = array_length(oRunManager.items);
+	oRunManager.items_hover = array_create(oRunManager.max_items, false);
+	oRunManager.items_hover_scale = array_create(oRunManager.max_items, 1.0);
+
     // Rebuild ds_lists
     ds_list_destroy(oRunManager.tools);
 	oRunManager.tools = ds_list_create();
 	for (var i = 0; i < array_length(_save.tools); i++) {
-	    ds_list_add(oRunManager.tools, get_tool_by_name(_save.tools[i]));
+		var _tool = undefined;
+		with (oRunManager) _tool = get_tool_by_name(_save.tools[i]);
+	    if (_tool != undefined) ds_list_add(oRunManager.tools, _tool);
 	}
+	ds_list_clear(oRunManager.tools_scale);
+	repeat (ds_list_size(oRunManager.tools)) ds_list_add(oRunManager.tools_scale, 0.5);
 
 	// Rebuild chosen_pages first
 	ds_list_destroy(oWorldManager.chosen_pages);
@@ -227,6 +279,55 @@ function load_game(_slot) {
 	oRunManager.keepsakes = ds_list_create();
 	for (var i = 0; i < array_length(_save.keepsakes); i++) {
 	    ds_list_add(oRunManager.keepsakes, get_keepsake_by_id(_save.keepsakes[i]));
+	}
+
+	// The rest of the run. Each check lets an older save without that field load with the defaults.
+	if (variable_struct_exists(_save, "luck")) global.player_luck = _save.luck;
+	if (variable_struct_exists(_save, "dutchman_taken")) oRunManager.dutchman_taken = _save.dutchman_taken;
+	if (variable_struct_exists(_save, "voyage")) oRunManager.voyage = _save.voyage;
+	if (variable_struct_exists(_save, "bonus_dice_next_combat")) oRunManager.bonus_dice_next_combat = _save.bonus_dice_next_combat;
+	if (variable_struct_exists(_save, "show_consumables_chance")) oRunManager.show_consumables_chance = _save.show_consumables_chance;
+
+	// the draft on offer, if the game was closed mid-draft
+	if (variable_struct_exists(_save, "pages_shown")) {
+		ds_list_clear(oWorldManager.pages_shown);
+		for (var i = 0; i < array_length(_save.pages_shown); i++) {
+			ds_list_add(oWorldManager.pages_shown, deserialise_page(_save.pages_shown[i]));
+		}
+	}
+
+	// events already seen this run don't come round again
+	if (variable_struct_exists(_save, "events_remaining")) {
+		define_events();
+		for (var i = ds_list_size(global.master_event_list) - 1; i >= 0; i--) {
+			if (!array_contains(_save.events_remaining, global.master_event_list[| i].name)) ds_list_delete(global.master_event_list, i);
+		}
+	}
+
+	// the keepsake and tool pools, as they were
+	if (variable_struct_exists(_save, "rollable_keepsakes")) load_keepsake_pool(global.rollable_keepsake_list, _save.rollable_keepsakes);
+	if (variable_struct_exists(_save, "shop_keepsakes")) load_keepsake_pool(global.shop_keepsake_list, _save.shop_keepsakes);
+	if (variable_struct_exists(_save, "tool_pool")) {
+		ds_list_clear(global.master_tool_list);
+		for (var i = 0; i < array_length(_save.tool_pool); i++) {
+			var _tool = undefined;
+			with (oRunManager) _tool = get_tool_by_name(_save.tool_pool[i]);
+			if (_tool != undefined) ds_list_add(global.master_tool_list, _tool);
+		}
+	}
+
+	// last of all, so nothing above uses up random numbers: carry on the random sequence from the save
+	random_set_seed(_save.rng_seed);
+
+	return true;
+}
+
+/// @desc Refill a keepsake pool from saved ids, using the master list's keepsake structs.
+function load_keepsake_pool(_pool, _ids) {
+	ds_list_clear(_pool);
+	for (var i = 0; i < array_length(_ids); i++) {
+		var _keepsake = get_keepsake_by_id(_ids[i]);
+		if (_keepsake != undefined) ds_list_add(_pool, _keepsake);
 	}
 }
 
