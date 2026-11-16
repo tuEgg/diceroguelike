@@ -95,55 +95,44 @@ if (is_dragging) {
 	    if (mouse_check_button_released(mb_left)) {
 	        is_dragging = false;
 		
-			with (oWorkbenchManager) { 
-				function reject_dice() {
-					if (other.in_slot > 0) {
-						workbench_slot[other.in_slot-1].dice = undefined;
-						other.in_slot = false;
-					}
+			with (oWorkbenchManager) {
+				var _die = other;
+
+				// Which slot is the mouse over right now? Worked out here rather than read from the hover flags,
+				// which are set in Draw GUI and so can be a frame behind.
+				var _mx = device_mouse_x_to_gui(0);
+				var _my = device_mouse_y_to_gui(0);
+				var _target = -1;
+				for (var s = 0; s < 2; s++) {
+					if (abs(_mx - workbench_slot[s].xx) <= wb_tile_size / 2 && abs(_my - workbench_slot[s].yy) <= wb_tile_size / 2) _target = s;
 				}
-			
-				if (hovered_slot_1) {
-					if (workbench_slot[0].dice == undefined) {
-						// Reject coins
-						if (other.struct.dice_value == 2) {
-							throw_error("Can't upgrade coins", "Coins are are too small to receive a core");
-							reject_dice();
-						} else {
-							// only accept dice that didn't come from another slot
-							if (other.in_slot == 0) {
-								workbench_slot[0].dice = other.struct;
-								other.x = workbench_slot[0].xx;
-								other.y = workbench_slot[0].yy;
-								other.in_slot = 1;
-							} else {
-								reject_dice();
-							}
-						}
-					} else {
-						reject_dice();
-					}
-				} else if (hovered_slot_2) {
-					if (workbench_slot[1].dice == undefined) {
-						if (workbench_slot[1].core != undefined) {
-							throw_error("Core already here", "Remove the core before placing a dice here");
-							reject_dice();
-						} else {
-							// only accept dice that didn't come from another slot
-							if (other.in_slot == 0) {
-								workbench_slot[1].dice = other.struct;
-								other.x = workbench_slot[1].xx;
-								other.y = workbench_slot[1].yy;
-								other.in_slot = 2;
-							} else {
-								reject_dice();
-							}
-						}
-					} else {
-						reject_dice();
-					}
+
+				// Dropped back on its own slot: it stays where it was
+				if (_target != -1 && _die.in_slot == _target + 1) {
+					_die.x = workbench_slot[_target].xx;
+					_die.y = workbench_slot[_target].yy;
 				} else {
-					reject_dice();
+					var _reason = "";
+					if (_target == -1) _reason = "none";
+					else if (workbench_slot[_target].dice != undefined) _reason = "full";
+					else if (_target == 0 && _die.struct.dice_value == 2) _reason = "coin";
+					else if (_target == 1 && workbench_slot[1].core != undefined) _reason = "core";
+
+					if (_reason == "coin") throw_error("Can't upgrade coins", "Coins are are too small to receive a core");
+					if (_reason == "core") throw_error("Core already here", "Remove the core before placing a dice here");
+
+					// leave the slot it was in (moving between slots is allowed)
+					if (_die.in_slot > 0) {
+						workbench_slot[_die.in_slot - 1].dice = undefined;
+						_die.in_slot = false;
+					}
+
+					if (_reason == "") {
+						workbench_slot[_target].dice = _die.struct;
+						_die.x = workbench_slot[_target].xx;
+						_die.y = workbench_slot[_target].yy;
+						_die.in_slot = _target + 1;
+					}
 				}
 			}
 	    }
