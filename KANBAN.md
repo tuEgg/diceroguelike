@@ -15,7 +15,6 @@
 
 | ID | Task | Notes |
 |---|---|---|
-| H05 | Move the remaining debug keys onto the `DEBUG_TOOLS` macro | The macro exists (scDebug) and gates the F1 menu and the R restart key. The older letter keys in oRunManager and oCombat still use `debug_mode`. |
 | H07 | **Web build smoke test**: export HTML5/GX, upload privately to itch.io, list what breaks | Surfaces (`draw_wonky_rectangle`), shaders, file saves, fonts and resolution are the usual web trouble spots. Do this early so web problems are fixed alongside other bugs. |
 
 ---
@@ -24,8 +23,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| Remaining save gaps | B70, B71, B72 | `fix/save-gaps` | Jared play-tested 2026-11-17: works. Not merged yet. Keepsake internal state is deliberately not saved: every keepsake `state` only tracks per-turn or per-fight flags. |
-| Chapter tabs, voyage end, hotkeys, intro skip | F06 (tabs), H05, T14 (additions) | `feature/tabs-hotkeys-intro` | Jared checked the page stacks 2026-11-17: better, but the stack drifted off the side. Follow-up **not yet play-tested**: pages stack by depth from the open spread (6px apart) so the open spread stays still, turned pages build up on the left and unread pages thin out on the right; new voyage progress track under the book (a marker per spread, a diamond per boss, grouped by chapter). Earlier in this batch: Jared checked the tabs 2026-11-17 (look good). Follow-up **not yet play-tested**: each later chapter now has its own short stack of pages behind this chapter's, with its tab on its first page, so chapter 2's pages show between the two tabs. Tabs stick out further, one per chapter still to come (Chapter 3 is violet); beating the chapter 3 boss ends the run ("Voyage complete"); testing hotkeys (Space kills all) listed on a new F1 Hotkeys tab; old letter keys now work whenever run from GameMaker; intro skipped from GameMaker, with a toggle on the Hotkeys tab. |
+
+Nothing is waiting for a playtest right now.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -64,9 +63,6 @@ All known P0 bugs are fixed, see DONE.
 **Save / load**
 | ID | Bug | Size |
 |---|---|---|
-| B70 | Not saved: luck, `pages_cleared`, `pages_shown` (drafts reroll on reload), dutchman, voyage, `bonus_dice_next_combat`, `max_items`, seen events, keepsake/shop/tool pools, keepsake internal state | M [C] |
-| B71 | The RNG *seed* is stored rather than the RNG state, so Continue replays the run's random sequence from the start | S [C] |
-| B72 | Duplicate keys in the save struct. `version` is never checked. No file/parse guard. Toolbelt loads 5 slots while `max_items` is 3 | S [C] |
 
 ## 🐞 BUGS: P2 UI / polish
 
@@ -217,6 +213,10 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | M07 | The boat's position is saved, so Continue puts it back where it was moored. | Page-turn polish | 2026-11-17 |
 | B73 | Continue rerolled the node you were in: nodes now remember their fight or event, and the game saves as you enter a node | Continue fix | 2026-11-17 |
 | B74 | Shops, treasure rooms and the bounty board rerolled on Continue: they now roll once and are saved | Continue fix (rooms) | 2026-11-17 |
+| B70 | Run state that wasn't saved (luck, Dutchman, voyage, bonus dice, draft on offer, seen events, keepsake and tool pools) is now saved | Save gaps | 2026-11-17 |
+| B71 | Continue carries on the random sequence (each save reseeds and stores the seed) | Save gaps | 2026-11-17 |
+| B72 | Save file fixes: duplicate keys, load guards, Toolbelt item slots | Save gaps | 2026-11-17 |
+| H05 | Old debug letter keys use `DEBUG_TOOLS`, so they work whenever run from GameMaker | Tabs, hotkeys, intro | 2026-11-17 |
 
 **Milestones**
 
@@ -226,3 +226,4 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - 2026-11-16 **Chapters (F06 core):** 7 drafted spreads then a boss spread, ribbon bookmark on the boss page, boss keepsake reward, "chapter complete" screen, chapter 2 with tougher enemies. Deep Lens replaces Looking Glass in place. Alt debug panels retired, map odds moved to the F1 Rooms tab.
 - 2026-11-17 **Page-turn polish:** islands and icons turn with the page, boat position saved. A dotted route (M06) was tried and removed at Jared's request.
 - 2026-11-17 **Chapter tab and debug additions:** the boss page carries a "Chapter 2" divider tab out of the side of the book (replacing the ribbon); F1 menu gains "Complete this spread" and closes with Escape.
+- 2026-11-17 **Three-chapter voyage and testing tools:** a divider tab and a short page stack for every chapter still to come (Chapter 2 teal, Chapter 3 violet); the open spread stays still while turned pages build up on the left; a voyage progress track under the book (a marker per spread, a diamond per boss); beating chapter 3 ends the run with "Voyage complete"; testing hotkeys (Space kills all, H, D, N, Backspace) with an F1 Hotkeys tab; the intro is skipped when run from GameMaker, with a toggle.
