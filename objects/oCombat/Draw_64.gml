@@ -956,7 +956,9 @@ if (state != CombatState.PLAYER_DEAD) {
 	draw_intel = lerp(draw_intel, player_intel, 0.1);
 
 	var arc_start = 180;
-	var arc_end = 181 + (draw_intel / global.player_intel_data[| 4].requirement * 179);
+	// the ring runs from empty to full: below zero it would wrap round into an almost-full circle, above the max it would overflow
+	var intel_fill = clamp(draw_intel / global.player_intel_data[| 4].requirement, 0, 1);
+	var arc_end = 181 + (intel_fill * 179);
 	draw_arc_thick_deg_gradient(global.player_x, global.player_y - 175, 50, 60, arc_start, arc_end, 50, global.color_intel, make_color_rgb(210 - (player_intel / global.player_intel_data[| 4].requirement * 50), 210 - (player_intel / global.player_intel_data[| 4].requirement * 100), 0), 0.7);
 
 	draw_set_alpha(1.0);
@@ -973,8 +975,9 @@ if (state != CombatState.PLAYER_DEAD) {
 
 	intel_scale = intel_hover ? lerp(intel_scale, 1.2, 0.2) : lerp(intel_scale, 1.0, 0.2);
 
-	if (player_intel > 0) {
-		draw_outline_text(string(player_intel), c_black, c_white, 2, global.player_x + 30, global.player_y - 170, intel_scale, 1.0, 0);
+	// the number shows when it isn't zero, negative intel (from Overwhelm) included
+	if (player_intel != 0) {
+		draw_outline_text(string(player_intel), c_black, player_intel < 0 ? c_red : c_white, 2, global.player_x + 30, global.player_y - 170, intel_scale, 1.0, 0);
 	}
 
 	if (intel_hover) {
