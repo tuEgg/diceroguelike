@@ -18,6 +18,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	var _keepsake_dice_bonus_amount = 0;
 	var enemy_bonus_used_once = false;
 	var first_die_bonus_used = false;
+	var _enemy_roll_index = 0; // which of the enemy's pre-rolled dice is next
 	
 	repeat (_dice_amount) {
 		// Roll starts at default range
@@ -146,8 +147,13 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				}
 			}
 		} else {
-			//show_debug_message("Enemies roll");
-			final_roll = irandom_range( _min_roll, _max_roll );
+			// an enemy uses the dice it rolled when its intent was set (shown at intel level II)
+			if (is_struct(_source) && variable_struct_exists(_source.intent, "rolls") && _enemy_roll_index < array_length(_source.intent.rolls) && _source.intent.move.dice_value == _dice_value) {
+				final_roll = _source.intent.rolls[_enemy_roll_index];
+			} else {
+				final_roll = irandom_range( _min_roll, _max_roll );
+			}
+			_enemy_roll_index++;
 			
 			var ctx = {
 				_d_amount: final_roll,
@@ -1474,6 +1480,7 @@ function add_enemy_to_fight(_enemy) {
 		data: _enemy,
 		intent: {
 			move: _enemy.moves[| _rand_move],
+			rolls: [],			// the move's dice, rolled when the intent is set (enemy_set_intent)
 			alpha: 0,
 			start_scale: 0.75,	
 			scale: 0.25,	

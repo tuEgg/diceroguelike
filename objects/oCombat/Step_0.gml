@@ -104,7 +104,7 @@ switch (state) {
 				enemy.move_number = move_index;
 			}
 			
-			enemy.intent.move = enemy_data.moves[| enemy.move_number];
+			var _intent_move = enemy_data.moves[| enemy.move_number];
 			
 			// Overwrite the above with priority triggers
 			for (var i = 0; i < ds_list_size(enemy_data.moves); i++) {
@@ -112,23 +112,26 @@ switch (state) {
 				if (variable_struct_exists(_move, "use_trigger")) {
 					switch (_move.use_trigger) {
 						case "FIRST":
-							if (turn_count == 1) enemy.intent.move = _move;
+							if (turn_count == 1) _intent_move = _move;
 						break;
 						
 						case "HEALTH 50":
 							if (enemy.hp <= enemy.max_hp/2 && !variable_struct_exists(_move, "trigger_used")) {
-								enemy.intent.move = _move;
+								_intent_move = _move;
 								_move.trigger_used = true; // once per fight, this move struct belongs to this enemy only
 							}
 						break;
 						
 						case "PRIORITY":
-							enemy.intent.move = _move;
+							_intent_move = _move;
 						break;
 					}
 				}
 			}
 			
+			// sets the move and rolls its dice now, so intel can reveal the exact result
+			enemy_set_intent(enemy, _intent_move);
+
 			enemy_turns_remaining++;
 			
 			// debuffs that were set to remove_next_turn now get set to false and will be removed at the end of the turn
@@ -170,10 +173,11 @@ switch (state) {
 		//show_debug_message("Player intel amount: "+string(player_intel));
 		//show_debug_message("Player intel level: "+string(intel_level));
 		
-		dice_allowed_this_turn_bonus = turn_start_data.bonus_dice + (intel_level div 4 > 0);
+		// intel no longer grants extra plays or draws: its levels reveal and change enemy intents instead
+		dice_allowed_this_turn_bonus = turn_start_data.bonus_dice;
 			
 		// Deal 3 dice first turn, then 2 every turn after that
-		dice_to_deal += (global.hand_size) + (intel_level div 3 > 0);
+		dice_to_deal += global.hand_size;
 		dice_deal_timer = 0;
 		is_dealing_dice = true;
 		
@@ -183,15 +187,6 @@ switch (state) {
 			
 			if (enemy.dead) continue;
 		
-			// Show enemy intent
-			if (enemy.intent.move.action_type == "DEBUFF") || (enemy.intent.move.action_type == "BUFF") {
-				enemy.intent.text = "";
-			} else if (enemy.intent.move.action_type == "NONE" || enemy.intent.move.action_type == "EXIT") {
-				enemy.intent.text = enemy.intent.move.move_name;
-			} else {
-				enemy.intent.text = string(enemy.intent.move.dice_amount + enemy.intent.move.bonus_amount) + "-" + string((enemy.intent.move.dice_amount * enemy.intent.move.dice_value) + enemy.intent.move.bonus_amount);
-			}
-
 		    // Animate in
 		    enemy.intent.alpha = lerp(enemy.intent.alpha, 1, 0.2);
 		    enemy.intent.scale = lerp(enemy.intent.scale, enemy.intent.start_scale, 0.3);

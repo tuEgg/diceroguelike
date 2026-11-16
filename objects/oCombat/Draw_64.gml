@@ -610,12 +610,11 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 
 	// Show enemy intent
 	if (enemy.intent.alpha > 0.05) {
-		var reveal_intent_single = false;
-		var reveal_intent_all = false;
-		if (intel_level >= 1) reveal_intent_single = true;
-		if (intel_level >= 2) reveal_intent_all = true;
+		// every enemy's intent is always shown; intel only sharpens the numbers ("?" → range → exact)
+		var reveal_intent_single = true;
+		var reveal_intent_all = true;
 	
-	    var text = ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) ? enemy.intent.text : "";
+	    var text = intent_number_text(enemy, intel_level);
 
 	    var xx = enemy.pos_x; // enemy position on screen
 	    var yy = enemy.pos_y - 10 - (enemy.scale * 180);  // slightly above their head
@@ -623,8 +622,8 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		// Draw combined intents
 		var intent_array = string_split(enemy.intent.move.action_type, "/");
 		
-		// Draw dice in move
-		if ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) {
+		// Draw dice in move (from intel level I: the dice show how big the move can be)
+		if (intel_level >= 1) {
 			for (var d = 0; d < enemy.intent.move.dice_amount; d++) {
 				var d_index = get_dice_index(enemy.intent.move.dice_value);
 				
@@ -715,7 +714,11 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 				if (enemy_exiting) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "The enemy intents to escape", undefined, 0, undefined);
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, "The enemy intends to perform the following move: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount), undefined, 0, undefined);
+					if (intel_level >= 1) {
+						queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, "The enemy intends to perform the following move: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount), undefined, 0, undefined);
+					} else {
+						queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, "Gain intel to see how much this enemy will roll.", undefined, 0, undefined);
+					}
 				} else {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "???", "Enemy intentions not revealed", undefined, 0, undefined);
 				}

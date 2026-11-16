@@ -39,6 +39,11 @@ Room `rmCombat`, object `oCombat` (not persistent). Created with the enemies `oW
 - `trigger_debuff_list(list, event, ctx)` fires effects, then counts down once per buff on its `removal_event`.
 - Might/Balance check `owner == target`.
 
+## Intents and intel
+
+- Every enemy's intent (what it will do this turn) is always shown. `enemy_set_intent(enemy, move)` sets it and **rolls its dice then** (`intent.rolls`); the enemy's turn uses those rolls (`process_action`), so the exact number shown in advance is what happens. Never set `intent.move` directly.
+- The number beside an intent comes from `intent_number_text(enemy, intel_level)`: "?" at level 0, the range at I, `intent_exact_value` (rolls + bonus + the enemy's Might/Balance) from II. Level II also lets you change target. Intel levels are `global.player_intel_data` (thresholds 3, 6, 9, 12); they no longer give extra draws or plays.
+
 ## Enemies: scEnemies
 
 `define_enemies()` builds `global.enemy_list` via `enemy_create(...)` (moves are structs: `dice_amount, dice_value, action_type, bonus_amount, move_name`, optional `weight, use_trigger, debuff, amount, duration, target, summon`). `add_enemy_to_fight` calls `enemy_copy_for_fight` then `enemy_apply_chapter_scaling` (scMap). Per-fight lists are freed in `oCombat/CleanUp_0` via `fight_enemy_records`.

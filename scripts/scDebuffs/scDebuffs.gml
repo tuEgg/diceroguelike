@@ -165,7 +165,7 @@ function define_buffs_and_debuffs() {
 						
 						particle_emit( oCombat.room_enemies[| _ctx.owner_index].pos_x, oCombat.room_enemies[| _ctx.owner_index].pos_y, "ring", c_white, 55);
 					
-						_ctx.target.intent.move = stunned;
+						enemy_set_intent(_ctx.target, stunned); // through the helper, so its shown numbers update too
 					}
 				}
 	        },

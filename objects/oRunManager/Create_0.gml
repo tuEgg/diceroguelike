@@ -163,31 +163,31 @@ global.player_intel_data = ds_list_create();
 ds_list_add(global.player_intel_data, {
 	requirement: 0,
 	name: "-",
-	description: "No information revealed.",
+	description: "Enemy intents are shown, but not their numbers.",
 	index: 0,
 });
 ds_list_add(global.player_intel_data, {
 	requirement: 3,
 	name: "I",
-	description: "Target enemy intent revealed.",
+	description: "See roughly how much each enemy will attack, block or heal for (a range).",
 	index: 1,
 });
 ds_list_add(global.player_intel_data, {
 	requirement: 6,
 	name: "II",
-	description: "All enemy intents revealed & can change targets.",
+	description: "See exactly how much each enemy will attack, block or heal for, and change your target.",
 	index: 2,
 });
 ds_list_add(global.player_intel_data, {
 	requirement: 9,
 	name: "III",
-	description: "Drew an extra die this turn.",
+	description: "See what each enemy plans to do next turn too.",
 	index: 3,
 });
 ds_list_add(global.player_intel_data, {
 	requirement: 12,
 	name: "IV",
-	description: "+1 playable dice this turn.",
+	description: "Rewrite one enemy's intent this turn: click its intent to make it choose again.",
 	index: 4,
 });
 

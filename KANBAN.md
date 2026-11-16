@@ -23,8 +23,10 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 7: intel rework | F10, B33, F17, F18 | `feature/intel-rework` | In progress, **not yet play-tested**. F10 done: intents always shown, intel level I shows ranges, II exact numbers. |
 
-Nothing is waiting for a playtest right now.
+**Batch 7 test list**
+- F10 Start any fight with 0 intel (F1 / Run, intel 0): every enemy shows what it will do (attack, block, debuff...) with "?" for the number. Set intel 3: the number becomes a range. Set intel 6: it becomes one exact number, and the enemy hits for exactly that. Bill's Sharpen Cutlass (Might) raises the exact number. Hovering shows the dice only from intel 3.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -92,11 +94,13 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
 
 **Combat clarity** (the most common playtest feedback)
-- F10 Always show the enemy intent *type*; intel reveals the numbers
+- F10 Always show the enemy intent *type*; intel reveals the numbers (building in batch 7)
 - F11 Enemy targeting indicator; floating arrows at intel ≥ 6
 - F13 Slower / configurable action speed (Jack)
 - F14 Colour-blind-safe palette (Jack can't tell the blues apart)
 - F15 Summon intent icon, buff animation, clearer "Nav Chart fired" feedback
+- F17 Intel level III: see what each enemy plans to do next turn too.
+- F18 Intel level IV: rewrite one enemy's intent this turn (it chooses again).
 
 **Content**
 - F20 Enemies: 17 now (Giant Conch is a stub) → target ~15 normals + 2 elites + 2 bosses that *work*
@@ -127,7 +131,6 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 ## ❓ OPEN QUESTIONS (design decisions blocking work)
 
 - Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
-- Q3 Intel redesign (incl. B33): **parked until after bug fixes, the debug menu and the world map.**
 - Q7 Resolution targets: just 1080p + 1440p, or arbitrary? (decides how much layout work T07 needs)
 - Q8 Between pages: what should the choices be, and should the workbench stay available after every node? (see F02)
 
@@ -138,6 +141,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - 2026-11-15 **Scope cuts:** no four Act III regions, no 3 classes (F04 classes removed). **Alignment stays** in this build (F32).
 - 2026-11-15 **Platform:** a web build on itch.io for early playtests (keep exe as the dev/reference build); Steam is the long-term goal. See H07.
 - 2026-11-16 **Bounty board:** two bounties are offered, on purpose (Jared likes the choice). The potion on the bounty board is free.
+- 2026-11-17 **Intel rework:** enemy intents (what each enemy will do) are always shown. Intel dice roll the moment you play them, so intel is a scouting move inside your turn. Levels: I rough ranges, II exact numbers (and change target), III next turn's intents, IV rewrite one enemy's intent. Intel no longer grants extra draws or plays. Revisit after playtests.
 
 ---
 

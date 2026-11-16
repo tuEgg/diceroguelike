@@ -225,3 +225,57 @@ function enemy_copy_for_fight(_enemy) {
 	
 	return _copy;
 }
+
+
+/// @func enemy_set_intent(_enemy, _move)
+/// @desc Sets what an enemy will do this turn, and rolls its dice now. The rolls are kept on the intent so
+///       intel level II can show the exact result in advance, and the enemy's turn uses those same rolls.
+function enemy_set_intent(_enemy, _move) {
+	_enemy.intent.move = _move;
+
+	_enemy.intent.rolls = [];
+	repeat (max(0, _move.dice_amount)) {
+		array_push(_enemy.intent.rolls, irandom_range(1, max(1, _move.dice_value)));
+	}
+
+	// the range shown at intel level I (and the name shown for moves with no numbers)
+	if (_move.action_type == "DEBUFF" || _move.action_type == "BUFF") {
+		_enemy.intent.text = "";
+	} else if (_move.action_type == "NONE" || _move.action_type == "EXIT") {
+		_enemy.intent.text = _move.move_name;
+	} else {
+		_enemy.intent.text = string(_move.dice_amount + _move.bonus_amount) + "-" + string((_move.dice_amount * _move.dice_value) + _move.bonus_amount);
+	}
+}
+
+/// @func intent_has_numbers(_move)
+/// @desc Attacks, blocks and heals have numbers to reveal; buffs, debuffs, waiting and fleeing don't.
+function intent_has_numbers(_move) {
+	return !(_move.action_type == "DEBUFF" || _move.action_type == "BUFF" || _move.action_type == "NONE" || _move.action_type == "EXIT");
+}
+
+/// @func intent_exact_value(_enemy)
+/// @desc What the enemy's move will come to, from the rolls made when the intent was set, plus its bonus and
+///       any of its own buffs that change rolls (Might, Balance). Shown at intel level II.
+function intent_exact_value(_enemy) {
+	var _move = _enemy.intent.move;
+	var _type = string_split(_move.action_type, "/")[0];
+	if (_type == "MIMIC") _type = oCombat.player_last_action_type;
+
+	var _total = 0;
+	for (var i = 0; i < array_length(_enemy.intent.rolls); i++) {
+		var _ctx = { _d_amount: _enemy.intent.rolls[i], action_type: _type, owner: _enemy, target: _enemy };
+		trigger_debuff_list(_enemy.debuffs, "on_roll_die", _ctx); // on_roll_die only adjusts the roll, it never counts buffs down
+		_total += _ctx._d_amount;
+	}
+	return _total + _move.bonus_amount;
+}
+
+/// @func intent_number_text(_enemy, _intel_level)
+/// @desc The number shown beside an enemy's intent: "?" with no intel, the range at level I, the exact result from level II.
+function intent_number_text(_enemy, _intel_level) {
+	if (!intent_has_numbers(_enemy.intent.move)) return _enemy.intent.text;
+	if (_intel_level >= 2) return string(intent_exact_value(_enemy));
+	if (_intel_level >= 1) return _enemy.intent.text;
+	return "?";
+}
