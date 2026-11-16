@@ -103,7 +103,7 @@ global.COLOR_RULES = [
     { tag: "attack",		keyword: "attack",			type: "num_keyword" },
     { tag: "attack",		keyword: "ATK",				type: "num_keyword" },
     { tag: "intel",			keyword: "intel",			type: "num_keyword" },
-    { tag: "intel",			keyword: "ink",				type: "num_keyword" }, // "Ink" is what the player reads; the code still says intel
+    { tag: "intel",			keyword: "insight",			type: "num_keyword" }, // "Insight" is what the player reads; the code still says intel
     { tag: "followthrough",	keyword: "followthrough",	type: "num_keyword" },
     { tag: "multitype",		keyword: "multitype",		type: "num_keyword" },
     { tag: "coin",			keyword: "coin",			type: "num_keyword" },
@@ -160,30 +160,30 @@ holding_item = false; // used for holding the hammer in the workbench, will even
 show_consumables_chance = 30; // percentage chance to show consumables after any given fight
 
 // player intel: three states, read like an old captain's logbook. Below 0 intel the page is Blotted (intents hidden).
-// requirement is the intel needed; index is the sIntelEye frame (icons for these states still to be designed)
+// requirement is the intel needed; icon is drawn in code by draw_insight_icon until Jared designs real ones (F51)
 global.player_intel_data = ds_list_create();
 ds_list_add(global.player_intel_data, {
 	requirement: 0,
 	name: "Faded",
-	description: "The page is faded: you see what each enemy will do, and roughly how much (a range).",
-	index: 1,
+	description: "See enemy ranges.",
+	icon: "faded",
 });
 ds_list_add(global.player_intel_data, {
 	requirement: 5,
 	name: "Legible",
-	description: "The ink is clear: you see exactly how much each enemy will attack, block or heal for.",
-	index: 2,
+	description: "See exact numbers.",
+	icon: "legible",
 });
 ds_list_add(global.player_intel_data, {
 	requirement: 10,
 	name: "Quill",
-	description: "Take up the quill: once per turn, click an enemy's intent to rewrite it. The enemy picks a different move.",
-	index: 4,
+	description: "Rewrite one intent a turn.",
+	icon: "quill",
 });
 global.intel_blotted = {
 	name: "Blotted",
-	description: "Below 0 ink the page is smudged: enemy intents are hidden.",
-	index: 0,
+	description: "Enemy intents hidden.",
+	icon: "blotted",
 };
 
 show_dice_list = false; // used for displaying all the dice in the master list

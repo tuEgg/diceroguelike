@@ -447,7 +447,7 @@ function intel_try_outguess() {
 			_enemy.intent.fumbled = true;
 			spawn_floating_number(_enemy, 0, "Outguessed!", c_orange, 0);
 			particle_emit(_enemy.pos_x, _enemy.pos_y - 100, "burst", c_orange);
-			add_feed_entry("Your ink outguessed " + string(_enemy.data.name) + ": " + string(_enemy.intent.move.move_name) + " does half.");
+			add_feed_entry("Your insight outguessed " + string(_enemy.data.name) + ": " + string(_enemy.intent.move.move_name) + " does half.");
 		}
 	}
 }

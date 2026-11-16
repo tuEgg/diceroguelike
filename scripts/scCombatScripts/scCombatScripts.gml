@@ -454,7 +454,8 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 		case "INTEL":
 			if (_source == "player") {
-				apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
+				// counts this turn only; buff_intel (carrying insight into next turn) is kept for specific effects
+				player_intel += amount;
 				var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, _dice_list_index);
 				num.x += 20;
 				num.y -= 20;
@@ -1262,7 +1263,7 @@ function get_action_name(_slot, _num) {
 		case "INTEL":
 		    switch (highest_value) {
 		        case 4: label = "Sleuth"; break;
-		        case 6: label = "Gather ink"; break;
+		        case 6: label = "Gather insight"; break;
 		        case 8: label = "Build a case"; break;
 		        default: label = "Sleuth"; break;
 		    }

@@ -23,14 +23,16 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 7: intel rework | F10, F18, F19, F52, F53, B33 | `feature/intel-rework` | **Ready to play-test.** Intel has three states, read like a logbook: Faded (range, 0+), Legible (exact, 5+), Quill (rewrite one intent per turn, 10+). Below 0 intel the page is Blotted: intents hidden. Outguess works at any intel. Next-turn intents (F17) were cut. You can always change target, except while Overwhelmed (F53). On screen Intel is now called Ink (F52). |
+| 7: intel rework | F10, F18, F19, F52, F53, B33 | `feature/intel-rework` | **Ready to play-test.** Insight (intel on screen) has three states, read like a logbook: Faded (range, 0+), Legible (exact, 5+), Quill (rewrite one intent per turn, 10+). Below 0 the page is Blotted: intents hidden. Insight dice count this turn only (carrying it over is for specific effects). Outguess works at any insight. Placeholder state icons are drawn in code. Next-turn intents (F17) were cut. You can always change target, except while Overwhelmed (F53). |
 
 **Batch 7 test list**
 - F10 Start a fight with 0 intel (F1 / Run, intel 0; the F1 setting applies from the start of each turn, so end a turn or start a new fight): every enemy shows what it will do with its range (e.g. "5-10") and its dice, and the eye says Faded. Set intel 5: the number becomes exact (Legible) and the enemy hits for exactly that. Set intel -3: the eye says Blotted in red, every intent shows a grey "?" and hovering says the page is smudged.
 - F18 Set intel 10: the eye says Quill. Hover an enemy's intent: "Quill: rewrite intent". Click it: the intent pops and changes to a different move with new numbers, and the feed says what it became. One rewrite per turn. A stunned enemy, or one with only one move, says "Can't rewrite". Looking Glass now starts fights at 5 (Legible), Deep Lens at 10 (Quill), Crow's Nest gives 10 next turn.
 - F19 Outguess at any intel: target an enemy with a small attack and play two intel slots. As they resolve, all the intel you rolled this turn adds up; once it reaches the enemy's number, "Outguessed!" pops, the intent shows "Outguessed: half" and the halved number, and the enemy really does half. More intel slots = better odds. Buffs, debuffs and stuns can't be outguessed; once per enemy per turn. The intel still counts next turn.
-- F52 Ink: everywhere you read it, Intel is now Ink: the eye tooltip and panel ("Ink: Faded"), slot and die tooltips ("1d4 INK"), the starting die is called Ink, the Inteli Die is the Inkwell Die, keepsake/item/event/bounty text, the bag stats and the F1 menu. Load a save from before this change: the old intel dice still load.
-- F53 Fight a Driftnet Fish until it uses Overwhelm. Next turn: an Overwhelm debuff icon shows on you all turn, your ink drops by 3 (below 0 the intents hide), and you are aimed at that fish. Click another enemy: "Overwhelmed: you can't change target this turn". Kill the fish: you can retarget again. The turn after, the debuff is gone.
+- F52 Insight: everywhere you read it, intel is now Insight: the panel and tooltip ("Insight: Faded"), slot and die tooltips ("1d4 INSIGHT"), the starting die is called Insight, the Inteli Die is the Inkwell Die, keepsake/item/event/bounty text, the bag stats and the F1 menu. Load a save from before: the old intel dice still load.
+- F52 Hover the state icon above the player (a little page instead of the eye): a short tooltip ("Insight: Legible. See exact numbers. 4 more for Quill.") and a compact panel: Insight with your number, four rows (icon, name, needed, what it gives) with your current one highlighted, and one line on Outguess. The four placeholder icons: Blotted = page with an ink spill, Faded = page with faint lines, Legible = dark lines, Quill = lines with a yellow quill across.
+- F52 Play an insight die: its roll adds to your insight straight away as the queue resolves (the number and state above you change), it can Outguess, and it does NOT carry into next turn: next turn starts back at 0 (or what keepsakes give). Crow's Nest (10 next turn), the Lookout die's Stowaway (3 next turn) and the sacrifice die (3 for 2 turns) still carry over.
+- F53 Fight a Driftnet Fish until it uses Overwhelm. Next turn: an Overwhelm debuff icon shows on you all turn, your insight drops by 3 (below 0 the intents hide), and you are aimed at that fish. Click another enemy: "Overwhelmed: you can't change target this turn". Kill the fish: you can retarget again. The turn after, the debuff is gone.
 - Target change: at intel 0, click any enemy and the target marker moves to it.
 - Hover the intel eye: the panel lists Blotted, Faded 0+, Legible 5+, Quill 10+, each description wrapped. The tooltip says how much more intel reaches the next state. The ring has a tick at the start, middle and end. Intel dice roll when their slot resolves and count next turn.
 
@@ -107,8 +109,8 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F17 ~~Intel level III: see next turn's intents~~ cut 2026-11-16: it removed the reason to play intel next turn.
 - F18 Quill (top intel state, 10+): rewrite one enemy's intent per turn. You choose to change it, the enemy picks the new move (like the I-cut-you-choose picks on rewards and the map) (building in batch 7)
 - F19 Outguess: intel's this-turn effect at any intel. As intel dice resolve, if all the intel rolled this turn beats your target's intended number, its move does half this turn (building in batch 7)
-- F52 Call intel **Ink** on screen (logbook theme: Faded, Legible, Quill). Display only; the code keeps INTEL (building in batch 7)
-- F53 Overwhelm is a debuff you carry through your turn: it spills ink and locks your target for that turn (building in batch 7)
+- F52 Call intel **Insight** on screen (Ink was tried: less clear). The states keep the logbook theme: Blotted, Faded, Legible, Quill. Insight dice count this turn only. Display only; the code keeps INTEL (building in batch 7)
+- F53 Overwhelm is a debuff you carry through your turn: it spills your ink (lowers insight) and locks your target for that turn (building in batch 7)
 
 **Content**
 - F20 Enemies: 17 now (Giant Conch is a stub) → target ~15 normals + 2 elites + 2 bosses that *work*
@@ -133,7 +135,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 **Art direction (parked, Jared wants to discuss later)**
 - F50 Decide an art style for the game. Jared isn't an artist and wants to explore AI-assisted art workflows (he's been following r/aigamedev). Covers dice, enemies, map/book, UI and backgrounds. Don't start until he raises it.
-- F51 Icons for the intel states: Blotted (smudged page), Faded, Legible and Quill. Today they borrow the old eye frames (sIntelEye 0, 1, 2, 4). Part of F50.
+- F51 Icons for the insight states: Blotted (smudged page), Faded, Legible and Quill. Placeholders are drawn in code by `draw_insight_icon` (scHelpers); swap in sprites there. Part of F50.
 
 ---
 
@@ -150,7 +152,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - 2026-11-15 **Scope cuts:** no four Act III regions, no 3 classes (F04 classes removed). **Alignment stays** in this build (F32).
 - 2026-11-15 **Platform:** a web build on itch.io for early playtests (keep exe as the dev/reference build); Steam is the long-term goal. See H07.
 - 2026-11-16 **Bounty board:** two bounties are offered, on purpose (Jared likes the choice). The potion on the bounty board is free.
-- 2026-11-16 **Intel rework:** enemy intents are always shown. Intel has three states, named like reading an old logbook: **Faded** (0+, see ranges), **Legible** (5+, exact numbers), **Quill** (10+, rewrite one intent per turn; you choose to change it, the enemy picks the move). Below 0 intel (Overwhelm) the page is **Blotted** and intents are hidden. Intel dice roll in the queue and count next turn; this turn they can **Outguess** (all intel rolled this turn beats your target's number: its move does half), at any intel. Next-turn intents were cut (they removed the reason to play intel next turn). Rolling intel on play was tried and reverted. You can always change target. On screen it is called **Ink** (the code keeps INTEL). Overwhelm locks your target for the turn.
+- 2026-11-16 **Intel rework:** enemy intents are always shown. On screen intel is called **Insight** (Ink was tried and felt unclear); the code keeps INTEL. Three states, named like reading an old logbook: **Faded** (0+, see ranges), **Legible** (5+, exact numbers), **Quill** (10+, rewrite one intent per turn; you choose to change it, the enemy picks the move). Below 0 (Overwhelm) the page is **Blotted** and intents are hidden. Insight dice count this turn only, as they resolve; carrying insight into next turn is reserved for specific effects. This turn they can **Outguess** (all insight rolled this turn beats your target's number: its move does half), at any insight. Next-turn intents were cut. Rolling on play was tried and reverted. You can always change target, except while Overwhelmed.
 
 ---
 

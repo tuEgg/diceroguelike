@@ -502,7 +502,7 @@ function debug_menu_draw() {
 			if (debug_button(cx + quarter_w*2,	yy, quarter_w, row_h, "Set to 50"))	global.player_luck = 50;
 			yy += row_h * 1.5;
 
-			debug_label(cx, yy + 6, "Ink at the start of every turn  " + string(dbg.turn_intel));
+			debug_label(cx, yy + 6, "Insight at the start of every turn  " + string(dbg.turn_intel));
 			yy += row_h;
 			var intel_steps = [-3, 0, 5, 10]; // Blotted, Faded, Legible, Quill
 			var intel_w = floor(cw / array_length(intel_steps));
@@ -629,7 +629,7 @@ function debug_menu_draw() {
 
 			// Live read-out
 			debug_label(cx, yy, "Turn " + string(oCombat.turn_count)
-				+ "   Ink " + string(oCombat.player_intel) + " (" + string(intel_state(oCombat.intel_level).name) + ")"
+				+ "   Insight " + string(oCombat.player_intel) + " (" + string(intel_state(oCombat.intel_level).name) + ")"
 				+ "   Dice played " + string(oCombat.dice_played) + " / " + string(oCombat.dice_allowed_per_turn));
 			yy += row_h;
 			debug_label(cx, yy, "Bag " + string(ds_list_size(global.dice_bag))

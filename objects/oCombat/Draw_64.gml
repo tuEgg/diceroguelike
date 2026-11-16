@@ -329,7 +329,7 @@ for (var i = 0; i < aq_list_size; i++) {
 				tooltip = string(slot_amount) + "d" + string(slot_value) + _bonus + " Heal";
 				break;
 				case "INTEL":
-				tooltip = string(slot_amount) + "d" + string(slot_value) + _bonus + " Ink";
+				tooltip = string(slot_amount) + "d" + string(slot_value) + _bonus + " Insight";
 				break;
 				case "None":
 					if (slot_possible_type != "All") {
@@ -746,11 +746,11 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "The enemy intents to escape", undefined, 0, undefined);
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
 					var _intent_desc = "This turn: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount);
-					if (intent_has_numbers(enemy.intent.move)) _intent_desc += (intel_level >= 1) ? ", exactly " + string(intent_exact_value(enemy)) : ". Reach " + string(global.player_intel_data[| 1].requirement) + " ink (Legible) to see the exact number";
-					_intent_desc += intent_is_fumbled(enemy) ? ". Outguessed by your ink, so it does half." : ".";
+					if (intent_has_numbers(enemy.intent.move)) _intent_desc += (intel_level >= 1) ? ", exactly " + string(intent_exact_value(enemy)) : ". Reach " + string(global.player_intel_data[| 1].requirement) + " insight (Legible) to see the exact number";
+					_intent_desc += intent_is_fumbled(enemy) ? ". Outguessed by your insight, so it does half." : ".";
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, _intent_desc, undefined, 0, undefined);
 				} else {
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Your ink is below 0, so the page is blotted and enemy intents are hidden.", undefined, 0, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Your insight is below 0, so the page is blotted and enemy intents are hidden.", undefined, 0, undefined);
 				}
 			}
 		}
@@ -981,9 +981,9 @@ if (state != CombatState.PLAYER_DEAD) {
 	}
 
 	var _intel_state = intel_state(intel_level);
-	draw_sprite_ext(sIntelEye, _intel_state.index, global.player_x, global.player_y - 180, intel_scale, intel_scale, 0, c_white, intel_alpha);
+	draw_insight_icon(_intel_state.icon, global.player_x, global.player_y - 180, intel_scale, intel_alpha);
 	draw_outline_text(string(_intel_state.name), c_black, intel_is_blotted() ? c_red : global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
-	var intel_hover = mouse_hovering(global.player_x, global.player_y - 190, sprite_get_width(sIntelEye) * 2, sprite_get_height(sIntelEye) * 2, true);
+	var intel_hover = mouse_hovering(global.player_x, global.player_y - 190, 120, 120, true);
 
 	intel_scale = intel_hover ? lerp(intel_scale, 1.2, 0.2) : lerp(intel_scale, 1.0, 0.2);
 
@@ -993,67 +993,76 @@ if (state != CombatState.PLAYER_DEAD) {
 	}
 
 	if (intel_hover) {
-		var intel_pad = 20;
-		var intel_w = 500;
-		var intel_desc_x = intel_pad + 150;
+		// a compact reference: one line per state, the current one highlighted, and how Outguess works
+		var intel_pad = 16;
+		var intel_w = 380;
+		var intel_row_h = 40;
+		var intel_title_h = 36;
+		var intel_foot_h = 30;
 
 		// Blotted (below 0) first, then the three states
 		var intel_rows = [global.intel_blotted];
 		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) array_push(intel_rows, global.player_intel_data[| i]);
-		var intel_desc_w = intel_w - intel_desc_x - intel_pad;
-		var intel_line_sep = 20;
-		var intel_min_row_h = 40;
+		var _current_row = intel_is_blotted() ? 0 : intel_level + 1;
 
-		// each row is as tall as its wrapped description
-		draw_set_font(ftSmall);
-		var intel_row_heights = [];
-		var intel_h = intel_pad + 30;
-		for (var i = 0; i < array_length(intel_rows); i++) {
-			var _row_h = max(intel_min_row_h, string_height_ext(string(intel_rows[i].description), intel_line_sep, intel_desc_w) + 12);
-			intel_row_heights[i] = _row_h;
-			intel_h += _row_h;
-		}
-		intel_h += intel_pad / 2;
-
+		var intel_h = intel_pad + intel_title_h + intel_row_h * array_length(intel_rows) + intel_foot_h + intel_pad / 2;
 		var intel_x = global.player_x - intel_w / 2;
-		var intel_y = global.player_y - 270 - intel_h;
+		var intel_y = global.player_y - 260 - intel_h;
 
 		draw_set_color(c_black);
 		draw_set_alpha(0.8);
-		draw_roundrect(intel_x - 1, intel_y - 11, intel_x + intel_w + 1, intel_y + intel_h + 1, false);
-
+		draw_roundrect(intel_x - 1, intel_y - 1, intel_x + intel_w + 1, intel_y + intel_h + 1, false);
 		draw_set_color(global.color_bg);
-		draw_roundrect(intel_x, intel_y - 10, intel_x + intel_w, intel_y + intel_h, false);
-	
-		draw_set_color(c_white);
+		draw_roundrect(intel_x, intel_y, intel_x + intel_w, intel_y + intel_h, false);
+
+		// title, and your insight on the right
 		draw_set_alpha(1.0);
-		draw_set_halign(fa_left);
 		draw_set_valign(fa_middle);
 		draw_set_font(ftDefault);
-		draw_text(intel_x + intel_pad, intel_y + intel_pad, "Ink");
-	
-		// Draw rows (each centred in its own height)
-		var _row_y = intel_y + intel_pad + 30;
+		draw_set_halign(fa_left);
+		draw_set_color(c_white);
+		draw_text(intel_x + intel_pad, intel_y + intel_pad + 10, "Insight");
+		draw_set_halign(fa_right);
+		draw_set_color(player_intel < 0 ? c_red : global.color_intel);
+		draw_text(intel_x + intel_w - intel_pad, intel_y + intel_pad + 10, string(player_intel));
+
+		// rows: icon, name, needed, what it gives
+		var _row_y = intel_y + intel_pad + intel_title_h;
 		for (var i = 0; i < array_length(intel_rows); i++) {
 			var _row = intel_rows[i];
-			var _row_mid = _row_y + intel_row_heights[i] / 2 - 10;
-			draw_set_halign(fa_left);
-			draw_sprite_ext(sIntelEye, _row.index,
-						intel_x + intel_pad + 20, _row_mid, 0.75, 0.75, 0, c_white, intel_alpha);
+			var _mid = _row_y + intel_row_h / 2;
+			if (i == _current_row) {
+				draw_set_color(c_white);
+				draw_set_alpha(0.12);
+				draw_roundrect(intel_x + 6, _row_y + 2, intel_x + intel_w - 6, _row_y + intel_row_h - 2, false);
+			}
+			draw_set_alpha(1.0);
+			draw_insight_icon(_row.icon, intel_x + intel_pad + 14, _mid, 0.65, (i == _current_row) ? 1.0 : 0.6);
 			draw_set_font(ftDefault);
-			draw_text(	intel_x + intel_pad + 48, _row_mid, string(_row.name) + (i == 0 ? "" : "  " + string(_row.requirement) + "+"));
+			draw_set_halign(fa_left);
+			draw_set_color((i == _current_row) ? global.color_intel : c_white);
+			draw_text(intel_x + intel_pad + 40, _mid, string(_row.name));
 			draw_set_font(ftSmall);
-			draw_text_ext(intel_x + intel_desc_x, _row_mid, string(_row.description), intel_line_sep, intel_desc_w);
-			_row_y += intel_row_heights[i];
+			draw_set_color(c_ltgray);
+			draw_text(intel_x + intel_pad + 135, _mid, (i == 0) ? "< 0" : string(_row.requirement) + "+");
+			draw_set_color(c_white);
+			draw_text(intel_x + intel_pad + 180, _mid, string(_row.description));
+			_row_y += intel_row_h;
 		}
-	
+
+		// how insight rolls work this turn
+		draw_set_font(ftSmall);
+		draw_set_color(c_ltgray);
+		draw_text(intel_x + intel_pad, _row_y + intel_foot_h / 2, "Roll insight to beat your target's number: it does half.");
+		draw_set_color(c_white);
+
+		// the tooltip only says what matters now
 		var _intel_tip = string(_intel_state.description);
 		if (!intel_is_blotted() && intel_level < ds_list_size(global.player_intel_data) - 1) {
 			var _next_state = global.player_intel_data[| intel_level + 1];
-			_intel_tip += " " + string(_next_state.requirement - player_intel) + " more ink: " + string(_next_state.name) + ".";
+			_intel_tip += " " + string(_next_state.requirement - player_intel) + " more for " + string(_next_state.name) + ".";
 		}
-		_intel_tip += " Ink dice you play count next turn. This turn, if your ink rolls beat your target's number, you outguess it: its move does half.";
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Ink: " + string(_intel_state.name), _intel_tip, undefined, 0, undefined);
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Insight: " + string(_intel_state.name), _intel_tip, undefined, 0, undefined);
 	}
 }
 

@@ -218,7 +218,7 @@ function define_buffs_and_debuffs() {
 		name: "Overwhelm",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Spills your ink (below 0, enemy intents are hidden) and locks your aim on this creature: you can't change target this turn.",
+	    desc: "Spills your ink: lowers your insight (below 0, enemy intents are hidden) and locks your aim on this creature. You can't change target this turn.",
 	    icon_index: 2,
 		debuff: true,
 		color: c_red,
@@ -324,10 +324,10 @@ function define_buffs_and_debuffs() {
 	
 	buff_intel = {
 	    _id: "intel",
-		name: "Queued ink",
+		name: "Queued insight",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Ink ready for next turn.",
+	    desc: "Insight carried into next turn.",
 	    icon_index: 2,
 		debuff: false,
 		color: make_color_rgb(210, 210, 0),
