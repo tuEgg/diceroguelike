@@ -23,10 +23,11 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 7: intel rework | F10, B33, F17, F18 | `feature/intel-rework` | In progress, **not yet play-tested**. F10 done: intents always shown, intel level I shows ranges, II exact numbers. |
+| 7: intel rework | F10, B33, F17, F18 | `feature/intel-rework` | In progress, **not yet play-tested**. F10 and B33 done: intents always shown (I ranges, II exact), and intel dice roll the moment they are played. |
 
 **Batch 7 test list**
 - F10 Start any fight with 0 intel (F1 / Run, intel 0): every enemy shows what it will do (attack, block, debuff...) with "?" for the number. Set intel 3: the number becomes a range. Set intel 6: it becomes one exact number, and the enemy hits for exactly that. Bill's Sharpen Cutlass (Might) raises the exact number. Hovering shows the dice only from intel 3.
+- B33 Play an intel die (e.g. the starting d4 intel) into an empty slot: it rolls at once, the intel ring and level go up, and the enemy numbers sharpen before you end your turn. Reach 12 intel in one turn and the level shows IV straight away. That slot can't be right-clicked to another type afterwards. Ending the turn, the intel slot doesn't roll again. Crow's Nest Clarity gives its intel at once.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -40,7 +41,7 @@ All known P0 bugs are fixed, see DONE.
 **Combat core**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B33 | Intel level is only recalculated at turn start, so intel gained mid-turn never raises the level (*"intel 4 doesn't add the 3rd die"*) | `oCombat/Step_0.gml:164-177` | S [L] (design call: see Q3) |
+| B33 | Intel only counted next turn and its level only updated at turn start (now: intel dice roll when played, level updates live; in testing batch 7) | `oCombat/Step_0.gml:164-177` | S [L] (design call: see Q3) |
 | B36 | `"None!"` in `get_slot_stats` makes its condition always true. Left alone on purpose: it looks like a deliberate switch-off, and removing it would change how neutral dice count in a slot. Needs Jared's call. (The doubled `is_slot_exclusive` check was fixed in batch 2.) | `scCombatScripts.gml` | S [C] |
 
 **Dice / keepsakes / items**

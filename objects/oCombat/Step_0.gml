@@ -164,6 +164,9 @@ switch (state) {
 		combat_trigger_effects("on_turn_start", turn_start_data);
 		
 		player_intel = clamp(player_intel, 0, global.player_intel_data[| 4].requirement);
+
+		// dice still in intel slots from last turn give their intel now, at the start of this one
+		for (var i = 0; i < ds_list_size(action_queue); i++) slot_roll_intel(i);
 		
 		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
 			if (player_intel >= global.player_intel_data[| i].requirement) {
@@ -264,8 +267,9 @@ switch (state) {
 				
 			    if (dice_index < ds_list_size(slot.dice_list)) {
 					// skip attacks if there's no enemies left
-					if (current_action == "ATK" && enemies_left_this_combat == 0) {
-						show_debug_message("No enemies left, skipping attack action");
+					// intel slots already gave their intel when their dice were played; attacks with no enemies left are skipped
+					if ((current_action == "ATK" && enemies_left_this_combat == 0) || current_action == "INTEL") {
+						if (current_action == "INTEL") player_last_action_type = "INTEL"; // the Parrot still copies intel
 						
 				        reset_die();
 					} else {
@@ -442,8 +446,12 @@ switch (state) {
         enemies_turn_done = false;
         actions_submitted = false;
 	
-		// Reset player intel 
+		// Reset player intel; dice that stay in a slot can give intel again next turn
 		player_intel = 0;
+		for (var i = 0; i < ds_list_size(action_queue); i++) {
+			var _intel_slot = action_queue[| i];
+			for (var d = 0; d < ds_list_size(_intel_slot.dice_list); d++) _intel_slot.dice_list[| d].intel_rolled = false;
+		}
 		
 		// Eject temporary dice and remove buffed timers
 		if (!ejected_dice) {
@@ -667,3 +675,6 @@ global.player_x = lerp(global.player_x, global.player_xstart, 0.2);
 if (keyboard_check_pressed(vk_enter) && state == CombatState.PLAYER_INPUT && !is_dealing_dice) {
     actions_submitted = true;
 }
+
+// intel can change at any moment of the turn now (intel dice roll when played), so its level is kept up to date every frame
+intel_level = intel_level_for(player_intel);

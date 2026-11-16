@@ -43,6 +43,7 @@ Room `rmCombat`, object `oCombat` (not persistent). Created with the enemies `oW
 
 - Every enemy's intent (what it will do this turn) is always shown. `enemy_set_intent(enemy, move)` sets it and **rolls its dice then** (`intent.rolls`); the enemy's turn uses those rolls (`process_action`), so the exact number shown in advance is what happens. Never set `intent.move` directly.
 - The number beside an intent comes from `intent_number_text(enemy, intel_level)`: "?" at level 0, the range at I, `intent_exact_value` (rolls + bonus + the enemy's Might/Balance) from II. Level II also lets you change target. Intel levels are `global.player_intel_data` (thresholds 3, 6, 9, 12); they no longer give extra draws or plays.
+- Intel dice roll the moment they are in an intel slot (`slot_roll_intel`: on placement, when a slot is switched to intel, and at turn start for dice left in slots), marking each die `intel_rolled`; intel slots are skipped when the queue resolves. `player_intel` counts at once and `intel_level` is recalculated every frame (`intel_level_for`). A slot that has given intel can't change type that turn. Intel resets each round.
 
 ## Enemies: scEnemies
 

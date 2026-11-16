@@ -249,7 +249,9 @@ for (var i = 0; i < aq_list_size; i++) {
 	}
 	
 	// Change action style based on possibilities
-	if (hover && mouse_check_button_pressed(mb_right) && state == CombatState.PLAYER_INPUT) {
+	if (hover && mouse_check_button_pressed(mb_right) && state == CombatState.PLAYER_INPUT && slot_has_rolled_intel(action_queue[| i])) {
+		throw_error("Intel already gathered", "This slot has given its intel this turn, so it can't change type.");
+	} else if (hover && mouse_check_button_pressed(mb_right) && state == CombatState.PLAYER_INPUT) {
 	    var slot = action_queue[| i];
 	    var opts;
 
@@ -275,6 +277,7 @@ for (var i = 0; i < aq_list_size; i++) {
 		if (next_index != current_index) {
 			sfx_play(soSlotPlace, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
 			combat_trigger_effects("after_change_current_action", {});
+			slot_roll_intel(i); // switched to intel: its dice give their intel now
 		}
 	}
 	

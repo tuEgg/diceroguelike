@@ -407,7 +407,7 @@ function define_items() {
 			modify: function(_context) {
 				with (oCombat) {
 					var amount = 12;
-					apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
+					player_intel += amount; // instant, like intel dice
 					num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
