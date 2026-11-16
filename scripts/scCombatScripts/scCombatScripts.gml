@@ -454,8 +454,8 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 		case "INTEL":
 			if (_source == "player") {
-				// counts this turn only; buff_intel (carrying insight into next turn) is kept for specific effects
-				player_intel += amount;
+				// insight counts next turn (Outguess below uses it this turn)
+				apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
 				var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, _dice_list_index);
 				num.x += 20;
 				num.y -= 20;

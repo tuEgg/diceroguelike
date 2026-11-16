@@ -998,7 +998,7 @@ if (state != CombatState.PLAYER_DEAD) {
 		var intel_w = 380;
 		var intel_row_h = 40;
 		var intel_title_h = 36;
-		var intel_foot_h = 30;
+		var intel_foot_h = 50;
 
 		// Blotted (below 0) first, then the three states
 		var intel_rows = [global.intel_blotted];
@@ -1053,7 +1053,8 @@ if (state != CombatState.PLAYER_DEAD) {
 		// how insight rolls work this turn
 		draw_set_font(ftSmall);
 		draw_set_color(c_ltgray);
-		draw_text(intel_x + intel_pad, _row_y + intel_foot_h / 2, "Roll insight to beat your target's number: it does half.");
+		draw_text(intel_x + intel_pad, _row_y + 14, "Insight you roll counts next turn.");
+		draw_text(intel_x + intel_pad, _row_y + 34, "This turn, beat your target's number to halve it.");
 		draw_set_color(c_white);
 
 		// the tooltip only says what matters now
