@@ -1,5 +1,6 @@
 // Lets the F1 debug menu choose the enemies for this fight (does nothing otherwise)
 debug_apply_pending_fight();
+tutorial_begin(); // the guided first fight, until the tutorial is done (progress.json)
 
 turn_count = 0;
 

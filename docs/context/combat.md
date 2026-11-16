@@ -49,6 +49,10 @@ Room `rmCombat`, object `oCombat` (not persistent). Created with the enemies `oW
 - On screen intel is called **Insight** (Ink was tried): all player-facing text says insight, and `action_type_label` (scDice) turns INTEL into INSIGHT wherever an action type is shown. The code, slot types and `player_intel` keep the old name. The state icons are placeholders drawn by `draw_insight_icon(icon, x, y, scale, alpha)` (scHelpers): a spill (Blotted), an outlined drop (Faded), a filled drop (Legible), a quill (Quill), using each state's `icon` field.
 - Overwhelm (`debuff_overwhelm`, Driftnet Fish and the Parrot's mimic) is applied on the enemy's turn with `remove_next_turn`, so it stays on you through your next turn (removed `on_round_end`). At that turn's start it lowers insight and sets `target_locked` (reset in START_TURN); clicking another enemy is refused while the locked target stands.
 
+## Tutorial (guided first fight)
+
+scCombatScripts, TUTORIAL section. While `progress.json` has `tutorial_done` false, `get_combat_enemies` makes the first combat node a lone Pirate Ruffian and `deal_single_die` deals a set first hand from the bag (`tutorial_next_hand_type`). `tutorial_begin` (oCombat Create) holds the steps in `global.tut`; `tutorial_step` (Step) moves on when a step's `done()` is true; `tutorial_draw` (end of Draw GUI) draws the note, arrow and highlight and handles Next and Skip. `tutorial_allows(action, die, slot)` gates dropping dice (oDice Step) and ending the turn; refused moves explain why. Notes point at rects from `tutorial_target_rect` (`slot_positions`, `tut_last_tile`, `tut_end_turn` stored by Draw GUI). Skip, winning, losing or leaving the fight calls `tutorial_finish`.
+
 ## Enemies: scEnemies
 
 `define_enemies()` builds `global.enemy_list` via `enemy_create(...)` (moves are structs: `dice_amount, dice_value, action_type, bonus_amount, move_name`, optional `weight, use_trigger, debuff, amount, duration, target, summon`). `add_enemy_to_fight` calls `enemy_copy_for_fight` then `enemy_apply_chapter_scaling` (scMap). Per-fight lists are freed in `oCombat/CleanUp_0` via `fight_enemy_records`.

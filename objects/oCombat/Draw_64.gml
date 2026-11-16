@@ -98,9 +98,10 @@ draw_outline_text(played_dice_string, c_black, dice_played_color, 2, end_text_po
 draw_sprite_ext(sDice, 3, end_text_pos + 28, aq_start_y + aq_tile_w/2 - 40, 0.5, 0.5, 0, c_white, 1.0);
 
 // Click handling
-if (play_btn.click && state == CombatState.PLAYER_INPUT && !is_dealing_dice) {
+if (play_btn.click && state == CombatState.PLAYER_INPUT && !is_dealing_dice && tutorial_allows("end_turn")) {
     actions_submitted = true;
 }
+tut_end_turn = { x: btn_x, y: btn_y, w: btn_w, h: btn_h }; // the tutorial points here
 
 hovered_slot = -1;
 
@@ -388,6 +389,7 @@ for (var i = 0; i < aq_list_size; i++) {
 
 	    // Hover check basesd on *scaled* rectangle
 		last_hover = mouse_hovering(last_x, last_y, last_w, last_h, false, soSlotHover, noone, !show_rewards, UI_LAYER.BASE, string(lx));
+		tut_last_tile = { x: last_x, y: last_y, w: last_w, h: last_h }; // the tutorial points here
 	    //last_hover = (mx > last_x && mx < last_x + last_w && my > last_y && my < last_y + last_h && !show_rewards);
 
 	    // Smooth scale update
@@ -1562,3 +1564,6 @@ if (disc_bag_hover) {
 		oRunManager.bag_to_show = global.discard_pile;
 	}
 }
+
+// the guided first fight's margin notes, on top of the combat UI
+tutorial_draw();

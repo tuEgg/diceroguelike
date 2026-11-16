@@ -1,3 +1,6 @@
+// a guided fight that ends any way at all counts as the tutorial done
+if (tutorial_active()) tutorial_finish();
+
 /// oCombat - Clean Up Event
 
 // --- Destroy temporary lists ---

@@ -1625,3 +1625,259 @@ function slot_total_bonus(_slot, _dice_count) {
 	if (_dice_count <= 0) return 0;
 	return _slot.bonus_amount * _dice_count + _slot.first_die_bonus;
 }
+
+// =====================================================================
+// TUTORIAL (F54 part 2)
+// Until the player finishes or skips it (progress.json tutorial_done), the first fight is guided: a Pirate Ruffian
+// (get_combat_enemies), a set first hand drawn from the player's own bag (deal_single_die), and logbook margin notes
+// that point at one thing at a time. While a step waits for an action, only that action works (tutorial_allows,
+// called where dice are dropped and where the turn is ended). A Skip button is always there.
+// Runs inside oCombat: tutorial_begin (Create), tutorial_step (Step), tutorial_draw (end of Draw GUI).
+// =====================================================================
+
+/// @func tutorial_wanted()
+/// @desc Should fights be guided? Until the tutorial has been finished or skipped once.
+function tutorial_wanted() {
+	return !progress_get("tutorial_done");
+}
+
+/// @func tutorial_active()
+function tutorial_active() {
+	return variable_global_exists("tut") && is_struct(global.tut) && global.tut.active && room == rmCombat && instance_exists(oCombat);
+}
+
+/// @func tutorial_steps()
+/// @desc The guided steps. target: what the note points at. allow: the actions that work while it's up ("all" for
+///       anything). die_type / slot: which die and which slot ("newest" = the last slot). done: when it moves on
+///       (steps with a button wait for Next instead).
+function tutorial_steps() {
+	return [
+		{
+			text: "Read your enemy first. Its intent shows what it will do this turn, and roughly how much.",
+			target: "intent", allow: [], button: "Next",
+		},
+		{
+			text: "Lay an Attack die in the empty slot. A slot takes the type of the first die laid in it.",
+			target: "slot0", allow: ["place"], die_type: "ATK", slot: 0,
+			done: function() { return oCombat.action_queue[| 0].current_action_type == "ATK"; },
+		},
+		{
+			text: "Lay your other Attack die in the same slot. Dice in one slot roll together.",
+			target: "slot0", allow: ["place"], die_type: "ATK", slot: 0,
+			done: function() { return ds_list_size(oCombat.action_queue[| 0].dice_list) >= 2; },
+		},
+		{
+			text: "Need another slot? Sacrifice a die here to build one. The plain Generic die will do.",
+			target: "sacrifice", allow: ["sacrifice"],
+			done: function() { return ds_list_size(oCombat.action_queue) >= 2; },
+		},
+		{
+			text: "Lay the Insight die in your new slot. Insight you roll counts next turn, and sharpens your read of the enemy.",
+			target: "newest", allow: ["place"], die_type: "INTEL", slot: "newest",
+			done: function() {
+				with (oCombat) {
+					for (var i = 0; i < ds_list_size(action_queue); i++) if (action_queue[| i].current_action_type == "INTEL") return true;
+				}
+				return false;
+			},
+		},
+		{
+			text: "Each turn you can play 4 dice. When you end your turn your slots fire left to right, then the enemy acts. End your turn.",
+			target: "end_turn", allow: ["end_turn"],
+			done: function() { return oCombat.turn_count >= 2; },
+		},
+		{
+			text: "Your insight came in. At 5 the enemy's numbers turn exact (Legible). At 10 you take up the Quill and can rewrite an intent.",
+			target: "insight", allow: [], button: "Next",
+		},
+		{
+			text: "The rest is yours, Captain. Dice left in your hand at the end of a turn are discarded, so use them well.",
+			target: "", allow: "all", button: "Set sail",
+		},
+	];
+}
+
+/// @func tutorial_begin()
+/// @desc oCombat Create: start the guided fight if the tutorial is still wanted.
+function tutorial_begin() {
+	global.tut = { active: false };
+	if (!tutorial_wanted()) return;
+	global.tut = {
+		active: true,
+		step: 0,
+		steps: tutorial_steps(),
+		hand: ["ATK", "ATK", "None", "INTEL", "BLK", "BLK"], // the first hand, drawn from the bag in this order
+		pulse: 0,
+		note_alpha: 0,
+	};
+}
+
+/// @func tutorial_finish()
+/// @desc Finished or skipped: never guided again (unless Settings turns it back on).
+function tutorial_finish() {
+	if (variable_global_exists("tut") && is_struct(global.tut)) global.tut.active = false;
+	if (!progress_get("tutorial_done")) progress_set("tutorial_done", true);
+}
+
+/// @func tutorial_current()
+function tutorial_current() {
+	if (!tutorial_active()) return undefined;
+	if (global.tut.step >= array_length(global.tut.steps)) return undefined;
+	return global.tut.steps[global.tut.step];
+}
+
+/// @func tutorial_next_hand_type()
+/// @desc deal_single_die: the action type the guided first hand wants next, or "" for a normal draw.
+function tutorial_next_hand_type() {
+	if (!tutorial_active() || oCombat.turn_count != 1) return "";
+	if (array_length(global.tut.hand) == 0) return "";
+	var _type = global.tut.hand[0];
+	array_delete(global.tut.hand, 0, 1);
+	return _type;
+}
+
+/// @func tutorial_allows(_action, _die_struct, _slot_i)
+/// @desc Can the player do this right now? Always true outside the guided steps. _action: "place", "sacrifice",
+///       "discard" or "end_turn". When it says no, the player is told what the logbook is waiting for.
+function tutorial_allows(_action, _die_struct = undefined, _slot_i = -1) {
+	var _s = tutorial_current();
+	if (_s == undefined || _s.allow == "all") return true;
+
+	var _ok = array_contains(_s.allow, _action);
+	if (_ok && _action == "place") {
+		if (variable_struct_exists(_s, "die_type") && _die_struct != undefined && _die_struct.action_type != _s.die_type) _ok = false;
+		if (variable_struct_exists(_s, "slot")) {
+			var _want = (_s.slot == "newest") ? ds_list_size(oCombat.action_queue) - 1 : _s.slot;
+			if (_slot_i != _want) _ok = false;
+		}
+	}
+	if (!_ok) throw_error("Not yet", "Follow the logbook: " + _s.text);
+	return _ok;
+}
+
+/// @func tutorial_step()
+/// @desc oCombat Step: move on when the current step's action is done; end with the fight.
+function tutorial_step() {
+	if (!tutorial_active()) return;
+	global.tut.pulse += 0.08;
+
+	// the fight ended (won, lost, or left): the tutorial counts as done
+	if (oCombat.state == CombatState.PLAYER_DEAD || oCombat.show_rewards) { tutorial_finish(); return; }
+
+	var _s = tutorial_current();
+	if (_s == undefined) { tutorial_finish(); return; }
+	if (variable_struct_exists(_s, "done") && _s.done()) {
+		global.tut.step++;
+		global.tut.note_alpha = 0;
+	}
+}
+
+/// @func tutorial_target_rect(_target)
+/// @desc Where a step points, in GUI pixels { x, y, w, h }, or undefined for nothing.
+function tutorial_target_rect(_target) {
+	with (oCombat) {
+		switch (_target) {
+			case "intent":
+				if (ds_list_size(room_enemies) == 0) return undefined;
+				var _e = room_enemies[| 0];
+				var _iy = _e.pos_y - 10 - (_e.scale * 180);
+				return { x: _e.pos_x - 90, y: _iy - 35, w: 180, h: 70 };
+			case "slot0":
+				if (ds_list_size(slot_positions) == 0) return undefined;
+				return slot_positions[| 0];
+			case "newest":
+				if (ds_list_size(slot_positions) == 0) return undefined;
+				return slot_positions[| ds_list_size(slot_positions) - 1];
+			case "sacrifice":
+				return variable_instance_exists(id, "tut_last_tile") ? tut_last_tile : undefined;
+			case "end_turn":
+				return variable_instance_exists(id, "tut_end_turn") ? tut_end_turn : undefined;
+			case "insight":
+				return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
+		}
+	}
+	return undefined;
+}
+
+/// @func tutorial_draw()
+/// @desc End of oCombat Draw GUI: the highlight, the margin note with its arrow, Next and Skip. Input is handled here,
+///       like the rest of the combat UI.
+function tutorial_draw() {
+	if (!tutorial_active()) return;
+	var _s = tutorial_current();
+	if (_s == undefined) return;
+	if (oCombat.state != CombatState.PLAYER_INPUT || oCombat.show_rewards) return; // nothing to read while dice resolve
+
+	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+	var _ink = make_color_rgb(40, 32, 24);
+	var _paper = make_color_rgb(240, 228, 196);
+	global.tut.note_alpha = lerp(global.tut.note_alpha, 1, 0.15);
+	var _a = global.tut.note_alpha;
+
+	// Skip, top right under the bar
+	var _skip = draw_gui_button(_gw - 230, 90, 200, 50, 1, "Skip tutorial", c_dkgray, ftDefault, true, true, UI_LAYER.BASE);
+	if (_skip.click) { tutorial_finish(); return; }
+
+	// the note's text and size
+	draw_set_font(ftDefault);
+	var _note_w = 460;
+	var _pad = 18;
+	var _text_h = string_height_ext(_s.text, 26, _note_w - _pad * 2);
+	var _btn_h = variable_struct_exists(_s, "button") ? 50 : 0;
+	var _note_h = _text_h + _pad * 2 + _btn_h;
+
+	// where it points, and where the note sits: above a target in the lower half, below one in the upper half
+	var _r = tutorial_target_rect(_s.target);
+	var _nx = _gw / 2 - _note_w / 2, _ny = _gh * 0.32;
+	var _tx = 0, _ty = 0;
+	if (_r != undefined) {
+		_tx = _r.x + _r.w / 2;
+		_ty = _r.y + _r.h / 2;
+		_nx = clamp(_tx - _note_w / 2, 20, _gw - _note_w - 20);
+		_ny = (_ty > _gh / 2) ? _r.y - _note_h - 70 : _r.y + _r.h + 70;
+		_ny = clamp(_ny, 150, _gh - _note_h - 20);
+
+		// pulsing highlight round the target
+		var _grow = 8 + 4 * sin(global.tut.pulse);
+		draw_set_alpha(_a * (0.55 + 0.35 * sin(global.tut.pulse)));
+		draw_set_color(global.color_intel);
+		for (var _w = 0; _w < 3; _w++) draw_roundrect(_r.x - _grow - _w, _r.y - _grow - _w, _r.x + _r.w + _grow + _w, _r.y + _r.h + _grow + _w, true);
+
+		// arrow from the note's edge to the target's edge
+		var _ax = clamp(_tx, _nx + 30, _nx + _note_w - 30);
+		var _ay = (_ny < _ty) ? _ny + _note_h : _ny;
+		var _bx = _tx;
+		var _by = (_ny < _ty) ? _r.y - _grow - 6 : _r.y + _r.h + _grow + 6;
+		var _dir = point_direction(_ax, _ay, _bx, _by);
+		draw_set_alpha(_a);
+		draw_set_color(_ink);
+		draw_line_width(_ax, _ay, _bx, _by, 5);
+		draw_triangle(_bx, _by, _bx + lengthdir_x(20, _dir + 150), _by + lengthdir_y(20, _dir + 150), _bx + lengthdir_x(20, _dir - 150), _by + lengthdir_y(20, _dir - 150), false);
+		draw_set_color(_paper);
+		draw_line_width(_ax, _ay, _bx, _by, 2);
+	}
+
+	// the margin note: parchment with an ink edge
+	draw_set_alpha(_a);
+	draw_set_color(_ink);
+	draw_roundrect_ext(_nx - 3, _ny - 3, _nx + _note_w + 3, _ny + _note_h + 3, 14, 14, false);
+	draw_set_color(_paper);
+	draw_roundrect_ext(_nx, _ny, _nx + _note_w, _ny + _note_h, 12, 12, false);
+	draw_set_color(_ink);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	draw_text_ext(_nx + _pad, _ny + _pad, _s.text, 26, _note_w - _pad * 2);
+
+	// a step that waits for the player to read it has a button
+	if (_btn_h > 0) {
+		var _b = draw_gui_button(_nx + _note_w - 160 - _pad, _ny + _note_h - _btn_h - 8, 160, 42, 1, _s.button, make_color_rgb(60, 78, 181), ftDefault, true, true, UI_LAYER.BASE);
+		if (_b.click) {
+			global.tut.step++;
+			global.tut.note_alpha = 0;
+			if (global.tut.step >= array_length(global.tut.steps)) tutorial_finish();
+		}
+	}
+
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
