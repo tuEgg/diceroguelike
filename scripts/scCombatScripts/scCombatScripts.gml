@@ -1735,6 +1735,17 @@ function tutorial_finish() {
 	if (!progress_get("tutorial_done")) progress_set("tutorial_done", true);
 }
 
+/// @func tutorial_skip()
+/// @desc The Skip button: the tutorial is done, and the one-time tips are marked seen too (the player knows the game).
+function tutorial_skip() {
+	tutorial_finish();
+	var _tips = tips_list();
+	for (var i = 0; i < array_length(_tips); i++) {
+		if (!array_contains(global.progress.tips_seen, _tips[i].id)) array_push(global.progress.tips_seen, _tips[i].id);
+	}
+	progress_save();
+}
+
 /// @func tutorial_current()
 function tutorial_current() {
 	if (!tutorial_active()) return undefined;
@@ -1826,7 +1837,7 @@ function tutorial_draw() {
 
 	// Skip, top right under the bar
 	var _skip = draw_gui_button(display_get_gui_width() - 230, 90, 200, 50, 1, "Skip tutorial", c_dkgray, ftDefault, true, true, UI_LAYER.BASE);
-	if (_skip.click) { tutorial_finish(); return; }
+	if (_skip.click) { tutorial_skip(); return; }
 
 	if (tutorial_draw_note(_s.text, tutorial_target_rect(_s.target), variable_struct_exists(_s, "button") ? _s.button : "")) {
 		global.tut.step++;
@@ -1944,20 +1955,111 @@ function tutorial_map_notes() {
 	];
 }
 
-/// @func tutorial_map_draw()
-/// @desc oRunManager Draw GUI End, in the map: the first map note still to show, on top of everything.
-function tutorial_map_draw() {
-	if (room != rmMap || !instance_exists(oWorldManager) || !tutorial_wanted()) return;
-	if (!variable_global_exists("tut_map_notes")) global.tut_map_notes = tutorial_map_notes();
+/// @func tips_draw()
+/// @desc oRunManager Draw GUI End, every room: the first note still to show, on top of everything. The map notes come
+///       first (only while the tutorial is wanted), then the one-time tips (tips_list). One note at a time, never
+///       during the guided fight, a cutscene, Settings, the bag view or a popup.
+function tips_draw() {
+	if (tutorial_active() || global.all_input_disabled || global.show_settings) return;
+	if (instance_exists(oRunManager) && oRunManager.show_bag_contents) return;
 
-	for (var i = 0; i < array_length(global.tut_map_notes); i++) {
-		var _m = global.tut_map_notes[i];
-		if (tip_seen(_m.id)) continue;
-		if (_m.done()) { tip_mark_seen(_m.id); continue; }
-		if (!_m.when()) continue;
-		tutorial_draw_note(_m.text, tutorial_map_rect(_m.target), "");
-		return; // one note at a time
+	// the map notes of a first voyage
+	if (room == rmMap && instance_exists(oWorldManager) && tutorial_wanted()) {
+		if (!variable_global_exists("tut_map_notes")) global.tut_map_notes = tutorial_map_notes();
+		for (var i = 0; i < array_length(global.tut_map_notes); i++) {
+			var _m = global.tut_map_notes[i];
+			if (tip_seen(_m.id)) continue;
+			if (_m.done()) { tip_mark_seen(_m.id); continue; }
+			if (!_m.when()) continue;
+			tutorial_draw_note(_m.text, tutorial_map_rect(_m.target), "");
+			return;
+		}
 	}
+	if (instance_exists(oRunManager) && oRunManager.new_run_offering) return; // the offering is a popup
+
+	// one-time tips, the first time something comes up
+	if (!variable_global_exists("tips")) global.tips = tips_list();
+	for (var i = 0; i < array_length(global.tips); i++) {
+		var _t = global.tips[i];
+		if (_t.room != room || tip_seen(_t.id)) continue;
+		if (variable_struct_exists(_t, "done") && _t.done()) { tip_mark_seen(_t.id); continue; }
+		if (variable_struct_exists(_t, "when") && !_t.when()) continue;
+		if (tutorial_draw_note(_t.text, tips_rect(_t.target), "Got it")) tip_mark_seen(_t.id);
+		return;
+	}
+}
+
+/// @func tips_combat_ready()
+/// @desc A combat tip only shows while the player is planning (not while dice resolve or on the rewards screen).
+function tips_combat_ready() {
+	return instance_exists(oCombat) && oCombat.state == CombatState.PLAYER_INPUT && !oCombat.show_rewards && oCombat.dice_to_deal <= 0;
+}
+
+/// @func tips_list()
+/// @desc The one-time tips (F54 part 3), shown once each (progress.json tips_seen) with a "Got it" button. room: where
+///       it shows. when(): optional, it waits until true. done(): optional, counts as seen without being read
+///       (the moment passed). target: what it points at (tips_rect).
+function tips_list() {
+	return [
+		{
+			id: "workbench_map", room: rmMap, target: "workbench",
+			text: "After each stop you may visit the workbench once, before sailing on. There you can reshape your dice.",
+			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench; },
+		},
+		{
+			id: "workbench", room: rmWorkbench, target: "",
+			text: "Lay dice in the slots, then drag a tool from your toolbag onto Craft. The Hammer merges two dice of one type, the Cutters take faces off a die and leave you a coin, and the Drill sets a core into a die. One craft per visit.",
+		},
+		{
+			id: "spread_done", room: rmMap, target: "",
+			text: "A spread is done. Rest to heal, or take a core to drill into a die at the workbench. Then the page turns and you choose the next two pages.",
+			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.TURNING; },
+		},
+		{
+			id: "legible", room: rmCombat, target: "insight",
+			text: "Legible: with 5 insight you see exactly what each enemy will do this turn.",
+			when: function() { return tips_combat_ready() && oCombat.intel_level >= 1 && !intel_is_blotted(); },
+		},
+		{
+			id: "quill", room: rmCombat, target: "insight",
+			text: "Quill: with 10 insight, once this turn you can click a glowing enemy intent to rewrite it. You choose to change it, the enemy picks its new move.",
+			when: function() { return tips_combat_ready() && oCombat.intel_level >= 2 && !intel_is_blotted(); },
+		},
+		{
+			id: "blotted", room: rmCombat, target: "insight",
+			text: "Blotted: your insight fell below 0, so enemy intents are hidden this turn.",
+			when: function() { return tips_combat_ready() && intel_is_blotted(); },
+		},
+		{
+			id: "shop", room: rmShop, target: "",
+			text: "A shop. Spend your gold on dice, keepsakes, items and tools. Keepsakes last the whole voyage.",
+		},
+		{
+			id: "event", room: rmEvent, target: "",
+			text: "Something happens on your voyage. Hover an option to see what it does, then choose one.",
+		},
+		{
+			id: "bounty", room: rmBounty, target: "",
+			text: "The bounty board. Take a contract to hunt a tougher enemy under a condition. Beat it while keeping to the condition to claim the rewards.",
+		},
+		{
+			id: "treasure", room: rmTreasure, target: "",
+			text: "Treasure! Open the chest for a keepsake: a lasting effect for the rest of the voyage.",
+		},
+	];
+}
+
+/// @func tips_rect(_target)
+/// @desc Where a tip points, in GUI pixels, or undefined (the note sits at the top).
+function tips_rect(_target) {
+	switch (_target) {
+		case "workbench":
+			var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+			return { x: _gw - _gw / 8, y: _gh - _gh / 10, w: _gw / 10, h: _gh / 15 }; // the map's "Visit the workbench" button
+		case "insight":
+			return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
+	}
+	return undefined;
 }
 
 /// @func tutorial_map_rect(_target)

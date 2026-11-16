@@ -184,8 +184,8 @@ if (show_dice_list) {
 	
 }
 
-// the first voyage's map notes (tutorial), above every window
-tutorial_map_draw();
+// the first voyage's map notes and the one-time tips, above every window
+tips_draw();
 
 // tooltips last, after every window and panel (Draw GUI End), so nothing draws over them
 draw_all_tooltips();

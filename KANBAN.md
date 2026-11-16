@@ -24,7 +24,7 @@
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
 | 8: web build | H07, H08, F19, F51, B85, B86, F04 | `feature/web-build` | **Ready to test.** Browser fixes (16:9, dark page behind it), sounds compressed to Ogg (H08), Outguess cut (F19). Insight icons without paper (F51). Tooltips above the event window (B86). Second-fight black screen fixed (B85). New runs start by choosing a die and core pair again (F04). Then follow `docs/web-build.md` and `docs/itch-launch.md`. |
-| 9: tutorial parts 1-2 | F54, B69, B87, B88 | `feature/tutorial` (from `feature/web-build`) | **Ready to test.** Part 1: progress.json, intro once ever, Settings > Gameplay > Tutorial next run. Part 2: map notes for the first voyage and a two-turn guided first fight. Fixes: discard bag click spot (B87), End Turn outline (B88). One-time tips (part 3) come next. |
+| 9: tutorial | F54, B69, B87, B88 | `feature/tutorial` (from `feature/web-build`) | **Ready to test.** Part 1: progress.json, intro once ever, Settings > Gameplay > Tutorial next run. Part 2: map notes for the first voyage and a two-turn guided first fight. Fixes: discard bag click spot (B87), End Turn outline (B88). Part 3: one-time tips the first time things come up. |
 
 **Batch 8 test list**
 - H07 Desktop build first (Run as usual): nothing changed. Settings still has Resolution and Fullscreen, Exit quits, double Escape quits.
@@ -46,6 +46,8 @@
 - F54 Guided fight, turn 2 (starts with an Attack and a Block die): insight note (ranges below 5, exact at 5, Quill at 10) (Next) > sacrifice the Attack and Block dice to build a slot that can do either > right-click that slot to switch its action > "The rest is yours" (Set sail).
 - F54 While a step waits, other moves are refused with "Not yet: Follow the logbook...": the wrong die in a slot, sacrificing the wrong die, the discard button, End Turn or Enter before its step. The yellow outline sits right round the End Turn button (B88).
 - B87 Click the DISCARD bag at the bottom right of a fight: the discard pile opens. Clicking the top right corner no longer opens it.
+- F54 One-time tips (parchment note at the top or pointing at the thing, with "Got it"; each shows once): after your first stop, the map's "Visit the workbench" button; inside the workbench (slots, Hammer, Cutters, Drill); when a spread is done (rest or core); in a fight, reaching 5 insight (Legible), 10 (Quill), going below 0 (Blotted); your first shop, event, bounty board and treasure. Not shown during the guided fight, a cutscene, Settings, the bag view or the start offering.
+- F54 Skip tutorial in the guided fight also marks every tip seen. Turning "Tutorial next run" back on brings the tips back too.
 - F54 Skip tutorial (top right) ends it at once; so does winning or losing. Start another voyage: no Ruffian set-up, no notes. Settings > Gameplay shows Tutorial next run off. Turn it on again: the next voyage is guided again.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -109,7 +111,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F02 **Rethink what happens between pages (Jared, 2026-11-17).** Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
 - F03 Elite/boss chest reward
 - F04 Starting choice (die + core) at run start *(classes cut, 2026-11-15)* (re-enabled in batch 8)
-- F54 **Tutorial** (agreed 2026-11-16): logbook margin notes with an arrow. Part 1 progress file + replay setting (batch 9). Part 2 the first combat of a first-ever run is guided: set enemy and hand, only the pointed-at action allowed, Skip button; teaches intents, laying a die in a slot, stacking, ending the turn, sacrificing for a new slot, the insight die. Part 3 one-time tips: the workbench after the first room (on the map and inside), first Legible, first Quill; later shop, event, bounty.
+- F54 **Tutorial** (agreed 2026-11-16): logbook margin notes with an arrow. Part 1 progress file + replay setting (batch 9). Part 2 the first combat of a first-ever run is guided: set enemy and hand, only the pointed-at action allowed, Skip button; teaches intents, laying a die in a slot, stacking, ending the turn, sacrificing for a new slot, the insight die. Part 3 one-time tips: the workbench after the first room (on the map and inside), first Legible, first Quill; later shop, event, bounty. Part 3 built in batch 9 (also: rest/core after a spread, Blotted, treasure).
 - F05 Death / win screens, run summary, die roll-history stats page
 - F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
 
