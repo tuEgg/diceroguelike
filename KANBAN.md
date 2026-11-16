@@ -23,8 +23,17 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 4: quick bug sweep | B34, B51, B60, B63, B67, B80, B81, B84 | `fix/batch-4` | Fixed in code, one commit per card, **not yet play-tested**. Test list below. |
 
-Nothing is waiting for a playtest right now.
+**Batch 4 test list**
+- B51 Give yourself an Assassin die (F1 / Dice): its colour should pulse between attack and intel in the bag view, the shop and the small dice above a slot.
+- B60 On the bounty board, pick a contract, then reroll: no contract should stay picked. The Elite 3 contract should say Pirate Captain.
+- B63 At the workbench, drop a die on the left slot, then drag it to the middle slot: it should move. Dropping quickly should always register.
+- B67 Play a few events (F1 / Events): the text after choosing should be a sentence, never "Result". The Albatross trinket costs 7 alignment.
+- B84 Finish a spread with odd max HP: the rest heal should round up and the tooltip should say 25%.
+- B34 Fight Driftnet Fish until Overwhelm drops your intel below zero: the ring should be empty and the number red. Set intel to 12 (F1 / Run): the ring should be full, not overflow.
+- B80 Hover the bag: the whole bag should highlight. Open the bag: each die has a coloured edge for its rarity and its numbers sit centred.
+- B81 Drag the bag scrollbar, release off the bar, then click elsewhere: the list should not scroll.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
