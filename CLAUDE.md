@@ -32,4 +32,5 @@ A dice-building roguelike in GameMaker (GML), by Jared (solo, hobby). Sailing th
 - **Never mutate shared definitions.** Enemies are copied per fight (`enemy_copy_for_fight`), buffs are cloned by `apply_buff`, dice by `clone_die`. Write to the copy.
 - **Slot bonuses go through `slot_add_bonus` / `slot_set_bonus`**, never `slot.bonus_amount` directly.
 - **Saves are versioned** (`SAVE_VERSION` in scSaving). Add new save fields as optional on load (`variable_struct_exists`) rather than bumping the version, unless old saves truly can't load.
+- **Use `ds_safe_exists(id, type)`, never `ds_exists`.** Freed lists are set to `undefined`, and the web build stops with an error on `ds_exists(undefined)` (desktop just returns false).
 - `KANBAN.md` IDs: B = bug, T = tech debt, F = feature, H = housekeeping, M = map work, Q = open question.

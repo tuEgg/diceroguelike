@@ -978,7 +978,7 @@ function start_new_chapter() {
 	// the old chapter's pages are finished with
 	for (var p = 0; p < ds_list_size(chosen_pages); p++) {
 		var _nodes = chosen_pages[| p].nodes;
-		if (ds_exists(_nodes, ds_type_list)) ds_list_destroy(_nodes);
+		if (ds_safe_exists(_nodes, ds_type_list)) ds_list_destroy(_nodes);
 	}
 	ds_list_clear(chosen_pages);
 	ds_list_clear(all_nodes);

@@ -3,19 +3,19 @@ debug_apply_pending_fight();
 
 turn_count = 0;
 
-if (!ds_exists(global.discard_pile, ds_type_list)) {
+if (!ds_safe_exists(global.discard_pile, ds_type_list)) {
 	global.discard_pile = ds_list_create();
 } else {
 	ds_list_clear(global.discard_pile);
 }
 
-if (!ds_exists(global.sacrifice_list, ds_type_list)) {
+if (!ds_safe_exists(global.sacrifice_list, ds_type_list)) {
 	global.sacrifice_list = ds_list_create();
 } else {
 	ds_list_clear(global.sacrifice_list);
 }
 
-if (!ds_exists(global.sacrifice_history, ds_type_list)) {
+if (!ds_safe_exists(global.sacrifice_history, ds_type_list)) {
 	global.sacrifice_history = ds_list_create();
 } else {
 	ds_list_clear(global.sacrifice_history);

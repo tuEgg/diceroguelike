@@ -987,7 +987,7 @@ function draw_action_type_bars(_x, _y, _width, _types, _current_type)
     var types = _types;
 
     // --- Detect and convert ds_list safely ---
-    if (is_real(types) && ds_exists(types, ds_type_list)) {
+    if (is_real(types) && ds_safe_exists(types, ds_type_list)) {
         var arr = array_create(ds_list_size(types));
         for (var i = 0; i < ds_list_size(types); i++) {
             arr[i] = types[| i];
@@ -1063,7 +1063,7 @@ function win_fight() {
 		discard_dice_in_play(true);
 		
 		// --- Return discarded dice to bag ---
-		if (ds_exists(global.discard_pile, ds_type_list)) {
+		if (ds_safe_exists(global.discard_pile, ds_type_list)) {
 		    for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
 		        var discard_die = global.discard_pile[| i];
 		        ds_list_add(global.dice_bag, clone_die(discard_die, ""));
@@ -1073,7 +1073,7 @@ function win_fight() {
 
 		// When dice used to stay in slots, we did the below
 		// --- Return historically sacrificed dice to bag ---
-		//if (ds_exists(global.sacrifice_history, ds_type_list)) {
+		//if (ds_safe_exists(global.sacrifice_history, ds_type_list)) {
 		//    for (var j = 0; j < ds_list_size(global.sacrifice_history); j++) {
 		//        var sac_die = global.sacrifice_history[| j];
 		//        ds_list_add(global.dice_bag, clone_die(sac_die, ""));
@@ -1082,7 +1082,7 @@ function win_fight() {
 		//}
 		
 		// The new method for retrieving die is to eject all repeatedly until there are no dice left, then just return the sacrifice list die back to the bag
-		if (ds_exists(global.sacrifice_list, ds_type_list)) {
+		if (ds_safe_exists(global.sacrifice_list, ds_type_list)) {
 		    for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
 		        var sac_die = global.sacrifice_list[| j];
 		        ds_list_add(global.dice_bag, clone_die(sac_die, ""));
@@ -1393,7 +1393,7 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 			if (_slot.current_action_type == "None") break;
 			
 			// Clean up sacrifice history
-			if (ds_exists(global.sacrifice_history, ds_type_list)) {
+			if (ds_safe_exists(global.sacrifice_history, ds_type_list)) {
 				for (var s = ds_list_size(global.sacrifice_history) - 1; s >= 0; s--) {
 					var die_struct = global.sacrifice_history[| s];
 

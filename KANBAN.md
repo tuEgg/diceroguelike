@@ -23,7 +23,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 8: web build | H07, H08, F19, F51, B86 | `feature/web-build` | **Ready to test.** Browser fixes (16:9, dark page behind it), sounds compressed to Ogg (H08), Outguess cut (F19). Insight icons without paper (F51). Tooltips above the event window (B86). Then follow `docs/web-build.md` and `docs/itch-launch.md`. |
+| 8: web build | H07, H08, F19, F51, B85, B86 | `feature/web-build` | **Ready to test.** Browser fixes (16:9, dark page behind it), sounds compressed to Ogg (H08), Outguess cut (F19). Insight icons without paper (F51). Tooltips above the event window (B86). Second-fight black screen fixed (B85). Then follow `docs/web-build.md` and `docs/itch-launch.md`. |
 
 **Batch 8 test list**
 - H07 Desktop build first (Run as usual): nothing changed. Settings still has Resolution and Fullscreen, Exit quits, double Escape quits.
@@ -33,6 +33,7 @@
 - F19 Outguess is gone: no bar under the target, no "Outguessed!", no halving. Insight dice still count next turn; the panel footer says so. Enemies hit for the number shown.
 - F51 The insight icons have no paper now: Blotted is a dark ink spill with a red edge, Faded an outlined yellow drop, Legible a filled yellow drop, Quill a yellow quill. Check them above the player (bigger now), in the insight panel and beside rewritable intents.
 - B86 Open an event (e.g. A precious ingot) and hover the toolbag or a keepsake in the top bar: the tooltip draws on top of the event window. Tooltips everywhere else (combat, shop, F1 menu) still show on top.
+- B85 Web build: play two or three fights in a row (and an event between two of them): every fight loads, no black screen. Check the console (F12) stays free of red errors. Desktop: fights still start normally.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -56,7 +57,7 @@ All known P0 bugs are fixed, see DONE.
 | ID | Bug | Where | Size |
 |---|---|---|---|
 | B69 | Intro cutscene replays every launch (`seen` isn't saved) | `oCutsceneManager` | S [C] |
-| B85 | Web build: black screen going on to the next combat after the event "A precious ingot" > Enhance your buckle (gains the Toolbelt keepsake, +2 item slots). Console: "unable to convert undefined to a number" in a game event; names are scrambled in a normal Run, so the next step is the same repro with Debug (F6), whose trace shows real names. Also check whether the desktop build does it too. | web build, event > map > combat | ? |
+| B85 | Web build: black screen starting any fight after the first (seen after an event). Each fight's CleanUp sets its lists to undefined and the next fight's Create called ds_exists(undefined), which desktop allows and the web build doesn't. Fixed in batch 8: `ds_safe_exists` everywhere. | `oCombat/Create_0`, all ds_exists | S |
 
 **Save / load**
 | ID | Bug | Size |

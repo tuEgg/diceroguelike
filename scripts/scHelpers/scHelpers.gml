@@ -1353,3 +1353,11 @@ function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
 	draw_set_alpha(_old_alpha);
 	draw_set_color(c_white);
 }
+
+/// @func ds_safe_exists(_id, _type)
+/// @desc ds_exists that is also false for undefined. The desktop build treats ds_exists(undefined) as
+///       false, but the web build stops with an error, and freed lists here are set to undefined (oCombat CleanUp).
+function ds_safe_exists(_id, _type) {
+	if (is_undefined(_id)) return false;
+	return ds_exists(_id, _type);
+}
