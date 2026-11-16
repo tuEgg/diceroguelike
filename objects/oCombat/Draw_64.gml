@@ -101,7 +101,9 @@ draw_sprite_ext(sDice, 3, end_text_pos + 28, aq_start_y + aq_tile_w/2 - 40, 0.5,
 if (play_btn.click && state == CombatState.PLAYER_INPUT && !is_dealing_dice && tutorial_allows("end_turn")) {
     actions_submitted = true;
 }
-tut_end_turn = { x: btn_x, y: btn_y, w: btn_w, h: btn_h }; // the tutorial points here
+// the tutorial points here: the sprite as drawn, from its origin and scale
+var _et_s = btn_scale * btn_scaler;
+tut_end_turn = { x: btn_x + btn_w/2 - sprite_get_xoffset(sEndTurn) * _et_s, y: btn_y + btn_h/2 - sprite_get_yoffset(sEndTurn) * _et_s, w: sprite_get_width(sEndTurn) * _et_s, h: sprite_get_height(sEndTurn) * _et_s };
 
 hovered_slot = -1;
 
@@ -272,6 +274,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	    // Move to next option
 	    var next_index = (current_index + 1) mod array_length(opts);
 	    slot.current_action_type = opts[next_index];
+		if (tutorial_active() && next_index != current_index) global.tut.switched = true; // the tutorial's right-click step
 		
 		if (next_index != current_index) {
 			sfx_play(soSlotPlace, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
@@ -1552,10 +1555,11 @@ draw_set_font(ftBig);
 draw_text(gui_w - 70, gui_h - 55, string(ds_list_size(global.discard_pile)));
 
 // Draw discard preview
-var disc_bag_x = gui_w - global.gui.bag_x - global.gui.bag_w;
-var disc_bag_y = gui_h - global.gui.bag_y - global.gui.bag_h;
-var disc_bag_w = global.gui.bag_w;
-var disc_bag_h = global.gui.bag_h;
+// the click area is the discard bag sprite as drawn above (bottom right)
+var disc_bag_w = sprite_get_width(sDiceBag);
+var disc_bag_h = sprite_get_height(sDiceBag);
+var disc_bag_x = gui_w - 60 - sprite_get_width(sDiceBag) - sprite_get_xoffset(sDiceBag);
+var disc_bag_y = gui_h - 40 - sprite_get_yoffset(sDiceBag);
 disc_bag_hover = (mx > disc_bag_x && mx < disc_bag_x + disc_bag_w && my > disc_bag_y && my < disc_bag_y + disc_bag_h);
 
 if (disc_bag_hover) {

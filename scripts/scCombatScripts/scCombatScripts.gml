@@ -1647,52 +1647,67 @@ function tutorial_active() {
 }
 
 /// @func tutorial_steps()
-/// @desc The guided steps. target: what the note points at. allow: the actions that work while it's up ("all" for
-///       anything). die_type / slot: which die and which slot ("newest" = the last slot). done: when it moves on
-///       (steps with a button wait for Next instead).
+/// @desc The guided steps, over two turns. target: what the note points at. allow: the actions that work while it's
+///       up ("all" for anything). die_types / slot: which dice and which slot ("newest" = the last slot). done: when it
+///       moves on (steps with a button wait for it instead).
 function tutorial_steps() {
 	return [
+		// turn 1: a slot, stacking, a slot from a sacrifice, generic dice, how long dice stay
 		{
+			id: "intent", target: "intent", allow: [], button: "Next",
 			text: "Read your enemy first. Its intent shows what it will do this turn, and roughly how much.",
-			target: "intent", allow: [], button: "Next",
 		},
 		{
+			id: "claim", target: "slot0", allow: ["place"], die_types: ["ATK"], slot: 0,
 			text: "Lay an Attack die in the empty slot. A slot takes the type of the first die laid in it.",
-			target: "slot0", allow: ["place"], die_type: "ATK", slot: 0,
 			done: function() { return oCombat.action_queue[| 0].current_action_type == "ATK"; },
 		},
 		{
+			id: "stack", target: "slot0", allow: ["place"], die_types: ["ATK"], slot: 0,
 			text: "Lay your other Attack die in the same slot. Dice in one slot roll together.",
-			target: "slot0", allow: ["place"], die_type: "ATK", slot: 0,
 			done: function() { return ds_list_size(oCombat.action_queue[| 0].dice_list) >= 2; },
 		},
 		{
-			text: "Need another slot? Sacrifice a die here to build one. The plain Generic die will do.",
-			target: "sacrifice", allow: ["sacrifice"],
+			id: "sacrifice", target: "sacrifice", allow: ["sacrifice"], die_types: ["INTEL"],
+			text: "Sacrificing a die builds a new slot, and the die stays in it. Sacrifice your Insight die here. Insight it rolls counts next turn.",
 			done: function() { return ds_list_size(oCombat.action_queue) >= 2; },
 		},
 		{
-			text: "Lay the Insight die in your new slot. Insight you roll counts next turn, and sharpens your read of the enemy.",
-			target: "newest", allow: ["place"], die_type: "INTEL", slot: "newest",
+			id: "generic", target: "slot0", allow: ["place"], die_types: ["None"], slot: 0,
+			text: "Generic dice power up any slot. Lay the Generic die in your Attack slot.",
 			done: function() {
-				with (oCombat) {
-					for (var i = 0; i < ds_list_size(action_queue); i++) if (action_queue[| i].current_action_type == "INTEL") return true;
-				}
+				var _dice = oCombat.action_queue[| 0].dice_list;
+				for (var i = 0; i < ds_list_size(_dice); i++) if (_dice[| i].action_type == "None") return true;
 				return false;
 			},
 		},
 		{
-			text: "Each turn you can play 4 dice. When you end your turn your slots fire left to right, then the enemy acts. End your turn.",
-			target: "end_turn", allow: ["end_turn"],
+			id: "lasting", target: "slot0", allow: [], button: "Next",
+			text: "Action dice stay in their slot for 2 turns, Generic dice for only 1. A bold outline means a die will still be here next turn.",
+		},
+		{
+			id: "end_turn", target: "end_turn", allow: ["end_turn"],
+			text: "You can play 4 dice a turn. When you end your turn your slots fire left to right, then the enemy acts. End your turn.",
 			done: function() { return oCombat.turn_count >= 2; },
 		},
+		// turn 2: insight, a slot with two actions, right-click to switch
 		{
+			id: "insight", target: "insight", allow: [], button: "Next",
 			text: "Your insight came in. At 5 the enemy's numbers turn exact (Legible). At 10 you take up the Quill and can rewrite an intent.",
-			target: "insight", allow: [], button: "Next",
 		},
 		{
+			id: "two_types", target: "sacrifice", allow: ["sacrifice"], die_types: ["ATK", "BLK"],
+			text: "Your next slot costs 2 sacrifices. Build it from an Attack die and a Block die, and it can do either.",
+			done: function() { return ds_list_size(oCombat.action_queue) >= 3; },
+		},
+		{
+			id: "switch", target: "newest", allow: [],
+			text: "Right-click a slot with more than one action to switch between them. Switch your new slot now.",
+			done: function() { return global.tut.switched; },
+		},
+		{
+			id: "free", target: "", allow: "all", button: "Set sail",
 			text: "The rest is yours, Captain. Dice left in your hand at the end of a turn are discarded, so use them well.",
-			target: "", allow: "all", button: "Set sail",
 		},
 	];
 }
@@ -1706,8 +1721,9 @@ function tutorial_begin() {
 		active: true,
 		step: 0,
 		steps: tutorial_steps(),
-		hand: ["ATK", "ATK", "None", "INTEL", "BLK", "BLK"], // the first hand, drawn from the bag in this order
-		pulse: 0,
+		hand: ["ATK", "ATK", "INTEL", "None", "BLK", "BLK"],	// turn 1's hand, drawn from the bag in this order
+		hand2: ["ATK", "BLK"],									// turn 2 starts with these (the two-action slot), the rest are drawn as usual
+		switched: false,										// set when a slot's action is switched by right-click
 		note_alpha: 0,
 	};
 }
@@ -1729,10 +1745,11 @@ function tutorial_current() {
 /// @func tutorial_next_hand_type()
 /// @desc deal_single_die: the action type the guided first hand wants next, or "" for a normal draw.
 function tutorial_next_hand_type() {
-	if (!tutorial_active() || oCombat.turn_count != 1) return "";
-	if (array_length(global.tut.hand) == 0) return "";
-	var _type = global.tut.hand[0];
-	array_delete(global.tut.hand, 0, 1);
+	if (!tutorial_active()) return "";
+	var _hand = (oCombat.turn_count == 1) ? global.tut.hand : ((oCombat.turn_count == 2) ? global.tut.hand2 : []);
+	if (array_length(_hand) == 0) return "";
+	var _type = _hand[0];
+	array_delete(_hand, 0, 1); // arrays are shared by reference, so this takes it off global.tut's list
 	return _type;
 }
 
@@ -1744,8 +1761,8 @@ function tutorial_allows(_action, _die_struct = undefined, _slot_i = -1) {
 	if (_s == undefined || _s.allow == "all") return true;
 
 	var _ok = array_contains(_s.allow, _action);
+	if (_ok && variable_struct_exists(_s, "die_types") && _die_struct != undefined && !array_contains(_s.die_types, _die_struct.action_type)) _ok = false;
 	if (_ok && _action == "place") {
-		if (variable_struct_exists(_s, "die_type") && _die_struct != undefined && _die_struct.action_type != _s.die_type) _ok = false;
 		if (variable_struct_exists(_s, "slot")) {
 			var _want = (_s.slot == "newest") ? ds_list_size(oCombat.action_queue) - 1 : _s.slot;
 			if (_slot_i != _want) _ok = false;
@@ -1759,7 +1776,6 @@ function tutorial_allows(_action, _die_struct = undefined, _slot_i = -1) {
 /// @desc oCombat Step: move on when the current step's action is done; end with the fight.
 function tutorial_step() {
 	if (!tutorial_active()) return;
-	global.tut.pulse += 0.08;
 
 	// the fight ended (won, lost, or left): the tutorial counts as done
 	if (oCombat.state == CombatState.PLAYER_DEAD || oCombat.show_rewards) { tutorial_finish(); return; }
@@ -1808,27 +1824,44 @@ function tutorial_draw() {
 	if (_s == undefined) return;
 	if (oCombat.state != CombatState.PLAYER_INPUT || oCombat.show_rewards) return; // nothing to read while dice resolve
 
+	// Skip, top right under the bar
+	var _skip = draw_gui_button(display_get_gui_width() - 230, 90, 200, 50, 1, "Skip tutorial", c_dkgray, ftDefault, true, true, UI_LAYER.BASE);
+	if (_skip.click) { tutorial_finish(); return; }
+
+	if (tutorial_draw_note(_s.text, tutorial_target_rect(_s.target), variable_struct_exists(_s, "button") ? _s.button : "")) {
+		global.tut.step++;
+		global.tut.note_alpha = 0;
+		if (global.tut.step >= array_length(global.tut.steps)) tutorial_finish();
+	}
+}
+
+/// @func tutorial_draw_note(_text, _rect, _button)
+/// @desc A logbook margin note: parchment with an ink edge, an arrow and a pulsing outline on _rect (or none if
+///       undefined), and a button if _button isn't "". Returns true when the button is clicked. Used by the guided
+///       fight and the map notes.
+function tutorial_draw_note(_text, _r, _button) {
+	if (!variable_global_exists("tut_note")) global.tut_note = { pulse: 0, alpha: 0, text: "" };
+	var _n = global.tut_note;
+	if (_n.text != _text) { _n.text = _text; _n.alpha = 0; } // a new note fades in
+	_n.pulse += 0.08;
+	_n.alpha = lerp(_n.alpha, 1, 0.15);
+	var _a = _n.alpha;
+	var _clicked = false;
+
 	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
 	var _ink = make_color_rgb(40, 32, 24);
 	var _paper = make_color_rgb(240, 228, 196);
-	global.tut.note_alpha = lerp(global.tut.note_alpha, 1, 0.15);
-	var _a = global.tut.note_alpha;
-
-	// Skip, top right under the bar
-	var _skip = draw_gui_button(_gw - 230, 90, 200, 50, 1, "Skip tutorial", c_dkgray, ftDefault, true, true, UI_LAYER.BASE);
-	if (_skip.click) { tutorial_finish(); return; }
 
 	// the note's text and size
 	draw_set_font(ftDefault);
 	var _note_w = 460;
 	var _pad = 18;
-	var _text_h = string_height_ext(_s.text, 26, _note_w - _pad * 2);
-	var _btn_h = variable_struct_exists(_s, "button") ? 50 : 0;
+	var _text_h = string_height_ext(_text, 26, _note_w - _pad * 2);
+	var _btn_h = (_button != "") ? 50 : 0;
 	var _note_h = _text_h + _pad * 2 + _btn_h;
 
 	// where it points, and where the note sits: above a target in the lower half, below one in the upper half
-	var _r = tutorial_target_rect(_s.target);
-	var _nx = _gw / 2 - _note_w / 2, _ny = _gh * 0.32;
+	var _nx = _gw / 2 - _note_w / 2, _ny = 100; // with nothing to point at, the note sits at the top, clear of popups
 	var _tx = 0, _ty = 0;
 	if (_r != undefined) {
 		_tx = _r.x + _r.w / 2;
@@ -1838,8 +1871,8 @@ function tutorial_draw() {
 		_ny = clamp(_ny, 150, _gh - _note_h - 20);
 
 		// pulsing highlight round the target
-		var _grow = 8 + 4 * sin(global.tut.pulse);
-		draw_set_alpha(_a * (0.55 + 0.35 * sin(global.tut.pulse)));
+		var _grow = 8 + 4 * sin(_n.pulse);
+		draw_set_alpha(_a * (0.55 + 0.35 * sin(_n.pulse)));
 		draw_set_color(global.color_intel);
 		for (var _w = 0; _w < 3; _w++) draw_roundrect(_r.x - _grow - _w, _r.y - _grow - _w, _r.x + _r.w + _grow + _w, _r.y + _r.h + _grow + _w, true);
 
@@ -1866,18 +1899,89 @@ function tutorial_draw() {
 	draw_set_color(_ink);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
-	draw_text_ext(_nx + _pad, _ny + _pad, _s.text, 26, _note_w - _pad * 2);
+	draw_text_ext(_nx + _pad, _ny + _pad, _text, 26, _note_w - _pad * 2);
 
-	// a step that waits for the player to read it has a button
+	// a note that waits for the player to read it has a button
 	if (_btn_h > 0) {
-		var _b = draw_gui_button(_nx + _note_w - 160 - _pad, _ny + _note_h - _btn_h - 8, 160, 42, 1, _s.button, make_color_rgb(60, 78, 181), ftDefault, true, true, UI_LAYER.BASE);
-		if (_b.click) {
-			global.tut.step++;
-			global.tut.note_alpha = 0;
-			if (global.tut.step >= array_length(global.tut.steps)) tutorial_finish();
-		}
+		var _b = draw_gui_button(_nx + _note_w - 160 - _pad, _ny + _note_h - _btn_h - 8, 160, 42, 1, _button, make_color_rgb(60, 78, 181), ftDefault, true, true, UI_LAYER.BASE);
+		if (_b.click) _clicked = true;
 	}
 
 	draw_set_alpha(1);
 	draw_set_color(c_white);
+	return _clicked;
+}
+
+/// @func tutorial_map_notes()
+/// @desc The map's notes for a first voyage, in order. Each is a one-time tip (progress.json tips_seen): shown while
+///       its when() is true, marked seen once its done() is.
+function tutorial_map_notes() {
+	return [
+		{
+			id: "map_offering", target: "",
+			text: "Every voyage begins with a gift. Pick a die and core pair: the die joins your bag, and the core can be drilled into a die at the workbench.",
+			when: function() { return oRunManager.new_run_offering; },
+			done: function() { return !oRunManager.new_run_offering; },
+		},
+		{
+			id: "map_draft", target: "pages",
+			text: "This is the captain's logbook. Each page is a stretch of sea with stops on it: fights, shops, events. Choose 2 pages for this spread. Your first choice locks one of the others away, so choose with care.",
+			when: function() { return oWorldManager.world_state == WORLD_STATE.DRAFTING && oWorldManager.pages_drafted < 2 && oWorldManager.pages_alpha > 0.5; },
+			done: function() { return oWorldManager.pages_drafted >= 2; },
+		},
+		{
+			id: "map_embark", target: "embark",
+			text: "Embark to set sail on the pages you chose.",
+			when: function() { return oWorldManager.world_state == WORLD_STATE.DRAFTING && oWorldManager.pages_drafted >= 2 && !oWorldManager.choices_locked; },
+			done: function() { return oWorldManager.choices_locked; },
+		},
+		{
+			id: "map_sail", target: "boat",
+			text: "Click a stop next to your ship to sail there. Your first fight will walk you through the dice.",
+			when: function() { return oWorldManager.world_state == WORLD_STATE.EXPLORING; },
+			done: function() { return oWorldManager.node_to_move_to != undefined; },
+		},
+	];
+}
+
+/// @func tutorial_map_draw()
+/// @desc oRunManager Draw GUI End, in the map: the first map note still to show, on top of everything.
+function tutorial_map_draw() {
+	if (room != rmMap || !instance_exists(oWorldManager) || !tutorial_wanted()) return;
+	if (!variable_global_exists("tut_map_notes")) global.tut_map_notes = tutorial_map_notes();
+
+	for (var i = 0; i < array_length(global.tut_map_notes); i++) {
+		var _m = global.tut_map_notes[i];
+		if (tip_seen(_m.id)) continue;
+		if (_m.done()) { tip_mark_seen(_m.id); continue; }
+		if (!_m.when()) continue;
+		tutorial_draw_note(_m.text, tutorial_map_rect(_m.target), "");
+		return; // one note at a time
+	}
+}
+
+/// @func tutorial_map_rect(_target)
+/// @desc Where a map note points, in GUI pixels, or undefined.
+function tutorial_map_rect(_target) {
+	with (oWorldManager) {
+		switch (_target) {
+			case "pages":
+				var _n = ds_list_size(pages_shown);
+				if (_n == 0) return undefined;
+				var _pw = sprite_get_width(sMapParchment), _ph = sprite_get_height(sMapParchment);
+				var _x1 = 99999, _x2 = -99999, _y1 = 99999, _y2 = -99999;
+				for (var p = 0; p < _n; p++) {
+					_x1 = min(_x1, page_pos[p].x - _pw / 2); _x2 = max(_x2, page_pos[p].x + _pw / 2);
+					_y1 = min(_y1, page_pos[p].y - _ph / 2); _y2 = max(_y2, page_pos[p].y + _ph / 2);
+				}
+				return { x: _x1, y: _y1, w: _x2 - _x1, h: _y2 - _y1 };
+			case "embark":
+				var _ew = sprite_get_width(sButtonSmall), _eh = sprite_get_height(sButtonSmall) * 0.8;
+				return { x: display_get_gui_width() * 3/4 - _ew / 2, y: display_get_gui_height() - 100 - _eh / 2, w: _ew, h: _eh };
+			case "boat":
+				var _bw = sprite_get_width(sMapShip), _bh = sprite_get_height(sMapShip);
+				return { x: boat_data.x - _bw / 2, y: boat_data.y - _bh, w: _bw, h: _bh };
+		}
+	}
+	return undefined;
 }

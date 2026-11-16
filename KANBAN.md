@@ -24,7 +24,7 @@
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
 | 8: web build | H07, H08, F19, F51, B85, B86, F04 | `feature/web-build` | **Ready to test.** Browser fixes (16:9, dark page behind it), sounds compressed to Ogg (H08), Outguess cut (F19). Insight icons without paper (F51). Tooltips above the event window (B86). Second-fight black screen fixed (B85). New runs start by choosing a die and core pair again (F04). Then follow `docs/web-build.md` and `docs/itch-launch.md`. |
-| 9: tutorial parts 1-2 | F54, B69 | `feature/tutorial` (from `feature/web-build`) | **Ready to test.** Part 1: progress.json, intro once ever, Settings > Gameplay > Tutorial next run. Part 2: the guided first fight. One-time tips (part 3) come next. |
+| 9: tutorial parts 1-2 | F54, B69, B87, B88 | `feature/tutorial` (from `feature/web-build`) | **Ready to test.** Part 1: progress.json, intro once ever, Settings > Gameplay > Tutorial next run. Part 2: map notes for the first voyage and a two-turn guided first fight. Fixes: discard bag click spot (B87), End Turn outline (B88). One-time tips (part 3) come next. |
 
 **Batch 8 test list**
 - H07 Desktop build first (Run as usual): nothing changed. Settings still has Resolution and Fullscreen, Exit quits, double Escape quits.
@@ -41,8 +41,11 @@
 - B69 Start a new voyage with the intro turned on (F1 > Hotkeys: Playing): it plays. Quit the game completely, launch again, start another voyage: no intro. In F1 click it back to Playing: the next voyage plays it again.
 - F54 Settings has a new Gameplay tab with "Tutorial next run". It starts on for a new player. Turn it off, close Settings, quit and relaunch: still off. Turn it on: on. (It does nothing else yet: the guided fight is part 2.)
 - F54 Everything else in Settings (volumes, Save/Cancel, Display) still works.
-- F54 Guided fight: turn "Tutorial next run" on and start a new voyage. The first combat node is a lone Pirate Ruffian, and your first hand is Attack, Attack, Generic, Insight, Block, Block (from your own bag). A parchment note with an arrow and a pulsing yellow outline walks you through: the enemy intent (Next) > lay an Attack die in the empty slot > lay the other Attack die in the same slot > sacrifice a die on the new-slot tile > lay the Insight die in the new slot > End Turn. Next turn: a note about insight (Next), then "The rest is yours" (Set sail) and it's a normal fight.
-- F54 While a step waits, other moves are refused with "Not yet: Follow the logbook...": dropping a Block die in the slot, sacrificing too early, the discard button, End Turn or Enter before the last step.
+- F54 Map notes (turn "Tutorial next run" on, start a new voyage): a note over the die + core offering; then on the drafting book a note pointing at the pages (choose 2, the first choice locks one away); after 2 picks a note on Embark; once sailing, a note on the ship. Each shows once ever (they come back only when the setting is turned on again).
+- F54 Guided fight, turn 1 (a lone Pirate Ruffian; hand Attack, Attack, Insight, Generic, Block, Block from your bag): intent (Next) > Attack die in the empty slot > the other Attack die on top > sacrifice the Insight die on the new-slot tile (it becomes the new slot with the die in it) > the Generic die into the Attack slot > note on dice lasting 2 turns, Generic 1, bold outline (Next) > End Turn.
+- F54 Guided fight, turn 2 (starts with an Attack and a Block die): insight note (Next) > sacrifice the Attack and Block dice to build a slot that can do either > right-click that slot to switch its action > "The rest is yours" (Set sail).
+- F54 While a step waits, other moves are refused with "Not yet: Follow the logbook...": the wrong die in a slot, sacrificing the wrong die, the discard button, End Turn or Enter before its step. The yellow outline sits right round the End Turn button (B88).
+- B87 Click the DISCARD bag at the bottom right of a fight: the discard pile opens. Clicking the top right corner no longer opens it.
 - F54 Skip tutorial (top right) ends it at once; so does winning or losing. Start another voyage: no Ruffian set-up, no notes. Settings > Gameplay shows Tutorial next run off. Turn it on again: the next voyage is guided again.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
