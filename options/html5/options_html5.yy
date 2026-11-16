@@ -16,7 +16,7 @@
   "option_html5_icon":"${base_options_dir}/html5/fav.ico",
   "option_html5_index":"use_default",
   "option_html5_interpolate_pixels":true,
-  "option_html5_jsprepend":"",
+  "option_html5_jsprepend":"(function(){function s(){document.documentElement.style.backgroundColor='#0b1626';document.body.style.backgroundColor='#0b1626';}if(document.body)s();else document.addEventListener('DOMContentLoaded',s);})();",
   "option_html5_loadingbar":"use_default",
   "option_html5_localrunalert":true,
   "option_html5_outputdebugtoconsole":true,

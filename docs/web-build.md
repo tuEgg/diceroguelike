@@ -10,7 +10,8 @@ All of it is behind `IS_BROWSER` (scDisplay), so the desktop build is unchanged.
 - There's no Resolution option in Settings, and fullscreen isn't restored at start-up (browsers only allow it after a click). The Fullscreen toggle still works.
 - There's no Exit button on the main menu, and double Escape doesn't quit (a web page can't quit).
 - Saves and settings use the same `file_text_*` calls; in a browser GameMaker keeps them in the browser's local storage.
-- HTML5 options: WebGL is required (the map's shaders need it), and the canvas is centred.
+- HTML5 options: WebGL is required (the map's shaders need it), and the canvas is centred. The page behind the game is dark navy (a small script in the HTML5 options, "Prepend JavaScript"), so the bars beside a 16:9 game don't show white.
+- Sounds are set to Compressed, so GameMaker encodes them as Ogg in every build (the WAV files in the project stay as they are).
 
 ## Export
 
@@ -34,7 +35,7 @@ Write down anything that breaks, with the browser name. Red errors in the browse
 - Clicks land where they should: main menu, Settings sliders, map nodes, dragging dice into slots, the F1-free buttons.
 - The map: island shapes look like the desktop build (these use surfaces and two shaders). Wonky rectangles and the book look right.
 - Text is crisp, in the right fonts.
-- Play a whole fight: dice, slots, insight panel and outguess bar, tooltips, rewards.
+- Play a whole fight: dice, slots, insight panel, tooltips, rewards.
 - Settings: no Resolution row; volume changes stick after reloading the page; Fullscreen toggles.
 - Saving: play into the map, reload the page, **Continue** works.
 - It runs smoothly on the map and in combat (note any stutter, and on which screen).

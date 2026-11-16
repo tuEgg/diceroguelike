@@ -15,7 +15,7 @@
 
 | ID | Task | Notes |
 |---|---|---|
-| H07 | **Web build smoke test**: export HTML5/GX, upload privately to itch.io, list what breaks | Prepped in batch 8: browser fixes behind `IS_BROWSER`, and `docs/web-build.md` (export, itch.io upload, smoke test). Waiting on Jared to export and report. |
+| H07 | **Web build smoke test**: export HTML5/GX, upload privately to itch.io, list what breaks | Prepped in batch 8: browser fixes behind `IS_BROWSER`, and `docs/web-build.md` (export, itch.io upload, smoke test). Launch steps: `docs/itch-launch.md`. Waiting on Jared to export and report. |
 
 ---
 
@@ -23,11 +23,14 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 8: web build | H07 | `feature/web-build` | **Ready to test.** Follow `docs/web-build.md`: export HTML5, upload privately to itch.io, run the smoke test, report what breaks. |
+| 8: web build | H07, H08, F19 | `feature/web-build` | **Ready to test.** Browser fixes (16:9, dark page behind it), sounds compressed to Ogg (H08), Outguess cut (F19). Then follow `docs/web-build.md` and `docs/itch-launch.md`. |
 
 **Batch 8 test list**
 - H07 Desktop build first (Run as usual): nothing changed. Settings still has Resolution and Fullscreen, Exit quits, double Escape quits.
 - H07 Web: follow the smoke test in `docs/web-build.md`. Specifically for this batch: no Exit button, no Resolution row, the canvas stays 16:9 and refits when you resize the window or use itch's fullscreen, clicks line up with buttons.
+- H07 Web: the page around the 16:9 game is dark navy, not white.
+- H08 Every sound still plays (clicks, dice, swords, shields, rubble, end turn) and the intro music plays. Open one sound in GameMaker: it says Compressed. The exported zip should be far smaller (sounds were about 20 MB as WAV).
+- F19 Outguess is gone: no bar under the target, no "Outguessed!", no halving. Insight dice still count next turn; the panel footer says so. Enemies hit for the number shown.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -139,7 +142,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - 2026-11-15 **Scope cuts:** no four Act III regions, no 3 classes (F04 classes removed). **Alignment stays** in this build (F32).
 - 2026-11-15 **Platform:** a web build on itch.io for early playtests (keep exe as the dev/reference build); Steam is the long-term goal. See H07.
 - 2026-11-16 **Bounty board:** two bounties are offered, on purpose (Jared likes the choice). The potion on the bounty board is free.
-- 2026-11-16 **Intel rework:** enemy intents are always shown. On screen intel is called **Insight** (Ink was tried and felt unclear); the code keeps INTEL. Three states, named like reading an old logbook: **Faded** (0+, see ranges), **Legible** (5+, exact numbers), **Quill** (10+, rewrite one intent per turn; you choose to change it, the enemy picks the move). Below 0 (Overwhelm) the page is **Blotted** and intents are hidden. Insight dice roll in the queue and count next turn (a this-turn-only version was tried and reverted: dice could never reach Legible or Quill in time). This turn they can **Outguess** (all insight rolled this turn beats your target's number: its move does half), at any insight. Next-turn intents were cut. Rolling on play was tried and reverted. You can always change target, except while Overwhelmed.
+- 2026-11-16 **Intel rework:** enemy intents are always shown. On screen intel is called **Insight** (Ink was tried and felt unclear); the code keeps INTEL. Three states, named like reading an old logbook: **Faded** (0+, see ranges), **Legible** (5+, exact numbers), **Quill** (10+, rewrite one intent per turn; you choose to change it, the enemy picks the move). Below 0 (Overwhelm) the page is **Blotted** and intents are hidden. Insight dice roll in the queue and count next turn (a this-turn-only version was tried and reverted: dice could never reach Legible or Quill in time). Outguess (a this-turn effect: beat your target's number to halve its move) was built and cut: too complex. Rolling on play was tried and reverted. You can always change target, except while Overwhelmed.
 
 ---
 
@@ -224,7 +227,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | B33 | Intel timing settled: insight dice roll in the queue and count next turn (instant rolling and this-turn-only were tried and reverted) | Batch 7: intel rework | 2026-11-16 |
 | F17 | Next-turn intents: built, then cut (removed the reason to play insight next turn) | Batch 7: intel rework | 2026-11-16 |
 | F18 | Quill (10+ insight): rewrite one enemy intent per turn; rewritable intents pulse, glow and show a quill | Batch 7: intel rework | 2026-11-16 |
-| F19 | Outguess: insight rolled this turn that beats your target's number halves its move; outguess bar under the target's intent | Batch 7: intel rework | 2026-11-16 |
+| F19 | ~~Outguess~~ (cut 2026-11-16 in batch 8: too complex, a minigame of its own): insight rolled this turn that beats your target's number halves its move; outguess bar under the target's intent | Batch 7: intel rework | 2026-11-16 |
 | F52 | Intel is called Insight on screen; logbook states Blotted/Faded/Legible/Quill; placeholder page icons; compact panel | Batch 7: intel rework | 2026-11-16 |
 | F53 | Overwhelm stays on you for your turn, lowers insight and locks your target | Batch 7: intel rework | 2026-11-16 |
 

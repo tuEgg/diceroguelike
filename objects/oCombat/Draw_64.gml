@@ -720,20 +720,6 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		
 		draw_outline_text(text, c_black, c_white, 2, text_x, yy, enemy.intent.scale, enemy.intent.alpha - enemy.info_alpha);
 
-		// the targeted enemy shows the outguess bar: your insight this turn against the number to beat
-		if (e == enemy_target_index && intent_has_numbers(enemy.intent.move)) {
-			draw_outguess_bar(enemy, xx, yy + 40, enemy.intent.alpha);
-		}
-
-		// outguessed by intel this turn: the move does half (the target's bar says it, others get a label)
-		if (intent_is_fumbled(enemy) && e != enemy_target_index) {
-			draw_set_font(ftDefault);
-			draw_set_halign(fa_center);
-			draw_outline_text("Outguessed: half", c_black, c_orange, 2, xx, yy + 30, 1, enemy.intent.alpha - enemy.info_alpha);
-			draw_set_halign(fa_left);
-			draw_set_font(ftTopBar);
-		}
-
 		// Quill: click an intent to make the enemy choose again (once per turn)
 		var _intent_hover = mouse_hovering(xx, yy, text_w + 20, 50, true);
 		var _can_rewrite = (intel_level >= 2 && !intel_is_blotted() && !intel_rewrite_used&& state == CombatState.PLAYER_INPUT && !show_rewards);
@@ -766,7 +752,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
 					var _intent_desc = "This turn: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount);
 					if (intent_has_numbers(enemy.intent.move)) _intent_desc += (intel_level >= 1) ? ", exactly " + string(intent_exact_value(enemy)) : ". Reach " + string(global.player_intel_data[| 1].requirement) + " insight (Legible) to see the exact number";
-					_intent_desc += intent_is_fumbled(enemy) ? ". Outguessed by your insight, so it does half." : ".";
+					_intent_desc += ".";
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, _intent_desc, undefined, 0, undefined);
 				} else {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Your insight is below 0, so the page is blotted and enemy intents are hidden.", undefined, 0, undefined);
@@ -1012,12 +998,12 @@ if (state != CombatState.PLAYER_DEAD) {
 	}
 
 	if (intel_hover) {
-		// a compact reference: one line per state, the current one highlighted, and how Outguess works
+		// a compact reference: one line per state, the current one highlighted, and when insight counts
 		var intel_pad = 16;
 		var intel_w = 380;
 		var intel_row_h = 40;
 		var intel_title_h = 36;
-		var intel_foot_h = 50;
+		var intel_foot_h = 30;
 
 		// Blotted (below 0) first, then the three states
 		var intel_rows = [global.intel_blotted];
@@ -1072,8 +1058,7 @@ if (state != CombatState.PLAYER_DEAD) {
 		// how insight rolls work this turn
 		draw_set_font(ftSmall);
 		draw_set_color(c_ltgray);
-		draw_text(intel_x + intel_pad, _row_y + 14, "Insight you roll counts next turn.");
-		draw_text(intel_x + intel_pad, _row_y + 34, "This turn, beat your target's number to halve it.");
+		draw_text(intel_x + intel_pad, _row_y + intel_foot_h / 2, "Insight you roll counts next turn.");
 		draw_set_color(c_white);
 
 		// the tooltip only says what matters now

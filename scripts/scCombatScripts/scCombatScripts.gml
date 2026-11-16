@@ -204,10 +204,6 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		//show_debug_message("dice amount is zero - this is for flat damage - setting value to "+string(_dice_value));
 	}
 
-	// an enemy the player outguessed this turn does half (intel_try_outguess)
-	if (is_struct(_source) && variable_struct_exists(_source.intent, "fumbled") && _source.intent.fumbled) {
-		amount = amount div 2;
-	}
 
     var inst_color = c_red; // default color for damage
 	
@@ -454,15 +450,11 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 		case "INTEL":
 			if (_source == "player") {
-				// insight counts next turn (Outguess below uses it this turn)
+				// insight counts next turn
 				apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
 				var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, _dice_list_index);
 				num.x += 20;
 				num.y -= 20;
-
-				// this turn: if all the intel rolled so far this turn beats the target's intended number, it fumbles
-				intel_rolled_this_turn += amount;
-				intel_try_outguess();
 			} else {
 			    apply_buff("player", oRunManager.debuff_overwhelm, 1, 3, oRunManager.debuff_overwhelm.remove_next_turn, { source: _source, index: _source_index });
 				particle_emit(global.player_x, global.player_y, "burst", oRunManager.debuff_overwhelm.color);
@@ -1491,8 +1483,7 @@ function add_enemy_to_fight(_enemy) {
 		intent: {
 			move: _enemy.moves[| _rand_move],
 			rolls: [],			// the move's dice, rolled when the intent is set (enemy_set_intent)
-			fumbled: false,		// outguessed by the player's intel this turn: the move does half
-			alpha: 0,
+alpha: 0,
 			start_scale: 0.75,	
 			scale: 0.25,	
 			text: "",
