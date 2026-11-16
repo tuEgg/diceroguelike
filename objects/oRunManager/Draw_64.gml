@@ -573,7 +573,7 @@ var my = device_mouse_y_to_gui(0);
 // Draw bag preview
 var bag_x = global.gui.bag_x;
 var bag_y = global.gui.bag_y;
-var bag_w = global.gui.bag_h;
+var bag_w = global.gui.bag_w;
 var bag_h = global.gui.bag_h;
 bag_hover = mouse_hovering(bag_x, bag_y, bag_w, bag_h, false);
 
@@ -735,13 +735,16 @@ if (show_bag_contents) {
 				}
 			}
 			
-			// Give each dice its own background
+			// Give each dice its own background, edged in its rarity colour
 			draw_set_alpha(dice_alpha);
+			var rarity_col = make_color_rgb(44, 40, 62);
 			switch(dice.rarity) {
-				case "common": draw_set_color(global.color_common); break;
-				case "uncommon": draw_set_color(global.color_uncommon); break;
-				case "rare": draw_set_color(global.color_rare); break;
+				case "common": rarity_col = global.color_common; break;
+				case "uncommon": rarity_col = global.color_uncommon; break;
+				case "rare": rarity_col = global.color_rare; break;
 			}
+			draw_set_color(rarity_col);
+			draw_roundrect(dice_x - box_width/2 - 3, dice_y - box_height/2 - 3, dice_x + box_width/2 + 3, dice_y + box_height/2 + 3, false);
 			draw_set_color(make_color_rgb(44, 40, 62));
 			if (dice.selected) draw_set_color(c_green);
 			draw_roundrect(dice_x - box_width/2, dice_y - box_height/2, dice_x + box_width/2, dice_y + box_height/2, false);
@@ -758,7 +761,8 @@ if (show_bag_contents) {
 			var off_x = 0;
 			var off_y = 0;
 	
-			switch (image_index) {
+			// nudge the numbers to suit this die's shape (it used oRunManager's own image_index, so it never changed)
+			switch (get_dice_index(dice.dice_value)) {
 				case 1:
 				off_x = -4;
 				off_y = 3;
