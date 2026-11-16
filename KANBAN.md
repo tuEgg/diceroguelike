@@ -24,8 +24,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-
-Nothing is waiting for a playtest right now.
+| 3: keepsakes, consumables, events, bounty | B30, B43–B50, B52, B61, B62, B64–B66, B68 | `fix/batch-3` | Fixed in code, **not yet play-tested**. |
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs

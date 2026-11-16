@@ -99,9 +99,9 @@ if (room == rmBounty) {
 	}
 }
 
-combat_chance =		clamp(0, combat_chance, 100);
-event_chance =		clamp(0, event_chance, 100);
-shop_chance =		clamp(0, shop_chance, 100);
-bounty_chance =		clamp(0, bounty_chance, 100);
-elite_chance =		clamp(0, elite_chance, 100);
-alignment_chance =	clamp(0, alignment_chance, 100);
+combat_chance =		clamp(combat_chance, 0, 100);
+event_chance =		clamp(event_chance, 0, 100);
+shop_chance =		clamp(shop_chance, 0, 100);
+bounty_chance =		clamp(bounty_chance, 0, 100);
+elite_chance =		clamp(elite_chance, 0, 100);
+alignment_chance =	clamp(alignment_chance, 0, 100);

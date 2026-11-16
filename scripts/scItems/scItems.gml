@@ -96,7 +96,7 @@ function define_items() {
 	item_core_dome = {
 		sprite: sCores,
 		index: 5,
-		name: "Binary Core",
+		name: "Dome Core",
 		description: "Dice will nearly always roll their middle values",
 		type: "core",
 		dragging: false,
@@ -228,7 +228,7 @@ function define_items() {
 				// eject dice in this slot
 				var num_dice = ds_list_size(_context._slot.dice_list);
 				eject_dice_in_slot(_context._slot, oCombat.slot_positions[| _context._ind], true);
-				oCombat.dice_allowed_this_turn_bonus = 3;
+				oCombat.dice_allowed_this_turn_bonus += 3; // on top of any other bonus plays this turn
 				
 				particle_emit( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", c_aqua);
 			}
@@ -264,11 +264,9 @@ function define_items() {
 			},
 			modify: function(_context) {
 				// select a random die in play and upgrade it
-				var upgrade_chance = instance_number(oDice);
-				for (var i = 0; i < upgrade_chance; i++) {
-					var n = irandom_range(i, upgrade_chance);
-					if (n == upgrade_chance) {
-						dice = instance_find(oDice, i);
+				if (instance_number(oDice) > 0) {
+					{ // one die in hand, every die equally likely
+						var dice = instance_find(oDice, irandom(instance_number(oDice) - 1));
 						dice.scale = 1.5;
 						dice.struct.dice_value += 4;
 						dice.dice_value += 4;
@@ -276,7 +274,6 @@ function define_items() {
 							_dice.dice_value -= 4;
 						}
 						particle_emit( dice.x, dice.y, "burst", get_dice_color((dice.action_type)));
-						break;
 					}
 				}
 			}
@@ -352,20 +349,7 @@ function define_items() {
 			},
 			modify: function(_context) {
 				// select a random die in play and upgrade it
-				var random_die_index = irandom(instance_number(oDice) - 1);
-				var dice = undefined;
-				
-				for (var i = 0; i < instance_number(oDice) - 1; i++) {
-					
-					if (random_die_index == i) {
-						dice = instance_find(oDice, i + 1);
-						break;
-					}
-				}
-				
-				if (instance_number(oDice) == 1 || dice == undefined) {
-					dice = instance_nearest(500, 500, oDice);
-				}
+				var dice = instance_find(oDice, irandom(instance_number(oDice) - 1));
 				
 				dice.scale = 1.5;
 						
@@ -515,16 +499,13 @@ function define_items() {
 		effects: {
 			trigger: "on_clicked",
 			flags: function() {
-				var dice_exist = true;
-				if (room != rmCombat && room != rmWorkbench) {
-					dice_exist = false;
-					if (room == rmEvent && instance_number(oDice) != 0) {
-						dice_exist = true;
-					}
-				} else if (room == rmCombat && oCombat.show_rewards) {
-					dice_exist = false;
-				} else {
-					dice_exist = true * oCombat.state == CombatState.PLAYER_INPUT;
+				var dice_exist = false;
+				if (room == rmCombat) {
+					dice_exist = !oCombat.show_rewards && oCombat.state == CombatState.PLAYER_INPUT;
+				} else if (room == rmWorkbench) {
+					dice_exist = true;
+				} else if (room == rmEvent) {
+					dice_exist = (instance_number(oDice) != 0);
 				}
 				return dice_exist;
 			},

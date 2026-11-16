@@ -8,7 +8,7 @@ function apply_resolution() {
     view_set_hport(0, _res.h);
     view_visible[0] = true;
     update_gui_layout();
-	if (object_exists(oCombat)) {
+	if (instance_exists(oCombat)) {
 		with (oCombat) define_combat_ui_sizes();
 	}
 	

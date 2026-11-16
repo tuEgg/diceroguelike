@@ -427,6 +427,17 @@ function generate_keepsake_rewards(_reward_list, _keepsake_list, _num) {
 			
 	// fill list with all possible keepsakes
 	for (var i = 0; i < total_keepsakes; i++) {
+		// never offer a keepsake the player already owns, or the one a completed bounty is about to hand over
+		var _candidate = _keepsake_list[| i];
+		var _skip = false;
+		for (var k = 0; k < ds_list_size(oRunManager.keepsakes); k++) {
+			if (oRunManager.keepsakes[| k]._id == _candidate._id) _skip = true;
+		}
+		if (oRunManager.active_bounty != undefined && oRunManager.active_bounty.complete && oRunManager.active_bounty.rewards[1] != undefined) {
+			if (oRunManager.active_bounty.rewards[1]._id == _candidate._id) _skip = true;
+		}
+		if (_skip) continue;
+		
 		ds_list_add(indices_keepsakes, clone_keepsake(_keepsake_list[| i]));
 	}
 

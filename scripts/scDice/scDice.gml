@@ -43,10 +43,13 @@ function deal_single_die( _can_discard_this_turn = true) {
 	var die_struct = undefined;
 	var index = 0;
 		
+	// Favourites only jump the queue on the first turn of a fight (and always at the workbench)
+	var _first_turn = (room == rmCombat && instance_exists(oCombat)) ? (oCombat.turn_count <= 1) : true;
+	
 	// Check for favourites and deal them first
 	for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
 		// only check for favourites on first turn
-		if (turn_count <= 1) {
+		if (_first_turn) {
 			var fave = string_has_keyword(global.dice_bag[| d].description, "Favourite");
 			if (fave) {
 				die_struct = clone_die(global.dice_bag[| d], "");
@@ -868,7 +871,8 @@ function generate_dice_bag() {
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
-					_context._d_amount = oCombat.intel_level;
+					// only in a fight, this also runs when the die is shown in the bag or shop
+					if (instance_exists(oCombat)) _context.min_roll += oCombat.intel_level;
 	            }
 	        }
 	    ]

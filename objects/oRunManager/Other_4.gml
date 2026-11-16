@@ -3,7 +3,8 @@ if (room == rmCombat) {
 	ds_list_shuffle(global.dice_bag);
 }
 
-for (var i = 0; i < ds_list_size(global.dice_bag); i++) {
+// backwards, because a temporary die's reset can remove it from the bag
+for (var i = ds_list_size(global.dice_bag) - 1; i >= 0; i--) {
 	var die = global.dice_bag[| i];
 	
 	// Two copies of the same die (bought twice, say) would otherwise share an id and fire each other's effects

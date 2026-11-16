@@ -299,10 +299,11 @@ function define_keepsakes() {
 		sub_image: 11,
 		state: {
 			used: false,
+			slot_num: -1,
 		},
 	    trigger: function(event, data) {
 	        if (event == "after_slot_damage_calculated") {
-	            if (data.type == "ATK" && !self.state.used) {
+	            if (data.type == "ATK" && data._slot_die != undefined && (!self.state.used || self.state.slot_num == data.slot_num)) {
 	                with (oCombat) {
 						// Deal flat damage to all enemies, we have to run this backwards in case any enemies die during this roll
 						for (var i = ds_list_size(oCombat.room_enemies)-1; i >= 0 ; i--) {
@@ -311,6 +312,7 @@ function define_keepsakes() {
 						}
 					}
 					self.state.used = true;
+					self.state.slot_num = data.slot_num; // every die in this slot splashes, later attack slots don't
 				
 					trigger_keepsake_visual();
 	            }
@@ -318,6 +320,7 @@ function define_keepsakes() {
 			
 			if (event == "on_turn_start") {
 	            self.state.used = false;
+	            self.state.slot_num = -1;
 	        }
 	    }
 	};
@@ -473,13 +476,23 @@ function define_keepsakes() {
 	    trigger: function(event, data) {
 	        if (event == "on_roll_die") {
 				if (string_has_keyword(data.die.description, "Followthrough")) {
-					if (self.state.first_die == undefined) {
-						self.state.first_die = data.die;
+					// the first Followthrough die in the queue, in the order the slots resolve
+					var _first_die = undefined;
+					if (instance_exists(oCombat)) {
+						for (var s = 0; s < ds_list_size(oCombat.action_queue) && _first_die == undefined; s++) {
+							var _dice_list = oCombat.action_queue[| s].dice_list;
+							for (var d = 0; d < ds_list_size(_dice_list); d++) {
+								if (string_has_keyword(_dice_list[| d].description, "Followthrough")) {
+									_first_die = _dice_list[| d];
+									break;
+								}
+							}
+						}
 					}
 					
-					if (data.die == self.state.first_die) {
-						data.repeat_followthrough = true;
-					}
+					if (data.die != _first_die) return;
+					
+					data.repeat_followthrough = true;
 					
 					if (!data.read_only && !self.state.effect_used) {
 						self.state.effect_used = true;
@@ -547,8 +560,9 @@ function define_keepsakes() {
 				data.dice_object = data.die;
 				data._die_struct = data.die.struct;
 				
+				// fire only the sacrificed die's own "when played" effect, not every keepsake and debuff as well
 				repeat (2) {
-					combat_trigger_effects("on_dice_played_to_slot", data);
+					trigger_die_effects_single(data.die.struct, "on_dice_played_to_slot", data);
 				}
 				
 				trigger_keepsake_visual();
@@ -781,7 +795,7 @@ function define_keepsakes() {
 		state: { },
 	    trigger: function(event, data) {			
 			if (event == "on_roll_die") {
-				if (data.action_type == "None") {
+				if (data.die.action_type == "None") {
 					data.min_roll += 1;
 					
 					if (!data.read_only) {
@@ -823,7 +837,7 @@ function define_keepsakes() {
 		state: { },
 	    trigger: function(event, data) {			
 			if (event == "on_roll_die") {
-				if (data.max_roll == "2") {
+				if (data.die.dice_value == 2) {
 					data.weighting = "loaded";
 					
 					if (!data.read_only) {

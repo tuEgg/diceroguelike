@@ -112,7 +112,7 @@ function define_buffs_and_debuffs() {
 	        {
 	            trigger: "on_turn_start",
 	            modify: function(_ctx) {
-				    _ctx.bonus_dice = -1;
+				    _ctx.bonus_dice -= 1; // adjust, never overwrite, other effects change this too
 				}
 	        }
 	    ]
@@ -315,7 +315,7 @@ function define_buffs_and_debuffs() {
 	        {
 	            trigger: "on_turn_start",
 	            modify: function(_ctx) {
-				    _ctx.bonus_dice = 1;
+				    _ctx.bonus_dice += _ctx.debuff.amount; // one extra die per stack, on top of other bonuses
 				}
 	        }
 	    ]

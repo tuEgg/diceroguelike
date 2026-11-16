@@ -272,7 +272,7 @@
 				
 					var rand = irandom(array_length(item_pool) - 1);
 					
-					oRunManager.items[rand] = undefined;
+					oRunManager.items[item_pool[rand]] = undefined; // rand indexes the pool of filled slots, not the item slots
 					gain_keepsake(oRunManager.ks_rope_of_repair);
 					oEventManager.event_complete = 1;
 					oEventManager.event_selected = true;
@@ -1037,6 +1037,9 @@
 					var tool_options = ds_list_create();
 					generate_tool_rewards(tool_options, global.master_tool_list, 1);
 					ds_list_add(oRunManager.tools, tool_options[| 0]);
+					// take it out of the pool so it can't be offered again
+					var _tool_index = ds_list_find_index(global.master_tool_list, tool_options[| 0]);
+					if (_tool_index != -1) ds_list_delete(global.master_tool_list, _tool_index);
 					ds_list_add(oRunManager.tools_scale, 0.5);
 					oRunManager.show_tools = true;
 					ds_list_destroy(tool_options);
@@ -1158,7 +1161,7 @@
 					var die = global.dice_bag[| d];
 					
 					// only intel dice, avoid coins
-					if (die.action_type == "BLOCK") {
+					if (die.action_type == "BLK") {
 						block_num++;
 					}
 				}

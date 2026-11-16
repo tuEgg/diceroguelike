@@ -169,6 +169,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 			final_amount: amount,
 			type: _type,
 			_slot_die: _slot_die,
+			slot_num: _slot_number,
 		}
 					
 		combat_trigger_effects("after_slot_damage_calculated", ctx);
