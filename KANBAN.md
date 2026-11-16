@@ -23,10 +23,11 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 6: placement rule and feedback | B35, T08, F12 | `fix/placement-rule` | In progress, **not yet play-tested**. T08 done: one placement rule (`slot_placement_check`) that the real placement uses. |
+| 6: placement rule and feedback | B35, T08, F12 | `fix/placement-rule` | In progress, **not yet play-tested**. T08 and B35 done: one placement rule (`slot_placement_check`) that both the real placement and the slot highlight use. |
 
 **Batch 6 test list**
 - T08 Placing works as before: coloured dice start empty slots, matching dice of the same size or bigger join a slot, coins join any matching slot, neutral dice join slots that have a type, an Exclusive die clears a slot of another type and takes it, and Exclusive dice never share a slot. After your plays run out only coins can be placed, and the dice-played counter flashes red.
+- B35 Drag dice over slots: exactly the slots that light up are the ones that accept the die. Check the cases that used to disagree: an Exclusive die (Tidepusher) over a slot of another type lights up (it takes the slot); an Exclusive die over a matching slot with dice in it does not; a coin over a matching slot with bigger dice lights up; a multitype die (Deflect) over a slot of either of its types lights up; with no plays left, only coins light anything up.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 

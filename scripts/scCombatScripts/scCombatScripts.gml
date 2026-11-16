@@ -1019,57 +1019,10 @@ function draw_action_type_bars(_x, _y, _width, _types, _current_type)
 }
 
 
-/// @function can_place_dice_in_slot(_die_struct, _slot)
-/// @returns {bool}
-function can_place_dice_in_slot(_die_struct, _slot, _num)
-{
-    var die  = _die_struct;
-    var slot = _slot;
-    var stats = get_slot_stats(slot, _num);
-
-    var is_queue_all  = (slot.possible_type == "All");
-    var is_queue_none = (slot.possible_type == "None");
-    var is_dice_none  = (die.possible_type == "None"); // note: die.struct.possible_type in apply_dice_to_slot()
-
-    //-----------------------------------------
-    // CASE 1: Dice has a specific colour/type
-    //-----------------------------------------
-    if (!is_dice_none) {
-        if (is_queue_none) {
-            // Empty slot: any colored die can go in
-            return true;
-        }
-        else if (is_queue_all) {
-            // Can't place colored dice into an All slot
-            return false;
-        }
-        else if (string_pos(die.action_type, slot.possible_type) > 0) {
-            // Same type — only if equal or stronger value
-            return (die.dice_value >= stats.highest_value_base);
-        }
-        else {
-            // Different color entirely
-            return false;
-        }
-    }
-
-    //-----------------------------------------
-    // CASE 2: Dice is generic (no color)
-    //-----------------------------------------
-    else {
-        if (is_queue_all) {
-            // Generic dice are allowed in All slots
-            return true;
-        }
-        else if (!is_queue_none) {
-            // Generic dice can be added to colored slots if equal or stronger
-            return (die.dice_value >= stats.highest_value_base);
-        }
-        else {
-            // Empty slot but generic dice — invalid
-            return false;
-        }
-    }
+/// @function can_place_dice_in_slot(_die_struct, _slot, _num)
+/// @returns {bool} whether the slot highlights as a place this die can go: the same rule placing uses
+function can_place_dice_in_slot(_die_struct, _slot, _num) {
+	return slot_placement_check(_die_struct, _slot, _num).ok;
 }
 
 /// @function win_fight();
