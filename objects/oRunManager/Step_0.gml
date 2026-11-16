@@ -1,3 +1,6 @@
+// the new run offering is a popup: keep the map behind it locked even after the bag or settings hand back the base layer
+if (new_run_offering && global.ui_layer == UI_LAYER.BASE) global.ui_layer = UI_LAYER.POPUP;
+
 key_escape = keyboard_check_pressed(vk_escape);
 
 if (key_escape && global.ui_layer != UI_LAYER.DEBUG) {
@@ -76,7 +79,7 @@ if (DEBUG_TOOLS) {
 	if (key_dice_list) {
 		show_dice_list = 1 - show_dice_list;
 		if (show_dice_list) {
-			if (!ds_exists(filtered_list, ds_type_list)) filtered_list = ds_list_create();
+			if (!ds_safe_exists(filtered_list, ds_type_list)) filtered_list = ds_list_create();
 			
 			// Filter list
 			filter = "bag";
@@ -93,7 +96,7 @@ if (DEBUG_TOOLS) {
 				ds_list_add(filtered_list, _list[| i]);
 			}
 		} else {
-			if (ds_exists(filtered_list, ds_type_list)) ds_list_destroy(filtered_list);
+			if (ds_safe_exists(filtered_list, ds_type_list)) ds_list_destroy(filtered_list);
 		}
 	}
 }

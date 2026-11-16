@@ -1,21 +1,22 @@
 // Lets the F1 debug menu choose the enemies for this fight (does nothing otherwise)
 debug_apply_pending_fight();
+tutorial_begin(); // the guided first fight, until the tutorial is done (progress.json)
 
 turn_count = 0;
 
-if (!ds_exists(global.discard_pile, ds_type_list)) {
+if (!ds_safe_exists(global.discard_pile, ds_type_list)) {
 	global.discard_pile = ds_list_create();
 } else {
 	ds_list_clear(global.discard_pile);
 }
 
-if (!ds_exists(global.sacrifice_list, ds_type_list)) {
+if (!ds_safe_exists(global.sacrifice_list, ds_type_list)) {
 	global.sacrifice_list = ds_list_create();
 } else {
 	ds_list_clear(global.sacrifice_list);
 }
 
-if (!ds_exists(global.sacrifice_history, ds_type_list)) {
+if (!ds_safe_exists(global.sacrifice_history, ds_type_list)) {
 	global.sacrifice_history = ds_list_create();
 } else {
 	ds_list_clear(global.sacrifice_history);
@@ -110,8 +111,6 @@ player_intel = 0;
 draw_intel = 0; // used to draw intel
 intel_level = 0;
 intel_rewrite_used = false; // the Quill state lets you rewrite one enemy intent per turn
-intel_rolled_this_turn = 0; // all intel rolled this turn, for Outguess
-outguess_draw = 0; // the outguess bar's fill, eased towards intel_rolled_this_turn
 target_locked = false; // Overwhelm: you can't change target this turn
 intel_scale = 1.0;
 intel_alpha = 1.0;
@@ -181,3 +180,5 @@ combat_end_effects_triggered = false;
 
 all_enemies_spared = true; // used for alignment fights, if this remains true at the end of combat, we don't show standard rewards, but instead something else...
 spare_kill_alpha = 0;
+insight_panel_open = false; // the insight eye is hovered: oRunManager draws the panel over the tutorial notes
+

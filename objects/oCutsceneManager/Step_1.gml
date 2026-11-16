@@ -33,6 +33,7 @@ for (var i = 0; i < array_length(cutscenes); i++) {
 	if (conditions_met) {
 		show_debug_message("Playing cutscene " + string(i));
 		cutscenes[i].seen = true;
+		if (variable_struct_exists(cutscenes[i], "progress_key")) progress_set(cutscenes[i].progress_key, true); // remembered across launches
 		cutscene_index = i;
 		cutscene_state = CUTSCENE_STATE.STARTED;
 	}

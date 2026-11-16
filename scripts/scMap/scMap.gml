@@ -268,7 +268,13 @@ function enter_node(_node) {
 /// @param _node			the node being entered (an event may have turned into a combat clone)
 /// @param _memory_node	the node on the map, which remembers the encounter it rolled
 function get_combat_enemies(_node, _memory_node = _node) {
-	
+
+	// the guided first fight (tutorial) is always a lone Pirate Ruffian: a plain attacker and blocker
+	if (_node.type == NODE_TYPE.COMBAT && tutorial_wanted()) {
+		ds_list_add(oWorldManager.room_enemies, enemy_find_by_name("Pirate Ruffian"));
+		return;
+	}
+
 	if (_node.type == NODE_TYPE.COMBAT) {
 
 		// Refill the pool if we've fought everything, so we never start an empty fight
@@ -978,7 +984,7 @@ function start_new_chapter() {
 	// the old chapter's pages are finished with
 	for (var p = 0; p < ds_list_size(chosen_pages); p++) {
 		var _nodes = chosen_pages[| p].nodes;
-		if (ds_exists(_nodes, ds_type_list)) ds_list_destroy(_nodes);
+		if (ds_safe_exists(_nodes, ds_type_list)) ds_list_destroy(_nodes);
 	}
 	ds_list_clear(chosen_pages);
 	ds_list_clear(all_nodes);

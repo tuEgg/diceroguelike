@@ -15,7 +15,7 @@
 
 | ID | Task | Notes |
 |---|---|---|
-| H07 | **Web build smoke test**: export HTML5/GX, upload privately to itch.io, list what breaks | Surfaces (`draw_wonky_rectangle`), shaders, file saves, fonts and resolution are the usual web trouble spots. Do this early so web problems are fixed alongside other bugs. |
+| | Nothing right now. Jared: itch.io launch when ready (`docs/itch-launch.md`). | |
 
 ---
 
@@ -24,7 +24,6 @@
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
 
-Nothing is waiting for a playtest right now.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -47,7 +46,6 @@ All known P0 bugs are fixed, see DONE.
 **Map / events / bounty / workbench**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B69 | Intro cutscene replays every launch (`seen` isn't saved) | `oCutsceneManager` | S [C] |
 
 **Save / load**
 | ID | Bug | Size |
@@ -86,7 +84,6 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 **Core loop**
 - F02 **Rethink what happens between pages (Jared, 2026-11-17).** Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
 - F03 Elite/boss chest reward
-- F04 Starting choice (die + core) at run start *(classes cut, 2026-11-15)*
 - F05 Death / win screens, run summary, die roll-history stats page
 - F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
 
@@ -118,15 +115,14 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F42 Unique visual per die
 
 **Art direction (parked, Jared wants to discuss later)**
-- F50 Decide an art style for the game. Jared isn't an artist and wants to explore AI-assisted art workflows (he's been following r/aigamedev). Covers dice, enemies, map/book, UI and backgrounds. Don't start until he raises it.
-- F51 Icons for the insight states: Blotted (smudged page), Faded, Legible and Quill. Placeholders are drawn in code by `draw_insight_icon` (scHelpers); swap in sprites there. Part of F50.
+- F50 Decide an art style for the game. Jared isn't an artist and wants to explore AI-assisted art workflows (he's been following r/aigamedev). Covers dice, enemies, map/book, UI and backgrounds. Don't start until he raises it. Includes real sprites for the insight states (placeholders drawn by `draw_insight_icon` in scHelpers, F51).
 
 ---
 
 ## ❓ OPEN QUESTIONS (design decisions blocking work)
 
 - Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
-- Q7 Resolution targets: just 1080p + 1440p, or arbitrary? (decides how much layout work T07 needs)
+- Q7 Resolution targets: just 1080p + 1440p, or arbitrary? (decides how much layout work T07 needs)
 - Q8 Between pages: what should the choices be, and should the workbench stay available after every node? (see F02)
 
 ## 📌 DECISIONS
@@ -136,7 +132,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - 2026-11-15 **Scope cuts:** no four Act III regions, no 3 classes (F04 classes removed). **Alignment stays** in this build (F32).
 - 2026-11-15 **Platform:** a web build on itch.io for early playtests (keep exe as the dev/reference build); Steam is the long-term goal. See H07.
 - 2026-11-16 **Bounty board:** two bounties are offered, on purpose (Jared likes the choice). The potion on the bounty board is free.
-- 2026-11-16 **Intel rework:** enemy intents are always shown. On screen intel is called **Insight** (Ink was tried and felt unclear); the code keeps INTEL. Three states, named like reading an old logbook: **Faded** (0+, see ranges), **Legible** (5+, exact numbers), **Quill** (10+, rewrite one intent per turn; you choose to change it, the enemy picks the move). Below 0 (Overwhelm) the page is **Blotted** and intents are hidden. Insight dice roll in the queue and count next turn (a this-turn-only version was tried and reverted: dice could never reach Legible or Quill in time). This turn they can **Outguess** (all insight rolled this turn beats your target's number: its move does half), at any insight. Next-turn intents were cut. Rolling on play was tried and reverted. You can always change target, except while Overwhelmed.
+- 2026-11-16 **Intel rework:** enemy intents are always shown. On screen intel is called **Insight** (Ink was tried and felt unclear); the code keeps INTEL. Three states, named like reading an old logbook: **Faded** (0+, see ranges), **Legible** (5+, exact numbers), **Quill** (10+, rewrite one intent per turn; you choose to change it, the enemy picks the move). Below 0 (Overwhelm) the page is **Blotted** and intents are hidden. Insight dice roll in the queue and count next turn (a this-turn-only version was tried and reverted: dice could never reach Legible or Quill in time). Outguess (a this-turn effect: beat your target's number to halve its move) was built and cut: too complex. Rolling on play was tried and reverted. You can always change target, except while Overwhelmed.
 
 ---
 
@@ -221,9 +217,23 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | B33 | Intel timing settled: insight dice roll in the queue and count next turn (instant rolling and this-turn-only were tried and reverted) | Batch 7: intel rework | 2026-11-16 |
 | F17 | Next-turn intents: built, then cut (removed the reason to play insight next turn) | Batch 7: intel rework | 2026-11-16 |
 | F18 | Quill (10+ insight): rewrite one enemy intent per turn; rewritable intents pulse, glow and show a quill | Batch 7: intel rework | 2026-11-16 |
-| F19 | Outguess: insight rolled this turn that beats your target's number halves its move; outguess bar under the target's intent | Batch 7: intel rework | 2026-11-16 |
+| F19 | ~~Outguess~~ (cut 2026-11-16 in batch 8: too complex, a minigame of its own): insight rolled this turn that beats your target's number halves its move; outguess bar under the target's intent | Batch 7: intel rework | 2026-11-16 |
 | F52 | Intel is called Insight on screen; logbook states Blotted/Faded/Legible/Quill; placeholder page icons; compact panel | Batch 7: intel rework | 2026-11-16 |
 | F53 | Overwhelm stays on you for your turn, lowers insight and locks your target | Batch 7: intel rework | 2026-11-16 |
+| H07 | Web build: fits the browser at 16:9 on a dark page, no Exit/Resolution/double-Escape in the browser; `docs/web-build.md`, `docs/itch-launch.md` | Batch 8: web build | 2026-11-16 |
+| H08 | Sounds compressed to Ogg (were ~20 MB of WAV) | Batch 8: web build | 2026-11-16 |
+| F51 | Insight state icons, placeholders drawn in code without the paper (spill, outlined drop, filled drop, quill); real sprites wait for F50 | Batch 8: web build | 2026-11-16 |
+| B85 | Web build went black starting a second fight: `ds_exists(undefined)` throws in HTML5; `ds_safe_exists` everywhere | Batch 8: web build | 2026-11-16 |
+| B86 | Tooltips drawn in Draw GUI End, above the event window and every other window | Batch 8: web build | 2026-11-16 |
+| F04 | New runs start by choosing a die + core pair again | Batch 8: web build | 2026-11-16 |
+| F54 | Tutorial: progress.json, map notes, two-turn guided first fight with Skip, one-time tips, Settings > Gameplay > Tutorial next run | Batch 9: tutorial | 2026-11-16 |
+| B69 | The intro plays once ever (progress.json), not every new voyage | Batch 9: tutorial | 2026-11-16 |
+| B87 | Discard bag opens from the bag itself, not the top right corner | Batch 9: tutorial | 2026-11-16 |
+| B88 | Tutorial End Turn outline sits round the button | Batch 9: tutorial | 2026-11-16 |
+| B89 | Insight hover panel draws over tutorial notes and tips | Batch 9: tutorial | 2026-11-16 |
+| B90 | Cores drop into the workbench's middle slot reliably and draw on top while carried | Batch 9: tutorial | 2026-11-16 |
+| F55 | Runs start with only the Drill; the Hammer and Cutters are bought in shops | Batch 9: tutorial | 2026-11-16 |
+| B91 | Deepdiver fires only when it is the die played, not for every die after it | Batch 9: tutorial | 2026-11-16 |
 
 **Milestones**
 

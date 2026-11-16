@@ -204,10 +204,6 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		//show_debug_message("dice amount is zero - this is for flat damage - setting value to "+string(_dice_value));
 	}
 
-	// an enemy the player outguessed this turn does half (intel_try_outguess)
-	if (is_struct(_source) && variable_struct_exists(_source.intent, "fumbled") && _source.intent.fumbled) {
-		amount = amount div 2;
-	}
 
     var inst_color = c_red; // default color for damage
 	
@@ -454,15 +450,11 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 		case "INTEL":
 			if (_source == "player") {
-				// insight counts next turn (Outguess below uses it this turn)
+				// insight counts next turn
 				apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
 				var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, _dice_list_index);
 				num.x += 20;
 				num.y -= 20;
-
-				// this turn: if all the intel rolled so far this turn beats the target's intended number, it fumbles
-				intel_rolled_this_turn += amount;
-				intel_try_outguess();
 			} else {
 			    apply_buff("player", oRunManager.debuff_overwhelm, 1, 3, oRunManager.debuff_overwhelm.remove_next_turn, { source: _source, index: _source_index });
 				particle_emit(global.player_x, global.player_y, "burst", oRunManager.debuff_overwhelm.color);
@@ -995,7 +987,7 @@ function draw_action_type_bars(_x, _y, _width, _types, _current_type)
     var types = _types;
 
     // --- Detect and convert ds_list safely ---
-    if (is_real(types) && ds_exists(types, ds_type_list)) {
+    if (is_real(types) && ds_safe_exists(types, ds_type_list)) {
         var arr = array_create(ds_list_size(types));
         for (var i = 0; i < ds_list_size(types); i++) {
             arr[i] = types[| i];
@@ -1071,7 +1063,7 @@ function win_fight() {
 		discard_dice_in_play(true);
 		
 		// --- Return discarded dice to bag ---
-		if (ds_exists(global.discard_pile, ds_type_list)) {
+		if (ds_safe_exists(global.discard_pile, ds_type_list)) {
 		    for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
 		        var discard_die = global.discard_pile[| i];
 		        ds_list_add(global.dice_bag, clone_die(discard_die, ""));
@@ -1081,7 +1073,7 @@ function win_fight() {
 
 		// When dice used to stay in slots, we did the below
 		// --- Return historically sacrificed dice to bag ---
-		//if (ds_exists(global.sacrifice_history, ds_type_list)) {
+		//if (ds_safe_exists(global.sacrifice_history, ds_type_list)) {
 		//    for (var j = 0; j < ds_list_size(global.sacrifice_history); j++) {
 		//        var sac_die = global.sacrifice_history[| j];
 		//        ds_list_add(global.dice_bag, clone_die(sac_die, ""));
@@ -1090,7 +1082,7 @@ function win_fight() {
 		//}
 		
 		// The new method for retrieving die is to eject all repeatedly until there are no dice left, then just return the sacrifice list die back to the bag
-		if (ds_exists(global.sacrifice_list, ds_type_list)) {
+		if (ds_safe_exists(global.sacrifice_list, ds_type_list)) {
 		    for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
 		        var sac_die = global.sacrifice_list[| j];
 		        ds_list_add(global.dice_bag, clone_die(sac_die, ""));
@@ -1401,7 +1393,7 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 			if (_slot.current_action_type == "None") break;
 			
 			// Clean up sacrifice history
-			if (ds_exists(global.sacrifice_history, ds_type_list)) {
+			if (ds_safe_exists(global.sacrifice_history, ds_type_list)) {
 				for (var s = ds_list_size(global.sacrifice_history) - 1; s >= 0; s--) {
 					var die_struct = global.sacrifice_history[| s];
 
@@ -1491,8 +1483,7 @@ function add_enemy_to_fight(_enemy) {
 		intent: {
 			move: _enemy.moves[| _rand_move],
 			rolls: [],			// the move's dice, rolled when the intent is set (enemy_set_intent)
-			fumbled: false,		// outguessed by the player's intel this turn: the move does half
-			alpha: 0,
+alpha: 0,
 			start_scale: 0.75,	
 			scale: 0.25,	
 			text: "",
@@ -1633,4 +1624,550 @@ function slot_bonus_breakdown(_slot) {
 function slot_total_bonus(_slot, _dice_count) {
 	if (_dice_count <= 0) return 0;
 	return _slot.bonus_amount * _dice_count + _slot.first_die_bonus;
+}
+
+// =====================================================================
+// TUTORIAL (F54 part 2)
+// Until the player finishes or skips it (progress.json tutorial_done), the first fight is guided: a Pirate Ruffian
+// (get_combat_enemies), a set first hand drawn from the player's own bag (deal_single_die), and logbook margin notes
+// that point at one thing at a time. While a step waits for an action, only that action works (tutorial_allows,
+// called where dice are dropped and where the turn is ended). A Skip button is always there.
+// Runs inside oCombat: tutorial_begin (Create), tutorial_step (Step), tutorial_draw (end of Draw GUI).
+// =====================================================================
+
+/// @func tutorial_wanted()
+/// @desc Should fights be guided? Until the tutorial has been finished or skipped once.
+function tutorial_wanted() {
+	return !progress_get("tutorial_done");
+}
+
+/// @func tutorial_active()
+function tutorial_active() {
+	return variable_global_exists("tut") && is_struct(global.tut) && global.tut.active && room == rmCombat && instance_exists(oCombat);
+}
+
+/// @func tutorial_steps()
+/// @desc The guided steps, over two turns. target: what the note points at. allow: the actions that work while it's
+///       up ("all" for anything). die_types / slot: which dice and which slot ("newest" = the last slot). done: when it
+///       moves on (steps with a button wait for it instead).
+function tutorial_steps() {
+	return [
+		// turn 1: a slot, stacking, a slot from a sacrifice, generic dice, how long dice stay
+		{
+			id: "intent", target: "intent", allow: [], button: "Next",
+			text: "Read your enemy first. Its intent shows what it will do this turn. With 0 to 4 insight you only see a range of how much; at 5 you see the exact number.",
+		},
+		{
+			id: "claim", target: "slot0", allow: ["place"], die_types: ["ATK"], slot: 0,
+			text: "Lay an Attack die in the empty slot. A slot takes the type of the first die laid in it.",
+			done: function() { return oCombat.action_queue[| 0].current_action_type == "ATK"; },
+		},
+		{
+			id: "stack", target: "slot0", allow: ["place"], die_types: ["ATK"], slot: 0,
+			text: "Lay your other Attack die in the same slot. Dice in one slot roll together.",
+			done: function() { return ds_list_size(oCombat.action_queue[| 0].dice_list) >= 2; },
+		},
+		{
+			id: "sacrifice", target: "sacrifice", allow: ["sacrifice"], die_types: ["INTEL"],
+			text: "Sacrificing a die builds a new slot, and the die stays in it. Sacrifice your Insight die here. Insight it rolls counts next turn.",
+			done: function() { return ds_list_size(oCombat.action_queue) >= 2; },
+		},
+		{
+			id: "generic", target: "slot0", allow: ["place"], die_types: ["None"], slot: 0,
+			text: "Generic dice power up any slot. Lay the Generic die in your Attack slot.",
+			done: function() {
+				var _dice = oCombat.action_queue[| 0].dice_list;
+				for (var i = 0; i < ds_list_size(_dice); i++) if (_dice[| i].action_type == "None") return true;
+				return false;
+			},
+		},
+		{
+			id: "lasting", target: "slot0", allow: [], button: "Next",
+			text: "Action dice stay in their slot for 2 turns, Generic dice for only 1. A bold outline means a die will still be here next turn.",
+		},
+		{
+			id: "end_turn", target: "end_turn", allow: ["end_turn"],
+			text: "You can play 4 dice a turn. When you end your turn your slots fire left to right, then the enemy acts. End your turn.",
+			done: function() { return oCombat.turn_count >= 2; },
+		},
+		// turn 2: insight, a slot with two actions, right-click to switch
+		{
+			id: "insight", target: "insight", allow: [], button: "Next",
+			text: "Your insight came in. Below 5 you only see ranges (Faded); at 5 the enemy's numbers turn exact (Legible). At 10 you take up the Quill and can rewrite an intent.",
+		},
+		{
+			id: "two_types", target: "sacrifice", allow: ["sacrifice"], die_types: ["ATK", "BLK"],
+			text: "Your next slot costs 2 sacrifices. Build it from an Attack die and a Block die, and it can do either.",
+			done: function() { return ds_list_size(oCombat.action_queue) >= 3; },
+		},
+		{
+			id: "switch", target: "newest", allow: [],
+			text: "Right-click a slot with more than one action to switch between them. Switch your new slot now.",
+			done: function() { return global.tut.switched; },
+		},
+		{
+			id: "free", target: "", allow: "all", button: "Set sail",
+			text: "The rest is yours, Captain. Dice left in your hand at the end of a turn are discarded, so use them well.",
+		},
+	];
+}
+
+/// @func tutorial_begin()
+/// @desc oCombat Create: start the guided fight if the tutorial is still wanted.
+function tutorial_begin() {
+	global.tut = { active: false };
+	if (!tutorial_wanted()) return;
+	global.tut = {
+		active: true,
+		step: 0,
+		steps: tutorial_steps(),
+		hand: ["ATK", "ATK", "INTEL", "None", "BLK", "BLK"],	// turn 1's hand, drawn from the bag in this order
+		hand2: ["ATK", "BLK"],									// turn 2 starts with these (the two-action slot), the rest are drawn as usual
+		switched: false,										// set when a slot's action is switched by right-click
+		note_alpha: 0,
+	};
+}
+
+/// @func tutorial_finish()
+/// @desc Finished or skipped: never guided again (unless Settings turns it back on).
+function tutorial_finish() {
+	if (variable_global_exists("tut") && is_struct(global.tut)) global.tut.active = false;
+	if (!progress_get("tutorial_done")) progress_set("tutorial_done", true);
+}
+
+/// @func tutorial_skip()
+/// @desc The Skip button: the tutorial is done, and the one-time tips are marked seen too (the player knows the game).
+function tutorial_skip() {
+	tutorial_finish();
+	var _tips = tips_list();
+	for (var i = 0; i < array_length(_tips); i++) {
+		if (!array_contains(global.progress.tips_seen, _tips[i].id)) array_push(global.progress.tips_seen, _tips[i].id);
+	}
+	progress_save();
+}
+
+/// @func tutorial_current()
+function tutorial_current() {
+	if (!tutorial_active()) return undefined;
+	if (global.tut.step >= array_length(global.tut.steps)) return undefined;
+	return global.tut.steps[global.tut.step];
+}
+
+/// @func tutorial_next_hand_type()
+/// @desc deal_single_die: the action type the guided first hand wants next, or "" for a normal draw.
+function tutorial_next_hand_type() {
+	if (!tutorial_active()) return "";
+	var _hand = (oCombat.turn_count == 1) ? global.tut.hand : ((oCombat.turn_count == 2) ? global.tut.hand2 : []);
+	if (array_length(_hand) == 0) return "";
+	var _type = _hand[0];
+	array_delete(_hand, 0, 1); // arrays are shared by reference, so this takes it off global.tut's list
+	return _type;
+}
+
+/// @func tutorial_allows(_action, _die_struct, _slot_i)
+/// @desc Can the player do this right now? Always true outside the guided steps. _action: "place", "sacrifice",
+///       "discard" or "end_turn". When it says no, the player is told what the logbook is waiting for.
+function tutorial_allows(_action, _die_struct = undefined, _slot_i = -1) {
+	var _s = tutorial_current();
+	if (_s == undefined || _s.allow == "all") return true;
+
+	var _ok = array_contains(_s.allow, _action);
+	if (_ok && variable_struct_exists(_s, "die_types") && _die_struct != undefined && !array_contains(_s.die_types, _die_struct.action_type)) _ok = false;
+	if (_ok && _action == "place") {
+		if (variable_struct_exists(_s, "slot")) {
+			var _want = (_s.slot == "newest") ? ds_list_size(oCombat.action_queue) - 1 : _s.slot;
+			if (_slot_i != _want) _ok = false;
+		}
+	}
+	if (!_ok) throw_error("Not yet", "Follow the logbook: " + _s.text);
+	return _ok;
+}
+
+/// @func tutorial_step()
+/// @desc oCombat Step: move on when the current step's action is done; end with the fight.
+function tutorial_step() {
+	if (!tutorial_active()) return;
+
+	// the fight ended (won, lost, or left): the tutorial counts as done
+	if (oCombat.state == CombatState.PLAYER_DEAD || oCombat.show_rewards) { tutorial_finish(); return; }
+
+	var _s = tutorial_current();
+	if (_s == undefined) { tutorial_finish(); return; }
+	if (variable_struct_exists(_s, "done") && _s.done()) {
+		global.tut.step++;
+		global.tut.note_alpha = 0;
+	}
+}
+
+/// @func tutorial_target_rect(_target)
+/// @desc Where a step points, in GUI pixels { x, y, w, h }, or undefined for nothing.
+function tutorial_target_rect(_target) {
+	with (oCombat) {
+		switch (_target) {
+			case "intent":
+				if (ds_list_size(room_enemies) == 0) return undefined;
+				var _e = room_enemies[| 0];
+				var _iy = _e.pos_y - 10 - (_e.scale * 180);
+				return { x: _e.pos_x - 90, y: _iy - 35, w: 180, h: 70 };
+			case "slot0":
+				if (ds_list_size(slot_positions) == 0) return undefined;
+				return slot_positions[| 0];
+			case "newest":
+				if (ds_list_size(slot_positions) == 0) return undefined;
+				return slot_positions[| ds_list_size(slot_positions) - 1];
+			case "sacrifice":
+				return variable_instance_exists(id, "tut_last_tile") ? tut_last_tile : undefined;
+			case "end_turn":
+				return variable_instance_exists(id, "tut_end_turn") ? tut_end_turn : undefined;
+			case "insight":
+				return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
+		}
+	}
+	return undefined;
+}
+
+/// @func tutorial_draw()
+/// @desc End of oCombat Draw GUI: the highlight, the margin note with its arrow, Next and Skip. Input is handled here,
+///       like the rest of the combat UI.
+function tutorial_draw() {
+	if (!tutorial_active()) return;
+	var _s = tutorial_current();
+	if (_s == undefined) return;
+	if (oCombat.state != CombatState.PLAYER_INPUT || oCombat.show_rewards) return; // nothing to read while dice resolve
+
+	// Skip, top right under the bar
+	var _skip = draw_gui_button(display_get_gui_width() - 230, 90, 200, 50, 1, "Skip tutorial", c_dkgray, ftDefault, true, true, UI_LAYER.BASE);
+	if (_skip.click) { tutorial_skip(); return; }
+
+	if (tutorial_draw_note(_s.text, tutorial_target_rect(_s.target), variable_struct_exists(_s, "button") ? _s.button : "")) {
+		global.tut.step++;
+		global.tut.note_alpha = 0;
+		if (global.tut.step >= array_length(global.tut.steps)) tutorial_finish();
+	}
+}
+
+/// @func tutorial_draw_note(_text, _rect, _button)
+/// @desc A logbook margin note: parchment with an ink edge, an arrow and a pulsing outline on _rect (or none if
+///       undefined), and a button if _button isn't "". Returns true when the button is clicked. Used by the guided
+///       fight and the map notes.
+function tutorial_draw_note(_text, _r, _button) {
+	if (!variable_global_exists("tut_note")) global.tut_note = { pulse: 0, alpha: 0, text: "" };
+	var _n = global.tut_note;
+	if (_n.text != _text) { _n.text = _text; _n.alpha = 0; } // a new note fades in
+	_n.pulse += 0.08;
+	_n.alpha = lerp(_n.alpha, 1, 0.15);
+	var _a = _n.alpha;
+	var _clicked = false;
+
+	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+	var _ink = make_color_rgb(40, 32, 24);
+	var _paper = make_color_rgb(240, 228, 196);
+
+	// the note's text and size
+	draw_set_font(ftDefault);
+	var _note_w = 460;
+	var _pad = 18;
+	var _text_h = string_height_ext(_text, 26, _note_w - _pad * 2);
+	var _btn_h = (_button != "") ? 50 : 0;
+	var _note_h = _text_h + _pad * 2 + _btn_h;
+
+	// where it points, and where the note sits: above a target in the lower half, below one in the upper half
+	var _nx = _gw / 2 - _note_w / 2, _ny = 100; // with nothing to point at, the note sits at the top, clear of popups
+	var _tx = 0, _ty = 0;
+	if (_r != undefined) {
+		_tx = _r.x + _r.w / 2;
+		_ty = _r.y + _r.h / 2;
+		_nx = clamp(_tx - _note_w / 2, 20, _gw - _note_w - 20);
+		_ny = (_ty > _gh / 2) ? _r.y - _note_h - 70 : _r.y + _r.h + 70;
+		_ny = clamp(_ny, 150, _gh - _note_h - 20);
+
+		// pulsing highlight round the target
+		var _grow = 8 + 4 * sin(_n.pulse);
+		draw_set_alpha(_a * (0.55 + 0.35 * sin(_n.pulse)));
+		draw_set_color(global.color_intel);
+		for (var _w = 0; _w < 3; _w++) draw_roundrect(_r.x - _grow - _w, _r.y - _grow - _w, _r.x + _r.w + _grow + _w, _r.y + _r.h + _grow + _w, true);
+
+		// arrow from the note's edge to the target's edge
+		var _ax = clamp(_tx, _nx + 30, _nx + _note_w - 30);
+		var _ay = (_ny < _ty) ? _ny + _note_h : _ny;
+		var _bx = _tx;
+		var _by = (_ny < _ty) ? _r.y - _grow - 6 : _r.y + _r.h + _grow + 6;
+		var _dir = point_direction(_ax, _ay, _bx, _by);
+		draw_set_alpha(_a);
+		draw_set_color(_ink);
+		draw_line_width(_ax, _ay, _bx, _by, 5);
+		draw_triangle(_bx, _by, _bx + lengthdir_x(20, _dir + 150), _by + lengthdir_y(20, _dir + 150), _bx + lengthdir_x(20, _dir - 150), _by + lengthdir_y(20, _dir - 150), false);
+		draw_set_color(_paper);
+		draw_line_width(_ax, _ay, _bx, _by, 2);
+	}
+
+	// the margin note: parchment with an ink edge
+	draw_set_alpha(_a);
+	draw_set_color(_ink);
+	draw_roundrect_ext(_nx - 3, _ny - 3, _nx + _note_w + 3, _ny + _note_h + 3, 14, 14, false);
+	draw_set_color(_paper);
+	draw_roundrect_ext(_nx, _ny, _nx + _note_w, _ny + _note_h, 12, 12, false);
+	draw_set_color(_ink);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	draw_text_ext(_nx + _pad, _ny + _pad, _text, 26, _note_w - _pad * 2);
+
+	// a note that waits for the player to read it has a button
+	if (_btn_h > 0) {
+		var _b = draw_gui_button(_nx + _note_w - 160 - _pad, _ny + _note_h - _btn_h - 8, 160, 42, 1, _button, make_color_rgb(60, 78, 181), ftDefault, true, true, UI_LAYER.BASE);
+		if (_b.click) _clicked = true;
+	}
+
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+	return _clicked;
+}
+
+/// @func tutorial_map_notes()
+/// @desc The map's notes for a first voyage, in order. Each is a one-time tip (progress.json tips_seen): shown while
+///       its when() is true, marked seen once its done() is.
+function tutorial_map_notes() {
+	return [
+		{
+			id: "map_offering", target: "",
+			text: "Every voyage begins with a gift. Pick a die and core pair: the die joins your bag, and the core can be drilled into a die at the workbench.",
+			when: function() { return oRunManager.new_run_offering; },
+			done: function() { return !oRunManager.new_run_offering; },
+		},
+		{
+			id: "map_draft", target: "pages",
+			text: "This is the captain's logbook. Each page is a stretch of sea with stops on it: fights, shops, events. Choose 2 pages for this spread. Your first choice locks one of the others away, so choose with care.",
+			when: function() { return oWorldManager.world_state == WORLD_STATE.DRAFTING && oWorldManager.pages_drafted < 2 && oWorldManager.pages_alpha > 0.5; },
+			done: function() { return oWorldManager.pages_drafted >= 2; },
+		},
+		{
+			id: "map_embark", target: "embark",
+			text: "Embark to set sail on the pages you chose.",
+			when: function() { return oWorldManager.world_state == WORLD_STATE.DRAFTING && oWorldManager.pages_drafted >= 2 && !oWorldManager.choices_locked; },
+			done: function() { return oWorldManager.choices_locked; },
+		},
+		{
+			id: "map_sail", target: "first_stop",
+			text: "Click your first stop to sail there. Your first fight will walk you through the dice.",
+			when: function() { return oWorldManager.world_state == WORLD_STATE.EXPLORING; },
+			done: function() { return oWorldManager.node_to_move_to != undefined; },
+		},
+	];
+}
+
+/// @func tips_draw()
+/// @desc oRunManager Draw GUI End, every room: the first note still to show, on top of everything. The map notes come
+///       first (only while the tutorial is wanted), then the one-time tips (tips_list). One note at a time, never
+///       during the guided fight, a cutscene, Settings, the bag view or a popup.
+function tips_draw() {
+	if (tutorial_active() || global.all_input_disabled || global.show_settings) return;
+	if (instance_exists(oRunManager) && oRunManager.show_bag_contents) return;
+
+	// the map notes of a first voyage
+	if (room == rmMap && instance_exists(oWorldManager) && tutorial_wanted()) {
+		if (!variable_global_exists("tut_map_notes")) global.tut_map_notes = tutorial_map_notes();
+		for (var i = 0; i < array_length(global.tut_map_notes); i++) {
+			var _m = global.tut_map_notes[i];
+			if (tip_seen(_m.id)) continue;
+			if (_m.done()) { tip_mark_seen(_m.id); continue; }
+			if (!_m.when()) continue;
+			tutorial_draw_note(_m.text, tutorial_map_rect(_m.target), "");
+			return;
+		}
+	}
+	if (instance_exists(oRunManager) && oRunManager.new_run_offering) return; // the offering is a popup
+
+	// one-time tips, the first time something comes up
+	if (!variable_global_exists("tips")) global.tips = tips_list();
+	for (var i = 0; i < array_length(global.tips); i++) {
+		var _t = global.tips[i];
+		if (_t.room != room || tip_seen(_t.id)) continue;
+		if (variable_struct_exists(_t, "done") && _t.done()) { tip_mark_seen(_t.id); continue; }
+		if (variable_struct_exists(_t, "when") && !_t.when()) continue;
+		if (tutorial_draw_note(_t.text, tips_rect(_t.target), "Got it")) tip_mark_seen(_t.id);
+		return;
+	}
+}
+
+/// @func tips_combat_ready()
+/// @desc A combat tip only shows while the player is planning (not while dice resolve or on the rewards screen).
+function tips_combat_ready() {
+	return instance_exists(oCombat) && oCombat.state == CombatState.PLAYER_INPUT && !oCombat.show_rewards && oCombat.dice_to_deal <= 0;
+}
+
+/// @func tips_list()
+/// @desc The one-time tips (F54 part 3), shown once each (progress.json tips_seen) with a "Got it" button. room: where
+///       it shows. when(): optional, it waits until true. done(): optional, counts as seen without being read
+///       (the moment passed). target: what it points at (tips_rect).
+function tips_list() {
+	return [
+		{
+			id: "workbench_map", room: rmMap, target: "workbench",
+			text: "After each stop you may visit the workbench once, before sailing on. There you can reshape your dice.",
+			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench; },
+		},
+		{
+			id: "workbench", room: rmWorkbench, target: "",
+			text: "Put a die in the first slot and a core in the middle. Drag the Drill onto Craft to set the core into the die. One craft per visit.",
+		},
+		{
+			id: "spread_done", room: rmMap, target: "",
+			text: "A spread is done. Rest to heal, or take a core to drill into a die at the workbench. Then the page turns and you choose the next two pages.",
+			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.TURNING; },
+		},
+		{
+			id: "legible", room: rmCombat, target: "insight",
+			text: "Legible: with 5 insight you see exactly what each enemy will do this turn.",
+			when: function() { return tips_combat_ready() && oCombat.intel_level >= 1 && !intel_is_blotted(); },
+		},
+		{
+			id: "quill", room: rmCombat, target: "insight",
+			text: "Quill: with 10 insight, once this turn you can click a glowing enemy intent to rewrite it. You choose to change it, the enemy picks its new move.",
+			when: function() { return tips_combat_ready() && oCombat.intel_level >= 2 && !intel_is_blotted(); },
+		},
+		{
+			id: "blotted", room: rmCombat, target: "insight",
+			text: "Blotted: your insight fell below 0, so enemy intents are hidden this turn.",
+			when: function() { return tips_combat_ready() && intel_is_blotted(); },
+		},
+		{
+			id: "shop", room: rmShop, target: "",
+			text: "A shop. Spend your gold on dice, keepsakes, items and tools. Keepsakes last the whole voyage.",
+		},
+		{
+			id: "event", room: rmEvent, target: "",
+			text: "Something happens on your voyage. Hover an option to see what it does, then choose one.",
+		},
+		{
+			id: "bounty", room: rmBounty, target: "",
+			text: "The bounty board. Take a contract to hunt a tougher enemy under a condition. Beat it while keeping to the condition to claim the rewards.",
+		},
+		{
+			id: "treasure", room: rmTreasure, target: "",
+			text: "Treasure! Open the chest for a keepsake: a lasting effect for the rest of the voyage.",
+		},
+	];
+}
+
+/// @func tips_rect(_target)
+/// @desc Where a tip points, in GUI pixels, or undefined (the note sits at the top).
+function tips_rect(_target) {
+	switch (_target) {
+		case "workbench":
+			var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+			return { x: _gw - _gw / 8, y: _gh - _gh / 10, w: _gw / 10, h: _gh / 15 }; // the map's "Visit the workbench" button
+		case "insight":
+			return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
+	}
+	return undefined;
+}
+
+/// @func tutorial_map_rect(_target)
+/// @desc Where a map note points, in GUI pixels, or undefined.
+function tutorial_map_rect(_target) {
+	with (oWorldManager) {
+		switch (_target) {
+			case "pages":
+				var _n = ds_list_size(pages_shown);
+				if (_n == 0) return undefined;
+				var _pw = sprite_get_width(sMapParchment), _ph = sprite_get_height(sMapParchment);
+				var _x1 = 99999, _x2 = -99999, _y1 = 99999, _y2 = -99999;
+				for (var p = 0; p < _n; p++) {
+					_x1 = min(_x1, page_pos[p].x - _pw / 2); _x2 = max(_x2, page_pos[p].x + _pw / 2);
+					_y1 = min(_y1, page_pos[p].y - _ph / 2); _y2 = max(_y2, page_pos[p].y + _ph / 2);
+				}
+				return { x: _x1, y: _y1, w: _x2 - _x1, h: _y2 - _y1 };
+			case "embark":
+				var _ew = sprite_get_width(sButtonSmall), _eh = sprite_get_height(sButtonSmall) * 0.8;
+				return { x: display_get_gui_width() * 3/4 - _ew / 2, y: display_get_gui_height() - 100 - _eh / 2, w: _ew, h: _eh };
+			case "first_stop":
+				// the first stop not yet cleared, in the order the pages were chosen
+				for (var p = 0; p < ds_list_size(chosen_pages); p++) {
+					var _nodes = chosen_pages[| p].nodes;
+					for (var n = 0; n < ds_list_size(_nodes); n++) {
+						var _node = _nodes[| n];
+						if (_node.cleared || !variable_struct_exists(_node, "x")) continue; // not drawn yet: no position
+						var _iw = sprite_get_width(sMapIcon) * _node.scale, _ih = sprite_get_height(sMapIcon) * _node.scale;
+						return { x: _node.x - _iw / 2, y: _node.y - _ih / 2, w: _iw, h: _ih };
+					}
+				}
+				return undefined;
+			case "boat":
+				var _bw = sprite_get_width(sMapShip), _bh = sprite_get_height(sMapShip);
+				return { x: boat_data.x - _bw / 2, y: boat_data.y - _bh, w: _bw, h: _bh };
+		}
+	}
+	return undefined;
+}
+
+/// @func insight_panel_draw()
+/// @desc oRunManager Draw GUI End: the Insight reference panel while the insight eye is hovered. Drawn after the
+///       tutorial notes and tips so it sits on top of them (oCombat Draw GUI sets insight_panel_open).
+function insight_panel_draw() {
+	if (!instance_exists(oCombat) || !oCombat.insight_panel_open) return;
+	with (oCombat) {
+		var _intel_state = intel_state(intel_level);
+		// a compact reference: one line per state, the current one highlighted, and when insight counts
+		var intel_pad = 16;
+		var intel_w = 380;
+		var intel_row_h = 40;
+		var intel_title_h = 36;
+		var intel_foot_h = 30;
+
+		// Blotted (below 0) first, then the three states
+		var intel_rows = [global.intel_blotted];
+		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) array_push(intel_rows, global.player_intel_data[| i]);
+		var _current_row = intel_is_blotted() ? 0 : intel_level + 1;
+
+		var intel_h = intel_pad + intel_title_h + intel_row_h * array_length(intel_rows) + intel_foot_h + intel_pad / 2;
+		var intel_x = global.player_x - intel_w / 2;
+		var intel_y = global.player_y - 260 - intel_h;
+
+		draw_set_color(c_black);
+		draw_set_alpha(0.8);
+		draw_roundrect(intel_x - 1, intel_y - 1, intel_x + intel_w + 1, intel_y + intel_h + 1, false);
+		draw_set_color(global.color_bg);
+		draw_roundrect(intel_x, intel_y, intel_x + intel_w, intel_y + intel_h, false);
+
+		// title, and your insight on the right
+		draw_set_alpha(1.0);
+		draw_set_valign(fa_middle);
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_left);
+		draw_set_color(c_white);
+		draw_text(intel_x + intel_pad, intel_y + intel_pad + 10, "Insight");
+		draw_set_halign(fa_right);
+		draw_set_color(player_intel < 0 ? c_red : global.color_intel);
+		draw_text(intel_x + intel_w - intel_pad, intel_y + intel_pad + 10, string(player_intel));
+
+		// rows: icon, name, needed, what it gives
+		var _row_y = intel_y + intel_pad + intel_title_h;
+		for (var i = 0; i < array_length(intel_rows); i++) {
+			var _row = intel_rows[i];
+			var _mid = _row_y + intel_row_h / 2;
+			if (i == _current_row) {
+				draw_set_color(c_white);
+				draw_set_alpha(0.12);
+				draw_roundrect(intel_x + 6, _row_y + 2, intel_x + intel_w - 6, _row_y + intel_row_h - 2, false);
+			}
+			draw_set_alpha(1.0);
+			draw_insight_icon(_row.icon, intel_x + intel_pad + 14, _mid, 0.95, (i == _current_row) ? 1.0 : 0.6);
+			draw_set_font(ftDefault);
+			draw_set_halign(fa_left);
+			draw_set_color((i == _current_row) ? global.color_intel : c_white);
+			draw_text(intel_x + intel_pad + 40, _mid, string(_row.name));
+			draw_set_font(ftSmall);
+			draw_set_color(c_ltgray);
+			draw_text(intel_x + intel_pad + 135, _mid, (i == 0) ? "< 0" : string(_row.requirement) + "+");
+			draw_set_color(c_white);
+			draw_text(intel_x + intel_pad + 180, _mid, string(_row.description));
+			_row_y += intel_row_h;
+		}
+
+		// how insight rolls work this turn
+		draw_set_font(ftSmall);
+		draw_set_color(c_ltgray);
+		draw_text(intel_x + intel_pad, _row_y + intel_foot_h / 2, "Insight you roll counts next turn.");
+		draw_set_color(c_white);
+	}
 }

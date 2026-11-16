@@ -251,9 +251,7 @@ tool_scissors = {
 	object: oScissors
 }
 
-ds_list_add(tools, tool_drill);
-ds_list_add(tools, tool_hammer);
-ds_list_add(tools, tool_scissors);
+ds_list_add(tools, tool_drill); // a run starts with only the Drill; the Hammer and Cutters are bought in shops (master_tool_list)
 
 tools_scale = ds_list_create();
 ds_list_add(tools_scale, 0.5);

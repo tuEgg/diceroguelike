@@ -3,7 +3,6 @@ switch (state) {
 		turn_count++;
 		player_turn_done = false;
 		intel_rewrite_used = false; // Quill: one rewrite per turn
-		intel_rolled_this_turn = 0; // Outguess compares everything rolled into intel this turn
 		target_locked = false; // Overwhelm locks it again in on_turn_start
 		delayed_enemy_attack = false;
 		
@@ -577,9 +576,12 @@ global.player_xstart = 355 * global.ui_scale - ((ds_list_size(action_queue)-1) *
 
 global.player_x = lerp(global.player_x, global.player_xstart, 0.2);
 
-if (keyboard_check_pressed(vk_enter) && state == CombatState.PLAYER_INPUT && !is_dealing_dice) {
+if (keyboard_check_pressed(vk_enter) && state == CombatState.PLAYER_INPUT && !is_dealing_dice && tutorial_allows("end_turn")) {
     actions_submitted = true;
 }
 
 // intel can change mid-turn (keepsakes), so its state is kept up to date every frame
 intel_level = intel_level_for(player_intel);
+
+// the guided first fight moves on as its steps are done
+tutorial_step();

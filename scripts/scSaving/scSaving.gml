@@ -74,6 +74,7 @@ function save_game(_slot) {
 		pages_cleared: oWorldManager.pages_cleared,
 		spreads_cleared: oWorldManager.spreads_cleared,
 		chapter: oWorldManager.chapter,
+		new_run_offering: oRunManager.new_run_offering,	// still choosing the starting die and core
 		boss_page_placed: oWorldManager.boss_page_placed,
 		bounty_board: serialise_bounty_board(),
 		boat_x: oWorldManager.boat_data.x,
@@ -170,6 +171,9 @@ function load_game(_slot) {
 	oWorldManager.page_image_indices = _save.page_image_indices;
 	// chapter fields arrived after save version 2, so fall back to sensible values for saves without them
 	oWorldManager.chapter = variable_struct_exists(_save, "chapter") ? _save.chapter : 1;
+	// reloaded before choosing the starting die and core: offer it again
+	oRunManager.new_run_offering = variable_struct_exists(_save, "new_run_offering") ? _save.new_run_offering : false;
+	if (oRunManager.new_run_offering) global.ui_layer = UI_LAYER.POPUP;
 	oWorldManager.boss_page_placed = variable_struct_exists(_save, "boss_page_placed") ? _save.boss_page_placed : false;
 	// the same bounty contracts and potion as before (older saves roll a fresh board)
 	if (variable_struct_exists(_save, "bounty_board")) deserialise_bounty_board(_save.bounty_board);
@@ -389,7 +393,8 @@ function load_settings() {
 	global.vol_ui = _save.vol_ui;
 	global.muted = _save.muted;
 	
-	window_set_fullscreen(_save.fullscreen);
+	// a browser only allows fullscreen from a click, so a web build doesn't restore it at start-up
+	if (!IS_BROWSER) window_set_fullscreen(_save.fullscreen);
 }
 
 function check_settings() {
@@ -413,4 +418,95 @@ function check_settings() {
 	} else {
 		settings_changed = false;
 	}
+}
+
+// =====================================================================
+// PROGRESS
+// What this player has seen, kept in its own file (progress.json) so it outlives runs: the intro cutscene, the
+// tutorial, and one-time tips. Settings > Gameplay can turn the tutorial back on (it also clears the tips).
+// =====================================================================
+
+/// @func progress_defaults()
+function progress_defaults() {
+	return {
+		intro_seen: false,		// the intro cutscene has played once (B69)
+		tutorial_done: false,	// the guided first fight was finished or skipped
+		tips_seen: [],			// ids of one-time tips already shown
+	};
+}
+
+/// @func progress_load()
+/// @desc Read progress.json into global.progress, keeping defaults for anything missing (older files, new fields).
+function progress_load() {
+	global.progress = progress_defaults();
+	if (!file_exists("progress.json")) return;
+
+	var _file = file_text_open_read("progress.json");
+	var _json = "";
+	while (!file_text_eof(_file)) {
+		_json += file_text_read_string(_file);
+		file_text_readln(_file);
+	}
+	file_text_close(_file);
+
+	var _saved;
+	try { _saved = json_parse(_json); } catch (_e) { return; } // unreadable: start fresh rather than crash
+	if (!is_struct(_saved)) return;
+
+	var _keys = variable_struct_get_names(global.progress);
+	for (var i = 0; i < array_length(_keys); i++) {
+		if (variable_struct_exists(_saved, _keys[i])) global.progress[$ _keys[i]] = _saved[$ _keys[i]];
+	}
+	if (!is_array(global.progress.tips_seen)) global.progress.tips_seen = [];
+}
+
+/// @func progress_save()
+function progress_save() {
+	progress_ensure();
+	var _file = file_text_open_write("progress.json");
+	file_text_write_string(_file, json_stringify(global.progress));
+	file_text_close(_file);
+}
+
+/// @func progress_ensure()
+/// @desc Loads progress the first time anything asks for it.
+function progress_ensure() {
+	if (!variable_global_exists("progress") || !is_struct(global.progress)) progress_load();
+}
+
+/// @func progress_get(_key)
+function progress_get(_key) {
+	progress_ensure();
+	return global.progress[$ _key];
+}
+
+/// @func progress_set(_key, _value)
+/// @desc Change one field and save straight away.
+function progress_set(_key, _value) {
+	progress_ensure();
+	global.progress[$ _key] = _value;
+	progress_save();
+}
+
+/// @func tip_seen(_tip_id)
+/// @desc Has this one-time tip already been shown?
+function tip_seen(_tip_id) {
+	progress_ensure();
+	return array_contains(global.progress.tips_seen, _tip_id);
+}
+
+/// @func tip_mark_seen(_tip_id)
+function tip_mark_seen(_tip_id) {
+	if (tip_seen(_tip_id)) return;
+	array_push(global.progress.tips_seen, _tip_id);
+	progress_save();
+}
+
+/// @func progress_set_tutorial(_on)
+/// @desc Settings > Gameplay: on means the next new run plays the tutorial again (and shows the tips again).
+function progress_set_tutorial(_on) {
+	progress_ensure();
+	global.progress.tutorial_done = !_on;
+	if (_on) global.progress.tips_seen = [];
+	progress_save();
 }

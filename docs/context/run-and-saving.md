@@ -9,7 +9,7 @@
 ## Run lifecycle
 
 - `start_run()` (scHelpers): from the main menu; if a save exists, asks before overwriting; goes to `rmMap` where the run objects are created.
-- Continue sets `global.loading_game`; `oRunManager/Alarm_0` calls `load_game(1)` one step after creation.
+- Continue sets `global.loading_game`; `oRunManager/Alarm_0` calls `load_game(1)` one step after creation. A new run instead sets `new_run_offering` (F04): oRunManager Draw GUI shows 3 die + core pairs as a popup (map locked; Step re-asserts `UI_LAYER.POPUP`), and picking one sends the die to the bag and the core to the item bar. The flag is saved, so reloading before picking offers again.
 - `lose_run()`: deletes the save; in combat sets `PLAYER_DEAD`, otherwise back to the menu. Beating the last chapter also deletes the save.
 - Returning to `rmMainMenu` destroys `oRunManager`, `oWorldManager`, `oBountyController` (`oMainMenu/Other_4`).
 
@@ -26,3 +26,5 @@
 ## Settings
 
 `settings.json` (resolution, volumes, fullscreen) via `save_settings` / `load_settings` / `check_settings`; UI in `oSettingsMenu` and `scSettings`. Debug settings live separately in `debug_settings.json` (see ui-and-debug.md).
+
+`progress.json` (scSaving, PROGRESS): what this player has seen, apart from runs: `intro_seen`, `tutorial_done`, `tips_seen`. Loaded in oSettingsMenu Create (`progress_load`), read with `progress_get`, changed with `progress_set` (saves at once). One-time tips: `tip_seen(id)` / `tip_mark_seen(id)`. Settings > Gameplay > Tutorial next run calls `progress_set_tutorial` (on also clears the tips). The intro cutscene has `progress_key: "intro_seen"`, so it plays once ever.

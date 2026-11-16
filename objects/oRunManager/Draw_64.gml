@@ -246,7 +246,8 @@ for (var i = 0; i < array_length(items); i++) {
 			default_angle = -30;
 		}
 		
-		draw_sprite_ext(items[i].sprite, items[i].index, sprite_x, sprite_y, items_hover_scale[i], items_hover_scale[i], default_angle, c_white, 1.0);
+		// a carried item is drawn in Draw GUI End (dragged_item_draw), above the workbench slots and every window
+		if (!items[i].dragging) draw_sprite_ext(items[i].sprite, items[i].index, sprite_x, sprite_y, items_hover_scale[i], items_hover_scale[i], default_angle, c_white, 1.0);
 		
 		//draw_outline_text(items[i].quantity, c_black, c_white, 2, core_x + 70 + 5 + i_x, 25, 1, 1, 0);
 		
@@ -334,9 +335,11 @@ for (var i = 0; i < array_length(items); i++) {
 					if (items_hover[i] && mouse_check_button(mb_left)) {
 						items[i].dragging = true;
 					}
-					// release the core
+					// release the core: over the workbench's middle slot it goes in (handled here, so it works
+					// whichever of this and the workbench draws first)
 					if (items[i].dragging and mouse_check_button_released(mb_left)) {
 						items[i].dragging = false;
+						if (instance_exists(oWorkbenchManager) && oWorkbenchManager.workbench_take_core(items[i], i)) items[i] = undefined;
 					}
 				}
 			}
@@ -950,5 +953,4 @@ if (dice_selection != false) {
 	draw_outline_text(button_text, c_black, c_white, 2, gui_w - 150, gui_h - 200, 1, 1, 0);
 }
 
-// Draw all tooltips
-draw_all_tooltips();
+// tooltips are drawn in Draw GUI End (Draw_75), after every window, so nothing covers them

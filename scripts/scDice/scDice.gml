@@ -58,6 +58,18 @@ function deal_single_die( _can_discard_this_turn = true) {
 		}
 	}
 	
+	// the guided first fight deals a set hand, taken from the bag so the bag stays right
+	var _tut_type = (room == rmCombat) ? tutorial_next_hand_type() : "";
+	if (_tut_type != "" && _debug_die == undefined) {
+		for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
+			if (global.dice_bag[| d].action_type == _tut_type) {
+				die_struct = clone_die(global.dice_bag[| d], "");
+				index = d;
+				break;
+			}
+		}
+	}
+
 	// a debug die doesn't come out of the bag
 	if (_debug_die != undefined) {
 		die_struct = clone_die(_debug_die, "");
@@ -513,6 +525,8 @@ function generate_dice_bag() {
 	        {
 	            trigger: "on_dice_played_to_slot",
 	            modify: function(_context) {
+					// only when this die is the one played, not every die played after it while it's in a slot
+					if (_context._d_struct.uid != _context._die_struct_source.uid) return;
 					with (oCombat) {
 						_context.dice_object.can_discard = false;
 						discard_dice_in_play();

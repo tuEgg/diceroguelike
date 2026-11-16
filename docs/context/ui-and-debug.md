@@ -4,7 +4,7 @@
 
 - `mouse_hovering(x, y, w, h, centred, hover_sound, click_sound, conditions, layer, id)`: returns false if `global.ui_layer` is above `layer` or input is disabled. Use it for anything clickable.
 - `global.ui_layer` (enum `UI_LAYER` in `oMainMenu/Create_0`): `BASE, POPUP, BAG, SETTINGS, DEBUG`. Higher layers block lower ones.
-- Tooltips: `queue_tooltip(x, y, name, desc, icon, index, die)` queues one per frame; `draw_all_tooltips()` draws it (called in `oRunManager/Draw_64`) with keyword sub-tooltips found in the description. Titles stay on one line.
+- Tooltips: `queue_tooltip(x, y, name, desc, icon, index, die)` queues one per frame; `draw_all_tooltips()` draws it (called at the end of `oRunManager` Draw GUI End, `Draw_75`, so tooltips sit above every window) with keyword sub-tooltips found in the description. Titles stay on one line. Draw GUI End order: dice list, `tips_draw`, `insight_panel_draw`, `dragged_item_draw` (carried core/potion), then tooltips.
 - Text: `draw_outline_text(str, outline, fill, width, x, y, scale, alpha, angle, max_width)`; `[tag]` colour markup via `colorcode_text`. Fonts `ftDefault`, `ftDescriptions`, `ftSmall`, `ftTiny`, `ftBig`, `ftBigger`, `ftDamage`.
 - Buttons: `draw_gui_button(...)` returns `{ hover, click, ... }` (old, slated for replacement); `draw_wonky_rectangle` draws hand-drawn panels (caches surfaces, known leak, KANBAN T07).
 - `throw_error(title, desc)` shows a red tooltip for ~1.5s.
@@ -12,7 +12,7 @@
 
 ## Display: scDisplay, scSettings
 
-`apply_resolution()` sets window, surface, GUI and camera to `global.resolution_options[global.resolution_index]` (1080p, 1440p). `global.ui_scale = gui_w / 1920`; `global.gui` holds proportional sizes (`update_gui_layout`). Many rooms still use fixed 1080p numbers (KANBAN B83).
+`apply_resolution()` sets window, surface, GUI and camera to `global.resolution_options[global.resolution_index]` (1080p, 1440p). `global.ui_scale = gui_w / 1920`; `global.gui` holds proportional sizes (`update_gui_layout`). Many rooms still use fixed 1080p numbers (KANBAN B83). Web builds (`IS_BROWSER`): `apply_resolution` hands over to `apply_browser_resolution` (always 1920x1080 inside, canvas fitted 16:9 into the page, refit by `browser_check_resize` from oSettingsMenu Step); no Resolution setting, no Exit button or double-Escape quit, fullscreen not restored at start-up. Export and smoke test: `docs/web-build.md`.
 
 ## Debug menu: scDebug, `oDebugger` (persistent, depth -10000)
 

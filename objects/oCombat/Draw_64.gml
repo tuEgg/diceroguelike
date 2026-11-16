@@ -98,9 +98,12 @@ draw_outline_text(played_dice_string, c_black, dice_played_color, 2, end_text_po
 draw_sprite_ext(sDice, 3, end_text_pos + 28, aq_start_y + aq_tile_w/2 - 40, 0.5, 0.5, 0, c_white, 1.0);
 
 // Click handling
-if (play_btn.click && state == CombatState.PLAYER_INPUT && !is_dealing_dice) {
+if (play_btn.click && state == CombatState.PLAYER_INPUT && !is_dealing_dice && tutorial_allows("end_turn")) {
     actions_submitted = true;
 }
+// the tutorial points here: the sprite as drawn, from its origin and scale
+var _et_s = btn_scale * btn_scaler;
+tut_end_turn = { x: btn_x + btn_w/2 - sprite_get_xoffset(sEndTurn) * _et_s, y: btn_y + btn_h/2 - sprite_get_yoffset(sEndTurn) * _et_s, w: sprite_get_width(sEndTurn) * _et_s, h: sprite_get_height(sEndTurn) * _et_s };
 
 hovered_slot = -1;
 
@@ -271,6 +274,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	    // Move to next option
 	    var next_index = (current_index + 1) mod array_length(opts);
 	    slot.current_action_type = opts[next_index];
+		if (tutorial_active() && next_index != current_index) global.tut.switched = true; // the tutorial's right-click step
 		
 		if (next_index != current_index) {
 			sfx_play(soSlotPlace, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
@@ -388,6 +392,7 @@ for (var i = 0; i < aq_list_size; i++) {
 
 	    // Hover check basesd on *scaled* rectangle
 		last_hover = mouse_hovering(last_x, last_y, last_w, last_h, false, soSlotHover, noone, !show_rewards, UI_LAYER.BASE, string(lx));
+		tut_last_tile = { x: last_x, y: last_y, w: last_w, h: last_h }; // the tutorial points here
 	    //last_hover = (mx > last_x && mx < last_x + last_w && my > last_y && my < last_y + last_h && !show_rewards);
 
 	    // Smooth scale update
@@ -684,7 +689,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			draw_set_alpha(enemy.intent.alpha * (0.15 + 0.25 * _quill_pulse));
 			draw_roundrect_ext(xx - _glow_w, yy - 30, xx + _glow_w, yy + 30, 20, 20, false);
 			draw_set_alpha(1.0);
-			draw_insight_icon("quill", xx - _glow_w - 26, yy - 4 * _quill_pulse, 0.7, enemy.intent.alpha);
+			draw_insight_icon("quill", xx - _glow_w - 24, yy - 4 * _quill_pulse, 1.1, enemy.intent.alpha);
 		}
 
 		// Draw enemy intent
@@ -720,20 +725,6 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		
 		draw_outline_text(text, c_black, c_white, 2, text_x, yy, enemy.intent.scale, enemy.intent.alpha - enemy.info_alpha);
 
-		// the targeted enemy shows the outguess bar: your insight this turn against the number to beat
-		if (e == enemy_target_index && intent_has_numbers(enemy.intent.move)) {
-			draw_outguess_bar(enemy, xx, yy + 40, enemy.intent.alpha);
-		}
-
-		// outguessed by intel this turn: the move does half (the target's bar says it, others get a label)
-		if (intent_is_fumbled(enemy) && e != enemy_target_index) {
-			draw_set_font(ftDefault);
-			draw_set_halign(fa_center);
-			draw_outline_text("Outguessed: half", c_black, c_orange, 2, xx, yy + 30, 1, enemy.intent.alpha - enemy.info_alpha);
-			draw_set_halign(fa_left);
-			draw_set_font(ftTopBar);
-		}
-
 		// Quill: click an intent to make the enemy choose again (once per turn)
 		var _intent_hover = mouse_hovering(xx, yy, text_w + 20, 50, true);
 		var _can_rewrite = (intel_level >= 2 && !intel_is_blotted() && !intel_rewrite_used&& state == CombatState.PLAYER_INPUT && !show_rewards);
@@ -766,7 +757,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
 					var _intent_desc = "This turn: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount);
 					if (intent_has_numbers(enemy.intent.move)) _intent_desc += (intel_level >= 1) ? ", exactly " + string(intent_exact_value(enemy)) : ". Reach " + string(global.player_intel_data[| 1].requirement) + " insight (Legible) to see the exact number";
-					_intent_desc += intent_is_fumbled(enemy) ? ". Outguessed by your insight, so it does half." : ".";
+					_intent_desc += ".";
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, _intent_desc, undefined, 0, undefined);
 				} else {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Your insight is below 0, so the page is blotted and enemy intents are hidden.", undefined, 0, undefined);
@@ -979,6 +970,7 @@ if (player_block_amount > 0) {
 	draw_outline_text(string(player_block_amount), c_black, c_white, 2, block_x, block_y - 4, 1, 1.0, 0);
 }
 
+insight_panel_open = false;
 if (state != CombatState.PLAYER_DEAD) {
 	// Draw intel level
 	draw_intel = lerp(draw_intel, player_intel, 0.1);
@@ -1000,9 +992,10 @@ if (state != CombatState.PLAYER_DEAD) {
 	}
 
 	var _intel_state = intel_state(intel_level);
-	draw_insight_icon(_intel_state.icon, global.player_x, global.player_y - 180, intel_scale, intel_alpha);
+	draw_insight_icon(_intel_state.icon, global.player_x, global.player_y - 180, intel_scale * 1.6, intel_alpha);
 	draw_outline_text(string(_intel_state.name), c_black, intel_is_blotted() ? c_red : global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
 	var intel_hover = mouse_hovering(global.player_x, global.player_y - 190, 120, 120, true);
+	insight_panel_open = intel_hover; // the panel itself draws in oRunManager Draw GUI End (insight_panel_draw), over the tutorial notes
 
 	intel_scale = intel_hover ? lerp(intel_scale, 1.2, 0.2) : lerp(intel_scale, 1.0, 0.2);
 
@@ -1012,69 +1005,6 @@ if (state != CombatState.PLAYER_DEAD) {
 	}
 
 	if (intel_hover) {
-		// a compact reference: one line per state, the current one highlighted, and how Outguess works
-		var intel_pad = 16;
-		var intel_w = 380;
-		var intel_row_h = 40;
-		var intel_title_h = 36;
-		var intel_foot_h = 50;
-
-		// Blotted (below 0) first, then the three states
-		var intel_rows = [global.intel_blotted];
-		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) array_push(intel_rows, global.player_intel_data[| i]);
-		var _current_row = intel_is_blotted() ? 0 : intel_level + 1;
-
-		var intel_h = intel_pad + intel_title_h + intel_row_h * array_length(intel_rows) + intel_foot_h + intel_pad / 2;
-		var intel_x = global.player_x - intel_w / 2;
-		var intel_y = global.player_y - 260 - intel_h;
-
-		draw_set_color(c_black);
-		draw_set_alpha(0.8);
-		draw_roundrect(intel_x - 1, intel_y - 1, intel_x + intel_w + 1, intel_y + intel_h + 1, false);
-		draw_set_color(global.color_bg);
-		draw_roundrect(intel_x, intel_y, intel_x + intel_w, intel_y + intel_h, false);
-
-		// title, and your insight on the right
-		draw_set_alpha(1.0);
-		draw_set_valign(fa_middle);
-		draw_set_font(ftDefault);
-		draw_set_halign(fa_left);
-		draw_set_color(c_white);
-		draw_text(intel_x + intel_pad, intel_y + intel_pad + 10, "Insight");
-		draw_set_halign(fa_right);
-		draw_set_color(player_intel < 0 ? c_red : global.color_intel);
-		draw_text(intel_x + intel_w - intel_pad, intel_y + intel_pad + 10, string(player_intel));
-
-		// rows: icon, name, needed, what it gives
-		var _row_y = intel_y + intel_pad + intel_title_h;
-		for (var i = 0; i < array_length(intel_rows); i++) {
-			var _row = intel_rows[i];
-			var _mid = _row_y + intel_row_h / 2;
-			if (i == _current_row) {
-				draw_set_color(c_white);
-				draw_set_alpha(0.12);
-				draw_roundrect(intel_x + 6, _row_y + 2, intel_x + intel_w - 6, _row_y + intel_row_h - 2, false);
-			}
-			draw_set_alpha(1.0);
-			draw_insight_icon(_row.icon, intel_x + intel_pad + 14, _mid, 0.65, (i == _current_row) ? 1.0 : 0.6);
-			draw_set_font(ftDefault);
-			draw_set_halign(fa_left);
-			draw_set_color((i == _current_row) ? global.color_intel : c_white);
-			draw_text(intel_x + intel_pad + 40, _mid, string(_row.name));
-			draw_set_font(ftSmall);
-			draw_set_color(c_ltgray);
-			draw_text(intel_x + intel_pad + 135, _mid, (i == 0) ? "< 0" : string(_row.requirement) + "+");
-			draw_set_color(c_white);
-			draw_text(intel_x + intel_pad + 180, _mid, string(_row.description));
-			_row_y += intel_row_h;
-		}
-
-		// how insight rolls work this turn
-		draw_set_font(ftSmall);
-		draw_set_color(c_ltgray);
-		draw_text(intel_x + intel_pad, _row_y + 14, "Insight you roll counts next turn.");
-		draw_text(intel_x + intel_pad, _row_y + 34, "This turn, beat your target's number to halve it.");
-		draw_set_color(c_white);
 
 		// the tooltip only says what matters now
 		var _intel_tip = string(_intel_state.description);
@@ -1565,10 +1495,11 @@ draw_set_font(ftBig);
 draw_text(gui_w - 70, gui_h - 55, string(ds_list_size(global.discard_pile)));
 
 // Draw discard preview
-var disc_bag_x = gui_w - global.gui.bag_x - global.gui.bag_w;
-var disc_bag_y = gui_h - global.gui.bag_y - global.gui.bag_h;
-var disc_bag_w = global.gui.bag_w;
-var disc_bag_h = global.gui.bag_h;
+// the click area is the discard bag sprite as drawn above (bottom right)
+var disc_bag_w = sprite_get_width(sDiceBag);
+var disc_bag_h = sprite_get_height(sDiceBag);
+var disc_bag_x = gui_w - 60 - sprite_get_width(sDiceBag) - sprite_get_xoffset(sDiceBag);
+var disc_bag_y = gui_h - 40 - sprite_get_yoffset(sDiceBag);
 disc_bag_hover = (mx > disc_bag_x && mx < disc_bag_x + disc_bag_w && my > disc_bag_y && my < disc_bag_y + disc_bag_h);
 
 if (disc_bag_hover) {
@@ -1577,3 +1508,6 @@ if (disc_bag_hover) {
 		oRunManager.bag_to_show = global.discard_pile;
 	}
 }
+
+// the guided first fight's margin notes, on top of the combat UI
+tutorial_draw();

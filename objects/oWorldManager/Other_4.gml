@@ -12,7 +12,7 @@ if (room == rmMap) {
 		alignment_chance = 0;
 	}
 	
-	if (!ds_exists(pages_shown, ds_type_list)) pages_shown = ds_list_create();
+	if (!ds_safe_exists(pages_shown, ds_type_list)) pages_shown = ds_list_create();
 	
 	world_finish_spread_if_done();
 	
