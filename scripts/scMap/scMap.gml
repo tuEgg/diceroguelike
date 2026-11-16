@@ -1163,9 +1163,10 @@ function draw_voyage_progress(_cx, _y, _alpha) {
 	
 	var _spacing = 22;		// between markers
 	var _chapter_gap = 34;	// between chapters
+	var _boss_gap = 8;		// extra room either side of a boss diamond, which is bigger than the other markers
 	var _radius = 6;
 	var _per_chapter = CHAPTER_SPREADS + 1; // drafted spreads, then the boss
-	var _total_w = CHAPTER_COUNT * (_per_chapter - 1) * _spacing + (CHAPTER_COUNT - 1) * _chapter_gap;
+	var _total_w = CHAPTER_COUNT * ((_per_chapter - 1) * _spacing + _boss_gap) + (CHAPTER_COUNT - 1) * (_chapter_gap + _boss_gap);
 	var _x = _cx - _total_w / 2;
 	var _pulse = 1 + 0.25 * sin(current_time / 180);
 	
@@ -1198,9 +1199,10 @@ function draw_voyage_progress(_cx, _y, _alpha) {
 			}
 			
 			if (s < _per_chapter - 1) _x += _spacing;
+			if (s == _per_chapter - 2) _x += _boss_gap; // the next marker is the boss
 		}
 		
-		_x += _chapter_gap;
+		_x += _chapter_gap + _boss_gap;
 	}
 	
 	draw_set_alpha(1.0);
