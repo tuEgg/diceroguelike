@@ -1163,10 +1163,10 @@ function draw_voyage_progress(_cx, _y, _alpha) {
 	
 	var _spacing = 22;		// between markers
 	var _chapter_gap = 34;	// between chapters
-	var _boss_gap = 8;		// extra room either side of a boss diamond, which is bigger than the other markers
+	var _boss_gap = 4;		// extra room before a boss diamond: its points reach 4px further than a circle, so the gaps look even
 	var _radius = 6;
 	var _per_chapter = CHAPTER_SPREADS + 1; // drafted spreads, then the boss
-	var _total_w = CHAPTER_COUNT * ((_per_chapter - 1) * _spacing + _boss_gap) + (CHAPTER_COUNT - 1) * (_chapter_gap + _boss_gap);
+	var _total_w = CHAPTER_COUNT * ((_per_chapter - 1) * _spacing + _boss_gap) + (CHAPTER_COUNT - 1) * _chapter_gap;
 	var _x = _cx - _total_w / 2;
 	var _pulse = 1 + 0.25 * sin(current_time / 180);
 	
@@ -1187,7 +1187,8 @@ function draw_voyage_progress(_cx, _y, _alpha) {
 			
 			// black outline, then the fill (hollow for markers still to come)
 			draw_set_color(c_black);
-			if (_is_boss) draw_diamond(_x, _y, _r + 3); else draw_circle(_x, _y, _r + 3, false);
+			// a diamond's edges are at 45 degrees, so its outline needs to reach sqrt(2) times further to look as thick
+			if (_is_boss) draw_diamond(_x, _y, _r + 3 * sqrt(2)); else draw_circle(_x, _y, _r + 3, false);
 			
 			draw_set_color(_done || _current ? (_current ? c_white : _col) : make_color_rgb(90, 70, 50));
 			if (_is_boss) draw_diamond(_x, _y, _r); else draw_circle(_x, _y, _r, false);
@@ -1202,7 +1203,7 @@ function draw_voyage_progress(_cx, _y, _alpha) {
 			if (s == _per_chapter - 2) _x += _boss_gap; // the next marker is the boss
 		}
 		
-		_x += _chapter_gap + _boss_gap;
+		_x += _chapter_gap;
 	}
 	
 	draw_set_alpha(1.0);
