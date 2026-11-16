@@ -18,6 +18,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	var _keepsake_dice_bonus_amount = 0;
 	var enemy_bonus_used_once = false;
 	var first_die_bonus_used = false;
+	var _enemy_roll_index = 0; // which of the enemy's pre-rolled dice is next
 	
 	repeat (_dice_amount) {
 		// Roll starts at default range
@@ -146,8 +147,13 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				}
 			}
 		} else {
-			//show_debug_message("Enemies roll");
-			final_roll = irandom_range( _min_roll, _max_roll );
+			// an enemy uses the dice it rolled when its intent was set (shown when Legible)
+			if (is_struct(_source) && variable_struct_exists(_source.intent, "rolls") && _enemy_roll_index < array_length(_source.intent.rolls) && _source.intent.move.dice_value == _dice_value) {
+				final_roll = _source.intent.rolls[_enemy_roll_index];
+			} else {
+				final_roll = irandom_range( _min_roll, _max_roll );
+			}
+			_enemy_roll_index++;
 			
 			var ctx = {
 				_d_amount: final_roll,
@@ -196,6 +202,11 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	if (_dice_amount == 0) {
 		amount = _dice_value;
 		//show_debug_message("dice amount is zero - this is for flat damage - setting value to "+string(_dice_value));
+	}
+
+	// an enemy the player outguessed this turn does half (intel_try_outguess)
+	if (is_struct(_source) && variable_struct_exists(_source.intent, "fumbled") && _source.intent.fumbled) {
+		amount = amount div 2;
 	}
 
     var inst_color = c_red; // default color for damage
@@ -443,10 +454,15 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 		case "INTEL":
 			if (_source == "player") {
+				// insight counts next turn (Outguess below uses it this turn)
 				apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
 				var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, _dice_list_index);
 				num.x += 20;
 				num.y -= 20;
+
+				// this turn: if all the intel rolled so far this turn beats the target's intended number, it fumbles
+				intel_rolled_this_turn += amount;
+				intel_try_outguess();
 			} else {
 			    apply_buff("player", oRunManager.debuff_overwhelm, 1, 3, oRunManager.debuff_overwhelm.remove_next_turn, { source: _source, index: _source_index });
 				particle_emit(global.player_x, global.player_y, "burst", oRunManager.debuff_overwhelm.color);
@@ -1247,7 +1263,7 @@ function get_action_name(_slot, _num) {
 		case "INTEL":
 		    switch (highest_value) {
 		        case 4: label = "Sleuth"; break;
-		        case 6: label = "Gather intel"; break;
+		        case 6: label = "Gather insight"; break;
 		        case 8: label = "Build a case"; break;
 		        default: label = "Sleuth"; break;
 		    }
@@ -1474,6 +1490,8 @@ function add_enemy_to_fight(_enemy) {
 		data: _enemy,
 		intent: {
 			move: _enemy.moves[| _rand_move],
+			rolls: [],			// the move's dice, rolled when the intent is set (enemy_set_intent)
+			fumbled: false,		// outguessed by the player's intel this turn: the move does half
 			alpha: 0,
 			start_scale: 0.75,	
 			scale: 0.25,	
@@ -1482,7 +1500,7 @@ function add_enemy_to_fight(_enemy) {
 		},
 		turns_since_last_block: 1,
 		move_number: -1,
-		move_history: ds_list_create(),
+move_history: ds_list_create(),
 		max_hp: _enemy.max_hp,
 		hp: _enemy.current_hp, // debug_mode ? 1 : _enemy.current_hp,
 		hp_display: _enemy.current_hp,

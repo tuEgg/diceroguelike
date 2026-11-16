@@ -329,7 +329,7 @@ for (var i = 0; i < aq_list_size; i++) {
 				tooltip = string(slot_amount) + "d" + string(slot_value) + _bonus + " Heal";
 				break;
 				case "INTEL":
-				tooltip = string(slot_amount) + "d" + string(slot_value) + _bonus + " Intel";
+				tooltip = string(slot_amount) + "d" + string(slot_value) + _bonus + " Insight";
 				break;
 				case "None":
 					if (slot_possible_type != "All") {
@@ -571,8 +571,14 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	enemy.scale = lerp(enemy.scale, hover_enemy ? enemy.start_scale : enemy.start_scale, 0.2);
 	enemy.info_alpha = lerp(enemy.info_alpha, hover_enemy ? 1.0 : 0, 0.4);
 	
-	if (hover_enemy && mouse_check_button_pressed(mb_left) && state == CombatState.PLAYER_INPUT && intel_level >= 2) {
-		enemy_target_index = e;
+	// you can always pick your target, unless Overwhelm has locked it this turn (and that target is still standing)
+	if (hover_enemy && mouse_check_button_pressed(mb_left) && state == CombatState.PLAYER_INPUT && e != enemy_target_index) {
+		var _lock_holds = target_locked && enemy_target_index >= 0 && enemy_target_index < ds_list_size(room_enemies) && !room_enemies[| enemy_target_index].dead;
+		if (_lock_holds) {
+			throw_error("Overwhelmed", "You can't change target this turn.");
+		} else {
+			enemy_target_index = e;
+		}
 	}
 	
 	// Draw enemy focus if we're the targeted enemy
@@ -610,21 +616,25 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 
 	// Show enemy intent
 	if (enemy.intent.alpha > 0.05) {
-		var reveal_intent_single = false;
-		var reveal_intent_all = false;
-		if (intel_level >= 1) reveal_intent_single = true;
-		if (intel_level >= 2) reveal_intent_all = true;
+		// intents are always shown (range when Faded, exact when Legible), unless intel is below 0 (Blotted)
+		var reveal_intent_single = !intel_is_blotted();
+		var reveal_intent_all = !intel_is_blotted();
 	
-	    var text = ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) ? enemy.intent.text : "";
+	    var text = intent_number_text(enemy, intel_level);
 
 	    var xx = enemy.pos_x; // enemy position on screen
 	    var yy = enemy.pos_y - 10 - (enemy.scale * 180);  // slightly above their head
+
+		// Quill: an intent you can rewrite this turn pulses and glows, with a quill beside it, so it can't be missed
+		var _rewritable = (intel_level >= 2 && !intel_is_blotted() && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards && enemy_can_rewrite_intent(enemy));
+		var _quill_pulse = 0.5 + 0.5 * sin(current_time / 200);
+		if (_rewritable) enemy.intent.scale = enemy.intent.start_scale * (1 + 0.12 * _quill_pulse);
 		
 		// Draw combined intents
 		var intent_array = string_split(enemy.intent.move.action_type, "/");
 		
-		// Draw dice in move
-		if ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) {
+		// Draw dice in move (the dice show how big the move can be), unless Blotted
+		if (reveal_intent_all) {
 			for (var d = 0; d < enemy.intent.move.dice_amount; d++) {
 				var d_index = get_dice_index(enemy.intent.move.dice_value);
 				
@@ -668,6 +678,15 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		
 		var enemy_exiting = false;
 		
+		if (_rewritable) {
+			var _glow_w = text_w / 2 + 18;
+			draw_set_color(global.color_intel);
+			draw_set_alpha(enemy.intent.alpha * (0.15 + 0.25 * _quill_pulse));
+			draw_roundrect_ext(xx - _glow_w, yy - 30, xx + _glow_w, yy + 30, 20, 20, false);
+			draw_set_alpha(1.0);
+			draw_insight_icon("quill", xx - _glow_w - 26, yy - 4 * _quill_pulse, 0.7, enemy.intent.alpha);
+		}
+
 		// Draw enemy intent
 		for (var i = 0; i < array_length(intent_array); i++) {
 			
@@ -700,6 +719,36 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		}
 		
 		draw_outline_text(text, c_black, c_white, 2, text_x, yy, enemy.intent.scale, enemy.intent.alpha - enemy.info_alpha);
+
+		// the targeted enemy shows the outguess bar: your insight this turn against the number to beat
+		if (e == enemy_target_index && intent_has_numbers(enemy.intent.move)) {
+			draw_outguess_bar(enemy, xx, yy + 40, enemy.intent.alpha);
+		}
+
+		// outguessed by intel this turn: the move does half (the target's bar says it, others get a label)
+		if (intent_is_fumbled(enemy) && e != enemy_target_index) {
+			draw_set_font(ftDefault);
+			draw_set_halign(fa_center);
+			draw_outline_text("Outguessed: half", c_black, c_orange, 2, xx, yy + 30, 1, enemy.intent.alpha - enemy.info_alpha);
+			draw_set_halign(fa_left);
+			draw_set_font(ftTopBar);
+		}
+
+		// Quill: click an intent to make the enemy choose again (once per turn)
+		var _intent_hover = mouse_hovering(xx, yy, text_w + 20, 50, true);
+		var _can_rewrite = (intel_level >= 2 && !intel_is_blotted() && !intel_rewrite_used&& state == CombatState.PLAYER_INPUT && !show_rewards);
+		if (_can_rewrite && _intent_hover) {
+			if (!enemy_can_rewrite_intent(enemy)) {
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't rewrite", "This move is forced, or the enemy has nothing else to choose.", undefined, 0, undefined);
+			} else {
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Quill: rewrite intent", "Click to rewrite this enemy's intent. You choose to change it; the enemy picks a different move. Once per turn.", undefined, 0, undefined);
+				if (mouse_check_button_pressed(mb_left) && enemy_rewrite_intent(enemy)) {
+					intel_rewrite_used = true;
+					enemy.intent.scale = enemy.intent.start_scale * 1.4; // pop, so the change is noticed
+					add_feed_entry("You rewrote " + string(enemy.data.name) + "'s intent: " + string(enemy.intent.move.move_name));
+				}
+			}
+		}
 	
 	    draw_set_halign(fa_center);
 	
@@ -715,9 +764,12 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 				if (enemy_exiting) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "The enemy intents to escape", undefined, 0, undefined);
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, "The enemy intends to perform the following move: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount), undefined, 0, undefined);
+					var _intent_desc = "This turn: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount);
+					if (intent_has_numbers(enemy.intent.move)) _intent_desc += (intel_level >= 1) ? ", exactly " + string(intent_exact_value(enemy)) : ". Reach " + string(global.player_intel_data[| 1].requirement) + " insight (Legible) to see the exact number";
+					_intent_desc += intent_is_fumbled(enemy) ? ". Outguessed by your insight, so it does half." : ".";
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, _intent_desc, undefined, 0, undefined);
 				} else {
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "???", "Enemy intentions not revealed", undefined, 0, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Your insight is below 0, so the page is blotted and enemy intents are hidden.", undefined, 0, undefined);
 				}
 			}
 		}
@@ -933,21 +985,24 @@ if (state != CombatState.PLAYER_DEAD) {
 
 	var arc_start = 180;
 	// the ring runs from empty to full: below zero it would wrap round into an almost-full circle, above the max it would overflow
-	var intel_fill = clamp(draw_intel / global.player_intel_data[| 4].requirement, 0, 1);
+	var _intel_max = intel_max();
+	var intel_fill = clamp(draw_intel / _intel_max, 0, 1);
 	var arc_end = 181 + (intel_fill * 179);
-	draw_arc_thick_deg_gradient(global.player_x, global.player_y - 175, 50, 60, arc_start, arc_end, 50, global.color_intel, make_color_rgb(210 - (player_intel / global.player_intel_data[| 4].requirement * 50), 210 - (player_intel / global.player_intel_data[| 4].requirement * 100), 0), 0.7);
+	var _intel_ratio = clamp(player_intel / _intel_max, 0, 1);
+	draw_arc_thick_deg_gradient(global.player_x, global.player_y - 175, 50, 60, arc_start, arc_end, 50, global.color_intel, make_color_rgb(210 - (_intel_ratio * 50), 210 - (_intel_ratio * 100), 0), 0.7);
 
+	// a tick at each state (Faded at the start, Legible, Quill at the end)
 	draw_set_alpha(1.0);
 	draw_set_color(c_white);
-	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 178, 182, 50);
-	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 223, 227, 50);
-	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 268, 272, 50);
-	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 313, 317, 50);
-	draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, 358, 2, 50);
+	for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
+		var _tick = 180 + (global.player_intel_data[| i].requirement / _intel_max) * 180;
+		draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, (_tick - 2 + 360) mod 360, (_tick + 2) mod 360, 50);
+	}
 
-	draw_sprite_ext(sIntelEye, global.player_intel_data[| intel_level].index, global.player_x, global.player_y - 180, intel_scale, intel_scale, 0, c_white, intel_alpha);
-	draw_outline_text(string(global.player_intel_data[| intel_level].name), c_black, global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
-	var intel_hover = mouse_hovering(global.player_x, global.player_y - 190, sprite_get_width(sIntelEye) * 2, sprite_get_height(sIntelEye) * 2, true);
+	var _intel_state = intel_state(intel_level);
+	draw_insight_icon(_intel_state.icon, global.player_x, global.player_y - 180, intel_scale, intel_alpha);
+	draw_outline_text(string(_intel_state.name), c_black, intel_is_blotted() ? c_red : global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
+	var intel_hover = mouse_hovering(global.player_x, global.player_y - 190, 120, 120, true);
 
 	intel_scale = intel_hover ? lerp(intel_scale, 1.2, 0.2) : lerp(intel_scale, 1.0, 0.2);
 
@@ -957,40 +1012,77 @@ if (state != CombatState.PLAYER_DEAD) {
 	}
 
 	if (intel_hover) {
-		var intel_x = global.player_x - 210;
-		var intel_y = global.player_y - 520;
-		var intel_pad = 20;
+		// a compact reference: one line per state, the current one highlighted, and how Outguess works
+		var intel_pad = 16;
+		var intel_w = 380;
 		var intel_row_h = 40;
-	
+		var intel_title_h = 36;
+		var intel_foot_h = 50;
+
+		// Blotted (below 0) first, then the three states
+		var intel_rows = [global.intel_blotted];
+		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) array_push(intel_rows, global.player_intel_data[| i]);
+		var _current_row = intel_is_blotted() ? 0 : intel_level + 1;
+
+		var intel_h = intel_pad + intel_title_h + intel_row_h * array_length(intel_rows) + intel_foot_h + intel_pad / 2;
+		var intel_x = global.player_x - intel_w / 2;
+		var intel_y = global.player_y - 260 - intel_h;
+
 		draw_set_color(c_black);
 		draw_set_alpha(0.8);
-		draw_roundrect(intel_x - 1, intel_y - 11, intel_x + 421, intel_y + 256, false);
-	
+		draw_roundrect(intel_x - 1, intel_y - 1, intel_x + intel_w + 1, intel_y + intel_h + 1, false);
 		draw_set_color(global.color_bg);
-		draw_roundrect(intel_x, intel_y - 10, intel_x + 420, intel_y + 255, false);
-	
-		draw_set_color(c_white);
+		draw_roundrect(intel_x, intel_y, intel_x + intel_w, intel_y + intel_h, false);
+
+		// title, and your insight on the right
 		draw_set_alpha(1.0);
-		draw_set_halign(fa_left);
 		draw_set_valign(fa_middle);
 		draw_set_font(ftDefault);
-		draw_text(intel_x + intel_pad, intel_y + intel_pad, "Intel Levels");
-	
-		// Draw rows
-		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
-			draw_set_font(ftSmall);
-			draw_set_halign(fa_left);
-			draw_sprite_ext(sIntelEye, global.player_intel_data[| i].index,
-						intel_x + intel_pad + 20, intel_y + intel_pad + (intel_row_h * (i+1)), 0.75, 0.75, 0, c_white, intel_alpha);
+		draw_set_halign(fa_left);
+		draw_set_color(c_white);
+		draw_text(intel_x + intel_pad, intel_y + intel_pad + 10, "Insight");
+		draw_set_halign(fa_right);
+		draw_set_color(player_intel < 0 ? c_red : global.color_intel);
+		draw_text(intel_x + intel_w - intel_pad, intel_y + intel_pad + 10, string(player_intel));
+
+		// rows: icon, name, needed, what it gives
+		var _row_y = intel_y + intel_pad + intel_title_h;
+		for (var i = 0; i < array_length(intel_rows); i++) {
+			var _row = intel_rows[i];
+			var _mid = _row_y + intel_row_h / 2;
+			if (i == _current_row) {
+				draw_set_color(c_white);
+				draw_set_alpha(0.12);
+				draw_roundrect(intel_x + 6, _row_y + 2, intel_x + intel_w - 6, _row_y + intel_row_h - 2, false);
+			}
+			draw_set_alpha(1.0);
+			draw_insight_icon(_row.icon, intel_x + intel_pad + 14, _mid, 0.65, (i == _current_row) ? 1.0 : 0.6);
 			draw_set_font(ftDefault);
-			draw_set_halign(fa_center);
-			draw_text(	intel_x + intel_pad + 70, intel_y + intel_pad + (intel_row_h * (i+1)), + string(global.player_intel_data[| i].name));
 			draw_set_halign(fa_left);
-			draw_set_font(ftSmall); 
-			draw_text(	intel_x + intel_pad + 95, intel_y + intel_pad + (intel_row_h * (i+1)), + string(global.player_intel_data[| i].description));
+			draw_set_color((i == _current_row) ? global.color_intel : c_white);
+			draw_text(intel_x + intel_pad + 40, _mid, string(_row.name));
+			draw_set_font(ftSmall);
+			draw_set_color(c_ltgray);
+			draw_text(intel_x + intel_pad + 135, _mid, (i == 0) ? "< 0" : string(_row.requirement) + "+");
+			draw_set_color(c_white);
+			draw_text(intel_x + intel_pad + 180, _mid, string(_row.description));
+			_row_y += intel_row_h;
 		}
-	
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Intel level: "+string(global.player_intel_data[| intel_level].name), "Resets each turn. " + string(global.player_intel_data[| intel_level].description), undefined, 0, undefined);
+
+		// how insight rolls work this turn
+		draw_set_font(ftSmall);
+		draw_set_color(c_ltgray);
+		draw_text(intel_x + intel_pad, _row_y + 14, "Insight you roll counts next turn.");
+		draw_text(intel_x + intel_pad, _row_y + 34, "This turn, beat your target's number to halve it.");
+		draw_set_color(c_white);
+
+		// the tooltip only says what matters now
+		var _intel_tip = string(_intel_state.description);
+		if (!intel_is_blotted() && intel_level < ds_list_size(global.player_intel_data) - 1) {
+			var _next_state = global.player_intel_data[| intel_level + 1];
+			_intel_tip += " " + string(_next_state.requirement - player_intel) + " more for " + string(_next_state.name) + ".";
+		}
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Insight: " + string(_intel_state.name), _intel_tip, undefined, 0, undefined);
 	}
 }
 

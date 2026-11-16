@@ -1111,7 +1111,7 @@
 	
 		event_sirens_opt_1 = {
 			title: "Sing a song of your own",
-			description: "Higher chance of success the higher your alignment. If successful, upgrade all of your intel die.",
+			description: "Higher chance of success the higher your alignment. If successful, upgrade all of your insight dice.",
 			effect: function(_context) {
 				var random_num = irandom_range(1, 100);
 				if (random_num <= global.player_alignment) {

@@ -18,12 +18,12 @@ function define_keepsakes() {
 	ks_looking_glass = {
 	    _id: "looking_glass",
 	    name: "Looking Glass",
-	    desc: "Start each combat with 6 intel",
+	    desc: "Start each combat with 5 insight (Legible)",
 		sub_image: 5,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
 	            if (oCombat.turn_count == 1) {
-					oCombat.player_intel = 6;
+					oCombat.player_intel = 5;
 					trigger_keepsake_visual();
 				}
 	        }
@@ -741,7 +741,7 @@ function define_keepsakes() {
 	ks_book_of_secrets = {
 	    _id: "book_of_secrets",
 	    name: "Book of Secrets",
-	    desc: "+1 minimum roll on all Intel die.",
+	    desc: "+1 minimum roll on all insight dice.",
 	    sub_image: 42,
 		state: { },
 	    trigger: function(event, data) {			
@@ -859,7 +859,7 @@ function define_keepsakes() {
 	ks_eye_patch = {
 	    _id: "eye_patch",
 	    name: "Eye patch",
-	    desc: "Gain 1 intel every time you play a die.",
+	    desc: "Gain 1 insight every time you play a die.",
 	    sub_image: 2,
 
 	    trigger: function(event, data) {
@@ -905,13 +905,13 @@ function define_keepsakes() {
 	ks_deep_lens = {
 	    _id: "deep_lens",
 	    name: "Deep Lens",
-	    desc: "Start the first 2 turns of combat with 12 Intel, replaces starting keepsake",
+	    desc: "Start the first 2 turns of combat with 10 insight (Quill), replaces starting keepsake",
 		replaces: "looking_glass", // takes the starting keepsake's place in the keepsake bar
 		sub_image: 35,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
 	            if (oCombat.turn_count <= 2) {
-					oCombat.player_intel = 12;
+					oCombat.player_intel = 10;
 					trigger_keepsake_visual();
 				}
 	        }

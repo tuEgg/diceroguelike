@@ -38,7 +38,6 @@ All known P0 bugs are fixed, see DONE.
 **Combat core**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B33 | Intel level is only recalculated at turn start, so intel gained mid-turn never raises the level (*"intel 4 doesn't add the 3rd die"*) | `oCombat/Step_0.gml:164-177` | S [L] (design call: see Q3) |
 | B36 | `"None!"` in `get_slot_stats` makes its condition always true. Left alone on purpose: it looks like a deliberate switch-off, and removing it would change how neutral dice count in a slot. Needs Jared's call. (The doubled `is_slot_exclusive` check was fixed in batch 2.) | `scCombatScripts.gml` | S [C] |
 
 **Dice / keepsakes / items**
@@ -92,7 +91,6 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
 
 **Combat clarity** (the most common playtest feedback)
-- F10 Always show the enemy intent *type*; intel reveals the numbers
 - F11 Enemy targeting indicator; floating arrows at intel ≥ 6
 - F13 Slower / configurable action speed (Jack)
 - F14 Colour-blind-safe palette (Jack can't tell the blues apart)
@@ -121,13 +119,13 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 **Art direction (parked, Jared wants to discuss later)**
 - F50 Decide an art style for the game. Jared isn't an artist and wants to explore AI-assisted art workflows (he's been following r/aigamedev). Covers dice, enemies, map/book, UI and backgrounds. Don't start until he raises it.
+- F51 Icons for the insight states: Blotted (smudged page), Faded, Legible and Quill. Placeholders are drawn in code by `draw_insight_icon` (scHelpers); swap in sprites there. Part of F50.
 
 ---
 
 ## ❓ OPEN QUESTIONS (design decisions blocking work)
 
 - Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
-- Q3 Intel redesign (incl. B33): **parked until after bug fixes, the debug menu and the world map.**
 - Q7 Resolution targets: just 1080p + 1440p, or arbitrary? (decides how much layout work T07 needs)
 - Q8 Between pages: what should the choices be, and should the workbench stay available after every node? (see F02)
 
@@ -138,6 +136,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - 2026-11-15 **Scope cuts:** no four Act III regions, no 3 classes (F04 classes removed). **Alignment stays** in this build (F32).
 - 2026-11-15 **Platform:** a web build on itch.io for early playtests (keep exe as the dev/reference build); Steam is the long-term goal. See H07.
 - 2026-11-16 **Bounty board:** two bounties are offered, on purpose (Jared likes the choice). The potion on the bounty board is free.
+- 2026-11-16 **Intel rework:** enemy intents are always shown. On screen intel is called **Insight** (Ink was tried and felt unclear); the code keeps INTEL. Three states, named like reading an old logbook: **Faded** (0+, see ranges), **Legible** (5+, exact numbers), **Quill** (10+, rewrite one intent per turn; you choose to change it, the enemy picks the move). Below 0 (Overwhelm) the page is **Blotted** and intents are hidden. Insight dice roll in the queue and count next turn (a this-turn-only version was tried and reverted: dice could never reach Legible or Quill in time). This turn they can **Outguess** (all insight rolled this turn beats your target's number: its move does half), at any insight. Next-turn intents were cut. Rolling on play was tried and reverted. You can always change target, except while Overwhelmed.
 
 ---
 
@@ -218,6 +217,13 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | T08 | One placement rule, `slot_placement_check`, returning ok, action and a reason | Batch 6: placement rule | 2026-11-17 |
 | B35 | Slot highlight and real placement disagreed: both now use the one rule | Batch 6: placement rule | 2026-11-17 |
 | F12 | Placement feedback: a tooltip says why a die can't go in a slot, and the hint says what placing will do | Batch 6: placement rule | 2026-11-17 |
+| F10 | Enemy intents always shown; insight sharpens the numbers (range when Faded, exact when Legible) | Batch 7: intel rework | 2026-11-16 |
+| B33 | Intel timing settled: insight dice roll in the queue and count next turn (instant rolling and this-turn-only were tried and reverted) | Batch 7: intel rework | 2026-11-16 |
+| F17 | Next-turn intents: built, then cut (removed the reason to play insight next turn) | Batch 7: intel rework | 2026-11-16 |
+| F18 | Quill (10+ insight): rewrite one enemy intent per turn; rewritable intents pulse, glow and show a quill | Batch 7: intel rework | 2026-11-16 |
+| F19 | Outguess: insight rolled this turn that beats your target's number halves its move; outguess bar under the target's intent | Batch 7: intel rework | 2026-11-16 |
+| F52 | Intel is called Insight on screen; logbook states Blotted/Faded/Legible/Quill; placeholder page icons; compact panel | Batch 7: intel rework | 2026-11-16 |
+| F53 | Overwhelm stays on you for your turn, lowers insight and locks your target | Batch 7: intel rework | 2026-11-16 |
 
 **Milestones**
 

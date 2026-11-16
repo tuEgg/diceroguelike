@@ -384,7 +384,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 5,
 		name: "Crow's Nest Clarity",
-		description: "Gain 12 Intel for next turn",
+		description: "Gain 10 insight (Quill) next turn",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -406,7 +406,7 @@ function define_items() {
 			},
 			modify: function(_context) {
 				with (oCombat) {
-					var amount = 12;
+					var amount = 10;
 					apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
 					num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, 0);
 					num.x += 20;

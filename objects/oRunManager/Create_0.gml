@@ -103,6 +103,7 @@ global.COLOR_RULES = [
     { tag: "attack",		keyword: "attack",			type: "num_keyword" },
     { tag: "attack",		keyword: "ATK",				type: "num_keyword" },
     { tag: "intel",			keyword: "intel",			type: "num_keyword" },
+    { tag: "intel",			keyword: "insight",			type: "num_keyword" }, // "Insight" is what the player reads; the code still says intel
     { tag: "followthrough",	keyword: "followthrough",	type: "num_keyword" },
     { tag: "multitype",		keyword: "multitype",		type: "num_keyword" },
     { tag: "coin",			keyword: "coin",			type: "num_keyword" },
@@ -158,38 +159,32 @@ bonus_dice_next_combat = 0;
 holding_item = false; // used for holding the hammer in the workbench, will eventually change cursor type, right now just blocks inputs in that room. Could also do it for dice.
 show_consumables_chance = 30; // percentage chance to show consumables after any given fight
 
-// player intel 
+// player intel: three states, read like an old captain's logbook. Below 0 intel the page is Blotted (intents hidden).
+// requirement is the intel needed; icon is drawn in code by draw_insight_icon until Jared designs real ones (F51)
 global.player_intel_data = ds_list_create();
 ds_list_add(global.player_intel_data, {
 	requirement: 0,
-	name: "-",
-	description: "No information revealed.",
-	index: 0,
+	name: "Faded",
+	description: "See enemy ranges.",
+	icon: "faded",
 });
 ds_list_add(global.player_intel_data, {
-	requirement: 3,
-	name: "I",
-	description: "Target enemy intent revealed.",
-	index: 1,
+	requirement: 5,
+	name: "Legible",
+	description: "See exact numbers.",
+	icon: "legible",
 });
 ds_list_add(global.player_intel_data, {
-	requirement: 6,
-	name: "II",
-	description: "All enemy intents revealed & can change targets.",
-	index: 2,
+	requirement: 10,
+	name: "Quill",
+	description: "Rewrite one intent a turn.",
+	icon: "quill",
 });
-ds_list_add(global.player_intel_data, {
-	requirement: 9,
-	name: "III",
-	description: "Drew an extra die this turn.",
-	index: 3,
-});
-ds_list_add(global.player_intel_data, {
-	requirement: 12,
-	name: "IV",
-	description: "+1 playable dice this turn.",
-	index: 4,
-});
+global.intel_blotted = {
+	name: "Blotted",
+	description: "Enemy intents hidden.",
+	icon: "blotted",
+};
 
 show_dice_list = false; // used for displaying all the dice in the master list
 bag_hover = false;

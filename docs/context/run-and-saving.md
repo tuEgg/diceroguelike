@@ -21,7 +21,7 @@
 - **Random numbers**: GameMaker can't read the RNG position, so each save reseeds with a new random seed and stores it; `load_game` sets it last.
 - **Not saved on purpose**: keepsake `state` (per-turn/per-fight flags only); anything mid-room (quitting mid-fight returns to the map before that node).
 - New fields: add to `save_game`, read in `load_game` behind `variable_struct_exists` so older saves still load. Use `""`/`-1` for "none" rather than `undefined` in node data.
-- Lookups by name/id: `get_die_by_name`, `get_item_by_name`, `get_keepsake_by_id`, `get_tool_by_name` (call inside `with (oRunManager)`), `get_node_by_name`, `deserialise_die`.
+- Lookups by name/id: `get_die_by_name` (it maps the old names "Intel", "Intel.", "Ink", "Ink.", "Inteli Die" to the new ones, so old saves load), `get_item_by_name`, `get_keepsake_by_id`, `get_tool_by_name` (call inside `with (oRunManager)`), `get_node_by_name`, `deserialise_die`.
 
 ## Settings
 

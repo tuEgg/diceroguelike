@@ -1047,6 +1047,13 @@ function get_tool_by_name(_name) {
 }
 
 function get_die_by_name(_name) {
+	// dice renamed when Intel became Insight (briefly Ink); saves from before still use the old names
+	switch (_name) {
+		case "Intel": case "Ink": _name = "Insight"; break;
+		case "Intel.": case "Ink.": _name = "Insight."; break;
+		case "Inteli Die": _name = "Inkwell Die"; break;
+	}
+
     for (var i = 0; i < ds_list_size(global.master_dice_list); i++) {
         if (global.master_dice_list[| i].name == _name) {
             return global.master_dice_list[| i];
@@ -1268,4 +1275,60 @@ function lose_run() {
 	} else {
 		room_goto(rmMainMenu);
 	}
+}
+
+/// @func draw_insight_icon(_icon, _x, _y, _scale, _alpha)
+/// @desc Placeholder icons for the insight states, drawn with shapes until real art is made (F51): a logbook page that is
+///       blotted, faded, legible, or legible with a quill across it. About 44 x 52 pixels at scale 1, centred on _x, _y.
+function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
+	var _w = 18 * _scale, _h = 22 * _scale; // half sizes of the page
+	var _ink = make_color_rgb(30, 35, 60);
+	var _paper = make_color_rgb(238, 224, 186);
+	var _old_alpha = draw_get_alpha();
+
+	// the page, with a dark edge
+	draw_set_alpha(_alpha);
+	draw_set_color(c_black);
+	draw_roundrect_ext(_x - _w - 2 * _scale, _y - _h - 2 * _scale, _x + _w + 2 * _scale, _y + _h + 2 * _scale, 8 * _scale, 8 * _scale, false);
+	draw_set_color(_paper);
+	draw_roundrect_ext(_x - _w, _y - _h, _x + _w, _y + _h, 6 * _scale, 6 * _scale, false);
+
+	// lines of writing: faint when Faded, dark from Legible
+	if (_icon != "blotted") {
+		draw_set_color(_ink);
+		draw_set_alpha(_alpha * ((_icon == "faded") ? 0.25 : 0.9));
+		for (var i = 0; i < 4; i++) {
+			var _ly = _y - _h + (9 + i * 9) * _scale;
+			var _lw = (i == 3) ? _w * 0.9 : _w * 1.4;
+			draw_line_width(_x - _w + 6 * _scale, _ly, _x - _w + 6 * _scale + _lw, _ly, max(1, 3 * _scale));
+		}
+	}
+
+	// Blotted: a spill of ink across the page
+	if (_icon == "blotted") {
+		draw_set_color(_ink);
+		draw_set_alpha(_alpha);
+		draw_circle(_x, _y, 11 * _scale, false);
+		draw_circle(_x - 8 * _scale, _y - 7 * _scale, 6 * _scale, false);
+		draw_circle(_x + 9 * _scale, _y + 6 * _scale, 6 * _scale, false);
+		draw_circle(_x + 7 * _scale, _y - 10 * _scale, 4 * _scale, false);
+		draw_circle(_x - 6 * _scale, _y + 12 * _scale, 3 * _scale, false);
+	}
+
+	// Quill: a feather lying across the page, nib at the bottom left
+	if (_icon == "quill") {
+		var _tip_x = _x - _w + 2 * _scale, _tip_y = _y + _h - 2 * _scale;
+		var _end_x = _x + _w + 8 * _scale, _end_y = _y - _h - 8 * _scale;
+		draw_set_alpha(_alpha);
+		draw_set_color(c_black);
+		draw_line_width(_tip_x, _tip_y, _end_x, _end_y, 4 * _scale);
+		draw_set_color(global.color_intel);
+		draw_triangle(_x - 4 * _scale, _y + 4 * _scale, _end_x, _end_y, _x + 8 * _scale, _y + 6 * _scale, false);
+		draw_triangle(_x - 4 * _scale, _y + 4 * _scale, _end_x, _end_y, _x - 6 * _scale, _y - 8 * _scale, false);
+		draw_set_color(_ink);
+		draw_line_width(_tip_x, _tip_y, _x - 4 * _scale, _y + 4 * _scale, 3 * _scale);
+	}
+
+	draw_set_alpha(_old_alpha);
+	draw_set_color(c_white);
 }

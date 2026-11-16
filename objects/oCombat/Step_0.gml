@@ -2,6 +2,9 @@ switch (state) {
     case CombatState.START_TURN:
 		turn_count++;
 		player_turn_done = false;
+		intel_rewrite_used = false; // Quill: one rewrite per turn
+		intel_rolled_this_turn = 0; // Outguess compares everything rolled into intel this turn
+		target_locked = false; // Overwhelm locks it again in on_turn_start
 		delayed_enemy_attack = false;
 		
 		if (turn_count == 1) {
@@ -15,96 +18,10 @@ switch (state) {
 			
 			if (enemy.dead) continue;
 			
-			// Pick a random move struct from the enemy's move list
-			if (enemy_data.move_order == "true_random") {
-				enemy.move_number = irandom(ds_list_size(enemy_data.moves) - 1);
-			} else if (enemy_data.move_order == "ordered") {
-				if (enemy.move_number < ds_list_size(enemy_data.moves) - 1) {
-					enemy.move_number += 1;
-				} else {
-					enemy.move_number = 0;
-				}
-			} else if (enemy_data.move_order == "weighted") {
-				var num_moves = ds_list_size(enemy_data.moves);
-
-				var weighted = [];
-				array_resize(weighted, num_moves);
-
-				for (var i = 0; i < num_moves; i++) {
-				    weighted[i] = {
-				        value: i,
-				        weight: enemy_data.moves[| i].weight  // or 1 if no weight
-				    };
-				}
-
-				enemy.move_number = choose_weighting_list(weighted);
-
-			} else if (enemy_data.move_order == "pseudo_random") {
-				// look through three latest moves, don't allow for 4 in a row, and weight odds to something else after every move
-				var latest_moves = [];
-				var move_index_avoid = -1;
-				var move_index_completely_avoid = -1;
-				var move_index = irandom(ds_list_size(enemy_data.moves) - 1);
-				
-				// Add last 3 moves name to array; NEED TO FIX SO THAT IT FLEXES TO LIST SIZE
-				var num_previous_moves = ds_list_size(enemy.move_history);
-				for (var m = num_previous_moves; m > max(0, num_previous_moves - 3); m--) {
-					var move = enemy.move_history[| m - 1];
-				
-					array_push(latest_moves, move);
-				}
+			// pick this turn's move by the enemy's move_order (triggers below can override it)
+			enemy.move_number = enemy_pick_move_index(enemy);
 			
-				if (array_length(latest_moves) > 0) {
-					// only counts once we have three moves of history and every one of them matches
-					var all_same = (array_length(latest_moves) == 3);
-				
-					for (var o = 0; o < array_length(latest_moves); o++) {
-						if (latest_moves[o] != latest_moves[0]) {
-							all_same = false;
-						}
-					}
-					// If all three moves are the same
-					if (all_same) {
-						for (var i = 0; i < ds_list_size(enemy_data.moves); i++) {
-							if (latest_moves[0].move_name == enemy_data.moves[| i].move_name) move_index_completely_avoid = i;
-						}
-					} else {
-						// just avoid the last move
-						for (var i = 0; i < ds_list_size(enemy_data.moves); i++) {
-							if (latest_moves[0].move_name == enemy_data.moves[| i].move_name) {
-								move_index_avoid = i;
-							}
-						}
-					}
-			
-					// If we are avoiding a move
-					if (move_index_completely_avoid != -1) {
-						// Randomise until we don't get that index
-						var rand_index;
-						
-						do {
-							rand_index = irandom(ds_list_size(enemy_data.moves) - 1);
-						} until (rand_index != move_index_completely_avoid);
-						
-						move_index = rand_index;
-					// otherwise
-					} else if (move_index_avoid != -1) {
-						// randomise twice and if the first one is our index, take the second regardless
-						var rand_1 = irandom(ds_list_size(enemy_data.moves) - 1);
-						var rand_2 = irandom(ds_list_size(enemy_data.moves) - 1);
-				
-						if (rand_1 == move_index_avoid) {
-							move_index = rand_2;
-						} else {
-							move_index = rand_1;
-						}
-					}
-				}
-			
-				enemy.move_number = move_index;
-			}
-			
-			enemy.intent.move = enemy_data.moves[| enemy.move_number];
+			var _intent_move = enemy_data.moves[| enemy.move_number];
 			
 			// Overwrite the above with priority triggers
 			for (var i = 0; i < ds_list_size(enemy_data.moves); i++) {
@@ -112,23 +29,26 @@ switch (state) {
 				if (variable_struct_exists(_move, "use_trigger")) {
 					switch (_move.use_trigger) {
 						case "FIRST":
-							if (turn_count == 1) enemy.intent.move = _move;
+							if (turn_count == 1) _intent_move = _move;
 						break;
 						
 						case "HEALTH 50":
 							if (enemy.hp <= enemy.max_hp/2 && !variable_struct_exists(_move, "trigger_used")) {
-								enemy.intent.move = _move;
+								_intent_move = _move;
 								_move.trigger_used = true; // once per fight, this move struct belongs to this enemy only
 							}
 						break;
 						
 						case "PRIORITY":
-							enemy.intent.move = _move;
+							_intent_move = _move;
 						break;
 					}
 				}
 			}
 			
+			// sets the move and rolls its dice now, so intel can reveal the exact result
+			enemy_set_intent(enemy, _intent_move);
+
 			enemy_turns_remaining++;
 			
 			// debuffs that were set to remove_next_turn now get set to false and will be removed at the end of the turn
@@ -160,20 +80,17 @@ switch (state) {
 		
 		combat_trigger_effects("on_turn_start", turn_start_data);
 		
-		player_intel = clamp(player_intel, 0, global.player_intel_data[| 4].requirement);
-		
-		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
-			if (player_intel >= global.player_intel_data[| i].requirement) {
-				intel_level = i;
-			}
-		}
+		// capped at the top state; it can go below 0 (Overwhelm), which hides enemy intents
+		player_intel = min(player_intel, intel_max());
+		intel_level = intel_level_for(player_intel);
 		//show_debug_message("Player intel amount: "+string(player_intel));
 		//show_debug_message("Player intel level: "+string(intel_level));
 		
-		dice_allowed_this_turn_bonus = turn_start_data.bonus_dice + (intel_level div 4 > 0);
+		// intel no longer grants extra plays or draws: its levels reveal and change enemy intents instead
+		dice_allowed_this_turn_bonus = turn_start_data.bonus_dice;
 			
 		// Deal 3 dice first turn, then 2 every turn after that
-		dice_to_deal += (global.hand_size) + (intel_level div 3 > 0);
+		dice_to_deal += global.hand_size;
 		dice_deal_timer = 0;
 		is_dealing_dice = true;
 		
@@ -183,15 +100,6 @@ switch (state) {
 			
 			if (enemy.dead) continue;
 		
-			// Show enemy intent
-			if (enemy.intent.move.action_type == "DEBUFF") || (enemy.intent.move.action_type == "BUFF") {
-				enemy.intent.text = "";
-			} else if (enemy.intent.move.action_type == "NONE" || enemy.intent.move.action_type == "EXIT") {
-				enemy.intent.text = enemy.intent.move.move_name;
-			} else {
-				enemy.intent.text = string(enemy.intent.move.dice_amount + enemy.intent.move.bonus_amount) + "-" + string((enemy.intent.move.dice_amount * enemy.intent.move.dice_value) + enemy.intent.move.bonus_amount);
-			}
-
 		    // Animate in
 		    enemy.intent.alpha = lerp(enemy.intent.alpha, 1, 0.2);
 		    enemy.intent.scale = lerp(enemy.intent.scale, enemy.intent.start_scale, 0.3);
@@ -672,3 +580,6 @@ global.player_x = lerp(global.player_x, global.player_xstart, 0.2);
 if (keyboard_check_pressed(vk_enter) && state == CombatState.PLAYER_INPUT && !is_dealing_dice) {
     actions_submitted = true;
 }
+
+// intel can change mid-turn (keepsakes), so its state is kept up to date every frame
+intel_level = intel_level_for(player_intel);

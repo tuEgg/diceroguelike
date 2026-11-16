@@ -165,7 +165,7 @@ function define_buffs_and_debuffs() {
 						
 						particle_emit( oCombat.room_enemies[| _ctx.owner_index].pos_x, oCombat.room_enemies[| _ctx.owner_index].pos_y, "ring", c_white, 55);
 					
-						_ctx.target.intent.move = stunned;
+						enemy_set_intent(_ctx.target, stunned); // through the helper, so its shown numbers update too
 					}
 				}
 	        },
@@ -218,19 +218,20 @@ function define_buffs_and_debuffs() {
 		name: "Overwhelm",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Lowers the players intel and forces the player to target this creature",
+	    desc: "Spills your ink: lowers your insight (below 0, enemy intents are hidden) and locks your aim on this creature. You can't change target this turn.",
 	    icon_index: 2,
 		debuff: true,
 		color: c_red,
 		stackable: true, // if false, increase duration when adding more, otherwise increase amount
-		remove_next_turn: false,
-		removal_event: "on_turn_start",
+		remove_next_turn: true,		 // applied on the enemy's turn, it lasts through your next turn
+		removal_event: "on_round_end",
 	    effects: [
 	        {
 	            trigger: "on_turn_start",
 	            modify: function(_ctx) {
 				    oCombat.player_intel -= _ctx.debuff.amount;
-					oCombat.enemy_target_index = _ctx.debuff.source_info.index; 
+					oCombat.enemy_target_index = _ctx.debuff.source_info.index;
+					oCombat.target_locked = true; // can't change target this turn
 					
 					particle_emit( oCombat.room_enemies[| oCombat.enemy_target_index].pos_x, oCombat.room_enemies[| oCombat.enemy_target_index].pos_y, "rise", global.color_intel, 42);
 				}
@@ -323,10 +324,10 @@ function define_buffs_and_debuffs() {
 	
 	buff_intel = {
 	    _id: "intel",
-		name: "Queued intel",
+		name: "Queued insight",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Preparing intel for next turn.",
+	    desc: "Insight carried into next turn.",
 	    icon_index: 2,
 		debuff: false,
 		color: make_color_rgb(210, 210, 0),
