@@ -387,7 +387,7 @@
 				oEventManager.event_selected = true;
 				
 			},
-			result: "Result"
+			result: "Inside, wrapped in an old letter, a die you'd forgotten about. It goes in the bag."
 		}
 		event_trunk_opt_2 = {
 			title: "An heirloom from a time gone by",
@@ -408,7 +408,7 @@
 					throw_error("No free slots", "Make space by destroying an item (right click)");
 				}
 			},
-			result: "Result"
+			result: "An old family heirloom, still humming with power. A new core for the workbench."
 		}
 		event_trunk_opt_3 = {
 			title: "A tonic you were saving for a special day",
@@ -464,7 +464,7 @@
 				oEventManager.event_selected = true;
 				
 			},
-			result: "Result"
+			result: "You rummage through the pile and pull out something that catches the light."
 		}
 		event_plunder_opt_2 = {
 			title: "Get the crew to find something for you",
@@ -486,7 +486,7 @@
 					throw_error("No free slots", "Make space by destroying an item (right click)");
 				}
 			},
-			result: "Result"
+			result: "The crew digs through the hoard and comes back with a rare core."
 		}
 	ds_list_add(event_plunder.options, event_plunder_opt_1);
 	ds_list_add(event_plunder.options, event_plunder_opt_2);
@@ -517,7 +517,7 @@
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "The shipwright fits the roundshot. The die hits harder now."
 		}
 		event_gunner_opt_2 = {
 			title: "Chainshot",
@@ -534,7 +534,7 @@
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "The chainshot steadies the die. Its rolls won't fall so low."
 		}
 		event_gunner_opt_3 = {
 			title: "Grapeshot",
@@ -551,7 +551,7 @@
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "The grapeshot scatters, and settles into the die as a new core."
 		}
 	ds_list_add(event_gunner.options, event_gunner_opt_1);
 	ds_list_add(event_gunner.options, event_gunner_opt_2);
@@ -599,7 +599,7 @@
 					throw_error("No shop relic found", "You can't take this option without a shop relic");
 				}
 			},
-			result: "Result"
+			result: "The albatross eats from your hand. You feel stronger for the kindness."
 		}
 		event_albatross_opt_2 = {
 			title: "Take the object hanging around its neck",
@@ -611,11 +611,11 @@
 				gain_keepsake(keepsake_options[| 0], global.rollable_keepsake_list);
 				ds_list_destroy(keepsake_options);
 				
-				gain_alignment(-4);
+				gain_alignment(-7); // matches the option text
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "You cut the cord and take the trinket. The bird screams as it leaves."
 		}
 		event_albatross_opt_3 = {
 			title: "Offer your blessings to the Albatross",
@@ -626,7 +626,7 @@
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "The albatross bows its head and takes off over the waves. Fortune follows it."
 		}
 	ds_list_add(event_albatross.options, event_albatross_opt_1);
 	ds_list_add(event_albatross.options, event_albatross_opt_2);
@@ -672,7 +672,7 @@
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "You pocket the penny. The water ripples, as if something below noticed."
 		}
 		event_wishing_well_opt_2 = {
 			title: "Make a wish",
@@ -711,7 +711,7 @@
 					throw_error("No coins found in bag", "You cannot take this option without at least 1 coin in your bag");
 				}
 			},
-			result: "Result"
+			result: "The coin drops into the dark. You feel luck turn in your favour."
 		}
 		event_wishing_well_opt_3 = {
 			title: "Leave it",
@@ -755,7 +755,7 @@
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "She takes your offering and slips back beneath the waves."
 		}
 		event_mermaid_opt_2 = {
 			title: "Listen to her song",
@@ -771,7 +771,7 @@
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "Her song washes over you, and your wounds close as you listen."
 		}
 		event_mermaid_opt_3 = {
 			title: "Venture into the depths with her",
@@ -803,7 +803,7 @@
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "You follow her down into the dark, and come back up changed, with something rare in hand."
 		}
 	ds_list_add(event_mermaid.options, event_mermaid_opt_1);
 	ds_list_add(event_mermaid.options, event_mermaid_opt_2);
@@ -851,7 +851,7 @@
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "The ghost ship sails straight through you. The crew won't talk about it, but the sea seems kinder now."
 		}
 		event_dutchman_opt_2 = {
 			title: "Steer to avoid the Dutchman",
@@ -880,7 +880,7 @@
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "You heave the wheel hard over as the Dutchman looms out of the fog."
 		}
 	ds_list_add(event_dutchman.options, event_dutchman_opt_1);
 	ds_list_add(event_dutchman.options, event_dutchman_opt_2);
@@ -914,7 +914,7 @@
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "You gather up what you can. One die rolls away for good."
 		}
 		event_rough_tides_opt_2 = {
 			title: "Ink has spilled over your parchment",
@@ -943,7 +943,7 @@
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "The ink dries into a new shape. The die is not what it was."
 		}
 		event_rough_tides_opt_3 = {
 			title: "Something on the floor",
@@ -962,7 +962,7 @@
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "Under the desk you find a twin of one of your dice."
 		}
 	ds_list_add(event_rough_tides.options, event_rough_tides_opt_1);
 	ds_list_add(event_rough_tides.options, event_rough_tides_opt_2);
@@ -989,7 +989,7 @@
 				oEventManager.event_selected = true;
 				
 			},
-			result: "Result"
+			result: "You follow the Plough. Your old loyalties fall away and fortune smiles on you."
 		}
 		event_constellation_opt_2 = {
 			title: "Cassiopeia",
@@ -1000,7 +1000,7 @@
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "You follow Cassiopeia into darker waters. Luck comes, at a price."
 		}
 		event_constellation_opt_3 = {
 			title: "Lyra",
@@ -1011,7 +1011,7 @@
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "You follow Lyra's light. The crew sleeps easy tonight."
 		}
 	ds_list_add(event_constellation.options, event_constellation_opt_1);
 	ds_list_add(event_constellation.options, event_constellation_opt_2);
@@ -1050,7 +1050,7 @@
 					throw_error("You already have every tool", "There are no more tools available to acquire"); 
 				}
 			},
-			result: "Result"
+			result: "The shipwright hammers the ingot into a new tool for the workbench."
 		}
 		event_shipwright_opt_2 = {
 			title: "Enhance your buckle",
@@ -1079,7 +1079,7 @@
 					oEventManager.event_selected = true;
 				}
 			},
-			result: "Result"
+			result: "The shipwright works the ingot into your belt. Room for more supplies."
 		}
 		event_shipwright_opt_3 = {
 			title: "Leave it",
@@ -1088,7 +1088,7 @@
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "You leave the ingot with the crew. They'll put it to good use."
 		}
 	ds_list_add(event_shipwright.options, event_shipwright_opt_1);
 	ds_list_add(event_shipwright.options, event_shipwright_opt_2);
@@ -1148,7 +1148,7 @@
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "You sing back at the sirens with all you've got."
 		}
 		event_sirens_opt_2 = {
 			title: "Block your ears",
@@ -1204,7 +1204,7 @@
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "You stuff your ears with wax and grip the wheel."
 		}
 		event_sirens_opt_3 = {
 			title: "Succumb to the song",
@@ -1215,7 +1215,7 @@
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
 			},
-			result: "Result"
+			result: "You let the song pull you in. The ship grinds onto the rocks near a trading post."
 		}
 	ds_list_add(event_sirens.options, event_sirens_opt_1);
 	ds_list_add(event_sirens.options, event_sirens_opt_2);
