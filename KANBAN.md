@@ -23,8 +23,10 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 5: dice text from data | B41, B42, T04 | `fix/dice-data` | In progress, **not yet play-tested**. Step 1 done: every die has a `keywords` list (saved with the bag). |
 
-Nothing is waiting for a playtest right now.
+**Batch 5 test list**
+- B42 Step 1 needs no test on its own: nothing reads the new keywords yet.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 

@@ -113,10 +113,15 @@ function generate_dice_bag() {
 	global.dice_all = make_die_struct(1, 4,"None", "All", "", "Multicolor die", "Counts as anything", "starter");
 	
 	global.dice_d2_none = make_die_struct(1, 2,"None", "None", "", "Generic.", "Coin. Upgrades any action type", "template");
+	global.dice_d2_none.keywords = ["Coin"];
 	global.dice_d2_atk = make_die_struct(1, 2,"ATK", "ATK", "", "Attack.", "Coin. Deals damage", "template");
+	global.dice_d2_atk.keywords = ["Coin"];
 	global.dice_d2_blk = make_die_struct(1, 2,"BLK", "BLK", "", "Block.", "Coin. Blocks damage", "template");
+	global.dice_d2_blk.keywords = ["Coin"];
 	global.dice_d2_intel = make_die_struct(1, 2,"INTEL", "INTEL", "", "Intel.", "Coin. Provides intel", "template");
+	global.dice_d2_intel.keywords = ["Coin"];
 	global.dice_d2_heal = make_die_struct(1, 2,"HEAL", "HEAL", "", "Heal.", "Coin. Heals", "template");
+	global.dice_d2_heal.keywords = ["Coin"];
 	
 	global.dice_d4_none = make_die_struct(1, 4,"None", "None", "", "Generic die", "Upgrades any action type", "starter");
 	ds_list_add(global.starter_dice_list, clone_die(global.dice_d4_none, ""));
@@ -151,6 +156,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_anchor.keywords = ["Stowaway"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_anchor, ""));
 	
 	// Slipstream Die: Play 1 extra dice next turn.
@@ -168,6 +174,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_slipstream.keywords = ["Stowaway"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_slipstream, ""));
 	
 	// Defensive Die: Coin. Favourite. Multitype: Can create HEAL and BLK slo
@@ -178,6 +185,7 @@ function generate_dice_bag() {
 		70,
 	    []
 	);
+	global.die_defensive.keywords = ["Coin", "Favourite", "Multitype"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_defensive, ""));
 	
 	// Anchor Die: Gain +3 block if not used
@@ -197,6 +205,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_tidebreaker.keywords = ["Followthrough"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_tidebreaker, ""));
 	
 	// Pretty penny
@@ -216,6 +225,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_power_penny.keywords = ["Coin"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_power_penny, ""));
 	
 	// Invisible Die
@@ -272,6 +282,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_kill_coin.keywords = ["Coin"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_kill_coin, ""));
 	
 	// Tidepusher die
@@ -291,6 +302,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_tidepusher.keywords = ["Exclusive"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_tidepusher, ""));
 	
 	// Bulwark die
@@ -318,6 +330,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_bulwark.keywords = ["Followthrough"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_bulwark, ""));
 	
 	// Bulwark die
@@ -416,6 +429,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_muzzle.keywords = ["Followthrough"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_muzzle, ""));
 	
 	// Bilge Die
@@ -439,6 +453,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_bilge.keywords = ["Sticky"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_bilge, ""));
 	
 	// Sticky Die
@@ -449,6 +464,7 @@ function generate_dice_bag() {
 		50,
 		[]
 	);
+	global.die_sticky.keywords = ["Sticky"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_sticky, ""));
 	
 	// Fogcaller Die
@@ -483,6 +499,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_fogcaller.keywords = ["Followthrough"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_fogcaller, ""));
 	
 	// Deepdiver Die
@@ -545,6 +562,7 @@ function generate_dice_bag() {
 		70,
 		[]
 	);
+	global.die_deflect.keywords = ["Multitype"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_deflect, ""));
 	
 	global.die_bolster = make_die_struct(
@@ -680,6 +698,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_lookout.keywords = ["Stowaway"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_lookout, ""));
 	
 	global.die_bouncing = make_die_struct(
@@ -735,6 +754,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_guerrilla_coin.keywords = ["Coin"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_guerrilla_coin, ""));
 	
 	global.die_radar = make_die_struct(
@@ -841,6 +861,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_ninja.keywords = ["Followthrough"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_ninja, ""));
 	
 	global.die_warrior = make_die_struct(
@@ -877,6 +898,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_assassin.keywords = ["Multitype"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_assassin, ""));
 	
 	global.die_last_stand = make_die_struct(
@@ -1001,6 +1023,7 @@ function make_die_struct(_amount, _value, _action, _poss, _perm, _name, _desc, _
 			roll_history: [],			
 		},
 		uid: global._die_uid_counter++, // random id assigned to this die
+		keywords: [], // keyword names this die has (Coin, Sticky...), the source of truth for keyword rules and icons
     };
 	
 }
@@ -1493,4 +1516,24 @@ function get_dice_index(_value) {
 	var _index = _value/2 - 1;
 
 	return _index;
+}
+
+/// @func die_has_keyword(_die, _keyword)
+/// @desc Does this die have the keyword? Reads the die's keywords list (case doesn't matter), never its description.
+function die_has_keyword(_die, _keyword) {
+	if (!is_struct(_die) || !variable_struct_exists(_die, "keywords")) return false;
+	var _wanted = string_lower(_keyword);
+	for (var i = 0; i < array_length(_die.keywords); i++) {
+		if (string_lower(_die.keywords[i]) == _wanted) return true;
+	}
+	return false;
+}
+
+/// @func die_add_keyword(_die, _keyword)
+/// @desc Give a die a keyword (an upgrade, Friendship Bracelet...). Adds it to the die's keywords and to the
+///       front of its description, so the rules, the icons and the text all agree.
+function die_add_keyword(_die, _keyword) {
+	if (die_has_keyword(_die, _keyword)) return;
+	array_insert(_die.keywords, 0, _keyword);
+	_die.description = _keyword + ". " + _die.description;
 }

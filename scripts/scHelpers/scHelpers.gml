@@ -1048,6 +1048,10 @@ function deserialise_die(_data) {
     _die.dice_value = _data.dice_value;
 	_die.distribution = _data.distribution;
 	_die.min_roll_bonus = _data.min_roll_bonus;
+	
+	// keywords and description can change during a run (an upgrade adding Coin, say); older saves don't have them
+	if (variable_struct_exists(_data, "keywords") && is_array(_data.keywords)) _die.keywords = _data.keywords;
+	if (variable_struct_exists(_data, "description") && is_string(_data.description)) _die.description = _data.description;
     
     return _die;
 }

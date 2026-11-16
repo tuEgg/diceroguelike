@@ -11,6 +11,8 @@ function save_game(_slot) {
             dice_value: _die.dice_value,
 			distribution: _die.distribution,
 			min_roll_bonus: _die.min_roll_bonus,
+			keywords: _die.keywords,		// keywords gained from upgrades must survive a reload
+			description: _die.description,
         });
     }
 	
