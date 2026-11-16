@@ -106,7 +106,6 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F31 Workbench: choose which dice to draw; Dye tool; multiple crafts per visit?
 - F32 Alignment/compass effects that actually matter mid-run
 - F33 Rarity on every item + rolled offers
-- F34 Tutorial path (fight 1 has no intel → intel die reward → fight 2 teaches intel)
 - F35 Pause menu (Resume / Settings / Main Menu)
 
 **Juice**
