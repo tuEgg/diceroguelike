@@ -1272,9 +1272,15 @@ function lose_run() {
 	if (instance_exists(oCombat)) {
 		oCombat.state = CombatState.PLAYER_DEAD;
 		var _names = [];
-		for (var i = 0; i < ds_list_size(oCombat.room_enemies); i++) {
-			var _e = oCombat.room_enemies[| i];
-			if (!_e.dead && !array_contains(_names, _e.name)) array_push(_names, _e.name);
+		var _list = oCombat.room_enemies;
+		if (ds_safe_exists(_list, ds_type_list)) {
+			for (var i = 0; i < ds_list_size(_list); i++) {
+				// a fight's enemy entry keeps its name in .data (add_enemy_to_fight)
+				var _e = _list[| i];
+				if (!is_struct(_e) || _e.dead || !is_struct(_e.data)) continue;
+				var _name = _e.data.name;
+				if (!array_contains(_names, _name)) array_push(_names, _name);
+			}
 		}
 		if (array_length(_names) > 0) {
 			_cause = "Sunk by ";

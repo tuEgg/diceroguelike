@@ -99,13 +99,5 @@ if (global.show_settings) {
 		exit_settings();
 		
 	}
-	
-	// draw quit game button
-	var quit_btn = draw_gui_button(settings_x + total_settings_w - cat_w/2, gui_h / 2 + total_settings_h / 2 - cat_h/2, cat_w, cat_h, quit_scale, "Main Menu", c_dkgray, ftBig, true, true, UI_LAYER.SETTINGS);
-	quit_scale = quit_btn.scale;
-	
-	if (quit_btn.click) {
-		room = rmMainMenu;
-		exit_settings();
-	}
+	// no Main Menu button: in a run the pause menu has Save and quit (F35)
 }
