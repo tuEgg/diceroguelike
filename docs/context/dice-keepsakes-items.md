@@ -11,6 +11,7 @@ All three are structs with effects that hook named events. Definitions are built
 - Keywords are read out of the description text (`string_has_keyword`): Exclusive, Sticky, Loose, Coin, Multitype, Followthrough, Favourite... This is fragile (KANBAN B41/B42).
 - `deal_single_die` draws from `global.dice_bag` (reshuffles the discard pile; the F1 menu can inject a die via `debug_take_next_die`). `oDice` is the in-hand instance (`struct` holds the die).
 - Permanence strings: `"base"` (stays a turn), `"temporary"`, `"temporary none"`, `"sticky"`.
+- Colour: `get_dice_color(die.possible_type)` (not `action_type`), so multitype dice blend their types' colours.
 
 ## Keepsakes: scKeepsakes
 

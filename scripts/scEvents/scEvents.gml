@@ -511,7 +511,7 @@
 				oRunManager.dice_selection_event = function(_die) {
 					_die.dice_value += 2;
 					
-					particle_emit(115, 1000, "rise", get_dice_color(_die.action_type), 30);
+					particle_emit(115, 1000, "rise", get_dice_color(_die.possible_type), 30);
 					spawn_floating_number("bag", 0, _die.name + " +2 max roll", _die.color, 0, -1, 0);
 				}
 				oEventManager.event_complete = 0;
@@ -528,7 +528,7 @@
 				oRunManager.dice_selection_event = function(_die) {
 					_die.min_roll_bonus += 1;
 					
-					particle_emit(115, 1000, "rise", get_dice_color(_die.action_type), 30);
+					particle_emit(115, 1000, "rise", get_dice_color(_die.possible_type), 30);
 					spawn_floating_number("bag", 0, _die.name + " +1 min roll", _die.color, 0, -1, 0);
 				}
 				oEventManager.event_complete = 1;
@@ -545,7 +545,7 @@
 				oRunManager.dice_selection_event = function(_die) {
 					_die.distribution = get_random_distribution();
 					
-					particle_emit(115, 1000, "rise", get_dice_color(_die.action_type), 30);
+					particle_emit(115, 1000, "rise", get_dice_color(_die.possible_type), 30);
 					spawn_floating_number("bag", 0, _die.name + " " + string(_die.distribution) + " core applied", _die.color, 0, -1, 0);
 				}
 				oEventManager.event_complete = 2;
@@ -746,7 +746,7 @@
 				oRunManager.dice_selection_event = function(_die) {
 					var die_index = ds_list_find_index(global.dice_bag, _die);
 						
-					particle_emit(115, 1000, "burst", get_dice_color(global.dice_bag[| die_index].action_type), 30);
+					particle_emit(115, 1000, "burst", get_dice_color(global.dice_bag[| die_index].possible_type), 30);
 					spawn_floating_number("bag", 0, _die.name + " removed", _die.color, 0, -1, 0);
 					
 					ds_list_delete(global.dice_bag, die_index);
@@ -869,7 +869,7 @@
 				} else {
 					var rand_die_index = irandom(ds_list_size(global.dice_bag) - 1);
 					
-					particle_emit(115, 1000, "burst", get_dice_color(global.dice_bag[| rand_die_index].action_type), 30);
+					particle_emit(115, 1000, "burst", get_dice_color(global.dice_bag[| rand_die_index].possible_type), 30);
 					spawn_floating_number("bag", 0, global.dice_bag[| rand_die_index].name + " removed", global.dice_bag[| rand_die_index].color, 0, -1, 0);
 					
 					ds_list_delete(global.dice_bag, rand_die_index);
@@ -905,7 +905,7 @@
 				oRunManager.dice_selection_event = function(_die) {
 					var die_index = ds_list_find_index(global.dice_bag, _die);
 						
-					particle_emit(115, 1000, "burst", get_dice_color(global.dice_bag[| die_index].action_type), 30);
+					particle_emit(115, 1000, "burst", get_dice_color(global.dice_bag[| die_index].possible_type), 30);
 					spawn_floating_number("bag", 0, global.dice_bag[| die_index].name + " removed", global.dice_bag[| die_index].color, 0, -1, 0);
 					
 					ds_list_delete(global.dice_bag, die_index);
@@ -925,7 +925,7 @@
 				oRunManager.dice_selection_event = function(_die) {
 					var die_index = ds_list_find_index(global.dice_bag, _die);
 						
-					particle_emit(115, 1000, "burst", get_dice_color(_die.action_type), 30);
+					particle_emit(115, 1000, "burst", get_dice_color(_die.possible_type), 30);
 					
 					// Generate a random dice
 					var dice_options = ds_list_create();
@@ -953,7 +953,7 @@
 				oRunManager.dice_selection_message = "Choose a die to duplicate";
 				oRunManager.dice_selection_event = function(_die) {
 						
-					particle_emit(115, 1000, "burst", get_dice_color(_die.action_type), 30);
+					particle_emit(115, 1000, "burst", get_dice_color(_die.possible_type), 30);
 					spawn_floating_number("bag", 0, _die.name + " duplicated", _die.color, 0, -1, 0);
 					
 					ds_list_add(global.dice_bag, clone_die(_die, ""));

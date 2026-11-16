@@ -271,7 +271,7 @@ function define_items() {
 						dice.struct.reset_at_end_combat = function(_dice) {
 							_dice.dice_value -= 4;
 						}
-						particle_emit( dice.x, dice.y, "burst", get_dice_color((dice.action_type)));
+						particle_emit( dice.x, dice.y, "burst", get_dice_color(dice.possible_type));
 					}
 				}
 			}
@@ -371,7 +371,7 @@ function define_items() {
 					ds_list_delete(global.dice_bag, ds_list_find_index(global.dice_bag, _dice));
 				}
 						
-				particle_emit( die_inst.x, die_inst.y, "burst", get_dice_color((die_inst.action_type)));
+				particle_emit( die_inst.x, die_inst.y, "burst", get_dice_color(die_inst.possible_type));
 			}
 		},
 		price: 40

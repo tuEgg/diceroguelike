@@ -707,7 +707,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 			duplicate_die: false
 		};
 		
-		particle_emit(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", get_dice_color(die.action_type), 30);
+		particle_emit(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", get_dice_color(die.struct.possible_type), 30);
 	
 		combat_trigger_effects("on_dice_played_to_slot", played_data);
 		
@@ -1387,7 +1387,7 @@ function discard_dice_in_play(_all = false) {
 			}
 
 		    // Pick color by action type
-		    var col = get_dice_color(d_struct.action_type);
+		    var col = get_dice_color(d_struct.possible_type);
 
 		    // --- Spawn a particle before destroying the dice instance ---
 		    var p = instance_create_layer(start_x, start_y, "Instances", oDiceParticle);

@@ -458,6 +458,9 @@ for (var i = 0; i < aq_list_size; i++) {
 				case "INTEL": _col = make_color_rgb(210, 210, 0); break;
 	            default:     _col = make_color_rgb(160, 160, 160); break; // grey (generic)
 	        }
+			
+			// multitype dice blend their types' colours, like they do everywhere else
+			if (string_pos(" ", die_struct.possible_type) > 0) _col = get_dice_color(die_struct.possible_type);
 
 	        draw_set_alpha(1.0);
 

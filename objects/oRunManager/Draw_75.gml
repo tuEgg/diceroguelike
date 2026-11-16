@@ -43,7 +43,7 @@ if (show_dice_list) {
 		}
 		
 		// Draw dice sprite
-		draw_sprite_ext(sDice, get_dice_index(dice.dice_value), dice_x, dice_y, row_spacing/80, row_spacing/80, 0, get_dice_color(dice.action_type), 1.0);
+		draw_sprite_ext(sDice, get_dice_index(dice.dice_value), dice_x, dice_y, row_spacing/80, row_spacing/80, 0, get_dice_color(dice.possible_type), 1.0);
 		
 		// Draw dice keywords
 		draw_dice_keywords(dice, dice_x, dice_y, 1);

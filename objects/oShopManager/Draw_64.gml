@@ -75,7 +75,7 @@ for (var d = 0; d < ds_list_size(shop_dice_options); d++) {
 		draw_set_alpha(0.4);
 		draw_set_color(c_black);
 		draw_ellipse(dx - sprite_get_width(sDice)/2, dy + sprite_get_height(sDice)/2 - 15, dx + sprite_get_width(sDice)/2, dy + sprite_get_height(sDice)/2 - 3, false);
-		draw_sprite_ext(sDice, get_dice_index(dice.dice_value), dx, dy, shop_dice_scale[| d], shop_dice_scale[| d], 0, get_dice_color(dice.action_type), 1.0);
+		draw_sprite_ext(sDice, get_dice_index(dice.dice_value), dx, dy, shop_dice_scale[| d], shop_dice_scale[| d], 0, get_dice_color(dice.possible_type), 1.0);
 		draw_dice_keywords(dice, dx, dy, shop_dice_scale[| d], 1.0);
 	
 		// Draw cost

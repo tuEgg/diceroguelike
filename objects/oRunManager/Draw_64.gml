@@ -746,8 +746,8 @@ if (show_bag_contents) {
 			if (dice.selected) draw_set_color(c_green);
 			draw_roundrect(dice_x - box_width/2, dice_y - box_height/2, dice_x + box_width/2, dice_y + box_height/2, false);
 		
-			// Draw dice sprite - need to add blended draws here for multitype die
-			draw_sprite_ext(sDice, get_dice_index(dice.dice_value), dice_x - box_width/3.75, dice_y - box_height/3.75, 1.0, 1.0, 0, get_dice_color(dice.action_type), dice_alpha);
+			// Draw dice sprite (multitype dice blend their colours)
+			draw_sprite_ext(sDice, get_dice_index(dice.dice_value), dice_x - box_width/3.75, dice_y - box_height/3.75, 1.0, 1.0, 0, get_dice_color(dice.possible_type), dice_alpha);
 		
 			// Draw dice keywords
 			draw_dice_keywords(dice, dice_x - box_width/3.75, dice_y - box_height/3.75, 1, dice_alpha);

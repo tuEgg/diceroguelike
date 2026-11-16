@@ -111,7 +111,7 @@ if (deleting_die > 0) {
 			with (die) {
 				if (distance_to_point(xx, yy) < 20) {
 					dice_dragged = true;
-					particle_emit(xx, yy, "burst", get_dice_color(die.action_type));
+					particle_emit(xx, yy, "burst", get_dice_color(die.possible_type));
 					instance_destroy();
 				}
 			}
