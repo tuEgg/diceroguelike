@@ -522,176 +522,110 @@ function spawn_floating_number(_target, _amount, _txt, _inst_color, _num_sign, _
 /// @param die_id  The instance ID of the dropped die
 /// @param slot_index  The index of the hovered slot
 
+/// @func slot_placement_check(_die_struct, _slot, _slot_i)
+/// @desc The one placement rule. Says whether this die can go in this slot right now, what placing it would do,
+///       and if not, why (shown to the player). Used by the slot highlight, the hover hint and apply_dice_to_slot.
+/// @returns {struct} { ok, action, reason }
+///          action: "claim" (an empty slot takes the die's type), "replace" (an Exclusive die clears a slot of
+///          another type and claims it), "add" (joins the slot)
+function slot_placement_check(_die_struct, _slot, _slot_i) {
+	var _no = function(_reason) { return { ok: false, action: "", reason: _reason }; };
+	var _yes = function(_action) { return { ok: true, action: _action, reason: "" }; };
+
+	// coins are free to play; everything else needs a play left this turn
+	var _is_coin = (_die_struct.dice_value == 2);
+	if (dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(_die_struct, "coin")) {
+		return _no("No plays left this turn. Coins are still free to play.");
+	}
+
+	var _stats = get_slot_stats(_slot, _slot_i);
+	var _slot_empty = (_slot.possible_type == "None");
+	var _slot_all = (_slot.possible_type == "All");
+	var _die_neutral = (_die_struct.possible_type == "None");
+	var _die_exclusive = die_has_keyword(_die_struct, "Exclusive");
+	var _slot_exclusive = false;
+	for (var i = 0; i < ds_list_size(_slot.dice_list); i++) {
+		if (die_has_keyword(_slot.dice_list[| i], "Exclusive")) _slot_exclusive = true;
+	}
+	var _big_enough = (_die_struct.dice_value >= _stats.highest_value_base);
+	var _size_reason = "Needs a d" + string(_stats.highest_value_base) + " or bigger to join this slot.";
+
+	// does the die share a type with the slot?
+	var _matches = false;
+	var _die_types = string_split(_die_struct.possible_type, " ");
+	for (var n = 0; n < array_length(_die_types); n++) {
+		if (string_pos(_die_types[n], _slot.possible_type)) _matches = true;
+	}
+
+	if (!_die_neutral) {
+		if (_slot_empty) return _yes("claim");
+		if (_slot_all) return _no("Coloured dice can't go in an 'All' slot.");
+		if (_matches) {
+			if (_die_exclusive) return _no("Exclusive dice need a slot to themselves.");
+			if (_slot_exclusive) return _no("This slot holds an Exclusive die, nothing can join it.");
+			if (_big_enough || _is_coin) return _yes("add");
+			return _no(_size_reason);
+		}
+		if (_die_exclusive) return _yes("replace");
+		return _no("This die's type doesn't match this slot.");
+	}
+
+	// neutral dice join slots that already have a type, they can't start one
+	if (_slot_all) return _yes("add");
+	if (_slot_empty) return _no("Neutral dice can't start a slot. Play a coloured die here first.");
+	if (_die_exclusive) return _no("Exclusive dice need a slot to themselves.");
+	if (_slot_exclusive) return _no("This slot holds an Exclusive die, nothing can join it.");
+	if (_big_enough) return _yes("add");
+	return _no(_size_reason);
+}
+
 function apply_dice_to_slot(_die, _slot_i) {
     var die  = _die;
     var slot = action_queue[| _slot_i];
-	var stats = get_slot_stats(slot, _slot_i);
 
-    var reject_dice = false;
+	// the same rule the highlight and hover hint use
+	var check = slot_placement_check(die.struct, slot, _slot_i);
+	var reject_dice = !check.ok;
 
-    var is_queue_all  = (slot.possible_type == "All");	// does the slot have "All types" as its type
-    var is_queue_none = (slot.possible_type == "None"); // does the slot have no type set
-    var is_dice_none  = (die.struct.possible_type == "None");
-	var is_dice_exclusive = die_has_keyword(die.struct, "Exclusive");
-	var is_slot_exclusive = false;
-	if (ds_list_size(slot.dice_list) > 0) {
-		for (var i = 0; i < ds_list_size(slot.dice_list); i++) {
-			if (die_has_keyword(slot.dice_list[| i], "Exclusive")) {
-				is_slot_exclusive = true;
-				break;
-			}
-			
-		}
-	}
-	var is_dice_coin = false;
-	if (die.struct.dice_value == 2) is_dice_coin = true;
-	var dice_keyword_list = string_split(die.struct.possible_type, " ");
-	var dice_has_match_with_slot = false;
-	var dice_has_more_than_one_type = false;
-	
-	// Find current index in opts
-	for (var n = 0; n < array_length(dice_keyword_list); n++) {
-	    if (string_pos(dice_keyword_list[n], slot.possible_type)) {
-	        dice_has_match_with_slot = true;
-	        break;
-	    }
-	}
-	
-	if (dice_has_match_with_slot && array_length(dice_keyword_list) > 1) {
-		dice_has_more_than_one_type = true;
-	}
-	
-	if (dice_played + 1 > dice_allowed_per_turn) {
-		if (!die_has_keyword(die.struct, "coin")) {
-			reject_dice = true;	
-			dice_played_scale = 1.4;
-			dice_played_color = c_red;
-			return;
-		}
+	if (!check.ok && dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(die.struct, "coin")) {
+		// out of plays: flash the dice-played counter
+		dice_played_scale = 1.4;
+		dice_played_color = c_red;
+		return;
 	}
 
-    //-----------------------------------------
-    // CASE 1: Dice has a specific colour/type
-    //-----------------------------------------
-	
-	if (!is_dice_none) {
-		// If played to an empty slot
-	    if (is_queue_none) {
-	        // --- Empty slot, becomes colored slot
-			slot.current_action_type = die.struct.action_type;
-	        slot.possible_type = die.struct.possible_type;
+	if (check.ok) {
+		var sticky = die_has_keyword(die.struct, "sticky");
 
-	        var die_copy = clone_die(die.struct, "base"); // coloured dice added to empty slots become base die
-	        ds_list_add(slot.dice_list, die_copy);
-			
-			//var history_copy = clone_die(die.struct, "");
-			//ds_list_add(global.sacrifice_history, history_copy ); // persistent record
-	    }
-		// If played to a slot with all types - I think this is deprecated, probably safe to remove, need to check
-	    else if (is_queue_all) {
-	        reject_dice = true;
-	    }
-		// If played dice has a match with a slot
-	    else if (dice_has_match_with_slot) {
-			if (is_dice_exclusive || is_slot_exclusive) {
-				reject_dice = true;
-			} else {
-		        // Only accept dice as strong or stronger
-		        if (die.struct.dice_value >= stats.highest_value_base || is_dice_coin) {
-		            var die_copy = clone_die(die.struct, die_has_keyword(die.struct, "sticky") ? "sticky" : "base");
-		            ds_list_add(slot.dice_list, die_copy);
-					
-					//var history_copy = clone_die(die.struct, "");
-					//ds_list_add(global.sacrifice_history, history_copy); // persistent record
-				
-					// Add possible type if this slot does not have it
-					if (dice_has_more_than_one_type) {
-					
-						// only add new unique types
-						var parts = string_split(die.possible_type, " ");
-						var total = array_length(parts);
-						//show_debug_message("This slot has types "+string(slot.possible_type));
+		switch (check.action) {
+			case "replace":
+				// an Exclusive die clears out a slot of another type, then claims it
+				eject_dice_in_slot(oCombat.action_queue[| _slot_i], oCombat.slot_positions[| _slot_i], true);
+			// fall through to claim
+			case "claim":
+				// an empty slot becomes the die's type, and the die stays a turn (base)
+				slot.current_action_type = die.struct.action_type;
+				slot.possible_type = die.struct.possible_type;
+				ds_list_add(slot.dice_list, clone_die(die.struct, "base"));
+			break;
 
-						for (var i = 0; i < total; i++) {
-							if (string_pos(string(parts[i]), slot.possible_type) > 0) {
-								//show_debug_message("This slot already has "+string(parts[i]));
-							} else {
-								slot.possible_type = string_concat(slot.possible_type, " ", parts[i]);
-								//show_debug_message("This slot doesn't have "+string(parts[i])+" so we added it.");
-							}
+			case "add":
+				// coloured dice stay a turn (base), neutral dice leave at the end of this one (temporary)
+				var permanence = (die.struct.possible_type == "None") ? "temporary" : "base";
+				if (sticky) permanence = "sticky";
+				ds_list_add(slot.dice_list, clone_die(die.struct, permanence));
+
+				// a multitype die adds any types the slot doesn't have yet
+				var parts = string_split(die.struct.possible_type, " ");
+				if (array_length(parts) > 1) {
+					for (var i = 0; i < array_length(parts); i++) {
+						if (string_pos(string(parts[i]), slot.possible_type) == 0) {
+							slot.possible_type = string_concat(slot.possible_type, " ", parts[i]);
 						}
 					}
-
-		            stats.amount += die_copy.dice_amount;
-		            stats.highest_value = max(die_copy.dice_value, stats.highest_value);
-		            //show_debug_message("Adding coloured dice to coloured slot.");
-		        } else {
-		            reject_dice = true;
-		        }
-			}
-	    }
-		// Reject, unless it's exclusive
-	    else {
-			if (is_dice_exclusive) {
-				eject_dice_in_slot(oCombat.action_queue[| _slot_i], oCombat.slot_positions[| _slot_i], true);	
-				
-				// --- Empty slot, becomes colored slot
-				slot.current_action_type = die.struct.action_type;
-		        slot.possible_type = die.struct.possible_type;
-
-		        var die_copy = clone_die(die.struct, "base"); // coloured dice added to empty slots become base die
-		        ds_list_add(slot.dice_list, die_copy);
-			
-				//var history_copy = clone_die(die.struct, "");
-				//ds_list_add(global.sacrifice_history, history_copy ); // persistent record
-			} else {
-				reject_dice = true;
-			}
-	    }
-	}
-
-	//-----------------------------------------
-	// CASE 2: Dice is generic (no color)
-	//-----------------------------------------
-	else {
-		// If queue is all types, also deprecated I believe.
-	    if (is_queue_all) {
-			var sticky = die_has_keyword(die.struct, "sticky");
-	        var die_copy = clone_die(die.struct, sticky ? "sticky" : "temporary");
-	        ds_list_add(slot.dice_list, die_copy);
-			
-			if (sticky) {
-				//var history_copy = clone_die(die_copy.struct, "");
-				//ds_list_add(global.sacrifice_history, history_copy ); // persistent record
-			}
-
-	        stats.amount += die_copy.dice_amount;
-	        stats.highest_value   = max(die_copy.dice_value, stats.highest_value);
-	    }
-		// If the slot is not empty
-	    else if (!is_queue_none) {
-			if (is_dice_exclusive || is_slot_exclusive) {
-				reject_dice = true;
-			} else {
-		        if (die.struct.dice_value >= stats.highest_value_base) {
-					var sticky = die_has_keyword(die.struct, "sticky");
-		            var die_copy = clone_die(die.struct, sticky ? "sticky" : "temporary");
-		            ds_list_add(slot.dice_list, die_copy);
-					
-					if (sticky) {
-						//var history_copy = clone_die(die_copy.struct, "");
-						//ds_list_add(global.sacrifice_history, history_copy ); // persistent record
-					}
-
-		            stats.amount += die_copy.dice_amount;
-		        } else {
-		            reject_dice = true;
-		        }
-			}
-	    }
-	    else {
-	        reject_dice = true;
-	    }
+				}
+			break;
+		}
 	}
 
     //-----------------------------------------

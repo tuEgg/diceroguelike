@@ -23,8 +23,10 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 6: placement rule and feedback | B35, T08, F12 | `fix/placement-rule` | In progress, **not yet play-tested**. T08 done: one placement rule (`slot_placement_check`) that the real placement uses. |
 
-Nothing is waiting for a playtest right now.
+**Batch 6 test list**
+- T08 Placing works as before: coloured dice start empty slots, matching dice of the same size or bigger join a slot, coins join any matching slot, neutral dice join slots that have a type, an Exclusive die clears a slot of another type and takes it, and Exclusive dice never share a slot. After your plays run out only coins can be placed, and the dice-played counter flashes red.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
