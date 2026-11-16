@@ -32,7 +32,8 @@ var new_slot1 = {
     current_action_type: "None",			// the slot's selected type
     possible_type: "None",					// allowed types,
 	bonus_amount: 0,						// total of the bonuses below, the "+2" in "1d4+2" (read only, see slot_add_bonus)
-	bonuses: [],							// { source, amount, turns } from keepsakes and items
+	bonuses: [],							// { source, amount, turns, scope } from keepsakes and items
+	first_die_bonus: 0,						// total of the bonuses that only apply to the first die (read only)
 };
 
 //ds_list_add(new_slot1.dice_list, clone_die(global.dice_d4_none, "base"));

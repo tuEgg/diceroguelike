@@ -194,7 +194,7 @@ function define_items() {
 			},
 			modify: function(_context) {
 				// +2 on every roll in this slot until the end of this round
-				slot_add_bonus(_context._slot, "riggers_tonic", 2, 1);
+				slot_add_bonus(_context._slot, "Rigger's Tonic", 2, 1);
 			}
 		},
 		price: 25

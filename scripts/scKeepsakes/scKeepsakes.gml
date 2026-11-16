@@ -339,7 +339,7 @@ function define_keepsakes() {
 			
 			if (event == "on_player_debuffed") {
 				if (!self.state.triggered) {
-					slot_add_bonus(oCombat.action_queue[| 0], "bandage", 1, -1); // rest of the fight, stacks
+					slot_add_bonus(oCombat.action_queue[| 0], "Bandage", 1, -1); // rest of the fight, stacks
 				
 					trigger_keepsake_visual();
 					//self.state.triggered = true; // uncomment this if we want it to only trigger the first time we are debuffed
@@ -363,7 +363,7 @@ function define_keepsakes() {
 				for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
 					var _slot = oCombat.action_queue[| i];
 					var _single = string_pos(" ", _slot.possible_type) == 0 && _slot.possible_type != "None" && _slot.possible_type != "";
-					slot_set_bonus(_slot, "single_focus", _single ? 1 : 0);
+					slot_set_bonus(_slot, "Single Focus", _single ? 1 : 0);
 				}
 	        }
 	    }
@@ -385,7 +385,7 @@ function define_keepsakes() {
 				for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
 					var _slot = oCombat.action_queue[| i];
 					_streak = (_slot.current_action_type == _last_type && _last_type != "None") ? _streak + 1 : 0;
-					slot_set_bonus(_slot, "repeater_rail", _streak);
+					slot_set_bonus(_slot, "Repeater Rail", _streak, "first"); // only the slot's first die, as its description says
 					_last_type = _slot.current_action_type;
 				}
 			}

@@ -242,6 +242,11 @@ for (var i = 0; i < aq_list_size; i++) {
 		draw_set_font(ftDefault);
 	    draw_outline_text( "(" + string(_low_roll) + "-" + string(_high_roll) + ")", c_black, c_white, 2, draw_x + draw_w / 2, draw_y + draw_h - 35, 1, 1, 0);
 	}
+
+	// where the slot's bonuses come from
+	if (hover && array_length(action_queue[| i].bonuses) > 0 && !show_rewards) {
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Slot bonuses", slot_bonus_breakdown(action_queue[| i]));
+	}
 	
 	// Change action style based on possibilities
 	if (hover && mouse_check_button_pressed(mb_right) && state == CombatState.PLAYER_INPUT) {
@@ -325,13 +330,15 @@ for (var i = 0; i < aq_list_size; i++) {
 			}
 		} else {
 			
+			// the whole slot's flat bonus, like dice notation: 3 dice at +1 each read "3d4+3"
+			var _slot_bonus = slot_total_bonus(action_queue[| i], slot_amount);
 			var _bonus = "";
-			switch (sign(action_queue[| i].bonus_amount)) {
+			switch (sign(_slot_bonus)) {
 				case 1:
-				_bonus = "+" + string(action_queue[| i].bonus_amount);
+				_bonus = "+" + string(_slot_bonus);
 				break;
 				case -1:
-				_bonus = string(action_queue[| i].bonus_amount);
+				_bonus = string(_slot_bonus);
 				break;
 			}
 			

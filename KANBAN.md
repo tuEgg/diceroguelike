@@ -23,8 +23,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| Slot bonuses | B29 | `fix/b29-slot-bonuses` | Fixed in code, **not yet play-tested**. |
-| B75 | **Needs Jared's call.** A slot's flat bonus is added to *every die* in the slot when it rolls (process_action), but the slot tooltip and range show it once ("3d4+1" really rolls 3d4+3). Decide: bonus per die (and fix the display) or once per slot (and fix the roll). Rigger's Tonic's text ("+2 on all rolls") reads as per die. | S [C] |
+| Slot bonuses | B29, B75 | `fix/b29-slot-bonuses` | Fixed in code, **not yet play-tested**. Decided 2026-11-17: a bonus applies to every die unless its description says otherwise; Repeater Rail is first die only. Slot labels show the true total and hovering a slot lists each bonus. |
+| B75 | **Decided 2026-11-17: every die unless the description says otherwise.** A slot's flat bonus is added to *every die* in the slot when it rolls (process_action), but the slot tooltip and range show it once ("3d4+1" really rolls 3d4+3). Decide: bonus per die (and fix the display) or once per slot (and fix the roll). Rigger's Tonic's text ("+2 on all rolls") reads as per die. | S [C] |
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -129,6 +129,9 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F33 Rarity on every item + rolled offers
 - F34 Tutorial path (fight 1 has no intel → intel die reward → fight 2 teaches intel)
 - F35 Pause menu (Resume / Settings / Main Menu)
+
+**Combat clarity (from B75)**
+- F16 Show slot bonuses on the dice themselves: e.g. a small "+1" badge on each die in a slot, and on the first die only for Repeater Rail. Today the slot label shows the total and hovering lists each source.
 
 **Juice**
 - F40 Individual Balatro-style trigger animations per die

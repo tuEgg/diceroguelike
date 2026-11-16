@@ -17,6 +17,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	var slot_bonus_amount = _bonus_amount;
 	var _keepsake_dice_bonus_amount = 0;
 	var enemy_bonus_used_once = false;
+	var first_die_bonus_used = false;
 	
 	repeat (_dice_amount) {
 		// Roll starts at default range
@@ -129,6 +130,12 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					}
 					
 					final_roll = ctx._d_amount + slot_bonus_amount + _keepsake_dice_bonus_amount;
+
+					// bonuses that only apply to the first die in the slot (Repeater Rail)
+					if (_dice_list_index == 0 && !first_die_bonus_used && _slot_number >= 0 && _slot_number < ds_list_size(oCombat.action_queue)) {
+						final_roll += oCombat.action_queue[| _slot_number].first_die_bonus;
+						first_die_bonus_used = true;
+					}
 					
 					// die statistics
 					_slot_die.statistics.times_played_this_combat++;
@@ -920,7 +927,8 @@ function sacrifice_die(_die) {
 	    current_action_type: starting_action_type,
 	    possible_type: possible_type_str,
 		bonus_amount: 0,						// total of the bonuses below, the "+2" in "1d4+2" (read only, see slot_add_bonus)
-		bonuses: [],							// { source, amount, turns } from keepsakes and items
+		bonuses: [],							// { source, amount, turns, scope } from keepsakes and items
+		first_die_bonus: 0,						// total of the bonuses that only apply to the first die (read only)
 	};
 
 
@@ -1003,8 +1011,8 @@ function get_slot_stats(_slot, _num) {
     }
 
     return {
-        low_roll: low + _slot.bonus_amount, // used for displaying the minimum roll of this slot
-        high_roll: high + _slot.bonus_amount, // used for displaying the maximum roll of this slot
+        low_roll: low + slot_total_bonus(_slot, total_amount), // used for displaying the minimum roll of this slot
+        high_roll: high + slot_total_bonus(_slot, total_amount), // used for displaying the maximum roll of this slot
         amount: total_amount, // used for displaying the number of dice in this slot
         highest_value: _highest_value, // used for displaying the highest value dice in this slot -- we need to fix for 1d6 + 1d4, right now it shows as 2d6
 		highest_value_base: _highest_value_base,
@@ -1638,31 +1646,35 @@ function define_combat_ui_sizes() {
 
 // =====================================================================
 // SLOT BONUSES
-// A slot's flat bonus (the "+2" in "1d4+2") is made of separate bonuses, each tagged with where it came
-// from, so keepsakes and items can't overwrite or undo each other. slot.bonus_amount is their total,
-// kept up to date by these functions, and is what the rest of the game reads. Never write it directly.
+// A slot's flat bonuses are kept as separate entries, each tagged with where it came from, so keepsakes
+// and items can't overwrite or undo each other. A bonus applies to every die in the slot ("each") unless
+// its description says otherwise ("first", only the first die, like Repeater Rail).
+// slot.bonus_amount is the "each" total and slot.first_die_bonus the "first" total, kept up to date by
+// these functions and read by the rest of the game. Never write them directly.
 // =====================================================================
 
 /// @desc Add a bonus to a slot. Bonuses from the same source with the same lifetime stack into one.
-/// @param _turns  rounds it lasts (1 = until the end of this round), or -1 for the rest of the fight
-function slot_add_bonus(_slot, _source, _amount, _turns) {
+/// @param _source  shown to the player in the slot's bonus breakdown, so use the keepsake or item name
+/// @param _turns   rounds it lasts (1 = until the end of this round), or -1 for the rest of the fight
+/// @param _scope   "each" (every die in the slot) or "first" (only the first die)
+function slot_add_bonus(_slot, _source, _amount, _turns, _scope = "each") {
 	for (var i = 0; i < array_length(_slot.bonuses); i++) {
 		var _bonus = _slot.bonuses[i];
-		if (_bonus.source == _source && _bonus.turns == _turns) {
+		if (_bonus.source == _source && _bonus.turns == _turns && _bonus.scope == _scope) {
 			_bonus.amount += _amount;
 			slot_refresh_bonus(_slot);
 			return;
 		}
 	}
-	array_push(_slot.bonuses, { source: _source, amount: _amount, turns: _turns });
+	array_push(_slot.bonuses, { source: _source, amount: _amount, turns: _turns, scope: _scope });
 	slot_refresh_bonus(_slot);
 }
 
 /// @desc Set a source's bonus to exactly this amount, replacing what that source gave before.
 ///       For bonuses that depend on how the queue looks right now (Single Focus, Repeater Rail).
-function slot_set_bonus(_slot, _source, _amount) {
+function slot_set_bonus(_slot, _source, _amount, _scope = "each") {
 	slot_remove_bonus(_slot, _source);
-	if (_amount != 0) array_push(_slot.bonuses, { source: _source, amount: _amount, turns: -1 });
+	if (_amount != 0) array_push(_slot.bonuses, { source: _source, amount: _amount, turns: -1, scope: _scope });
 	slot_refresh_bonus(_slot);
 }
 
@@ -1685,9 +1697,32 @@ function slot_tick_bonuses(_slot) {
 	slot_refresh_bonus(_slot);
 }
 
-/// @desc Recalculate slot.bonus_amount from its bonuses.
+/// @desc Recalculate slot.bonus_amount (every die) and slot.first_die_bonus (first die only) from its bonuses.
 function slot_refresh_bonus(_slot) {
-	var _total = 0;
-	for (var i = 0; i < array_length(_slot.bonuses); i++) _total += _slot.bonuses[i].amount;
-	_slot.bonus_amount = _total;
+	var _each = 0;
+	var _first = 0;
+	for (var i = 0; i < array_length(_slot.bonuses); i++) {
+		if (_slot.bonuses[i].scope == "first") _first += _slot.bonuses[i].amount; else _each += _slot.bonuses[i].amount;
+	}
+	_slot.bonus_amount = _each;
+	_slot.first_die_bonus = _first;
+}
+
+/// @desc The slot's bonuses as text for its hover box, one line per source.
+function slot_bonus_breakdown(_slot) {
+	var _text = "";
+	for (var i = 0; i < array_length(_slot.bonuses); i++) {
+		var _bonus = _slot.bonuses[i];
+		var _sign = _bonus.amount >= 0 ? "+" : "";
+		var _line = _bonus.source + ": " + _sign + string(_bonus.amount) + (_bonus.scope == "first" ? " to the first die" : " to each die");
+		if (_bonus.turns > 0) _line += ", this round";
+		_text += (_text == "" ? "" : "\n") + _line;
+	}
+	return _text;
+}
+
+/// @desc The slot's whole flat bonus for a roll of this many dice: every-die bonuses once per die, plus first-die ones once.
+function slot_total_bonus(_slot, _dice_count) {
+	if (_dice_count <= 0) return 0;
+	return _slot.bonus_amount * _dice_count + _slot.first_die_bonus;
 }
