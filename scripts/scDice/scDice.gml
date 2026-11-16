@@ -525,6 +525,8 @@ function generate_dice_bag() {
 	        {
 	            trigger: "on_dice_played_to_slot",
 	            modify: function(_context) {
+					// only when this die is the one played, not every die played after it while it's in a slot
+					if (_context._d_struct.uid != _context._die_struct_source.uid) return;
 					with (oCombat) {
 						_context.dice_object.can_discard = false;
 						discard_dice_in_play();

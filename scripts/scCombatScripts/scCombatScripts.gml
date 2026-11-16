@@ -2008,7 +2008,7 @@ function tips_list() {
 		},
 		{
 			id: "workbench", room: rmWorkbench, target: "",
-			text: "Lay a die in the first slot and drag a core from the top bar into the middle one. Then open your toolbag and drag the Drill onto Craft to set the core into the die. The Hammer and Cutters can be bought in shops. One craft per visit.",
+			text: "Put a die in the first slot and a core in the middle. Drag the Drill onto Craft to set the core into the die. One craft per visit.",
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",

@@ -24,7 +24,7 @@
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
 | 8: web build | H07, H08, F19, F51, B85, B86, F04 | `feature/web-build` | **Ready to test.** Browser fixes (16:9, dark page behind it), sounds compressed to Ogg (H08), Outguess cut (F19). Insight icons without paper (F51). Tooltips above the event window (B86). Second-fight black screen fixed (B85). New runs start by choosing a die and core pair again (F04). Then follow `docs/web-build.md` and `docs/itch-launch.md`. |
-| 9: tutorial | F54, B69, B87, B88, B89, B90, F55 | `feature/tutorial` (from `feature/web-build`) | **Ready to test.** Part 1: progress.json, intro once ever, Settings > Gameplay > Tutorial next run. Part 2: map notes for the first voyage and a two-turn guided first fight. Fixes: discard bag click spot (B87), End Turn outline (B88). Part 3: one-time tips the first time things come up. Then: insight panel over the notes (B89), cores drop into the workbench's middle slot (B90), runs start with only the Drill (F55). |
+| 9: tutorial | F54, B69, B87, B88, B89, B90, F55, B91 | `feature/tutorial` (from `feature/web-build`) | **Ready to test.** Part 1: progress.json, intro once ever, Settings > Gameplay > Tutorial next run. Part 2: map notes for the first voyage and a two-turn guided first fight. Fixes: discard bag click spot (B87), End Turn outline (B88). Part 3: one-time tips the first time things come up. Then: insight panel over the notes (B89), cores drop into the workbench's middle slot (B90), runs start with only the Drill (F55). Deepdiver fires only when it is the die played (B91). |
 
 **Batch 8 test list**
 - H07 Desktop build first (Run as usual): nothing changed. Settings still has Resolution and Fullscreen, Exit quits, double Escape quits.
@@ -50,7 +50,8 @@
 - F54 Skip tutorial in the guided fight also marks every tip seen. Turning "Tutorial next run" back on brings the tips back too.
 - B89 In the guided fight (and with the Legible/Quill/Blotted tips up), hover the insight eye: its panel draws on top of the note, not under it.
 - B90 At the workbench, drag a core from the top bar over the middle slot: the core stays on top of the slot while you carry it, and letting go puts it in (the distribution shows above). Click it to take it back. With a die already in the middle slot, the core goes back to the bar. Potions still drag and drink as before (in a fight).
-- F55 A new voyage starts with only the Drill in the toolbag (the count says 1). Shops offer the Hammer and Cutters; buying one adds it to the toolbag. The "random tool" event can still give one. Continue an older save: it keeps the tools it had. The workbench tip now talks about the Drill, and says the Hammer and Cutters come from shops.
+- F55 A new voyage starts with only the Drill in the toolbag (the count says 1). Shops offer the Hammer and Cutters; buying one adds it to the toolbag. The "random tool" event can still give one. Continue an older save: it keeps the tools it had. The workbench tip is short and only mentions the Drill.
+- B91 Play a Deepdiver Die into a slot: it discards your remaining dice and draws 2. Then play another die into that slot (or any slot): nothing is discarded or drawn. Invisible and Echo dice still work only for themselves.
 - F54 Skip tutorial (top right) ends it at once; so does winning or losing. Start another voyage: no Ruffian set-up, no notes. Settings > Gameplay shows Tutorial next run off. Turn it on again: the next voyage is guided again.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
