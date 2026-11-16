@@ -919,9 +919,8 @@ function sacrifice_die(_die) {
 	    dice_list: ds_list_create(),
 	    current_action_type: starting_action_type,
 	    possible_type: possible_type_str,
-		bonus_amount: 0,						// bonus dice, on top of rolled dice - 1d4 + 2 for example
-		buffed: 0,								// Whether or not this slot is buffed and if so, for how many turns, this decreases by 1 at the end of each round
-		pre_buff_amount: 0						// Used to keep track of bonus_amount before we get buffed
+		bonus_amount: 0,						// total of the bonuses below, the "+2" in "1d4+2" (read only, see slot_add_bonus)
+		bonuses: [],							// { source, amount, turns } from keepsakes and items
 	};
 
 
@@ -1635,4 +1634,60 @@ function define_combat_ui_sizes() {
 
 	enemy_x_offset = -460 + (enemies_left_this_combat*80);
 	enemy_y_offset = -90;
+}
+
+// =====================================================================
+// SLOT BONUSES
+// A slot's flat bonus (the "+2" in "1d4+2") is made of separate bonuses, each tagged with where it came
+// from, so keepsakes and items can't overwrite or undo each other. slot.bonus_amount is their total,
+// kept up to date by these functions, and is what the rest of the game reads. Never write it directly.
+// =====================================================================
+
+/// @desc Add a bonus to a slot. Bonuses from the same source with the same lifetime stack into one.
+/// @param _turns  rounds it lasts (1 = until the end of this round), or -1 for the rest of the fight
+function slot_add_bonus(_slot, _source, _amount, _turns) {
+	for (var i = 0; i < array_length(_slot.bonuses); i++) {
+		var _bonus = _slot.bonuses[i];
+		if (_bonus.source == _source && _bonus.turns == _turns) {
+			_bonus.amount += _amount;
+			slot_refresh_bonus(_slot);
+			return;
+		}
+	}
+	array_push(_slot.bonuses, { source: _source, amount: _amount, turns: _turns });
+	slot_refresh_bonus(_slot);
+}
+
+/// @desc Set a source's bonus to exactly this amount, replacing what that source gave before.
+///       For bonuses that depend on how the queue looks right now (Single Focus, Repeater Rail).
+function slot_set_bonus(_slot, _source, _amount) {
+	slot_remove_bonus(_slot, _source);
+	if (_amount != 0) array_push(_slot.bonuses, { source: _source, amount: _amount, turns: -1 });
+	slot_refresh_bonus(_slot);
+}
+
+/// @desc Remove every bonus from this source.
+function slot_remove_bonus(_slot, _source) {
+	for (var i = array_length(_slot.bonuses) - 1; i >= 0; i--) {
+		if (_slot.bonuses[i].source == _source) array_delete(_slot.bonuses, i, 1);
+	}
+	slot_refresh_bonus(_slot);
+}
+
+/// @desc End of round: count down timed bonuses and drop the ones that have run out.
+function slot_tick_bonuses(_slot) {
+	for (var i = array_length(_slot.bonuses) - 1; i >= 0; i--) {
+		var _bonus = _slot.bonuses[i];
+		if (_bonus.turns == -1) continue;
+		_bonus.turns--;
+		if (_bonus.turns <= 0) array_delete(_slot.bonuses, i, 1);
+	}
+	slot_refresh_bonus(_slot);
+}
+
+/// @desc Recalculate slot.bonus_amount from its bonuses.
+function slot_refresh_bonus(_slot) {
+	var _total = 0;
+	for (var i = 0; i < array_length(_slot.bonuses); i++) _total += _slot.bonuses[i].amount;
+	_slot.bonus_amount = _total;
 }

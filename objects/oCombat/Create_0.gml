@@ -31,9 +31,8 @@ var new_slot1 = {
     dice_list: ds_list_create(),			// all dice currently in the slot
     current_action_type: "None",			// the slot's selected type
     possible_type: "None",					// allowed types,
-	bonus_amount: 0,						// bonus dice, on top of rolled dice - 1d4 + 2 for example
-	buffed: 0,								// Whether or not this slot is buffed and if so, for how many turns, this decreases by 1 at the end of each round
-	pre_buff_amount: 0						// Used to keep track of bonus_amount before we get buffed
+	bonus_amount: 0,						// total of the bonuses below, the "+2" in "1d4+2" (read only, see slot_add_bonus)
+	bonuses: [],							// { source, amount, turns } from keepsakes and items
 };
 
 //ds_list_add(new_slot1.dice_list, clone_die(global.dice_d4_none, "base"));

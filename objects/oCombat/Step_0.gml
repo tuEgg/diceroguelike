@@ -469,15 +469,8 @@ switch (state) {
 					eject_dice_in_slot(slot, slot_pos, false);
 				}
 				
-				// Count down buff timers
-				if (slot.buffed > 0) {
-					slot.buffed -= 1;
-					show_debug_message("we are reducing buffed timers now");
-					
-					if (slot.buffed == 0) {
-						slot.bonus_amount = slot.pre_buff_amount;
-					}
-				}
+				// Count down timed slot bonuses (Rigger's Tonic and the like)
+				slot_tick_bonuses(slot);
 			
 				// set all dice in this slot to temporary
 				for (var d = 0; d < ds_list_size(slot.dice_list); d++) {

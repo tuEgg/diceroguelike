@@ -23,8 +23,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-
-Nothing is waiting for a playtest right now.
+| Slot bonuses | B29 | `fix/b29-slot-bonuses` | Fixed in code, **not yet play-tested**. |
+| B75 | **Needs Jared's call.** A slot's flat bonus is added to *every die* in the slot when it rolls (process_action), but the slot tooltip and range show it once ("3d4+1" really rolls 3d4+3). Decide: bonus per die (and fix the display) or once per slot (and fix the roll). Rigger's Tonic's text ("+2 on all rolls") reads as per die. | S [C] |
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs

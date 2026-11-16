@@ -339,7 +339,7 @@ function define_keepsakes() {
 			
 			if (event == "on_player_debuffed") {
 				if (!self.state.triggered) {
-					oCombat.action_queue[| 0].bonus_amount += 1;
+					slot_add_bonus(oCombat.action_queue[| 0], "bandage", 1, -1); // rest of the fight, stacks
 				
 					trigger_keepsake_visual();
 					//self.state.triggered = true; // uncomment this if we want it to only trigger the first time we are debuffed
@@ -358,31 +358,12 @@ function define_keepsakes() {
 		state: {
 		},
 	    trigger: function(event, data) {
-			if (event == "on_dice_played_to_slot")  {
-				if (data._slot > -1) {
-					if (string_pos(" ", data._slot.possible_type) == 0) {
-						data._slot.bonus_amount += 1;
-						data._slot.buffed += 1;
-					}
-				}
-	        }
-			
-			if (event == "after_new_slot_created") {
-				var slot = oCombat.action_queue[| ds_list_size(oCombat.action_queue) -1];
-				
-				if (string_pos(" ", slot.possible_type) == 0) {
-					slot.bonus_amount += 1;
-					slot.buffed += 1;
-				}
-			}
-			
-			if (event == "on_turn_start")  {
+			// +1 to every slot that can only take one action type, worked out again whenever the queue changes
+			if (event == "on_dice_played_to_slot" || event == "after_new_slot_created" || event == "on_turn_start" || event == "after_change_current_action") {
 				for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
 					var _slot = oCombat.action_queue[| i];
-					if (string_pos(" ", _slot.possible_type) == 0 && _slot.possible_type != "None") {
-						_slot.bonus_amount += 1;
-						_slot.buffed += 1;
-					}
+					var _single = string_pos(" ", _slot.possible_type) == 0 && _slot.possible_type != "None" && _slot.possible_type != "";
+					slot_set_bonus(_slot, "single_focus", _single ? 1 : 0);
 				}
 	        }
 	    }
@@ -395,68 +376,18 @@ function define_keepsakes() {
 	    name: "Repeater Rail",
 	    desc: "Slots gain +1 to their first dice for every slot of the same type before them",
 		sub_image: 12,
-		state: { buffed_list: ds_list_create() },
+		state: { },
 	    trigger: function(event, data) {
-	        switch (event) {
-				case "on_turn_start":
-					for (var i = 0; i < ds_list_size(self.state.buffed_list); i++) {
-						if (self.state.buffed_list[| i] > 0) {
-							var slot = oCombat.action_queue[| i];
-							slot.bonus_amount -= self.state.buffed_list[| i];
-							self.state.buffed_list[| i] = 0;
-						}
-					}
-				case "after_new_slot_created":
-				case "on_dice_played_to_slot":
-					ds_list_clear(self.state.buffed_list);
-					
-					repeat (ds_list_size(oCombat.action_queue)) {
-						ds_list_add(self.state.buffed_list, 0);
-					}
-					
-					show_debug_message(ds_list_size(self.state.buffed_list));
-				break;
-				
-				case "after_change_current_action":
-					for (var i = 0; i < ds_list_size(self.state.buffed_list); i++) {
-						if (self.state.buffed_list[| i] > 0) {
-							var slot = oCombat.action_queue[| i];
-							slot.bonus_amount -= self.state.buffed_list[| i];
-							self.state.buffed_list[| i] = 0;
-						}
-					}
-				break;
-				
-		        case "on_roll_die":
-					var last_type = "";
-					var streak = 0;
-					
-					if (room == rmCombat) {
-						for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
-							var slot = oCombat.action_queue[| i];
-							var bonus_before = slot.bonus_amount;
-							
-							if (slot.current_action_type == last_type) {
-								streak++;
-							} else {
-								streak = 0;
-							}
-							
-							if (self.state.buffed_list[| i] == 0) {
-								self.state.buffed_list[| i] = streak;
-								slot.bonus_amount = self.state.buffed_list[| i];
-							}
-							
-							last_type = slot.current_action_type;
-							//show_debug_message("Slot buffed list amount " + string(i) + ":" + string(self.state.buffed_list[| i]));
-							//show_debug_message("Slot bonus amount " + string(i) + ":" + string(oCombat.action_queue[| i].bonus_amount));
-						}
-					}
-		        break;
-				
-				case "on_combat_end":
-					ds_list_clear(self.state.buffed_list);
-				break;
+			// +1 for every slot of the same type directly before this one, worked out again whenever the queue changes
+			if (event == "on_dice_played_to_slot" || event == "after_new_slot_created" || event == "on_turn_start" || event == "after_change_current_action") {
+				var _last_type = "";
+				var _streak = 0;
+				for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
+					var _slot = oCombat.action_queue[| i];
+					_streak = (_slot.current_action_type == _last_type && _last_type != "None") ? _streak + 1 : 0;
+					slot_set_bonus(_slot, "repeater_rail", _streak);
+					_last_type = _slot.current_action_type;
+				}
 			}
 	    }
 	};

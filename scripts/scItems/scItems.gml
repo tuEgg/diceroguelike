@@ -193,10 +193,8 @@ function define_items() {
 				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
 			},
 			modify: function(_context) {
-				// give this specific slot +1 to all rolls next turn
-				_context._slot.pre_buff_amount = _context._slot.bonus_amount;
-				_context._slot.bonus_amount += 2;
-				_context._slot.buffed += 1;
+				// +2 on every roll in this slot until the end of this round
+				slot_add_bonus(_context._slot, "riggers_tonic", 2, 1);
 			}
 		},
 		price: 25
