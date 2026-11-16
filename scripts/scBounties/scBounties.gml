@@ -72,9 +72,10 @@ function get_condition_by_id(_id) {
 // Save
 function serialise_bounty(_bounty) {
     var _saved_rewards = [
-        { type: "item", name: _bounty.rewards[0].name },
-        { type: "keepsake", name: _bounty.rewards[1]._id },
-        { type: "die", name: _bounty.rewards[2].name },
+        // a reward already handed over is undefined, and saved as ""
+        { type: "item", name: (_bounty.rewards[0] != undefined) ? _bounty.rewards[0].name : "" },
+        { type: "keepsake", name: (_bounty.rewards[1] != undefined) ? _bounty.rewards[1]._id : "" },
+        { type: "die", name: (_bounty.rewards[2] != undefined) ? _bounty.rewards[2].name : "" },
     ];
     return {
         enemy_name: _bounty.enemy_name,
@@ -89,6 +90,7 @@ function deserialise_bounty(_data) {
     var _rewards = [];
     for (var i = 0; i < array_length(_data.rewards); i++) {
         var _r = _data.rewards[i];
+        if (_r.name == "") { array_push(_rewards, undefined); continue; } // already handed over
         switch (_r.type) {
             case "item": array_push(_rewards, clone_item(get_item_by_name(_r.name))); break;
             case "keepsake": array_push(_rewards, get_keepsake_by_id(_r.name)); break;
@@ -103,4 +105,39 @@ function deserialise_bounty(_data) {
         elite_encounter: _data.elite_encounter,
         complete: _data.complete,
     };
+}
+
+/// @desc The bounty board's contracts and potion, for the save file, so Continue shows the same board.
+function serialise_bounty_board() {
+	if (!instance_exists(oBountyController)) return "";
+	
+	var _saved = { bounties: [], potion: "", potion_taken: false };
+	with (oBountyController) {
+		for (var i = 0; i < array_length(bounty); i++) {
+			array_push(_saved.bounties, serialise_bounty(bounty[i]));
+		}
+		if (potion != undefined) {
+			_saved.potion = potion.name;
+			_saved.potion_taken = potion.taken;
+		}
+	}
+	return _saved;
+}
+
+/// @desc Put back the bounty board saved by serialise_bounty_board.
+function deserialise_bounty_board(_saved) {
+	if (!is_struct(_saved) || !instance_exists(oBountyController)) return;
+	
+	with (oBountyController) {
+		bounty = [];
+		for (var i = 0; i < array_length(_saved.bounties); i++) {
+			array_push(bounty, deserialise_bounty(_saved.bounties[i]));
+		}
+		
+		var _item = get_item_by_name(_saved.potion);
+		if (_item != undefined) {
+			potion = clone_item(_item);
+			potion.taken = _saved.potion_taken;
+		}
+	}
 }

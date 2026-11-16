@@ -52,6 +52,7 @@ function save_game(_slot) {
 		spreads_cleared: oWorldManager.spreads_cleared,
 		chapter: oWorldManager.chapter,
 		boss_page_placed: oWorldManager.boss_page_placed,
+		bounty_board: serialise_bounty_board(),
 		boat_x: oWorldManager.boat_data.x,
 		boat_y: oWorldManager.boat_data.y,
 		page_image_indices: oWorldManager.page_image_indices,
@@ -124,6 +125,9 @@ function load_game(_slot) {
 	// chapter fields arrived after save version 2, so fall back to sensible values for saves without them
 	oWorldManager.chapter = variable_struct_exists(_save, "chapter") ? _save.chapter : 1;
 	oWorldManager.boss_page_placed = variable_struct_exists(_save, "boss_page_placed") ? _save.boss_page_placed : false;
+	// the same bounty contracts and potion as before (older saves roll a fresh board)
+	if (variable_struct_exists(_save, "bounty_board")) deserialise_bounty_board(_save.bounty_board);
+	
 	// put the boat back where it was moored (older saves leave it at its starting spot)
 	if (variable_struct_exists(_save, "boat_x")) {
 		oWorldManager.boat_data.x = _save.boat_x;

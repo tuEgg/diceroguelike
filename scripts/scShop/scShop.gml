@@ -1,11 +1,13 @@
 // Script assets have changed for v2.3.0 see
 // https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
+#macro SHOP_NUM_DICE 4
+#macro SHOP_NUM_CONSUMABLES 4
+#macro SHOP_NUM_KEEPSAKES 3
+#macro SHOP_NUM_TOOLS 1
+
+/// @desc Fill the shop's shelves. A shop node rolls its stock once, as it is entered (see enter_node),
+///       so Continue shows the same shelves. A shop reached any other way (debug menu) rolls fresh stock.
 function stock_shop() {
-	var num_dice = 4;
-	var num_consumables = 4;
-	var num_keepsakes = 3;
-	var num_tools = 1;
-	
 	shop_dice_options = ds_list_create();
 	shop_dice_scale = ds_list_create();
 	shop_consumable_options = ds_list_create();
@@ -15,21 +17,64 @@ function stock_shop() {
 	shop_tool_options = ds_list_create();
 	shop_tool_scale = ds_list_create();
 	
-	generate_dice_rewards(shop_dice_options, global.master_dice_list, num_dice);
-	generate_item_rewards(shop_consumable_options, global.master_item_list, num_consumables);
-	generate_keepsake_rewards(shop_keepsake_options, global.shop_keepsake_list, num_keepsakes);
-	if (ds_list_size(global.master_tool_list) > 0) {
-		generate_tool_rewards(shop_tool_options, global.master_tool_list, num_tools);
+	var _node = oWorldManager.current_node;
+	var _stock = (_node != undefined && variable_struct_exists(_node, "shop_stock") && is_struct(_node.shop_stock)) ? _node.shop_stock : roll_shop_stock();
+	
+	for (var i = 0; i < array_length(_stock.dice); i++) {
+		var _die = get_die_by_name(_stock.dice[i]);
+		if (_die != undefined) ds_list_add(shop_dice_options, clone_die(_die, ""));
+	}
+	for (var i = 0; i < array_length(_stock.items); i++) {
+		var _item = get_item_by_name(_stock.items[i]);
+		if (_item != undefined) ds_list_add(shop_consumable_options, clone_item(_item));
+	}
+	for (var i = 0; i < array_length(_stock.keepsakes); i++) {
+		var _keepsake = get_keepsake_by_id(_stock.keepsakes[i]);
+		if (_keepsake != undefined) ds_list_add(shop_keepsake_options, clone_keepsake(_keepsake));
+	}
+	for (var i = 0; i < array_length(_stock.tools); i++) {
+		var _tool = undefined;
+		with (oRunManager) _tool = get_tool_by_name(_stock.tools[i]);
+		// only offer a tool that's still for sale (not already owned)
+		if (_tool != undefined && ds_list_find_index(global.master_tool_list, _tool) != -1) ds_list_add(shop_tool_options, _tool);
 	}
 	
-	repeat(num_dice) ds_list_add(shop_dice_scale, 0.1);
-	repeat(num_consumables) ds_list_add(shop_consumable_scale, 0.1);
-	repeat(num_keepsakes) ds_list_add(shop_keepsake_scale, 0.1);
-	repeat(num_tools) ds_list_add(shop_tool_scale, 0.1);
+	repeat(ds_list_size(shop_dice_options)) ds_list_add(shop_dice_scale, 0.1);
+	repeat(ds_list_size(shop_consumable_options)) ds_list_add(shop_consumable_scale, 0.1);
+	repeat(ds_list_size(shop_keepsake_options)) ds_list_add(shop_keepsake_scale, 0.1);
+	repeat(ds_list_size(shop_tool_options)) ds_list_add(shop_tool_scale, 0.1);
+}
+
+/// @desc Roll a shop's stock with the shop's odds and return it as names, which can be saved.
+/// @returns {struct} { dice: [die names], items: [item names], keepsakes: [keepsake ids], tools: [tool names] }
+function roll_shop_stock() {
+	var _stock = { dice: [], items: [], keepsakes: [], tools: [] };
+	var _list = ds_list_create();
+	
+	generate_dice_rewards(_list, global.master_dice_list, SHOP_NUM_DICE, "all", "all", rmShop);
+	for (var i = 0; i < ds_list_size(_list); i++) array_push(_stock.dice, _list[| i].name);
+	ds_list_clear(_list);
+	
+	generate_item_rewards(_list, global.master_item_list, SHOP_NUM_CONSUMABLES, "none", "all", rmShop);
+	for (var i = 0; i < ds_list_size(_list); i++) array_push(_stock.items, _list[| i].name);
+	ds_list_clear(_list);
+	
+	generate_keepsake_rewards(_list, global.shop_keepsake_list, SHOP_NUM_KEEPSAKES);
+	for (var i = 0; i < ds_list_size(_list); i++) array_push(_stock.keepsakes, _list[| i]._id);
+	ds_list_clear(_list);
+	
+	if (ds_list_size(global.master_tool_list) > 0) {
+		generate_tool_rewards(_list, global.master_tool_list, SHOP_NUM_TOOLS);
+		for (var i = 0; i < ds_list_size(_list); i++) array_push(_stock.tools, _list[| i].name);
+	}
+	
+	ds_list_destroy(_list);
+	return _stock;
 }
 
 /// @func generate_dice_rewards(_reward_list, _item_list, _num)
-function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", _filter = "all") {
+/// @param _for_room  roll with the odds of this room (the shop rolls its stock on the map, as you enter it)
+function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", _filter = "all", _for_room = room) {
 	//show_debug_message("Generating dice rewards");
 	
 	var total_dice = ds_list_size(_item_list);
@@ -64,19 +109,19 @@ function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", 
 	var uncommon_dice_chance = clamp(40 + (round(global.player_luck - 50)/2), 10, 200);
 	var rare_dice_chance = max(1, 1 + (round(global.player_luck - 50))/10);
 	
-	if (room == rmCombat) {
+	if (_for_room == rmCombat) {
 		if (oCombat.all_enemies_spared || oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT) {
 			uncommon_dice_chance = 200;
 			rare_dice_chance = 200;
 		}
 	}
 	
-	if (room == rmBounty) {
+	if (_for_room == rmBounty) {
 		uncommon_dice_chance = 200;
 		rare_dice_chance = 100;
 	}
 	
-	if (room == rmShop) {
+	if (_for_room == rmShop) {
 		uncommon_dice_chance = 80;
 		rare_dice_chance = 20;
 	}
@@ -217,7 +262,8 @@ function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", 
 	ds_list_destroy(indices_dice_rare);
 }
 
-function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none", _rarity = "all") {
+/// @param _for_room  roll with the odds of this room (the shop rolls its stock on the map, as you enter it)
+function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none", _rarity = "all", _for_room = room) {
 	show_debug_message("Generating item rewards");
 	var total_items = ds_list_size(_item_list);
 	var indices_items_common = ds_list_create();
@@ -251,12 +297,12 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none",
 	var uncommon_item_chance = clamp(60 + (round(global.player_luck - 50)/2), 10, 200);
 	var rare_item_chance = clamp(10 + (round(global.player_luck - 50)/5), 1, 200);
 	
-	if (room == rmCombat && oCombat.all_enemies_spared) {
+	if (_for_room == rmCombat && oCombat.all_enemies_spared) {
 		uncommon_item_chance = 200;
 		rare_item_chance = 150;
 	}
 	
-	if (room == rmShop) {
+	if (_for_room == rmShop) {
 		uncommon_item_chance = clamp(80 + (round(global.player_luck - 50)/2), 10, 200);
 		rare_item_chance = clamp(20 + (round(global.player_luck - 50)/5), 1, 200);
 	}
@@ -374,7 +420,7 @@ function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none",
 			var coin_chance = 10;
 			
 			if (item_struct.name == "Coins" || rand_num_100 < coin_chance) {
-				if (room == rmShop || room == rmEvent) { // we don't want to generate coins as a reward in shops or events
+				if (_for_room == rmShop || _for_room == rmEvent) { // we don't want to generate coins as a reward in shops or events
 					continue;
 				} else {
 					item_struct = clone_item(oRunManager.item_coins);

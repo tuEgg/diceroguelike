@@ -248,6 +248,17 @@ function enter_node(_node) {
 		}
 	}
 	
+	// a shop rolls its shelves now, and a treasure room its keepsake, for the same reason
+	if (_node.type == NODE_TYPE.SHOP && !(variable_struct_exists(_memory_node, "shop_stock") && is_struct(_memory_node.shop_stock))) {
+		_memory_node.shop_stock = roll_shop_stock();
+	}
+	if (_node.type == NODE_TYPE.TREASURE && !(variable_struct_exists(_memory_node, "treasure_keepsake") && is_string(_memory_node.treasure_keepsake) && _memory_node.treasure_keepsake != "")) {
+		var _rolled = ds_list_create();
+		generate_keepsake_rewards(_rolled, global.rollable_keepsake_list, 1);
+		if (ds_list_size(_rolled) > 0) _memory_node.treasure_keepsake = _rolled[| 0]._id;
+		ds_list_destroy(_rolled);
+	}
+	
 	// saved before the node is marked cleared, so Continue comes back to the map with this node still to play
 	save_game(1);
 	
@@ -811,6 +822,8 @@ function serialise_page(_page) {
             encounter: variable_struct_exists(_node, "encounter") ? _node.encounter : "", // "" and -1 mean "not rolled yet" (JSON null would load back as pointer_null)
             event_roll: variable_struct_exists(_node, "event_roll") ? _node.event_roll : -1,
             event_name: variable_struct_exists(_node, "event_name") ? _node.event_name : "",
+            shop_stock: (variable_struct_exists(_node, "shop_stock") && is_struct(_node.shop_stock)) ? _node.shop_stock : "",
+            treasure_keepsake: variable_struct_exists(_node, "treasure_keepsake") ? _node.treasure_keepsake : "",
         });
     }
     return {
@@ -863,6 +876,8 @@ function deserialise_page(_data) {
         if (variable_struct_exists(_saved_node, "encounter") && is_string(_saved_node.encounter) && _saved_node.encounter != "") _node.encounter = _saved_node.encounter;
         if (variable_struct_exists(_saved_node, "event_roll") && is_real(_saved_node.event_roll) && _saved_node.event_roll > 0) _node.event_roll = _saved_node.event_roll;
         if (variable_struct_exists(_saved_node, "event_name") && is_string(_saved_node.event_name) && _saved_node.event_name != "") _node.event_name = _saved_node.event_name;
+        if (variable_struct_exists(_saved_node, "shop_stock") && is_struct(_saved_node.shop_stock)) _node.shop_stock = _saved_node.shop_stock;
+        if (variable_struct_exists(_saved_node, "treasure_keepsake") && is_string(_saved_node.treasure_keepsake) && _saved_node.treasure_keepsake != "") _node.treasure_keepsake = _saved_node.treasure_keepsake;
         ds_list_add(_page.nodes, _node);
     }
     

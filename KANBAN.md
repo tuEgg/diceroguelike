@@ -24,8 +24,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-
-Nothing is waiting for a playtest right now.
+| Shops, treasure, bounty keep their stock | B74 | `fix/b74-room-stock` | Fixed in code, **not yet play-tested**. |
 | B74 | Shops, treasure rooms and the bounty board still reroll on Continue (stock, keepsake choices and contracts are picked when the room opens, and none of it is saved). Lets a player re-roll a shop by quitting. Fix like B73: roll once, keep it on the node, save it. | M [C] |
 
 
