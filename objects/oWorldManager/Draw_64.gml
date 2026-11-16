@@ -61,18 +61,22 @@ if (room == rmMap) {
 		}
 	}
 	
-	// Ribbon bookmark on the boss page (the last page of the book), so the end of the chapter is always in sight.
-	// It is drawn on the boss page, before the pages stacked on top of it, so only the tail hanging below the book shows.
-	// Placeholder shapes until there is art: nudge these four numbers to move or resize it.
-	var ribbon_inset_x = 205;	// how far in from the right edge of the page
-	var ribbon_overhang = 20;	// how far it hangs below the page
-	var ribbon_length = 170;
-	var ribbon_w = 30;
+	// Chapter tab: a divider tab on the boss page (the last page of this chapter's book), sticking out of
+	// the right-hand side of the book like a folder divider. It names the chapter that starts after the boss.
+	// It is drawn before the boss page, so the page covers its base and only the part past the edge shows.
+	// Placeholder shapes until there is art: nudge these numbers to move or resize it.
+	var tab_edge_inset = 50;	// how far in from the sprite's right edge the paper actually ends
+	var tab_out = 46;			// how far the tab sticks out past the paper
+	var tab_h = 230;			// length of the tab along the edge of the book
+	var tab_y_offset = -150;	// tab centre, relative to the middle of the page
+	var tab_slant = 22;			// how much the outer corners are cut, like a folder tab
 	
-	var ribbon_page = array_length(page_image_indices) - 1;
-	var ribbon_x = gui_w/2 + page_pos_offset + (page_offset * ribbon_page) + (sprite_get_width(sWorldBook) * page_xscale * book_open_scale) - ribbon_inset_x;
-	var ribbon_bottom = page_y + (sprite_get_height(sWorldBook) * page_yscale * 0.5) + ribbon_overhang;
-	var ribbon_top = ribbon_bottom - ribbon_length;
+	var tab_page = array_length(page_image_indices) - 1;
+	var tab_x0 = gui_w/2 + page_pos_offset + (page_offset * tab_page) + (sprite_get_width(sWorldBook) * page_xscale * book_open_scale) - tab_edge_inset - 30;
+	var tab_x1 = tab_x0 + 30 + tab_out;
+	var tab_y0 = page_y + tab_y_offset - tab_h/2;
+	var tab_y1 = page_y + tab_y_offset + tab_h/2;
+	var tab_label = "Chapter " + string(chapter + 1);
 	
 	// draw right pages
 	for (var i = array_length(page_image_indices) - 1; i >= book_spread; i--) {
@@ -91,6 +95,11 @@ if (room == rmMap) {
 			}
 		}
 		
+		// the chapter tab sits under the boss page, which covers its base
+		if (i == tab_page && book_open_scale > 0.5) {
+			draw_chapter_tab(tab_x0, tab_y0, tab_x1, tab_y1, tab_slant, tab_label, tab_out, book_open_scale);
+		}
+		
 		// draw the paper pages
 		draw_sprite_ext(sWorldBook, page_image_indices[i], gui_w/2 + (page_pos_offset) + (page_offset * i), page_y, x_scale, page_yscale, 0, c_white, 1.0);
 		
@@ -98,31 +107,15 @@ if (room == rmMap) {
 		if (i == book_spread || i == book_spread + 1) {
 			draw_sprite_ext(sWorldBookWater, page_image_indices[i] - 2, gui_w/2 + (page_pos_offset) + (page_offset * i), page_y, x_scale, page_yscale, 0, c_white, 1.0);
 		}
-		
-		// the ribbon lies on the boss page, under every page drawn after it
-		if (i == ribbon_page && book_open_scale > 0.5) {
-			draw_set_alpha(book_open_scale);
-			
-			// black outline, then the ribbon, each a strip ending in a point
-			draw_set_color(c_black);
-			draw_rectangle(ribbon_x - 4, ribbon_top - 4, ribbon_x + ribbon_w + 4, ribbon_bottom, false);
-			draw_triangle(ribbon_x - 4, ribbon_bottom, ribbon_x + ribbon_w + 4, ribbon_bottom, ribbon_x + ribbon_w/2, ribbon_bottom + 26, false);
-			
-			draw_set_color(make_color_rgb(190, 40, 45));
-			draw_rectangle(ribbon_x, ribbon_top, ribbon_x + ribbon_w, ribbon_bottom, false);
-			draw_triangle(ribbon_x, ribbon_bottom, ribbon_x + ribbon_w, ribbon_bottom, ribbon_x + ribbon_w/2, ribbon_bottom + 18, false);
-			
-			draw_set_alpha(1.0);
-		}
 	}
 	
-	// hovering the visible tail of the ribbon explains it
-	if (book_open_scale > 0.5 && mouse_hovering(ribbon_x, ribbon_bottom - 60, ribbon_w, 60 + 26, false)) {
+	// hovering the part of the tab that sticks out explains it
+	if (book_open_scale > 0.5 && mouse_hovering(tab_x1 - tab_out, tab_y0, tab_out, tab_h, false)) {
 		var spreads_to_boss = max(0, CHAPTER_SPREADS - spreads_cleared);
-		var ribbon_text = "The boss is on this spread.";
-		if (spreads_to_boss == 1) ribbon_text = "1 more spread until the boss.";
-		if (spreads_to_boss > 1) ribbon_text = string(spreads_to_boss) + " more spreads until the boss.";
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Chapter " + string(chapter), chapter_title(chapter) + ". " + ribbon_text);
+		var tab_text = "The boss is on this spread.";
+		if (spreads_to_boss == 1) tab_text = "1 more spread until the boss.";
+		if (spreads_to_boss > 1) tab_text = string(spreads_to_boss) + " more spreads until the boss.";
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Chapter " + string(chapter) + ": " + chapter_title(chapter), tab_text + " Chapter " + string(chapter + 1) + " begins after it.");
 	}
 	
 	draw_set_alpha(1.0);

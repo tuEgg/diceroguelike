@@ -1096,3 +1096,37 @@ function node_pick_encounter(_memory_node, _pool) {
 	_memory_node.encounter = _key;
 	return _key;
 }
+
+/// @desc A folder-style divider tab sticking out to the right, with its label running down it.
+///       x0 is the inner end (hidden under the page), x1 the outer end; the outer corners are cut.
+///       _visible_w is how much sticks out past the page, the label is centred on that part.
+function draw_chapter_tab(_x0, _y0, _x1, _y1, _slant, _label, _visible_w, _alpha) {
+	var _col = make_color_rgb(70, 190, 170);	// teal, like a divider tab
+	var _outline = 4;
+	
+	draw_set_alpha(_alpha);
+	
+	// black outline: the same shape, a little larger
+	draw_set_color(c_black);
+	draw_tab_shape(_x0, _y0 - _outline, _x1 + _outline, _y1 + _outline, _slant);
+	
+	draw_set_color(_col);
+	draw_tab_shape(_x0, _y0, _x1, _y1, _slant);
+	
+	// label, reading top to bottom, centred on the part that sticks out
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	var _visible_mid_x = _x1 - _visible_w / 2;
+	draw_outline_text(_label, c_black, c_white, 2, _visible_mid_x, (_y0 + _y1) / 2, 1, _alpha, -90);
+	
+	draw_set_alpha(1.0);
+}
+
+/// @desc Filled tab outline: square at the inner end, cut corners at the outer end.
+function draw_tab_shape(_x0, _y0, _x1, _y1, _slant) {
+	draw_rectangle(_x0, _y0, _x1 - _slant, _y1, false);
+	draw_rectangle(_x1 - _slant, _y0 + _slant, _x1, _y1 - _slant, false);
+	draw_triangle(_x1 - _slant, _y0, _x1, _y0 + _slant, _x1 - _slant, _y0 + _slant, false);
+	draw_triangle(_x1 - _slant, _y1, _x1, _y1 - _slant, _x1 - _slant, _y1 - _slant, false);
+}

@@ -24,7 +24,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| Continue keeps the same node | B73 | `fix/b73-continue` | Fixed in code, **not yet play-tested**. Fights and events only; shops, treasure and bounties are B74. |
+| Continue keeps the same node | B73 | `fix/b73-continue` | Jared play-tested 2026-11-17: works. Not merged yet. Fights and events only; shops, treasure and bounties are B74. |
+| Chapter tab and debug additions | F06 (tab), T14 (additions) | `feature/chapter-tab` | Built, **not yet play-tested**. The ribbon is replaced by a teal divider tab out of the right side of the book reading "Chapter 2"; F1 menu gains "Complete this spread" (Run tab) and closes with Escape. |
 | B74 | Shops, treasure rooms and the bounty board still reroll on Continue (stock, keepsake choices and contracts are picked when the room opens, and none of it is saved). Lets a player re-roll a shop by quitting. Fix like B73: roll once, keep it on the node, save it. | M [C] |
 
 
@@ -105,11 +106,11 @@ All known P0 bugs are fixed, see DONE.
 Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
 
 **Core loop**
-- F02 Page-turn heal amount: the design says 20%, the code heals 25% (offered as a choice against a free core). Pick one. The "14 pages then boss" part is done (F06).
+- F02 **Rethink what happens between pages (Jared, 2026-11-17).** Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
 - F03 Elite/boss chest reward
 - F04 Starting choice (die + core) at run start *(classes cut, 2026-11-15)*
 - F05 Death / win screens, run summary, die roll-history stats page
-- F06 Chapters, what's left: real ribbon art, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
+- F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
 
 **Combat clarity** (the most common playtest feedback)
 - F10 Always show the enemy intent *type*; intel reveals the numbers
@@ -149,7 +150,8 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 - Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
 - Q3 Intel redesign (incl. B33): **parked until after bug fixes, the debug menu and the world map.**
-- Q7 Resolution targets: just 1080p + 1440p, or arbitrary? (decides how much layout work T07 needs)
+- Q7 Resolution targets: just 1080p + 1440p, or arbitrary? (decides how much layout work T07 needs)
+- Q8 Between pages: what should the choices be, and should the workbench stay available after every node? (see F02)
 
 ## 📌 DECISIONS
 

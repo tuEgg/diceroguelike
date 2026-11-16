@@ -101,6 +101,13 @@ function debug_menu_step() {
 	}
 
 	if (dbg.open) {
+		// Escape closes the menu, and is used up so the settings menu doesn't also open this frame
+		if (keyboard_check_pressed(vk_escape)) {
+			keyboard_clear(vk_escape);
+			debug_menu_close();
+			exit;
+		}
+		
 		// Other code may change the layer while we're open (escape, popups), remember it and keep ours on top
 		if (global.ui_layer != UI_LAYER.DEBUG) {
 			dbg.prev_ui_layer = global.ui_layer;
@@ -284,7 +291,7 @@ function debug_menu_draw() {
 	draw_rectangle(px, py, px + pw, py + ph, false);
 	draw_set_alpha(1.0);
 
-	debug_label(px + pad, py + pad, "DEBUG MENU   (F1 to close, mouse wheel to scroll)", c_yellow);
+	debug_label(px + pad, py + pad, "DEBUG MENU   (F1 or Escape to close, mouse wheel to scroll)", c_yellow);
 
 	// Tabs down the left side
 	var tab_w = 150;
@@ -373,6 +380,9 @@ function debug_menu_draw() {
 			if (debug_button(cx, yy, half_w, row_h, "Make the next spread the boss")) {
 				oWorldManager.spreads_cleared = CHAPTER_SPREADS;
 				debug_say("The boss appears when the next spread starts");
+			}
+			if (debug_button(cx + half_w, yy, half_w, row_h, "Complete this spread")) {
+				debug_complete_spread();
 			}
 			yy += row_h * 1.5;
 			
@@ -767,4 +777,47 @@ function debug_take_forced_event_index() {
 function debug_turn_intel() {
 	if (!DEBUG_TOOLS) return 0;
 	return global.dbg.turn_intel;
+}
+
+/// Mark every node left on the current spread as cleared, exactly as sailing to each one would,
+/// so the page turns. Skipped nodes don't count towards the map's difficulty ramp (nodes_cleared).
+function debug_complete_spread() {
+	if (!debug_in_run()) exit;
+	
+	if (room != rmMap) {
+		debug_say("Go to the map first");
+		exit;
+	}
+	
+	with (oWorldManager) {
+		if (world_state != WORLD_STATE.EXPLORING || node_to_move_to != undefined || nodes_til_drafting <= 0) {
+			debug_say("Only while sailing a spread, with no move in progress");
+			exit;
+		}
+		
+		for (var n = 0; n < ds_list_size(all_nodes) && nodes_til_drafting > 0; n++) {
+			var _node = all_nodes[| n];
+			if (_node.cleared) continue;
+			
+			// the same bookkeeping as arriving at a node in oWorldManager Step
+			_node.cleared = true;
+			nodes_til_drafting--;
+			nodes_til_page_cleared--;
+			
+			if (nodes_til_page_cleared == 0) {
+				pages_cleared++;
+				if (pages_cleared % 2 == 0) spreads_cleared++;
+				if (nodes_til_drafting > 0) nodes_til_page_cleared = nodes_til_drafting;
+			}
+			
+			last_node = _node;
+		}
+		next_node = undefined;
+		
+		// turn the page (or end the chapter) straight away
+		world_finish_spread_if_done();
+	}
+	
+	debug_menu_close(true);
+	debug_say("Spread completed");
 }
