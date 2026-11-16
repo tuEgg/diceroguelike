@@ -244,7 +244,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	}
 
 	// where the slot's bonuses come from
-	if (hover && array_length(action_queue[| i].bonuses) > 0 && !show_rewards) {
+	if (hover && array_length(action_queue[| i].bonuses) > 0 && !show_rewards && !is_placing) { // while dragging a die, the placement hint takes this spot
 		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Slot bonuses", slot_bonus_breakdown(action_queue[| i]));
 	}
 	
@@ -290,42 +290,18 @@ for (var i = 0; i < aq_list_size; i++) {
 			var add_text = "Add " + string(grabbed_amount) + "d" + string(grabbed_value) +
 				            " (" + string(new_amount) + "d" + string(new_value) + ")";
 
-			// --- ATK / BLK / HEAL ---
-			if (string_pos("ATK", s) > 0 || string_pos("BLK", s) > 0 || string_pos("HEAL", s) > 0) {
-				if (string_pos(grabbed_type, s) > 0) {
-				    if (slot_value > grabbed_value) {
-						tooltip = "Can't upgrade bigger dice";
-					} else {
-						tooltip = add_text;
-					}
-				} else if (grabbed_type == "None") {
-					if (slot_value > grabbed_value) {
-						tooltip = "Can't upgrade bigger dice";
-					} else {
-						tooltip = add_text;
-					}
+			// the same rule placing uses: say what will happen, or why it can't
+			if (dragged_die_inst != noone) {
+				var place_check = slot_placement_check(dragged_die_inst.struct, action_queue[| i], i);
+				if (!place_check.ok) {
+					tooltip = "Can't place here";
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't place here", place_check.reason);
+				} else if (place_check.action == "claim") {
+					tooltip = "Start a " + string(grabbed_amount) + "d" + string(grabbed_value) + " " + string(grabbed_type) + " slot";
+				} else if (place_check.action == "replace") {
+					tooltip = "Clear this slot and take it";
 				} else {
-					// fix above so   if (grabbed_value != 2)
-					tooltip = "Cannot replace slot";
-				}
-			}
-
-			// --- None ---
-			else if (s == "None") {
-				if (grabbed_type == "None") {
-				    tooltip = "Can't upgrade empty slots";
-				} else {
-				    tooltip = "Upgrade to " + string(grabbed_amount) + "d" +
-				                string(grabbed_value) + " " + string(grabbed_type);
-				}
-			}
-
-			// --- All ---
-			else if (s == "All") {
-				if (grabbed_type != "None") {
-				    tooltip = "Can't replace 'All'";
-				} else {
-				    tooltip = add_text;
+					tooltip = add_text;
 				}
 			}
 		} else {

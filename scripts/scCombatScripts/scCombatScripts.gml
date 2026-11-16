@@ -587,6 +587,9 @@ function apply_dice_to_slot(_die, _slot_i) {
 	var check = slot_placement_check(die.struct, slot, _slot_i);
 	var reject_dice = !check.ok;
 
+	// a rejected drop says why, in the same words as the hover hint
+	if (!check.ok) throw_error("Can't place here", check.reason);
+
 	if (!check.ok && dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(die.struct, "coin")) {
 		// out of plays: flash the dice-played counter
 		dice_played_scale = 1.4;

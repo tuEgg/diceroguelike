@@ -23,11 +23,12 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 6: placement rule and feedback | B35, T08, F12 | `fix/placement-rule` | In progress, **not yet play-tested**. T08 and B35 done: one placement rule (`slot_placement_check`) that both the real placement and the slot highlight use. |
+| 6: placement rule and feedback | B35, T08, F12 | `fix/placement-rule` | Fixed in code, one commit per card, **not yet play-tested**. One placement rule (`slot_placement_check`) drives the real placement, the slot highlight and the hover hint; when a die can't go in a slot, a tooltip says why. |
 
 **Batch 6 test list**
 - T08 Placing works as before: coloured dice start empty slots, matching dice of the same size or bigger join a slot, coins join any matching slot, neutral dice join slots that have a type, an Exclusive die clears a slot of another type and takes it, and Exclusive dice never share a slot. After your plays run out only coins can be placed, and the dice-played counter flashes red.
 - B35 Drag dice over slots: exactly the slots that light up are the ones that accept the die. Check the cases that used to disagree: an Exclusive die (Tidepusher) over a slot of another type lights up (it takes the slot); an Exclusive die over a matching slot with dice in it does not; a coin over a matching slot with bigger dice lights up; a multitype die (Deflect) over a slot of either of its types lights up; with no plays left, only coins light anything up.
+- F12 Drag a die over a slot it can't go in: a "Can't place here" tooltip says why (e.g. "Needs a d6 or bigger to join this slot.", "Exclusive dice need a slot to themselves.", "Neutral dice can't start a slot.", "No plays left this turn."). Drop it there anyway: the same message flashes up. Over a slot it can go in, the hint above the slot says what will happen (Start a 1d6 ATK slot / Add 1d4 (2d4) / Clear this slot and take it).
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
