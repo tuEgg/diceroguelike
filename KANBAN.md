@@ -24,8 +24,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| Shops, treasure, bounty keep their stock | B74 | `fix/b74-room-stock` | Fixed in code, **not yet play-tested**. |
-| B74 | Shops, treasure rooms and the bounty board still reroll on Continue (stock, keepsake choices and contracts are picked when the room opens, and none of it is saved). Lets a player re-roll a shop by quitting. Fix like B73: roll once, keep it on the node, save it. | M [C] |
+
+Nothing is waiting for a playtest right now.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -216,6 +216,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | M05 | Islands and node icons turn with the page: the right-hand page squashes in towards the spine as it lifts, and the left-hand page is covered as the turned page comes down. | Page-turn polish | 2026-11-17 |
 | M07 | The boat's position is saved, so Continue puts it back where it was moored. | Page-turn polish | 2026-11-17 |
 | B73 | Continue rerolled the node you were in: nodes now remember their fight or event, and the game saves as you enter a node | Continue fix | 2026-11-17 |
+| B74 | Shops, treasure rooms and the bounty board rerolled on Continue: they now roll once and are saved | Continue fix (rooms) | 2026-11-17 |
 
 **Milestones**
 
