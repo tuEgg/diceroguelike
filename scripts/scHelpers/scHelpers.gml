@@ -1361,3 +1361,18 @@ function ds_safe_exists(_id, _type) {
 	if (is_undefined(_id)) return false;
 	return ds_exists(_id, _type);
 }
+
+/// @func dragged_item_draw()
+/// @desc oRunManager Draw GUI End: the core or potion being carried, at the mouse, above the workbench slots and every
+///       window (only tooltips draw over it). The top bar draws items resting in their slots.
+function dragged_item_draw() {
+	if (!instance_exists(oRunManager)) return;
+	with (oRunManager) {
+		for (var i = 0; i < array_length(items); i++) {
+			if (items[i] == undefined || !items[i].dragging) continue;
+			var _angle = (items[i].type == "consumable") ? -30 : 0;
+			draw_set_alpha(1);
+			draw_sprite_ext(items[i].sprite, items[i].index, device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), items_hover_scale[i], items_hover_scale[i], _angle, c_white, 1.0);
+		}
+	}
+}

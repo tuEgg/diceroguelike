@@ -17,23 +17,7 @@ for (var i = 0; i < wb_list_size; i++) {
 	
 	if (hovering_slot) {
 		wb_scale[i] = lerp(wb_scale[i], 1.2, 0.2);
-		
-		// Place core into middle slot
-		for (var n = 0; n < array_length(oRunManager.items); n++) {
-			if (oRunManager.items[n] != undefined) {
-				if (oRunManager.items[n].dragging) {
-					if (mouse_check_button_released(mb_left)) {
-						if (workbench_slot[1].core == undefined) {
-							if (i == 1 && oRunManager.items[n].type = "core") {
-								workbench_slot[i].core = oRunManager.items[n];
-								oRunManager.items[n] = undefined;
-								core_prev_item_slot = n;
-							}
-						}
-					}
-				}
-			}
-		}
+		// a core dropped here is placed by oRunManager when it's let go (workbench_take_core)
 	} else {
 		wb_scale[i] = lerp(wb_scale[i], 1.0, 0.2);
 	}

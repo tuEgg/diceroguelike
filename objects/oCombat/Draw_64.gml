@@ -970,6 +970,7 @@ if (player_block_amount > 0) {
 	draw_outline_text(string(player_block_amount), c_black, c_white, 2, block_x, block_y - 4, 1, 1.0, 0);
 }
 
+insight_panel_open = false;
 if (state != CombatState.PLAYER_DEAD) {
 	// Draw intel level
 	draw_intel = lerp(draw_intel, player_intel, 0.1);
@@ -994,6 +995,7 @@ if (state != CombatState.PLAYER_DEAD) {
 	draw_insight_icon(_intel_state.icon, global.player_x, global.player_y - 180, intel_scale * 1.6, intel_alpha);
 	draw_outline_text(string(_intel_state.name), c_black, intel_is_blotted() ? c_red : global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
 	var intel_hover = mouse_hovering(global.player_x, global.player_y - 190, 120, 120, true);
+	insight_panel_open = intel_hover; // the panel itself draws in oRunManager Draw GUI End (insight_panel_draw), over the tutorial notes
 
 	intel_scale = intel_hover ? lerp(intel_scale, 1.2, 0.2) : lerp(intel_scale, 1.0, 0.2);
 
@@ -1003,68 +1005,6 @@ if (state != CombatState.PLAYER_DEAD) {
 	}
 
 	if (intel_hover) {
-		// a compact reference: one line per state, the current one highlighted, and when insight counts
-		var intel_pad = 16;
-		var intel_w = 380;
-		var intel_row_h = 40;
-		var intel_title_h = 36;
-		var intel_foot_h = 30;
-
-		// Blotted (below 0) first, then the three states
-		var intel_rows = [global.intel_blotted];
-		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) array_push(intel_rows, global.player_intel_data[| i]);
-		var _current_row = intel_is_blotted() ? 0 : intel_level + 1;
-
-		var intel_h = intel_pad + intel_title_h + intel_row_h * array_length(intel_rows) + intel_foot_h + intel_pad / 2;
-		var intel_x = global.player_x - intel_w / 2;
-		var intel_y = global.player_y - 260 - intel_h;
-
-		draw_set_color(c_black);
-		draw_set_alpha(0.8);
-		draw_roundrect(intel_x - 1, intel_y - 1, intel_x + intel_w + 1, intel_y + intel_h + 1, false);
-		draw_set_color(global.color_bg);
-		draw_roundrect(intel_x, intel_y, intel_x + intel_w, intel_y + intel_h, false);
-
-		// title, and your insight on the right
-		draw_set_alpha(1.0);
-		draw_set_valign(fa_middle);
-		draw_set_font(ftDefault);
-		draw_set_halign(fa_left);
-		draw_set_color(c_white);
-		draw_text(intel_x + intel_pad, intel_y + intel_pad + 10, "Insight");
-		draw_set_halign(fa_right);
-		draw_set_color(player_intel < 0 ? c_red : global.color_intel);
-		draw_text(intel_x + intel_w - intel_pad, intel_y + intel_pad + 10, string(player_intel));
-
-		// rows: icon, name, needed, what it gives
-		var _row_y = intel_y + intel_pad + intel_title_h;
-		for (var i = 0; i < array_length(intel_rows); i++) {
-			var _row = intel_rows[i];
-			var _mid = _row_y + intel_row_h / 2;
-			if (i == _current_row) {
-				draw_set_color(c_white);
-				draw_set_alpha(0.12);
-				draw_roundrect(intel_x + 6, _row_y + 2, intel_x + intel_w - 6, _row_y + intel_row_h - 2, false);
-			}
-			draw_set_alpha(1.0);
-			draw_insight_icon(_row.icon, intel_x + intel_pad + 14, _mid, 0.95, (i == _current_row) ? 1.0 : 0.6);
-			draw_set_font(ftDefault);
-			draw_set_halign(fa_left);
-			draw_set_color((i == _current_row) ? global.color_intel : c_white);
-			draw_text(intel_x + intel_pad + 40, _mid, string(_row.name));
-			draw_set_font(ftSmall);
-			draw_set_color(c_ltgray);
-			draw_text(intel_x + intel_pad + 135, _mid, (i == 0) ? "< 0" : string(_row.requirement) + "+");
-			draw_set_color(c_white);
-			draw_text(intel_x + intel_pad + 180, _mid, string(_row.description));
-			_row_y += intel_row_h;
-		}
-
-		// how insight rolls work this turn
-		draw_set_font(ftSmall);
-		draw_set_color(c_ltgray);
-		draw_text(intel_x + intel_pad, _row_y + intel_foot_h / 2, "Insight you roll counts next turn.");
-		draw_set_color(c_white);
 
 		// the tooltip only says what matters now
 		var _intel_tip = string(_intel_state.description);

@@ -2008,7 +2008,7 @@ function tips_list() {
 		},
 		{
 			id: "workbench", room: rmWorkbench, target: "",
-			text: "Lay dice in the slots, then drag a tool from your toolbag onto Craft. The Hammer merges two dice of one type, the Cutters take faces off a die and leave you a coin, and the Drill sets a core into a die. One craft per visit.",
+			text: "Lay a die in the first slot and drag a core from the top bar into the middle one. Then open your toolbag and drag the Drill onto Craft to set the core into the die. The Hammer and Cutters can be bought in shops. One craft per visit.",
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",
@@ -2098,4 +2098,76 @@ function tutorial_map_rect(_target) {
 		}
 	}
 	return undefined;
+}
+
+/// @func insight_panel_draw()
+/// @desc oRunManager Draw GUI End: the Insight reference panel while the insight eye is hovered. Drawn after the
+///       tutorial notes and tips so it sits on top of them (oCombat Draw GUI sets insight_panel_open).
+function insight_panel_draw() {
+	if (!instance_exists(oCombat) || !oCombat.insight_panel_open) return;
+	with (oCombat) {
+		var _intel_state = intel_state(intel_level);
+		// a compact reference: one line per state, the current one highlighted, and when insight counts
+		var intel_pad = 16;
+		var intel_w = 380;
+		var intel_row_h = 40;
+		var intel_title_h = 36;
+		var intel_foot_h = 30;
+
+		// Blotted (below 0) first, then the three states
+		var intel_rows = [global.intel_blotted];
+		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) array_push(intel_rows, global.player_intel_data[| i]);
+		var _current_row = intel_is_blotted() ? 0 : intel_level + 1;
+
+		var intel_h = intel_pad + intel_title_h + intel_row_h * array_length(intel_rows) + intel_foot_h + intel_pad / 2;
+		var intel_x = global.player_x - intel_w / 2;
+		var intel_y = global.player_y - 260 - intel_h;
+
+		draw_set_color(c_black);
+		draw_set_alpha(0.8);
+		draw_roundrect(intel_x - 1, intel_y - 1, intel_x + intel_w + 1, intel_y + intel_h + 1, false);
+		draw_set_color(global.color_bg);
+		draw_roundrect(intel_x, intel_y, intel_x + intel_w, intel_y + intel_h, false);
+
+		// title, and your insight on the right
+		draw_set_alpha(1.0);
+		draw_set_valign(fa_middle);
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_left);
+		draw_set_color(c_white);
+		draw_text(intel_x + intel_pad, intel_y + intel_pad + 10, "Insight");
+		draw_set_halign(fa_right);
+		draw_set_color(player_intel < 0 ? c_red : global.color_intel);
+		draw_text(intel_x + intel_w - intel_pad, intel_y + intel_pad + 10, string(player_intel));
+
+		// rows: icon, name, needed, what it gives
+		var _row_y = intel_y + intel_pad + intel_title_h;
+		for (var i = 0; i < array_length(intel_rows); i++) {
+			var _row = intel_rows[i];
+			var _mid = _row_y + intel_row_h / 2;
+			if (i == _current_row) {
+				draw_set_color(c_white);
+				draw_set_alpha(0.12);
+				draw_roundrect(intel_x + 6, _row_y + 2, intel_x + intel_w - 6, _row_y + intel_row_h - 2, false);
+			}
+			draw_set_alpha(1.0);
+			draw_insight_icon(_row.icon, intel_x + intel_pad + 14, _mid, 0.95, (i == _current_row) ? 1.0 : 0.6);
+			draw_set_font(ftDefault);
+			draw_set_halign(fa_left);
+			draw_set_color((i == _current_row) ? global.color_intel : c_white);
+			draw_text(intel_x + intel_pad + 40, _mid, string(_row.name));
+			draw_set_font(ftSmall);
+			draw_set_color(c_ltgray);
+			draw_text(intel_x + intel_pad + 135, _mid, (i == 0) ? "< 0" : string(_row.requirement) + "+");
+			draw_set_color(c_white);
+			draw_text(intel_x + intel_pad + 180, _mid, string(_row.description));
+			_row_y += intel_row_h;
+		}
+
+		// how insight rolls work this turn
+		draw_set_font(ftSmall);
+		draw_set_color(c_ltgray);
+		draw_text(intel_x + intel_pad, _row_y + intel_foot_h / 2, "Insight you roll counts next turn.");
+		draw_set_color(c_white);
+	}
 }

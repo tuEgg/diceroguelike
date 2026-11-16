@@ -13,6 +13,19 @@ slot_alpha = 1.0;
 hovered_slot_1 = false;
 hovered_slot_2 = false;
 core_prev_item_slot = -1;
+
+/// @func workbench_take_core(_core, _item_slot)
+/// @desc A core let go of at the mouse: if that's over the empty middle slot, it goes in. Returns true when taken
+///       (the caller clears its top-bar slot). Called from oRunManager on release, so draw order doesn't matter.
+workbench_take_core = function(_core, _item_slot) {
+	if (_core.type != "core" || workbench_slot[1].core != undefined || workbench_slot[1].dice != undefined) return false;
+	var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
+	var _half = wb_tile_size * 0.6; // a little past the slot's edge, as it grows when hovered
+	if (abs(_mx - workbench_slot[1].xx) > _half || abs(_my - workbench_slot[1].yy) > _half) return false;
+	workbench_slot[1].core = _core;
+	core_prev_item_slot = _item_slot;
+	return true;
+}
 crafting_state = "waiting"; // waiting, hammered, cut
 
 bang_timer = 15;

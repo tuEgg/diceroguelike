@@ -180,3 +180,5 @@ combat_end_effects_triggered = false;
 
 all_enemies_spared = true; // used for alignment fights, if this remains true at the end of combat, we don't show standard rewards, but instead something else...
 spare_kill_alpha = 0;
+insight_panel_open = false; // the insight eye is hovered: oRunManager draws the panel over the tutorial notes
+

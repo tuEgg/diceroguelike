@@ -187,5 +187,11 @@ if (show_dice_list) {
 // the first voyage's map notes and the one-time tips, above every window
 tips_draw();
 
+// the insight panel while hovered, over the tutorial notes and tips
+insight_panel_draw();
+
+// a core or potion being carried, above the workbench and every window
+dragged_item_draw();
+
 // tooltips last, after every window and panel (Draw GUI End), so nothing draws over them
 draw_all_tooltips();
