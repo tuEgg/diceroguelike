@@ -26,3 +26,5 @@
 ## Settings
 
 `settings.json` (resolution, volumes, fullscreen) via `save_settings` / `load_settings` / `check_settings`; UI in `oSettingsMenu` and `scSettings`. Debug settings live separately in `debug_settings.json` (see ui-and-debug.md).
+
+`progress.json` (scSaving, PROGRESS): what this player has seen, apart from runs: `intro_seen`, `tutorial_done`, `tips_seen`. Loaded in oSettingsMenu Create (`progress_load`), read with `progress_get`, changed with `progress_set` (saves at once). One-time tips: `tip_seen(id)` / `tip_mark_seen(id)`. Settings > Gameplay > Tutorial next run calls `progress_set_tutorial` (on also clears the tips). The intro cutscene has `progress_key: "intro_seen"`, so it plays once ever.

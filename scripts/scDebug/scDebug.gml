@@ -431,6 +431,7 @@ function debug_menu_draw() {
 				debug_settings_save();
 				// takes effect on the next run, or right away if a run hasn't reached the map yet
 				if (instance_exists(oCutsceneManager)) oCutsceneManager.cutscenes[0].seen = dbg.skip_intro;
+				if (!dbg.skip_intro) progress_set("intro_seen", false); // so it plays again on the next launch too
 				debug_say(dbg.skip_intro ? "The intro will be skipped" : "The intro will play when a run reaches the map");
 			}
 			yy += row_h * 1.5;

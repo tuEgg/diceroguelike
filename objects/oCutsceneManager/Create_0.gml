@@ -3,7 +3,8 @@ cutscenes = [
 		voiceover: sIntro,
 		music: undefined,
 		length: 19, // length in seconds
-		seen: debug_skip_intro(), // skipped when run from GameMaker, unless turned back on in the F1 menu (Hotkeys tab)
+		seen: debug_skip_intro() || progress_get("intro_seen"), // plays once ever (progress.json); also skipped when run from GameMaker unless turned back on in F1 (Hotkeys tab)
+		progress_key: "intro_seen", // marked in progress.json when it plays, so it never replays on a later launch
 		triggers: [
 			{
 				variable: "room",

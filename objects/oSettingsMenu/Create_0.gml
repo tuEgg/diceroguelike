@@ -90,6 +90,18 @@ categories = [
             },
         ]
     },
+    {
+        name: "Gameplay",
+		scale: 1,
+        settings: [
+            {
+                name: "Tutorial next run",
+                type: "toggle",
+                get_value: function() { return !progress_get("tutorial_done"); },
+                set_value: function(_val) { progress_set_tutorial(_val); }, // saved straight away, separate from Save/Cancel
+            },
+        ]
+    },
 		
 ];
 
@@ -99,6 +111,9 @@ if (IS_BROWSER) array_delete(categories[1].settings, 1, 1);
 if (file_exists("settings.json")) {
 	load_settings();
 }
+
+// what this player has seen (intro, tutorial, tips), kept apart from runs
+progress_load();
 
 depth = -10000;
 
