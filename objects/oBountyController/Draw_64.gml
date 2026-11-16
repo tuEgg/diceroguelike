@@ -47,17 +47,14 @@ if (room == rmBounty) {
 			die = clone_die(global.dice_d6_atk, "");
 			die.distribution = pot.distribution;
 		}
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), pot.name, pot.description + " Costs " + string(pot.price) + " gold.", undefined, 0, die);
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), pot.name, pot.description + " Free to take.", undefined, 0, die);
 		
 		if (mouse_check_button_pressed(mb_left) && !pot.taken) {
 			// say why when it can't be taken, instead of doing nothing
-			if (oRunManager.credits < pot.price) {
-				throw_error("Not enough gold", "This costs " + string(pot.price) + " gold.");
-			} else if (!oRunManager.has_space_for_item) {
+			if (!oRunManager.has_space_for_item) {
 				throw_error("No room for this", "Free up an item slot first.");
 			} else {
-				oRunManager.credits -= pot.price;
-				gain_item(pot);
+				gain_item(pot); // the bounty board's potion is free
 			}
 		}
 	}

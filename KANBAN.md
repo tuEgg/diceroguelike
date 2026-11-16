@@ -24,7 +24,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 3: keepsakes, consumables, events, bounty | B30, B43–B50, B52, B61, B62, B64–B66, B68 | `fix/batch-3` | Fixed in code, **not yet play-tested**. |
+
+Nothing is waiting for a playtest right now.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -40,7 +41,6 @@ All known P0 bugs are fixed, see DONE.
 | ID | Bug | Where | Size |
 |---|---|---|---|
 | B29 | `slot.bonus_amount` is a single mutable int: Rigger's Tonic, Bandage, Single Focus and Repeater Rail (`=`) fight over it, and end-of-round resets it to `pre_buff_amount` | `scKeepsakes.gml:443`, `oCombat/Step_0.gml:488` | M [C] |
-| B30 | Reserve and Barnacle Bind *assign* `bonus_dice`, which wipes Pickled Cucumber, Kraken's Grasp and Medallion | `scDebuffs.gml:109,312` | S [C] |
 | B33 | Intel level is only recalculated at turn start, so intel gained mid-turn never raises the level (*"intel 4 doesn't add the 3rd die"*) | `oCombat/Step_0.gml:164-177` | S [L] (design call: see Q3) |
 | B34 | Negative intel draws an almost-full ring. Intel above 12 overflows it | `oCombat/Draw_64.gml:934`, `scHelpers.gml:950` | S [L] |
 | B35 | `can_place_dice_in_slot` (highlights) and `apply_dice_to_slot` (real rule) disagree on exclusive, coin, multitype and the play limit | `scCombatScripts.gml:518,1082` | M [C] → fixed by T08 |
@@ -51,29 +51,14 @@ All known P0 bugs are fixed, see DONE.
 |---|---|---|---|
 | B41 | Hover descriptions are wrong after upgrades: static text, the hover preview uses slot −1 (type bonuses never show), duplicated oDice fields drift, and `get_dice_output(read_only=false)` runs every frame and fires keepsake side-effects | `oDice/Draw_64.gml:39`, `scDice.gml:1078`, `oWorkbenchManager/Draw_64.gml:177,246` | M [C] → T04 |
 | B42 | `string_has_keyword` is fragile (colons, single sentences, the "Favourite." prefix). `get_keywords_in_string` doesn't trim at all, so Offhand/Balanced show the wrong icons | `scHelpers.gml:580-635` | → T04 [C] |
-| B43 | Lead Line re-fires the full dispatcher, so *all* keepsakes double-trigger | `scKeepsakes.gml:549` | S [C] |
-| B44 | Chainmaster's `first_die` is never reset | `scKeepsakes.gml:475-493` | S [C] |
-| B45 | Crossword Puzzle is dead (checks the slot type for "None"). Lucky Coin compares a number to `"2"` | `scKeepsakes.gml:783,825` | S [C]/[L] |
-| B46 | Cannon Splitter fires on enemy attacks and per die rather than per slot | `scCombatScripts.gml:168` | S [C] |
-| B47 | Consumables: Artisan's Ember picks no die with chance 1/(N+1); Mirage Brew is off by one; Navigator's Brew reads oCombat in the workbench; Bilge-Purge uses `=` not `+=` | `scItems.gml:231,268,358,518` | S [C] |
-| B48 | Dome core is named "Binary Core", which also restores the wrong core on load | `scItems.gml:99` | S [C] |
-| B49 | `oRunManager.turn_count` is stuck at 1, so Squall, Fogcaller and Invisible always draw Favourites first | `oRunManager/Create_0.gml:149` | S [C] |
-| B50 | Room-start temp-die cleanup deletes while iterating forward and skips dice | `oRunManager/Other_4.gml:6-16` | S [C] |
 | B51 | Multitype dice don't show their colours in the bag, shop, particles or combat tiles (callers pass `action_type`) | `scDice.gml:1401`, multiple | S [C] |
-| B52 | Assassin's description ("+1 min") doesn't match the code (flat bonus) | `scDice.gml:858` | S [C] |
 
 **Map / events / bounty / workbench**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B60 | Two bounties are offered (`generate_bounties(2)`). Reroll doesn't clear `active_bounty`. "Elite 3" is labelled "Unfinished Elite" | `oBountyController/Create_0.gml:106`, `Draw_64.gml:220`, `scBounties.gml:28` | S [C] |
-| B61 | Can't take the bounty potion: the price check is invisible, with no error and no full-slot message | `oBountyController/Draw_64.gml:52` | S [C] |
-| B62 | Duplicate keepsakes: the bounty reward stays in the pool, and owned keepsakes are never filtered out (shop, rewards, after Continue) | `scShop.gml:430-445`, `scBounties.gml:48` | S [C] |
+| B60 | (Two bounties is intended, decided 2026-11-16.) Reroll doesn't clear `active_bounty`. "Elite 3" is labelled "Unfinished Elite" | `oBountyController/Create_0.gml:106`, `Draw_64.gml:220`, `scBounties.gml:28` | S [C] |
 | B63 | Workbench drop doesn't register: a die already in a slot is rejected, and the hover flags lag a frame (set in Draw, read in Step) | `oDice/Step_0.gml:112-140`, `oWorkbenchManager/Draw_64.gml:9` | S [C] |
-| B64 | Sirens "Block your ears" checks `"BLOCK"`, but dice use `"BLK"` | `scEvents.gml:1179` | S [C] |
-| B65 | Broken Sails "Repair" deletes `items[rand]` instead of `items[item_pool[rand]]` (free keepsake) | `scEvents.gml:275` | S [C] |
-| B66 | Shipwright gives a duplicate tool (not removed from `master_tool_list`) | `scEvents.gml:1030` | S [C] |
 | B67 | Albatross text says −7 alignment, the code applies −4. 29 options still say "Result" | `scEvents.gml:606/614` | S [C] |
-| B68 | Wrong arguments: `clamp(0,x,100)`, `object_exists(oCombat)`, `room = rmMainMenu` | `oWorldManager/Other_5.gml:102`, `scDisplay.gml:11`, `oSettingsMenu/Draw_64.gml:108` | S [C] |
 | B69 | Intro cutscene replays every launch (`seen` isn't saved) | `oCutsceneManager` | S [C] |
 
 **Save / load**
@@ -164,7 +149,6 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 - Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
 - Q3 Intel redesign (incl. B33): **parked until after bug fixes, the debug menu and the world map.**
-- Q5 One bounty or two? (B60)
 - Q7 Resolution targets: just 1080p + 1440p, or arbitrary? (decides how much layout work T07 needs)
 
 ## 📌 DECISIONS
@@ -173,6 +157,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - 2026-11-15 **Map lock stays.** It's a design pillar: "pick 1, lose 1, gain the last" choices like the rewards. Look for more places to use it.
 - 2026-11-15 **Scope cuts:** no four Act III regions, no 3 classes (F04 classes removed). **Alignment stays** in this build (F32).
 - 2026-11-15 **Platform:** a web build on itch.io for early playtests (keep exe as the dev/reference build); Steam is the long-term goal. See H07.
+- 2026-11-16 **Bounty board:** two bounties are offered, on purpose (Jared likes the choice). The potion on the bounty board is free.
 
 ---
 
@@ -211,6 +196,22 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | B32 | Target failsafe uses `>` instead of `>=`. An EXIT enemy doesn't shift `enemy_target_index` when target > e | Batch 2: combat rules | 2026-11-16 |
 | B40 | **Accurate and Splash dice are never offered** (Echo and Last Stand are registered twice instead) | Batch 2: combat rules | 2026-11-16 |
 | H06 | Sign in to GitHub on the first push | Housekeeping | 2026-11-15 |
+| B30 | Reserve and Barnacle Bind *assign* `bonus_dice`, which wipes Pickled Cucumber, Kraken's Grasp and Medallion | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B43 | Lead Line re-fires the full dispatcher, so *all* keepsakes double-trigger | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B44 | Chainmaster's `first_die` is never reset | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B45 | Crossword Puzzle is dead (checks the slot type for "None"). Lucky Coin compares a number to `"2"` | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B46 | Cannon Splitter fires on enemy attacks and per die rather than per slot | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B47 | Consumables: Artisan's Ember picks no die with chance 1/(N+1); Mirage Brew is off by one; Navigator's Brew reads oCombat in the workbench; Bilge-Purge uses `=` not `+=` | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B48 | Dome core is named "Binary Core", which also restores the wrong core on load | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B49 | `oRunManager.turn_count` is stuck at 1, so Squall, Fogcaller and Invisible always draw Favourites first | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B50 | Room-start temp-die cleanup deletes while iterating forward and skips dice | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B52 | Assassin's description ("+1 min") doesn't match the code (flat bonus) | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B61 | Can't take the bounty potion: the price check is invisible, with no error and no full-slot message | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B62 | Duplicate keepsakes: the bounty reward stays in the pool, and owned keepsakes are never filtered out (shop, rewards, after Continue) | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B64 | Sirens "Block your ears" checks `"BLOCK"`, but dice use `"BLK"` | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B65 | Broken Sails "Repair" deletes `items[rand]` instead of `items[item_pool[rand]]` (free keepsake) | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B66 | Shipwright gives a duplicate tool (not removed from `master_tool_list`) | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
+| B68 | Wrong arguments: `clamp(0,x,100)`, `object_exists(oCombat)`, `room = rmMainMenu` | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
 
 **Milestones**
 
