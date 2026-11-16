@@ -23,7 +23,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 8: web build | H07, H08, F19, F51, B85, B86 | `feature/web-build` | **Ready to test.** Browser fixes (16:9, dark page behind it), sounds compressed to Ogg (H08), Outguess cut (F19). Insight icons without paper (F51). Tooltips above the event window (B86). Second-fight black screen fixed (B85). Then follow `docs/web-build.md` and `docs/itch-launch.md`. |
+| 8: web build | H07, H08, F19, F51, B85, B86, F04 | `feature/web-build` | **Ready to test.** Browser fixes (16:9, dark page behind it), sounds compressed to Ogg (H08), Outguess cut (F19). Insight icons without paper (F51). Tooltips above the event window (B86). Second-fight black screen fixed (B85). New runs start by choosing a die and core pair again (F04). Then follow `docs/web-build.md` and `docs/itch-launch.md`. |
 
 **Batch 8 test list**
 - H07 Desktop build first (Run as usual): nothing changed. Settings still has Resolution and Fullscreen, Exit quits, double Escape quits.
@@ -34,6 +34,7 @@
 - F51 The insight icons have no paper now: Blotted is a dark ink spill with a red edge, Faded an outlined yellow drop, Legible a filled yellow drop, Quill a yellow quill. Check them above the player (bigger now), in the insight panel and beside rewritable intents.
 - B86 Open an event (e.g. A precious ingot) and hover the toolbag or a keepsake in the top bar: the tooltip draws on top of the event window. Tooltips everywhere else (combat, shop, F1 menu) still show on top.
 - B85 Web build: play two or three fights in a row (and an event between two of them): every fight loads, no black screen. Check the console (F12) stays free of red errors. Desktop: fights still start normally.
+- F04 Start a new voyage: before drafting pages, a "New Run Offering" screen offers 3 die + core pairs. Pick one: the die flies to your bag and the core lands in your item bar, then you draft pages as usual. The map can't be clicked while it's up, even after opening and closing the bag or settings. Quit to the menu before picking and Continue: the offering shows again. Continue a run that has already picked: no offering.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -96,7 +97,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 **Core loop**
 - F02 **Rethink what happens between pages (Jared, 2026-11-17).** Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
 - F03 Elite/boss chest reward
-- F04 Starting choice (die + core) at run start *(classes cut, 2026-11-15)*
+- F04 Starting choice (die + core) at run start *(classes cut, 2026-11-15)* (re-enabled in batch 8)
 - F05 Death / win screens, run summary, die roll-history stats page
 - F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
 

@@ -9,7 +9,7 @@
 ## Run lifecycle
 
 - `start_run()` (scHelpers): from the main menu; if a save exists, asks before overwriting; goes to `rmMap` where the run objects are created.
-- Continue sets `global.loading_game`; `oRunManager/Alarm_0` calls `load_game(1)` one step after creation.
+- Continue sets `global.loading_game`; `oRunManager/Alarm_0` calls `load_game(1)` one step after creation. A new run instead sets `new_run_offering` (F04): oRunManager Draw GUI shows 3 die + core pairs as a popup (map locked; Step re-asserts `UI_LAYER.POPUP`), and picking one sends the die to the bag and the core to the item bar. The flag is saved, so reloading before picking offers again.
 - `lose_run()`: deletes the save; in combat sets `PLAYER_DEAD`, otherwise back to the menu. Beating the last chapter also deletes the save.
 - Returning to `rmMainMenu` destroys `oRunManager`, `oWorldManager`, `oBountyController` (`oMainMenu/Other_4`).
 

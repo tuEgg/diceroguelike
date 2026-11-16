@@ -74,6 +74,7 @@ function save_game(_slot) {
 		pages_cleared: oWorldManager.pages_cleared,
 		spreads_cleared: oWorldManager.spreads_cleared,
 		chapter: oWorldManager.chapter,
+		new_run_offering: oRunManager.new_run_offering,	// still choosing the starting die and core
 		boss_page_placed: oWorldManager.boss_page_placed,
 		bounty_board: serialise_bounty_board(),
 		boat_x: oWorldManager.boat_data.x,
@@ -170,6 +171,9 @@ function load_game(_slot) {
 	oWorldManager.page_image_indices = _save.page_image_indices;
 	// chapter fields arrived after save version 2, so fall back to sensible values for saves without them
 	oWorldManager.chapter = variable_struct_exists(_save, "chapter") ? _save.chapter : 1;
+	// reloaded before choosing the starting die and core: offer it again
+	oRunManager.new_run_offering = variable_struct_exists(_save, "new_run_offering") ? _save.new_run_offering : false;
+	if (oRunManager.new_run_offering) global.ui_layer = UI_LAYER.POPUP;
 	oWorldManager.boss_page_placed = variable_struct_exists(_save, "boss_page_placed") ? _save.boss_page_placed : false;
 	// the same bounty contracts and potion as before (older saves roll a fresh board)
 	if (variable_struct_exists(_save, "bounty_board")) deserialise_bounty_board(_save.bounty_board);

@@ -1,3 +1,6 @@
+// the new run offering is a popup: keep the map behind it locked even after the bag or settings hand back the base layer
+if (new_run_offering && global.ui_layer == UI_LAYER.BASE) global.ui_layer = UI_LAYER.POPUP;
+
 key_escape = keyboard_check_pressed(vk_escape);
 
 if (key_escape && global.ui_layer != UI_LAYER.DEBUG) {
