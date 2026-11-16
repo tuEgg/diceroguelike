@@ -24,7 +24,8 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| Page-turn polish | M05–M07 | `feature/page-turn-polish` | Built, **not yet play-tested**. |
+
+Nothing is waiting for a playtest right now.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -134,11 +135,6 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F34 Tutorial path (fight 1 has no intel → intel die reward → fight 2 teaches intel)
 - F35 Pause menu (Resume / Settings / Main Menu)
 
-**World map polish**
-- M05 Islands and node icons turn with the page: the right-hand page squashes in towards the spine as it lifts, and the left-hand page is covered as the turned page comes down.
-- M06 Dotted route through the current spread's nodes in visiting order, plus a lead from the boat to the next node. Travelled legs are fainter.
-- M07 The boat's position is saved, so Continue puts it back where it was moored.
-
 **Juice**
 - F40 Individual Balatro-style trigger animations per die
 - F41 Room transitions, death animation, enemy sprites, particles for coins/potions/sacrifice
@@ -217,6 +213,8 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | B66 | Shipwright gives a duplicate tool (not removed from `master_tool_list`) | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
 | B68 | Wrong arguments: `clamp(0,x,100)`, `object_exists(oCombat)`, `room = rmMainMenu` | Batch 3: keepsakes, consumables, events, bounty | 2026-11-16 |
 | F01 | Boss node and boss reward: boss on the 8th spread of each chapter, choice of boss keepsakes | Chapter ending | 2026-11-16 |
+| M05 | Islands and node icons turn with the page: the right-hand page squashes in towards the spine as it lifts, and the left-hand page is covered as the turned page comes down. | Page-turn polish | 2026-11-17 |
+| M07 | The boat's position is saved, so Continue puts it back where it was moored. | Page-turn polish | 2026-11-17 |
 
 **Milestones**
 
@@ -224,3 +222,4 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - 2026-11-15 H01 leaked SSH key deleted on GitHub · H02/H03 repo moved off Google Drive to `C:\Users\Jared\Projects\TidesOfFortune` (Drive copy left as a backup) · H04 `.gitignore` covers keys and builds · world-map WIP saved to `wip/world-map`.
 - (Healing potion rounding: already `ceil` in fddd600.)
 - 2026-11-16 **Chapters (F06 core):** 7 drafted spreads then a boss spread, ribbon bookmark on the boss page, boss keepsake reward, "chapter complete" screen, chapter 2 with tougher enemies. Deep Lens replaces Looking Glass in place. Alt debug panels retired, map odds moved to the F1 Rooms tab.
+- 2026-11-17 **Page-turn polish:** islands and icons turn with the page, boat position saved. A dotted route (M06) was tried and removed at Jared's request.

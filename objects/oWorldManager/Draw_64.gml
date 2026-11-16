@@ -141,9 +141,6 @@ if (room == rmMap) {
 	var _pages_on_spread = 2;
 	if (ds_list_size(chosen_pages) > 0 && page_is_boss(chosen_pages[| ds_list_size(chosen_pages) - 1])) _pages_on_spread = 1;
 	
-	// the route sits under the islands and icons
-	if (world_state == WORLD_STATE.EXPLORING) draw_spread_route(_pages_on_spread);
-	
 	// where the turning page is hinged, matching the page drawing above
 	var turn_pivot_x = gui_w/2 + page_pos_offset + (page_offset * book_spread);
 	var turn_cover_x = gui_w/2 - page_pos_offset - (page_offset * book_spread);
