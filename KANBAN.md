@@ -23,10 +23,11 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 5: dice text from data | B41, B42, T04 | `fix/dice-data` | In progress, **not yet play-tested**. Step 1 done: every die has a `keywords` list (saved with the bag). |
+| 5: dice text from data | B41, B42, T04 | `fix/dice-data` | In progress, **not yet play-tested**. Steps 1-2 done: every die has a `keywords` list (saved with the bag), and every keyword rule, icon and tooltip reads it. |
 
 **Batch 5 test list**
-- B42 Step 1 needs no test on its own: nothing reads the new keywords yet.
+- B42 Keywords: Sticky (Bilge die) stays in its slot, Exclusive (Tidepusher) can't share a slot, coins don't count against dice played, Loose dice leave at end of turn. Keyword icons above dice and keyword boxes in die tooltips match the die. Give Offhand or Balanced (F1 / Dice): no Might or Balance icon on them.
+- B42 Upgrades: cut a d4 down to a coin at the workbench (Cutters): it gains Coin and plays as a coin, also after Continue. Friendship Bracelet adds Favourite and that die is drawn first on turn 1.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 

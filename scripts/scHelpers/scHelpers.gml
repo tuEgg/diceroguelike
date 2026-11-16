@@ -408,7 +408,9 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
         for (var k = 0; k < array_length(key_array); k++) {
             var key = key_array[k];
 
-            if (string_has_keyword(_desc, key)) {
+            // a die's own tooltip lists the keywords it has; any other text is searched for keyword words
+            var _about_die = is_struct(_dice) && variable_struct_exists(_dice, "keywords") && variable_struct_exists(_dice, "description") && _desc == _dice.description;
+            if (_about_die ? die_has_keyword(_dice, key) : string_has_keyword(_desc, key)) {
                 var data = global.keywords[$ key];
 
                 array_push(global.tooltip_keywords, {
@@ -622,25 +624,6 @@ function string_has_keyword(str, keyword) {
     return (string_pos(needle, haystack) > 0);
 }
 
-/// @func get_keywords_in_string(str)
-/// @returns array of keyword names appearing in the string
-function get_keywords_in_string(str) {
-    var list = [];
-    var key_array = variable_struct_get_names(global.keywords);
-
-    var upper_str = string_upper(str);
-
-    for (var k = 0; k < array_length(key_array); k++) {
-        var key = key_array[k];
-        var upper_key = string_upper(key);
-
-        if ((string_pos(upper_key, upper_str) > 0) && upper_key != "COIN" && upper_key != "MULTITYPE") {
-            array_push(list, key);
-        }
-    }
-
-    return list;
-}
 
 function parse_text(str) {
     var out = [];

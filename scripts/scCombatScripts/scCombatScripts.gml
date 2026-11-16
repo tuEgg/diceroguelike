@@ -532,11 +532,11 @@ function apply_dice_to_slot(_die, _slot_i) {
     var is_queue_all  = (slot.possible_type == "All");	// does the slot have "All types" as its type
     var is_queue_none = (slot.possible_type == "None"); // does the slot have no type set
     var is_dice_none  = (die.struct.possible_type == "None");
-	var is_dice_exclusive = string_has_keyword(die.struct.description, "Exclusive");
+	var is_dice_exclusive = die_has_keyword(die.struct, "Exclusive");
 	var is_slot_exclusive = false;
 	if (ds_list_size(slot.dice_list) > 0) {
 		for (var i = 0; i < ds_list_size(slot.dice_list); i++) {
-			if (string_has_keyword(slot.dice_list[| i].description, "Exclusive")) {
+			if (die_has_keyword(slot.dice_list[| i], "Exclusive")) {
 				is_slot_exclusive = true;
 				break;
 			}
@@ -562,7 +562,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 	}
 	
 	if (dice_played + 1 > dice_allowed_per_turn) {
-		if (!string_has_keyword(die.struct.description, "coin")) {
+		if (!die_has_keyword(die.struct, "coin")) {
 			reject_dice = true;	
 			dice_played_scale = 1.4;
 			dice_played_color = c_red;
@@ -598,7 +598,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 			} else {
 		        // Only accept dice as strong or stronger
 		        if (die.struct.dice_value >= stats.highest_value_base || is_dice_coin) {
-		            var die_copy = clone_die(die.struct, string_has_keyword(die.struct.description, "sticky") ? "sticky" : "base");
+		            var die_copy = clone_die(die.struct, die_has_keyword(die.struct, "sticky") ? "sticky" : "base");
 		            ds_list_add(slot.dice_list, die_copy);
 					
 					//var history_copy = clone_die(die.struct, "");
@@ -656,7 +656,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 	else {
 		// If queue is all types, also deprecated I believe.
 	    if (is_queue_all) {
-			var sticky = string_has_keyword(die.struct.description, "sticky");
+			var sticky = die_has_keyword(die.struct, "sticky");
 	        var die_copy = clone_die(die.struct, sticky ? "sticky" : "temporary");
 	        ds_list_add(slot.dice_list, die_copy);
 			
@@ -674,7 +674,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 				reject_dice = true;
 			} else {
 		        if (die.struct.dice_value >= stats.highest_value_base) {
-					var sticky = string_has_keyword(die.struct.description, "sticky");
+					var sticky = die_has_keyword(die.struct, "sticky");
 		            var die_copy = clone_die(die.struct, sticky ? "sticky" : "temporary");
 		            ds_list_add(slot.dice_list, die_copy);
 					
@@ -721,7 +721,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 		}
 	
         add_feed_entry("You used a dice!");
-		if (!string_has_keyword(die.struct.description, "coin")) dice_played += 1;
+		if (!die_has_keyword(die.struct, "coin")) dice_played += 1;
 		dice_played_scale = 1.2;
 		dice_played_color = c_green;
 		
@@ -800,14 +800,14 @@ function add_dice_to_bag(_die) {
 
 function sacrifice_die(_die) {
 	if (dice_played + 1 > dice_allowed_per_turn) {
-		if (!string_has_keyword(_die.struct.description, "coin")) {
+		if (!die_has_keyword(_die.struct, "coin")) {
 			dice_played_scale = 1.4;
 			dice_played_color = c_red;
 			return;
 		}
 	} 
 	
-	if (!string_has_keyword(_die.struct.description, "coin")) dice_played += 1;
+	if (!die_has_keyword(_die.struct, "coin")) dice_played += 1;
 	dice_played_scale = 1.2;
 	dice_played_color = c_green;
 	
@@ -1489,7 +1489,7 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 		var die = _slot.dice_list[| j];		
 		die.rolled_value = -1;
 
-		if (string_pos("temporary", die.permanence) > 0 || (string_has_keyword(die.description, "Loose")) || _all == true) {
+		if (string_pos("temporary", die.permanence) > 0 || (die_has_keyword(die, "Loose")) || _all == true) {
 				
 			// Skip slots that don't have an action, keeping neutral dice in empty slots.
 			if (_slot.current_action_type == "None") break;

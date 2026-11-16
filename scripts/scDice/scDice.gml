@@ -50,7 +50,7 @@ function deal_single_die( _can_discard_this_turn = true) {
 	for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
 		// only check for favourites on first turn
 		if (_first_turn) {
-			var fave = string_has_keyword(global.dice_bag[| d].description, "Favourite");
+			var fave = die_has_keyword(global.dice_bag[| d], "Favourite");
 			if (fave) {
 				die_struct = clone_die(global.dice_bag[| d], "");
 				index = d;
@@ -1209,10 +1209,14 @@ function trigger_die_effects_single(_die_struct, _event, _data) {
 }
 
 function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0) {
-    var desc = _die_struct.description;
-    if (is_undefined(desc)) return;
-
-    var found = get_keywords_in_string(desc);
+    // icons come from the die's keywords list; Coin and Multitype have no icon (they show in the die's shape and colour)
+    var found = [];
+    var key_names = variable_struct_get_names(global.keywords);
+    for (var k = 0; k < array_length(key_names); k++) {
+        var key = key_names[k];
+        if (key == "Coin" || key == "Multitype") continue;
+        if (die_has_keyword(_die_struct, key)) array_push(found, key);
+    }
 
     if (array_length(found) == 0) return;
 

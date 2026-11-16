@@ -243,7 +243,7 @@ switch (crafting_state) {
 		new_dice.dice_value = workbench_slot[0].dice.dice_value - 2;
 		
 		if (new_dice.dice_value == 2) {
-			new_dice.description = string_concat("Coin. ", new_dice.description);
+			die_add_keyword(new_dice, "Coin"); // cut down to a d2, it plays as a coin
 		}
 		
 		var base_coin = global.dice_d2_none;

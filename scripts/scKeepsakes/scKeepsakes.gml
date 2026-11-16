@@ -406,14 +406,14 @@ function define_keepsakes() {
 		state: { effect_used: false, first_die: undefined },
 	    trigger: function(event, data) {
 	        if (event == "on_roll_die") {
-				if (string_has_keyword(data.die.description, "Followthrough")) {
+				if (die_has_keyword(data.die, "Followthrough")) {
 					// the first Followthrough die in the queue, in the order the slots resolve
 					var _first_die = undefined;
 					if (instance_exists(oCombat)) {
 						for (var s = 0; s < ds_list_size(oCombat.action_queue) && _first_die == undefined; s++) {
 							var _dice_list = oCombat.action_queue[| s].dice_list;
 							for (var d = 0; d < ds_list_size(_dice_list); d++) {
-								if (string_has_keyword(_dice_list[| d].description, "Followthrough")) {
+								if (die_has_keyword(_dice_list[| d], "Followthrough")) {
 									_first_die = _dice_list[| d];
 									break;
 								}
@@ -515,8 +515,7 @@ function define_keepsakes() {
 				oRunManager.dice_selection = 1;
 				oRunManager.dice_selection_message = "Choose 1 dice to add Favourite to.";
 				oRunManager.dice_selection_event = function(_die) {
-					var old_desc = _die.description;
-					_die.description = "Favourite. " + old_desc;
+					die_add_keyword(_die, "Favourite"); // the keyword and its text together
 				}
 				
 	        }

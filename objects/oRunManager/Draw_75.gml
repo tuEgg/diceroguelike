@@ -83,14 +83,14 @@ if (show_dice_list) {
 			default: break;
 		}
 		
-		if (string_has_keyword(dice.description, "stowaway")) num_stowaway++;
-		if (string_has_keyword(dice.description, "favourite")) num_favourite++;
-		if (string_has_keyword(dice.description, "coin")) num_coin++;
-		if (string_has_keyword(dice.description, "multitype")) num_multitype++;
-		if (string_has_keyword(dice.description, "followthrough")) num_followthrough++;
-		if (string_has_keyword(dice.description, "exclusive")) num_exclusive++;
-		if (string_has_keyword(dice.description, "loose")) num_loose++;
-		if (string_has_keyword(dice.description, "sticky")) num_sticky++;
+		if (die_has_keyword(dice, "stowaway")) num_stowaway++;
+		if (die_has_keyword(dice, "favourite")) num_favourite++;
+		if (die_has_keyword(dice, "coin")) num_coin++;
+		if (die_has_keyword(dice, "multitype")) num_multitype++;
+		if (die_has_keyword(dice, "followthrough")) num_followthrough++;
+		if (die_has_keyword(dice, "exclusive")) num_exclusive++;
+		if (die_has_keyword(dice, "loose")) num_loose++;
+		if (die_has_keyword(dice, "sticky")) num_sticky++;
 		
 		// Increase spacing for next dice
 		dice_y += row_spacing;
