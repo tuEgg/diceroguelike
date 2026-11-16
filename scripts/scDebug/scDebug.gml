@@ -148,6 +148,11 @@ function debug_menu_step() {
 		if (mouse_wheel_down())	dbg.scroll += 3;
 	}
 
+	// F2 / F3 / F4: game speed x1 / x2 / x4, any time
+	if (keyboard_check_pressed(vk_f2)) debug_set_speed(1);
+	if (keyboard_check_pressed(vk_f3)) debug_set_speed(2);
+	if (keyboard_check_pressed(vk_f4)) debug_set_speed(4);
+	
 	if (!dbg.open) debug_hotkeys();
 
 	if (dbg.message_timer > 0) dbg.message_timer--;
@@ -418,6 +423,7 @@ function debug_menu_draw() {
 
 			var keys = [
 				["F1 / Escape",	"Open and close this menu"],
+				["F2 / F3 / F4", "Game speed x1 / x2 / x4"],
 				["Space",		"Kill all enemies and finish the fight"],
 				["Backspace",	"An enemy hits you for 20"],
 				["H",			"Heal to full"],
@@ -509,8 +515,7 @@ function debug_menu_draw() {
 			var speed_steps = [0.5, 1, 2, 4];
 			for (var i = 0; i < array_length(speed_steps); i++) {
 				if (debug_button(cx + quarter_w * i, yy, quarter_w, row_h, "x" + string(speed_steps[i]), dbg.speed_multiplier == speed_steps[i])) {
-					dbg.speed_multiplier = speed_steps[i];
-					game_set_speed(dbg.base_speed * speed_steps[i], gamespeed_fps);
+					debug_set_speed(speed_steps[i]);
 				}
 			}
 		break;
@@ -936,4 +941,11 @@ function debug_complete_spread() {
 	
 	debug_menu_close(true);
 	debug_say("Spread completed");
+}
+
+/// Run the game at a multiple of its normal speed (everything, animations included).
+function debug_set_speed(_multiplier) {
+	global.dbg.speed_multiplier = _multiplier;
+	game_set_speed(global.dbg.base_speed * _multiplier, gamespeed_fps);
+	debug_say("Game speed x" + string(_multiplier));
 }

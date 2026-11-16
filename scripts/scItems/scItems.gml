@@ -172,7 +172,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 0,
 		name: "Riggers Tonic",
-		description: "Choose a slot to gain +2 on all rolls for next turn",
+		description: "Choose a slot: every die in it gains +1 to its roll this turn",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -193,8 +193,8 @@ function define_items() {
 				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
 			},
 			modify: function(_context) {
-				// +2 on every roll in this slot until the end of this round
-				slot_add_bonus(_context._slot, "Rigger's Tonic", 2, 1);
+				// +1 on every die in this slot until the end of this round
+				slot_add_bonus(_context._slot, "Rigger's Tonic", 1, 1);
 			}
 		},
 		price: 25

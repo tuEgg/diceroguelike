@@ -493,6 +493,21 @@ for (var i = 0; i < aq_list_size; i++) {
 			// Draw keyword icons above
 			draw_dice_keywords(die_struct, xx_top + 3, yy_top - 34, 1);
 			
+			// Slot bonus badge in the die's bottom-right corner: every-die bonuses, plus first-die ones on the first die.
+			// The keyword icons sit above the die and the rolled number in its middle, so the corner is free.
+			var _die_bonus = slot.bonus_amount + (d == 0 ? slot.first_die_bonus : 0);
+			if (_die_bonus != 0) {
+				var _old_halign = draw_get_halign(); // put the alignment back after, the rolled number below relies on it
+				var _old_valign = draw_get_valign();
+				draw_set_font(ftSmall);
+				draw_set_halign(fa_center);
+				draw_set_valign(fa_middle);
+				var _badge_col = _die_bonus > 0 ? c_lime : c_red;
+				draw_outline_text((_die_bonus > 0 ? "+" : "") + string(_die_bonus), c_black, _badge_col, 2, xx_top + 12, yy_top + 12, this_dice_scale, 1, 0);
+				draw_set_halign(_old_halign);
+				draw_set_valign(_old_valign);
+			}
+			
 			
 			draw_set_font(ftSmall);
 			draw_set_color(c_black);
