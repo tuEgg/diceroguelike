@@ -882,18 +882,17 @@ if (show_bag_contents) {
 	if (scroll_bar_hover) {
 		
 		if (mouse_check_button_pressed(mb_left)) {
-			m_grab_y = mouse_y;
+			scroll_dragging = true;
+			m_grab_y = device_mouse_y_to_gui(0); // GUI space, like everything else drawn here
 			s_grab_y = scroll_y;
 		}
-		
-		if (mouse_check_button_released(mb_left)) {
-			m_grab_y = 0;
-			s_grab_y = 0;
-		}
 	}
+	
+	// letting go anywhere ends the drag, not just over the bar
+	if (!mouse_check_button(mb_left)) scroll_dragging = false;
 		
-	if (mouse_check_button(mb_left) && m_grab_y != 0) {
-		scroll_y = lerp(scroll_y, s_grab_y + (m_grab_y - mouse_y), 0.5);
+	if (scroll_dragging) {
+		scroll_y = lerp(scroll_y, s_grab_y + (m_grab_y - device_mouse_y_to_gui(0)), 0.5);
 		scroll_y = clamp(scroll_y, scroll_height, 0);
 	}
 } else {

@@ -199,6 +199,7 @@ bag_title = "";
 pre_bag_open_ui_layer = UI_LAYER.BASE; // used for restoring the correct UI layer once the bag is closed
 pre_settings_open_ui_layer = UI_LAYER.BASE; // same as above but for settings
 scroll_y = 0;
+scroll_dragging = false; // is the bag or dice list scrollbar being dragged
 m_grab_y = 0;
 s_grab_y = 0;
 filtered_list = ds_list_create();
