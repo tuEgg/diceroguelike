@@ -260,7 +260,8 @@ function generate_dice_bag() {
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
-					_context._d_amount = ds_list_size(oCombat.action_queue) - 1 - _context.slot_num;
+					// only once it is in a slot: in hand or a menu there are no slots after it to count
+					if (_context.slot_num >= 0) _context._d_amount = ds_list_size(oCombat.action_queue) - 1 - _context.slot_num;
 	            }
 	        }
 	    ]
@@ -277,7 +278,7 @@ function generate_dice_bag() {
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
-					_context._d_amount = 2 * (ds_list_size(oCombat.action_queue) - 1 == _context.slot_num);
+					if (_context.slot_num >= 0) _context._d_amount = 2 * (ds_list_size(oCombat.action_queue) - 1 == _context.slot_num);
 	            }
 	        }
 	    ]
@@ -1110,6 +1111,8 @@ function get_dice_name_and_bonus(_die, _bonus_amount) {
 /// @param _read_only	Determine whether we are just reading to generate numbers, or actually running the code
 /// @param _owner		Whether its player owned or owned by the enemy
 function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
+	// "not in a slot" is always -1 from here on, so dice effects can compare slot_num safely
+	if (_slot_num == undefined) _slot_num = -1;
 	
 	var prev_slot_type = "";
 	var slot = undefined;
