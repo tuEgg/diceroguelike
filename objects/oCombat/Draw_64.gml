@@ -684,7 +684,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			draw_set_alpha(enemy.intent.alpha * (0.15 + 0.25 * _quill_pulse));
 			draw_roundrect_ext(xx - _glow_w, yy - 30, xx + _glow_w, yy + 30, 20, 20, false);
 			draw_set_alpha(1.0);
-			draw_insight_icon("quill", xx - _glow_w - 26, yy - 4 * _quill_pulse, 0.7, enemy.intent.alpha);
+			draw_insight_icon("quill", xx - _glow_w - 24, yy - 4 * _quill_pulse, 1.1, enemy.intent.alpha);
 		}
 
 		// Draw enemy intent
@@ -986,7 +986,7 @@ if (state != CombatState.PLAYER_DEAD) {
 	}
 
 	var _intel_state = intel_state(intel_level);
-	draw_insight_icon(_intel_state.icon, global.player_x, global.player_y - 180, intel_scale, intel_alpha);
+	draw_insight_icon(_intel_state.icon, global.player_x, global.player_y - 180, intel_scale * 1.6, intel_alpha);
 	draw_outline_text(string(_intel_state.name), c_black, intel_is_blotted() ? c_red : global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
 	var intel_hover = mouse_hovering(global.player_x, global.player_y - 190, 120, 120, true);
 
@@ -1042,7 +1042,7 @@ if (state != CombatState.PLAYER_DEAD) {
 				draw_roundrect(intel_x + 6, _row_y + 2, intel_x + intel_w - 6, _row_y + intel_row_h - 2, false);
 			}
 			draw_set_alpha(1.0);
-			draw_insight_icon(_row.icon, intel_x + intel_pad + 14, _mid, 0.65, (i == _current_row) ? 1.0 : 0.6);
+			draw_insight_icon(_row.icon, intel_x + intel_pad + 14, _mid, 0.95, (i == _current_row) ? 1.0 : 0.6);
 			draw_set_font(ftDefault);
 			draw_set_halign(fa_left);
 			draw_set_color((i == _current_row) ? global.color_intel : c_white);

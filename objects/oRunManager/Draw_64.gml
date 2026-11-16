@@ -950,5 +950,4 @@ if (dice_selection != false) {
 	draw_outline_text(button_text, c_black, c_white, 2, gui_w - 150, gui_h - 200, 1, 1, 0);
 }
 
-// Draw all tooltips
-draw_all_tooltips();
+// tooltips are drawn in Draw GUI End (Draw_75), after every window, so nothing covers them

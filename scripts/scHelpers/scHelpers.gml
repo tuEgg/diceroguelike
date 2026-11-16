@@ -1278,55 +1278,76 @@ function lose_run() {
 }
 
 /// @func draw_insight_icon(_icon, _x, _y, _scale, _alpha)
-/// @desc Placeholder icons for the insight states, drawn with shapes until real art is made (F51): a logbook page that is
-///       blotted, faded, legible, or legible with a quill across it. About 44 x 52 pixels at scale 1, centred on _x, _y.
+/// @desc Placeholder icons for the insight states, drawn with shapes until real art is made (F51), about 30 pixels tall
+///       at scale 1, centred on _x, _y: "blotted" an ink spill, "faded" an outlined drop, "legible" a filled drop,
+///       "quill" a quill.
 function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
-	var _w = 18 * _scale, _h = 22 * _scale; // half sizes of the page
-	var _ink = make_color_rgb(30, 35, 60);
-	var _paper = make_color_rgb(238, 224, 186);
 	var _old_alpha = draw_get_alpha();
-
-	// the page, with a dark edge
+	var _ink = global.color_intel;
 	draw_set_alpha(_alpha);
-	draw_set_color(c_black);
-	draw_roundrect_ext(_x - _w - 2 * _scale, _y - _h - 2 * _scale, _x + _w + 2 * _scale, _y + _h + 2 * _scale, 8 * _scale, 8 * _scale, false);
-	draw_set_color(_paper);
-	draw_roundrect_ext(_x - _w, _y - _h, _x + _w, _y + _h, 6 * _scale, 6 * _scale, false);
 
-	// lines of writing: faint when Faded, dark from Legible
-	if (_icon != "blotted") {
-		draw_set_color(_ink);
-		draw_set_alpha(_alpha * ((_icon == "faded") ? 0.25 : 0.9));
-		for (var i = 0; i < 4; i++) {
-			var _ly = _y - _h + (9 + i * 9) * _scale;
-			var _lw = (i == 3) ? _w * 0.9 : _w * 1.4;
-			draw_line_width(_x - _w + 6 * _scale, _ly, _x - _w + 6 * _scale + _lw, _ly, max(1, 3 * _scale));
-		}
-	}
+	switch (_icon) {
+		case "blotted":
+			// a spill: a lumpy blob with a few splashes, dark with a red edge
+			var _blobs = [[0, 2, 10], [-7, -3, 6], [7, -4, 6], [6, 8, 5], [-8, 7, 4], [-13, -9, 2.5], [13, 10, 2], [2, -13, 2.5]];
+			for (var _pass = 0; _pass < 2; _pass++) {
+				draw_set_color((_pass == 0) ? c_red : make_color_rgb(20, 20, 35));
+				for (var i = 0; i < array_length(_blobs); i++) {
+					var _b = _blobs[i];
+					draw_circle(_x + _b[0] * _scale, _y + _b[1] * _scale, (_b[2] + ((_pass == 0) ? 1.5 : 0)) * _scale, false);
+				}
+			}
+		break;
 
-	// Blotted: a spill of ink across the page
-	if (_icon == "blotted") {
-		draw_set_color(_ink);
-		draw_set_alpha(_alpha);
-		draw_circle(_x, _y, 11 * _scale, false);
-		draw_circle(_x - 8 * _scale, _y - 7 * _scale, 6 * _scale, false);
-		draw_circle(_x + 9 * _scale, _y + 6 * _scale, 6 * _scale, false);
-		draw_circle(_x + 7 * _scale, _y - 10 * _scale, 4 * _scale, false);
-		draw_circle(_x - 6 * _scale, _y + 12 * _scale, 3 * _scale, false);
-	}
+		case "faded":
+		case "legible":
+			// a drop: round at the bottom, pointed at the top. Faded is an outline, Legible is filled
+			var _cx = _x, _cy = _y + 4 * _scale, _r = 10 * _scale;
+			var _tip_x = _x, _tip_y = _y - 15 * _scale;
+			var _pts = [[_tip_x, _tip_y]];
+			for (var _ang = 30; _ang >= -210; _ang -= 15) {
+				array_push(_pts, [_cx + lengthdir_x(_r, _ang), _cy + lengthdir_y(_r, _ang)]);
+			}
+			if (_icon == "legible") {
+				// black edge, then the yellow fill
+				for (var _pass = 0; _pass < 2; _pass++) {
+					var _grow = (_pass == 0) ? 1.18 : 1;
+					draw_set_color((_pass == 0) ? c_black : _ink);
+					draw_primitive_begin(pr_trianglefan);
+					draw_vertex(_cx, _cy);
+					for (var i = 0; i < array_length(_pts); i++) draw_vertex(_cx + (_pts[i][0] - _cx) * _grow, _cy + (_pts[i][1] - _cy) * _grow);
+					draw_vertex(_cx + (_pts[0][0] - _cx) * _grow, _cy + (_pts[0][1] - _cy) * _grow);
+					draw_primitive_end();
+				}
+			} else {
+				// black, then yellow, so the outline reads on any background
+				for (var _pass = 0; _pass < 2; _pass++) {
+					draw_set_color((_pass == 0) ? c_black : _ink);
+					var _lw = ((_pass == 0) ? 5 : 2.5) * _scale;
+					for (var i = 0; i < array_length(_pts); i++) {
+						var _p1 = _pts[i], _p2 = _pts[(i + 1) mod array_length(_pts)];
+						draw_line_width(_p1[0], _p1[1], _p2[0], _p2[1], _lw);
+					}
+				}
+			}
+		break;
 
-	// Quill: a feather lying across the page, nib at the bottom left
-	if (_icon == "quill") {
-		var _tip_x = _x - _w + 2 * _scale, _tip_y = _y + _h - 2 * _scale;
-		var _end_x = _x + _w + 8 * _scale, _end_y = _y - _h - 8 * _scale;
-		draw_set_alpha(_alpha);
-		draw_set_color(c_black);
-		draw_line_width(_tip_x, _tip_y, _end_x, _end_y, 4 * _scale);
-		draw_set_color(global.color_intel);
-		draw_triangle(_x - 4 * _scale, _y + 4 * _scale, _end_x, _end_y, _x + 8 * _scale, _y + 6 * _scale, false);
-		draw_triangle(_x - 4 * _scale, _y + 4 * _scale, _end_x, _end_y, _x - 6 * _scale, _y - 8 * _scale, false);
-		draw_set_color(_ink);
-		draw_line_width(_tip_x, _tip_y, _x - 4 * _scale, _y + 4 * _scale, 3 * _scale);
+		case "quill":
+			// a feather leaning right, nib at the bottom left
+			var _tip_x = _x - 11 * _scale, _tip_y = _y + 14 * _scale;
+			var _end_x = _x + 12 * _scale, _end_y = _y - 15 * _scale;
+			var _mid_x = _x - 3 * _scale, _mid_y = _y + 4 * _scale;
+			for (var _pass = 0; _pass < 2; _pass++) {
+				var _o = (_pass == 0) ? 2 * _scale : 0;
+				draw_set_color((_pass == 0) ? c_black : _ink);
+				draw_triangle(_mid_x - _o, _mid_y + _o, _end_x + _o, _end_y - _o, _x + 9 * _scale + _o, _y + 5 * _scale + _o, false);
+				draw_triangle(_mid_x - _o, _mid_y + _o, _end_x + _o, _end_y - _o, _x - 6 * _scale - _o, _y - 9 * _scale - _o, false);
+			}
+			// the shaft and nib
+			draw_set_color(c_black);
+			draw_line_width(_tip_x, _tip_y, _end_x, _end_y, 2.5 * _scale);
+			draw_line_width(_tip_x, _tip_y, _mid_x, _mid_y, 4 * _scale);
+		break;
 	}
 
 	draw_set_alpha(_old_alpha);

@@ -183,3 +183,6 @@ if (show_dice_list) {
 	}
 	
 }
+
+// tooltips last, after every window and panel (Draw GUI End), so nothing draws over them
+draw_all_tooltips();
