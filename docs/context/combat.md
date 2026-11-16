@@ -47,6 +47,8 @@ Room `rmCombat`, object `oCombat` (not persistent). Created with the enemies `oW
 - Intel dice roll when their slot resolves, like any die, and queue `buff_intel` ("Queued intel"), which adds to `player_intel` at the start of next turn. Crow's Nest queues intel the same way. (Rolling intel the moment it is played was tried and reverted.)
 - Outguess (intel's this-turn effect, at any intel): each intel roll adds to `intel_rolled_this_turn` (reset in START_TURN) and calls `intel_try_outguess`; if the total beats the target's `intent_rolled_value`, `intent.fumbled` is set and `process_action` halves that enemy's amounts this turn. The shown range/exact number are halved too. `enemy_set_intent` clears it.
 - Quill: clicking an intent calls `enemy_rewrite_intent` (a different, untriggered move picked at random, rolled fresh), once per turn (`intel_rewrite_used`, reset at START_TURN). Triggered moves and Stunned can't be rewritten (`enemy_can_rewrite_intent`). Next-turn intents were tried and cut.
+- On screen intel is called **Ink**: all player-facing text says ink, and `action_type_label` (scDice) turns INTEL into INK wherever an action type is shown. The code, slot types and `player_intel` keep the old name.
+- Overwhelm (`debuff_overwhelm`, Driftnet Fish and the Parrot's mimic) is applied on the enemy's turn with `remove_next_turn`, so it stays on you through your next turn (removed `on_round_end`). At that turn's start it spills ink and sets `target_locked` (reset in START_TURN); clicking another enemy is refused while the locked target stands.
 
 ## Enemies: scEnemies
 

@@ -103,6 +103,7 @@ global.COLOR_RULES = [
     { tag: "attack",		keyword: "attack",			type: "num_keyword" },
     { tag: "attack",		keyword: "ATK",				type: "num_keyword" },
     { tag: "intel",			keyword: "intel",			type: "num_keyword" },
+    { tag: "intel",			keyword: "ink",				type: "num_keyword" }, // "Ink" is what the player reads; the code still says intel
     { tag: "followthrough",	keyword: "followthrough",	type: "num_keyword" },
     { tag: "multitype",		keyword: "multitype",		type: "num_keyword" },
     { tag: "coin",			keyword: "coin",			type: "num_keyword" },
@@ -181,7 +182,7 @@ ds_list_add(global.player_intel_data, {
 });
 global.intel_blotted = {
 	name: "Blotted",
-	description: "Below 0 intel the page is smudged: enemy intents are hidden.",
+	description: "Below 0 ink the page is smudged: enemy intents are hidden.",
 	index: 0,
 };
 

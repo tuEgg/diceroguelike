@@ -1047,6 +1047,13 @@ function get_tool_by_name(_name) {
 }
 
 function get_die_by_name(_name) {
+	// dice renamed when Intel became Ink; saves from before still use the old names
+	switch (_name) {
+		case "Intel": _name = "Ink"; break;
+		case "Intel.": _name = "Ink."; break;
+		case "Inteli Die": _name = "Inkwell Die"; break;
+	}
+
     for (var i = 0; i < ds_list_size(global.master_dice_list); i++) {
         if (global.master_dice_list[| i].name == _name) {
             return global.master_dice_list[| i];

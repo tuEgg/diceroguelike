@@ -4,6 +4,7 @@ switch (state) {
 		player_turn_done = false;
 		intel_rewrite_used = false; // Quill: one rewrite per turn
 		intel_rolled_this_turn = 0; // Outguess compares everything rolled into intel this turn
+		target_locked = false; // Overwhelm locks it again in on_turn_start
 		delayed_enemy_attack = false;
 		
 		if (turn_count == 1) {

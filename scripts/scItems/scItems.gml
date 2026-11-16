@@ -384,7 +384,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 5,
 		name: "Crow's Nest Clarity",
-		description: "Gain 10 Intel (Quill) for next turn",
+		description: "Gain 10 ink (Quill) next turn",
 		type: "consumable",
 		dragging: false,
 		distribution: "",

@@ -329,7 +329,7 @@ for (var i = 0; i < aq_list_size; i++) {
 				tooltip = string(slot_amount) + "d" + string(slot_value) + _bonus + " Heal";
 				break;
 				case "INTEL":
-				tooltip = string(slot_amount) + "d" + string(slot_value) + _bonus + " Intel";
+				tooltip = string(slot_amount) + "d" + string(slot_value) + _bonus + " Ink";
 				break;
 				case "None":
 					if (slot_possible_type != "All") {
@@ -571,8 +571,14 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	enemy.scale = lerp(enemy.scale, hover_enemy ? enemy.start_scale : enemy.start_scale, 0.2);
 	enemy.info_alpha = lerp(enemy.info_alpha, hover_enemy ? 1.0 : 0, 0.4);
 	
-	if (hover_enemy && mouse_check_button_pressed(mb_left) && state == CombatState.PLAYER_INPUT) { // you can always pick your target; intel no longer gates it
-		enemy_target_index = e;
+	// you can always pick your target, unless Overwhelm has locked it this turn (and that target is still standing)
+	if (hover_enemy && mouse_check_button_pressed(mb_left) && state == CombatState.PLAYER_INPUT && e != enemy_target_index) {
+		var _lock_holds = target_locked && enemy_target_index >= 0 && enemy_target_index < ds_list_size(room_enemies) && !room_enemies[| enemy_target_index].dead;
+		if (_lock_holds) {
+			throw_error("Overwhelmed", "You can't change target this turn.");
+		} else {
+			enemy_target_index = e;
+		}
 	}
 	
 	// Draw enemy focus if we're the targeted enemy
@@ -740,11 +746,11 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "The enemy intents to escape", undefined, 0, undefined);
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
 					var _intent_desc = "This turn: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount);
-					if (intent_has_numbers(enemy.intent.move)) _intent_desc += (intel_level >= 1) ? ", exactly " + string(intent_exact_value(enemy)) : ". Reach " + string(global.player_intel_data[| 1].requirement) + " intel (Legible) to see the exact number";
-					_intent_desc += intent_is_fumbled(enemy) ? ". Outguessed by your intel, so it does half." : ".";
+					if (intent_has_numbers(enemy.intent.move)) _intent_desc += (intel_level >= 1) ? ", exactly " + string(intent_exact_value(enemy)) : ". Reach " + string(global.player_intel_data[| 1].requirement) + " ink (Legible) to see the exact number";
+					_intent_desc += intent_is_fumbled(enemy) ? ". Outguessed by your ink, so it does half." : ".";
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, _intent_desc, undefined, 0, undefined);
 				} else {
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Your intel is below 0, so the page is smudged and enemy intents are hidden.", undefined, 0, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Your ink is below 0, so the page is blotted and enemy intents are hidden.", undefined, 0, undefined);
 				}
 			}
 		}
@@ -1024,7 +1030,7 @@ if (state != CombatState.PLAYER_DEAD) {
 		draw_set_halign(fa_left);
 		draw_set_valign(fa_middle);
 		draw_set_font(ftDefault);
-		draw_text(intel_x + intel_pad, intel_y + intel_pad, "Intel Levels");
+		draw_text(intel_x + intel_pad, intel_y + intel_pad, "Ink");
 	
 		// Draw rows (each centred in its own height)
 		var _row_y = intel_y + intel_pad + 30;
@@ -1044,10 +1050,10 @@ if (state != CombatState.PLAYER_DEAD) {
 		var _intel_tip = string(_intel_state.description);
 		if (!intel_is_blotted() && intel_level < ds_list_size(global.player_intel_data) - 1) {
 			var _next_state = global.player_intel_data[| intel_level + 1];
-			_intel_tip += " " + string(_next_state.requirement - player_intel) + " more intel: " + string(_next_state.name) + ".";
+			_intel_tip += " " + string(_next_state.requirement - player_intel) + " more ink: " + string(_next_state.name) + ".";
 		}
-		_intel_tip += " Intel dice you play count next turn. This turn, if your intel rolls beat your target's number, you outguess it: its move does half.";
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Intel: " + string(_intel_state.name), _intel_tip, undefined, 0, undefined);
+		_intel_tip += " Ink dice you play count next turn. This turn, if your ink rolls beat your target's number, you outguess it: its move does half.";
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Ink: " + string(_intel_state.name), _intel_tip, undefined, 0, undefined);
 	}
 }
 

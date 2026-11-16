@@ -132,7 +132,7 @@ if (show_dice_list) {
 	draw_outline_text("Attack: " + string(num_atk),			c_black, global.color_attack, 2, stat_x + stat_col_spacing, stat_y + stat_row_spacing * 1, 1, 1, 0);
 	draw_outline_text("Block: " + string(num_blk),			c_black, global.color_block, 2, stat_x + stat_col_spacing, stat_y + stat_row_spacing * 2, 1, 1, 0);
 	draw_outline_text("Heal: " + string(num_heal),			c_black, global.color_heal, 2, stat_x + stat_col_spacing, stat_y + stat_row_spacing * 3, 1, 1, 0);
-	draw_outline_text("Intel: " + string(num_intel),		c_black, global.color_intel, 2, stat_x + stat_col_spacing, stat_y + stat_row_spacing * 4, 1, 1, 0);
+	draw_outline_text("Ink: " + string(num_intel),		c_black, global.color_intel, 2, stat_x + stat_col_spacing, stat_y + stat_row_spacing * 4, 1, 1, 0);
 	draw_outline_text("Neutral: " + string(num_neutral),	c_black, c_white, 2, stat_x + stat_col_spacing, stat_y + stat_row_spacing * 5, 1, 1, 0);
 	
 	// Draw the number of keywords

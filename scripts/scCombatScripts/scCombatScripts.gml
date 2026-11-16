@@ -1262,7 +1262,7 @@ function get_action_name(_slot, _num) {
 		case "INTEL":
 		    switch (highest_value) {
 		        case 4: label = "Sleuth"; break;
-		        case 6: label = "Gather intel"; break;
+		        case 6: label = "Gather ink"; break;
 		        case 8: label = "Build a case"; break;
 		        default: label = "Sleuth"; break;
 		    }
