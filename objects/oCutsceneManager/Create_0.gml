@@ -1,6 +1,6 @@
 cutscenes = [
 	{
-		voiceover: sIntro,
+		voiceover: undefined, // silent for now (was sIntro); Jared will add a new sound later
 		music: undefined,
 		length: 13, // length in seconds
 		seen: debug_skip_intro() || progress_get("intro_seen"), // plays once ever (progress.json, Settings > Gameplay > Intro next run replays it); never in a debug run (F6)
