@@ -344,16 +344,7 @@ var exit_col = c_dkgray;
 if	(workbench_slot[2].dice == undefined && instance_number(oDice) == 0 && instance_number(oDiceParticle) == 0) ||
 	(workbench_slot[0].dice == undefined && workbench_slot[1].core == undefined && workbench_slot[1].dice == undefined && workbench_slot[2].dice == undefined) exit_col = c_red;
 
-var hover_exit = mouse_hovering(gui_w - 150, gui_h - 200, exit_scale*sprite_get_width(sButtonSmall)*0.75, exit_scale*sprite_get_height(sButtonSmall)*0.75, true);
-
-if (hover_exit && !oRunManager.is_dealing_dice && exit_col == c_red && !oRunManager.holding_item) {
-	if (mouse_check_button_pressed(mb_left)) {
-		exiting = true;
-	}
-	exit_scale = lerp(exit_scale, 1.2, 0.2);
-} else {
-	exit_scale = lerp(exit_scale, 1.0, 0.2);
-}
-
-draw_sprite_ext(sButtonSmall, 0, gui_w - 150, gui_h - 200, exit_scale*0.75, exit_scale*0.75, 0, ui_button_col(exit_col), 1.0);
-draw_outline_text("Exit", c_black, c_white, 2, gui_w - 150, gui_h - 200, 1, 1, 0);
+var exit_ready = (exit_col == c_red) && !oRunManager.is_dealing_dice && !oRunManager.holding_item;
+var exit_btn = ui_button(gui_w - 150, gui_h - 200, 180, 70, exit_scale, "Exit", global.ui_neutral, exit_ready, "Take the dice off the bench first (click a finished die).");
+exit_scale = exit_btn.scale;
+if (exit_btn.click) exiting = true;

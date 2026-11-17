@@ -45,7 +45,7 @@ function choose_weighting_list(list) {
 ///
 /// @returns { hover: bool, click: bool, scale: real, x: real, y: real, w: real, h: real }
 
-function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rect, _layer = UI_LAYER.BASE, _hover_sound = noone, _click_sound = soClick2, _disabled_reason = "") {
+function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rect, _layer = UI_LAYER.BASE, _hover_sound = noone, _click_sound = soClick2, _disabled_reason = "", _use_font = false) {
 	
 	// this function needs to be deprecated soon as its leftover from when we originally first did buttons
     var mx = device_mouse_x_to_gui(0);
@@ -86,7 +86,7 @@ function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _f
 		if (_active) draw_wonky_rectangle(draw_x + w/2 + 4, draw_y + h/2 + 6, _bw, _bh, c_black, c_black, _held ? 0.15 : 0.3, true, false);
 		draw_wonky_rectangle(draw_x + w/2, draw_y + h/2 + _sink, _bw, _bh, _fill, c_black, 1.0, true, _active);
 		draw_set_color(c_white);
-		draw_set_font(ftDefault);
+		draw_set_font(_use_font ? _font : ftDefault);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		draw_outline_text(_text, c_black, _active ? c_white : make_color_rgb(190, 186, 176), 2, draw_x + w/2, draw_y + h/2 + _sink, scale, _active ? 1.0 : 0.85, 0);
@@ -1737,4 +1737,11 @@ function ui_divider(_x1, _x2, _y, _alpha = 1) {
 function insight_rot(_x, _y, _lx, _ly, _scale) {
 	var _c = 0.7071, _sn = 0.7071;
 	return [_x + (_lx * _c - _ly * _sn) * _scale, _y + (_lx * _sn + _ly * _c) * _scale];
+}
+
+/// @func ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active, _reason, _layer)
+/// @desc The kit's standard button, centred on _cx, _cy, with big text that grows with it. _reason shows on hover
+///       while it can't be pressed. Returns draw_gui_button's { hover, click, scale, ... }; keep .scale for next frame.
+function ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active = true, _reason = "", _layer = UI_LAYER.BASE) {
+	return draw_gui_button(_cx - _w / 2, _cy - _h / 2, _w, _h, _scale_ref, _text, _col, ftBig, _active, true, _layer, noone, soClick2, _reason, true);
 }

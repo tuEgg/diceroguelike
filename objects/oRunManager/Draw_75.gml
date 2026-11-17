@@ -489,10 +489,12 @@ if (dice_selection != false) {
 	var button_text = "Confirm";
 	var button_scale = 1.0;
 
-	var hover_dice_selection = mouse_hovering(gui_w - 150, gui_h - 200, dice_selection_scale * sprite_get_width(sButtonSmall) * button_scale, dice_selection_scale * sprite_get_height(sButtonSmall), true, noone, soClick4, true, UI_LAYER.BAG);
+	var _can_confirm = (dice_selection_num_selected == dice_selection || (dice_selection_up_to && dice_selection_num_selected <= dice_selection));
+	var _confirm = ui_button(gui_w - 150, gui_h - 200, 200, 70, dice_selection_scale, (dice_selection_up_to && dice_selection_num_selected == 0) ? "Take none" : button_text, global.ui_primary, _can_confirm, "Choose " + string(dice_selection) + ((dice_selection == 1) ? " die" : " dice") + " first.", UI_LAYER.BAG);
+	dice_selection_scale = _confirm.scale;
 
-	if (hover_dice_selection) {
-		if (mouse_check_button_pressed(mb_left) && (dice_selection_num_selected == dice_selection || (dice_selection_up_to && dice_selection_num_selected <= dice_selection))) {
+	if (_confirm.hover || !_can_confirm) {
+		if (_confirm.click) {
 			// Loop through selected dice
 			for (var i = ds_list_size(dice_selection_list) - 1; i >= 0; i--) {
 				// Perform the function
@@ -519,16 +521,7 @@ if (dice_selection != false) {
 			show_bag_contents = false;
 			global.ui_layer = UI_LAYER.BASE;
 		}
-		dice_selection_scale = lerp(dice_selection_scale, 1.2, 0.2);
-	} else {
-		dice_selection_scale = lerp(dice_selection_scale, 1.0, 0.2);
 	}
-
-	draw_set_font(ftBigger);
-	draw_set_halign(fa_center);
-	draw_set_valign(fa_middle);
-	draw_sprite_ext(sButtonSmall, 0, gui_w - 150, gui_h - 200, dice_selection_scale * button_scale, dice_selection_scale, 0, dice_selection_col, 1.0);
-	draw_outline_text(button_text, c_black, c_white, 2, gui_w - 150, gui_h - 200, 1, 1, 0);
 }
 
 // tooltips are drawn in Draw GUI End (Draw_75), after every window, so nothing covers them

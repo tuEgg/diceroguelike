@@ -128,19 +128,6 @@ if (deleting_die > 0) {
 var exit_col = c_dkgray;
 if (event_complete >= 0) exit_col = c_red;
 
-var hover_exit = mouse_hovering(gui_w - 150, gui_h - 130, exit_scale * sprite_get_width(sButtonSmall) * 0.75, exit_scale * sprite_get_height(sButtonSmall) * 0.75, true);
-
-if (hover_exit && exit_col == c_red) {
-	if (mouse_check_button_pressed(mb_left)) {
-		exiting = true;
-	}
-	exit_scale = lerp(exit_scale, 1.2, 0.2);
-} else {
-	exit_scale = lerp(exit_scale, 1.0, 0.2);
-}
-
-draw_set_font(ftBigger);
-draw_set_halign(fa_center);
-draw_set_valign(fa_middle);
-draw_sprite_ext(sButtonSmall, 0, gui_w - 150, gui_h - 130, exit_scale*0.75, exit_scale*0.75, 0, ui_button_col(exit_col), 1.0);
-draw_outline_text("Exit", c_black, c_white, 2, gui_w - 150, gui_h - 130, 1, 1, 0);
+var exit_btn = ui_button(gui_w - 150, gui_h - 130, 180, 70, exit_scale, "Exit", global.ui_neutral, exit_col == c_red, "Choose an option first.");
+exit_scale = exit_btn.scale;
+if (exit_btn.click) exiting = true;

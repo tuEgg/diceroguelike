@@ -257,21 +257,8 @@ if (room == rmBounty) {
 		button_scale = 1.0;
 	}
 
-	var hover_exit = mouse_hovering(gui_w - 150, gui_h - 200, exit_scale*sprite_get_width(sButtonSmall) * button_scale, exit_scale*sprite_get_height(sButtonSmall) * 0.75, true);
-
-	if (hover_exit) {
-		if (mouse_check_button_pressed(mb_left)) {
-			room_goto(rmMap);
-		}
-		exit_scale = lerp(exit_scale, 1.2, 0.2);
-	} else {
-		exit_scale = lerp(exit_scale, 1.0, 0.2);
-	}
-
-	draw_set_font(ftBigger);
-	draw_set_halign(fa_center);
-	draw_set_valign(fa_middle);
-	draw_sprite_ext(sButtonSmall, 0, gui_w - 150, gui_h - 200, exit_scale * button_scale, exit_scale * 0.75, 0, ui_button_col(exit_col), 1.0);
-	draw_outline_text(button_text, c_black, c_white, 2, gui_w - 150, gui_h - 200, 1, 1, 0);
+	var exit_btn = ui_button(gui_w - 150, gui_h - 200, 200, 70, exit_scale, button_text, ui_button_col(exit_col), true);
+	exit_scale = exit_btn.scale;
+	if (exit_btn.click) room_goto(rmMap);
 
 }
