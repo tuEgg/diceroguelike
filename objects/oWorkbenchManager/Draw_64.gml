@@ -77,29 +77,53 @@ for (var i = 0; i < wb_list_size; i++) {
 		}
 	}
 	
-	// Draw name underneath
+	// Draw name underneath (with the Cutters the bench reads "Dice = Basic coin + Remainder")
+	var _cut_mode = (button_text == "Cut");
+	var _label = string(workbench_slot[i].name);
+	if (_cut_mode) _label = ["Dice", "Basic coin", "Remainder"][i];
 	draw_set_font(ftBigger);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
-	draw_outline_text(string(workbench_slot[i].name), c_black, c_white, 2, slot_x, slot_y + wb_tile_size / 2 + 30, 1, 1.0, 0);
+	draw_outline_text(_label, c_black, c_white, 2, slot_x, slot_y + wb_tile_size / 2 + 30, 1, 1.0, 0);
 
-	// Draw distribution
+	// what the Cutters will do with the die in the first slot
+	if (_cut_mode && i == 2 && crafting_state == "waiting") {
+		var _note = "Keeps the die's effects";
+		var _note_col = c_ltgray;
+		var _src = workbench_slot[0].dice;
+		if (_src != undefined) {
+			if (_src.dice_value <= 2) {
+				_note = "A coin can't be cut"; _note_col = c_red;
+			} else if (_src.dice_value - 2 == 2 && _src.distribution != "") {
+				_note = "Becomes a coin: its core is lost"; _note_col = c_red;
+			} else if (_src.dice_value - 2 == 2) {
+				_note = "Becomes a coin, keeps its effects";
+			}
+		}
+		draw_set_font(ftDefault);
+		draw_outline_text(_note, c_black, _note_col, 2, slot_x, slot_y + wb_tile_size / 2 + 66, 1, 1.0, 0);
+	}
+
+	// the die's distribution, just above its box (coins have none worth showing)
+	var _bar_y = slot_y - wb_tile_size / 2 - 8 - (wb_scale[i] - 1) * wb_tile_size / 2;
 	if (i == 0 || i == 2) {
-		if (workbench_slot[i].dice != undefined) {
-			draw_dice_distribution(workbench_slot[i].dice, slot_x, slot_y - wb_tile_size/2 - (wb_scale[i]*15), true);
-			
-			draw_set_font(ftBig);
-			draw_outline_text(string(workbench_slot[i].dice.distribution), c_black, c_white, 2, slot_x, slot_y - wb_tile_size, 1, 1, 0);
+		var _die_here = workbench_slot[i].dice;
+		if (_die_here != undefined && _die_here.dice_value > 2) {
+			draw_dice_distribution(_die_here, slot_x, _bar_y, true);
+			if (_die_here.distribution != "") {
+				draw_set_font(ftDefault);
+				draw_outline_text(string(_die_here.distribution), c_black, c_white, 2, slot_x, _bar_y - 46, 1, 1, 0);
+			}
 		}
 	}
-	
+
 	if (workbench_slot[1].core != undefined && i == 1) {
 		var d = clone_die(global.dice_d6_atk, "");
 		d.distribution = workbench_slot[i].core.distribution;
-		
-		draw_dice_distribution(d, slot_x, slot_y - wb_tile_size/2, true);
-		draw_set_font(ftDescriptions);
-		draw_outline_text(string(d.distribution), c_black, c_white, 2, slot_x, slot_y - wb_tile_size, 1, 1, 0);
+
+		draw_dice_distribution(d, slot_x, _bar_y, true);
+		draw_set_font(ftDefault);
+		draw_outline_text(string(d.distribution), c_black, c_white, 2, slot_x, _bar_y - 46, 1, 1, 0);
 	}
 	
 	// Draw output preview
@@ -226,8 +250,9 @@ switch (crafting_state) {
 	case "cut":
 		var new_dice = clone_die(workbench_slot[0].dice, "");
 		new_dice.dice_value = workbench_slot[0].dice.dice_value - 2;
-		
+
 		die_size_changed(new_dice); // cut down to a d2, it plays as a coin
+		if (new_dice.dice_value == 2) new_dice.distribution = ""; // a coin has no core: the core is lost (the bench warns)
 		
 		var base_coin = global.dice_d2_none;
 		
@@ -297,8 +322,21 @@ switch (crafting_state) {
 	break;
 }
 
-draw_outline_text("+", c_black, c_white, 2, gui_w/2 - wb_tile_size/2 - wb_tile_padding/2, start_y, 1, 1.0, 0);
-draw_outline_text("=", c_black, c_white, 2, gui_w/2 + wb_tile_size/2 + wb_tile_padding/2, start_y, 1, 1.0, 0);
+// "Dice + Core = Output", or with the Cutters "Dice = Basic coin + Remainder"
+var _cutting = (button_text == "Cut");
+draw_outline_text(_cutting ? "=" : "+", c_black, c_white, 2, gui_w/2 - wb_tile_size/2 - wb_tile_padding/2, start_y, 1, 1.0, 0);
+draw_outline_text(_cutting ? "+" : "=", c_black, c_white, 2, gui_w/2 + wb_tile_size/2 + wb_tile_padding/2, start_y, 1, 1.0, 0);
+
+// the mouse, while a tool is in hand: hold left over Craft to use it, right click to put it down
+var _tool_in_hand = "";
+if (instance_exists(oDrill) && oDrill.is_dragging) _tool_in_hand = "drill";
+if (instance_exists(oHammer) && oHammer.is_dragging) _tool_in_hand = "smash";
+if (instance_exists(oScissors) && oScissors.is_dragging) _tool_in_hand = "cut";
+if (_tool_in_hand != "") {
+	var _hint_y = gui_h - 70;
+	draw_mouse_hint(gui_w/2 - 230, _hint_y, "left", (_tool_in_hand == "drill") ? "Hold over the Drill button" : "Click the " + button_text + " button");
+	draw_mouse_hint(gui_w/2 + 90, _hint_y, "right", "Put the tool down");
+}
 
 // Draw exit button
 var exit_col = c_dkgray;

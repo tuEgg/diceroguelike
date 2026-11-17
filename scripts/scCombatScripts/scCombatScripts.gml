@@ -2027,8 +2027,21 @@ function tips_list() {
 			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench; },
 		},
 		{
-			id: "workbench", room: rmWorkbench, target: "",
-			text: "Put a die in the first slot and a core in the middle. Drag the Drill onto Craft to set the core into the die. One craft per visit.",
+			id: "workbench", room: rmWorkbench, target: "wb_slots",
+			text: "The workbench. Put a die in the first slot and drag a core from the top bar into the middle one. One craft per visit.",
+			done: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined; },
+		},
+		{
+			id: "workbench_toolbag", room: rmWorkbench, target: "toolbag",
+			text: "Now click the Drill in your toolbag to lay it on the bench.",
+			when: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined && !instance_exists(oDrill); },
+			done: function() { return instance_exists(oDrill); },
+		},
+		{
+			id: "workbench_drill", room: rmWorkbench, target: "drill",
+			text: "Click the Drill to pick it up, then hold left click over the Drill button until it bites. Right click puts the tool down.",
+			when: function() { return instance_exists(oDrill) && !oDrill.is_dragging; },
+			done: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.crafting_state != "waiting"; },
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",
@@ -2078,6 +2091,16 @@ function tips_rect(_target) {
 			return { x: _gw - _gw / 8, y: _gh - _gh / 10, w: _gw / 10, h: _gh / 15 }; // the map's "Visit the workbench" button
 		case "insight":
 			return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
+		case "wb_slots":
+			if (!instance_exists(oWorkbenchManager)) return undefined;
+			with (oWorkbenchManager) return { x: start_x - wb_tile_size / 2, y: start_y - wb_tile_size / 2, w: wb_tile_size * 2 + wb_tile_padding, h: wb_tile_size };
+			break;
+		case "toolbag":
+			// oRunManager Draw GUI draws the toolbag at gui width - 860, in the top bar
+			return { x: display_get_gui_width() - 860 - 50, y: 10, w: 100, h: 100 };
+		case "drill":
+			if (!instance_exists(oDrill)) return undefined;
+			return { x: oDrill.x - 80, y: oDrill.y - 80, w: 160, h: 160 };
 	}
 	return undefined;
 }

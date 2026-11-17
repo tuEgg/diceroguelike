@@ -19,7 +19,9 @@ draw_set_font(ftDefault);
 draw_set_halign(fa_center);
 draw_set_valign(fa_top);
 if (struct.rarity != "starter") {
-	draw_outline_text(struct.name, c_black, c_white, 2, x, y + sprite_height/2 + 3, scale, image_alpha, 0);
+	// in a workbench slot the name sits a little higher, clear of the slot's edge
+	var _name_y = y + sprite_height/2 + 3 - ((room == rmWorkbench && in_slot) ? 12 : 0);
+	draw_outline_text(struct.name, c_black, c_white, 2, x, _name_y, scale, image_alpha, 0);
 }
 
 // --- Draw effect keyword icons ---
