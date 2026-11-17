@@ -45,7 +45,7 @@ function choose_weighting_list(list) {
 ///
 /// @returns { hover: bool, click: bool, scale: real, x: real, y: real, w: real, h: real }
 
-function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rect, _layer = UI_LAYER.BASE, _hover_sound = noone, _click_sound = soClick2) {
+function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rect, _layer = UI_LAYER.BASE, _hover_sound = noone, _click_sound = soClick2, _disabled_reason = "") {
 	
 	// this function needs to be deprecated soon as its leftover from when we originally first did buttons
     var mx = device_mouse_x_to_gui(0);
@@ -70,14 +70,26 @@ function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _f
     var target_scale = hover ? 1.2 : 1.0;
     scale = lerp(scale, target_scale, 0.2);
 
+	// a greyed-out button can say why when hovered
+	if (!_active && _disabled_reason != "" && global.ui_layer <= _layer && point_in_rectangle(mx, my, draw_x, draw_y, draw_x + w, draw_y + h)) {
+		queue_tooltip(mx, my, "Not now", _disabled_reason);
+	}
+
     // --- Draw background ---
-	if (_draw_rect == true || (_draw_rect == "hover" && hover)) {		
-		draw_wonky_rectangle(draw_x + w/2, draw_y + h/2, floor(w * scale), floor(h * scale), _color, c_black, _active ? 1.0 : 0.5, true, true);
+	// (UI kit, phase 2) a soft ink shadow under it, it sinks a little while held, and a disabled button is a muted
+	// version of its colour with readable text rather than see-through
+	if (_draw_rect == true || (_draw_rect == "hover" && hover)) {
+		var _held = hover && mouse_check_button(mb_left);
+		var _sink = _held ? 3 : 0;
+		var _fill = _active ? _color : merge_colour(_color, make_color_rgb(70, 70, 76), 0.65);
+		var _bw = floor(w * scale), _bh = floor(h * scale);
+		if (_active) draw_wonky_rectangle(draw_x + w/2 + 4, draw_y + h/2 + 6, _bw, _bh, c_black, c_black, _held ? 0.15 : 0.3, true, false);
+		draw_wonky_rectangle(draw_x + w/2, draw_y + h/2 + _sink, _bw, _bh, _fill, c_black, 1.0, true, _active);
 		draw_set_color(c_white);
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
-		draw_outline_text(_text, c_black, c_white, 2, draw_x + w/2, draw_y + h/2, scale, _active ? 1.0 : 0.25, 0);
+		draw_outline_text(_text, c_black, _active ? c_white : make_color_rgb(190, 186, 176), 2, draw_x + w/2, draw_y + h/2 + _sink, scale, _active ? 1.0 : 0.85, 0);
 	}
 
     return {
@@ -1398,10 +1410,13 @@ function pause_draw() {
 	draw_rectangle(0, 0, _gw, _gh, false);
 	draw_set_alpha(1);
 
+	// the window: title, a rule, the buttons, the save note
+	ui_panel(_gw / 2 - 260, _gh * 0.22, _gw / 2 + 260, _gh * 0.4 + 3 * 110 + 60);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
 	draw_set_font(ftBigger);
-	draw_outline_text("Paused", c_black, c_white, 3, _gw / 2, _gh * 0.3, 1, 1, 0);
+	draw_outline_text("Paused", c_black, c_white, 3, _gw / 2, _gh * 0.29, 1, 1, 0);
+	ui_divider(_gw / 2 - 180, _gw / 2 + 180, _gh * 0.345);
 
 	var _labels = ["Resume", "Settings", "Save and quit"];
 	var _bw = 320, _bh = 80;
@@ -1477,10 +1492,7 @@ function run_summary_draw() {
 	var _panel_w = 760, _row_h = 46;
 	var _px = _gw / 2 - _panel_w / 2, _py = _gh * 0.37;
 	var _panel_h = ceil(array_length(_rows) / 2) * _row_h + 30;
-	draw_set_alpha(0.8 * _a);
-	draw_set_color(global.color_bg);
-	draw_roundrect(_px, _py, _px + _panel_w, _py + _panel_h, false);
-	draw_set_alpha(1);
+	ui_panel(_px, _py, _px + _panel_w, _py + _panel_h, _a);
 	for (var i = 0; i < array_length(_rows); i++) {
 		var _cx = _px + 30 + (i mod 2) * (_panel_w / 2);
 		var _cy = _py + 15 + _row_h / 2 + (i div 2) * _row_h;
@@ -1604,5 +1616,47 @@ function draw_tools_badge(_x, _y, _scale) {
 	var _b = 135;
 	draw_line_width(_x - lengthdir_x(11 * _scale, _b), _y - lengthdir_y(11 * _scale, _b), _x + lengthdir_x(9 * _scale, _b), _y + lengthdir_y(9 * _scale, _b), 3 * _scale);
 	draw_circle(_x + lengthdir_x(11 * _scale, _b), _y + lengthdir_y(11 * _scale, _b), 4 * _scale, true);
+	draw_set_color(c_white);
+}
+
+/// @func ui_panel(_x1, _y1, _x2, _y2, _alpha)
+/// @desc A logbook window (UI kit, phase 2): dark ink, a cream rule inside the edge and diamonds at the corners, the
+///       same look as the tooltips. Use it behind any window of buttons or text.
+function ui_panel(_x1, _y1, _x2, _y2, _alpha = 1) {
+	var _old = draw_get_alpha();
+	draw_set_alpha(0.35 * _alpha);
+	draw_set_color(c_black);
+	draw_roundrect_ext(_x1 + 6, _y1 + 8, _x2 + 6, _y2 + 8, 18, 18, false); // shadow
+	draw_set_alpha(0.94 * _alpha);
+	draw_set_color(make_color_rgb(26, 30, 40));
+	draw_roundrect_ext(_x1, _y1, _x2, _y2, 18, 18, false);
+	var _in = 8;
+	draw_set_color(make_color_rgb(226, 212, 176));
+	draw_set_alpha(0.55 * _alpha);
+	draw_roundrect_ext(_x1 + _in, _y1 + _in, _x2 - _in, _y2 - _in, 12, 12, true);
+	draw_set_alpha(0.9 * _alpha);
+	var _d = 6;
+	var _cx = [_x1 + _in, _x2 - _in, _x1 + _in, _x2 - _in];
+	var _cy = [_y1 + _in, _y1 + _in, _y2 - _in, _y2 - _in];
+	for (var c = 0; c < 4; c++) {
+		draw_triangle(_cx[c] - _d, _cy[c], _cx[c], _cy[c] - _d, _cx[c] + _d, _cy[c], false);
+		draw_triangle(_cx[c] - _d, _cy[c], _cx[c], _cy[c] + _d, _cx[c] + _d, _cy[c], false);
+	}
+	draw_set_alpha(_old);
+	draw_set_color(c_white);
+}
+
+/// @func ui_divider(_x1, _x2, _y, _alpha)
+/// @desc A thin cream rule with a diamond in the middle, to split a panel into parts.
+function ui_divider(_x1, _x2, _y, _alpha = 1) {
+	var _mx = (_x1 + _x2) / 2;
+	draw_set_color(make_color_rgb(226, 212, 176));
+	draw_set_alpha(0.5 * _alpha);
+	draw_line_width(_x1, _y, _mx - 10, _y, 2);
+	draw_line_width(_mx + 10, _y, _x2, _y, 2);
+	draw_set_alpha(0.9 * _alpha);
+	draw_triangle(_mx - 6, _y, _mx, _y - 6, _mx + 6, _y, false);
+	draw_triangle(_mx - 6, _y, _mx, _y + 6, _mx + 6, _y, false);
+	draw_set_alpha(1);
 	draw_set_color(c_white);
 }

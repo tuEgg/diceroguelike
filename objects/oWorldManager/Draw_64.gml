@@ -245,6 +245,9 @@ if (room == rmMap) {
 				var opt_w = 380, opt_h = 96;
 				var left_x = gui_w * 0.5 - opt_w / 2 - 30, right_x = gui_w * 0.5 + opt_w / 2 + 30, opt_y = gui_h * 0.46; // either side of the spine
 
+				// the choice sits on one logbook panel
+				ui_panel(left_x - opt_w / 2 - 40, opt_y - opt_h / 2 - 70, right_x + opt_w / 2 + 40, gui_h * 0.72 + 64 + 30, resting_alpha);
+
 				// small flavour lines above each option
 				draw_set_font(ftDefault);
 				draw_set_halign(fa_center);
