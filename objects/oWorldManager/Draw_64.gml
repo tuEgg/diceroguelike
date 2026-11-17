@@ -533,17 +533,17 @@ if (room == rmMap) {
 		if (node_to_move_to != undefined) {
 			oRunManager.can_visit_workbench = false;
 		} else {
-			var sea_w = 520, sea_h = 210;
+			var sea_w = 640, sea_h = 230; // roomy: text keeps well inside the panel's inner rule
 			var sea_x1 = gui_w / 2 - sea_w / 2, sea_y1 = gui_h - sea_h - 90;
 			ui_panel(sea_x1, sea_y1, sea_x1 + sea_w, sea_y1 + sea_h);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
 			draw_set_font(ftBig);
-			draw_outline_text("At sea", c_black, c_white, 2, gui_w / 2, sea_y1 + 34, 1, 1, 0);
+			draw_outline_text("At sea", c_black, c_white, 2, gui_w / 2, sea_y1 + 44, 1, 1, 0);
 			draw_set_font(ftDefault);
-			draw_outline_text("Between islands there's time to work on your dice.", c_black, c_ltgray, 2, gui_w / 2, sea_y1 + 72, 1, 1, 0);
-			var sea_open = draw_gui_button(gui_w / 2 - 235, sea_y1 + 110, 250, 64, oRunManager.at_sea_scales[0], "Open the workbench", global.ui_primary, ftBig, true, true);
-			var sea_sail = draw_gui_button(gui_w / 2 + 35, sea_y1 + 110, 200, 64, oRunManager.at_sea_scales[1], "Sail on", global.ui_quiet, ftBig, true, true);
+			draw_outline_text("Between islands there's time to work on your dice.", c_black, c_ltgray, 2, gui_w / 2, sea_y1 + 86, 1, 1, 0);
+			var sea_open = draw_gui_button(gui_w / 2 - 262, sea_y1 + 128, 270, 64, oRunManager.at_sea_scales[0], "Open the workbench", global.ui_primary, ftBig, true, true);
+			var sea_sail = draw_gui_button(gui_w / 2 + 38, sea_y1 + 128, 220, 64, oRunManager.at_sea_scales[1], "Sail on", global.ui_quiet, ftBig, true, true);
 			oRunManager.at_sea_scales[0] = sea_open.scale;
 			oRunManager.at_sea_scales[1] = sea_sail.scale;
 			if (sea_open.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "The workbench", "Take dice from your bag (one per tool you own) and use each tool once.");

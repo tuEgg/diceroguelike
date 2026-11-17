@@ -519,7 +519,7 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
 /// @desc Draws one tooltip box at its top-left, or only measures it. Returns { w, h }. _compact is the smaller box used
 ///       for keywords under a main tooltip (tighter padding, narrower text).
 function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, _measure_only) {
-    var padding = _compact ? 9 : 15;
+    var padding = _compact ? 12 : 20; // clear of the inner rule
     var max_desc_w = _compact ? 260 : 300;
     var xx = _x;
     var yy = _y;

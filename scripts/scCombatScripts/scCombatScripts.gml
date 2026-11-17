@@ -2104,7 +2104,7 @@ function tips_rect(_target) {
 	switch (_target) {
 		case "at_sea":
 			var _gw = display_get_gui_width(), _gh = display_get_gui_height();
-			return { x: _gw / 2 - 260, y: _gh - 210 - 90, w: 520, h: 210 }; // the map's "At sea" panel
+			return { x: _gw / 2 - 320, y: _gh - 230 - 90, w: 640, h: 230 }; // the map's "At sea" panel
 		case "insight":
 			return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
 		case "wb_slots":
