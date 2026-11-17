@@ -23,7 +23,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 12: playtest notes | F02 (workbench part), F56–F59, F61–F64, F66–F69, B94–B114 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
+| 12: playtest notes | F02 (workbench part), F56–F59, F61–F64, F66–F69, B94–B115 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
 
 **Batch 12 test list**
 - F56 Quill (10 insight): click a glowing intent and two buttons appear under it, Reroll and Halve. Reroll: the enemy picks a different move. Halve: the number halves (range or exact), "Halved" shows under the intent, and the enemy's attack/block/heal really comes out at half. Forced moves can still be halved but not rerolled; buffs and debuffs can be rerolled but not halved (greyed, with a reason on hover). Clicking elsewhere puts the quill down. Once per turn.
@@ -64,6 +64,12 @@
 - F64 Main menu items are always drawn as buttons, not plain text until hovered. The abandon-run warning says "Start anew" / "Keep voyage".
 - F64 Writing: "a die" / "1 die" / "this die" wherever one die is meant (dice and keepsake descriptions, events, prompts); the new-slot tile says "Sacrifice 1 die" or "2 dice"; an empty slot says "Empty" with no "(0-0)".
 - F64 Tooltips have a logbook look: dark ink, a thin cream rule inside the edge and small diamonds at the corners; keyword boxes are plainer. Coloured words (insight, keywords) still read clearly.
+
+**Batch 12, round 8 (2026-11-17 feedback)**
+- B115 An Exclusive die played into a slot that already has dice ejects them all and takes the slot, whatever the slot's type, including a slot built by sacrificing neutral dice (it used to just sit beside them). Exclusive dice still can't be sacrificed (that is the keyword's rule).
+- F69 No panel behind the rewards (the rule under the title stays).
+- F66 Tooltips for things in the top bar (gold, health, items, keepsakes, toolbag, compass...) appear just below the bar, lined up with the thing.
+- F69 The workbench Craft label and the bounty board Re-roll label grow with their buttons; Re-roll is brown when available (blue is for block). A rule sits under the draft heading.
 
 **Batch 12, round 7 (2026-11-17 feedback)**
 - F02 Choosing dice at the workbench works: the chosen dice fly onto the bench and stay (the picker now blocks the Exit button that sat right under Confirm, which was ending the visit). Events that ask you to pick dice are protected the same way.
