@@ -395,7 +395,7 @@ if (toolbar_hover) {
 		if (can_visit_workbench) {
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools used to manipulate your dice at the workbench.");
 		} else {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Visit the workbench after completing an encounter to manipulate your dice.");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools for the workbench. You can stop there at sea, each time you finish a page.");
 		}
 	} else {
 		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools used to manipulate your dice at the workbench.");
@@ -432,7 +432,9 @@ if (show_tools) {
 			
 			if (mouse_check_button_pressed(mb_left)) {
 				if (room == rmWorkbench) {
-					if (!instance_exists(tool.object)) {
+					if (instance_exists(oWorkbenchManager) && array_contains(oWorkbenchManager.tools_used, tool.object)) {
+						throw_error("Used this visit", "Each tool works once per visit to the workbench.");
+					} else if (!instance_exists(tool.object)) {
 						var pos_x;
 						var pos_y;
 				

@@ -42,12 +42,16 @@ snipped_x = 1;
 snipped_y = 1;
 snipped_angle = 0;
 
+// you choose which dice to bring (F02): up to one per tool you own, one more with the Hammer (it needs two)
+tools_used = []; // tool objects already used this visit; each tool works once per visit
 with (oRunManager) {
 	if (!dice_dealt) {
 		turn_count = 1;
-		dice_to_deal = global.hand_size;
-		is_dealing_dice = true;
 		dice_dealt = true;
+		dice_selection = workbench_dice_allowance();
+		dice_selection_up_to = true;
+		dice_selection_message = "Choose up to " + string(dice_selection) + ((dice_selection == 1) ? " die" : " dice") + " to work on";
+		dice_selection_event = function(_die) { workbench_take_die(_die); };
 	}
 }
 

@@ -2023,13 +2023,13 @@ function tips_combat_ready() {
 function tips_list() {
 	return [
 		{
-			id: "workbench_map", room: rmMap, target: "workbench",
-			text: "After each stop you may visit the workbench once, before sailing on. There you can reshape your dice.",
+			id: "workbench_map", room: rmMap, target: "at_sea",
+			text: "At sea. When you finish a page's island, you can stop at the workbench before the next one: choose dice from your bag and reshape them with your tools.",
 			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench; },
 		},
 		{
 			id: "workbench", room: rmWorkbench, target: "wb_slots",
-			text: "The workbench. Put a die in the first slot and drag a core from the top bar into the middle one. One craft per visit.",
+			text: "The workbench. Put a die in the first slot and drag a core from the top bar into the middle one. Each tool works once per visit; click a finished die to take it back for another tool.",
 			done: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined; },
 		},
 		{
@@ -2102,9 +2102,9 @@ function tips_list() {
 /// @desc Where a tip points, in GUI pixels, or undefined (the note sits at the top).
 function tips_rect(_target) {
 	switch (_target) {
-		case "workbench":
+		case "at_sea":
 			var _gw = display_get_gui_width(), _gh = display_get_gui_height();
-			return { x: _gw - _gw / 8, y: _gh - _gh / 10, w: _gw / 10, h: _gh / 15 }; // the map's "Visit the workbench" button
+			return { x: _gw / 2 - 260, y: _gh - 210 - 90, w: 520, h: 210 }; // the map's "At sea" panel
 		case "insight":
 			return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
 		case "wb_slots":
@@ -2363,4 +2363,40 @@ function combat_spare_choice_enemy() {
 		if (variable_struct_exists(_en, "alignment_choices_shown") && _en.alignment_choices_shown) return _en;
 	}
 	return undefined;
+}
+
+/// @func workbench_dice_allowance()
+/// @desc How many dice you may bring to the workbench (F02): one per tool you own, plus one with the Hammer.
+function workbench_dice_allowance() {
+	var _n = ds_list_size(oRunManager.tools);
+	for (var i = 0; i < ds_list_size(oRunManager.tools); i++) if (oRunManager.tools[| i].object == oHammer) _n++;
+	return max(1, _n);
+}
+
+/// @func workbench_take_die(_die)
+/// @desc The dice picker's event at the workbench: a chosen die leaves the bag and lands in your hand on the bench.
+function workbench_take_die(_die) {
+	var _i = ds_list_find_index(global.dice_bag, _die);
+	if (_i == -1) return;
+	var _struct = clone_die(_die, "");
+	_struct.selected = false;
+	ds_list_delete(global.dice_bag, _i);
+	var _inst = instance_create_depth(global.gui.bag_x_deal, global.gui.bag_y_deal, -8, oDice);
+	_inst.struct = _struct;
+	_inst.action_type = _struct.action_type;
+	_inst.dice_amount = _struct.dice_amount;
+	_inst.dice_value = _struct.dice_value;
+	_inst.possible_type = _struct.possible_type;
+	var _target = generate_valid_targets(1, 100)[0];
+	_inst.target_x = _target[0];
+	_inst.target_y = _target[1];
+}
+
+/// @func workbench_tool_used(_object)
+/// @desc A tool has crafted: it's used up for this visit and goes back in the toolbag.
+function workbench_tool_used(_object) {
+	if (!instance_exists(oWorkbenchManager)) return;
+	array_push(oWorkbenchManager.tools_used, _object);
+	oRunManager.holding_item = false;
+	with (_object) instance_destroy();
 }

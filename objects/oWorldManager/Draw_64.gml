@@ -528,30 +528,32 @@ if (room == rmMap) {
 		}
 	}
 
-	if (world_state == WORLD_STATE.EXPLORING) {
-		// Draw the button to visit the workbench
-		var workbench_btn = draw_gui_button(
-			gui_w - gui_w/8,
-			gui_h - gui_h/10,
-			gui_w/10,
-			gui_h/15,
-			workbench_scale,
-			"Visit the\nworkbench",
-			global.ui_neutral,
-			ftBig,
-			oRunManager.can_visit_workbench,
-			true
-		);
-		
-		if (workbench_btn.hover) {
-			workbench_scale = lerp(workbench_scale, 1.2, 0.2);
-		} else {
-			workbench_scale = lerp(workbench_scale, 1.0, 0.2);
-		}
-		
-		if (workbench_btn.click) {
-			room_goto(rmWorkbench);
+	// At sea (F02): between pages you may work on your dice once. Setting sail for the next stop counts as sailing on.
+	if (world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench) {
+		if (node_to_move_to != undefined) {
 			oRunManager.can_visit_workbench = false;
+		} else {
+			var sea_w = 520, sea_h = 210;
+			var sea_x1 = gui_w / 2 - sea_w / 2, sea_y1 = gui_h - sea_h - 90;
+			ui_panel(sea_x1, sea_y1, sea_x1 + sea_w, sea_y1 + sea_h);
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_set_font(ftBig);
+			draw_outline_text("At sea", c_black, c_white, 2, gui_w / 2, sea_y1 + 34, 1, 1, 0);
+			draw_set_font(ftDefault);
+			draw_outline_text("Between islands there's time to work on your dice.", c_black, c_ltgray, 2, gui_w / 2, sea_y1 + 72, 1, 1, 0);
+			var sea_open = draw_gui_button(gui_w / 2 - 235, sea_y1 + 110, 250, 64, oRunManager.at_sea_scales[0], "Open the workbench", global.ui_primary, ftBig, true, true);
+			var sea_sail = draw_gui_button(gui_w / 2 + 35, sea_y1 + 110, 200, 64, oRunManager.at_sea_scales[1], "Sail on", global.ui_quiet, ftBig, true, true);
+			oRunManager.at_sea_scales[0] = sea_open.scale;
+			oRunManager.at_sea_scales[1] = sea_sail.scale;
+			if (sea_open.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "The workbench", "Take dice from your bag (one per tool you own) and use each tool once.");
+			if (sea_sail.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Sail on", "Skip the workbench until the next page is done. Choosing your next stop does the same.");
+			if (sea_open.click) {
+				oRunManager.can_visit_workbench = false;
+				room_goto(rmWorkbench);
+			} else if (sea_sail.click) {
+				oRunManager.can_visit_workbench = false;
+			}
 		}
 	}
 }

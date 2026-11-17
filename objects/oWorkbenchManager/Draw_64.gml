@@ -194,8 +194,7 @@ switch (crafting_state) {
 			workbench_slot[0].dice = undefined;
 			workbench_slot[1].dice = undefined;
 			with (oDice) if (in_slot) instance_destroy();
-			
-			discard_dice_in_play();
+			// (the rest of your hand stays: more crafts may follow with other tools)
 			
 			//show_debug_message("New dice created.");
 			
@@ -228,8 +227,7 @@ switch (crafting_state) {
 		workbench_slot[0].dice = undefined;
 		workbench_slot[1].core = undefined;
 		with (oDice) if (in_slot) instance_destroy();
-			
-		discard_dice_in_play();
+		// (the rest of your hand stays: more crafts may follow with other tools)
 			
 		//show_debug_message("New dice created.");
 			
@@ -282,8 +280,7 @@ switch (crafting_state) {
 		workbench_slot[1].dice = new_coin;
 		workbench_slot[2].dice = new_dice;
 		with (oDice) if (in_slot) instance_destroy();
-			
-		discard_dice_in_play();
+		// (the rest of your hand stays: more crafts may follow with other tools)
 			
 		//show_debug_message("New dice created.");
 			

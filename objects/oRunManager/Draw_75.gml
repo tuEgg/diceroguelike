@@ -489,7 +489,7 @@ if (dice_selection != false) {
 	var hover_dice_selection = mouse_hovering(gui_w - 150, gui_h - 200, dice_selection_scale * sprite_get_width(sButtonSmall) * button_scale, dice_selection_scale * sprite_get_height(sButtonSmall), true);
 
 	if (hover_dice_selection) {
-		if (mouse_check_button_pressed(mb_left) && dice_selection_num_selected == dice_selection) {
+		if (mouse_check_button_pressed(mb_left) && (dice_selection_num_selected == dice_selection || (dice_selection_up_to && dice_selection_num_selected <= dice_selection))) {
 			// Loop through selected dice
 			for (var i = ds_list_size(dice_selection_list) - 1; i >= 0; i--) {
 				// Perform the function
@@ -503,6 +503,7 @@ if (dice_selection != false) {
 			dice_selection_message = "";
 			dice_selection_num_selected = 0;
 			dice_selection_filter = "none";
+			dice_selection_up_to = false;
 			ds_list_clear(dice_selection_list);
 			show_debug_message("list clear");
 			dice_hover = undefined;

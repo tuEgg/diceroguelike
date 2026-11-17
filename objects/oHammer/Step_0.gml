@@ -49,7 +49,10 @@ if (is_dragging) {
 			if (oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].dice != undefined && oWorkbenchManager.workbench_slot[1].core == undefined && oWorkbenchManager.workbench_slot[2].dice == undefined) {
 				if (oWorkbenchManager.workbench_slot[0].dice.dice_value + oWorkbenchManager.workbench_slot[1].dice.dice_value <= 12) {
 					if (oWorkbenchManager.workbench_slot[0].dice.action_type == oWorkbenchManager.workbench_slot[1].dice.action_type) {
-						oWorkbenchManager.crafting_state = "hammered";
+						if (oWorkbenchManager.crafting_state == "waiting") {
+							oWorkbenchManager.crafting_state = "hammered";
+							workbench_tool_used(oHammer); // once per visit, back in the toolbag
+						}
 					} else {
 						throw_error("Differing types", "Dice must have the same type");
 					}
