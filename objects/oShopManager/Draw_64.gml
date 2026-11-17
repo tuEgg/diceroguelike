@@ -53,9 +53,16 @@ for (var c = 0; c < ds_list_size(shop_consumable_options); c++) {
 		}
 		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), consumable.name, consumable.description, undefined, 0, die);
 		
-		if (mouse_check_button_pressed(mb_left) && !consumable.taken && oRunManager.credits >= consumable.price && oRunManager.has_space_for_item) {
-			oRunManager.credits -= consumable.price;
-			gain_item(consumable);
+		if (mouse_check_button_pressed(mb_left) && !consumable.taken) {
+			// say why a purchase can't happen, rather than doing nothing
+			if (get_first_free_item_slot() == -1) {
+				throw_error("No room", "Your item slots are full. Use an item, or right click one to drop it.");
+			} else if (oRunManager.credits < consumable.price) {
+				throw_error("Not enough gold", "You need " + string(consumable.price - oRunManager.credits) + " more gold.");
+			} else {
+				oRunManager.credits -= consumable.price;
+				gain_item(consumable);
+			}
 		}
 	}
 	
@@ -89,6 +96,7 @@ for (var d = 0; d < ds_list_size(shop_dice_options); d++) {
 		if (hover_die) {
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), dice.name, die_description(dice), undefined, 0, dice);
 		
+			if (mouse_check_button_pressed(mb_left) && oRunManager.credits < dice.price) throw_error("Not enough gold", "You need " + string(dice.price - oRunManager.credits) + " more gold.");
 			if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= dice.price) {
 				oRunManager.credits -= dice.price;
 				
@@ -132,6 +140,7 @@ for (var k = 0; k < ds_list_size(shop_keepsake_options); k++) {
 		if (hover_die) {
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), keepsake.name, keepsake.desc);
 		
+			if (mouse_check_button_pressed(mb_left) && oRunManager.credits < keepsake.price) throw_error("Not enough gold", "You need " + string(keepsake.price - oRunManager.credits) + " more gold.");
 			if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= keepsake.price) {
 				oRunManager.credits -= keepsake.price;
 				
@@ -171,6 +180,7 @@ if (ds_list_size(oRunManager.tools) < 3) {
 			if (hover_tool) {
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc);
 		
+				if (mouse_check_button_pressed(mb_left) && oRunManager.credits < tool.price) throw_error("Not enough gold", "You need " + string(tool.price - oRunManager.credits) + " more gold.");
 				if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= tool.price) {
 					oRunManager.credits -= tool.price;
 				
