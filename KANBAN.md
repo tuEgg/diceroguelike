@@ -15,7 +15,13 @@
 
 | ID | Task | Notes |
 |---|---|---|
-| | Nothing right now. Jared: itch.io launch when ready (`docs/itch-launch.md`). | |
+| H09 | **itch.io playtest build** (Jared, 2026-11-17): export the web build, put it on itch.io (`docs/itch-launch.md`), share it, collect feedback. | Next batches wait for the feedback (below). |
+
+**Waiting for playtest feedback** (agreed 2026-11-17: pick from these once testers have played, in this order unless feedback says otherwise)
+1. Game feel: room transitions (F65) and trigger animations (F40).
+2. Content gaps: stub keepsakes (F22), stronger consumables (F24), Giant Conch (F20).
+3. Between-pages choices, the rest of F02 (design talk first).
+4. Tech debt: one effect dispatcher (T03), input out of Draw GUI (T06).
 
 ---
 
@@ -23,14 +29,6 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 13: UI polish | F71 | `feature/ui-polish` | **Ready to test.** Settings, the bag view, Kill/Spare and Embark moved onto the logbook kit; buttons keep their shape while growing. |
-
-**Batch 13 test list**
-- F71 Settings (from the main menu and the pause menu): deep ink background, the window on a logbook panel (cream rule, corner diamonds), "Settings" above it over a rule. The tabs are brown, the open one green. Every setting still works, Save and Cancel too.
-- F71 Bag view (click the bag, the discard pile in a fight, and an event or the workbench asking you to pick dice): the top bar stays in full colour, the dice sit on a logbook panel, the title has a rule under it. Clicking outside still closes it (not while picking).
-- F71 Kill / Spare under a beaten alignment or elite enemy: kit buttons (dark red Kill, green Spare) that fade in, grow on hover, and keep their tooltips.
-- F71 Embark: a kit button, brown and greyed until two pages are chosen (hover says "Choose two pages first"), then green with a soft glow, breathing. It fades in and out with the pages. The tutorial still outlines it.
-- F71 Any button you hover keeps the same wobbly outline while it grows (it used to flicker between shapes).
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -285,6 +283,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | B115 | Exclusive dice eject whatever is in a slot | Batch 12: playtest notes | 2026-11-17 |
 | B116 | Bag icon drawn above the map | Batch 12: playtest notes | 2026-11-17 |
 | B117 | Smooth edges on desktop (anti-aliasing, rounder circles, minimum icon strokes) | Batch 12: playtest notes | 2026-11-17 |
+| F71 | Settings, bag view, Kill/Spare and Embark on the logbook kit; buttons keep their shape while growing | Batch 13: UI polish | 2026-11-17 |
 
 **Milestones**
 
