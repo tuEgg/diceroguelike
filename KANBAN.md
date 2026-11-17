@@ -24,7 +24,6 @@
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
 
-
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
 | ID | Bug | Where | Size |
@@ -56,7 +55,7 @@ All known P0 bugs are fixed, see DONE.
 | ID | Bug | Where |
 |---|---|---|
 | B82 | `draw_outline_text` coloured mode wraps every word and ignores halign/alpha. `queue_tooltip` changes the caller's font | `scHelpers.gml:290-426` |
-| B83 | Fixed 1080p coordinates break at 1440p: shop, bounty, tools, cutters hitbox, cutscene, backgrounds, particle targets | see audit notes |
+| B118 | **Parked (2026-11-17).** Web build: shapes drawn in code (button panels, pips, badges, icon outlines) have jagged edges. The browser canvas is smaller than the 1920x1080 layout, so the GUI is drawn shrunk, and a web build can't turn on anti-aliasing from inside the game (desktop is fixed, B117). Fixes, best first: real art for buttons and panels (sprites are smoothed when scaled; comes with F50), or drawing the UI to a 2x surface and shrinking it with smoothing (costly, and surfaces have misbehaved on web before). | `scDisplay`, `draw_wonky_rectangle`, UI kit |
 
 ---
 
@@ -82,14 +81,13 @@ All known P0 bugs are fixed, see DONE.
 Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
 
 **Core loop**
-- F02 **Rethink what happens between pages (Jared, 2026-11-17).** Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
+- F02 **Rethink what happens between pages (Jared, 2026-11-17).** Workbench part done in batch 12 (At sea). Still open: the spread-end choices themselves. Built version (2026-11-17): the workbench becomes an "At sea" step between pages (after a page's island is done, before the next), replacing the map button. You choose which dice to take from your bag (not dealt at random), up to one per tool you own (plus a core for the Drill); each tool can be used once per visit and goes back in the toolbag after. "Sail on" skips it. Like FTL's ship upgrades between jumps, or the Slay the Spire campfire, but more often and smaller. Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
 - F03 Elite/boss chest reward
 - F05 Die roll-history stats page (death/win screens and the run summary were done in batch 10)
 - F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
 
 **Combat clarity** (the most common playtest feedback)
-- F11 Enemy targeting indicator; floating arrows at intel ≥ 6
-- F14 Colour-blind-safe palette (Jack can't tell the blues apart)
+- F14 Colour-blind-safe palette (Jack can't tell the blues apart). Action icons on dice are done (batch 12, Settings > Display); a palette change is still open
 - F15 Summon intent icon, buff animation, clearer "Nav Chart fired" feedback
 
 **Content**
@@ -105,6 +103,8 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F31 Workbench: choose which dice to draw; Dye tool; multiple crafts per visit?
 - F32 Alignment/compass effects that actually matter mid-run
 - F33 Rarity on every item + rolled offers
+- F65 **Room transitions (idea, 2026-11-17).** Today rooms cut straight over. Common choices: a quick fade through black (0.2 to 0.4 s; Slay the Spire-style, cheap and clear), a themed wipe (an ink wash or blot spreading across the page, or a page turn, fits the logbook), or a short slide. Suggestion: an ink-wash wipe into map/rooms and a fast page flip for chapter changes, both under half a second so play stays quick.
+- F60 **Outguess as a class idea (parked 2026-11-17).** Jared still likes Outguess (insight rolled this turn that beats your target's number halves its move, cut from batch 8 as too complex for everyone). Keep it for a future class built around reading enemies. Classes are cut for now (2026-11-15), so don't start.
 
 **Juice**
 - F40 Individual Balatro-style trigger animations per die
@@ -119,8 +119,8 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 ## ❓ OPEN QUESTIONS (design decisions blocking work)
 
 - Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
-- Q7 Resolution targets: just 1080p + 1440p, or arbitrary? (decides how much layout work T07 needs)
-- Q8 Between pages: what should the choices be, and should the workbench stay available after every node? (see F02)
+- Q7 Resolution targets: settled by B83 (batch 12): the game is laid out at 1920x1080 and scaled to any 16:9 window, so new resolutions only need adding to the list.
+- Q8 Between pages: what should the choices be? (The workbench is now an At sea stop between pages, F02.)
 
 ## 📌 DECISIONS
 
@@ -236,6 +236,47 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | F13 | Settings > Gameplay > Combat speed: Slow, Normal, Fast, Fastest | Batch 10: playtest-ready | 2026-11-16 |
 | B92 | Main menu drew over Settings; it now hides while Settings is open | Batch 10: playtest-ready | 2026-11-16 |
 | B93 | Navigation Chart crashed (web black screen) when the next slot was empty; Rusty Rudder could hit a dead enemy | Batch 11: keepsake crash | 2026-11-17 |
+| F56 | Quill rerolls or halves an intent; intent hover says what the enemy does in words | Batch 12: playtest notes | 2026-11-17 |
+| F57 | Targeting: red Target marker, click-to-target hint, first multi-enemy tip; alignment and kill/spare tips and tooltips | Batch 12: playtest notes | 2026-11-17 |
+| F11 | Enemy targeting indicator (the Target marker, F57) | Batch 12: playtest notes | 2026-11-17 |
+| F58 | Roll feedback: "Warrior!", roll-twice shows both rolls | Batch 12: playtest notes | 2026-11-17 |
+| F59 | Workbench: Cutters layout (Dice = Basic coin + Remainder), core loss warning, tidy names and distributions, tool mouse hints, step-by-step first-visit tips | Batch 12: playtest notes | 2026-11-17 |
+| F02 | At sea workbench: earned per page, choose your dice, each tool once per visit, several crafts per visit (spread-end choices still open) | Batch 12: playtest notes | 2026-11-17 |
+| F61 | Spread end: page turn, then Heal X HP / Gain a random core / Continue, with reasons when unavailable | Batch 12: playtest notes | 2026-11-17 |
+| F62 | Custom logbook cursor (Settings > Display) | Batch 12: playtest notes | 2026-11-17 |
+| F63 | Top bar stays lit under dimming; Embark glows when ready; chosen draft pages outlined in green | Batch 12: playtest notes | 2026-11-17 |
+| F64 | UI phase 1: button colours by role, main menu buttons, writing pass, logbook tooltips | Batch 12: playtest notes | 2026-11-17 |
+| F66 | Tooltips sit beside the hovered thing (below the top bar for its items), keyword boxes stacked tight | Batch 12: playtest notes | 2026-11-17 |
+| F67 | Shop explains failed purchases; End Turn green and breathing when your hand is empty | Batch 12: playtest notes | 2026-11-17 |
+| F69 | UI kit: ui_panel, ui_divider, ui_button (shadow, press, disabled reason), Exits and Confirm on the kit, padding | Batch 12: playtest notes | 2026-11-17 |
+| F70 | Plays left shown as a label and pips | Batch 12: playtest notes | 2026-11-17 |
+| F14 | Action icons on dice (accessibility option); palette change still open | Batch 12: playtest notes | 2026-11-17 |
+| F51 | Insight icons redrawn: dry brush, ink-loaded brush, feather quill | Batch 12: playtest notes | 2026-11-17 |
+| B83 | Layout stays 1920x1080 at every resolution, so 1440p matches 1080p | Batch 12: playtest notes | 2026-11-17 |
+| B94 | Enemies re-centre and glide after deaths | Batch 12: playtest notes | 2026-11-17 |
+| B95 | Dealt dice never overlap | Batch 12: playtest notes | 2026-11-17 |
+| B96 | A die's range shows in its tooltip title, not over its keyword icons | Batch 12: playtest notes | 2026-11-17 |
+| B97 | Warrior check made sturdier (cause of a rolled 1 not found) | Batch 12: playtest notes | 2026-11-17 |
+| B98 | Rigger's Tonic and Bilge-Purge drop onto slots reliably, slots pulse while carried | Batch 12: playtest notes | 2026-11-17 |
+| B99 | Single Focus is first die only | Batch 12: playtest notes | 2026-11-17 |
+| B100 | Bilge Die checks the total with bonuses | Batch 12: playtest notes | 2026-11-17 |
+| B101 | Debug coordinates beside enemies turned off | Batch 12: playtest notes | 2026-11-17 |
+| B102 | Button surfaces no longer churn (and drawn without surfaces since) | Batch 12: playtest notes | 2026-11-17 |
+| B103 | Tooltip boxes measured exactly | Batch 12: playtest notes | 2026-11-17 |
+| B104 | Rigger's Tonic crash after use | Batch 12: playtest notes | 2026-11-17 |
+| B105 | Enemy hover keeps the intent icon; name replaces Target while hovered | Batch 12: playtest notes | 2026-11-17 |
+| B106 | Die name hides on hover; compact keyword boxes | Batch 12: playtest notes | 2026-11-17 |
+| B107 | Buff and debuff tooltips tidied | Batch 12: playtest notes | 2026-11-17 |
+| B108 | Black flash when taking a reward die (particle created mid-draw) | Batch 12: playtest notes | 2026-11-17 |
+| B109 | Workbench crash with too few dice in the bag | Batch 12: playtest notes | 2026-11-17 |
+| B110 | Buttons and draft pages drawing black (panels drawn without surfaces) | Batch 12: playtest notes | 2026-11-17 |
+| B111 | Splash Die never rolls below 0 | Batch 12: playtest notes | 2026-11-17 |
+| B112 | Dimming lines up with the top bar; reward names wrap | Batch 12: playtest notes | 2026-11-17 |
+| B113 | Bag view and dice picker draw above every window | Batch 12: playtest notes | 2026-11-17 |
+| B114 | Chosen draft page outline follows the paper | Batch 12: playtest notes | 2026-11-17 |
+| B115 | Exclusive dice eject whatever is in a slot | Batch 12: playtest notes | 2026-11-17 |
+| B116 | Bag icon drawn above the map | Batch 12: playtest notes | 2026-11-17 |
+| B117 | Smooth edges on desktop (anti-aliasing, rounder circles, minimum icon strokes) | Batch 12: playtest notes | 2026-11-17 |
 
 **Milestones**
 

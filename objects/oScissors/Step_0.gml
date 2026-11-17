@@ -51,8 +51,11 @@ if (is_dragging) {
 		var y2 = y - 160;
 	
 		if (over_button) {
-			if (oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core == undefined && oWorkbenchManager.workbench_slot[1].dice == undefined && oWorkbenchManager.workbench_slot[2].dice == undefined) {
-				oWorkbenchManager.crafting_state = "cut";
+			if (oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[0].dice.dice_value > 2 && oWorkbenchManager.workbench_slot[1].core == undefined && oWorkbenchManager.workbench_slot[1].dice == undefined && oWorkbenchManager.workbench_slot[2].dice == undefined) {
+				if (oWorkbenchManager.crafting_state == "waiting") {
+					oWorkbenchManager.crafting_state = "cut";
+					workbench_tool_used(oScissors); // once per visit, back in the toolbag
+				}
 			} else {
 				oWorkbenchManager.error_shake = true;
 			}

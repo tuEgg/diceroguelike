@@ -139,7 +139,7 @@
 		}
 		event_storm_opt_3 = {
 			title: "Let the crew solve it for themselves",
-			description: "Gain 1 dice playable every turn next combat.",
+			description: "Gain 1 die playable every turn next combat.",
 			effect: function(_context) {
 				oRunManager.bonus_dice_next_combat = 1;
 				oEventManager.event_complete = 2;
@@ -506,10 +506,10 @@
 	}
 		event_gunner_opt_1 = {
 			title: "Roundshot",
-			description: "Choose a dice to gain +2 max roll.",
+			description: "Choose a die to gain +2 max roll.",
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
-				oRunManager.dice_selection_message = "Choose a dice to gain +2 max roll";
+				oRunManager.dice_selection_message = "Choose a die to gain +2 max roll";
 				oRunManager.dice_selection_event = function(_die) {
 					_die.dice_value += 2;
 					die_size_changed(_die);
@@ -524,10 +524,10 @@
 		}
 		event_gunner_opt_2 = {
 			title: "Chainshot",
-			description: "Choose a dice to gain +1 min roll.",
+			description: "Choose a die to gain +1 min roll.",
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
-				oRunManager.dice_selection_message = "Choose a dice to gain +1 min roll";
+				oRunManager.dice_selection_message = "Choose a die to gain +1 min roll";
 				oRunManager.dice_selection_event = function(_die) {
 					_die.min_roll_bonus += 1;
 					
@@ -541,10 +541,10 @@
 		}
 		event_gunner_opt_3 = {
 			title: "Grapeshot",
-			description: "Choose a dice to gain a random core.",
+			description: "Choose a die to gain a random core.",
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
-				oRunManager.dice_selection_message = "Choose a dice to gain a random core";
+				oRunManager.dice_selection_message = "Choose a die to gain a random core";
 				oRunManager.dice_selection_event = function(_die) {
 					_die.distribution = get_random_distribution();
 					

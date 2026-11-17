@@ -237,15 +237,15 @@ if (room == rmBounty) {
 	draw_set_font(ftBigger);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
-	draw_sprite_ext(sButtonSmall, 0, gui_w/2 + 230, gui_h - 250, reroll_scale * 1.3, reroll_scale * 0.9, 0, reroll_col, 1.0);
+	draw_sprite_ext(sButtonSmall, 0, gui_w/2 + 230, gui_h - 250, reroll_scale * 1.3, reroll_scale * 0.9, 0, (reroll_col == global.color_block) ? global.ui_neutral : reroll_col, 1.0); // blue is for block: an available re-roll is drawn neutral
 	var string_w = string_width("Re-roll");
 	var coin_w = sprite_get_width(sCoin) * 0.75;
 
 	var coin_offset = string_w/2 + coin_w/2 + 10; // 10 is padding
 	var total_offset = coin_offset / 4;
 
-	draw_sprite_ext(sCoin, 0, gui_w/2 + 230 - coin_offset + total_offset, gui_h - 249, 0.75, 0.75, 0, c_white, 1.0);
-	draw_outline_text("Re-roll", c_black, c_white, 2, gui_w/2 + 230 + total_offset, gui_h - 250, 1, 1, 0);
+	draw_sprite_ext(sCoin, 0, gui_w/2 + 230 - coin_offset * reroll_scale + total_offset, gui_h - 249, 0.75 * reroll_scale, 0.75 * reroll_scale, 0, c_white, 1.0);
+	draw_outline_text("Re-roll", c_black, c_white, 2, gui_w/2 + 230 + total_offset, gui_h - 250, reroll_scale, 1, 0); // grows with the button
 
 	// Draw exit button
 	var exit_col = c_red;
@@ -257,21 +257,8 @@ if (room == rmBounty) {
 		button_scale = 1.0;
 	}
 
-	var hover_exit = mouse_hovering(gui_w - 150, gui_h - 200, exit_scale*sprite_get_width(sButtonSmall) * button_scale, exit_scale*sprite_get_height(sButtonSmall) * 0.75, true);
-
-	if (hover_exit) {
-		if (mouse_check_button_pressed(mb_left)) {
-			room_goto(rmMap);
-		}
-		exit_scale = lerp(exit_scale, 1.2, 0.2);
-	} else {
-		exit_scale = lerp(exit_scale, 1.0, 0.2);
-	}
-
-	draw_set_font(ftBigger);
-	draw_set_halign(fa_center);
-	draw_set_valign(fa_middle);
-	draw_sprite_ext(sButtonSmall, 0, gui_w - 150, gui_h - 200, exit_scale * button_scale, exit_scale * 0.75, 0, exit_col, 1.0);
-	draw_outline_text(button_text, c_black, c_white, 2, gui_w - 150, gui_h - 200, 1, 1, 0);
+	var exit_btn = ui_button(gui_w - 150, gui_h - 200, 200, 70, exit_scale, button_text, ui_button_col(exit_col), true);
+	exit_scale = exit_btn.scale;
+	if (exit_btn.click) room_goto(rmMap);
 
 }

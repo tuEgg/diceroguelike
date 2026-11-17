@@ -7,7 +7,7 @@
 /// _type: "atk" or "heal"
 
 function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _source, _source_index, _type, _slot_number = -1, _slot_die = undefined, _dice_list_index = 0) {
-	//show_debug_message("this dice has a value of: "+string(_dice_value));
+	//show_debug_message("this die has a value of: "+string(_dice_value));
 	
 	// Generate a unique id for this action process
 	var roll_id = string_concat(_target, _dice_amount, _dice_value, _bonus_amount, _source, _source_index, _type, _slot_number, _slot_die, _dice_list_index);
@@ -64,14 +64,14 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 			// Roll between all the values in the array
 			var weighted_roll = irandom_range(weight_min, weight_max);
+			var _rolled_twice = undefined; // both faces, when the die rolls twice and keeps the higher
 			if (dice_output.roll_twice || _slot_die.roll_twice) { // roll advantage
 				var second_roll = irandom_range(weight_min, weight_max);
-				
+				_rolled_twice = [weighted_to_face(distribution_array, weighted_roll, _min_roll), weighted_to_face(distribution_array, second_roll, _min_roll)];
+
 				if (second_roll > weighted_roll) weighted_roll = second_roll;
-				
+
 				_slot_die.roll_twice = false; // reset after we roll twice
-				
-				// need to add a little roll twice animation here
 			}
 			
 			// Get roll amount if we are forcing
@@ -117,20 +117,28 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 						max_roll: _max_roll,
 						slot_bonus: slot_bonus_amount,
 						keepsake_bonus: _keepsake_dice_bonus_amount,
+						// the slot's first-die bonus, if this is that die (Repeater Rail, Single Focus)
+						first_bonus: (_dice_list_index == 0 && !first_die_bonus_used && _slot_number >= 0 && _slot_number < ds_list_size(oCombat.action_queue)) ? oCombat.action_queue[| _slot_number].first_die_bonus : 0,
 						dice_index: _dice_list_index,
 						_slot: oCombat.action_queue[| _slot_number],
 						slot_num: _slot_number, 
 						//max_roll: actual_possible_numbers[ array_length(actual_possible_numbers) - 1] // first row in distribution array that isn't zero -- THIS isn't possible yet because we need to continue looping through the numbers after we find our actual number to check for what our real max is
 					}
 					
+					// rolled twice: show both faces, then the one kept
+					if (is_array(_rolled_twice)) {
+						roll_popup(_slot_number, _dice_list_index, "Rolled " + string(_rolled_twice[0]) + " and " + string(_rolled_twice[1]) + ", kept " + string(max(_rolled_twice[0], _rolled_twice[1])), global.color_intel);
+					}
+
 					combat_trigger_effects("after_roll_die", ctx);
-					
+
 					if (_slot_die.reset_after_next_roll != false && _slot_die.reset_this_turn) {
 						_slot_die.reset_after_next_roll(_slot_die);
 						_slot_die.reset_after_next_roll = false;
 					}
 					
 					final_roll = ctx._d_amount + slot_bonus_amount + _keepsake_dice_bonus_amount;
+					final_roll = max(0, final_roll); // a die never rolls below 0 (Splash's -2 on a 1)
 
 					// bonuses that only apply to the first die in the slot (Repeater Rail)
 					if (_dice_list_index == 0 && !first_die_bonus_used && _slot_number >= 0 && _slot_number < ds_list_size(oCombat.action_queue)) {
@@ -202,6 +210,11 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	if (_dice_amount == 0) {
 		amount = _dice_value;
 		//show_debug_message("dice amount is zero - this is for flat damage - setting value to "+string(_dice_value));
+	}
+
+	// an intent the Quill halved: its attack, block or heal comes out at half
+	if (is_struct(_source) && variable_struct_exists(_source, "intent") && intent_is_halved(_source) && (_type == "ATK" || _type == "BLK" || _type == "HEAL")) {
+		amount = floor(amount / 2);
 	}
 
 
@@ -568,6 +581,10 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 		if (string_pos(_die_types[n], _slot.possible_type)) _matches = true;
 	}
 
+	// an Exclusive die always takes the whole slot: whatever is in it is ejected, as its keyword says. (A slot built by
+	// sacrificing neutral dice has no type yet but does hold dice, so "claim" alone left them in.)
+	if (_die_exclusive && !_die_neutral && ds_list_size(_slot.dice_list) > 0) return _yes("replace");
+
 	if (!_die_neutral) {
 		if (_slot_empty) return _yes("claim");
 		if (_slot_all) return _no("Coloured dice can't go in an 'All' slot.");
@@ -613,7 +630,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 
 		switch (check.action) {
 			case "replace":
-				// an Exclusive die clears out a slot of another type, then claims it
+				// an Exclusive die clears out the slot (any type), then claims it
 				eject_dice_in_slot(oCombat.action_queue[| _slot_i], oCombat.slot_positions[| _slot_i], true);
 			// fall through to claim
 			case "claim":
@@ -669,7 +686,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 			ds_list_add(slot.dice_list, die_copy2);
 		}
 	
-        add_feed_entry("You used a dice!");
+        add_feed_entry("You used a die!");
 		if (!die_has_keyword(die.struct, "coin")) dice_played += 1;
 		dice_played_scale = 1.2;
 		dice_played_color = c_green;
@@ -721,7 +738,7 @@ function discard_dice(_die) {
 
     // --- 5. Combat feed + reset state
     if (instance_exists(oCombat)) oCombat.is_discarding = false;
-    //with (oCombat) add_feed_entry("You discarded a dice!");
+    //with (oCombat) add_feed_entry("You discarded a die!");
 }
 
 function add_dice_to_bag(_die) {
@@ -1171,7 +1188,7 @@ function get_action_name(_slot, _num) {
 	
 	switch (action_type) {
 		case "All":
-			label = "No action";
+			label = "Empty";
 		break;
 		
 		case "ATK":
@@ -1701,7 +1718,7 @@ function tutorial_steps() {
 		// turn 2: insight, a slot with two actions, right-click to switch
 		{
 			id: "insight", target: "insight", allow: [], button: "Next",
-			text: "Your insight came in. Below 5 you only see ranges (Faded); at 5 the enemy's numbers turn exact (Legible). At 10 you take up the Quill and can rewrite an intent.",
+			text: "Your insight came in. Below 5 you only see ranges (Faded); at 5 the enemy's numbers turn exact (Legible). At 10 you take up the Quill and can reroll or halve an intent.",
 		},
 		{
 			id: "two_types", target: "sacrifice", allow: ["sacrifice"], die_types: ["ATK", "BLK"],
@@ -1844,7 +1861,7 @@ function tutorial_draw() {
 	if (oCombat.state != CombatState.PLAYER_INPUT || oCombat.show_rewards) return; // nothing to read while dice resolve
 
 	// Skip, top right under the bar
-	var _skip = draw_gui_button(display_get_gui_width() - 230, 90, 200, 50, 1, "Skip tutorial", c_dkgray, ftDefault, true, true, UI_LAYER.BASE);
+	var _skip = draw_gui_button(display_get_gui_width() - 230, 90, 200, 50, 1, "Skip tutorial", global.ui_quiet, ftDefault, true, true, UI_LAYER.BASE);
 	if (_skip.click) { tutorial_skip(); return; }
 
 	if (tutorial_draw_note(_s.text, tutorial_target_rect(_s.target), variable_struct_exists(_s, "button") ? _s.button : "")) {
@@ -1922,7 +1939,7 @@ function tutorial_draw_note(_text, _r, _button) {
 
 	// a note that waits for the player to read it has a button
 	if (_btn_h > 0) {
-		var _b = draw_gui_button(_nx + _note_w - 160 - _pad, _ny + _note_h - _btn_h - 8, 160, 42, 1, _button, make_color_rgb(60, 78, 181), ftDefault, true, true, UI_LAYER.BASE);
+		var _b = draw_gui_button(_nx + _note_w - 160 - _pad, _ny + _note_h - _btn_h - 8, 160, 42, 1, _button, global.ui_primary, ftDefault, true, true, UI_LAYER.BASE);
 		if (_b.click) _clicked = true;
 	}
 
@@ -2010,17 +2027,30 @@ function tips_combat_ready() {
 function tips_list() {
 	return [
 		{
-			id: "workbench_map", room: rmMap, target: "workbench",
-			text: "After each stop you may visit the workbench once, before sailing on. There you can reshape your dice.",
+			id: "workbench_map", room: rmMap, target: "at_sea",
+			text: "At sea. When you finish a page's island, you can stop at the workbench before the next one: choose dice from your bag and reshape them with your tools.",
 			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench; },
 		},
 		{
-			id: "workbench", room: rmWorkbench, target: "",
-			text: "Put a die in the first slot and a core in the middle. Drag the Drill onto Craft to set the core into the die. One craft per visit.",
+			id: "workbench", room: rmWorkbench, target: "wb_slots",
+			text: "The workbench. Put a die in the first slot and drag a core from the top bar into the middle one. Each tool works once per visit; click a finished die to take it back for another tool.",
+			done: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined; },
+		},
+		{
+			id: "workbench_toolbag", room: rmWorkbench, target: "toolbag",
+			text: "Now click the Drill in your toolbag to lay it on the bench.",
+			when: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined && !instance_exists(oDrill); },
+			done: function() { return instance_exists(oDrill); },
+		},
+		{
+			id: "workbench_drill", room: rmWorkbench, target: "drill",
+			text: "Click the Drill to pick it up, then hold left click over the Drill button until it bites. Right click puts the tool down.",
+			when: function() { return instance_exists(oDrill) && !oDrill.is_dragging; },
+			done: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.crafting_state != "waiting"; },
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",
-			text: "A spread is done. Rest to heal, or take a core to drill into a die at the workbench. Then the page turns and you choose the next two pages.",
+			text: "A spread is done. Heal, take a core to drill into a die at the workbench, or just continue. Then the page turns and you choose the next two pages.",
 			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.TURNING; },
 		},
 		{
@@ -2030,13 +2060,28 @@ function tips_list() {
 		},
 		{
 			id: "quill", room: rmCombat, target: "insight",
-			text: "Quill: with 10 insight, once this turn you can click a glowing enemy intent to rewrite it. You choose to change it, the enemy picks its new move.",
+			text: "Quill: with 10 insight, once a turn you can click a glowing enemy intent and choose: Reroll (the enemy picks a different move) or Halve (its attack, block or heal this turn).",
 			when: function() { return tips_combat_ready() && oCombat.intel_level >= 2 && !intel_is_blotted(); },
 		},
 		{
 			id: "blotted", room: rmCombat, target: "insight",
 			text: "Blotted: your insight fell below 0, so enemy intents are hidden this turn.",
 			when: function() { return tips_combat_ready() && intel_is_blotted(); },
+		},
+		{
+			id: "multi_enemy", room: rmCombat, target: "target_enemy",
+			text: "More than one enemy. Your attacks all go to your target, marked under its health bar. Click another enemy to change target any time before you end your turn.",
+			when: function() { return tips_combat_ready() && !tutorial_active() && combat_living_enemies() >= 2; },
+		},
+		{
+			id: "alignment_fight", room: rmCombat, target: "",
+			text: "A crossroads fight. When the enemy falls you choose: Kill it or Spare it. Killing swings your compass (top bar) toward ruthless; sparing swings it toward merciful and pays more gold. Some events and keepsakes care where your compass points. The rewards here are alignment dice.",
+			when: function() { return tips_combat_ready() && oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT; },
+		},
+		{
+			id: "kill_or_spare", room: rmCombat, target: "spare_buttons",
+			text: "Kill or spare? Kill: compass toward ruthless, its bounty in gold. Spare: compass toward merciful, one and a half times the gold, and it sails away. Hover each button for more.",
+			when: function() { return combat_spare_choice_enemy() != undefined; },
 		},
 		{
 			id: "shop", room: rmShop, target: "",
@@ -2061,11 +2106,29 @@ function tips_list() {
 /// @desc Where a tip points, in GUI pixels, or undefined (the note sits at the top).
 function tips_rect(_target) {
 	switch (_target) {
-		case "workbench":
+		case "at_sea":
 			var _gw = display_get_gui_width(), _gh = display_get_gui_height();
-			return { x: _gw - _gw / 8, y: _gh - _gh / 10, w: _gw / 10, h: _gh / 15 }; // the map's "Visit the workbench" button
+			return { x: _gw / 2 - 320, y: _gh - 230 - 90, w: 640, h: 230 }; // the map's "At sea" panel
 		case "insight":
 			return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
+		case "wb_slots":
+			if (!instance_exists(oWorkbenchManager)) return undefined;
+			with (oWorkbenchManager) return { x: start_x - wb_tile_size / 2, y: start_y - wb_tile_size / 2, w: wb_tile_size * 2 + wb_tile_padding, h: wb_tile_size };
+			break;
+		case "toolbag":
+			// oRunManager Draw GUI draws the toolbag at gui width - 860, in the top bar
+			return { x: display_get_gui_width() - 860 - 50, y: 10, w: 100, h: 100 };
+		case "target_enemy":
+			if (!instance_exists(oCombat) || oCombat.enemy_target_index < 0 || oCombat.enemy_target_index >= ds_list_size(oCombat.room_enemies)) return undefined;
+			var _te = oCombat.room_enemies[| oCombat.enemy_target_index];
+			return { x: _te.pos_x - 110, y: _te.pos_y - 120, w: 220, h: 260 };
+		case "spare_buttons":
+			var _se = combat_spare_choice_enemy();
+			if (_se == undefined) return undefined;
+			return { x: _se.pos_x - 110, y: _se.pos_y + 20, w: 220, h: 60 };
+		case "drill":
+			if (!instance_exists(oDrill)) return undefined;
+			return { x: oDrill.x - 80, y: oDrill.y - 80, w: 160, h: 160 };
 	}
 	return undefined;
 }
@@ -2178,4 +2241,166 @@ function insight_panel_draw() {
 		draw_text(intel_x + intel_pad, _row_y + intel_foot_h / 2, "Insight you roll counts next turn.");
 		draw_set_color(c_white);
 	}
+}
+
+/// @func weighted_to_face(_distribution, _weighted, _min_roll)
+/// @desc Which face a weighted roll lands on (the same walk process_action does), for showing both rolls of a roll-twice.
+function weighted_to_face(_distribution, _weighted, _min_roll) {
+	for (var d = 0; d < array_length(_distribution); d++) {
+		_weighted -= _distribution[d];
+		if (_weighted <= 0) return d + _min_roll;
+	}
+	return _min_roll + array_length(_distribution) - 1;
+}
+
+/// @func roll_popup(_slot_number, _dice_index, _text, _color)
+/// @desc A short word over a rolling die when an effect changes its result ("Warrior!", "Rolled 2 and 5, kept 5").
+function roll_popup(_slot_number, _dice_index, _text, _color) {
+	if (!instance_exists(oCombat)) return;
+	var _x = global.player_x, _y = global.player_y - 200;
+	with (oCombat) {
+		if (_slot_number != undefined && _slot_number >= 0 && ds_safe_exists(slot_positions, ds_type_list) && _slot_number < ds_list_size(slot_positions)) {
+			_x = slot_positions[| _slot_number].x + global.gui.action_tile_w / 2;
+			_y = slot_positions[| _slot_number].y - 60 - _dice_index * 26;
+		}
+	}
+	var _inst = instance_create_layer(_x, _y, "Instances", oDamageText);
+	_inst.txt = _text;
+	_inst.amount = 0;
+	_inst.color_main = _color;
+	_inst.num_sign = 0;
+	_inst.size = 0.6;
+	return _inst;
+}
+
+/// @func combat_carrying_slot_item()
+/// @desc Is the player carrying a potion that is used by dropping it on a slot?
+function combat_carrying_slot_item() {
+	if (!instance_exists(oRunManager)) return false;
+	for (var c = 0; c < array_length(oRunManager.items); c++) {
+		var _item = oRunManager.items[c];
+		if (_item != undefined && _item.type == "consumable" && _item.dragging && is_struct(_item.effects) && variable_struct_exists(_item.effects, "trigger") && _item.effects.trigger == "on_item_played_to_slot") return true;
+	}
+	return false;
+}
+
+/// @func combat_slot_under_mouse()
+/// @desc The index of the action slot under the mouse (as last drawn), or -1.
+function combat_slot_under_mouse() {
+	if (!instance_exists(oCombat) || !ds_safe_exists(oCombat.slot_positions, ds_type_list)) return -1;
+	var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
+	for (var i = 0; i < min(ds_list_size(oCombat.slot_positions), ds_list_size(oCombat.action_queue)); i++) {
+		var _p = oCombat.slot_positions[| i];
+		if (point_in_rectangle(_mx, _my, _p.x, _p.y, _p.x + _p.w, _p.y + _p.h)) return i;
+	}
+	return -1;
+}
+
+/// @func combat_item_drop(_item)
+/// @desc A potion let go of in a fight: if it is used on a slot and the mouse is over one, use it there. Returns true when
+///       used (the caller clears its top-bar slot). Called from oRunManager on release, so draw order doesn't matter.
+function combat_item_drop(_item) {
+	if (room != rmCombat || !instance_exists(oCombat) || oCombat.show_rewards) return false;
+	if (!is_struct(_item.effects) || !variable_struct_exists(_item.effects, "trigger") || _item.effects.trigger != "on_item_played_to_slot") return false;
+	var _i = combat_slot_under_mouse();
+	if (_i == -1) return false;
+	var _context = { _slot: oCombat.action_queue[| _i], _ind: _i };
+	if (!_item.effects.flags(_context)) return false;
+	trigger_item_effects(_item, "on_item_played_to_slot", _context);
+	particle_emit(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", global.color_intel);
+	return true;
+}
+
+/// @func enemy_layout_update()
+/// @desc Where each enemy stands, worked out every step from how many are in the fight now: the group is centred,
+///       spread evenly (the first in the list on the right), nudged right as the action queue grows but kept on
+///       screen, and staggered back so the left ones stand a little higher. Enemies glide there; sizes follow the
+///       count, so the last enemy standing is full size and centred. New enemies snap into place on their first step.
+function enemy_layout_update() {
+	var _n = ds_list_size(room_enemies);
+	if (_n == 0) return;
+	var _ui = global.ui_scale;
+	var _gw = display_get_gui_width();
+
+	var _centre = 1480 * _ui;
+	var _spacing = ((_n == 2) ? 300 : 240) * _ui;
+	var _push = max(0, ds_list_size(action_queue) - 1) * aq_tile_w * _ui * 0.25;
+	var _left = _centre - _spacing * (_n - 1) / 2 + _push;
+	var _right = _centre + _spacing * (_n - 1) / 2 + _push;
+	var _limit = _gw - 170 * _ui;
+	if (_right > _limit) { _right = _limit; _left = min(_left, _right); } // squeeze rather than run off screen
+
+	for (var e = 0; e < _n; e++) {
+		var _enemy = room_enemies[| e];
+		var _x = (_n == 1) ? _right : lerp(_right, _left, e / (_n - 1));
+		var _y = global.enemy_y - 45 * _ui * e;
+		_enemy.pos_x_start = _x;
+		_enemy.pos_y_start = _y;
+		_enemy.start_scale = 1.0 - ((_n - 1) * 0.1);
+		_enemy.bar_scale = lerp(_enemy.bar_scale, 1.0 - ((_n - 1) * 0.2), 0.15);
+
+		if (!variable_struct_exists(_enemy, "layout_placed")) {
+			_enemy.layout_placed = true;
+			_enemy.pos_x = _x;
+			_enemy.pos_y = _y;
+		} else {
+			_enemy.pos_x = lerp(_enemy.pos_x, _x, 0.12);
+			_enemy.pos_y = lerp(_enemy.pos_y, _y, 0.12);
+		}
+	}
+}
+
+/// @func combat_living_enemies()
+function combat_living_enemies() {
+	if (!instance_exists(oCombat)) return 0;
+	var _n = 0;
+	for (var e = 0; e < ds_list_size(oCombat.room_enemies); e++) if (!oCombat.room_enemies[| e].dead) _n++;
+	return _n;
+}
+
+/// @func combat_spare_choice_enemy()
+/// @desc The enemy showing the Kill / Spare buttons right now, or undefined.
+function combat_spare_choice_enemy() {
+	if (!instance_exists(oCombat)) return undefined;
+	for (var e = 0; e < ds_list_size(oCombat.room_enemies); e++) {
+		var _en = oCombat.room_enemies[| e];
+		if (variable_struct_exists(_en, "alignment_choices_shown") && _en.alignment_choices_shown) return _en;
+	}
+	return undefined;
+}
+
+/// @func workbench_dice_allowance()
+/// @desc How many dice you may bring to the workbench (F02): one per tool you own, plus one with the Hammer.
+function workbench_dice_allowance() {
+	var _n = ds_list_size(oRunManager.tools);
+	for (var i = 0; i < ds_list_size(oRunManager.tools); i++) if (oRunManager.tools[| i].object == oHammer) _n++;
+	return max(1, _n);
+}
+
+/// @func workbench_take_die(_die)
+/// @desc The dice picker's event at the workbench: a chosen die leaves the bag and lands in your hand on the bench.
+function workbench_take_die(_die) {
+	var _i = ds_list_find_index(global.dice_bag, _die);
+	if (_i == -1) return;
+	var _struct = clone_die(_die, "");
+	_struct.selected = false;
+	ds_list_delete(global.dice_bag, _i);
+	var _inst = instance_create_depth(global.gui.bag_x_deal, global.gui.bag_y_deal, -8, oDice);
+	_inst.struct = _struct;
+	_inst.action_type = _struct.action_type;
+	_inst.dice_amount = _struct.dice_amount;
+	_inst.dice_value = _struct.dice_value;
+	_inst.possible_type = _struct.possible_type;
+	var _target = generate_valid_targets(1, 100)[0];
+	_inst.target_x = _target[0];
+	_inst.target_y = _target[1];
+}
+
+/// @func workbench_tool_used(_object)
+/// @desc A tool has crafted: it's used up for this visit and goes back in the toolbag.
+function workbench_tool_used(_object) {
+	if (!instance_exists(oWorkbenchManager)) return;
+	array_push(oWorkbenchManager.tools_used, _object);
+	oRunManager.holding_item = false;
+	with (_object) instance_destroy();
 }

@@ -45,7 +45,7 @@ function choose_weighting_list(list) {
 ///
 /// @returns { hover: bool, click: bool, scale: real, x: real, y: real, w: real, h: real }
 
-function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rect, _layer = UI_LAYER.BASE, _hover_sound = noone, _click_sound = soClick2) {
+function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rect, _layer = UI_LAYER.BASE, _hover_sound = noone, _click_sound = soClick2, _disabled_reason = "", _use_font = false) {
 	
 	// this function needs to be deprecated soon as its leftover from when we originally first did buttons
     var mx = device_mouse_x_to_gui(0);
@@ -70,14 +70,26 @@ function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _f
     var target_scale = hover ? 1.2 : 1.0;
     scale = lerp(scale, target_scale, 0.2);
 
+	// a greyed-out button can say why when hovered
+	if (!_active && _disabled_reason != "" && global.ui_layer <= _layer && point_in_rectangle(mx, my, draw_x, draw_y, draw_x + w, draw_y + h)) {
+		queue_tooltip(mx, my, "Not now", _disabled_reason);
+	}
+
     // --- Draw background ---
-	if (_draw_rect == true || (_draw_rect == "hover" && hover)) {		
-		draw_wonky_rectangle(draw_x + w/2, draw_y + h/2, floor(w * scale), floor(h * scale), _color, c_black, _active ? 1.0 : 0.5, true, true);
+	// (UI kit, phase 2) a soft ink shadow under it, it sinks a little while held, and a disabled button is a muted
+	// version of its colour with readable text rather than see-through
+	if (_draw_rect == true || (_draw_rect == "hover" && hover)) {
+		var _held = hover && mouse_check_button(mb_left);
+		var _sink = _held ? 3 : 0;
+		var _fill = _active ? _color : merge_colour(_color, make_color_rgb(70, 70, 76), 0.65);
+		var _bw = floor(w * scale), _bh = floor(h * scale);
+		if (_active) draw_wonky_rectangle(draw_x + w/2 + 4, draw_y + h/2 + 6, _bw, _bh, c_black, c_black, _held ? 0.15 : 0.3, true, false);
+		draw_wonky_rectangle(draw_x + w/2, draw_y + h/2 + _sink, _bw, _bh, _fill, c_black, 1.0, true, _active);
 		draw_set_color(c_white);
-		draw_set_font(ftDefault);
+		draw_set_font(_use_font ? _font : ftDefault);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
-		draw_outline_text(_text, c_black, c_white, 2, draw_x + w/2, draw_y + h/2, scale, _active ? 1.0 : 0.25, 0);
+		draw_outline_text(_text, c_black, _active ? c_white : make_color_rgb(190, 186, 176), 2, draw_x + w/2, draw_y + h/2 + _sink, scale, _active ? 1.0 : 0.85, 0);
 	}
 
     return {
@@ -389,9 +401,32 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
     if (!global.tooltip_active) {
         global.tooltip_active = true;
 
+		// a tooltip asked for at the mouse sits at a fixed place beside the thing being hovered (its right edge, top
+		// aligned; draw_all_tooltips flips it to the left near the screen edge), like Slay the Spire, so it never covers
+		// what you're pointing at or wanders with the mouse
+		if (!variable_global_exists("tooltip_frame")) global.tooltip_frame = 0;
+		var _anchor = undefined;
+		var _at_mouse = abs(_x - device_mouse_x_to_gui(0)) < 2 && abs(_y - device_mouse_y_to_gui(0)) < 2;
+		if (_at_mouse) {
+			if (variable_global_exists("hover_rect") && is_struct(global.hover_rect) && global.hover_rect.frame == global.tooltip_frame) {
+				_anchor = global.hover_rect;
+				_x = _anchor.x2 + 14 * global.ui_scale;
+				_y = _anchor.y1;
+				// things in the top bar get their tooltip just below the bar, lined up with them
+				if (_anchor.y2 <= ui_top_bar_h() + 12) {
+					_x = _anchor.x1;
+					_y = ui_top_bar_h() + 8;
+				}
+			} else {
+				_x += 30 * global.ui_scale;
+				_y += 34 * global.ui_scale;
+			}
+		}
+
         global.tooltip_main = {
             x: _x, y: _y, name: _name, desc: _desc,
-            icon: _icon, index: _index, dice: _dice
+            icon: _icon, index: _index, dice: _dice,
+            anchor: _anchor // the hovered rectangle it sits beside, or undefined
         };
 
         global.tooltip_keywords = [];
@@ -437,146 +472,148 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
 function draw_all_tooltips() {
 
     if (global.tooltip_active) {
-		
-		//--------------------------
-        // Calculate tooltip height including keywords
-        //--------------------------
-		global.total_tooltip_height = 0;
+		// the main tooltip, with its keywords stacked tight underneath (each measured exactly, so no gaps), the whole
+		// stack kept on screen
+		var tt = global.tooltip_main;
+		var _gap = 4;
+		var _main = draw_tooltip_box(0, 0, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, true);
+		var _total_h = _main.h;
+		var _max_w = _main.w;
+		var _kw_sizes = [];
+		for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
+			var kw = global.tooltip_keywords[i];
+			var _s = draw_tooltip_box(0, 0, kw.name, kw.desc, kw.icon, kw.index, undefined, true, true);
+			array_push(_kw_sizes, _s);
+			_total_h += _gap + _s.h;
+			_max_w = max(_max_w, _s.w);
+		}
 
-        //--------------------------
-        // Draw keyword tooltips under it
-        //--------------------------
-        for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
-			var num_kw = i;
-            var kw = global.tooltip_keywords[i];
-            draw_single_tooltip(kw.x + 5, kw.y + 10, kw.name, kw.desc, kw.icon, kw.index, undefined, true, num_kw);
-        }
+		var xx = tt.x, yy = tt.y; // beside the hovered thing (queue_tooltip)
+		// no room on the right of the hovered thing: put it on its left instead
+		if (xx + _max_w > display_get_gui_width() - 10 && is_struct(tt.anchor)) xx = tt.anchor.x1 - 14 * global.ui_scale - _max_w;
+		if (xx + _max_w > display_get_gui_width() - 10) xx = display_get_gui_width() - _max_w - 10;
+		if (yy + _total_h > display_get_gui_height() - 10) yy = display_get_gui_height() - _total_h - 10;
+		xx = max(10, xx); yy = max(10, yy);
 
-        //--------------------------
-        // Draw main tooltip
-        //--------------------------
-        var tt = global.tooltip_main;
-		var num_keywords = array_length(global.tooltip_keywords);
-        draw_single_tooltip(tt.x, tt.y, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, num_keywords);
+		draw_tooltip_box(xx, yy, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, false);
+		var _ky = yy + _main.h + _gap;
+		for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
+			var kw = global.tooltip_keywords[i];
+			draw_tooltip_box(xx + 12, _ky, kw.name, kw.desc, kw.icon, kw.index, undefined, true, false);
+			_ky += _kw_sizes[i].h + _gap;
+		}
     }
 
     // Reset for next frame
+	if (variable_global_exists("tooltip_frame")) global.tooltip_frame++;
     global.tooltip_active = false;
     global.tooltip_main = undefined;
     global.tooltip_keywords = [];
 }
 
+/// @func draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice)
+/// @desc One tooltip box on its own, kept on screen (the debug menu uses it).
 function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefined, _is_keyword = false, _num_keywords = 0) {
-    var padding = 15;
+	var _s = draw_tooltip_box(0, 0, _name, _desc, _icon, _index, _dice, _is_keyword, true);
+	var xx = min(_x, display_get_gui_width() - _s.w - 10);
+	var yy = min(_y, display_get_gui_height() - _s.h - 10);
+	draw_tooltip_box(xx, yy, _name, _desc, _icon, _index, _dice, _is_keyword, false);
+}
+
+/// @func draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, _measure_only)
+/// @desc Draws one tooltip box at its top-left, or only measures it. Returns { w, h }. _compact is the smaller box used
+///       for keywords under a main tooltip (tighter padding, narrower text).
+function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, _measure_only) {
+    var padding = _compact ? 12 : 20; // clear of the inner rule
+    var max_desc_w = _compact ? 260 : 300;
     var xx = _x;
     var yy = _y;
 
-    if (_y == mouse_y) {
-        xx = _x + 15;
-        yy = _y + 30;
-    }
-
-    // --- 1. MEASURE NAME ---
-    draw_set_font(ftDefault);
+    // name
+    draw_set_font(_compact ? ftDescriptions : ftDefault);
     var name_w = string_width(_name);
     var name_h = string_height(_name);
 
-    // --- 2. THE "LONGEST LINE" APPROACH ---
+    // the longest line the description wraps to
     draw_set_font(ftDescriptions);
-    var max_desc_w = 300;
-    
     var words = string_split(_desc, " ");
     var longest_line_px = 0;
     var current_line_str = "";
-
     for (var i = 0; i < array_length(words); i++) {
-        var word = words[i];
-        // Create a temporary string to see if the next word fits
-        var test_string = (current_line_str == "") ? word : (current_line_str + " " + word);
-        
+        var test_string = (current_line_str == "") ? words[i] : (current_line_str + " " + words[i]);
         if (string_width(test_string) <= max_desc_w) {
-            // It fits, so this is our new current line
             current_line_str = test_string;
         } else {
-            // It doesn't fit! The current_line_str (before the new word) is a finished line.
             longest_line_px = max(longest_line_px, string_width(current_line_str));
-            // Start the next line with the word that didn't fit
-            current_line_str = word;
+            current_line_str = words[i];
         }
     }
-    // Check the very last line after the loop finishes
     longest_line_px = max(longest_line_px, string_width(current_line_str));
-
-    // Use the pixel-perfect width we just found
-    var actual_desc_w = longest_line_px;
-
-    // Use standard GML height measurement (matches your line-break logic)
     var line_sep = font_get_size(ftDescriptions) * 1.5;
-    var desc_h = string_height_ext(_desc, line_sep, max_desc_w);
+    var desc_h = (_desc == "") ? 0 : string_height_ext(_desc, line_sep, max_desc_w);
 
-    // --- 3. DYNAMIC BOX SIZING ---
-    var icon_space = (_icon != undefined || (_dice != undefined && _dice.distribution != "")) ? 50 : 0;
-    var dist_h = (_dice != undefined && variable_struct_exists(_dice, "distribution") && _dice.distribution != "") ? 25 : 0;
+    var has_core = (_dice != undefined && variable_struct_exists(_dice, "distribution") && _dice.distribution != "");
+    var icon_space = (_icon != undefined || has_core) ? (_compact ? 36 : 50) : 0;
+    var _width  = padding * 2 + max(name_w, longest_line_px) + icon_space;
+    var _height = padding * (_compact ? 1.4 : 1.6) + name_h + desc_h + (_compact ? 4 : 10);
 
-    var _width  = padding * 2 + max(name_w, actual_desc_w) + icon_space;
-    var _height = padding * 1.6 + name_h + desc_h + 10;
-	
-	global.total_tooltip_height += _height;
+	if (_measure_only) return { w: _width, h: _height };
 
-    // Screen Clamping
-    if (xx + _width > display_get_gui_width() - 10) xx = display_get_gui_width() - _width - 10;
-    if (yy + global.total_tooltip_height > display_get_gui_height() - 10) yy = display_get_gui_height() - (10*_num_keywords) - global.total_tooltip_height;
-
-    // --- 4. DRAW BACKGROUND ---
-    draw_set_alpha(0.8);
+    // background
+    draw_set_alpha(0.85);
     draw_set_color(c_black);
     draw_roundrect(xx - 2, yy - 2, xx + _width + 2, yy + _height + 2, false);
-	
-	var bg_col = _is_keyword ? make_color_rgb(20, 40, 70) : global.color_bg;
-	if (oRunManager.error_timer == 0) {
-		draw_set_color(bg_col);
-	} else {
-		draw_set_color(global.color_error);
-	}
+	// logbook style: dark ink, a cream inner rule and small diamonds at the corners (keyword boxes a lighter touch)
+	var bg_col = _compact ? make_color_rgb(34, 38, 50) : make_color_rgb(26, 30, 40);
+	draw_set_color((oRunManager.error_timer == 0) ? bg_col : global.color_error);
     draw_roundrect(xx, yy, xx + _width, yy + _height, false);
     draw_set_alpha(1);
+	var _rule = make_color_rgb(226, 212, 176);
+	var _in = _compact ? 3 : 4;
+	draw_set_color(_rule);
+	draw_set_alpha(_compact ? 0.35 : 0.6);
+	draw_roundrect(xx + _in, yy + _in, xx + _width - _in, yy + _height - _in, true);
+	if (!_compact) {
+		draw_set_alpha(0.9);
+		var _d = 4;
+		var _cx = [xx + _in, xx + _width - _in, xx + _in, xx + _width - _in];
+		var _cy = [yy + _in, yy + _in, yy + _height - _in, yy + _height - _in];
+		for (var c = 0; c < 4; c++) {
+			draw_triangle(_cx[c] - _d, _cy[c], _cx[c], _cy[c] - _d, _cx[c] + _d, _cy[c], false);
+			draw_triangle(_cx[c] - _d, _cy[c], _cx[c], _cy[c] + _d, _cx[c] + _d, _cy[c], false);
+		}
+	}
+	draw_set_alpha(1);
 
     var content_x = xx + padding;
 
-    // --- 5. DRAW ICON / CORE / DISTRIBUTION ---
+    // icon, or the die's core and its distribution
     var icon_sprite = undefined;
     var icon_idx = 0;
-    var icon_scale = 1;
-
+    var icon_scale = _compact ? 0.75 : 1;
     if (_icon != undefined) {
         icon_sprite = _icon;
         icon_idx = _index;
-    } else if (_dice != undefined && variable_struct_exists(_dice, "distribution") && _dice.distribution != "") {
+    } else if (has_core) {
         icon_sprite = sCores;
         icon_idx = get_core_index(_dice);
         icon_scale = 0.75;
     }
-
     if (icon_sprite != undefined) {
-        draw_sprite_ext(icon_sprite, icon_idx, content_x + 16, yy + (_height/2), icon_scale, icon_scale, 0, c_white, 1);
-        if (_dice != undefined && variable_struct_exists(_dice, "distribution")) {
-             draw_dice_distribution(_dice, content_x + 35, yy);
-        }
+        draw_sprite_ext(icon_sprite, icon_idx, content_x + (_compact ? 10 : 16), yy + (_height / 2), icon_scale, icon_scale, 0, c_white, 1);
+        if (has_core) draw_dice_distribution(_dice, content_x + 35, yy);
         content_x += icon_space;
     }
 
-    // --- 6. DRAW NAME ---
-    draw_set_font(ftDefault);
-    draw_set_color(c_white);
+    // name (one line; the box is already wide enough), then the description
+    draw_set_font(_compact ? ftDescriptions : ftDefault);
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
-	// the title is drawn on one line, the box is already sized to its full width
-	draw_outline_text(_name, c_black, c_white, 2, content_x, yy + padding, 1, 1, 0);
+	draw_outline_text(_name, c_black, _compact ? global.color_intel : c_white, 2, content_x, yy + padding, 1, 1, 0);
+    draw_set_font(ftDescriptions);
+    if (_desc != "") draw_outline_text(colorcode_text(_desc), c_black, c_white, 1, content_x, yy + padding + name_h + 2, 1, 1, 0, max_desc_w);
 
-    // --- 7. DRAW DESCRIPTION ---
-    var colored_desc = colorcode_text(_desc);
-    draw_set_font(ftDescriptions); 
-    draw_outline_text(colored_desc, c_black, c_white, 1, content_x, yy + padding + name_h + 2, 1, 1, 0, max_desc_w);
+	return { w: _width, h: _height };
 }
 
 /// @func string_has_keyword(str, keyword)
@@ -808,6 +845,19 @@ function parse_text_with_keywords(str) {
 
 /// @function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound = noone, _click_sound = soClick4, _conditions_met = true, _layer = UI_LAYER.BASE, _id = undefined)
 function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound = noone, _click_sound = soClick4, _conditions_met = true, _layer = UI_LAYER.BASE, _id = undefined) {
+
+	var _hit = mouse_hovering_check(_x, _y, _width, _height, _centered, _hover_sound, _click_sound, _conditions_met, _layer, _id);
+	if (_hit) {
+		global.cursor_hover_time = current_time; // the custom cursor lights up over anything interactive
+		// the thing under the mouse, so a tooltip can sit beside it (queue_tooltip)
+		var _x1 = _centered ? _x - _width / 2 : _x;
+		var _y1 = _centered ? _y - _height / 2 : _y;
+		global.hover_rect = { x1: _x1, y1: _y1, x2: _x1 + _width, y2: _y1 + _height, frame: variable_global_exists("tooltip_frame") ? global.tooltip_frame : 0 };
+	}
+	return _hit;
+}
+
+function mouse_hovering_check(_x, _y, _width, _height, _centered, _hover_sound = noone, _click_sound = soClick4, _conditions_met = true, _layer = UI_LAYER.BASE, _id = undefined) {
 	var mx = device_mouse_x_to_gui(0);
 	var my = device_mouse_y_to_gui(0);
 	
@@ -1086,150 +1136,52 @@ function get_node_by_name(_name) {
 
 
 
-// Draws our varied stroke rectangles at scale, so we don't have to keep using sprites!
+// Draws our hand-drawn panels: a two-tone fill and uneven ink strokes along each edge. Drawn straight to the screen
+// with triangles (no surfaces): each panel's wobble comes from its size and colours, so it holds still frame to frame.
+// (The old version built a cached 8x surface per size; buttons growing on hover made new ones every frame, and they
+// rendered black in the web build.)
 function draw_wonky_rectangle(_x, _y, _width, _height, _fill_col, _stroke_col, _alpha, _centered, _highlight) {
-	
-	var _scale = 8;
-	var _key = string(_width) + "x" + string(_height) + "_" + string(_fill_col) + "_" + string(_stroke_col);
-	var _cached = ds_map_find_value(global.button_cache, _key);
-	
-	if (!surface_exists(_cached)) {
-		
-		var _sw = _width * _scale;
-		var _sh = _height * _scale;
-		var _surf = surface_create(_sw, _sh);
-		surface_set_target(_surf);
-		draw_clear_alpha(c_black, 0);
-		
-		var c_pos = {
-			top_left:     { xx: 0,   yy: 0 },
-			top_right:    { xx: _sw, yy: 0 },
-			bottom_left:  { xx: 0,   yy: _sh },
-			bottom_right: { xx: _sw, yy: _sh },
-		}
-		
-		var c_offset = {
-			top_left:     random_range(3, 5) * _scale,
-			top_right:    random_range(6, 9)  * _scale,
-			bottom_left:  random_range(4, 6)  * _scale,
-			bottom_right: random_range(3, 5)  * _scale
-		}
-		
-		// Always draw at full alpha - alpha is applied at draw time instead
-		draw_set_alpha(1.0);
-		
-		// Fill
-		var highlight_col = _fill_col;
-		draw_triangle_color(
-			c_pos.top_left.xx, c_pos.top_left.yy,
-			c_pos.top_right.xx, c_pos.top_right.yy,
-			c_pos.bottom_left.xx, c_pos.bottom_left.yy,
-			_fill_col, _fill_col, _fill_col, false		
-		);
-		if (_highlight) {
-			var _red =		clamp(color_get_red(_fill_col) + 20, 0, 255);
-			var _green =	clamp(color_get_green(_fill_col) + 20, 0, 255);
-			var _blue =		clamp(color_get_blue(_fill_col) + 20, 0, 255);
-			highlight_col = make_colour_rgb(_red, _green, _blue);
-		}
-		draw_triangle_color(
-			c_pos.bottom_left.xx, c_pos.bottom_left.yy,
-			c_pos.top_right.xx, c_pos.top_right.yy,
-			c_pos.bottom_right.xx, c_pos.bottom_right.yy,
-			highlight_col, highlight_col, highlight_col, false		
-		);
-		
-		// Left side stroke
-		draw_triangle_colour(
-			c_pos.top_left.xx - c_offset.top_left, c_pos.top_left.yy - c_offset.top_left,
-			c_pos.bottom_left.xx - c_offset.bottom_left, c_pos.bottom_left.yy + c_offset.bottom_left,
-			c_pos.top_left.xx + c_offset.top_left, c_pos.top_left.yy + c_offset.top_left,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		draw_triangle_colour(
-			c_pos.top_left.xx + c_offset.top_left, c_pos.top_left.yy - c_offset.top_left,
-			c_pos.bottom_left.xx - c_offset.bottom_left, c_pos.bottom_left.yy + c_offset.bottom_left,
-			c_pos.bottom_left.xx + c_offset.bottom_left, c_pos.bottom_left.yy - c_offset.bottom_left,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		
-		// Top side stroke
-		draw_triangle_colour(
-			c_pos.top_left.xx - c_offset.top_left, c_pos.top_left.yy - c_offset.top_left,
-			c_pos.top_right.xx + c_offset.top_right, c_pos.top_right.yy - c_offset.top_right,
-			c_pos.top_right.xx - c_offset.top_right, c_pos.top_right.yy + c_offset.top_right,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		draw_triangle_colour(
-			c_pos.top_left.xx - c_offset.top_left, c_pos.top_left.yy - c_offset.top_left,
-			c_pos.top_right.xx - c_offset.top_right, c_pos.top_right.yy + c_offset.top_right,
-			c_pos.top_left.xx + c_offset.top_left, c_pos.top_left.yy + c_offset.top_left,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		
-		// Right side stroke
-		draw_triangle_colour(
-			c_pos.top_right.xx + c_offset.top_right, c_pos.top_right.yy - c_offset.top_right,
-			c_pos.bottom_right.xx - c_offset.bottom_right, c_pos.bottom_right.yy + c_offset.bottom_right,
-			c_pos.top_right.xx - c_offset.top_right, c_pos.top_right.yy + c_offset.top_right,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		draw_triangle_colour(
-			c_pos.top_right.xx + c_offset.top_right, c_pos.top_right.yy - c_offset.top_right,
-			c_pos.bottom_right.xx - c_offset.bottom_right, c_pos.bottom_right.yy - c_offset.bottom_right,
-			c_pos.bottom_right.xx + c_offset.bottom_right, c_pos.bottom_right.yy + c_offset.bottom_right,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		
-		// Bottom side stroke
-		draw_triangle_colour(
-			c_pos.bottom_left.xx + c_offset.bottom_left, c_pos.bottom_left.yy - c_offset.bottom_left,
-			c_pos.bottom_right.xx + c_offset.bottom_right, c_pos.bottom_right.yy + c_offset.bottom_right,
-			c_pos.bottom_right.xx - c_offset.bottom_right, c_pos.bottom_right.yy - c_offset.bottom_right,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		draw_triangle_colour(
-			c_pos.bottom_left.xx + c_offset.bottom_left, c_pos.bottom_left.yy - c_offset.bottom_left,
-			c_pos.bottom_right.xx + c_offset.bottom_right, c_pos.bottom_right.yy + c_offset.bottom_right,
-			c_pos.bottom_left.xx - c_offset.bottom_left, c_pos.bottom_left.yy + c_offset.bottom_left,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		
-		draw_set_alpha(1.0);
-		surface_reset_target();
-		
-		// Pass 1: 8x -> 4x
-		var _pass1 = surface_create(_width * 4, _height * 4);
-		surface_set_target(_pass1);
-		draw_clear_alpha(c_black, 0);
-		draw_surface_ext(_surf, 0, 0, 0.5, 0.5, 0, c_white, 1);
-		surface_reset_target();
-		surface_free(_surf);
-		
-		// Pass 2: 4x -> 2x
-		var _pass2 = surface_create(_width * 2, _height * 2);
-		surface_set_target(_pass2);
-		draw_clear_alpha(c_black, 0);
-		draw_surface_ext(_pass1, 0, 0, 0.5, 0.5, 0, c_white, 1);
-		surface_reset_target();
-		surface_free(_pass1);
-		
-		// Cache the 2x surface
-		_cached = _pass2;
-		ds_map_set(global.button_cache, _key, _cached);
-	}
-	
-	// Draw cached 2x surface at final size, applying alpha here instead of baking it in
-	var _draw_x, _draw_y;
-	if (_centered) {
-		_draw_x = _x - _width / 2;
-		_draw_y = _y - _height / 2;
+	var _x1 = _centered ? _x - _width / 2 : _x;
+	var _y1 = _centered ? _y - _height / 2 : _y;
+	var _x2 = _x1 + _width, _y2 = _y1 + _height;
+
+	// steady "random" stroke widths for this panel (the same each frame)
+	var _seed = (round(_width / 8) * 131 + round(_height / 8) * 977 + (_fill_col mod 9973) * 7) mod 100000;
+	var _r = function(_s, _n) { return frac(abs(sin((_s + _n * 12.9898) * 43.7585)) * 1000); };
+	var _otl = 1.5 + 1.0 * _r(_seed, 1);	// half-widths of the ink at each corner
+	var _otr = 3.0 + 1.5 * _r(_seed, 2);
+	var _obl = 2.0 + 1.0 * _r(_seed, 3);
+	var _obr = 1.5 + 1.0 * _r(_seed, 4);
+
+	var _old_alpha = draw_get_alpha();
+	draw_set_alpha(_alpha);
+
+	// fill: two triangles, the lower-right one a touch lighter when highlighted
+	var _hi = _fill_col;
+	if (_highlight) _hi = make_colour_rgb(clamp(color_get_red(_fill_col) + 20, 0, 255), clamp(color_get_green(_fill_col) + 20, 0, 255), clamp(color_get_blue(_fill_col) + 20, 0, 255));
+	draw_triangle_color(_x1, _y1, _x2, _y1, _x1, _y2, _fill_col, _fill_col, _fill_col, false);
+	draw_triangle_color(_x1, _y2, _x2, _y1, _x2, _y2, _hi, _hi, _hi, false);
+
+	// ink edges: each a quad that tapers from one corner's width to the next
+	draw_set_color(_stroke_col);
+	wonky_edge(_x1, _y1, _otl, _x2, _y1, _otr, true);	// top
+	wonky_edge(_x1, _y2, _obl, _x2, _y2, _obr, true);	// bottom
+	wonky_edge(_x1, _y1, _otl, _x1, _y2, _obl, false);	// left
+	wonky_edge(_x2, _y1, _otr, _x2, _y2, _obr, false);	// right
+
+	draw_set_alpha(_old_alpha);
+}
+
+/// @func wonky_edge(_ax, _ay, _aw, _bx, _by, _bw, _horizontal)
+/// @desc One ink edge of a wonky panel, from point a (half-width _aw) to point b (half-width _bw).
+function wonky_edge(_ax, _ay, _aw, _bx, _by, _bw, _horizontal) {
+	if (_horizontal) {
+		draw_triangle(_ax - _aw, _ay - _aw, _bx + _bw, _by - _bw, _bx + _bw, _by + _bw, false);
+		draw_triangle(_ax - _aw, _ay - _aw, _bx + _bw, _by + _bw, _ax - _aw, _ay + _aw, false);
 	} else {
-		_draw_x = _x;
-		_draw_y = _y;
+		draw_triangle(_ax - _aw, _ay - _aw, _ax + _aw, _ay - _aw, _bx + _bw, _by + _bw, false);
+		draw_triangle(_ax - _aw, _ay - _aw, _bx + _bw, _by + _bw, _bx - _bw, _by + _bw, false);
 	}
-	
-	draw_surface_ext(_cached, _draw_x, _draw_y, 0.5, 0.5, 0, c_white, _alpha);
 }
 
 
@@ -1292,8 +1244,8 @@ function lose_run() {
 
 /// @func draw_insight_icon(_icon, _x, _y, _scale, _alpha)
 /// @desc Placeholder icons for the insight states, drawn with shapes until real art is made (F51), about 30 pixels tall
-///       at scale 1, centred on _x, _y: "blotted" an ink spill, "faded" an outlined drop, "legible" a filled drop,
-///       "quill" a quill.
+///       at scale 1, centred on _x, _y: "blotted" an ink spill, "faded" a dry brush, "legible" a brush loaded with
+///       yellow ink (both tilted), "quill" a feather quill.
 function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
 	var _old_alpha = draw_get_alpha();
 	var _ink = global.color_intel;
@@ -1314,52 +1266,116 @@ function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
 
 		case "faded":
 		case "legible":
-			// a drop: round at the bottom, pointed at the top. Faded is an outline, Legible is filled
-			var _cx = _x, _cy = _y + 4 * _scale, _r = 10 * _scale;
-			var _tip_x = _x, _tip_y = _y - 15 * _scale;
-			var _pts = [[_tip_x, _tip_y]];
-			for (var _ang = 30; _ang >= -210; _ang -= 15) {
-				array_push(_pts, [_cx + lengthdir_x(_r, _ang), _cy + lengthdir_y(_r, _ang)]);
-			}
-			if (_icon == "legible") {
-				// black edge, then the yellow fill
+			// a brush tilted 45 degrees, tip down-left. Legible: bristles loaded with yellow ink, a drop about to fall.
+			// Faded: a dry brush, pale bristles splayed into strands with only a trace of ink.
+			var _s = _scale;
+			var _dry = (_icon == "faded");
+			// the handle (up-right) and its metal band
+			var _h1 = insight_rot(_x, _y, 0, -18, _s), _h2 = insight_rot(_x, _y, 0, -6, _s);
+			draw_set_color(c_black);
+			draw_line_width(_h1[0], _h1[1], _h2[0], _h2[1], max(7 * _s, 1.6));
+			draw_set_color(make_color_rgb(120, 78, 44));
+			draw_line_width(_h1[0], _h1[1], _h2[0], _h2[1], max(4 * _s, 1.6));
+			var _f1 = insight_rot(_x, _y, 0, -7, _s), _f2 = insight_rot(_x, _y, 0, -1, _s);
+			draw_set_color(c_black);
+			draw_line_width(_f1[0], _f1[1], _f2[0], _f2[1], max(11 * _s, 1.6));
+			draw_set_color(make_color_rgb(175, 175, 185));
+			draw_line_width(_f1[0], _f1[1], _f2[0], _f2[1], max(8 * _s, 1.6));
+
+			if (!_dry) {
+				// loaded: a full, rounded belly of bristles soaked in ink, tapering to a point
+				var _pts = [];
+				for (var i = 0; i <= 10; i++) {
+					var _t = i / 10;
+					var _half = (4.5 + 2.5 * sin(_t * pi * 0.85)) * (1 - _t * _t * 0.95);
+					array_push(_pts, insight_rot(_x, _y, -_half, -1 + _t * 17, _s));
+				}
+				for (var i = 10; i >= 0; i--) {
+					var _t = i / 10;
+					var _half = (4.5 + 2.5 * sin(_t * pi * 0.85)) * (1 - _t * _t * 0.95);
+					array_push(_pts, insight_rot(_x, _y, _half, -1 + _t * 17, _s));
+				}
+				var _mid = insight_rot(_x, _y, 0, 6, _s);
 				for (var _pass = 0; _pass < 2; _pass++) {
-					var _grow = (_pass == 0) ? 1.18 : 1;
+					var _g = (_pass == 0) ? 1.22 : 1;
 					draw_set_color((_pass == 0) ? c_black : _ink);
 					draw_primitive_begin(pr_trianglefan);
-					draw_vertex(_cx, _cy);
-					for (var i = 0; i < array_length(_pts); i++) draw_vertex(_cx + (_pts[i][0] - _cx) * _grow, _cy + (_pts[i][1] - _cy) * _grow);
-					draw_vertex(_cx + (_pts[0][0] - _cx) * _grow, _cy + (_pts[0][1] - _cy) * _grow);
+					draw_vertex(_mid[0], _mid[1]);
+					for (var i = 0; i < array_length(_pts); i++) draw_vertex(_mid[0] + (_pts[i][0] - _mid[0]) * _g, _mid[1] + (_pts[i][1] - _mid[1]) * _g);
+					draw_vertex(_mid[0] + (_pts[0][0] - _mid[0]) * _g, _mid[1] + (_pts[0][1] - _mid[1]) * _g);
 					draw_primitive_end();
 				}
+				// a shine, and a drop gathering at the tip
+				var _sh1 = insight_rot(_x, _y, -2, 2, _s), _sh2 = insight_rot(_x, _y, -1.5, 8, _s);
+				draw_set_color(make_color_rgb(255, 255, 170));
+				draw_line_width(_sh1[0], _sh1[1], _sh2[0], _sh2[1], max(1.5 * _s, 1.6));
+				var _drop = insight_rot(_x, _y, 0, 20, _s);
+				draw_set_color(c_black);
+				draw_circle(_drop[0], _drop[1], max(3.2 * _s, 1.5), false);
+				draw_set_color(_ink);
+				draw_circle(_drop[0], _drop[1], max(2.2 * _s, 1.5), false);
 			} else {
-				// black, then yellow, so the outline reads on any background
+				// dry: separate pale strands fanning out, ragged at the ends, with a faint streak of ink
+				var _strands = [-4.5, -2.5, -0.5, 1.5, 3.5, 5];
 				for (var _pass = 0; _pass < 2; _pass++) {
-					draw_set_color((_pass == 0) ? c_black : _ink);
-					var _lw = ((_pass == 0) ? 5 : 2.5) * _scale;
-					for (var i = 0; i < array_length(_pts); i++) {
-						var _p1 = _pts[i], _p2 = _pts[(i + 1) mod array_length(_pts)];
-						draw_line_width(_p1[0], _p1[1], _p2[0], _p2[1], _lw);
+					for (var i = 0; i < array_length(_strands); i++) {
+						var _off = _strands[i];
+						var _a1 = insight_rot(_x, _y, _off * 0.8, -1, _s);
+						var _a2 = insight_rot(_x, _y, _off * 1.35, 13 + ((i mod 2) ? 2 : -1), _s);
+						draw_set_color((_pass == 0) ? c_black : make_color_rgb(225, 214, 180));
+						draw_line_width(_a1[0], _a1[1], _a2[0], _a2[1], ((_pass == 0) ? 3.4 : 1.8) * _s);
 					}
 				}
+				var _st1 = insight_rot(_x, _y, 0.5, 4, _s), _st2 = insight_rot(_x, _y, 0.8, 11, _s);
+				draw_set_color(_ink);
+				draw_line_width(_st1[0], _st1[1], _st2[0], _st2[1], max(1.4 * _s, 1.6));
 			}
 		break;
 
 		case "quill":
-			// a feather leaning right, nib at the bottom left
-			var _tip_x = _x - 11 * _scale, _tip_y = _y + 14 * _scale;
-			var _end_x = _x + 12 * _scale, _end_y = _y - 15 * _scale;
-			var _mid_x = _x - 3 * _scale, _mid_y = _y + 4 * _scale;
-			for (var _pass = 0; _pass < 2; _pass++) {
-				var _o = (_pass == 0) ? 2 * _scale : 0;
-				draw_set_color((_pass == 0) ? c_black : _ink);
-				draw_triangle(_mid_x - _o, _mid_y + _o, _end_x + _o, _end_y - _o, _x + 9 * _scale + _o, _y + 5 * _scale + _o, false);
-				draw_triangle(_mid_x - _o, _mid_y + _o, _end_x + _o, _end_y - _o, _x - 6 * _scale - _o, _y - 9 * _scale - _o, false);
+			// a feather quill leaning right: a curved vane either side of the shaft, a bare end near the nib, a dark nib
+			var _s = _scale;
+			var _nx = _x - 12 * _s, _ny = _y + 15 * _s;	// nib point
+			var _ex = _x + 12 * _s, _ey = _y - 16 * _s;	// top of the feather
+			var _len = point_distance(_nx, _ny, _ex, _ey);
+			var _dir = point_direction(_nx, _ny, _ex, _ey);
+			// points along the shaft with the vane's width on each side (wider on the left, curled a little)
+			var _left = [], _right = [];
+			for (var i = 0; i <= 10; i++) {
+				var _t = 0.28 + 0.72 * (i / 10);
+				var _w = sin((i / 10) * pi) * 7.5 * _s + 0.5 * _s;
+				var _px = _nx + lengthdir_x(_len * _t, _dir), _py = _ny + lengthdir_y(_len * _t, _dir);
+				array_push(_left, [_px + lengthdir_x(_w * 1.15, _dir + 90 + 12), _py + lengthdir_y(_w * 1.15, _dir + 90 + 12)]);
+				array_push(_right, [_px + lengthdir_x(_w * 0.8, _dir - 90 + 12), _py + lengthdir_y(_w * 0.8, _dir - 90 + 12)]);
 			}
-			// the shaft and nib
+			var _sx0 = _nx + lengthdir_x(_len * 0.28, _dir), _sy0 = _ny + lengthdir_y(_len * 0.28, _dir);
+			for (var _pass = 0; _pass < 2; _pass++) {
+				var _grow = (_pass == 0) ? 1.25 : 1;
+				draw_set_color((_pass == 0) ? c_black : make_color_rgb(244, 238, 214));
+				var _sides = [_left, _right];
+				for (var _side = 0; _side < 2; _side++) {
+					var _pts = _sides[_side];
+					draw_primitive_begin(pr_trianglefan);
+					var _cx = (_sx0 + _ex) / 2, _cy = (_sy0 + _ey) / 2;
+					draw_vertex(_cx, _cy);
+					draw_vertex(_cx + (_sx0 - _cx) * _grow, _cy + (_sy0 - _cy) * _grow);
+					for (var i = 0; i < array_length(_pts); i++) draw_vertex(_cx + (_pts[i][0] - _cx) * _grow, _cy + (_pts[i][1] - _cy) * _grow);
+					draw_vertex(_cx + (_ex - _cx) * _grow, _cy + (_ey - _cy) * _grow);
+					draw_primitive_end();
+				}
+			}
+			// a few barbs, the insight-yellow tip, the shaft and the nib
+			draw_set_color(make_color_rgb(190, 180, 150));
+			for (var i = 3; i <= 8; i += 2) {
+				draw_line_width(_left[i][0] + (_left[i][0] < _x ? 0 : 0), _left[i][1], (_left[i][0] + _sx0 + (_ex - _sx0) * (i / 10)) / 2, (_left[i][1] + _sy0 + (_ey - _sy0) * (i / 10)) / 2, max(1 * _s, 1.6));
+			}
+			draw_set_color(_ink);
+			draw_circle(_ex - lengthdir_x(3 * _s, _dir), _ey - lengthdir_y(3 * _s, _dir), max(2.6 * _s, 1.5), false);
 			draw_set_color(c_black);
-			draw_line_width(_tip_x, _tip_y, _end_x, _end_y, 2.5 * _scale);
-			draw_line_width(_tip_x, _tip_y, _mid_x, _mid_y, 4 * _scale);
+			draw_line_width(_nx, _ny, _ex, _ey, max(1.8 * _s, 1.6));
+			draw_line_width(_nx, _ny, _sx0, _sy0, max(3.5 * _s, 1.6));
+			draw_set_color(make_color_rgb(40, 32, 24));
+			draw_triangle(_nx, _ny, _nx + lengthdir_x(6 * _s, _dir + 15), _ny + lengthdir_y(6 * _s, _dir + 15), _nx + lengthdir_x(6 * _s, _dir - 15), _ny + lengthdir_y(6 * _s, _dir - 15), false);
 		break;
 	}
 
@@ -1469,16 +1485,19 @@ function pause_draw() {
 	draw_rectangle(0, 0, _gw, _gh, false);
 	draw_set_alpha(1);
 
+	// the window: title, a rule, the buttons, the save note
+	ui_panel(_gw / 2 - 260, _gh * 0.22, _gw / 2 + 260, _gh * 0.4 + 3 * 110 + 60);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
 	draw_set_font(ftBigger);
-	draw_outline_text("Paused", c_black, c_white, 3, _gw / 2, _gh * 0.3, 1, 1, 0);
+	draw_outline_text("Paused", c_black, c_white, 3, _gw / 2, _gh * 0.29, 1, 1, 0);
+	ui_divider(_gw / 2 - 180, _gw / 2 + 180, _gh * 0.345);
 
 	var _labels = ["Resume", "Settings", "Save and quit"];
 	var _bw = 320, _bh = 80;
 	with (oRunManager) {
 		for (var i = 0; i < 3; i++) {
-			var _b = draw_gui_button(_gw / 2 - _bw / 2, _gh * 0.4 + i * (_bh + 30), _bw, _bh, pause_scales[i], _labels[i], (i == 0) ? c_lime : c_orange, ftBig, true, true, UI_LAYER.SETTINGS);
+			var _b = draw_gui_button(_gw / 2 - _bw / 2, _gh * 0.4 + i * (_bh + 30), _bw, _bh, pause_scales[i], _labels[i], (i == 0) ? global.ui_primary : global.ui_neutral, ftBig, true, true, UI_LAYER.SETTINGS);
 			pause_scales[i] = _b.scale;
 			if (!_b.click) continue;
 			switch (i) {
@@ -1548,10 +1567,7 @@ function run_summary_draw() {
 	var _panel_w = 760, _row_h = 46;
 	var _px = _gw / 2 - _panel_w / 2, _py = _gh * 0.37;
 	var _panel_h = ceil(array_length(_rows) / 2) * _row_h + 30;
-	draw_set_alpha(0.8 * _a);
-	draw_set_color(global.color_bg);
-	draw_roundrect(_px, _py, _px + _panel_w, _py + _panel_h, false);
-	draw_set_alpha(1);
+	ui_panel(_px, _py, _px + _panel_w, _py + _panel_h, _a);
 	for (var i = 0; i < array_length(_rows); i++) {
 		var _cx = _px + 30 + (i mod 2) * (_panel_w / 2);
 		var _cy = _py + 15 + _row_h / 2 + (i div 2) * _row_h;
@@ -1563,11 +1579,194 @@ function run_summary_draw() {
 
 	// back to the menu
 	var _bw = 360, _bh = 80;
-	var _b = draw_gui_button(_gw / 2 - _bw / 2, _py + _panel_h + 50, _bw, _bh, _r.btn_scale, "Back to the menu", c_orange, ftBig, _a > 0.9, true, UI_LAYER.POPUP);
+	var _b = draw_gui_button(_gw / 2 - _bw / 2, _py + _panel_h + 50, _bw, _bh, _r.btn_scale, "Back to the menu", global.ui_primary, ftBig, _a > 0.9, true, UI_LAYER.POPUP);
 	_r.btn_scale = _b.scale;
 	if (_b.click) {
 		global.ui_layer = UI_LAYER.BASE;
 		room_goto(rmMainMenu);
 	}
 	draw_set_halign(fa_center);
+}
+
+/// @func draw_mouse_hint(_x, _y, _button, _text)
+/// @desc A small mouse with its left or right button lit, and what that button does, e.g. at the workbench while a
+///       tool is in hand. _x, _y is the mouse's centre; the text follows on the right.
+function draw_mouse_hint(_x, _y, _button, _text) {
+	var _w = 34, _h = 48;
+	var _x1 = _x - _w / 2, _y1 = _y - _h / 2;
+	draw_set_alpha(1);
+	draw_set_color(make_color_rgb(50, 50, 55));
+	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 16, 16, false);
+	// the lit button: the top half of one side
+	draw_set_color(c_red);
+	if (_button == "left") draw_roundrect_ext(_x1 + 2, _y1 + 2, _x, _y - 2, 12, 12, false);
+	else draw_roundrect_ext(_x, _y1 + 2, _x1 + _w - 2, _y - 2, 12, 12, false);
+	draw_set_color(c_black);
+	draw_line_width(_x, _y1, _x, _y, 2);
+	draw_line_width(_x1, _y, _x1 + _w, _y, 2);
+	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 16, 16, true);
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_middle);
+	draw_outline_text(_text, c_black, c_white, 2, _x + _w / 2 + 12, _y, 1, 1, 0);
+	draw_set_halign(fa_center);
+}
+
+/// @func cursor_draw()
+/// @desc The game's own mouse pointer (Settings > Display > Custom cursor), drawn last of all by oSettingsMenu
+///       Draw GUI End: an ink-outlined parchment arrow that tips forward and gains a gold glint over anything you can
+///       hover or click, and dips while the button is held. The system cursor is hidden while it's on.
+function cursor_draw() {
+	var _on = global.custom_cursor;
+	if (_on != global.cursor_hidden) {
+		window_set_cursor(_on ? cr_none : cr_default);
+		global.cursor_hidden = _on;
+	}
+	if (!_on) return;
+
+	var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
+	var _hot = (current_time - global.cursor_hover_time) < 60;
+	var _down = mouse_check_button(mb_left);
+	// tips forward over anything interactive, and further while the button is held (a tap), never shrinking
+	global.cursor_tilt = lerp(global.cursor_tilt, _down ? 26 : (_hot ? 12 : 0), 0.35);
+	var _s = (_hot ? 1.06 : 1) * global.ui_scale;
+
+	// the arrow's points, tip at the mouse, rotated by the tilt
+	var _pts = [[0, 0], [0, 30], [8, 23], [14, 36], [20, 33], [14, 21], [24, 21]];
+	var _xy = [];
+	for (var i = 0; i < array_length(_pts); i++) {
+		var _px = _pts[i][0] * _s, _py = _pts[i][1] * _s;
+		var _d = point_direction(0, 0, _px, _py) + global.cursor_tilt;
+		var _l = point_distance(0, 0, _px, _py);
+		array_push(_xy, [_mx + lengthdir_x(_l, _d), _my + lengthdir_y(_l, _d)]);
+	}
+
+	// shadow, then the paper fill as a fan of triangles from the tip, then the ink edge
+	draw_set_alpha(0.35);
+	draw_set_color(c_black);
+	for (var i = 1; i < array_length(_xy) - 1; i++) draw_triangle(_xy[0][0] + 3, _xy[0][1] + 3, _xy[i][0] + 3, _xy[i][1] + 3, _xy[i + 1][0] + 3, _xy[i + 1][1] + 3, false);
+	draw_set_alpha(1);
+	draw_set_color(_hot ? make_color_rgb(255, 236, 170) : make_color_rgb(240, 228, 196));
+	for (var i = 1; i < array_length(_xy) - 1; i++) draw_triangle(_xy[0][0], _xy[0][1], _xy[i][0], _xy[i][1], _xy[i + 1][0], _xy[i + 1][1], false);
+	draw_set_color(make_color_rgb(40, 32, 24));
+	for (var i = 0; i < array_length(_xy); i++) {
+		var _n = (i + 1) mod array_length(_xy);
+		draw_line_width(_xy[i][0], _xy[i][1], _xy[_n][0], _xy[_n][1], 2.5 * global.ui_scale);
+	}
+	draw_set_color(c_white);
+}
+
+/// @func ui_top_bar_h()
+/// @desc Height of the top bar (gold, health, items...). Screens dim from here down so the bar stays in full colour.
+function ui_top_bar_h() {
+	return sprite_get_height(sTopBar) - 4; // the bar is drawn from y -4: dim from exactly where it ends
+}
+
+/// @func ui_button_col(_state_col)
+/// @desc Rooms mark a ready button with c_red (leave) or c_lime (craft) in their logic; this is the colour to draw it.
+function ui_button_col(_state_col) {
+	if (_state_col == c_red) return global.ui_neutral;
+	if (_state_col == c_lime || _state_col == c_green) return global.ui_primary;
+	return _state_col;
+}
+
+/// @func draw_tools_badge(_x, _y, _scale)
+/// @desc A small round badge with a crossed hammer and wrench (drawn in code), e.g. over the ship when the workbench
+///       can be visited.
+function draw_tools_badge(_x, _y, _scale) {
+	var _r = 18 * _scale;
+	var _ink = make_color_rgb(40, 32, 24);
+	draw_set_alpha(1);
+	draw_set_color(_ink);
+	draw_circle(_x, _y, _r + 3, false);
+	draw_set_color(make_color_rgb(240, 228, 196));
+	draw_circle(_x, _y, _r, false);
+	draw_set_color(_ink);
+	// hammer: handle and head, leaning one way
+	var _a = 45;
+	draw_line_width(_x - lengthdir_x(11 * _scale, _a), _y - lengthdir_y(11 * _scale, _a), _x + lengthdir_x(11 * _scale, _a), _y + lengthdir_y(11 * _scale, _a), 3 * _scale);
+	var _hx = _x - lengthdir_x(10 * _scale, _a), _hy = _y - lengthdir_y(10 * _scale, _a);
+	draw_line_width(_hx - lengthdir_x(6 * _scale, _a + 90), _hy - lengthdir_y(6 * _scale, _a + 90), _hx + lengthdir_x(6 * _scale, _a + 90), _hy + lengthdir_y(6 * _scale, _a + 90), 5 * _scale);
+	// wrench: handle the other way, with an open ring at its end
+	var _b = 135;
+	draw_line_width(_x - lengthdir_x(11 * _scale, _b), _y - lengthdir_y(11 * _scale, _b), _x + lengthdir_x(9 * _scale, _b), _y + lengthdir_y(9 * _scale, _b), 3 * _scale);
+	draw_circle(_x + lengthdir_x(11 * _scale, _b), _y + lengthdir_y(11 * _scale, _b), 4 * _scale, true);
+	draw_set_color(c_white);
+}
+
+/// @func ui_panel(_x1, _y1, _x2, _y2, _alpha)
+/// @desc A logbook window (UI kit, phase 2): dark ink, a cream rule inside the edge and diamonds at the corners, the
+///       same look as the tooltips. Use it behind any window of buttons or text.
+function ui_panel(_x1, _y1, _x2, _y2, _alpha = 1) {
+	var _old = draw_get_alpha();
+	draw_set_alpha(0.35 * _alpha);
+	draw_set_color(c_black);
+	draw_roundrect_ext(_x1 + 6, _y1 + 8, _x2 + 6, _y2 + 8, 18, 18, false); // shadow
+	draw_set_alpha(0.94 * _alpha);
+	draw_set_color(make_color_rgb(26, 30, 40));
+	draw_roundrect_ext(_x1, _y1, _x2, _y2, 18, 18, false);
+	var _in = 8;
+	draw_set_color(make_color_rgb(226, 212, 176));
+	draw_set_alpha(0.55 * _alpha);
+	draw_roundrect_ext(_x1 + _in, _y1 + _in, _x2 - _in, _y2 - _in, 12, 12, true);
+	draw_set_alpha(0.9 * _alpha);
+	var _d = 6;
+	var _cx = [_x1 + _in, _x2 - _in, _x1 + _in, _x2 - _in];
+	var _cy = [_y1 + _in, _y1 + _in, _y2 - _in, _y2 - _in];
+	for (var c = 0; c < 4; c++) {
+		draw_triangle(_cx[c] - _d, _cy[c], _cx[c], _cy[c] - _d, _cx[c] + _d, _cy[c], false);
+		draw_triangle(_cx[c] - _d, _cy[c], _cx[c], _cy[c] + _d, _cx[c] + _d, _cy[c], false);
+	}
+	draw_set_alpha(_old);
+	draw_set_color(c_white);
+}
+
+/// @func ui_divider(_x1, _x2, _y, _alpha)
+/// @desc A thin cream rule with a diamond in the middle, to split a panel into parts.
+function ui_divider(_x1, _x2, _y, _alpha = 1) {
+	var _mx = (_x1 + _x2) / 2;
+	draw_set_color(make_color_rgb(226, 212, 176));
+	draw_set_alpha(0.5 * _alpha);
+	draw_line_width(_x1, _y, _mx - 10, _y, 2);
+	draw_line_width(_mx + 10, _y, _x2, _y, 2);
+	draw_set_alpha(0.9 * _alpha);
+	draw_triangle(_mx - 6, _y, _mx, _y - 6, _mx + 6, _y, false);
+	draw_triangle(_mx - 6, _y, _mx, _y + 6, _mx + 6, _y, false);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
+/// @func insight_rot(_x, _y, _lx, _ly, _scale)
+/// @desc A point of a tilted insight icon: (_lx, _ly) in the icon's own frame (pointing down), turned 45 degrees so the
+///       tip points down-left, scaled and placed at _x, _y. Returns [x, y].
+function insight_rot(_x, _y, _lx, _ly, _scale) {
+	var _c = 0.7071, _sn = 0.7071;
+	return [_x + (_lx * _c - _ly * _sn) * _scale, _y + (_lx * _sn + _ly * _c) * _scale];
+}
+
+/// @func ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active, _reason, _layer)
+/// @desc The kit's standard button, centred on _cx, _cy, with big text that grows with it. _reason shows on hover
+///       while it can't be pressed. Returns draw_gui_button's { hover, click, scale, ... }; keep .scale for next frame.
+function ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active = true, _reason = "", _layer = UI_LAYER.BASE) {
+	return draw_gui_button(_cx - _w / 2, _cy - _h / 2, _w, _h, _scale_ref, _text, _col, ftBig, _active, true, _layer, noone, soClick2, _reason, true);
+}
+
+/// @func draw_action_type_icon(_type, _x, _y, _scale)
+/// @desc A small round badge with the symbol of an action type (attack, block, heal, insight), drawn on dice when
+///       Settings > Display > Action icons on dice is on, so the types can be told apart without colour (F14).
+function draw_action_type_icon(_type, _x, _y, _scale) {
+	if (_type != "ATK" && _type != "BLK" && _type != "HEAL" && _type != "INTEL") return;
+	var _r = 16 * _scale;
+	draw_set_alpha(1);
+	draw_set_color(c_black);
+	draw_circle(_x, _y, _r + 2, false);
+	draw_set_color(make_color_rgb(240, 228, 196));
+	draw_circle(_x, _y, _r, false);
+	switch (_type) {
+		case "ATK": draw_sprite_ext(sIntentIcons, 0, _x, _y, 0.5 * _scale, 0.5 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
+		case "BLK": draw_sprite_ext(sIntentIcons, 1, _x, _y, 0.5 * _scale, 0.5 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
+		case "HEAL": draw_sprite_ext(sIntentIcons, 2, _x, _y, 0.5 * _scale, 0.5 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
+		case "INTEL": draw_insight_icon("legible", _x, _y, 0.85 * _scale, 1); break;
+	}
+	draw_set_color(c_white);
 }

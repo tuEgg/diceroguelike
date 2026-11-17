@@ -73,4 +73,17 @@ if (instance_exists(oDrill)) {
 }
 
 oRunManager.holding_item = dragging;
+
+// after a craft, once its results are back in your hand the bench is ready for the next tool
+if (crafting_state != "waiting" && workbench_slot[1].dice == undefined && workbench_slot[2].dice == undefined && workbench_slot[0].dice == undefined && workbench_slot[1].core == undefined) {
+	var _anim_done = (crafting_state != "hammered" || bang_timer <= 0) && (crafting_state != "snipped" || snipped_y >= 400);
+	if (_anim_done) {
+		crafting_state = "waiting";
+		bang_timer = 15;
+		snipped_x = 1;
+		snipped_y = 1;
+		snipped_angle = 0;
+		button_text = "Craft";
+	}
+}
 button_hovered = hovered;

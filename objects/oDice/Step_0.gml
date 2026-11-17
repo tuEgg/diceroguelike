@@ -65,8 +65,15 @@ if (!is_dragging && hovered && mouse_check_button_pressed(mb_left)) {
 	    drag_offset_x = mx - x;
 	    drag_offset_y = my - y;
 	} else if (room == rmWorkbench) {
-		oWorkbenchManager.workbench_slot[2].dice = undefined;
-		discard_dice_in_play();
+		// a finished die (or the Cutters' coin) goes back into your hand, ready for another tool
+		with (oWorkbenchManager) {
+			for (var s = 1; s <= 2; s++) if (workbench_slot[s].dice == other.struct) workbench_slot[s].dice = undefined;
+		}
+		still = false;
+		in_slot = false;
+		var _spot = generate_valid_targets(1, 100)[0];
+		target_x = _spot[0];
+		target_y = _spot[1];
 	}
 }
 

@@ -484,3 +484,20 @@ function define_buffs_and_debuffs() {
 	    ]
 	};
 }
+
+/// @func buff_tooltip_text(_inst)
+/// @desc A buff or debuff's tooltip text: its description, then how long it lasts and its strength, only when they
+///       mean something ("2 turns left", "Lasts all fight", "Strength 3").
+function buff_tooltip_text(_inst) {
+	var _desc = string(_inst.template.desc);
+	if (string_char_at(_desc, string_length(_desc)) != ".") _desc += ".";
+	var _bits = [];
+	if (_inst.permanent) array_push(_bits, "Lasts all fight");
+	else if (_inst.remaining == 1) array_push(_bits, "1 turn left");
+	else if (_inst.remaining > 1) array_push(_bits, string(_inst.remaining) + " turns left");
+	if (_inst.amount != 0) array_push(_bits, "Strength " + string(_inst.amount));
+	if (array_length(_bits) == 0) return _desc;
+	var _line = _bits[0];
+	for (var i = 1; i < array_length(_bits); i++) _line += ", " + _bits[i];
+	return _desc + " [subtext]" + _line + ".";
+}

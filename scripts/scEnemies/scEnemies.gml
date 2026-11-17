@@ -232,6 +232,7 @@ function enemy_copy_for_fight(_enemy) {
 ///       the Legible state can show the exact result in advance, and the enemy's turn uses those same rolls.
 function enemy_set_intent(_enemy, _move) {
 	_enemy.intent.move = _move;
+	_enemy.intent.halved = false; // Quill can halve this turn's numbers (enemy_halve_intent)
 
 	_enemy.intent.rolls = [];
 	repeat (max(0, _move.dice_amount)) {
@@ -268,7 +269,52 @@ var _move = _enemy.intent.move;
 		trigger_debuff_list(_enemy.debuffs, "on_roll_die", _ctx); // on_roll_die only adjusts the roll, it never counts buffs down
 		_total += _ctx._d_amount;
 	}
-	return _total + _move.bonus_amount;
+	_total += _move.bonus_amount;
+	if (intent_is_halved(_enemy)) _total = floor(_total / 2);
+	return _total;
+}
+
+/// @func intent_is_halved(_enemy)
+function intent_is_halved(_enemy) {
+	return variable_struct_exists(_enemy.intent, "halved") && _enemy.intent.halved;
+}
+
+/// @func intent_range_text(_enemy)
+/// @desc The range shown when Faded ("4-9"), halved if the Quill halved it.
+function intent_range_text(_enemy) {
+	var _move = _enemy.intent.move;
+	var _lo = _move.dice_amount + _move.bonus_amount;
+	var _hi = (_move.dice_amount * _move.dice_value) + _move.bonus_amount;
+	if (intent_is_halved(_enemy)) { _lo = floor(_lo / 2); _hi = floor(_hi / 2); }
+	return string(_lo) + "-" + string(_hi);
+}
+
+/// @func intent_hover_text(_enemy, _intel_level)
+/// @desc The plain description shown when hovering an enemy: what it will do and how much ("Attacks you for 4-9").
+function intent_hover_text(_enemy, _intel_level) {
+	var _move = _enemy.intent.move;
+	var _number = intent_number_text(_enemy, _intel_level);
+	var _parts = string_split(_move.action_type, "/");
+	var _text = "";
+	for (var i = 0; i < array_length(_parts); i++) {
+		var _type = _parts[i];
+		if (_type == "MIMIC") _type = oCombat.player_last_action_type;
+		var _line = "";
+		switch (_type) {
+			case "ATK": _line = "Attacks you for " + _number; break;
+			case "BLK": _line = "Blocks " + _number; break;
+			case "HEAL": _line = "Heals " + _number; break;
+			case "INTEL": _line = "Gains insight"; break;
+			case "SUMMON": _line = "Calls for help"; break;
+			default: _line = "";
+		}
+		if (_line != "") _text += ((_text == "") ? "" : ", then ") + _line;
+	}
+	if (_text == "") _text = "Does something unusual";
+	_text += ".";
+	if (intent_is_halved(_enemy)) _text += " Halved by your quill.";
+	if (intent_has_numbers(_move) && _intel_level < 1) _text += " Reach " + string(global.player_intel_data[| 1].requirement) + " insight (Legible) to see the exact number.";
+	return _text;
 }
 
 /// @func intent_number_text(_enemy, _intel_level)
@@ -277,7 +323,7 @@ function intent_number_text(_enemy, _intel_level) {
 	if (intel_is_blotted()) return "?";
 	if (!intent_has_numbers(_enemy.intent.move)) return _enemy.intent.text;
 	if (_intel_level >= 1) return string(intent_exact_value(_enemy));
-	return _enemy.intent.text;
+	return intent_range_text(_enemy);
 }
 
 
@@ -390,6 +436,26 @@ function enemy_pick_move_index(_enemy) {
 function enemy_can_rewrite_intent(_enemy) {
 	if (variable_struct_exists(_enemy.intent.move, "use_trigger")) return false;
 	return array_length(enemy_rewrite_options(_enemy)) > 0;
+}
+
+/// @func enemy_can_halve_intent(_enemy)
+/// @desc Quill: an attack, block or heal can be halved (forced moves too), once.
+function enemy_can_halve_intent(_enemy) {
+	return intent_has_numbers(_enemy.intent.move) && !intent_is_halved(_enemy);
+}
+
+/// @func enemy_can_quill(_enemy)
+/// @desc Is there anything the Quill can do to this intent: reroll it or halve it?
+function enemy_can_quill(_enemy) {
+	return enemy_can_rewrite_intent(_enemy) || enemy_can_halve_intent(_enemy);
+}
+
+/// @func enemy_halve_intent(_enemy)
+/// @desc Quill: this turn's attack, block or heal comes out at half (rounded down). process_action applies it.
+function enemy_halve_intent(_enemy) {
+	if (!enemy_can_halve_intent(_enemy)) return false;
+	_enemy.intent.halved = true;
+	return true;
 }
 
 /// @func enemy_rewrite_options(_enemy)

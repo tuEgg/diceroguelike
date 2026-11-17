@@ -62,8 +62,9 @@ if (is_dragging) {
 			particle_emit(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0) + 270, "burst", c_grey, 1);
 		
 			if (oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined) {
-				if (drill_change_time <= drill_change_time_min) {
+				if (drill_change_time <= drill_change_time_min && oWorkbenchManager.crafting_state == "waiting") {
 					oWorkbenchManager.crafting_state = "drilled";
+					workbench_tool_used(oDrill); // once per visit, back in the toolbag
 				}
 			} else {
 				oWorkbenchManager.error_shake = true;

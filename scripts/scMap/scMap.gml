@@ -525,8 +525,8 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	var _icon_blend = c_white;
 
 	if (page.chosen && !page.locked) {
-	    // highest priority
-	    _blend = make_color_rgb(100, 186, 186); 
+	    // chosen in this draft: plain paper, outlined in green below
+	    _blend = c_white;
 	}
 	else if (!page.chosen || all_nodes_cleared) {
 	    // either unselected or fully cleared
@@ -549,13 +549,22 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	
 	var draw_scale = _scale;
 	if (!_shadow) draw_scale = 1;
+	// a chosen page in the draft gets a thick green outline that follows the torn paper (Jared's mockup): the page drawn
+	// in solid green (fog) a few pixels out in every direction, behind the page. Fog works in every build, no shader.
+	if (_shadow && page.chosen && !page.locked && _alpha > 0) {
+		gpu_set_fog(true, make_color_rgb(70, 220, 90), 0, 0);
+		for (var _o = 0; _o < 12; _o++) {
+			draw_sprite_ext(_sprite, page.index, page_x + lengthdir_x(7, _o * 30), page_y + lengthdir_y(7, _o * 30), draw_scale, draw_scale, 0, c_white, _alpha * pages_alpha);
+		}
+		gpu_set_fog(false, c_white, 0, 0);
+	}
 	draw_sprite_ext(_sprite, page.index, page_x, page_y, draw_scale,  draw_scale, 0, _blend, _alpha * pages_alpha);
 	
 	
 	
 	// Draw islands - they draw to their own surface so we can mask them out
-	var surf_w = global.resolution_options[global.resolution_index].w;
-	var surf_h = global.resolution_options[global.resolution_index].h;
+	var surf_w = display_get_gui_width(); // the GUI is always 1920x1080 (B83), so the island surfaces match it
+	var surf_h = display_get_gui_height();
 	
 	// Rebuild the surfaces if the resolution has changed since they were made
 	if (surface_exists(island_surf) && (surface_get_width(island_surf) != surf_w || surface_get_height(island_surf) != surf_h)) {

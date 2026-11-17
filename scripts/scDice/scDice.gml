@@ -15,7 +15,8 @@ function deal_single_die( _can_discard_this_turn = true) {
 	// --- Reshuffle if empty ---
 	if (_debug_die == undefined && ds_list_size(global.dice_bag) == 0) {
 			
-	    if (ds_list_size(global.discard_pile) > 0) {
+	    // outside a fight the discard pile has been freed (oCombat CleanUp), so only a live one can be reshuffled (B109)
+	    if (ds_safe_exists(global.discard_pile, ds_type_list) && ds_list_size(global.discard_pile) > 0) {
 	        //show_debug_message("Dice bag empty — reshuffling discard pile!");
 	        for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
 	            var discard_die = global.discard_pile[| i];
@@ -243,7 +244,7 @@ function generate_dice_bag() {
 	// Invisible Die
 	global.die_invisible = make_die_struct(
 	    1, 4, "None", "None", "", "Invisible die",
-	    "When Played: draw 1 dice and play +1 dice this turn.",
+	    "When played: draw 1 die and play +1 die this turn.",
 		"common",
 		30,
 	    [
@@ -265,7 +266,7 @@ function generate_dice_bag() {
 	// Surge Die
 	global.die_surge = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Surge die",
-	    "+1 bonus to this dice for every subsequent slot.",
+	    "+1 bonus to this die for every subsequent slot.",
 		"uncommon",
 		40,
 	    [
@@ -428,7 +429,7 @@ function generate_dice_bag() {
 	// Slipstream Die
 	global.die_muzzle = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Muzzle die",
-	    "Followthrough: +1 bonus to this dice for every previous slot",
+	    "Followthrough: +1 bonus to this die for every previous slot",
 		"uncommon",
 		60,
 	    [
@@ -448,14 +449,16 @@ function generate_dice_bag() {
 	// Bilge Die
 	global.die_bilge = make_die_struct(
 	    1, 6, "None", "None", "", "Bilge die",
-	    "Sticky. If this roll is even, heal 2.",
+	    "Sticky. If this die's total (roll plus bonuses) is even, heal 2.",
 		"rare",
 		80,
 	    [
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount mod 2 == 0 && _context.die.uid == _context._die_struct_source.uid) {
+					// the total the player sees on the die: the roll plus the slot's and keepsakes' bonuses
+					var _total = _context._d_amount + _context.slot_bonus + _context.keepsake_bonus + _context.first_bonus;
+					if (_total mod 2 == 0 && _context.die.uid == _context._die_struct_source.uid) {
 						global.player_hp = min(global.player_max_hp, global.player_hp + 2);
 						particle_emit(global.player_x, global.player_y, "burst", c_lime);
 						var num = spawn_floating_number("player", 2, -1, c_lime, 1, -1, 0);
@@ -483,7 +486,7 @@ function generate_dice_bag() {
 	// Fogcaller Die
 	global.die_fogcaller = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Fogcaller Die",
-	    "Followthrough: Gain +1 and draw a dice if the previous slot contained a coin.",
+	    "Followthrough: Gain +1 and draw a die if the previous slot contained a coin.",
 		"common",
 		40,
 	    [
@@ -600,7 +603,7 @@ function generate_dice_bag() {
 	
 	global.die_echo = make_die_struct(
 	    1, 4, "None", "None", "", "Echo Die",
-	    "When played: create another copy of this dice in the sacrificed slot",
+	    "When played: create another copy of this die in the sacrificed slot",
 		"rare",
 		60,
 	    [
@@ -794,7 +797,7 @@ function generate_dice_bag() {
 	
 	global.die_offhand = make_die_struct(
 	    1, 6, "ATK", "ATK", "", "Offhand die",
-	    "Gain 1 might this turn if this dice rolls its minimum value ({min}).",
+	    "Gain 1 might this turn if this die rolls its minimum value ({min}).",
 		"common",
 		30,
 	    [
@@ -812,7 +815,7 @@ function generate_dice_bag() {
 	
 	global.die_balanced = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Balanced die",
-	    "Gain 1 balance this turn if this dice rolls its maximum value ({max}).",
+	    "Gain 1 balance this turn if this die rolls its maximum value ({max}).",
 		"common",
 		30,
 	    [
@@ -830,7 +833,7 @@ function generate_dice_bag() {
 	
 	global.die_holy = make_die_struct(
 	    1, 8, "None", "None", "", "Holy die",
-	    "Alignment: The higher your alignment, the higher this dice's mininimum roll",
+	    "Alignment: The higher your alignment, the higher this die's minimum roll",
 		"rare",
 		30,
 	    [
@@ -846,7 +849,7 @@ function generate_dice_bag() {
 	
 	global.die_unholy = make_die_struct(
 	    1, 6, "None", "None", "", "Unholy die",
-	    "Alignment: The lower your alignment, the higher this dice's maximum roll",
+	    "Alignment: The lower your alignment, the higher this die's maximum roll",
 		"rare",
 		30,
 	    [
@@ -881,16 +884,16 @@ function generate_dice_bag() {
 	
 	global.die_warrior = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Warrior die",
-	    "If this dice rolls its minimum value ({min}), change it to its max value ({max}) instead.",
+	    "If this die rolls its minimum value ({min}), change it to its max value ({max}) instead.",
 		"common",
 		30,
 	    [
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount == _context.min_roll && _context.die.uid == _context._die_struct_source.uid) {
+					if (_context._d_amount <= _context.min_roll && _context.die.uid == _context._die_struct_source.uid) {
 	                    _context._d_amount = _context.max_roll;
-						show_debug_message("Rolled a 1, no changing to max");
+						roll_popup(_context.slot_num, _context.dice_index, "Warrior!", c_orange);
 	                }
 	            }
 	        }
@@ -934,7 +937,7 @@ function generate_dice_bag() {
 	
 	global.die_splash = make_die_struct(
 	    1, 10, "BLK", "BLK", "", "Splash Die",
-	    "-2 on every roll.",
+	    "-2 on every roll (never below 0).",
 		"common",
 		60,
 	    [
@@ -960,39 +963,58 @@ function generate_dice_bag() {
 }
 
 /// generate_valid_targets(num_dice, min_dist)
-/// returns array of [x, y] positions spaced at least min_dist apart
+/// returns array of [x, y] positions in the hand area, spaced at least min_dist from each other and from the dice
+/// already in hand (their targets), so dealt dice never overlap. If the area is too full for a random spot, it takes
+/// the point of a fine grid that is furthest from everything.
 function generate_valid_targets(_num, _min_dist) {
     var positions = [];
-    var tries, xx, yy, valid;
+
+	// the dice already dealt (on their way or resting) count as taken
+	var taken = [];
+	with (oDice) {
+		if (variable_instance_exists(id, "target_x") && !is_undefined(target_x)) array_push(taken, [target_x, target_y]);
+		else array_push(taken, [x, y]);
+	}
+
+	var x1 = global.dice_safe_area_x1, x2 = global.dice_safe_area_x2;
+	var y1 = global.dice_safe_area_y1, y2 = global.dice_safe_area_y2;
 
     repeat (_num) {
-        tries = 0;
-        repeat (200) { // limit retries per dice target
-            xx = random_range(global.dice_safe_area_x1, global.dice_safe_area_x2);
-            yy = random_range(global.dice_safe_area_y1, global.dice_safe_area_y2);
-
-            valid = true;
-            for (var j = 0; j < array_length(positions); j++) {
-                if (point_distance(positions[j][0], positions[j][1], xx, yy) < _min_dist) {
-                    valid = false;
-                    break;
-                }
-            }
-
-            if (valid) break;
-            tries++;
+		var best_x = random_range(x1, x2), best_y = random_range(y1, y2);
+		var found = false;
+        repeat (200) {
+            var xx = random_range(x1, x2);
+            var yy = random_range(y1, y2);
+			if (generate_target_clearance(xx, yy, positions, taken) >= _min_dist) {
+				best_x = xx; best_y = yy; found = true;
+				break;
+			}
         }
 
-        // fallback if no good spot found after 200 tries
-        if (!valid) {
-            xx = random_range(global.dice_safe_area_x1, global.dice_safe_area_x2);
-            yy = random_range(global.dice_safe_area_y1, global.dice_safe_area_y2);
+        // too full for a random spot: the grid point with the most room
+        if (!found) {
+			var best_room = -1;
+			for (var gx = x1; gx <= x2; gx += 20) {
+				for (var gy = y1; gy <= y2; gy += 20) {
+					var room_here = generate_target_clearance(gx, gy, positions, taken);
+					if (room_here > best_room) { best_room = room_here; best_x = gx; best_y = gy; }
+				}
+			}
         }
 
-        array_push(positions, [xx, yy]);
+        array_push(positions, [best_x, best_y]);
     }
 
     return positions;
+}
+
+/// @func generate_target_clearance(_x, _y, _a, _b)
+/// @desc Distance from (_x, _y) to the nearest point in either list of [x, y].
+function generate_target_clearance(_x, _y, _a, _b) {
+	var nearest = 100000;
+	for (var j = 0; j < array_length(_a); j++) nearest = min(nearest, point_distance(_a[j][0], _a[j][1], _x, _y));
+	for (var j = 0; j < array_length(_b); j++) nearest = min(nearest, point_distance(_b[j][0], _b[j][1], _x, _y));
+	return nearest;
 }
 
 /// @func make_die_struct(_amount, _value, _action, _poss, _perm, _name, _desc, _rarity, [_price], [_effects], [_distribution])

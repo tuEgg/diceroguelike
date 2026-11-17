@@ -9,7 +9,7 @@ if (room == rmMap) {
 	} else {
 		if (room != rmWorkbench) {
 			nodes_cleared++;
-			oRunManager.can_visit_workbench = true;
+			// (the workbench is now earned by finishing a page: see oWorldManager Step, "At sea")
 		}
 			
 		// The second time we draft:

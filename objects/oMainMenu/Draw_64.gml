@@ -32,8 +32,8 @@ if (room == rmMainMenu && !global.all_input_disabled && !global.show_settings) {
 		draw_outline_text(warning_txt, c_black, c_white, 2, bg_x, bg_y - gui_h / 14, 1, 1.0, 0, bg_w * 0.75);
 		
 		// Draw buttons
-		var new_run_btn = draw_gui_button(bg_x - btn_w * 1.125, bg_y, btn_w, btn_h, proceed_new_scale, "Start new run", c_lime, ftBig, true, true);
-		var cancel_btn = draw_gui_button(bg_x + btn_w * 0.125, bg_y, btn_w, btn_h, cancel_new_scale, "Cancel", c_red, ftBig, true, true);
+		var new_run_btn = draw_gui_button(bg_x - btn_w * 1.125, bg_y, btn_w, btn_h, proceed_new_scale, "Start anew", global.ui_danger, ftBig, true, true);
+		var cancel_btn = draw_gui_button(bg_x + btn_w * 0.125, bg_y, btn_w, btn_h, cancel_new_scale, "Keep voyage", global.ui_neutral, ftBig, true, true);
 		proceed_new_scale = new_run_btn.scale;
 		cancel_new_scale = cancel_btn.scale;
 		
@@ -47,7 +47,7 @@ if (room == rmMainMenu && !global.all_input_disabled && !global.show_settings) {
 		}
 	} else {
 		for (var i = 0; i < array_length(menu); i++) {
-		var menu_item = draw_gui_button(menu_x - button_w/2, menu_y + (vertical_spacer * i) - button_h/2, button_w, button_h, menu[i].scale, menu[i].title, make_color_rgb(60, 78, 181), ftBig, menu[i].flag, "hover", UI_LAYER.BASE, soClick1, soClick4);
+		var menu_item = draw_gui_button(menu_x - button_w/2, menu_y + (vertical_spacer * i) - button_h/2, button_w, button_h, menu[i].scale, menu[i].title, global.ui_neutral, ftBig, menu[i].flag, true, UI_LAYER.BASE, soClick1, soClick4);
 		draw_set_color(c_white);
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);

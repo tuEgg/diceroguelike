@@ -177,7 +177,7 @@ ds_list_add(global.player_intel_data, {
 ds_list_add(global.player_intel_data, {
 	requirement: 10,
 	name: "Quill",
-	description: "Rewrite one intent a turn.",
+	description: "Reroll or halve one intent a turn.",
 	icon: "quill",
 });
 global.intel_blotted = {
@@ -220,6 +220,7 @@ dice_selection_list = ds_list_create();
 dice_selection_num_selected = 0;
 dice_selection_event = undefined;
 dice_selection_filter = "none";
+dice_selection_up_to = false; // true: Confirm works with any number up to dice_selection (the workbench)
 
 tools = ds_list_create();
 
@@ -263,7 +264,8 @@ global.master_tool_list = ds_list_create();
 ds_list_add(global.master_tool_list, tool_hammer);
 ds_list_add(global.master_tool_list, tool_scissors);
 
-can_visit_workbench = false; // allow the player to visit the workbench once between nodes
+can_visit_workbench = false; // "At sea": set when a page's island is done; the map offers the workbench once (F02)
+at_sea_scales = [1, 1];
 
 // Check if we are loading
 alarm[0] = 1;

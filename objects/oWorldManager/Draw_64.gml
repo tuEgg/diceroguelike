@@ -193,7 +193,7 @@ if (room == rmMap) {
 		var bg_w = gui_w;
 		var bg_h = gui_h;
 		var bg_x = 0;
-		var bg_y = 0;
+		var bg_y = ui_top_bar_h(); // the top bar stays in full colour
 		
 		draw_set_color(c_black);
 		draw_set_alpha(0.55 * (max(pages_alpha, resting_alpha)));
@@ -203,9 +203,11 @@ if (room == rmMap) {
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBigger);
+		if (world_state == WORLD_STATE.TURNING && resting_alpha > 0.05) draw_outline_text("The spread is done", c_black, c_white, 3, gui_w/2, gui_h * 0.25, 1, resting_alpha, 0);
 		draw_outline_text("What happened next?", c_black, c_white, 3, gui_w/2, gui_h * 0.25, 1, pages_alpha, 0);
 		draw_set_font(ftDefault);
 		draw_outline_text("Choose a page to draft", c_black, c_white, 2, bg_w/2, gui_h * 0.29, 1, pages_alpha, 0);
+		if (pages_alpha > 0.05) ui_divider(gui_w/2 - 200, gui_w/2 + 200, gui_h * 0.32, pages_alpha);
 	
 		if (world_state == WORLD_STATE.OPENING) {		
 			book_open_scale = lerp(book_open_scale, 1.0, 0.08);
@@ -223,70 +225,71 @@ if (room == rmMap) {
 			boat_data.x = lerp(boat_data.x, 300, 0.06);
 			boat_data.y = lerp(boat_data.y, display_get_gui_height()/2, 0.06);
 			
-			// Show the option to "recover in the quarters" or "use the workbench"
-			var heal_col = global.color_heal;
-			var workbench_col = global.color_attack;
-			
-			resting_alpha = lerp(resting_alpha, 1.0, 0.4);
-			
-			var spacing = 0.25;
-			var vertical_scale = 0.7;
-			
-			var button_x = gui_w - gui_w/4;
-			var button_y1 = bg_y + bg_h/2 - 100;
-			var button_y2 = bg_y + bg_h/2 + 100;
-			
-			draw_sprite_ext(sButtonSmall, 0, button_x, button_y1, heal_scale, heal_scale * vertical_scale, 0, heal_col, resting_alpha);
-			draw_sprite_ext(sButtonSmall, 0, button_x, button_y2, workbench_scale, workbench_scale * vertical_scale, 0, workbench_col, resting_alpha);
+			// a choice for the end of a spread: heal on the left page, a core on the right, or just continue.
+			// Each option says why when it can't be taken (full health, no free item slot).
+			// the choice waits until the page has finished turning
+			resting_alpha = lerp(resting_alpha, (current_page_turn < -0.9) ? 1.0 : 0.0, 0.25);
 
-			draw_set_font(ftBig);
-			draw_set_halign(fa_center);
-			draw_set_valign(fa_middle);
-			draw_outline_text("Recover below deck", c_black, c_white, 2, button_x, button_y1, 1, resting_alpha, 0, 300);
-			draw_outline_text("Gain a random core", c_black, c_white, 2, button_x, button_y2, 1, resting_alpha, 0, 300);
-			
-			var heal_sprite_w = sprite_get_width(sButtonSmall) * heal_scale;
-			var heal_sprite_h = sprite_get_height(sButtonSmall) * heal_scale;
-			var workbench_sprite_w = sprite_get_width(sButtonSmall) * workbench_scale * vertical_scale;
-			var workbench_sprite_h = sprite_get_height(sButtonSmall) * workbench_scale * vertical_scale;
-			
-			var hover_heal = mouse_hovering(button_x, button_y1, heal_sprite_w, heal_sprite_h, true, noone, soClick4, global.ui_layer == UI_LAYER.BASE);
-			var hover_core = mouse_hovering(button_x, button_y2, workbench_sprite_w, workbench_sprite_h, true, noone, soClick4, global.ui_layer == UI_LAYER.BASE);
-			
-			heal_scale = lerp(heal_scale, hover_heal ? heal_scale_target * 1.25 : heal_scale_target, 0.2);
-			workbench_scale = lerp(workbench_scale, hover_core ? workbench_scale_target * 1.25 : workbench_scale_target, 0.2);
-			
-			if (hover_heal) {
-				var rest_heal = rest_amount;
-				
-				var heal_ctx = {
-					rest_amount: rest_heal,					
-				}
-				
+			// how much resting heals(keepsakes like Salted Pork add to it), worked out once per spread end
+			if (rest_heal_preview == undefined) {
+				var heal_ctx = { rest_amount: rest_amount };
 				runmanager_trigger_keepsakes("on_rest", heal_ctx);
-				
-				rest_heal = heal_ctx.rest_amount;
-				
-				var heal_amount = ceil(global.player_max_hp * rest_heal); // rounds up, like the healing potion
-				
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Heal " + string(heal_amount) + "hp", "Heal " + string(round(rest_heal * 100)) + "% of your max health - rest up before embarking to the next node");
-				
-				if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
+				rest_heal_preview = { pct: heal_ctx.rest_amount, hp: ceil(global.player_max_hp * heal_ctx.rest_amount) }; // rounds up, like the healing potion
+			}
+			var heal_amount = rest_heal_preview.hp;
+			var can_heal = global.player_hp < global.player_max_hp;
+			var can_core = get_first_free_item_slot() != -1;
+			var input_ok = (global.ui_layer == UI_LAYER.BASE) && resting_alpha > 0.9;
+
+			// the buttons appear once the page has turned (they have no fade of their own)
+			if (resting_alpha > 0.3) {
+				var opt_w = 380, opt_h = 96;
+				var left_x = gui_w * 0.5 - opt_w / 2 - 30, right_x = gui_w * 0.5 + opt_w / 2 + 30, opt_y = gui_h * 0.46; // either side of the spine
+
+				// the choice sits on one logbook panel
+				ui_panel(left_x - opt_w / 2 - 40, opt_y - opt_h / 2 - 70, right_x + opt_w / 2 + 40, gui_h * 0.72 + 64 + 30, resting_alpha);
+
+				// small flavour lines above each option
+				draw_set_font(ftDefault);
+				draw_set_halign(fa_center);
+				draw_set_valign(fa_middle);
+				if (resting_alpha > 0.05) {
+					draw_outline_text("Recover below deck", c_black, c_ltgray, 2, left_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
+					draw_outline_text("Search the hold", c_black, c_ltgray, 2, right_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
+				}
+
+				var heal_btn = draw_gui_button(left_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[0], "Heal " + string(heal_amount) + " HP", global.ui_neutral, ftBig, can_heal && input_ok, true);
+				var core_btn = draw_gui_button(right_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[1], "Gain a random core", global.ui_neutral, ftBig, can_core && input_ok, true);
+				var cont_btn = draw_gui_button(gui_w / 2 - 130, gui_h * 0.72, 260, 64, rest_btn_scales[2], "Continue", global.ui_quiet, ftBig, input_ok, true);
+				rest_btn_scales[0] = heal_btn.scale;
+				rest_btn_scales[1] = core_btn.scale;
+				rest_btn_scales[2] = cont_btn.scale;
+
+				// tooltips, including why an option is greyed out
+				if (mouse_hovering(left_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, false)) {
+					if (can_heal) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Heal " + string(heal_amount) + " HP", string(round(rest_heal_preview.pct * 100)) + "% of your max health, before you choose your next pages.");
+					else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Already at full health", "There's nothing to heal. Take a core or continue.");
+				}
+				if (mouse_hovering(right_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, false)) {
+					if (can_core) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Gain a random core", "A core goes in your item bar. Drill it into a die at the workbench.");
+					else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "No free item slot", "Use or drop an item (right click it) to make room for a core.");
+				}
+				if (cont_btn.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Continue", "Take nothing and choose your next pages.");
+
+				if (heal_btn.click) {
 					global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
 					particle_emit(650, 25, "burst", c_lime);
+					rest_heal_preview = undefined;
 					start_drafting();
-				}
-			}
-			
-			if (hover_core) {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Gain a core", "Get a random core to upgrade a dice with at the workbench");
-				
-				if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
-					// Generate a random core
+				} else if (core_btn.click) {
 					var consumable_options = ds_list_create();
 					generate_item_rewards(consumable_options, global.master_item_list, 1, "core");
 					gain_item(consumable_options[| 0]);
 					ds_list_destroy(consumable_options);
+					rest_heal_preview = undefined;
+					start_drafting();
+				} else if (cont_btn.click) {
+					rest_heal_preview = undefined;
 					start_drafting();
 				}
 			}
@@ -438,27 +441,41 @@ if (room == rmMap) {
 
 			var hover_exit = mouse_hovering(display_get_gui_width() * 3/4, gui_h - 100, embark_scale * sprite_get_width(sButtonSmall) * 1.0, embark_scale * sprite_get_height(sButtonSmall) * 0.8, true, noone, soClick2, true);
 
-			if (hover_exit && exit_col == c_red) {
+			var embark_ready = (exit_col == c_red);
+			if (embark_ready) exit_col = global.ui_primary; // the go colour, once both pages are chosen
+			var embark_pulse = embark_ready ? (0.5 + 0.5 * sin(current_time / 220)) : 0;
+			if (hover_exit && embark_ready) {
 				if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
 					choices_locked = true;
 					save_game(1);
 				}
 				embark_scale = lerp(embark_scale, 1.2, 0.2);
 			} else {
-				embark_scale = lerp(embark_scale, 1.0, 0.2);
+				embark_scale = lerp(embark_scale, 1.0 + 0.08 * embark_pulse, 0.2);
 			}
 
+			var embark_x = display_get_gui_width() * 3/4, embark_y = gui_h - 100;
+			// a soft glow behind it while it waits to be pressed
+			if (embark_ready) {
+				var glow_w = sprite_get_width(sButtonSmall) * embark_scale * 0.5 + 14 + 8 * embark_pulse;
+				var glow_h = sprite_get_height(sButtonSmall) * embark_scale * 0.4 + 12 + 6 * embark_pulse;
+				draw_set_color(global.color_intel);
+				draw_set_alpha(pages_alpha * (0.25 + 0.3 * embark_pulse));
+				draw_roundrect_ext(embark_x - glow_w, embark_y - glow_h, embark_x + glow_w, embark_y + glow_h, 30, 30, false);
+				draw_set_alpha(1);
+			}
 			draw_set_font(ftBigger);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
-			draw_sprite_ext(sButtonSmall, 0, display_get_gui_width() * 3/4, gui_h - 100, embark_scale*1.0, embark_scale*0.8, 0, exit_col, pages_alpha);
-			draw_outline_text("Embark", c_black, c_white, 2, display_get_gui_width() * 3/4, gui_h - 100, 1, pages_alpha, 0);
+			draw_sprite_ext(sButtonSmall, 0, embark_x, embark_y, embark_scale*1.0, embark_scale*0.8, 0, exit_col, pages_alpha);
+			draw_outline_text("Embark", c_black, c_white, 2, embark_x, embark_y, embark_scale, pages_alpha, 0);
+			if (hover_exit && !embark_ready) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Embark", "Choose two pages first.");
 		} else {
 			ds_list_clear(pages_shown);
 		}
 	}
 	
-	// Draw the boat
+	// Draw the boat (clicking it to visit the workbench was tried and taken out: see KANBAN F02)
 	var boat_hover = mouse_hovering(boat_data.x, boat_data.y - sprite_get_height(sMapShip)/2, sprite_get_width(sMapShip), sprite_get_height(sMapShip), true);
 	if (boat_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your ship", "Where to captain?", undefined, 0, undefined);
 	
@@ -470,13 +487,13 @@ if (room == rmMap) {
 		
 		draw_set_color(c_black);
 		draw_set_alpha(0.7 * chapter_end_alpha);
-		draw_rectangle(0, 0, gui_w, gui_h, false);
+		draw_rectangle(0, ui_top_bar_h(), gui_w, gui_h, false); // the top bar stays in full colour
 		draw_set_alpha(1.0);
-		
+
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBigger);
-		var voyage_over = (chapter >= CHAPTER_COUNT);
+		var voyage_over= (chapter >= CHAPTER_COUNT);
 
 		draw_outline_text(voyage_over ? "Voyage complete" : "Chapter " + string(chapter) + " complete", c_black, c_white, 3, gui_w/2, gui_h * 0.34, 1, chapter_end_alpha, 0);
 		draw_set_font(ftBig);
@@ -494,7 +511,7 @@ if (room == rmMap) {
 			gui_h/12,
 			chapter_btn_scale,
 			voyage_over ? "Finish the voyage" : "Turn the page",
-			c_orange,
+			global.ui_primary,
 			ftBig,
 			chapter_end_alpha > 0.9,
 			true
@@ -512,30 +529,37 @@ if (room == rmMap) {
 		}
 	}
 
-	if (world_state == WORLD_STATE.EXPLORING) {
-		// Draw the button to visit the workbench
-		var workbench_btn = draw_gui_button(
-			gui_w - gui_w/8,
-			gui_h - gui_h/10,
-			gui_w/10,
-			gui_h/15,
-			workbench_scale,
-			"Visit the\nworkbench",
-			c_orange,
-			ftBig,
-			oRunManager.can_visit_workbench,
-			true
-		);
-		
-		if (workbench_btn.hover) {
-			workbench_scale = lerp(workbench_scale, 1.2, 0.2);
-		} else {
-			workbench_scale = lerp(workbench_scale, 1.0, 0.2);
-		}
-		
-		if (workbench_btn.click) {
-			room_goto(rmWorkbench);
+	// At sea (F02): between pages you may work on your dice once. Setting sail for the next stop counts as sailing on.
+	if (world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench) {
+		if (node_to_move_to != undefined) {
 			oRunManager.can_visit_workbench = false;
+		} else {
+			var sea_w = 640, sea_h = 230; // roomy: text keeps well inside the panel's inner rule
+			var sea_x1 = gui_w / 2 - sea_w / 2, sea_y1 = gui_h - sea_h - 90;
+			ui_panel(sea_x1, sea_y1, sea_x1 + sea_w, sea_y1 + sea_h);
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_set_font(ftBig);
+			draw_outline_text("At sea", c_black, c_white, 2, gui_w / 2, sea_y1 + 44, 1, 1, 0);
+			draw_set_font(ftDefault);
+			draw_outline_text("Between islands there's time to work on your dice.", c_black, c_ltgray, 2, gui_w / 2, sea_y1 + 86, 1, 1, 0);
+			var sea_open = draw_gui_button(gui_w / 2 - 262, sea_y1 + 128, 270, 64, oRunManager.at_sea_scales[0], "Open the workbench", global.ui_primary, ftBig, true, true);
+			var sea_sail = draw_gui_button(gui_w / 2 + 38, sea_y1 + 128, 220, 64, oRunManager.at_sea_scales[1], "Sail on", global.ui_quiet, ftBig, true, true);
+			oRunManager.at_sea_scales[0] = sea_open.scale;
+			oRunManager.at_sea_scales[1] = sea_sail.scale;
+			if (sea_open.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "The workbench", "Take dice from your bag (one per tool you own) and use each tool once.");
+			if (sea_sail.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Sail on", "Skip the workbench and sail to your next stop. Clicking the next stop does the same.");
+			if (sea_open.click) {
+				oRunManager.can_visit_workbench = false;
+				room_goto(rmWorkbench);
+			} else if (sea_sail.click) {
+				oRunManager.can_visit_workbench = false;
+				// and set sail for the next stop straight away (as if it had been clicked)
+				if (next_node != undefined && node_to_move_to == undefined) {
+					node_to_move_to = next_node;
+					node_to_move_to.y += 10;
+				}
+			}
 		}
 	}
 }

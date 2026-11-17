@@ -4,6 +4,11 @@ global.double_tap_timer = 0;
 global.show_settings = false;
 
 global.resolution_index = 0;
+global.custom_cursor = true; // Settings > Display > Custom cursor (cursor_draw)
+global.action_icons = false; // Settings > Display > Action icons on dice (draw_action_type_icon), for telling types apart without colour
+global.cursor_hidden = false;
+global.cursor_hover_time = 0;
+global.cursor_tilt = 0;
 global.combat_speed_index = 1; // Settings > Gameplay > Combat speed: Slow, Normal, Fast, Fastest (F13)
 
 global.resolution_options = [
@@ -75,6 +80,18 @@ categories = [
 		scale: 1,
         settings: [
             {
+                name: "Action icons on dice",
+                type: "toggle",
+                get_value: function() { return global.action_icons; },
+                set_value: function(_val) { global.action_icons = _val; },
+            },
+            {
+                name: "Custom cursor",
+                type: "toggle",
+                get_value: function() { return global.custom_cursor; },
+                set_value: function(_val) { global.custom_cursor = _val; },
+            },
+            {
                 name: "Fullscreen",
                 type: "toggle",
                 get_value: function() { return window_get_fullscreen(); },
@@ -115,7 +132,7 @@ categories = [
 ];
 
 // a web build has no resolution choice: it always fits the page (apply_browser_resolution)
-if (IS_BROWSER) array_delete(categories[1].settings, 1, 1);
+if (IS_BROWSER) array_delete(categories[1].settings, 3, 1); // Resolution (after Action icons, Custom cursor, Fullscreen)
 
 if (file_exists("settings.json")) {
 	load_settings();
@@ -140,4 +157,17 @@ global.color_unknown = c_dkgray;
 global.color_bg = make_color_rgb(20, 50, 80);
 global.color_error = make_color_rgb(140, 10, 10);
 
+// button colours, by role (red/blue/green/yellow stay for attack/block/heal/insight only)
+global.ui_primary = make_color_rgb(46, 150, 90);	// the main "go" action on a screen (Embark, Resume, Save, Back to the menu)
+global.ui_neutral = make_color_rgb(128, 96, 64);	// ordinary choices and leaving (Exit, Continue, Settings)
+global.ui_danger = make_color_rgb(150, 42, 42);		// can't be undone or costs you (abandon a run, Kill)
+global.ui_quiet = make_color_rgb(70, 66, 80);		// secondary, skippable (Skip tutorial)
+
 global.ui_scale = display_get_gui_width() / 1920;
+
+// smooth edges on everything drawn in code (pips, badges, icons, panels): the best multisample anti-aliasing the
+// graphics card offers (desktop; the web build has none to set), and rounder circles than the default 24 segments
+var _aa = 0;
+if (display_aa & 8) _aa = 8; else if (display_aa & 4) _aa = 4; else if (display_aa & 2) _aa = 2;
+if (_aa > 0 && !IS_BROWSER) display_reset(_aa, false); // vsync stays off, as in the Windows options
+draw_set_circle_precision(64);
