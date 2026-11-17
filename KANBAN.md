@@ -29,6 +29,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 15: cursor | B121 | `fix/cursor-on-top` | **Ready to test.** The cursor is drawn last of all: open the bag (or the discard pile, or pick dice) and the pointer stays bright on top of the darkening and the panel; same over tooltips, the pause menu and the voyage summary. On the main menu it still shows. |
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
