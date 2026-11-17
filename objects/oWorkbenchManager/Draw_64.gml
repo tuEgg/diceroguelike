@@ -183,6 +183,7 @@ switch (crafting_state) {
 	
 	case "hammered":
 		if (bang_timer == 15) {
+			sfx_play(soShieldMedium, AUDIO_GROUP.SFX, 0.1, 0.8); // placeholder until there's a hammer sound
 			var new_dice = clone_die(workbench_slot[0].dice, "");
 			
 			new_dice.dice_value += workbench_slot[1].dice.dice_value;
@@ -220,6 +221,7 @@ switch (crafting_state) {
 	break;
 	
 	case "drilled":
+		sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, 0.1, 0.8); // placeholder drill sound
 		var new_dice = clone_die(workbench_slot[0].dice, "");
 		new_dice.distribution = workbench_slot[1].core.distribution;
 		workbench_slot[2].dice = new_dice;
@@ -249,6 +251,7 @@ switch (crafting_state) {
 	break;
 	
 	case "cut":
+		sfx_play(choose(soSwordLight1, soSwordLight2, soSwordLight3), AUDIO_GROUP.SFX, 0.15, 0.8); // placeholder snip sound
 		var new_dice = clone_die(workbench_slot[0].dice, "");
 		new_dice.dice_value = workbench_slot[0].dice.dice_value - 2;
 

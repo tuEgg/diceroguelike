@@ -691,11 +691,11 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 				}
 			}
 			
-			draw_sprite_ext(sprite, index, icon_x, yy, enemy.intent.scale * bonus_scale,  enemy.intent.scale * bonus_scale, 0, col, enemy.intent.alpha - enemy.info_alpha);
+			draw_sprite_ext(sprite, index, icon_x, yy, enemy.intent.scale * bonus_scale,  enemy.intent.scale * bonus_scale, 0, col, enemy.intent.alpha);
 			
 		}
 		
-		draw_outline_text(text, c_black, c_white, 2, text_x, yy, enemy.intent.scale, enemy.intent.alpha - enemy.info_alpha);
+		draw_outline_text(text, c_black, c_white, 2, text_x, yy, enemy.intent.scale, enemy.intent.alpha);
 
 		// Quill: click an intent, then choose Reroll (the enemy picks a different move) or Halve (its numbers this turn)
 		var _intent_hover = mouse_hovering(xx, yy, text_w + 20, 50, true);
@@ -753,7 +753,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			draw_outline_text("Halved", c_black, global.color_intel, 2, xx, yy + 26, 1, enemy.intent.alpha, 0);
 			draw_set_font(ftBigger);
 		}
-		draw_outline_text(move_name, c_black, c_white, 2, xx, yy - 50, enemy.intent.scale, enemy.info_alpha * enemy.intent.alpha);
+		// (the move's name used to appear above the intent on hover; it is the tooltip's title now)
 	
 		if (hover_enemy && !show_rewards) {
 			if (enemy.intent.move.action_type == "DEBUFF" || enemy.intent.move.action_type == "BUFF") && (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
@@ -850,7 +850,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	// targeting: your attacks go to the marked enemy; any other one can be clicked to make it the target
 	if (_living_enemies > 1 && !enemy.dead && !show_rewards) {
 		var _mark_y = e_bar_y + e_bar_h + 22;
-		if (e == enemy_target_index) {
+		if (e == enemy_target_index && enemy.info_alpha < 0.3) {
 			var _tpulse = 0.5 + 0.5 * sin(current_time / 250);
 			draw_set_font(ftDefault);
 			draw_outline_text("Target", c_black, c_red, 2, enemy.pos_x, _mark_y, 1, enemy.alpha, 0);
@@ -861,9 +861,10 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			draw_triangle(enemy.pos_x - _ax, _mark_y - 9, enemy.pos_x - _ax, _mark_y + 9, enemy.pos_x - _ax + 12, _mark_y, false);
 			draw_triangle(enemy.pos_x + _ax, _mark_y - 9, enemy.pos_x + _ax, _mark_y + 9, enemy.pos_x + _ax - 12, _mark_y, false);
 			draw_set_alpha(1);
-		} else if (hover_enemy && state == CombatState.PLAYER_INPUT) {
+		} else if (e != enemy_target_index && hover_enemy && state == CombatState.PLAYER_INPUT) {
+			// under the name, which shows while hovered
 			draw_set_font(ftDefault);
-			draw_outline_text(target_locked ? "Target locked" : "Click to target", c_black, c_white, 2, enemy.pos_x, _mark_y, 1, enemy.alpha, 0);
+			draw_outline_text(target_locked ? "Target locked" : "Click to target", c_black, c_ltgray, 2, enemy.pos_x, _mark_y + 26, 1, enemy.alpha, 0);
 		}
 	}
 	
@@ -872,7 +873,8 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
 	draw_set_font(ftDefault);
-	draw_outline_text(string(enemy_data.name), c_black, c_white, 2, enemy.pos_x, enemy.pos_y + 50 + (enemy.scale * 100), 1, enemy.info_alpha * enemy.alpha);
+	// the name shows under the health bar while hovered, in the spot the "Target" marker uses (it replaces it)
+	draw_outline_text(string(enemy_data.name), c_black, c_white, 2, enemy.pos_x, e_bar_y + e_bar_h + 22, 1, enemy.info_alpha * enemy.alpha);
 		
 	// Draw enemy block
 	if (enemy.block_amount > 0) {
@@ -917,7 +919,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		if (_debuff.amount != 0) draw_outline_text(string(_debuff.amount), c_black, c_red, 2, e_bar_x + d_x, d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
 	
 		if (mouse_hovering(e_bar_x + d_x, d_y, sprite_get_width(sDebuffIcon), sprite_get_height(sDebuffIcon), false)) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _debuff.template.name, _debuff.template.desc + "[subtext]Turns remaining: [def]" + string(_debuff.remaining) + "   [subtext]Amount: [def]" + string(_debuff.amount), undefined, 0, undefined);
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _debuff.template.name, buff_tooltip_text(_debuff), undefined, 0, undefined);
 		}
 	
 		d_x += sprite_get_width(sDebuffIcon) + d_padding;
@@ -974,7 +976,7 @@ for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
 	if (_debuff.amount != 0) draw_outline_text(string(_debuff.amount), c_black, c_red, 2, p_bar_x + d_x, d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
 
 	if (mouse_hovering(p_bar_x + d_x, d_y, sprite_get_width(sDebuffIcon), sprite_get_height(sDebuffIcon), false)) {
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _debuff.template.name, _debuff.template.desc, undefined, 0, undefined);
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _debuff.template.name, buff_tooltip_text(_debuff), undefined, 0, undefined);
 	}
 	
 	d_x += sprite_get_width(sDebuffIcon) + d_padding;

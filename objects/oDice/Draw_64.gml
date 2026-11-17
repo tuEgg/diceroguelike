@@ -21,7 +21,8 @@ draw_set_valign(fa_top);
 if (struct.rarity != "starter") {
 	// in a workbench slot the name sits a little higher, clear of the slot's edge
 	var _name_y = y + sprite_height/2 + 3 - ((room == rmWorkbench && in_slot) ? 12 : 0);
-	draw_outline_text(struct.name, c_black, c_white, 2, x, _name_y, scale, image_alpha, 0);
+	// hidden while hovered: the tooltip's title has the name
+	if (!mouse_hovering(x, y, sprite_width, sprite_height, true)) draw_outline_text(struct.name, c_black, c_white, 2, x, _name_y, scale, image_alpha, 0);
 }
 
 // --- Draw effect keyword icons ---

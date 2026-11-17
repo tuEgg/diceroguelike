@@ -360,7 +360,8 @@ for (var i = 0; i < array_length(items); i++) {
 						if (combat_item_drop(items[i])) items[i] = undefined;
 					}
 			
-					if (items[i].dragging && mouse_check_button_pressed(mb_left)) {
+					// (the potion may have just been used on a slot above, leaving the item slot empty)
+					if (items[i] != undefined && items[i].dragging && mouse_check_button_pressed(mb_left)) {
 						if (items[i].effects.trigger == "on_clicked" && items[i].effects.flags() ) {
 							var ctx = {
 								use_potion: true,

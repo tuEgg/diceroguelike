@@ -437,27 +437,34 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
 function draw_all_tooltips() {
 
     if (global.tooltip_active) {
-		
-		//--------------------------
-        // Calculate tooltip height including keywords
-        //--------------------------
-		global.total_tooltip_height = 0;
+		// the main tooltip, with its keywords stacked tight underneath (each measured exactly, so no gaps), the whole
+		// stack kept on screen
+		var tt = global.tooltip_main;
+		var _gap = 4;
+		var _main = draw_tooltip_box(0, 0, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, true);
+		var _total_h = _main.h;
+		var _max_w = _main.w;
+		var _kw_sizes = [];
+		for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
+			var kw = global.tooltip_keywords[i];
+			var _s = draw_tooltip_box(0, 0, kw.name, kw.desc, kw.icon, kw.index, undefined, true, true);
+			array_push(_kw_sizes, _s);
+			_total_h += _gap + _s.h;
+			_max_w = max(_max_w, _s.w);
+		}
 
-        //--------------------------
-        // Draw keyword tooltips under it
-        //--------------------------
-        for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
-			var num_kw = i;
-            var kw = global.tooltip_keywords[i];
-            draw_single_tooltip(kw.x + 5, kw.y + 10, kw.name, kw.desc, kw.icon, kw.index, undefined, true, num_kw);
-        }
+		var xx = tt.x, yy = tt.y;
+		if (xx + _max_w > display_get_gui_width() - 10) xx = display_get_gui_width() - _max_w - 10;
+		if (yy + _total_h > display_get_gui_height() - 10) yy = display_get_gui_height() - _total_h - 10;
+		xx = max(10, xx); yy = max(10, yy);
 
-        //--------------------------
-        // Draw main tooltip
-        //--------------------------
-        var tt = global.tooltip_main;
-		var num_keywords = array_length(global.tooltip_keywords);
-        draw_single_tooltip(tt.x, tt.y, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, num_keywords);
+		draw_tooltip_box(xx, yy, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, false);
+		var _ky = yy + _main.h + _gap;
+		for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
+			var kw = global.tooltip_keywords[i];
+			draw_tooltip_box(xx + 12, _ky, kw.name, kw.desc, kw.icon, kw.index, undefined, true, false);
+			_ky += _kw_sizes[i].h + _gap;
+		}
     }
 
     // Reset for next frame
@@ -466,117 +473,92 @@ function draw_all_tooltips() {
     global.tooltip_keywords = [];
 }
 
+/// @func draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice)
+/// @desc One tooltip box on its own, kept on screen (the debug menu uses it).
 function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefined, _is_keyword = false, _num_keywords = 0) {
-    var padding = 15;
+	var _s = draw_tooltip_box(0, 0, _name, _desc, _icon, _index, _dice, _is_keyword, true);
+	var xx = min(_x, display_get_gui_width() - _s.w - 10);
+	var yy = min(_y, display_get_gui_height() - _s.h - 10);
+	draw_tooltip_box(xx, yy, _name, _desc, _icon, _index, _dice, _is_keyword, false);
+}
+
+/// @func draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, _measure_only)
+/// @desc Draws one tooltip box at its top-left, or only measures it. Returns { w, h }. _compact is the smaller box used
+///       for keywords under a main tooltip (tighter padding, narrower text).
+function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, _measure_only) {
+    var padding = _compact ? 9 : 15;
+    var max_desc_w = _compact ? 260 : 300;
     var xx = _x;
     var yy = _y;
 
-    if (_y == mouse_y) {
-        xx = _x + 15;
-        yy = _y + 30;
-    }
-
-    // --- 1. MEASURE NAME ---
-    draw_set_font(ftDefault);
+    // name
+    draw_set_font(_compact ? ftDescriptions : ftDefault);
     var name_w = string_width(_name);
     var name_h = string_height(_name);
 
-    // --- 2. THE "LONGEST LINE" APPROACH ---
+    // the longest line the description wraps to
     draw_set_font(ftDescriptions);
-    var max_desc_w = 300;
-    
     var words = string_split(_desc, " ");
     var longest_line_px = 0;
     var current_line_str = "";
-
     for (var i = 0; i < array_length(words); i++) {
-        var word = words[i];
-        // Create a temporary string to see if the next word fits
-        var test_string = (current_line_str == "") ? word : (current_line_str + " " + word);
-        
+        var test_string = (current_line_str == "") ? words[i] : (current_line_str + " " + words[i]);
         if (string_width(test_string) <= max_desc_w) {
-            // It fits, so this is our new current line
             current_line_str = test_string;
         } else {
-            // It doesn't fit! The current_line_str (before the new word) is a finished line.
             longest_line_px = max(longest_line_px, string_width(current_line_str));
-            // Start the next line with the word that didn't fit
-            current_line_str = word;
+            current_line_str = words[i];
         }
     }
-    // Check the very last line after the loop finishes
     longest_line_px = max(longest_line_px, string_width(current_line_str));
-
-    // Use the pixel-perfect width we just found
-    var actual_desc_w = longest_line_px;
-
-    // Use standard GML height measurement (matches your line-break logic)
     var line_sep = font_get_size(ftDescriptions) * 1.5;
-    var desc_h = string_height_ext(_desc, line_sep, max_desc_w);
+    var desc_h = (_desc == "") ? 0 : string_height_ext(_desc, line_sep, max_desc_w);
 
-    // --- 3. DYNAMIC BOX SIZING ---
-    var icon_space = (_icon != undefined || (_dice != undefined && _dice.distribution != "")) ? 50 : 0;
-    var dist_h = (_dice != undefined && variable_struct_exists(_dice, "distribution") && _dice.distribution != "") ? 25 : 0;
+    var has_core = (_dice != undefined && variable_struct_exists(_dice, "distribution") && _dice.distribution != "");
+    var icon_space = (_icon != undefined || has_core) ? (_compact ? 36 : 50) : 0;
+    var _width  = padding * 2 + max(name_w, longest_line_px) + icon_space;
+    var _height = padding * (_compact ? 1.4 : 1.6) + name_h + desc_h + (_compact ? 4 : 10);
 
-    var _width  = padding * 2 + max(name_w, actual_desc_w) + icon_space;
-    var _height = padding * 1.6 + name_h + desc_h + 10;
-	
-	global.total_tooltip_height += _height;
+	if (_measure_only) return { w: _width, h: _height };
 
-    // Screen Clamping
-    if (xx + _width > display_get_gui_width() - 10) xx = display_get_gui_width() - _width - 10;
-    if (yy + global.total_tooltip_height > display_get_gui_height() - 10) yy = display_get_gui_height() - (10*_num_keywords) - global.total_tooltip_height;
-
-    // --- 4. DRAW BACKGROUND ---
-    draw_set_alpha(0.8);
+    // background
+    draw_set_alpha(0.85);
     draw_set_color(c_black);
     draw_roundrect(xx - 2, yy - 2, xx + _width + 2, yy + _height + 2, false);
-	
-	var bg_col = _is_keyword ? make_color_rgb(20, 40, 70) : global.color_bg;
-	if (oRunManager.error_timer == 0) {
-		draw_set_color(bg_col);
-	} else {
-		draw_set_color(global.color_error);
-	}
+	var bg_col = _compact ? make_color_rgb(20, 40, 70) : global.color_bg;
+	draw_set_color((oRunManager.error_timer == 0) ? bg_col : global.color_error);
     draw_roundrect(xx, yy, xx + _width, yy + _height, false);
     draw_set_alpha(1);
 
     var content_x = xx + padding;
 
-    // --- 5. DRAW ICON / CORE / DISTRIBUTION ---
+    // icon, or the die's core and its distribution
     var icon_sprite = undefined;
     var icon_idx = 0;
-    var icon_scale = 1;
-
+    var icon_scale = _compact ? 0.75 : 1;
     if (_icon != undefined) {
         icon_sprite = _icon;
         icon_idx = _index;
-    } else if (_dice != undefined && variable_struct_exists(_dice, "distribution") && _dice.distribution != "") {
+    } else if (has_core) {
         icon_sprite = sCores;
         icon_idx = get_core_index(_dice);
         icon_scale = 0.75;
     }
-
     if (icon_sprite != undefined) {
-        draw_sprite_ext(icon_sprite, icon_idx, content_x + 16, yy + (_height/2), icon_scale, icon_scale, 0, c_white, 1);
-        if (_dice != undefined && variable_struct_exists(_dice, "distribution")) {
-             draw_dice_distribution(_dice, content_x + 35, yy);
-        }
+        draw_sprite_ext(icon_sprite, icon_idx, content_x + (_compact ? 10 : 16), yy + (_height / 2), icon_scale, icon_scale, 0, c_white, 1);
+        if (has_core) draw_dice_distribution(_dice, content_x + 35, yy);
         content_x += icon_space;
     }
 
-    // --- 6. DRAW NAME ---
-    draw_set_font(ftDefault);
-    draw_set_color(c_white);
+    // name (one line; the box is already wide enough), then the description
+    draw_set_font(_compact ? ftDescriptions : ftDefault);
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
-	// the title is drawn on one line, the box is already sized to its full width
-	draw_outline_text(_name, c_black, c_white, 2, content_x, yy + padding, 1, 1, 0);
+	draw_outline_text(_name, c_black, _compact ? global.color_intel : c_white, 2, content_x, yy + padding, 1, 1, 0);
+    draw_set_font(ftDescriptions);
+    if (_desc != "") draw_outline_text(colorcode_text(_desc), c_black, c_white, 1, content_x, yy + padding + name_h + 2, 1, 1, 0, max_desc_w);
 
-    // --- 7. DRAW DESCRIPTION ---
-    var colored_desc = colorcode_text(_desc);
-    draw_set_font(ftDescriptions); 
-    draw_outline_text(colored_desc, c_black, c_white, 1, content_x, yy + padding + name_h + 2, 1, 1, 0, max_desc_w);
+	return { w: _width, h: _height };
 }
 
 /// @func string_has_keyword(str, keyword)
