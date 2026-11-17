@@ -962,39 +962,58 @@ function generate_dice_bag() {
 }
 
 /// generate_valid_targets(num_dice, min_dist)
-/// returns array of [x, y] positions spaced at least min_dist apart
+/// returns array of [x, y] positions in the hand area, spaced at least min_dist from each other and from the dice
+/// already in hand (their targets), so dealt dice never overlap. If the area is too full for a random spot, it takes
+/// the point of a fine grid that is furthest from everything.
 function generate_valid_targets(_num, _min_dist) {
     var positions = [];
-    var tries, xx, yy, valid;
+
+	// the dice already dealt (on their way or resting) count as taken
+	var taken = [];
+	with (oDice) {
+		if (variable_instance_exists(id, "target_x") && !is_undefined(target_x)) array_push(taken, [target_x, target_y]);
+		else array_push(taken, [x, y]);
+	}
+
+	var x1 = global.dice_safe_area_x1, x2 = global.dice_safe_area_x2;
+	var y1 = global.dice_safe_area_y1, y2 = global.dice_safe_area_y2;
 
     repeat (_num) {
-        tries = 0;
-        repeat (200) { // limit retries per dice target
-            xx = random_range(global.dice_safe_area_x1, global.dice_safe_area_x2);
-            yy = random_range(global.dice_safe_area_y1, global.dice_safe_area_y2);
-
-            valid = true;
-            for (var j = 0; j < array_length(positions); j++) {
-                if (point_distance(positions[j][0], positions[j][1], xx, yy) < _min_dist) {
-                    valid = false;
-                    break;
-                }
-            }
-
-            if (valid) break;
-            tries++;
+		var best_x = random_range(x1, x2), best_y = random_range(y1, y2);
+		var found = false;
+        repeat (200) {
+            var xx = random_range(x1, x2);
+            var yy = random_range(y1, y2);
+			if (generate_target_clearance(xx, yy, positions, taken) >= _min_dist) {
+				best_x = xx; best_y = yy; found = true;
+				break;
+			}
         }
 
-        // fallback if no good spot found after 200 tries
-        if (!valid) {
-            xx = random_range(global.dice_safe_area_x1, global.dice_safe_area_x2);
-            yy = random_range(global.dice_safe_area_y1, global.dice_safe_area_y2);
+        // too full for a random spot: the grid point with the most room
+        if (!found) {
+			var best_room = -1;
+			for (var gx = x1; gx <= x2; gx += 20) {
+				for (var gy = y1; gy <= y2; gy += 20) {
+					var room_here = generate_target_clearance(gx, gy, positions, taken);
+					if (room_here > best_room) { best_room = room_here; best_x = gx; best_y = gy; }
+				}
+			}
         }
 
-        array_push(positions, [xx, yy]);
+        array_push(positions, [best_x, best_y]);
     }
 
     return positions;
+}
+
+/// @func generate_target_clearance(_x, _y, _a, _b)
+/// @desc Distance from (_x, _y) to the nearest point in either list of [x, y].
+function generate_target_clearance(_x, _y, _a, _b) {
+	var nearest = 100000;
+	for (var j = 0; j < array_length(_a); j++) nearest = min(nearest, point_distance(_a[j][0], _a[j][1], _x, _y));
+	for (var j = 0; j < array_length(_b); j++) nearest = min(nearest, point_distance(_b[j][0], _b[j][1], _x, _y));
+	return nearest;
 }
 
 /// @func make_die_struct(_amount, _value, _action, _poss, _perm, _name, _desc, _rarity, [_price], [_effects], [_distribution])

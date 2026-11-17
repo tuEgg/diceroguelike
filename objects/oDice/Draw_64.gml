@@ -34,9 +34,9 @@ if (debug_mode) {
 }
 
 if mouse_hovering(x, y, sprite_width, sprite_height, true) {
-	queue_tooltip(x - sprite_width/2, y + sprite_height/2, string(struct.name), die_description(struct), undefined, 0, struct);
-	
 	var dice_output = get_dice_output(struct, -1, -1, true, "player"); // read only: hovering must never trigger keepsakes
+	// the range sits in the tooltip's title ("Inkwell Die (1-4)"), not on the die where it could cover a keyword icon
+	queue_tooltip(x - sprite_width/2, y + sprite_height/2, string(struct.name) + " (" + string(dice_output.min_roll) + "-" + string(dice_output.max_roll) + ")", die_description(struct), undefined, 0, struct);
 	
 	var off_x = 0;
 	var off_y = 0;
@@ -58,13 +58,7 @@ if mouse_hovering(x, y, sprite_width, sprite_height, true) {
 		break;
 	}
 			
-	var _min_roll = dice_output.min_roll;			
-	var _max_roll = dice_output.max_roll;
-	
-	draw_set_font(ftSmall);
-	draw_set_halign(fa_center);
-	draw_set_valign(fa_middle);
-	draw_outline_text(string(_min_roll) + "-" + string(_max_roll), c_black, c_white, 2, x + off_x, y + off_y, scale, scale, 0, -1);
+
 	
 	//if (debug_mode) && (keyboard_check(vk_alt)) {
 	//	var xx = 0;
