@@ -62,8 +62,10 @@ for (var i = 0; i < wb_list_size; i++) {
 		if (hovering_core) {
 			core_scale = lerp(core_scale, 1.2, 0.2);
 			
-			// Pick core back up
-			if (mouse_check_button(mb_left)) || (workbench_slot[i].dice != undefined) {
+			// Pick core back up: a fresh click while the bench is idle. (Holding the button was enough before, and the
+			// Drill is used over this very slot: once it vanished mid-press the core was picked up and the drill
+			// then crafted with no core, B122.)
+			if ((mouse_check_button_pressed(mb_left) && crafting_state == "waiting") || (workbench_slot[i].dice != undefined)) {
 				oRunManager.items[core_prev_item_slot] = workbench_slot[i].core;
 				workbench_slot[i].core = undefined;
 			}			
@@ -182,6 +184,7 @@ switch (crafting_state) {
 	break;
 	
 	case "hammered":
+		if (bang_timer == 15 && (workbench_slot[0].dice == undefined || workbench_slot[1].dice == undefined)) { crafting_state = "waiting"; break; }
 		if (bang_timer == 15) {
 			sfx_play(soShieldMedium, AUDIO_GROUP.SFX, 0.1, 0.8); // placeholder until there's a hammer sound
 			var new_dice = clone_die(workbench_slot[0].dice, "");
@@ -220,6 +223,8 @@ switch (crafting_state) {
 	break;
 	
 	case "drilled":
+		// the ingredients must still be on the bench (otherwise give up the craft rather than crash)
+		if (workbench_slot[0].dice == undefined || workbench_slot[1].core == undefined) { crafting_state = "waiting"; break; }
 		sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, 0.1, 0.8); // placeholder drill sound
 		var new_dice = clone_die(workbench_slot[0].dice, "");
 		new_dice.distribution = workbench_slot[1].core.distribution;
@@ -249,6 +254,7 @@ switch (crafting_state) {
 	break;
 	
 	case "cut":
+		if (workbench_slot[0].dice == undefined) { crafting_state = "waiting"; break; }
 		sfx_play(choose(soSwordLight1, soSwordLight2, soSwordLight3), AUDIO_GROUP.SFX, 0.15, 0.8); // placeholder snip sound
 		var new_dice = clone_die(workbench_slot[0].dice, "");
 		new_dice.dice_value = workbench_slot[0].dice.dice_value - 2;

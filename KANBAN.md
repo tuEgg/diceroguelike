@@ -29,6 +29,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 16: drill crash | B122 | `fix/drill-crash` | **Ready to test.** Drilling a core crashed (web black screen): the Drill is used over the core's slot, and once it vanished mid-press the held button picked the core back up, so the drill had nothing to drill. A core now only comes back with a fresh click while the bench is idle, and every craft checks its ingredients first. Test: drill several cores into different dice (hold the button over the core until it bites, keep holding after); the core is used, never returned. Clicking a placed core (before drilling) still takes it back. Hammer and Cutters still work. |
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
