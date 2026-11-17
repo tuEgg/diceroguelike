@@ -1233,8 +1233,8 @@ function lose_run() {
 
 /// @func draw_insight_icon(_icon, _x, _y, _scale, _alpha)
 /// @desc Placeholder icons for the insight states, drawn with shapes until real art is made (F51), about 30 pixels tall
-///       at scale 1, centred on _x, _y: "blotted" an ink spill, "faded" an outlined drop, "legible" a filled drop,
-///       "quill" a quill.
+///       at scale 1, centred on _x, _y: "blotted" an ink spill, "faded" a dry brush tip, "legible" a brush dipped in
+///       yellow ink, "quill" a feather quill.
 function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
 	var _old_alpha = draw_get_alpha();
 	var _ink = global.color_intel;
@@ -1255,52 +1255,98 @@ function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
 
 		case "faded":
 		case "legible":
-			// a drop: round at the bottom, pointed at the top. Faded is an outline, Legible is filled
-			var _cx = _x, _cy = _y + 4 * _scale, _r = 10 * _scale;
-			var _tip_x = _x, _tip_y = _y - 15 * _scale;
-			var _pts = [[_tip_x, _tip_y]];
-			for (var _ang = 30; _ang >= -210; _ang -= 15) {
-				array_push(_pts, [_cx + lengthdir_x(_r, _ang), _cy + lengthdir_y(_r, _ang)]);
+			// a brush tip, pointing down: a stub of handle, a metal band, then bristles that swell and taper to a point.
+			// Faded: pale, dry bristles with only a touch of ink at the tip. Legible: bristles dipped in yellow ink.
+			var _s = _scale;
+			// bristle outline: left side down to the tip, back up the right side
+			var _br = [];
+			for (var i = 0; i <= 8; i++) {
+				var _t = i / 8;
+				var _half = (6 + 3 * sin(_t * pi * 0.9)) * (1 - _t * _t * 0.92);
+				array_push(_br, [_x - _half * _s, _y + (-3 + _t * 19) * _s]);
 			}
-			if (_icon == "legible") {
-				// black edge, then the yellow fill
-				for (var _pass = 0; _pass < 2; _pass++) {
-					var _grow = (_pass == 0) ? 1.18 : 1;
-					draw_set_color((_pass == 0) ? c_black : _ink);
-					draw_primitive_begin(pr_trianglefan);
-					draw_vertex(_cx, _cy);
-					for (var i = 0; i < array_length(_pts); i++) draw_vertex(_cx + (_pts[i][0] - _cx) * _grow, _cy + (_pts[i][1] - _cy) * _grow);
-					draw_vertex(_cx + (_pts[0][0] - _cx) * _grow, _cy + (_pts[0][1] - _cy) * _grow);
-					draw_primitive_end();
-				}
-			} else {
-				// black, then yellow, so the outline reads on any background
-				for (var _pass = 0; _pass < 2; _pass++) {
-					draw_set_color((_pass == 0) ? c_black : _ink);
-					var _lw = ((_pass == 0) ? 5 : 2.5) * _scale;
-					for (var i = 0; i < array_length(_pts); i++) {
-						var _p1 = _pts[i], _p2 = _pts[(i + 1) mod array_length(_pts)];
-						draw_line_width(_p1[0], _p1[1], _p2[0], _p2[1], _lw);
-					}
-				}
+			for (var i = 8; i >= 0; i--) {
+				var _t = i / 8;
+				var _half = (6 + 3 * sin(_t * pi * 0.9)) * (1 - _t * _t * 0.92);
+				array_push(_br, [_x + _half * _s, _y + (-3 + _t * 19) * _s]);
 			}
+			var _fill = (_icon == "legible") ? _ink : make_color_rgb(236, 224, 190);
+			// black edge first (the shape a little bigger), then the fill
+			for (var _pass = 0; _pass < 2; _pass++) {
+				var _grow = (_pass == 0) ? 1.6 * _s : 0;
+				draw_set_color((_pass == 0) ? c_black : _fill);
+				draw_primitive_begin(pr_trianglefan);
+				draw_vertex(_x, _y + 5 * _s);
+				for (var i = 0; i < array_length(_br); i++) {
+					var _dx = _br[i][0] - _x;
+					draw_vertex(_br[i][0] + sign(_dx) * _grow, _br[i][1] + ((i == 8 || i == 9) ? _grow : 0));
+				}
+				draw_vertex(_br[0][0] - _grow, _br[0][1]);
+				draw_primitive_end();
+			}
+			// a few bristle strokes, and on Faded a little ink at the very tip
+			draw_set_color((_icon == "legible") ? make_color_rgb(150, 140, 0) : make_color_rgb(150, 140, 110));
+			draw_line_width(_x - 2.5 * _s, _y - 1 * _s, _x - 1 * _s, _y + 10 * _s, 1 * _s);
+			draw_line_width(_x + 2.5 * _s, _y - 1 * _s, _x + 1 * _s, _y + 10 * _s, 1 * _s);
+			if (_icon == "faded") {
+				draw_set_color(_ink);
+				draw_triangle(_x - 2.2 * _s, _y + 11 * _s, _x + 2.2 * _s, _y + 11 * _s, _x, _y + 16 * _s, false);
+			}
+			// the metal band and the handle stub
+			draw_set_color(c_black);
+			draw_rectangle(_x - 7.5 * _s, _y - 9 * _s, _x + 7.5 * _s, _y - 2 * _s, false);
+			draw_set_color(make_color_rgb(170, 170, 180));
+			draw_rectangle(_x - 6 * _s, _y - 7.5 * _s, _x + 6 * _s, _y - 3.5 * _s, false);
+			draw_set_color(c_black);
+			draw_rectangle(_x - 4.5 * _s, _y - 17 * _s, _x + 4.5 * _s, _y - 9 * _s, false);
+			draw_set_color(make_color_rgb(120, 78, 44));
+			draw_rectangle(_x - 3 * _s, _y - 15.5 * _s, _x + 3 * _s, _y - 9 * _s, false);
 		break;
 
 		case "quill":
-			// a feather leaning right, nib at the bottom left
-			var _tip_x = _x - 11 * _scale, _tip_y = _y + 14 * _scale;
-			var _end_x = _x + 12 * _scale, _end_y = _y - 15 * _scale;
-			var _mid_x = _x - 3 * _scale, _mid_y = _y + 4 * _scale;
-			for (var _pass = 0; _pass < 2; _pass++) {
-				var _o = (_pass == 0) ? 2 * _scale : 0;
-				draw_set_color((_pass == 0) ? c_black : _ink);
-				draw_triangle(_mid_x - _o, _mid_y + _o, _end_x + _o, _end_y - _o, _x + 9 * _scale + _o, _y + 5 * _scale + _o, false);
-				draw_triangle(_mid_x - _o, _mid_y + _o, _end_x + _o, _end_y - _o, _x - 6 * _scale - _o, _y - 9 * _scale - _o, false);
+			// a feather quill leaning right: a curved vane either side of the shaft, a bare end near the nib, a dark nib
+			var _s = _scale;
+			var _nx = _x - 12 * _s, _ny = _y + 15 * _s;	// nib point
+			var _ex = _x + 12 * _s, _ey = _y - 16 * _s;	// top of the feather
+			var _len = point_distance(_nx, _ny, _ex, _ey);
+			var _dir = point_direction(_nx, _ny, _ex, _ey);
+			// points along the shaft with the vane's width on each side (wider on the left, curled a little)
+			var _left = [], _right = [];
+			for (var i = 0; i <= 10; i++) {
+				var _t = 0.28 + 0.72 * (i / 10);
+				var _w = sin((i / 10) * pi) * 7.5 * _s + 0.5 * _s;
+				var _px = _nx + lengthdir_x(_len * _t, _dir), _py = _ny + lengthdir_y(_len * _t, _dir);
+				array_push(_left, [_px + lengthdir_x(_w * 1.15, _dir + 90 + 12), _py + lengthdir_y(_w * 1.15, _dir + 90 + 12)]);
+				array_push(_right, [_px + lengthdir_x(_w * 0.8, _dir - 90 + 12), _py + lengthdir_y(_w * 0.8, _dir - 90 + 12)]);
 			}
-			// the shaft and nib
+			var _sx0 = _nx + lengthdir_x(_len * 0.28, _dir), _sy0 = _ny + lengthdir_y(_len * 0.28, _dir);
+			for (var _pass = 0; _pass < 2; _pass++) {
+				var _grow = (_pass == 0) ? 1.25 : 1;
+				draw_set_color((_pass == 0) ? c_black : make_color_rgb(244, 238, 214));
+				var _sides = [_left, _right];
+				for (var _side = 0; _side < 2; _side++) {
+					var _pts = _sides[_side];
+					draw_primitive_begin(pr_trianglefan);
+					var _cx = (_sx0 + _ex) / 2, _cy = (_sy0 + _ey) / 2;
+					draw_vertex(_cx, _cy);
+					draw_vertex(_cx + (_sx0 - _cx) * _grow, _cy + (_sy0 - _cy) * _grow);
+					for (var i = 0; i < array_length(_pts); i++) draw_vertex(_cx + (_pts[i][0] - _cx) * _grow, _cy + (_pts[i][1] - _cy) * _grow);
+					draw_vertex(_cx + (_ex - _cx) * _grow, _cy + (_ey - _cy) * _grow);
+					draw_primitive_end();
+				}
+			}
+			// a few barbs, the insight-yellow tip, the shaft and the nib
+			draw_set_color(make_color_rgb(190, 180, 150));
+			for (var i = 3; i <= 8; i += 2) {
+				draw_line_width(_left[i][0] + (_left[i][0] < _x ? 0 : 0), _left[i][1], (_left[i][0] + _sx0 + (_ex - _sx0) * (i / 10)) / 2, (_left[i][1] + _sy0 + (_ey - _sy0) * (i / 10)) / 2, 1 * _s);
+			}
+			draw_set_color(_ink);
+			draw_circle(_ex - lengthdir_x(3 * _s, _dir), _ey - lengthdir_y(3 * _s, _dir), 2.6 * _s, false);
 			draw_set_color(c_black);
-			draw_line_width(_tip_x, _tip_y, _end_x, _end_y, 2.5 * _scale);
-			draw_line_width(_tip_x, _tip_y, _mid_x, _mid_y, 4 * _scale);
+			draw_line_width(_nx, _ny, _ex, _ey, 1.8 * _s);
+			draw_line_width(_nx, _ny, _sx0, _sy0, 3.5 * _s);
+			draw_set_color(make_color_rgb(40, 32, 24));
+			draw_triangle(_nx, _ny, _nx + lengthdir_x(6 * _s, _dir + 15), _ny + lengthdir_y(6 * _s, _dir + 15), _nx + lengthdir_x(6 * _s, _dir - 15), _ny + lengthdir_y(6 * _s, _dir - 15), false);
 		break;
 	}
 
