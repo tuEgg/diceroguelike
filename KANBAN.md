@@ -23,7 +23,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 12: playtest notes | F02 (workbench part), F14, F56–F59, F61–F64, F66–F70, B94–B116 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
+| 12: playtest notes | F02 (workbench part), F14, F56–F59, F61–F64, F66–F70, B83, B94–B116 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
 
 **Batch 12 test list**
 - F56 Quill (10 insight): click a glowing intent and two buttons appear under it, Reroll and Halve. Reroll: the enemy picks a different move. Halve: the number halves (range or exact), "Halved" shows under the intent, and the enemy's attack/block/heal really comes out at half. Forced moves can still be halved but not rerolled; buffs and debuffs can be rerolled but not halved (greyed, with a reason on hover). Clicking elsewhere puts the quill down. Once per turn.
@@ -64,6 +64,10 @@
 - F64 Main menu items are always drawn as buttons, not plain text until hovered. The abandon-run warning says "Start anew" / "Keep voyage".
 - F64 Writing: "a die" / "1 die" / "this die" wherever one die is meant (dice and keepsake descriptions, events, prompts); the new-slot tile says "Sacrifice 1 die" or "2 dice"; an empty slot says "Empty" with no "(0-0)".
 - F64 Tooltips have a logbook look: dark ink, a thin cream rule inside the edge and small diamonds at the corners; keyword boxes are plainer. Coloured words (insight, keywords) still read clearly.
+
+**Batch 12, round 10: screen sizes (B83)**
+- B83 Desktop: Settings > Display > Resolution 2560x1440 (and fullscreen). Every screen should look exactly like 1920x1080, just bigger: shop, bounty board, workbench tools and the Cutters' hit area, the intro cutscene, backgrounds, coins and particles flying to the top bar, the map, fights, tooltips, the cursor. Text may look a touch softer at 1440p (it is drawn at 1080p and scaled up). Switch back to 1920x1080: unchanged. Web: unchanged.
+- F70 The "plays left" label is bigger, with bigger pips. F14 The action icons on dice are about half as big again.
 
 **Batch 12, round 9: UI phase 3 (fight screen)**
 - B116 The bag icon (bottom left) is drawn above the map, the draft overlay and room windows, everywhere.
@@ -208,7 +212,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 ## ❓ OPEN QUESTIONS (design decisions blocking work)
 
 - Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
-- Q7 Resolution targets: just 1080p + 1440p, or arbitrary? (decides how much layout work T07 needs)
+- Q7 Resolution targets: settled by B83 (batch 12): the game is laid out at 1920x1080 and scaled to any 16:9 window, so new resolutions only need adding to the list.
 - Q8 Between pages: what should the choices be? (The workbench is now an At sea stop between pages, F02.)
 
 ## 📌 DECISIONS
