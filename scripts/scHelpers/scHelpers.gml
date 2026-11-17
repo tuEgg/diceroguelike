@@ -1572,7 +1572,7 @@ function cursor_draw() {
 /// @func ui_top_bar_h()
 /// @desc Height of the top bar (gold, health, items...). Screens dim from here down so the bar stays in full colour.
 function ui_top_bar_h() {
-	return sprite_get_height(sTopBar) - 3;
+	return sprite_get_height(sTopBar) - 4; // the bar is drawn from y -4: dim from exactly where it ends
 }
 
 /// @func ui_button_col(_state_col)

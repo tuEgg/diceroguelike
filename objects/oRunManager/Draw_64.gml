@@ -8,7 +8,7 @@ var bar_half = bar_height/2;
 if (new_run_offering) {
 	draw_set_alpha(0.99);
 	draw_set_color(c_black);
-	draw_rectangle(0, 70, gui_w, gui_h, false);
+	draw_rectangle(0, ui_top_bar_h(), gui_w, gui_h, false); // the top bar stays in full colour
 	
 	var reward_width = 1200;
 	var reward_height = 550;
