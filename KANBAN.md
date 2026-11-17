@@ -284,6 +284,10 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | B116 | Bag icon drawn above the map | Batch 12: playtest notes | 2026-11-17 |
 | B117 | Smooth edges on desktop (anti-aliasing, rounder circles, minimum icon strokes) | Batch 12: playtest notes | 2026-11-17 |
 | F71 | Settings, bag view, Kill/Spare and Embark on the logbook kit; buttons keep their shape while growing | Batch 13: UI polish | 2026-11-17 |
+| F72 | Workbench asks you to open the bag to choose dice (prompt, bag icon, first-visit tip); top bar hoverable with the bag open; finished dice go to the bag | Batch 14: workbench bag | 2026-11-17 |
+| F73 | New intro: four lines of text fading in on black (silent for now); Settings > Gameplay > Intro next run; never in a debug run | Batch 14: workbench bag | 2026-11-17 |
+| B119 | Black screen drilling a Loaded core into a Harvest Die (gone after the workbench changes) | Batch 14: workbench bag | 2026-11-17 |
+| B120 | Core distribution previews ignore keepsakes | Batch 14: workbench bag | 2026-11-17 |
 
 **Milestones**
 

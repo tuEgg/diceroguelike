@@ -87,10 +87,10 @@ function debug_settings_save() {
 	file_text_close(_file);
 }
 
-/// oCutsceneManager Create: should the intro count as already seen? Only ever true when run from GameMaker.
+/// oCutsceneManager Create: should the intro count as already seen? Only in a debug run (F6). Any other run plays it
+/// once (progress.json) unless Settings > Gameplay > Intro next run turns it back on.
 function debug_skip_intro() {
-	if (!DEBUG_TOOLS) return false;
-	return global.dbg.skip_intro;
+	return debug_mode;
 }
 
 /// Show a short confirmation line at the bottom of the menu.
@@ -424,16 +424,7 @@ function debug_menu_draw() {
 		case "Hotkeys":
 			var yy = cy;
 
-			debug_label(cx, yy + 6, "Skip the intro cutscene when run from GameMaker:");
-			yy += row_h;
-			if (debug_button(cx, yy, half_w, row_h, dbg.skip_intro ? "Skipping (click to play it)" : "Playing (click to skip it)", dbg.skip_intro)) {
-				dbg.skip_intro = !dbg.skip_intro;
-				debug_settings_save();
-				// takes effect on the next run, or right away if a run hasn't reached the map yet
-				if (instance_exists(oCutsceneManager)) oCutsceneManager.cutscenes[0].seen = dbg.skip_intro;
-				if (!dbg.skip_intro) progress_set("intro_seen", false); // so it plays again on the next launch too
-				debug_say(dbg.skip_intro ? "The intro will be skipped" : "The intro will play when a run reaches the map");
-			}
+			debug_label(cx, yy + 6, "Intro: never plays in a debug run (F6). Otherwise once; replay it with Settings > Gameplay > Intro next run.");
 			yy += row_h * 1.5;
 
 			var keys = [
@@ -776,7 +767,7 @@ function debug_menu_draw() {
 				if (debug_hovered(bx, by, half_w, row_h)) {
 					var core_die = undefined;
 					if (item.type == "core") {
-						core_die = clone_die(global.dice_d6_atk, "");
+						core_die = core_preview_die();
 						core_die.distribution = item.distribution;
 					}
 					debug_tip(item.name, item.description, item.sprite, item.index, core_die);

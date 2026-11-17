@@ -874,7 +874,8 @@ function mouse_hovering_check(_x, _y, _width, _height, _centered, _hover_sound =
 	
 	if (!_conditions_met) return false;
 	
-	if (global.ui_layer > _layer) return false;
+	// (the top bar may be hovered under an open bag, for its tooltips only: global.ui_peek_top_bar)
+	if (global.ui_layer > _layer && !(global.ui_layer == UI_LAYER.BAG && variable_global_exists("ui_peek_top_bar") && global.ui_peek_top_bar)) return false;
 	
 	//draw_set_colour(c_black);
 	//draw_set_alpha(0.2);

@@ -3,7 +3,7 @@
 ## Drawing and input helpers: scHelpers
 
 - `mouse_hovering(x, y, w, h, centred, hover_sound, click_sound, conditions, layer, id)`: returns false if `global.ui_layer` is above `layer` or input is disabled. Use it for anything clickable.
-- `global.ui_layer` (enum `UI_LAYER` in `oMainMenu/Create_0`): `BASE, POPUP, BAG, SETTINGS, DEBUG`. Higher layers block lower ones.
+- `global.ui_layer` (enum `UI_LAYER` in `oMainMenu/Create_0`): `BASE, POPUP, BAG, SETTINGS, DEBUG`. Higher layers block lower ones. Exception: while the bag is open (`UI_LAYER.BAG`) the top bar can still be hovered for tooltips (`global.ui_peek_top_bar`, set around the top bar in oRunManager Draw GUI); its clicks check for the base layer.
 - Tooltips: `queue_tooltip(x, y, name, desc, icon, index, die)` queues one per frame; `draw_all_tooltips()` draws it (called at the end of `oRunManager` Draw GUI End, `Draw_75`, so tooltips sit above every window) with keyword sub-tooltips found in the description. Titles stay on one line. Draw GUI End order: dice list, `tips_draw`, `insight_panel_draw`, `dragged_item_draw` (carried core/potion), `pause_draw`, `run_summary_draw`, then tooltips.
 - Tooltip stack: `draw_all_tooltips` measures the main box and each keyword box (`draw_tooltip_box(..., measure_only)`), keeps the whole stack on screen, then draws keywords as compact boxes right under the main one. `buff_tooltip_text(inst)` (scDebuffs) builds buff/debuff tooltips.
 - Accessibility: Settings > Display > Action icons on dice (`global.action_icons`) draws `draw_action_type_icon` on dice in hand (oDice Draw GUI) and in slots (oCombat Draw GUI).
@@ -23,7 +23,7 @@
 - `DEBUG_TOOLS` macro: true when run from the IDE (`debug_mode || GM_build_type == "run"`). Everything below is off in exported builds.
 - **F1** opens the panel (`global.dbg` holds its state); Escape closes it. Tabs: Run, Fight, Combat, Dice, Keepsakes, Items, Events, Rooms, Hotkeys. Widgets are immediate mode: `debug_button` returns true on click, `debug_label`, `debug_hovered` + `debug_tip` for hover tooltips (drawn by the menu itself, on top).
 - **Hotkeys** (`debug_hotkeys`, menu closed): Space kill all and end turn, Backspace take 20, H heal, D draw, N complete spread, F2/F3/F4 speed x1/x2/x4. Older letter keys in `oRunManager/Step_0` (R, C, L, A, S, E, B, T, W, X, G, Q) also use `DEBUG_TOOLS`.
-- **Hooks the game calls** (each does nothing unless the menu asked): `debug_apply_pending_fight` (oCombat Create), `debug_take_next_die` (deal_single_die), `debug_take_forced_event_index` (generate_event), `debug_turn_intel` (turn start), `debug_skip_intro` (oCutsceneManager Create).
-- `debug_settings.json` keeps `skip_intro` between sessions.
+- **Hooks the game calls** (each does nothing unless the menu asked): `debug_apply_pending_fight` (oCombat Create), `debug_take_next_die` (deal_single_die), `debug_take_forced_event_index` (generate_event), `debug_turn_intel` (turn start), `debug_skip_intro` (oCutsceneManager Create: true only in a debug run, F6).
+- The intro never plays in a debug run (F6); otherwise it plays once (progress.json `intro_seen`) and Settings > Gameplay > Intro next run replays it. (`debug_settings.json` still holds an unused `skip_intro`.)
 - Leaving a fight via the menu restores the bag from `bag_snapshot`.
 - The enemy and event name lists at the top of `debug_menu_init` are typed by hand: add new enemies and events there too.
