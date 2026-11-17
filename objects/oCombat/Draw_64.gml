@@ -80,8 +80,9 @@ btn_scale = play_btn.scale;
 var end_text_pos = btn_x + (btn_w/2) - (20 * global.ui_scale);
 
 // once your hand is empty, End Turn breathes so it is obvious what is next
-if (state == CombatState.PLAYER_INPUT && dice_to_deal <= 0 && instance_number(oDice) == 0 && !show_rewards) btn_scale *= 1 + 0.05 * (0.5 + 0.5 * sin(current_time / 220));
-draw_sprite_ext(sEndTurn, 0, btn_x + btn_w/2, btn_y + btn_h/2, btn_scale * btn_scaler, btn_scale * btn_scaler, 0, label_col, 1);
+var end_draw_scale = btn_scale;
+if (state == CombatState.PLAYER_INPUT && dice_to_deal <= 0 && instance_number(oDice) == 0 && !show_rewards) end_draw_scale *= 1 + 0.05 * (0.5 + 0.5 * sin(current_time / 220));
+draw_sprite_ext(sEndTurn, 0, btn_x + btn_w/2, btn_y + btn_h/2, end_draw_scale * btn_scaler, end_draw_scale * btn_scaler, 0, label_col, 1);
 draw_set_color(c_white);
 draw_set_font(ftDefault);
 draw_set_halign(fa_center);
