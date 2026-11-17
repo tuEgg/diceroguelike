@@ -240,51 +240,54 @@ if (room == rmMap) {
 			var can_core = get_first_free_item_slot() != -1;
 			var input_ok = (global.ui_layer == UI_LAYER.BASE) && resting_alpha > 0.9;
 
-			var opt_w = 380, opt_h = 96;
-			var left_x = gui_w * 0.5 - opt_w / 2 - 30, right_x = gui_w * 0.5 + opt_w / 2 + 30, opt_y = gui_h * 0.46; // either side of the spine
+			// the buttons appear once the page has turned (they have no fade of their own)
+			if (resting_alpha > 0.3) {
+				var opt_w = 380, opt_h = 96;
+				var left_x = gui_w * 0.5 - opt_w / 2 - 30, right_x = gui_w * 0.5 + opt_w / 2 + 30, opt_y = gui_h * 0.46; // either side of the spine
 
-			// small flavour lines above each option
-			draw_set_font(ftDefault);
-			draw_set_halign(fa_center);
-			draw_set_valign(fa_middle);
-			if (resting_alpha > 0.05) {
-				draw_outline_text("Recover below deck", c_black, c_ltgray, 2, left_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
-				draw_outline_text("Search the hold", c_black, c_ltgray, 2, right_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
-			}
+				// small flavour lines above each option
+				draw_set_font(ftDefault);
+				draw_set_halign(fa_center);
+				draw_set_valign(fa_middle);
+				if (resting_alpha > 0.05) {
+					draw_outline_text("Recover below deck", c_black, c_ltgray, 2, left_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
+					draw_outline_text("Search the hold", c_black, c_ltgray, 2, right_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
+				}
 
-			var heal_btn = draw_gui_button(left_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[0], "Heal " + string(heal_amount) + " HP", global.color_heal, ftBig, can_heal && input_ok, true);
-			var core_btn = draw_gui_button(right_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[1], "Gain a random core", global.color_attack, ftBig, can_core && input_ok, true);
-			var cont_btn = draw_gui_button(gui_w / 2 - 130, gui_h * 0.72, 260, 64, rest_btn_scales[2], "Continue", c_dkgray, ftBig, input_ok, true);
-			rest_btn_scales[0] = heal_btn.scale;
-			rest_btn_scales[1] = core_btn.scale;
-			rest_btn_scales[2] = cont_btn.scale;
+				var heal_btn = draw_gui_button(left_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[0], "Heal " + string(heal_amount) + " HP", global.color_heal, ftBig, can_heal && input_ok, true);
+				var core_btn = draw_gui_button(right_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[1], "Gain a random core", global.color_attack, ftBig, can_core && input_ok, true);
+				var cont_btn = draw_gui_button(gui_w / 2 - 130, gui_h * 0.72, 260, 64, rest_btn_scales[2], "Continue", c_dkgray, ftBig, input_ok, true);
+				rest_btn_scales[0] = heal_btn.scale;
+				rest_btn_scales[1] = core_btn.scale;
+				rest_btn_scales[2] = cont_btn.scale;
 
-			// tooltips, including why an option is greyed out
-			if (mouse_hovering(left_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, false)) {
-				if (can_heal) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Heal " + string(heal_amount) + " HP", string(round(rest_heal_preview.pct * 100)) + "% of your max health, before you choose your next pages.");
-				else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Already at full health", "There's nothing to heal. Take a core or continue.");
-			}
-			if (mouse_hovering(right_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, false)) {
-				if (can_core) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Gain a random core", "A core goes in your item bar. Drill it into a die at the workbench.");
-				else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "No free item slot", "Use or drop an item (right click it) to make room for a core.");
-			}
-			if (cont_btn.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Continue", "Take nothing and choose your next pages.");
+				// tooltips, including why an option is greyed out
+				if (mouse_hovering(left_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, false)) {
+					if (can_heal) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Heal " + string(heal_amount) + " HP", string(round(rest_heal_preview.pct * 100)) + "% of your max health, before you choose your next pages.");
+					else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Already at full health", "There's nothing to heal. Take a core or continue.");
+				}
+				if (mouse_hovering(right_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, false)) {
+					if (can_core) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Gain a random core", "A core goes in your item bar. Drill it into a die at the workbench.");
+					else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "No free item slot", "Use or drop an item (right click it) to make room for a core.");
+				}
+				if (cont_btn.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Continue", "Take nothing and choose your next pages.");
 
-			if (heal_btn.click) {
-				global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
-				particle_emit(650, 25, "burst", c_lime);
-				rest_heal_preview = undefined;
-				start_drafting();
-			} else if (core_btn.click) {
-				var consumable_options = ds_list_create();
-				generate_item_rewards(consumable_options, global.master_item_list, 1, "core");
-				gain_item(consumable_options[| 0]);
-				ds_list_destroy(consumable_options);
-				rest_heal_preview = undefined;
-				start_drafting();
-			} else if (cont_btn.click) {
-				rest_heal_preview = undefined;
-				start_drafting();
+				if (heal_btn.click) {
+					global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
+					particle_emit(650, 25, "burst", c_lime);
+					rest_heal_preview = undefined;
+					start_drafting();
+				} else if (core_btn.click) {
+					var consumable_options = ds_list_create();
+					generate_item_rewards(consumable_options, global.master_item_list, 1, "core");
+					gain_item(consumable_options[| 0]);
+					ds_list_destroy(consumable_options);
+					rest_heal_preview = undefined;
+					start_drafting();
+				} else if (cont_btn.click) {
+					rest_heal_preview = undefined;
+					start_drafting();
+				}
 			}
 		} else {
 			resting_alpha = lerp(resting_alpha, 0, 0.2);
