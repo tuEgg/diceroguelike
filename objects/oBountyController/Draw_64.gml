@@ -237,7 +237,7 @@ if (room == rmBounty) {
 	draw_set_font(ftBigger);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
-	draw_sprite_ext(sButtonSmall, 0, gui_w/2 + 230, gui_h - 250, reroll_scale * 1.3, reroll_scale * 0.9, 0, ui_button_col(reroll_col), 1.0);
+	draw_sprite_ext(sButtonSmall, 0, gui_w/2 + 230, gui_h - 250, reroll_scale * 1.3, reroll_scale * 0.9, 0, (reroll_col == global.color_block) ? global.ui_neutral : reroll_col, 1.0); // blue is for block: an available re-roll is drawn neutral
 	var string_w = string_width("Re-roll");
 	var coin_w = sprite_get_width(sCoin) * 0.75;
 
