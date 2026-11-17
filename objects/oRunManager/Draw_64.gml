@@ -578,46 +578,6 @@ for (var k = 0; k < ds_list_size(keepsakes); k++) {
 var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
 
-// Draw bag preview
-var bag_x = global.gui.bag_x;
-var bag_y = global.gui.bag_y;
-var bag_w = global.gui.bag_w;
-var bag_h = global.gui.bag_h;
-bag_hover = mouse_hovering(bag_x, bag_y, bag_w, bag_h, false);
-
-// Draw draw bag (discard bag in oCombat)
-if (bag_hover || show_bag_contents) {
-	draw_sprite_ext(sDiceBag, 0, 56, gui_h - 36, 1.07, 1.07, 0, c_black, 1);
-}
-draw_sprite(sDiceBag, 0, 60, gui_h - 40);
-draw_set_font(ftBigger);
-draw_set_valign(fa_bottom)
-draw_set_halign(fa_left);
-draw_outline_text(room = rmCombat ? "DRAW" : "BAG", c_black, c_white, 2, 110, gui_h - 33, 1, 1, 0);
-
-// Draw bag count
-draw_set_color(c_black);
-draw_circle(70, gui_h - 55, 20, false);
-draw_set_halign(fa_center);
-draw_set_valign(fa_middle);
-draw_set_color(c_white);
-draw_set_font(ftBig);
-draw_text(70, gui_h - 55, string(ds_list_size(global.dice_bag)));
-
-if (bag_hover) {
-	if (mouse_check_button_pressed(mb_left) && !global.all_input_disabled) {
-		show_bag_contents = 1 - show_bag_contents;
-		bag_to_show = global.dice_bag;
-		
-		if (global.ui_layer != UI_LAYER.BAG) {
-			pre_bag_open_ui_layer = global.ui_layer;
-			global.ui_layer = UI_LAYER.BAG;
-			show_debug_message("pre_bag_open_ui_layer: " + string(pre_bag_open_ui_layer));
-		} else {
-			global.ui_layer = pre_bag_open_ui_layer;
-		}
-	}
-	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Click to open", "Details all the dice you have in your bag");
-}
+// the bag icon is drawn in Draw GUI End too (Draw_75), so the map and room windows never cover it
 
 // the bag view and the dice picker are drawn in Draw GUI End (Draw_75), above every room's windows
