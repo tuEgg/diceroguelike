@@ -525,8 +525,8 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	var _icon_blend = c_white;
 
 	if (page.chosen && !page.locked) {
-	    // highest priority
-	    _blend = make_color_rgb(100, 186, 186); 
+	    // chosen in this draft: plain paper, outlined in green below
+	    _blend = c_white;
 	}
 	else if (!page.chosen || all_nodes_cleared) {
 	    // either unselected or fully cleared
@@ -549,6 +549,15 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	
 	var draw_scale = _scale;
 	if (!_shadow) draw_scale = 1;
+	// a chosen page in the draft gets a thick green outline (the page's shape, filled green, a little bigger behind it)
+	if (_shadow && page.chosen && !page.locked && _alpha > 0) {
+		shader_set(shWhiteFill);
+		for (var _o = 0; _o < 8; _o++) {
+			var _ox = lengthdir_x(7, _o * 45), _oy = lengthdir_y(7, _o * 45);
+			draw_sprite_ext(_sprite, page.index, page_x + _ox, page_y + _oy, draw_scale, draw_scale, 0, make_color_rgb(70, 220, 90), _alpha * pages_alpha);
+		}
+		shader_reset();
+	}
 	draw_sprite_ext(_sprite, page.index, page_x, page_y, draw_scale,  draw_scale, 0, _blend, _alpha * pages_alpha);
 	
 	

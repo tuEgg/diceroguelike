@@ -15,7 +15,8 @@ function deal_single_die( _can_discard_this_turn = true) {
 	// --- Reshuffle if empty ---
 	if (_debug_die == undefined && ds_list_size(global.dice_bag) == 0) {
 			
-	    if (ds_list_size(global.discard_pile) > 0) {
+	    // outside a fight the discard pile has been freed (oCombat CleanUp), so only a live one can be reshuffled (B109)
+	    if (ds_safe_exists(global.discard_pile, ds_type_list) && ds_list_size(global.discard_pile) > 0) {
 	        //show_debug_message("Dice bag empty — reshuffling discard pile!");
 	        for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
 	            var discard_die = global.discard_pile[| i];

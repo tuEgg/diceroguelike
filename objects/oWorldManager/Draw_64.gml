@@ -193,7 +193,7 @@ if (room == rmMap) {
 		var bg_w = gui_w;
 		var bg_h = gui_h;
 		var bg_x = 0;
-		var bg_y = 0;
+		var bg_y = ui_top_bar_h(); // the top bar stays in full colour
 		
 		draw_set_color(c_black);
 		draw_set_alpha(0.55 * (max(pages_alpha, resting_alpha)));
@@ -203,6 +203,7 @@ if (room == rmMap) {
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBigger);
+		if (world_state == WORLD_STATE.TURNING && resting_alpha > 0.05) draw_outline_text("The spread is done", c_black, c_white, 3, gui_w/2, gui_h * 0.25, 1, resting_alpha, 0);
 		draw_outline_text("What happened next?", c_black, c_white, 3, gui_w/2, gui_h * 0.25, 1, pages_alpha, 0);
 		draw_set_font(ftDefault);
 		draw_outline_text("Choose a page to draft", c_black, c_white, 2, bg_w/2, gui_h * 0.29, 1, pages_alpha, 0);
@@ -225,9 +226,10 @@ if (room == rmMap) {
 			
 			// a choice for the end of a spread: heal on the left page, a core on the right, or just continue.
 			// Each option says why when it can't be taken (full health, no free item slot).
-			resting_alpha = lerp(resting_alpha, 1.0, 0.4);
+			// the choice waits until the page has finished turning
+			resting_alpha = lerp(resting_alpha, (current_page_turn < -0.9) ? 1.0 : 0.0, 0.25);
 
-			// how much resting heals (keepsakes like Salted Pork add to it), worked out once per spread end
+			// how much resting heals(keepsakes like Salted Pork add to it), worked out once per spread end
 			if (rest_heal_preview == undefined) {
 				var heal_ctx = { rest_amount: rest_amount };
 				runmanager_trigger_keepsakes("on_rest", heal_ctx);
@@ -239,14 +241,16 @@ if (room == rmMap) {
 			var input_ok = (global.ui_layer == UI_LAYER.BASE) && resting_alpha > 0.9;
 
 			var opt_w = 380, opt_h = 96;
-			var left_x = gui_w * 0.29, right_x = gui_w * 0.69, opt_y = gui_h * 0.46;
+			var left_x = gui_w * 0.5 - opt_w / 2 - 30, right_x = gui_w * 0.5 + opt_w / 2 + 30, opt_y = gui_h * 0.46; // either side of the spine
 
 			// small flavour lines above each option
 			draw_set_font(ftDefault);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
-			draw_outline_text("Recover below deck", c_black, c_ltgray, 2, left_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
-			draw_outline_text("Search the hold", c_black, c_ltgray, 2, right_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
+			if (resting_alpha > 0.05) {
+				draw_outline_text("Recover below deck", c_black, c_ltgray, 2, left_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
+				draw_outline_text("Search the hold", c_black, c_ltgray, 2, right_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
+			}
 
 			var heal_btn = draw_gui_button(left_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[0], "Heal " + string(heal_amount) + " HP", global.color_heal, ftBig, can_heal && input_ok, true);
 			var core_btn = draw_gui_button(right_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[1], "Gain a random core", global.color_attack, ftBig, can_core && input_ok, true);
@@ -430,21 +434,35 @@ if (room == rmMap) {
 
 			var hover_exit = mouse_hovering(display_get_gui_width() * 3/4, gui_h - 100, embark_scale * sprite_get_width(sButtonSmall) * 1.0, embark_scale * sprite_get_height(sButtonSmall) * 0.8, true, noone, soClick2, true);
 
-			if (hover_exit && exit_col == c_red) {
+			var embark_ready = (exit_col == c_red);
+			if (embark_ready) exit_col = make_color_rgb(46, 150, 90); // the go colour, once both pages are chosen
+			var embark_pulse = embark_ready ? (0.5 + 0.5 * sin(current_time / 220)) : 0;
+			if (hover_exit && embark_ready) {
 				if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
 					choices_locked = true;
 					save_game(1);
 				}
 				embark_scale = lerp(embark_scale, 1.2, 0.2);
 			} else {
-				embark_scale = lerp(embark_scale, 1.0, 0.2);
+				embark_scale = lerp(embark_scale, 1.0 + 0.08 * embark_pulse, 0.2);
 			}
 
+			var embark_x = display_get_gui_width() * 3/4, embark_y = gui_h - 100;
+			// a soft glow behind it while it waits to be pressed
+			if (embark_ready) {
+				var glow_w = sprite_get_width(sButtonSmall) * embark_scale * 0.5 + 14 + 8 * embark_pulse;
+				var glow_h = sprite_get_height(sButtonSmall) * embark_scale * 0.4 + 12 + 6 * embark_pulse;
+				draw_set_color(global.color_intel);
+				draw_set_alpha(pages_alpha * (0.25 + 0.3 * embark_pulse));
+				draw_roundrect_ext(embark_x - glow_w, embark_y - glow_h, embark_x + glow_w, embark_y + glow_h, 30, 30, false);
+				draw_set_alpha(1);
+			}
 			draw_set_font(ftBigger);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
-			draw_sprite_ext(sButtonSmall, 0, display_get_gui_width() * 3/4, gui_h - 100, embark_scale*1.0, embark_scale*0.8, 0, exit_col, pages_alpha);
-			draw_outline_text("Embark", c_black, c_white, 2, display_get_gui_width() * 3/4, gui_h - 100, 1, pages_alpha, 0);
+			draw_sprite_ext(sButtonSmall, 0, embark_x, embark_y, embark_scale*1.0, embark_scale*0.8, 0, exit_col, pages_alpha);
+			draw_outline_text("Embark", c_black, c_white, 2, embark_x, embark_y, embark_scale, pages_alpha, 0);
+			if (hover_exit && !embark_ready) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Embark", "Choose two pages first.");
 		} else {
 			ds_list_clear(pages_shown);
 		}
@@ -462,13 +480,13 @@ if (room == rmMap) {
 		
 		draw_set_color(c_black);
 		draw_set_alpha(0.7 * chapter_end_alpha);
-		draw_rectangle(0, 0, gui_w, gui_h, false);
+		draw_rectangle(0, ui_top_bar_h(), gui_w, gui_h, false); // the top bar stays in full colour
 		draw_set_alpha(1.0);
-		
+
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBigger);
-		var voyage_over = (chapter >= CHAPTER_COUNT);
+		var voyage_over= (chapter >= CHAPTER_COUNT);
 
 		draw_outline_text(voyage_over ? "Voyage complete" : "Chapter " + string(chapter) + " complete", c_black, c_white, 3, gui_w/2, gui_h * 0.34, 1, chapter_end_alpha, 0);
 		draw_set_font(ftBig);

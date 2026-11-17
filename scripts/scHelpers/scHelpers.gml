@@ -453,7 +453,9 @@ function draw_all_tooltips() {
 			_max_w = max(_max_w, _s.w);
 		}
 
+		// a tooltip at the mouse sits down and to the right of the pointer, clear of it
 		var xx = tt.x, yy = tt.y;
+		if (abs(xx - device_mouse_x_to_gui(0)) < 2 && abs(yy - device_mouse_y_to_gui(0)) < 2) { xx += 30 * global.ui_scale; yy += 34 * global.ui_scale; }
 		if (xx + _max_w > display_get_gui_width() - 10) xx = display_get_gui_width() - _max_w - 10;
 		if (yy + _total_h > display_get_gui_height() - 10) yy = display_get_gui_height() - _total_h - 10;
 		xx = max(10, xx); yy = max(10, yy);
@@ -1615,8 +1617,9 @@ function cursor_draw() {
 	var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
 	var _hot = (current_time - global.cursor_hover_time) < 60;
 	var _down = mouse_check_button(mb_left);
-	global.cursor_tilt = lerp(global.cursor_tilt, _hot ? 14 : 0, 0.3);
-	var _s = (_down ? 0.88 : 1) * (_hot ? 1.08 : 1) * global.ui_scale;
+	// tips forward over anything interactive, and further while the button is held (a tap), never shrinking
+	global.cursor_tilt = lerp(global.cursor_tilt, _down ? 26 : (_hot ? 12 : 0), 0.35);
+	var _s = (_hot ? 1.06 : 1) * global.ui_scale;
 
 	// the arrow's points, tip at the mouse, rotated by the tilt
 	var _pts = [[0, 0], [0, 30], [8, 23], [14, 36], [20, 33], [14, 21], [24, 21]];
@@ -1640,12 +1643,11 @@ function cursor_draw() {
 		var _n = (i + 1) mod array_length(_xy);
 		draw_line_width(_xy[i][0], _xy[i][1], _xy[_n][0], _xy[_n][1], 2.5 * global.ui_scale);
 	}
-	// a gold glint at the tip over anything interactive
-	if (_hot) {
-		draw_set_color(global.color_intel);
-		draw_set_alpha(0.8);
-		draw_circle(_mx, _my, 4 * global.ui_scale, false);
-		draw_set_alpha(1);
-	}
 	draw_set_color(c_white);
+}
+
+/// @func ui_top_bar_h()
+/// @desc Height of the top bar (gold, health, items...). Screens dim from here down so the bar stays in full colour.
+function ui_top_bar_h() {
+	return sprite_get_height(sTopBar) - 3;
 }
