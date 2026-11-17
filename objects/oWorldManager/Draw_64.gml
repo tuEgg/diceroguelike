@@ -547,12 +547,17 @@ if (room == rmMap) {
 			oRunManager.at_sea_scales[0] = sea_open.scale;
 			oRunManager.at_sea_scales[1] = sea_sail.scale;
 			if (sea_open.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "The workbench", "Take dice from your bag (one per tool you own) and use each tool once.");
-			if (sea_sail.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Sail on", "Skip the workbench until the next page is done. Choosing your next stop does the same.");
+			if (sea_sail.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Sail on", "Skip the workbench and sail to your next stop. Clicking the next stop does the same.");
 			if (sea_open.click) {
 				oRunManager.can_visit_workbench = false;
 				room_goto(rmWorkbench);
 			} else if (sea_sail.click) {
 				oRunManager.can_visit_workbench = false;
+				// and set sail for the next stop straight away (as if it had been clicked)
+				if (next_node != undefined && node_to_move_to == undefined) {
+					node_to_move_to = next_node;
+					node_to_move_to.y += 10;
+				}
 			}
 		}
 	}
