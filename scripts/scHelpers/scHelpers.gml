@@ -1094,165 +1094,52 @@ function get_node_by_name(_name) {
 
 
 
-// Draws our varied stroke rectangles at scale, so we don't have to keep using sprites!
+// Draws our hand-drawn panels: a two-tone fill and uneven ink strokes along each edge. Drawn straight to the screen
+// with triangles (no surfaces): each panel's wobble comes from its size and colours, so it holds still frame to frame.
+// (The old version built a cached 8x surface per size; buttons growing on hover made new ones every frame, and they
+// rendered black in the web build.)
 function draw_wonky_rectangle(_x, _y, _width, _height, _fill_col, _stroke_col, _alpha, _centered, _highlight) {
+	var _x1 = _centered ? _x - _width / 2 : _x;
+	var _y1 = _centered ? _y - _height / 2 : _y;
+	var _x2 = _x1 + _width, _y2 = _y1 + _height;
 
-	var _scale = 8;
-	// sizes are rounded to 8 pixels and the surface stretched to the real size, so a button growing on hover or click
-	// reuses a few surfaces instead of building a new 8x one every frame (that churn flashed the screen black, T07)
-	var _real_w = _width, _real_h = _height;
-	_width = max(8, round(_width / 8) * 8);
-	_height = max(8, round(_height / 8) * 8);
-	var _key = string(_width) + "x" + string(_height) + "_" + string(_fill_col) + "_" + string(_stroke_col);
-	var _cached = ds_map_find_value(global.button_cache, _key);
+	// steady "random" stroke widths for this panel (the same each frame)
+	var _seed = (round(_width / 8) * 131 + round(_height / 8) * 977 + (_fill_col mod 9973) * 7) mod 100000;
+	var _r = function(_s, _n) { return frac(abs(sin((_s + _n * 12.9898) * 43.7585)) * 1000); };
+	var _otl = 1.5 + 1.0 * _r(_seed, 1);	// half-widths of the ink at each corner
+	var _otr = 3.0 + 1.5 * _r(_seed, 2);
+	var _obl = 2.0 + 1.0 * _r(_seed, 3);
+	var _obr = 1.5 + 1.0 * _r(_seed, 4);
 
-	if (!surface_exists(_cached)) {
-		// keep the cache from growing without end: past 150 surfaces, free them all and start again
-		if (ds_map_size(global.button_cache) > 150) {
-			var _k = ds_map_find_first(global.button_cache);
-			while (!is_undefined(_k)) {
-				var _s = global.button_cache[? _k];
-				if (surface_exists(_s)) surface_free(_s);
-				_k = ds_map_find_next(global.button_cache, _k);
-			}
-			ds_map_clear(global.button_cache);
-		}
+	var _old_alpha = draw_get_alpha();
+	draw_set_alpha(_alpha);
 
-		var _sw = _width * _scale;
-		var _sh = _height * _scale;
-		var _surf = surface_create(_sw, _sh);
-		surface_set_target(_surf);
-		draw_clear_alpha(c_black, 0);
-		
-		var c_pos = {
-			top_left:     { xx: 0,   yy: 0 },
-			top_right:    { xx: _sw, yy: 0 },
-			bottom_left:  { xx: 0,   yy: _sh },
-			bottom_right: { xx: _sw, yy: _sh },
-		}
-		
-		var c_offset = {
-			top_left:     random_range(3, 5) * _scale,
-			top_right:    random_range(6, 9)  * _scale,
-			bottom_left:  random_range(4, 6)  * _scale,
-			bottom_right: random_range(3, 5)  * _scale
-		}
-		
-		// Always draw at full alpha - alpha is applied at draw time instead
-		draw_set_alpha(1.0);
-		
-		// Fill
-		var highlight_col = _fill_col;
-		draw_triangle_color(
-			c_pos.top_left.xx, c_pos.top_left.yy,
-			c_pos.top_right.xx, c_pos.top_right.yy,
-			c_pos.bottom_left.xx, c_pos.bottom_left.yy,
-			_fill_col, _fill_col, _fill_col, false		
-		);
-		if (_highlight) {
-			var _red =		clamp(color_get_red(_fill_col) + 20, 0, 255);
-			var _green =	clamp(color_get_green(_fill_col) + 20, 0, 255);
-			var _blue =		clamp(color_get_blue(_fill_col) + 20, 0, 255);
-			highlight_col = make_colour_rgb(_red, _green, _blue);
-		}
-		draw_triangle_color(
-			c_pos.bottom_left.xx, c_pos.bottom_left.yy,
-			c_pos.top_right.xx, c_pos.top_right.yy,
-			c_pos.bottom_right.xx, c_pos.bottom_right.yy,
-			highlight_col, highlight_col, highlight_col, false		
-		);
-		
-		// Left side stroke
-		draw_triangle_colour(
-			c_pos.top_left.xx - c_offset.top_left, c_pos.top_left.yy - c_offset.top_left,
-			c_pos.bottom_left.xx - c_offset.bottom_left, c_pos.bottom_left.yy + c_offset.bottom_left,
-			c_pos.top_left.xx + c_offset.top_left, c_pos.top_left.yy + c_offset.top_left,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		draw_triangle_colour(
-			c_pos.top_left.xx + c_offset.top_left, c_pos.top_left.yy - c_offset.top_left,
-			c_pos.bottom_left.xx - c_offset.bottom_left, c_pos.bottom_left.yy + c_offset.bottom_left,
-			c_pos.bottom_left.xx + c_offset.bottom_left, c_pos.bottom_left.yy - c_offset.bottom_left,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		
-		// Top side stroke
-		draw_triangle_colour(
-			c_pos.top_left.xx - c_offset.top_left, c_pos.top_left.yy - c_offset.top_left,
-			c_pos.top_right.xx + c_offset.top_right, c_pos.top_right.yy - c_offset.top_right,
-			c_pos.top_right.xx - c_offset.top_right, c_pos.top_right.yy + c_offset.top_right,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		draw_triangle_colour(
-			c_pos.top_left.xx - c_offset.top_left, c_pos.top_left.yy - c_offset.top_left,
-			c_pos.top_right.xx - c_offset.top_right, c_pos.top_right.yy + c_offset.top_right,
-			c_pos.top_left.xx + c_offset.top_left, c_pos.top_left.yy + c_offset.top_left,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		
-		// Right side stroke
-		draw_triangle_colour(
-			c_pos.top_right.xx + c_offset.top_right, c_pos.top_right.yy - c_offset.top_right,
-			c_pos.bottom_right.xx - c_offset.bottom_right, c_pos.bottom_right.yy + c_offset.bottom_right,
-			c_pos.top_right.xx - c_offset.top_right, c_pos.top_right.yy + c_offset.top_right,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		draw_triangle_colour(
-			c_pos.top_right.xx + c_offset.top_right, c_pos.top_right.yy - c_offset.top_right,
-			c_pos.bottom_right.xx - c_offset.bottom_right, c_pos.bottom_right.yy - c_offset.bottom_right,
-			c_pos.bottom_right.xx + c_offset.bottom_right, c_pos.bottom_right.yy + c_offset.bottom_right,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		
-		// Bottom side stroke
-		draw_triangle_colour(
-			c_pos.bottom_left.xx + c_offset.bottom_left, c_pos.bottom_left.yy - c_offset.bottom_left,
-			c_pos.bottom_right.xx + c_offset.bottom_right, c_pos.bottom_right.yy + c_offset.bottom_right,
-			c_pos.bottom_right.xx - c_offset.bottom_right, c_pos.bottom_right.yy - c_offset.bottom_right,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		draw_triangle_colour(
-			c_pos.bottom_left.xx + c_offset.bottom_left, c_pos.bottom_left.yy - c_offset.bottom_left,
-			c_pos.bottom_right.xx + c_offset.bottom_right, c_pos.bottom_right.yy + c_offset.bottom_right,
-			c_pos.bottom_left.xx - c_offset.bottom_left, c_pos.bottom_left.yy + c_offset.bottom_left,
-			_stroke_col, _stroke_col, _stroke_col, false
-		);
-		
-		draw_set_alpha(1.0);
-		surface_reset_target();
-		
-		// Pass 1: 8x -> 4x
-		var _pass1 = surface_create(_width * 4, _height * 4);
-		surface_set_target(_pass1);
-		draw_clear_alpha(c_black, 0);
-		draw_surface_ext(_surf, 0, 0, 0.5, 0.5, 0, c_white, 1);
-		surface_reset_target();
-		surface_free(_surf);
-		
-		// Pass 2: 4x -> 2x
-		var _pass2 = surface_create(_width * 2, _height * 2);
-		surface_set_target(_pass2);
-		draw_clear_alpha(c_black, 0);
-		draw_surface_ext(_pass1, 0, 0, 0.5, 0.5, 0, c_white, 1);
-		surface_reset_target();
-		surface_free(_pass1);
-		
-		// Cache the 2x surface
-		_cached = _pass2;
-		ds_map_set(global.button_cache, _key, _cached);
-	}
-	
-	// Draw cached 2x surface at final size, applying alpha here instead of baking it in
-	var _draw_x, _draw_y;
-	if (_centered) {
-		_draw_x = _x - _real_w / 2;
-		_draw_y = _y - _real_h / 2;
+	// fill: two triangles, the lower-right one a touch lighter when highlighted
+	var _hi = _fill_col;
+	if (_highlight) _hi = make_colour_rgb(clamp(color_get_red(_fill_col) + 20, 0, 255), clamp(color_get_green(_fill_col) + 20, 0, 255), clamp(color_get_blue(_fill_col) + 20, 0, 255));
+	draw_triangle_color(_x1, _y1, _x2, _y1, _x1, _y2, _fill_col, _fill_col, _fill_col, false);
+	draw_triangle_color(_x1, _y2, _x2, _y1, _x2, _y2, _hi, _hi, _hi, false);
+
+	// ink edges: each a quad that tapers from one corner's width to the next
+	draw_set_color(_stroke_col);
+	wonky_edge(_x1, _y1, _otl, _x2, _y1, _otr, true);	// top
+	wonky_edge(_x1, _y2, _obl, _x2, _y2, _obr, true);	// bottom
+	wonky_edge(_x1, _y1, _otl, _x1, _y2, _obl, false);	// left
+	wonky_edge(_x2, _y1, _otr, _x2, _y2, _obr, false);	// right
+
+	draw_set_alpha(_old_alpha);
+}
+
+/// @func wonky_edge(_ax, _ay, _aw, _bx, _by, _bw, _horizontal)
+/// @desc One ink edge of a wonky panel, from point a (half-width _aw) to point b (half-width _bw).
+function wonky_edge(_ax, _ay, _aw, _bx, _by, _bw, _horizontal) {
+	if (_horizontal) {
+		draw_triangle(_ax - _aw, _ay - _aw, _bx + _bw, _by - _bw, _bx + _bw, _by + _bw, false);
+		draw_triangle(_ax - _aw, _ay - _aw, _bx + _bw, _by + _bw, _ax - _aw, _ay + _aw, false);
 	} else {
-		_draw_x = _x;
-		_draw_y = _y;
+		draw_triangle(_ax - _aw, _ay - _aw, _ax + _aw, _ay - _aw, _bx + _bw, _by + _bw, false);
+		draw_triangle(_ax - _aw, _ay - _aw, _bx + _bw, _by + _bw, _bx - _bw, _by + _bw, false);
 	}
-
-	draw_surface_ext(_cached, _draw_x, _draw_y, 0.5 * _real_w / _width, 0.5 * _real_h / _height, 0, c_white, _alpha);
 }
 
 
