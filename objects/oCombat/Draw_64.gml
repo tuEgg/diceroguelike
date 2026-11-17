@@ -606,8 +606,8 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	draw_ellipse(enemy.pos_x - 100 * enemy.data.shadow_scale, enemy.pos_y + 50, enemy.pos_x + 100 * enemy.data.shadow_scale, enemy.pos_y + 70, false);
 	draw_sprite_ext(sEnemies, enemy.data.index, enemy.pos_x, enemy.pos_y + 60, enemy.scale, enemy.scale, 0, c_white, enemy.alpha);
 	
-	// Draw X and Y coordinates for testing purposes
-	if (debug_mode) {
+	// X and Y coordinates for testing: turned off (flip to true when placing enemies)
+	if (false) {
 		var pos_data = "x: " + string(enemy.pos_x) + "\ny: " + string(enemy.pos_y);
 		
 		draw_set_halign(fa_left);

@@ -448,14 +448,16 @@ function generate_dice_bag() {
 	// Bilge Die
 	global.die_bilge = make_die_struct(
 	    1, 6, "None", "None", "", "Bilge die",
-	    "Sticky. If this roll is even, heal 2.",
+	    "Sticky. If this die's total (roll plus bonuses) is even, heal 2.",
 		"rare",
 		80,
 	    [
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount mod 2 == 0 && _context.die.uid == _context._die_struct_source.uid) {
+					// the total the player sees on the die: the roll plus the slot's and keepsakes' bonuses
+					var _total = _context._d_amount + _context.slot_bonus + _context.keepsake_bonus + _context.first_bonus;
+					if (_total mod 2 == 0 && _context.die.uid == _context._die_struct_source.uid) {
 						global.player_hp = min(global.player_max_hp, global.player_hp + 2);
 						particle_emit(global.player_x, global.player_y, "burst", c_lime);
 						var num = spawn_floating_number("player", 2, -1, c_lime, 1, -1, 0);
@@ -888,9 +890,9 @@ function generate_dice_bag() {
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount == _context.min_roll && _context.die.uid == _context._die_struct_source.uid) {
+					if (_context._d_amount <= _context.min_roll && _context.die.uid == _context._die_struct_source.uid) {
 	                    _context._d_amount = _context.max_roll;
-						show_debug_message("Rolled a 1, no changing to max");
+						roll_popup(_context.slot_num, _context.dice_index, "Warrior!", c_orange);
 	                }
 	            }
 	        }

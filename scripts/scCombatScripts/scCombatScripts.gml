@@ -64,14 +64,14 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 			// Roll between all the values in the array
 			var weighted_roll = irandom_range(weight_min, weight_max);
+			var _rolled_twice = undefined; // both faces, when the die rolls twice and keeps the higher
 			if (dice_output.roll_twice || _slot_die.roll_twice) { // roll advantage
 				var second_roll = irandom_range(weight_min, weight_max);
-				
+				_rolled_twice = [weighted_to_face(distribution_array, weighted_roll, _min_roll), weighted_to_face(distribution_array, second_roll, _min_roll)];
+
 				if (second_roll > weighted_roll) weighted_roll = second_roll;
-				
+
 				_slot_die.roll_twice = false; // reset after we roll twice
-				
-				// need to add a little roll twice animation here
 			}
 			
 			// Get roll amount if we are forcing
@@ -117,14 +117,21 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 						max_roll: _max_roll,
 						slot_bonus: slot_bonus_amount,
 						keepsake_bonus: _keepsake_dice_bonus_amount,
+						// the slot's first-die bonus, if this is that die (Repeater Rail, Single Focus)
+						first_bonus: (_dice_list_index == 0 && !first_die_bonus_used && _slot_number >= 0 && _slot_number < ds_list_size(oCombat.action_queue)) ? oCombat.action_queue[| _slot_number].first_die_bonus : 0,
 						dice_index: _dice_list_index,
 						_slot: oCombat.action_queue[| _slot_number],
 						slot_num: _slot_number, 
 						//max_roll: actual_possible_numbers[ array_length(actual_possible_numbers) - 1] // first row in distribution array that isn't zero -- THIS isn't possible yet because we need to continue looping through the numbers after we find our actual number to check for what our real max is
 					}
 					
+					// rolled twice: show both faces, then the one kept
+					if (is_array(_rolled_twice)) {
+						roll_popup(_slot_number, _dice_list_index, "Rolled " + string(_rolled_twice[0]) + " and " + string(_rolled_twice[1]) + ", kept " + string(max(_rolled_twice[0], _rolled_twice[1])), global.color_intel);
+					}
+
 					combat_trigger_effects("after_roll_die", ctx);
-					
+
 					if (_slot_die.reset_after_next_roll != false && _slot_die.reset_this_turn) {
 						_slot_die.reset_after_next_roll(_slot_die);
 						_slot_die.reset_after_next_roll = false;
@@ -2178,4 +2185,34 @@ function insight_panel_draw() {
 		draw_text(intel_x + intel_pad, _row_y + intel_foot_h / 2, "Insight you roll counts next turn.");
 		draw_set_color(c_white);
 	}
+}
+
+/// @func weighted_to_face(_distribution, _weighted, _min_roll)
+/// @desc Which face a weighted roll lands on (the same walk process_action does), for showing both rolls of a roll-twice.
+function weighted_to_face(_distribution, _weighted, _min_roll) {
+	for (var d = 0; d < array_length(_distribution); d++) {
+		_weighted -= _distribution[d];
+		if (_weighted <= 0) return d + _min_roll;
+	}
+	return _min_roll + array_length(_distribution) - 1;
+}
+
+/// @func roll_popup(_slot_number, _dice_index, _text, _color)
+/// @desc A short word over a rolling die when an effect changes its result ("Warrior!", "Rolled 2 and 5, kept 5").
+function roll_popup(_slot_number, _dice_index, _text, _color) {
+	if (!instance_exists(oCombat)) return;
+	var _x = global.player_x, _y = global.player_y - 200;
+	with (oCombat) {
+		if (_slot_number != undefined && _slot_number >= 0 && ds_safe_exists(slot_positions, ds_type_list) && _slot_number < ds_list_size(slot_positions)) {
+			_x = slot_positions[| _slot_number].x + global.gui.action_tile_w / 2;
+			_y = slot_positions[| _slot_number].y - 60 - _dice_index * 26;
+		}
+	}
+	var _inst = instance_create_layer(_x, _y, "Instances", oDamageText);
+	_inst.txt = _text;
+	_inst.amount = 0;
+	_inst.color_main = _color;
+	_inst.num_sign = 0;
+	_inst.size = 0.6;
+	return _inst;
 }

@@ -353,7 +353,7 @@ function define_keepsakes() {
 	ks_single_focus = {
 	    _id: "single_focus",
 	    name: "Single Focus",
-	    desc: "Slots with only one possible action type gain +1",
+	    desc: "The first die in each slot with only one possible action type gains +1",
 		sub_image: 13,
 		state: {
 		},
@@ -363,7 +363,7 @@ function define_keepsakes() {
 				for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
 					var _slot = oCombat.action_queue[| i];
 					var _single = string_pos(" ", _slot.possible_type) == 0 && _slot.possible_type != "None" && _slot.possible_type != "";
-					slot_set_bonus(_slot, "Single Focus", _single ? 1 : 0);
+					slot_set_bonus(_slot, "Single Focus", _single ? 1 : 0, "first"); // the slot's first die only, as its description says
 				}
 	        }
 	    }
