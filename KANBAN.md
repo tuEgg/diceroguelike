@@ -23,11 +23,6 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 11: keepsake crash | B93 | `fix/keepsake-crash` | **Ready to test.** Navigation Chart crashed (black screen on web) when a slot's last die rolled its minimum and the next slot was empty. Rusty Rudder could hit a dead enemy. |
-
-**Batch 11 test list**
-- B93 Take Navigation Chart (F1 > Keepsakes). Fill slot 1, leave slot 2 empty, fill slot 3. Play until slot 1's last die rolls its minimum: no crash, and the first die of slot 3 rolls twice. Within a slot, the next die still rolls twice.
-- B93 Take Rusty Rudder in a fight with two enemies. Kill one, then roll minimums: the damage only ever lands on the living enemy. Kill the last one mid-queue: no crash.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -240,6 +235,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | F05 | Death and victory show a voyage summary: cause, chapter and spread, run stats (saved with the run). Fixed a crash on death in the web build | Batch 10: playtest-ready | 2026-11-16 |
 | F13 | Settings > Gameplay > Combat speed: Slow, Normal, Fast, Fastest | Batch 10: playtest-ready | 2026-11-16 |
 | B92 | Main menu drew over Settings; it now hides while Settings is open | Batch 10: playtest-ready | 2026-11-16 |
+| B93 | Navigation Chart crashed (web black screen) when the next slot was empty; Rusty Rudder could hit a dead enemy | Batch 11: keepsake crash | 2026-11-17 |
 
 **Milestones**
 
