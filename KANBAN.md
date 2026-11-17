@@ -23,7 +23,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 12: playtest notes | F56, F57, F58, F59, F61, F62, F63, F64, B94–B109 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
+| 12: playtest notes | F56–F59, F61–F64, F66–F69, B94–B112 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
 
 **Batch 12 test list**
 - F56 Quill (10 insight): click a glowing intent and two buttons appear under it, Reroll and Halve. Reroll: the enemy picks a different move. Halve: the number halves (range or exact), "Halved" shows under the intent, and the enemy's attack/block/heal really comes out at half. Forced moves can still be halved but not rerolled; buffs and debuffs can be rerolled but not halved (greyed, with a reason on hover). Clicking elsewhere puts the quill down. Once per turn.
@@ -64,6 +64,17 @@
 - F64 Main menu items are always drawn as buttons, not plain text until hovered. The abandon-run warning says "Start anew" / "Keep voyage".
 - F64 Writing: "a die" / "1 die" / "this die" wherever one die is meant (dice and keepsake descriptions, events, prompts); the new-slot tile says "Sacrifice 1 die" or "2 dice"; an empty slot says "Empty" with no "(0-0)".
 - F64 Tooltips have a logbook look: dark ink, a thin cream rule inside the edge and small diamonds at the corners; keyword boxes are plainer. Coloured words (insight, keywords) still read clearly.
+
+**Batch 12, round 4 (2026-11-17 feedback)**
+- B110 Buttons are no longer black boxes (main menu, settings, pause...): panels are now drawn straight to the screen, with the same wobbly ink edges, held still. Draft pages: unchosen ones look normal; a chosen one has a green rounded frame. (If a page still looks black, send a screenshot.)
+- B111 Splash Die: a total below 0 counts as 0 (description says so).
+- F66 Tooltips stay where they first appeared (beside the pointer) while you keep hovering the same thing, instead of following the mouse. Moving to another thing places a new one.
+- B108 Reward flash, third try: taking a reward die no longer creates the flying die in the middle of drawing (it's made in the next step). Tell me on web whether the flash is gone.
+- B112 The dimming starts exactly where the top bar ends (rewards, new-run offer, map). Long reward names wrap inside their frames.
+- F67 Shop: clicking an item with your slots full says "No room"; anything you can't afford says how much more gold you need.
+- F67 End Turn uses the same green as Embark and gently breathes once your hand is empty.
+- F68 For review: while a workbench visit is free, the ship on the map glows with a small hammer-and-wrench badge; clicking the ship opens the workbench (tooltip says the workbench is below deck). The "Visit the workbench" button still works too. Tell me if the ship should replace the button.
+- F69 UI kit, phase 2: every button has a soft shadow, sinks a little while held, and a greyed-out one is a muted colour with readable text. The pause menu, voyage summary and spread-end choice sit on one logbook panel (dark ink, cream rule, corner diamonds) with a divider under the title.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -146,6 +157,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F31 Workbench: choose which dice to draw; Dye tool; multiple crafts per visit?
 - F32 Alignment/compass effects that actually matter mid-run
 - F33 Rarity on every item + rolled offers
+- F65 **Room transitions (idea, 2026-11-17).** Today rooms cut straight over. Common choices: a quick fade through black (0.2 to 0.4 s; Slay the Spire-style, cheap and clear), a themed wipe (an ink wash or blot spreading across the page, or a page turn, fits the logbook), or a short slide. Suggestion: an ink-wash wipe into map/rooms and a fast page flip for chapter changes, both under half a second so play stays quick.
 - F60 **Outguess as a class idea (parked 2026-11-17).** Jared still likes Outguess (insight rolled this turn that beats your target's number halves its move, cut from batch 8 as too complex for everyone). Keep it for a future class built around reading enemies. Classes are cut for now (2026-11-15), so don't start.
 
 **Juice**
