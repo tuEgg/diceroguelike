@@ -439,37 +439,25 @@ if (room == rmMap) {
 			var exit_col = c_dkgray;
 			if (pages_drafted == 2) exit_col = c_red;
 
-			var hover_exit = mouse_hovering(display_get_gui_width() * 3/4, gui_h - 100, embark_scale * sprite_get_width(sButtonSmall) * 1.0, embark_scale * sprite_get_height(sButtonSmall) * 0.8, true, noone, soClick2, true);
-
+			// Embark: a kit button that glows and breathes once both pages are chosen, fading in with the pages
 			var embark_ready = (exit_col == c_red);
-			if (embark_ready) exit_col = global.ui_primary; // the go colour, once both pages are chosen
 			var embark_pulse = embark_ready ? (0.5 + 0.5 * sin(current_time / 220)) : 0;
-			if (hover_exit && embark_ready) {
-				if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
-					choices_locked = true;
-					save_game(1);
-				}
-				embark_scale = lerp(embark_scale, 1.2, 0.2);
-			} else {
-				embark_scale = lerp(embark_scale, 1.0 + 0.08 * embark_pulse, 0.2);
-			}
-
 			var embark_x = display_get_gui_width() * 3/4, embark_y = gui_h - 100;
-			// a soft glow behind it while it waits to be pressed
+			var embark_w = 240, embark_h = 84;
 			if (embark_ready) {
-				var glow_w = sprite_get_width(sButtonSmall) * embark_scale * 0.5 + 14 + 8 * embark_pulse;
-				var glow_h = sprite_get_height(sButtonSmall) * embark_scale * 0.4 + 12 + 6 * embark_pulse;
+				var glow_w = embark_w / 2 * embark_scale + 16 + 8 * embark_pulse;
+				var glow_h = embark_h / 2 * embark_scale + 12 + 6 * embark_pulse;
 				draw_set_color(global.color_intel);
 				draw_set_alpha(pages_alpha * (0.25 + 0.3 * embark_pulse));
 				draw_roundrect_ext(embark_x - glow_w, embark_y - glow_h, embark_x + glow_w, embark_y + glow_h, 30, 30, false);
 				draw_set_alpha(1);
 			}
-			draw_set_font(ftBigger);
-			draw_set_halign(fa_center);
-			draw_set_valign(fa_middle);
-			draw_sprite_ext(sButtonSmall, 0, embark_x, embark_y, embark_scale*1.0, embark_scale*0.8, 0, exit_col, pages_alpha);
-			draw_outline_text("Embark", c_black, c_white, 2, embark_x, embark_y, embark_scale, pages_alpha, 0);
-			if (hover_exit && !embark_ready) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Embark", "Choose two pages first.");
+			var embark_btn = ui_button(embark_x, embark_y, embark_w * (1 + 0.05 * embark_pulse), embark_h * (1 + 0.05 * embark_pulse), embark_scale, "Embark", embark_ready ? global.ui_primary : global.ui_neutral, embark_ready, "Choose two pages first.", UI_LAYER.BASE, pages_alpha, ftBigger);
+			embark_scale = embark_btn.scale;
+			if (embark_btn.click) {
+				choices_locked = true;
+				save_game(1);
+			}
 		} else {
 			ds_list_clear(pages_shown);
 		}

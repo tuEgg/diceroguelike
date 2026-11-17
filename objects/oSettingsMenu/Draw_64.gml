@@ -5,8 +5,8 @@ if (global.show_settings) {
 	var gui_w = display_get_gui_width();
 	var gui_h = display_get_gui_height();
 
-	// cover background
-	draw_set_color(global.color_bg);
+	// cover background: deep ink
+	draw_set_color(make_color_rgb(18, 22, 32));
 	draw_set_alpha(1.0);
 	draw_rectangle(0, 0, gui_w, gui_h, false);
 	
@@ -19,13 +19,14 @@ if (global.show_settings) {
 	var inner_settings_padding = display_get_gui_width() / 40; // 30 pixels on 1920px width screen
 	var setting_h = 60;
 	
-	// settings background
-	draw_set_color(c_black);
-	draw_set_alpha(1.0);
-	draw_rectangle(settings_x, settings_y, settings_x  + total_settings_w, settings_y  + total_settings_h, true);
-	draw_rectangle(settings_x + 1, settings_y + 1, settings_x  + total_settings_w - 1, settings_y  + total_settings_h - 1, true);
-	draw_set_alpha(0.5);
-	draw_rectangle(settings_x, settings_y, settings_x  + total_settings_w, settings_y  + total_settings_h, false);
+	// the window: a logbook panel with its title above and a rule under it (UI kit)
+	ui_panel(settings_x, settings_y, settings_x + total_settings_w, settings_y + total_settings_h);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_font(ftBigger);
+	draw_outline_text("Settings", c_black, c_white, 3, gui_w / 2, settings_y - 70, 1, 1, 0);
+	ui_divider(gui_w / 2 - 200, gui_w / 2 + 200, settings_y - 30);
+	draw_set_alpha(1);
 	
 	// draw categories
 	for (var i = 0; i < array_length(categories); i++) {
@@ -33,8 +34,8 @@ if (global.show_settings) {
 		var cat_x = settings_x - cat_w/2;
 		var cat_y = settings_y + (cat_h*i) + cat_h/2;
 		
-		var col = c_dkgray;
-		if (i == category_index) col = c_aqua;
+		var col = global.ui_neutral;
+		if (i == category_index) col = global.ui_primary; // the open tab
 		
 		var category_btn = draw_gui_button(cat_x, cat_y, cat_w, cat_h, category.scale, category.name, col, ftBig, true, true, UI_LAYER.SETTINGS);
 		

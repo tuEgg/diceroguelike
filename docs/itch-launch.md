@@ -31,4 +31,6 @@ Switch Visibility to **Public** when you're happy. Each update after that: expor
 
 - **Licence:** GameMaker's free licence is for non-commercial games. A free (no payments) itch.io page fits that, but check GameMaker's licence page before you take money for it.
 - **Updating faster later:** itch.io's command-line uploader, `butler`, can push a build folder in one command. Claude can set that up once you've made an itch.io API key (you keep the key; it never goes in the repo).
-- **Before going public**, from the board: the intro cutscene replays on every launch (B69), which is more noticeable in a browser; the art style (F50) and the insight icons (F51) are placeholders; there's no tutorial yet.
+- **Known web-build rough edges** (KANBAN): shapes drawn in code (button panels, pips, icon outlines) look a little jagged in the browser (B118, parked until real UI art); the desktop build is smooth. Art (F50) is placeholder.
+- **AI disclosure:** itch.io asks; tick **Code** and **Text & Dialog** (tutorial notes, tips and some in-game text were written with Claude Code). The insight icons and UI shapes are drawn in code, not generated images.
+- **What to ask testers:** what confused them, where they died and to what, what they never used (consumables, the workbench, Quill), and what made them want another run. Bring the answers back and we pick the next batch from KANBAN ("Waiting for playtest feedback").

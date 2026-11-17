@@ -238,10 +238,11 @@ if (show_bag_contents) {
 	var bag_inner_padding = 200; // offset from the edges to start drawing dice
 	var bag_outer_padding = 170;
 	
-	// Draw darkened background
+	// darken everything below the top bar (the bar stays in full colour)
 	draw_set_alpha(0.65);
-	draw_set_color(make_color_rgb(24, 20, 32));
-	draw_roundrect(0, 0, display_get_gui_width(), display_get_gui_height(), false);
+	draw_set_color(make_color_rgb(18, 22, 32));
+	draw_rectangle(0, ui_top_bar_h(), display_get_gui_width(), display_get_gui_height(), false);
+	draw_set_alpha(1);
 	
 	// Draw bag title
 	draw_set_font(ftBigger);
@@ -255,11 +256,9 @@ if (show_bag_contents) {
 		}
 	}
 	
-	draw_outline_text(bag_title, c_black, c_white, 2, bag_outer_padding, bag_outer_padding - 50, 1, 1, 0);
-	
-	draw_set_color(make_color_rgb(24, 20, 32));
-	draw_set_alpha(0.85);
-	draw_roundrect(bag_outer_padding, bag_outer_padding, display_get_gui_width() - bag_outer_padding, display_get_gui_height() - bag_outer_padding, false);
+	draw_outline_text(bag_title, c_black, c_white, 2, bag_outer_padding, bag_outer_padding - 56, 1, 1, 0);
+	ui_divider(bag_outer_padding, bag_outer_padding + 420, bag_outer_padding - 10);
+	ui_panel(bag_outer_padding, bag_outer_padding, display_get_gui_width() - bag_outer_padding, display_get_gui_height() - bag_outer_padding);
 	
 	var bag_width =		display_get_gui_width() - (bag_inner_padding * 2);
 	var bag_height =	display_get_gui_height() - (bag_inner_padding * 2);

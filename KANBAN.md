@@ -15,7 +15,13 @@
 
 | ID | Task | Notes |
 |---|---|---|
-| | Nothing right now. Jared: itch.io launch when ready (`docs/itch-launch.md`). | |
+| H09 | **itch.io playtest build** (Jared, 2026-11-17): export the web build, put it on itch.io (`docs/itch-launch.md`), share it, collect feedback. | Next batches wait for the feedback (below). |
+
+**Waiting for playtest feedback** (agreed 2026-11-17: pick from these once testers have played, in this order unless feedback says otherwise)
+1. Game feel: room transitions (F65) and trigger animations (F40).
+2. Content gaps: stub keepsakes (F22), stronger consumables (F24), Giant Conch (F20).
+3. Between-pages choices, the rest of F02 (design talk first).
+4. Tech debt: one effect dispatcher (T03), input out of Draw GUI (T06).
 
 ---
 
@@ -277,6 +283,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | B115 | Exclusive dice eject whatever is in a slot | Batch 12: playtest notes | 2026-11-17 |
 | B116 | Bag icon drawn above the map | Batch 12: playtest notes | 2026-11-17 |
 | B117 | Smooth edges on desktop (anti-aliasing, rounder circles, minimum icon strokes) | Batch 12: playtest notes | 2026-11-17 |
+| F71 | Settings, bag view, Kill/Spare and Embark on the logbook kit; buttons keep their shape while growing | Batch 13: UI polish | 2026-11-17 |
 
 **Milestones**
 

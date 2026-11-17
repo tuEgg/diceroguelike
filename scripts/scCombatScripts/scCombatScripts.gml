@@ -2149,7 +2149,7 @@ function tutorial_map_rect(_target) {
 				}
 				return { x: _x1, y: _y1, w: _x2 - _x1, h: _y2 - _y1 };
 			case "embark":
-				var _ew = sprite_get_width(sButtonSmall), _eh = sprite_get_height(sButtonSmall) * 0.8;
+				var _ew = 240, _eh = 84; // the Embark kit button (oWorldManager Draw GUI)
 				return { x: display_get_gui_width() * 3/4 - _ew / 2, y: display_get_gui_height() - 100 - _eh / 2, w: _ew, h: _eh };
 			case "first_stop":
 				// the first stop not yet cleared, in the order the pages were chosen
