@@ -454,7 +454,7 @@ if (show_bag_contents) {
 	draw_set_alpha(0.4);
 	draw_rectangle(bag_inner_padding, bag_inner_padding + scrollbar_y, bag_inner_padding + scrollbar_w, bag_inner_padding + scrollbar_y + scrollbar_h, false);
 	
-	var scroll_bar_hover = mouse_hovering(bag_inner_padding, bag_inner_padding + scrollbar_y, scrollbar_w, scrollbar_h, false);
+	var scroll_bar_hover = mouse_hovering(bag_inner_padding, bag_inner_padding + scrollbar_y, scrollbar_w, scrollbar_h, false, noone, soClick4, true, UI_LAYER.BAG);
 	
 	if (scroll_bar_hover) {
 		
@@ -478,6 +478,9 @@ if (show_bag_contents) {
 	
 if (dice_selection != false) {
 	show_bag_contents = true;
+	// the picker is a window: raise the layer so buttons underneath (the workbench's Exit sits right under Confirm)
+	// can't be clicked through it
+	if (global.ui_layer < UI_LAYER.BAG) global.ui_layer = UI_LAYER.BAG;
 	
 	bag_title = dice_selection_message;
 		
@@ -486,7 +489,7 @@ if (dice_selection != false) {
 	var button_text = "Confirm";
 	var button_scale = 1.0;
 
-	var hover_dice_selection = mouse_hovering(gui_w - 150, gui_h - 200, dice_selection_scale * sprite_get_width(sButtonSmall) * button_scale, dice_selection_scale * sprite_get_height(sButtonSmall), true);
+	var hover_dice_selection = mouse_hovering(gui_w - 150, gui_h - 200, dice_selection_scale * sprite_get_width(sButtonSmall) * button_scale, dice_selection_scale * sprite_get_height(sButtonSmall), true, noone, soClick4, true, UI_LAYER.BAG);
 
 	if (hover_dice_selection) {
 		if (mouse_check_button_pressed(mb_left) && (dice_selection_num_selected == dice_selection || (dice_selection_up_to && dice_selection_num_selected <= dice_selection))) {
