@@ -1085,6 +1085,11 @@ if (show_rewards) {
 	draw_set_color(c_white);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
+	// the rewards sit on one logbook panel (UI kit), title and a rule at the top
+	ui_panel(gui_w/2 - 640, gui_h/2 - 390, gui_w/2 + 640, gui_h/2 + 330);
+	ui_divider(gui_w/2 - 220, gui_w/2 + 220, gui_h/2 - 268);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_top);
 	draw_set_font(ftBigger);
 	draw_outline_text("Rewards!", c_black, c_white, 2, gui_w/2, gui_h/2 - 350, 1, 1, 0);
 	draw_set_font(ftDefault);
@@ -1454,7 +1459,7 @@ if (show_rewards) {
 	    reward_next_hover * 0.65,                      
 	    reward_next_hover * 0.65,          // current scale
 	    0,
-	    next_btn_col,
+	    ui_button_col(next_btn_col), // Next is the go action (green), the last Exit a neutral one
 	    1.0
 	);
 	
