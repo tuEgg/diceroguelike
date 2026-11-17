@@ -1,3 +1,13 @@
+// a reward die taken in Draw GUI flies to the bag from here (instances aren't created while drawing)
+if (pending_reward_die != undefined) {
+	var _rd = pending_reward_die;
+	pending_reward_die = undefined;
+	var _p = instance_create_depth(_rd.x, _rd.y, -10, oDiceParticle);
+	_p.target_x = _rd.tx;
+	_p.target_y = _rd.ty;
+	_p.die_struct = _rd.die;
+}
+
 // the pause menu freezes the fight (F35); it is still drawn behind the menu
 if (instance_exists(oRunManager) && oRunManager.paused) exit;
 

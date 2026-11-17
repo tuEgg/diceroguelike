@@ -1247,11 +1247,9 @@ if (show_rewards) {
 
 			    // --- Click logic: Take reward ---
 			    if (!rewards_dice_taken && btn.click) {
-			        var p = instance_create_layer(btn.x + btn.w / 2, btn.y + btn.h / 2, "Instances", oDiceParticle);
-			        p.target_x = global.gui.play_w;
-			        p.target_y = gui_h - global.gui.play_h / 2;
-			        p.color_main = die.color;
-			        p.die_struct = clone_die(die, "");
+			        // the flying die is made next Step (combat Step), not here: creating an instance in the middle of drawing
+			        // made the web build skip the reward overlay for a frame (the flash, B108)
+			        pending_reward_die = { x: btn.x + btn.w / 2, y: btn.y + btn.h / 2, tx: global.gui.play_w, ty: gui_h - global.gui.play_h / 2, die: clone_die(die, "") };
 
 			        rewards_dice_taken = true;
 			        global.bag_size++;

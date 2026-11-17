@@ -166,6 +166,7 @@ reward_dice_options = undefined;
 reward_consumable_options = undefined;
 reward_keepsake_options = undefined;
 rewards_dice_taken = false;
+pending_reward_die = undefined; // a reward die waiting to fly to the bag (made in Step)
 rewards_consumables_first_taken = -1;
 rewards_consumables_second_taken = false;
 rewards_consumables_locked = -1;
