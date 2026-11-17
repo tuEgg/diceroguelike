@@ -48,7 +48,7 @@ for (var c = 0; c < ds_list_size(shop_consumable_options); c++) {
 	if (hover_con && alpha > 0) {
 		var die = undefined;
 		if (string_pos("Core", consumable.name) > 0) {
-			die = clone_die(global.dice_d6_atk, "");
+			die = core_preview_die();
 			die.distribution = consumable.distribution;
 		}
 		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), consumable.name, consumable.description, undefined, 0, die);

@@ -776,7 +776,7 @@ function debug_menu_draw() {
 				if (debug_hovered(bx, by, half_w, row_h)) {
 					var core_die = undefined;
 					if (item.type == "core") {
-						core_die = clone_die(global.dice_d6_atk, "");
+						core_die = core_preview_die();
 						core_die.distribution = item.distribution;
 					}
 					debug_tip(item.name, item.description, item.sprite, item.index, core_die);

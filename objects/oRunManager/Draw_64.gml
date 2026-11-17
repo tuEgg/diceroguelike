@@ -129,7 +129,7 @@ if (new_run_offering) {
 		
 		if (core_btn.hover) {
 			var cored_die = undefined;
-			cored_die = clone_die(global.dice_d6_atk, "");
+			cored_die = core_preview_die();
 			cored_die.distribution = core.distribution;
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), core.name, core.description, undefined, 0, cored_die);
 		}
@@ -261,7 +261,7 @@ for (var i = 0; i < array_length(items); i++) {
 		if (items_hover[i]) {
 			var die = undefined;
 			if (string_pos("Core", items[i].name) > 0) {
-				die = clone_die(global.dice_d6_atk, "");
+				die = core_preview_die();
 				die.distribution = items[i].distribution;
 			}
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), items[i].name, items[i].description, undefined, 0, die);

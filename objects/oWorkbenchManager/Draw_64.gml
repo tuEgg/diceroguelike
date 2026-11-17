@@ -119,7 +119,7 @@ for (var i = 0; i < wb_list_size; i++) {
 	}
 
 	if (workbench_slot[1].core != undefined && i == 1) {
-		var d = clone_die(global.dice_d6_atk, "");
+		var d = core_preview_die();
 		d.distribution = workbench_slot[i].core.distribution;
 
 		draw_dice_distribution(d, slot_x, _bar_y, true);

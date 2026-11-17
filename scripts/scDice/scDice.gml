@@ -1280,10 +1280,14 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0) {
 
 // draw_dice_distribution(_die, _x, _y, _centered = false)
 function draw_dice_distribution(_die, _x, _y, _centered = false) {
-	var dice_output = get_dice_output(_die, undefined, -1, true, "player");
-			
-	var _min_roll = dice_output.min_roll;
-	var _max_roll = dice_output.max_roll;
+	// a core's preview shows the core's own shape on a plain d6: keepsakes (Weapon Polish...) don't touch it
+	var _min_roll = 1;
+	var _max_roll = _die.dice_value;
+	if (!variable_struct_exists(_die, "core_preview")) {
+		var dice_output = get_dice_output(_die, undefined, -1, true, "player");
+		_min_roll = dice_output.min_roll;
+		_max_roll = dice_output.max_roll;
+	}
 	
 	var distribution_array = [];
 	var xx = _x;
@@ -1623,4 +1627,15 @@ function die_size_changed(_die) {
 /// @desc An action type as the player reads it. Intel is called Insight on screen; the code keeps "INTEL".
 function action_type_label(_type) {
 	return string_replace_all(string(_type), "INTEL", "INSIGHT");
+}
+
+/// @func core_preview_die()
+/// @desc A plain d6 used to preview a core's distribution (set its .distribution). Marked so keepsakes and slot
+///       bonuses never change the preview (draw_dice_distribution).
+function core_preview_die() {
+	var _d = clone_die(global.dice_d6_atk, "");
+	_d.possible_type = "None";
+	_d.action_type = "None";
+	_d.core_preview = true;
+	return _d;
 }

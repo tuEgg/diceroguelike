@@ -44,7 +44,7 @@ if (room == rmBounty) {
 	if (hover_con && alpha > 0) {
 		var die = undefined;
 		if (string_pos("Core", pot.name) > 0) {
-			die = clone_die(global.dice_d6_atk, "");
+			die = core_preview_die();
 			die.distribution = pot.distribution;
 		}
 		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), pot.name, pot.description + " Free to take.", undefined, 0, die);
@@ -178,7 +178,7 @@ if (room == rmBounty) {
 					var die = undefined;
 					if (variable_struct_exists(_bounty.rewards[r], "distribution")) {
 						if (string_pos("Core", _bounty.rewards[r].name) > 0) {
-							die = clone_die(global.dice_d6_atk, "");
+							die = core_preview_die();
 							die.distribution = _bounty.rewards[r].distribution;
 						}
 					}

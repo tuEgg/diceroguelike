@@ -2039,7 +2039,7 @@ function tips_list() {
 		},
 		{
 			id: "workbench", room: rmWorkbench, target: "wb_slots",
-			text: "Put a die in the first slot and drag a core from the top bar into the middle one. Each tool works once per visit; click a finished die to take it back for another tool.",
+			text: "Put a die in the first slot and drag a core from the top bar into the middle one. Each tool works once per visit; click a finished die to send it to your bag.",
 			when: function() { return instance_exists(oWorkbenchManager) && !oWorkbenchManager.pick_pending && oRunManager.dice_selection == false; },
 			done: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined; },
 		},
