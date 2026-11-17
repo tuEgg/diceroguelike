@@ -389,6 +389,26 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
     if (!global.tooltip_active) {
         global.tooltip_active = true;
 
+		// a tooltip asked for at the mouse is pinned where it first appeared, beside the pointer, and stays there while
+		// the same thing is hovered (it no longer follows the mouse)
+		if (!variable_global_exists("tooltip_pin")) global.tooltip_pin = { name: "", x: 0, y: 0, frame: -10 };
+		if (!variable_global_exists("tooltip_frame")) global.tooltip_frame = 0;
+		var _at_mouse = abs(_x - device_mouse_x_to_gui(0)) < 2 && abs(_y - device_mouse_y_to_gui(0)) < 2;
+		if (_at_mouse) {
+			var _pin = global.tooltip_pin;
+			if (_pin.name == _name && global.tooltip_frame - _pin.frame <= 2) {
+				_x = _pin.x;
+				_y = _pin.y;
+			} else {
+				_x += 30 * global.ui_scale;
+				_y += 34 * global.ui_scale;
+				_pin.name = _name;
+				_pin.x = _x;
+				_pin.y = _y;
+			}
+			_pin.frame = global.tooltip_frame;
+		}
+
         global.tooltip_main = {
             x: _x, y: _y, name: _name, desc: _desc,
             icon: _icon, index: _index, dice: _dice
@@ -453,9 +473,7 @@ function draw_all_tooltips() {
 			_max_w = max(_max_w, _s.w);
 		}
 
-		// a tooltip at the mouse sits down and to the right of the pointer, clear of it
-		var xx = tt.x, yy = tt.y;
-		if (abs(xx - device_mouse_x_to_gui(0)) < 2 && abs(yy - device_mouse_y_to_gui(0)) < 2) { xx += 30 * global.ui_scale; yy += 34 * global.ui_scale; }
+		var xx = tt.x, yy = tt.y; // pinned beside the pointer by queue_tooltip
 		if (xx + _max_w > display_get_gui_width() - 10) xx = display_get_gui_width() - _max_w - 10;
 		if (yy + _total_h > display_get_gui_height() - 10) yy = display_get_gui_height() - _total_h - 10;
 		xx = max(10, xx); yy = max(10, yy);
@@ -470,6 +488,7 @@ function draw_all_tooltips() {
     }
 
     // Reset for next frame
+	if (variable_global_exists("tooltip_frame")) global.tooltip_frame++;
     global.tooltip_active = false;
     global.tooltip_main = undefined;
     global.tooltip_keywords = [];

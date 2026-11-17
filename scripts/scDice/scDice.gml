@@ -937,7 +937,7 @@ function generate_dice_bag() {
 	
 	global.die_splash = make_die_struct(
 	    1, 10, "BLK", "BLK", "", "Splash Die",
-	    "-2 on every roll.",
+	    "-2 on every roll (never below 0).",
 		"common",
 		60,
 	    [

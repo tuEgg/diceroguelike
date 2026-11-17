@@ -138,6 +138,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					}
 					
 					final_roll = ctx._d_amount + slot_bonus_amount + _keepsake_dice_bonus_amount;
+					final_roll = max(0, final_roll); // a die never rolls below 0 (Splash's -2 on a 1)
 
 					// bonuses that only apply to the first die in the slot (Repeater Rail)
 					if (_dice_list_index == 0 && !first_die_bonus_used && _slot_number >= 0 && _slot_number < ds_list_size(oCombat.action_queue)) {
