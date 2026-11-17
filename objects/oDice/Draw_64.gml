@@ -27,6 +27,8 @@ if (struct.rarity != "starter") {
 
 // --- Draw effect keyword icons ---
 draw_dice_keywords(struct, x, y, 1);
+// Settings > Display > Action icons on dice: a small symbol so types don't rely on colour alone
+if (global.action_icons) draw_action_type_icon(struct.action_type, x - sprite_width * 0.32, y + sprite_height * 0.32, scale);
 
 if (debug_mode) {
     draw_set_color(c_black);

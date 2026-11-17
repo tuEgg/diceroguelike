@@ -96,9 +96,23 @@ draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
 dice_played_scale = lerp(dice_played_scale, 1.0, 0.05);
 dice_played_color = merge_colour(dice_played_color, c_white, 0.05);
-var played_dice_string = string(dice_allowed_per_turn - dice_played);
-draw_outline_text(played_dice_string, c_black, dice_played_color, 2, end_text_pos - 12, aq_start_y + aq_tile_w/2 - 40, dice_played_scale, 1.0, 0);
-draw_sprite_ext(sDice, 3, end_text_pos + 28, aq_start_y + aq_tile_w/2 - 40, 0.5, 0.5, 0, c_white, 1.0);
+// plays left this turn, as a row of pips: filled for each play left, hollow for each used (coins don't use one)
+var _plays_total = max(dice_allowed_per_turn, dice_played);
+var _plays_left = max(0, dice_allowed_per_turn - dice_played);
+var _pip = 14 * dice_played_scale, _pip_gap = 6;
+var _pips_w = _plays_total * _pip + (_plays_total - 1) * _pip_gap;
+var _pips_x = end_text_pos + 8 - _pips_w / 2, _pips_y = aq_start_y + aq_tile_w/2 - 40;
+draw_set_font(ftSmall);
+draw_outline_text((_plays_left == 1) ? "1 play left" : string(_plays_left) + " plays left", c_black, dice_played_color, 2, end_text_pos + 8, _pips_y - 22, 1, 1.0, 0);
+for (var _p = 0; _p < _plays_total; _p++) {
+	var _px = _pips_x + _p * (_pip + _pip_gap);
+	draw_set_color(c_black);
+	draw_roundrect_ext(_px - 2, _pips_y - _pip / 2 - 2, _px + _pip + 2, _pips_y + _pip / 2 + 2, 6, 6, false);
+	draw_set_color((_p < _plays_left) ? dice_played_color : make_color_rgb(60, 60, 70));
+	draw_roundrect_ext(_px, _pips_y - _pip / 2, _px + _pip, _pips_y + _pip / 2, 5, 5, false);
+}
+draw_set_color(c_white);
+draw_set_font(ftBig);
 
 // Click handling
 if (play_btn.click && state == CombatState.PLAYER_INPUT && !is_dealing_dice && tutorial_allows("end_turn")) {
@@ -468,6 +482,7 @@ for (var i = 0; i < aq_list_size; i++) {
 			
 			// Draw keyword icons above
 			draw_dice_keywords(die_struct, xx_top + 3, yy_top - 34, 1);
+			if (global.action_icons) draw_action_type_icon(die_struct.action_type, xx_top - 13, yy_top + 13, 0.8); // Settings > Display > Action icons on dice
 			
 			// Slot bonus badge in the die's bottom-right corner: every-die bonuses, plus first-die ones on the first die.
 			// The keyword icons sit above the die and the rolled number in its middle, so the corner is free.

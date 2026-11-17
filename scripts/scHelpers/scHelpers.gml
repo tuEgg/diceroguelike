@@ -1750,3 +1750,23 @@ function insight_rot(_x, _y, _lx, _ly, _scale) {
 function ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active = true, _reason = "", _layer = UI_LAYER.BASE) {
 	return draw_gui_button(_cx - _w / 2, _cy - _h / 2, _w, _h, _scale_ref, _text, _col, ftBig, _active, true, _layer, noone, soClick2, _reason, true);
 }
+
+/// @func draw_action_type_icon(_type, _x, _y, _scale)
+/// @desc A small round badge with the symbol of an action type (attack, block, heal, insight), drawn on dice when
+///       Settings > Display > Action icons on dice is on, so the types can be told apart without colour (F14).
+function draw_action_type_icon(_type, _x, _y, _scale) {
+	if (_type != "ATK" && _type != "BLK" && _type != "HEAL" && _type != "INTEL") return;
+	var _r = 11 * _scale;
+	draw_set_alpha(1);
+	draw_set_color(c_black);
+	draw_circle(_x, _y, _r + 2, false);
+	draw_set_color(make_color_rgb(240, 228, 196));
+	draw_circle(_x, _y, _r, false);
+	switch (_type) {
+		case "ATK": draw_sprite_ext(sIntentIcons, 0, _x, _y, 0.32 * _scale, 0.32 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
+		case "BLK": draw_sprite_ext(sIntentIcons, 1, _x, _y, 0.32 * _scale, 0.32 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
+		case "HEAL": draw_sprite_ext(sIntentIcons, 2, _x, _y, 0.32 * _scale, 0.32 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
+		case "INTEL": draw_insight_icon("legible", _x, _y, 0.55 * _scale, 1); break;
+	}
+	draw_set_color(c_white);
+}

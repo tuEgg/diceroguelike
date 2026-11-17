@@ -5,6 +5,7 @@ global.show_settings = false;
 
 global.resolution_index = 0;
 global.custom_cursor = true; // Settings > Display > Custom cursor (cursor_draw)
+global.action_icons = false; // Settings > Display > Action icons on dice (draw_action_type_icon), for telling types apart without colour
 global.cursor_hidden = false;
 global.cursor_hover_time = 0;
 global.cursor_tilt = 0;
@@ -79,6 +80,12 @@ categories = [
 		scale: 1,
         settings: [
             {
+                name: "Action icons on dice",
+                type: "toggle",
+                get_value: function() { return global.action_icons; },
+                set_value: function(_val) { global.action_icons = _val; },
+            },
+            {
                 name: "Custom cursor",
                 type: "toggle",
                 get_value: function() { return global.custom_cursor; },
@@ -125,7 +132,7 @@ categories = [
 ];
 
 // a web build has no resolution choice: it always fits the page (apply_browser_resolution)
-if (IS_BROWSER) array_delete(categories[1].settings, 2, 1);
+if (IS_BROWSER) array_delete(categories[1].settings, 3, 1); // Resolution (after Action icons, Custom cursor, Fullscreen)
 
 if (file_exists("settings.json")) {
 	load_settings();

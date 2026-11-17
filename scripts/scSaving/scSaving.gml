@@ -383,6 +383,7 @@ function save_settings() {
 		fullscreen: window_get_fullscreen(),
 		combat_speed_index: global.combat_speed_index,
 		custom_cursor: global.custom_cursor,
+		action_icons: global.action_icons,
 	}
 	
 	var _json = json_stringify(_save);
@@ -405,6 +406,7 @@ function load_settings() {
 	global.muted = _save.muted;
 	if (variable_struct_exists(_save, "combat_speed_index")) global.combat_speed_index = _save.combat_speed_index;
 	if (variable_struct_exists(_save, "custom_cursor")) global.custom_cursor = _save.custom_cursor;
+	if (variable_struct_exists(_save, "action_icons")) global.action_icons = _save.action_icons;
 
 	// a browser only allows fullscreen from a click, so a web build doesn't restore it at start-up
 	if (!IS_BROWSER) window_set_fullscreen(_save.fullscreen);
@@ -425,7 +427,8 @@ function check_settings() {
 		|| (global.muted != _save.muted)
 		|| (window_get_fullscreen() != _save.fullscreen)
 		|| (variable_struct_exists(_save, "combat_speed_index") ? global.combat_speed_index != _save.combat_speed_index : global.combat_speed_index != 1)
-		|| (variable_struct_exists(_save, "custom_cursor") ? global.custom_cursor != _save.custom_cursor : !global.custom_cursor) {
+		|| (variable_struct_exists(_save, "custom_cursor") ? global.custom_cursor != _save.custom_cursor : !global.custom_cursor)
+		|| (variable_struct_exists(_save, "action_icons") ? global.action_icons != _save.action_icons : global.action_icons) {
 			settings_changed = true;
 		} else {
 			settings_changed = false;
