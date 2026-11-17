@@ -23,7 +23,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 12: playtest notes | F56–F59, F61–F64, F66–F69, B94–B114 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
+| 12: playtest notes | F02 (workbench part), F56–F59, F61–F64, F66–F69, B94–B114 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
 
 **Batch 12 test list**
 - F56 Quill (10 insight): click a glowing intent and two buttons appear under it, Reroll and Halve. Reroll: the enemy picks a different move. Halve: the number halves (range or exact), "Halved" shows under the intent, and the enemy's attack/block/heal really comes out at half. Forced moves can still be halved but not rerolled; buffs and debuffs can be rerolled but not halved (greyed, with a reason on hover). Clicking elsewhere puts the quill down. Once per turn.
@@ -64,6 +64,14 @@
 - F64 Main menu items are always drawn as buttons, not plain text until hovered. The abandon-run warning says "Start anew" / "Keep voyage".
 - F64 Writing: "a die" / "1 die" / "this die" wherever one die is meant (dice and keepsake descriptions, events, prompts); the new-slot tile says "Sacrifice 1 die" or "2 dice"; an empty slot says "Empty" with no "(0-0)".
 - F64 Tooltips have a logbook look: dark ink, a thin cream rule inside the edge and small diamonds at the corners; keyword boxes are plainer. Coloured words (insight, keywords) still read clearly.
+
+**Batch 12, round 6: the At sea workbench (F02)**
+- F02 The map's "Visit the workbench" button is gone. Finishing a page's island (its last stop) earns a visit: back on the map an "At sea" panel offers "Open the workbench" or "Sail on". Choosing your next stop also counts as sailing on. Ordinary stops no longer earn a visit.
+- F02 Opening the workbench shows your bag: choose up to N dice (N = tools you own, +1 if you own the Hammer; just the Drill = 1). Confirm works with fewer, even none. No dice are dealt at random any more.
+- F02 Each tool works once per visit: when it crafts it vanishes back into the toolbag, and clicking it in the toolbag again says "Used this visit". With two or three tools you can craft two or three times.
+- F02 After a craft, click the finished die (and the Cutters' coin) to take it back into your hand; once the bench is clear the Craft button resets for the next tool. Your other chosen dice stay in your hand between crafts (they used to be sent back to the bag).
+- F02 Exit sends everything in your hand back to the bag, crafted dice included. Check the bag afterwards: right dice, no duplicates, nothing lost.
+- F02 Tips: the map tip now points at the At sea panel; the workbench tip mentions one use per tool.
 
 **Batch 12, round 5 (2026-11-17 feedback)**
 - B108 The reward flash is gone (confirmed on web).
@@ -141,7 +149,7 @@ All known P0 bugs are fixed, see DONE.
 Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
 
 **Core loop**
-- F02 **Rethink what happens between pages (Jared, 2026-11-17).** Proposal being discussed (2026-11-17): the workbench becomes an "At sea" step between pages (after a page's island is done, before the next), replacing the map button. You choose which dice to take from your bag (not dealt at random), up to one per tool you own (plus a core for the Drill); each tool can be used once per visit and goes back in the toolbag after. "Sail on" skips it. Like FTL's ship upgrades between jumps, or the Slay the Spire campfire, but more often and smaller. Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
+- F02 **Rethink what happens between pages (Jared, 2026-11-17).** Workbench part built in batch 12 (At sea). Still open: the spread-end choices themselves. Built version (2026-11-17): the workbench becomes an "At sea" step between pages (after a page's island is done, before the next), replacing the map button. You choose which dice to take from your bag (not dealt at random), up to one per tool you own (plus a core for the Drill); each tool can be used once per visit and goes back in the toolbag after. "Sail on" skips it. Like FTL's ship upgrades between jumps, or the Slay the Spire campfire, but more often and smaller. Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
 - F03 Elite/boss chest reward
 - F05 Die roll-history stats page (death/win screens and the run summary were done in batch 10)
 - F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
@@ -181,7 +189,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 - Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
 - Q7 Resolution targets: just 1080p + 1440p, or arbitrary? (decides how much layout work T07 needs)
-- Q8 Between pages: what should the choices be, and should the workbench stay available after every node? (see F02)
+- Q8 Between pages: what should the choices be? (The workbench is now an At sea stop between pages, F02.)
 
 ## 📌 DECISIONS
 
