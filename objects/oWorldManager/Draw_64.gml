@@ -207,6 +207,7 @@ if (room == rmMap) {
 		draw_outline_text("What happened next?", c_black, c_white, 3, gui_w/2, gui_h * 0.25, 1, pages_alpha, 0);
 		draw_set_font(ftDefault);
 		draw_outline_text("Choose a page to draft", c_black, c_white, 2, bg_w/2, gui_h * 0.29, 1, pages_alpha, 0);
+		if (pages_alpha > 0.05) ui_divider(gui_w/2 - 200, gui_w/2 + 200, gui_h * 0.32, pages_alpha);
 	
 		if (world_state == WORLD_STATE.OPENING) {		
 			book_open_scale = lerp(book_open_scale, 1.0, 0.08);

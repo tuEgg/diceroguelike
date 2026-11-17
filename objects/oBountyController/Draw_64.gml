@@ -237,15 +237,15 @@ if (room == rmBounty) {
 	draw_set_font(ftBigger);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
-	draw_sprite_ext(sButtonSmall, 0, gui_w/2 + 230, gui_h - 250, reroll_scale * 1.3, reroll_scale * 0.9, 0, reroll_col, 1.0);
+	draw_sprite_ext(sButtonSmall, 0, gui_w/2 + 230, gui_h - 250, reroll_scale * 1.3, reroll_scale * 0.9, 0, ui_button_col(reroll_col), 1.0);
 	var string_w = string_width("Re-roll");
 	var coin_w = sprite_get_width(sCoin) * 0.75;
 
 	var coin_offset = string_w/2 + coin_w/2 + 10; // 10 is padding
 	var total_offset = coin_offset / 4;
 
-	draw_sprite_ext(sCoin, 0, gui_w/2 + 230 - coin_offset + total_offset, gui_h - 249, 0.75, 0.75, 0, c_white, 1.0);
-	draw_outline_text("Re-roll", c_black, c_white, 2, gui_w/2 + 230 + total_offset, gui_h - 250, 1, 1, 0);
+	draw_sprite_ext(sCoin, 0, gui_w/2 + 230 - coin_offset * reroll_scale + total_offset, gui_h - 249, 0.75 * reroll_scale, 0.75 * reroll_scale, 0, c_white, 1.0);
+	draw_outline_text("Re-roll", c_black, c_white, 2, gui_w/2 + 230 + total_offset, gui_h - 250, reroll_scale, 1, 0); // grows with the button
 
 	// Draw exit button
 	var exit_col = c_red;

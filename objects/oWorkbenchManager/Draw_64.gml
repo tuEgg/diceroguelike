@@ -178,7 +178,7 @@ switch (crafting_state) {
 		}
 
 		draw_sprite_ext(sButtonSmall, 0, gui_w/2, start_y + 280, (0.2 + button_text_w / 120) * (0.75 * button_scale), 0.75 * button_scale, angle, ui_button_col(craft_col), 1.0);
-		draw_outline_text(button_text, c_black, c_white, 2, gui_w/2, start_y + 280, 1, 1, 0);
+		draw_outline_text(button_text, c_black, c_white, 2, gui_w/2, start_y + 280, button_scale, 1, 0); // the label grows with the button
 	break;
 	
 	case "hammered":
