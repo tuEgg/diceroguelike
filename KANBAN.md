@@ -23,7 +23,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 12: playtest notes | F56, F57, F58, F59, B94–B103 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
+| 12: playtest notes | F56, F57, F58, F59, F61, F62, B94–B108 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
 
 **Batch 12 test list**
 - F56 Quill (10 insight): click a glowing intent and two buttons appear under it, Reroll and Halve. Reroll: the enemy picks a different move. Halve: the number halves (range or exact), "Halved" shows under the intent, and the enemy's attack/block/heal really comes out at half. Forced moves can still be halved but not rerolled; buffs and debuffs can be rerolled but not halved (greyed, with a reason on hover). Clicking elsewhere puts the quill down. Once per turn.
@@ -43,6 +43,16 @@
 - F57 First alignment fight: a tip explains kill vs spare and alignment dice. When the Kill / Spare buttons first appear, a tip points at them. Hovering Kill or Spare explains what each does (gold, compass, bounty contract for elites).
 - B102 Taking a die reward: no black flash. Buttons still look the same and grow on hover.
 - B103 Hover tooltips everywhere still look right (button panels are now reused at rounded sizes).
+
+**Batch 12, round 2 (2026-11-17 feedback)**
+- B104 Rigger's Tonic no longer crashes when dropped on a slot (the item slot was read after it had been used up).
+- B105 Hovering an enemy: the intent icon and number stay visible; the move name no longer appears above (it's the tooltip title). The enemy's name appears under its health bar, in place of "Target" (which hides while hovered); other enemies show "Click to target" under the name.
+- B106 Hovering a die hides the name drawn under it. Keyword boxes (Coin, Sticky...) sit tight under the main tooltip, smaller, with no gap, and the whole stack stays on screen.
+- B107 Buff/debuff tooltips: the description, then a grey line like "2 turns left, Strength 3" (or "Lasts all fight"); nothing about amount when it's 0.
+- B108 Taking a reward die: no black flash (second try: the flying die now sets its draw depth once when created). If it still flashes, say whether it's the web build, the desktop build or both.
+- F61 End of a spread: "Heal X HP" on the left page (small "Recover below deck" above), "Gain a random core" on the right ("Search the hold"), and "Continue" below. Heal is greyed at full health and Gain a core when your item slots are full, each saying why on hover. Text grows with the buttons.
+- F62 Custom cursor: a parchment arrow with an ink edge; it tips forward and gets a gold glint over anything you can hover or click, and dips while the button is held. Settings > Display > Custom cursor turns it off (saved). Check it in the menu, map, fights, settings and the web build.
+- Workbench: crafting now makes a sound (placeholders: a shield clang for the Hammer, rubble for the Drill, a sword swish for the Cutters). There were no tool sounds at all before.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
