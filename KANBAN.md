@@ -23,6 +23,14 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 13: UI polish | F71 | `feature/ui-polish` | **Ready to test.** Settings, the bag view, Kill/Spare and Embark moved onto the logbook kit; buttons keep their shape while growing. |
+
+**Batch 13 test list**
+- F71 Settings (from the main menu and the pause menu): deep ink background, the window on a logbook panel (cream rule, corner diamonds), "Settings" above it over a rule. The tabs are brown, the open one green. Every setting still works, Save and Cancel too.
+- F71 Bag view (click the bag, the discard pile in a fight, and an event or the workbench asking you to pick dice): the top bar stays in full colour, the dice sit on a logbook panel, the title has a rule under it. Clicking outside still closes it (not while picking).
+- F71 Kill / Spare under a beaten alignment or elite enemy: kit buttons (dark red Kill, green Spare) that fade in, grow on hover, and keep their tooltips.
+- F71 Embark: a kit button, brown and greyed until two pages are chosen (hover says "Choose two pages first"), then green with a soft glow, breathing. It fades in and out with the pages. The tutorial still outlines it.
+- F71 Any button you hover keeps the same wobbly outline while it grows (it used to flicker between shapes).
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
