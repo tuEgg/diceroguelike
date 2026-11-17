@@ -37,8 +37,8 @@
 - F72 With the bag open (anywhere: bag icon, discard pile, picking dice), hovering gold, health, items, keepsakes, the toolbag or the compass in the top bar shows their tooltips. Clicking them does nothing until the bag closes.
 - F72 Click a finished die (or the Cutters' coin) on the bench: it flies into your bag (the bag count goes up) instead of back to your hand; the bench resets for the next tool.
 - B120 With Weapon Polish (or any keepsake that changes rolls), the bars previewing a core's distribution (hovering a core in the top bar, the shop, rewards, the start offer, the workbench's middle slot) keep the core's own shape on a plain d6, no stray 1s.
-- F73 New intro (turn it back on in F1 > Hotkeys, or a fresh progress file): a black screen, then four lines fade in one after another, about two seconds apart ("Like any good sailing story..." to "...forever."), hold, and fade out at about 13 seconds. The intro music plays under it and stops at the end. Hold Escape still skips.
-- B119 Drill a Loaded core into a Harvest Die at the workbench: it went black on web. Not fixed yet: send the console trace (F12) from a Debug run (F6) if it happens again.
+- F73 New intro (turn it back on in F1 > Hotkeys, or a fresh progress file): a black screen, then four lines fade in one after another, about two seconds apart ("Like any good sailing story..." to "...forever."), hold, and fade out at about 13 seconds. The intro music plays under it and stops at the end. Hold Escape still skips. Settings > Gameplay > Intro next run turns it back on (saved at once); off again after it plays.
+- B119 Drill a Loaded core into a Harvest Die at the workbench: no black screen (Jared: seems fixed by this batch's workbench changes).
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 

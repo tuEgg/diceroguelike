@@ -119,6 +119,16 @@ categories = [
                 set_value: function(_val) { progress_set_tutorial(_val); }, // saved straight away, separate from Save/Cancel
             },
             {
+                name: "Intro next run",
+                type: "toggle",
+                get_value: function() { return !progress_get("intro_seen"); },
+                set_value: function(_val) {
+					// saved straight away (progress.json); the cutscene manager is already alive, so tell it too
+					progress_set("intro_seen", !_val);
+					if (instance_exists(oCutsceneManager)) oCutsceneManager.cutscenes[0].seen = !_val;
+				},
+            },
+            {
                 name: "Combat speed",
                 type: "dropdown",
                 get_value: function() { return global.combat_speed_index; },
