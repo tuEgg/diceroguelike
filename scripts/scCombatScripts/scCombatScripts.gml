@@ -2064,6 +2064,21 @@ function tips_list() {
 			when: function() { return tips_combat_ready() && intel_is_blotted(); },
 		},
 		{
+			id: "multi_enemy", room: rmCombat, target: "target_enemy",
+			text: "More than one enemy. Your attacks all go to your target, marked under its health bar. Click another enemy to change target any time before you end your turn.",
+			when: function() { return tips_combat_ready() && !tutorial_active() && combat_living_enemies() >= 2; },
+		},
+		{
+			id: "alignment_fight", room: rmCombat, target: "",
+			text: "A crossroads fight. When the enemy falls you choose: Kill it or Spare it. Killing swings your compass (top bar) toward ruthless; sparing swings it toward merciful and pays more gold. Some events and keepsakes care where your compass points. The rewards here are alignment dice.",
+			when: function() { return tips_combat_ready() && oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT; },
+		},
+		{
+			id: "kill_or_spare", room: rmCombat, target: "spare_buttons",
+			text: "Kill or spare? Kill: compass toward ruthless, its bounty in gold. Spare: compass toward merciful, one and a half times the gold, and it sails away. Hover each button for more.",
+			when: function() { return combat_spare_choice_enemy() != undefined; },
+		},
+		{
 			id: "shop", room: rmShop, target: "",
 			text: "A shop. Spend your gold on dice, keepsakes, items and tools. Keepsakes last the whole voyage.",
 		},
@@ -2098,6 +2113,14 @@ function tips_rect(_target) {
 		case "toolbag":
 			// oRunManager Draw GUI draws the toolbag at gui width - 860, in the top bar
 			return { x: display_get_gui_width() - 860 - 50, y: 10, w: 100, h: 100 };
+		case "target_enemy":
+			if (!instance_exists(oCombat) || oCombat.enemy_target_index < 0 || oCombat.enemy_target_index >= ds_list_size(oCombat.room_enemies)) return undefined;
+			var _te = oCombat.room_enemies[| oCombat.enemy_target_index];
+			return { x: _te.pos_x - 110, y: _te.pos_y - 120, w: 220, h: 260 };
+		case "spare_buttons":
+			var _se = combat_spare_choice_enemy();
+			if (_se == undefined) return undefined;
+			return { x: _se.pos_x - 110, y: _se.pos_y + 20, w: 220, h: 60 };
 		case "drill":
 			if (!instance_exists(oDrill)) return undefined;
 			return { x: oDrill.x - 80, y: oDrill.y - 80, w: 160, h: 160 };
@@ -2320,4 +2343,23 @@ function enemy_layout_update() {
 			_enemy.pos_y = lerp(_enemy.pos_y, _y, 0.12);
 		}
 	}
+}
+
+/// @func combat_living_enemies()
+function combat_living_enemies() {
+	if (!instance_exists(oCombat)) return 0;
+	var _n = 0;
+	for (var e = 0; e < ds_list_size(oCombat.room_enemies); e++) if (!oCombat.room_enemies[| e].dead) _n++;
+	return _n;
+}
+
+/// @func combat_spare_choice_enemy()
+/// @desc The enemy showing the Kill / Spare buttons right now, or undefined.
+function combat_spare_choice_enemy() {
+	if (!instance_exists(oCombat)) return undefined;
+	for (var e = 0; e < ds_list_size(oCombat.room_enemies); e++) {
+		var _en = oCombat.room_enemies[| e];
+		if (variable_struct_exists(_en, "alignment_choices_shown") && _en.alignment_choices_shown) return _en;
+	}
+	return undefined;
 }

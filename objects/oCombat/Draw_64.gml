@@ -799,7 +799,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		draw_outline_text("Spare", c_black, c_white, 2, btn2_x, btn2_y, enemy.alignment_option_btn_2_scale, spare_kill_alpha, 0);
 		
 		if (btn_1_hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Kill the enemy", "Lose 5 alignment");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Kill", "Your compass swings 5 toward ruthless. You take its bounty in gold" + ((oWorldManager.current_node_type == NODE_TYPE.ELITE) ? ", and it counts for a bounty contract." : "."));
 			if (mouse_check_button_pressed(mb_left)) {
 				enemy.killed = true;
 				gain_alignment(-5);
@@ -809,7 +809,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		}
 		
 		if (btn_2_hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Spare the enemy", "Gain 5 alignment");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Spare", "Your compass swings 5 toward merciful. It sails away and pays one and a half times its bounty in gold. Spare every enemy and an item reward is guaranteed.");
 			if (mouse_check_button_pressed(mb_left)) {
 				enemy.spared = true;
 				enemy.alignment_choices_shown = false;

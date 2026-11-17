@@ -1088,13 +1088,28 @@ function get_node_by_name(_name) {
 
 // Draws our varied stroke rectangles at scale, so we don't have to keep using sprites!
 function draw_wonky_rectangle(_x, _y, _width, _height, _fill_col, _stroke_col, _alpha, _centered, _highlight) {
-	
+
 	var _scale = 8;
+	// sizes are rounded to 8 pixels and the surface stretched to the real size, so a button growing on hover or click
+	// reuses a few surfaces instead of building a new 8x one every frame (that churn flashed the screen black, T07)
+	var _real_w = _width, _real_h = _height;
+	_width = max(8, round(_width / 8) * 8);
+	_height = max(8, round(_height / 8) * 8);
 	var _key = string(_width) + "x" + string(_height) + "_" + string(_fill_col) + "_" + string(_stroke_col);
 	var _cached = ds_map_find_value(global.button_cache, _key);
-	
+
 	if (!surface_exists(_cached)) {
-		
+		// keep the cache from growing without end: past 150 surfaces, free them all and start again
+		if (ds_map_size(global.button_cache) > 150) {
+			var _k = ds_map_find_first(global.button_cache);
+			while (!is_undefined(_k)) {
+				var _s = global.button_cache[? _k];
+				if (surface_exists(_s)) surface_free(_s);
+				_k = ds_map_find_next(global.button_cache, _k);
+			}
+			ds_map_clear(global.button_cache);
+		}
+
 		var _sw = _width * _scale;
 		var _sh = _height * _scale;
 		var _surf = surface_create(_sw, _sh);
@@ -1222,14 +1237,14 @@ function draw_wonky_rectangle(_x, _y, _width, _height, _fill_col, _stroke_col, _
 	// Draw cached 2x surface at final size, applying alpha here instead of baking it in
 	var _draw_x, _draw_y;
 	if (_centered) {
-		_draw_x = _x - _width / 2;
-		_draw_y = _y - _height / 2;
+		_draw_x = _x - _real_w / 2;
+		_draw_y = _y - _real_h / 2;
 	} else {
 		_draw_x = _x;
 		_draw_y = _y;
 	}
-	
-	draw_surface_ext(_cached, _draw_x, _draw_y, 0.5, 0.5, 0, c_white, _alpha);
+
+	draw_surface_ext(_cached, _draw_x, _draw_y, 0.5 * _real_w / _width, 0.5 * _real_h / _height, 0, c_white, _alpha);
 }
 
 
