@@ -1085,8 +1085,7 @@ if (show_rewards) {
 	draw_set_color(c_white);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
-	// the rewards sit on one logbook panel (UI kit), title and a rule at the top
-	ui_panel(gui_w/2 - 640, gui_h/2 - 390, gui_w/2 + 640, gui_h/2 + 330);
+	// a rule under the title (the panel behind the rewards was tried and taken out)
 	ui_divider(gui_w/2 - 220, gui_w/2 + 220, gui_h/2 - 268);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);

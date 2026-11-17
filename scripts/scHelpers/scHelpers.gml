@@ -412,6 +412,11 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
 				_anchor = global.hover_rect;
 				_x = _anchor.x2 + 14 * global.ui_scale;
 				_y = _anchor.y1;
+				// things in the top bar get their tooltip just below the bar, lined up with them
+				if (_anchor.y2 <= ui_top_bar_h() + 12) {
+					_x = _anchor.x1;
+					_y = ui_top_bar_h() + 8;
+				}
 			} else {
 				_x += 30 * global.ui_scale;
 				_y += 34 * global.ui_scale;
