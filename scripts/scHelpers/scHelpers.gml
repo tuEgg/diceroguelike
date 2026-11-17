@@ -1137,7 +1137,7 @@ function get_node_by_name(_name) {
 
 
 // Draws our hand-drawn panels: a two-tone fill and uneven ink strokes along each edge. Drawn straight to the screen
-// with triangles (no surfaces): each panel's wobble comes from its size and colours, so it holds still frame to frame.
+// with triangles (no surfaces): each panel's wobble comes from its position and colour, so it holds still frame to frame.
 // (The old version built a cached 8x surface per size; buttons growing on hover made new ones every frame, and they
 // rendered black in the web build.)
 function draw_wonky_rectangle(_x, _y, _width, _height, _fill_col, _stroke_col, _alpha, _centered, _highlight) {
@@ -1146,7 +1146,8 @@ function draw_wonky_rectangle(_x, _y, _width, _height, _fill_col, _stroke_col, _
 	var _x2 = _x1 + _width, _y2 = _y1 + _height;
 
 	// steady "random" stroke widths for this panel (the same each frame)
-	var _seed = (round(_width / 8) * 131 + round(_height / 8) * 977 + (_fill_col mod 9973) * 7) mod 100000;
+	// seeded from where the panel sits and its colour, not its size, so a button growing on hover keeps its shape
+	var _seed = (round((_x1 + _x2) / 128) * 131 + round((_y1 + _y2) / 128) * 977 + (_fill_col mod 9973) * 7) mod 100000;
 	var _r = function(_s, _n) { return frac(abs(sin((_s + _n * 12.9898) * 43.7585)) * 1000); };
 	var _otl = 1.5 + 1.0 * _r(_seed, 1);	// half-widths of the ink at each corner
 	var _otr = 3.0 + 1.5 * _r(_seed, 2);
