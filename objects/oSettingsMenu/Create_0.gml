@@ -125,7 +125,7 @@ categories = [
                 set_value: function(_val) {
 					// saved straight away (progress.json); the cutscene manager is already alive, so tell it too
 					progress_set("intro_seen", !_val);
-					if (instance_exists(oCutsceneManager)) oCutsceneManager.cutscenes[0].seen = !_val;
+					if (instance_exists(oCutsceneManager)) oCutsceneManager.cutscenes[0].seen = !_val || debug_mode; // never in a debug run (F6)
 				},
             },
             {

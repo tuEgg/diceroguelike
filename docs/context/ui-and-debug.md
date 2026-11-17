@@ -23,7 +23,7 @@
 - `DEBUG_TOOLS` macro: true when run from the IDE (`debug_mode || GM_build_type == "run"`). Everything below is off in exported builds.
 - **F1** opens the panel (`global.dbg` holds its state); Escape closes it. Tabs: Run, Fight, Combat, Dice, Keepsakes, Items, Events, Rooms, Hotkeys. Widgets are immediate mode: `debug_button` returns true on click, `debug_label`, `debug_hovered` + `debug_tip` for hover tooltips (drawn by the menu itself, on top).
 - **Hotkeys** (`debug_hotkeys`, menu closed): Space kill all and end turn, Backspace take 20, H heal, D draw, N complete spread, F2/F3/F4 speed x1/x2/x4. Older letter keys in `oRunManager/Step_0` (R, C, L, A, S, E, B, T, W, X, G, Q) also use `DEBUG_TOOLS`.
-- **Hooks the game calls** (each does nothing unless the menu asked): `debug_apply_pending_fight` (oCombat Create), `debug_take_next_die` (deal_single_die), `debug_take_forced_event_index` (generate_event), `debug_turn_intel` (turn start), `debug_skip_intro` (oCutsceneManager Create).
-- `debug_settings.json` keeps `skip_intro` between sessions.
+- **Hooks the game calls** (each does nothing unless the menu asked): `debug_apply_pending_fight` (oCombat Create), `debug_take_next_die` (deal_single_die), `debug_take_forced_event_index` (generate_event), `debug_turn_intel` (turn start), `debug_skip_intro` (oCutsceneManager Create: true only in a debug run, F6).
+- The intro never plays in a debug run (F6); otherwise it plays once (progress.json `intro_seen`) and Settings > Gameplay > Intro next run replays it. (`debug_settings.json` still holds an unused `skip_intro`.)
 - Leaving a fight via the menu restores the bag from `bag_snapshot`.
 - The enemy and event name lists at the top of `debug_menu_init` are typed by hand: add new enemies and events there too.

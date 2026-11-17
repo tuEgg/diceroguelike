@@ -3,7 +3,7 @@ cutscenes = [
 		voiceover: sIntro,
 		music: undefined,
 		length: 13, // length in seconds
-		seen: debug_skip_intro() || progress_get("intro_seen"), // plays once ever (progress.json); also skipped when run from GameMaker unless turned back on in F1 (Hotkeys tab)
+		seen: debug_skip_intro() || progress_get("intro_seen"), // plays once ever (progress.json, Settings > Gameplay > Intro next run replays it); never in a debug run (F6)
 		progress_key: "intro_seen", // marked in progress.json when it plays, so it never replays on a later launch
 		triggers: [
 			{
