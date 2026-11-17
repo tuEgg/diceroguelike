@@ -574,14 +574,21 @@ function define_keepsakes() {
 	    trigger: function(event, data) {			
 			if (event == "after_roll_die") {
 				if (data._d_amount == data.min_roll) {
-					// next dice in sequence roll_twice = true
-					if (data.dice_index != ds_list_size(data._slot.dice_list) - 1) {
-						data._slot.dice_list[| data.dice_index+1].roll_twice = true;
-				
-						trigger_keepsake_visual();
-					} else if (data.slot_num != ds_list_size(oCombat.action_queue) -1) {
-						oCombat.action_queue[| data.slot_num + 1].dice_list[| 0].roll_twice = true;
-				
+					// the next die to roll: later in this slot, or the first die of the next slot that has any
+					// (B93: an empty next slot has no die, and marking "nothing" crashed the web build)
+					var _next = undefined;
+					if (data.dice_index < ds_list_size(data._slot.dice_list) - 1) {
+						_next = data._slot.dice_list[| data.dice_index + 1];
+					} else {
+						for (var s = data.slot_num + 1; s < ds_list_size(oCombat.action_queue); s++) {
+							var _later = oCombat.action_queue[| s];
+							if (s == oCombat.locked_slot || ds_list_size(_later.dice_list) == 0) continue;
+							_next = _later.dice_list[| 0];
+							break;
+						}
+					}
+					if (is_struct(_next)) {
+						_next.roll_twice = true;
 						trigger_keepsake_visual();
 					}
 				}
@@ -837,12 +844,17 @@ function define_keepsakes() {
 	        switch (event) {
 	            case "after_roll_die":
 					if (data._d_amount == data.min_roll) {
+						// a random enemy still standing (B93: it could pick one already dead)
+						var _alive = [];
 						with (oCombat) {
-							var rand_index = irandom(ds_list_size(room_enemies) - 1);
-							process_action(room_enemies[| rand_index], 0, data._d_amount + data.slot_bonus + data.keepsake_bonus, 0, "player", -1, "ATK", undefined, undefined, 0);
+							for (var e = 0; e < ds_list_size(room_enemies); e++) {
+								if (!room_enemies[| e].dead) array_push(_alive, room_enemies[| e]);
+							}
+							if (array_length(_alive) > 0) {
+								process_action(_alive[irandom(array_length(_alive) - 1)], 0, data._d_amount + data.slot_bonus + data.keepsake_bonus, 0, "player", -1, "ATK", undefined, undefined, 0);
+							}
 						}
-						
-						trigger_keepsake_visual();
+						if (array_length(_alive) > 0) trigger_keepsake_visual();
 	
 					}
 				break;
