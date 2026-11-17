@@ -356,6 +356,8 @@ for (var i = 0; i < array_length(items); i++) {
 					if (items[i].dragging and mouse_check_button_released(mb_left)) {
 						items[i].dragging = false;
 						holding_item = false;
+						// a potion that goes on a slot: used if it was let go over one
+						if (combat_item_drop(items[i])) items[i] = undefined;
 					}
 			
 					if (items[i].dragging && mouse_check_button_pressed(mb_left)) {

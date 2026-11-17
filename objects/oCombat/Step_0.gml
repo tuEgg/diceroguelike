@@ -561,23 +561,8 @@ if (ds_list_size(feed_queue) > 0) {
     }
 }
 
-for (var e = 0; e < ds_list_size(room_enemies); e++) {
-	var enemy_data = room_enemies[| e].data;
-	var enemy = room_enemies[| e];
-	
-	// move enemies whenever we change the size of the action queue
-	enemy.pos_x_start =
-		global.enemy_x // the base position of all enemies
-		- (192 * global.ui_scale) // shifted left a tenth of the screen, this is the starting point
-		+ (enemy_x_offset * e) // then enemies are drawn in list order from left to right her
-		+	global.ui_scale * ((
-			(ds_list_size(action_queue)-1)
-			* aq_tile_w
-			)
-			/ ((3-e) + 1)); // then every time the action queue size increases we shift them over further. 3 is for up to 3 enemies, +1 is so we're not dividing by 0
-	
-	enemy.pos_x = lerp(enemy.pos_x, enemy.pos_x_start, 0.2);
-}
+// where each enemy stands: re-centred as enemies die or are summoned and as the queue grows, gliding there
+enemy_layout_update();
 
 // Move player based on starting position
 global.player_xstart = 355 * global.ui_scale - ((ds_list_size(action_queue)-1) * global.ui_scale * 30);

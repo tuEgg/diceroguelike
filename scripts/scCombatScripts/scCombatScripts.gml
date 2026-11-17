@@ -2221,3 +2221,80 @@ function roll_popup(_slot_number, _dice_index, _text, _color) {
 	_inst.size = 0.6;
 	return _inst;
 }
+
+/// @func combat_carrying_slot_item()
+/// @desc Is the player carrying a potion that is used by dropping it on a slot?
+function combat_carrying_slot_item() {
+	if (!instance_exists(oRunManager)) return false;
+	for (var c = 0; c < array_length(oRunManager.items); c++) {
+		var _item = oRunManager.items[c];
+		if (_item != undefined && _item.type == "consumable" && _item.dragging && is_struct(_item.effects) && variable_struct_exists(_item.effects, "trigger") && _item.effects.trigger == "on_item_played_to_slot") return true;
+	}
+	return false;
+}
+
+/// @func combat_slot_under_mouse()
+/// @desc The index of the action slot under the mouse (as last drawn), or -1.
+function combat_slot_under_mouse() {
+	if (!instance_exists(oCombat) || !ds_safe_exists(oCombat.slot_positions, ds_type_list)) return -1;
+	var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
+	for (var i = 0; i < min(ds_list_size(oCombat.slot_positions), ds_list_size(oCombat.action_queue)); i++) {
+		var _p = oCombat.slot_positions[| i];
+		if (point_in_rectangle(_mx, _my, _p.x, _p.y, _p.x + _p.w, _p.y + _p.h)) return i;
+	}
+	return -1;
+}
+
+/// @func combat_item_drop(_item)
+/// @desc A potion let go of in a fight: if it is used on a slot and the mouse is over one, use it there. Returns true when
+///       used (the caller clears its top-bar slot). Called from oRunManager on release, so draw order doesn't matter.
+function combat_item_drop(_item) {
+	if (room != rmCombat || !instance_exists(oCombat) || oCombat.show_rewards) return false;
+	if (!is_struct(_item.effects) || !variable_struct_exists(_item.effects, "trigger") || _item.effects.trigger != "on_item_played_to_slot") return false;
+	var _i = combat_slot_under_mouse();
+	if (_i == -1) return false;
+	var _context = { _slot: oCombat.action_queue[| _i], _ind: _i };
+	if (!_item.effects.flags(_context)) return false;
+	trigger_item_effects(_item, "on_item_played_to_slot", _context);
+	particle_emit(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", global.color_intel);
+	return true;
+}
+
+/// @func enemy_layout_update()
+/// @desc Where each enemy stands, worked out every step from how many are in the fight now: the group is centred,
+///       spread evenly (the first in the list on the right), nudged right as the action queue grows but kept on
+///       screen, and staggered back so the left ones stand a little higher. Enemies glide there; sizes follow the
+///       count, so the last enemy standing is full size and centred. New enemies snap into place on their first step.
+function enemy_layout_update() {
+	var _n = ds_list_size(room_enemies);
+	if (_n == 0) return;
+	var _ui = global.ui_scale;
+	var _gw = display_get_gui_width();
+
+	var _centre = 1480 * _ui;
+	var _spacing = ((_n == 2) ? 300 : 240) * _ui;
+	var _push = max(0, ds_list_size(action_queue) - 1) * aq_tile_w * _ui * 0.25;
+	var _left = _centre - _spacing * (_n - 1) / 2 + _push;
+	var _right = _centre + _spacing * (_n - 1) / 2 + _push;
+	var _limit = _gw - 170 * _ui;
+	if (_right > _limit) { _right = _limit; _left = min(_left, _right); } // squeeze rather than run off screen
+
+	for (var e = 0; e < _n; e++) {
+		var _enemy = room_enemies[| e];
+		var _x = (_n == 1) ? _right : lerp(_right, _left, e / (_n - 1));
+		var _y = global.enemy_y - 45 * _ui * e;
+		_enemy.pos_x_start = _x;
+		_enemy.pos_y_start = _y;
+		_enemy.start_scale = 1.0 - ((_n - 1) * 0.1);
+		_enemy.bar_scale = lerp(_enemy.bar_scale, 1.0 - ((_n - 1) * 0.2), 0.15);
+
+		if (!variable_struct_exists(_enemy, "layout_placed")) {
+			_enemy.layout_placed = true;
+			_enemy.pos_x = _x;
+			_enemy.pos_y = _y;
+		} else {
+			_enemy.pos_x = lerp(_enemy.pos_x, _x, 0.12);
+			_enemy.pos_y = lerp(_enemy.pos_y, _y, 0.12);
+		}
+	}
+}

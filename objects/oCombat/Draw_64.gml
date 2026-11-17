@@ -358,26 +358,15 @@ for (var i = 0; i < aq_list_size; i++) {
 		draw_text(draw_x + draw_w / 2, draw_y - draw_h / 2, string(tooltip));
 	}
 	
-	// Apply potions that trigger on_item_played_to_slot
-	if (hover) {
-		for (var c = 0; c < array_length(oRunManager.items); c++) {
-			var item = oRunManager.items[c];
-			if (item != undefined) {
-				if (item.type == "consumable" && item.dragging && item.effects.trigger == "on_item_played_to_slot" && !show_rewards) {
-					if (mouse_check_button_released(mb_left)) {
-						var context = {
-							_slot: action_queue[| i],
-							_ind: i
-						}
-						if (item.effects.flags(context)) {
-							trigger_item_effects(item, "on_item_played_to_slot", context);
-							oRunManager.items[c] = undefined;
-							oRunManager.holding_item = false;
-						}
-					}
-				}
-			}
-		}
+	// a potion that goes on a slot (Rigger's Tonic, Bilge-Purge) is being carried: every slot pulses where it can land.
+	// The drop itself happens in oRunManager on release (combat_item_drop), so draw order doesn't matter.
+	if (combat_carrying_slot_item() && !show_rewards) {
+		var _pulse = 0.5 + 0.5 * sin(current_time / 180);
+		var _grow = 6 + 4 * _pulse;
+		draw_set_color(global.color_intel);
+		draw_set_alpha(0.45 + 0.4 * _pulse);
+		for (var _w = 0; _w < 3; _w++) draw_roundrect(draw_x - _grow - _w, draw_y - _grow - _w, draw_x + draw_w + _grow + _w, draw_y + draw_h + _grow + _w, true);
+		draw_set_alpha(1);
 	}
 	
 	// Draw "make new action" tile after the last action slot
@@ -568,10 +557,14 @@ disc_btn_scale = disc_btn.scale;
 // Draw enemy data
 // ---------------
 
+// with more than one enemy standing, the target is marked and the others say they can be clicked
+var _living_enemies = 0;
+for (var e = 0; e < ds_list_size(room_enemies); e++) if (!room_enemies[| e].dead) _living_enemies++;
+
 for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	var enemy_data = room_enemies[| e].data;
 	var enemy = room_enemies[| e];
-	
+
 	var hover_enemy = mouse_hovering(enemy.pos_x, enemy.pos_y - 40, 230, 320, true);
 	enemy.scale = lerp(enemy.scale, hover_enemy ? enemy.start_scale : enemy.start_scale, 0.2);
 	enemy.info_alpha = lerp(enemy.info_alpha, hover_enemy ? 1.0 : 0, 0.4);
@@ -586,6 +579,11 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		}
 	}
 	
+	// a faint focus on an enemy you could click to target
+	if (e != enemy_target_index && hover_enemy && _living_enemies > 1 && state == CombatState.PLAYER_INPUT && !enemy.dead) {
+		draw_sprite_ext(sEnemyFocus, 0, enemy.pos_x, enemy.pos_y + 60, 1, 1, 0, c_white, enemy.alpha * 0.12);
+	}
+
 	// Draw enemy focus if we're the targeted enemy
 	if (e == enemy_target_index) {
 	
@@ -848,6 +846,26 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	draw_set_color(c_white);
 	draw_set_font(ftDefault);
 	draw_outline_text(string_format(enemy.hp, 0, 0) + " / " + string(enemy.max_hp), c_black, c_white, 2, e_bar_x + e_bar_w / 2, e_bar_y + e_bar_h / 2, 1, enemy.alpha, 0);
+
+	// targeting: your attacks go to the marked enemy; any other one can be clicked to make it the target
+	if (_living_enemies > 1 && !enemy.dead && !show_rewards) {
+		var _mark_y = e_bar_y + e_bar_h + 22;
+		if (e == enemy_target_index) {
+			var _tpulse = 0.5 + 0.5 * sin(current_time / 250);
+			draw_set_font(ftDefault);
+			draw_outline_text("Target", c_black, c_red, 2, enemy.pos_x, _mark_y, 1, enemy.alpha, 0);
+			// arrows either side of the word, nudging in and out
+			var _ax = 48 + 6 * _tpulse;
+			draw_set_color(c_red);
+			draw_set_alpha(enemy.alpha);
+			draw_triangle(enemy.pos_x - _ax, _mark_y - 9, enemy.pos_x - _ax, _mark_y + 9, enemy.pos_x - _ax + 12, _mark_y, false);
+			draw_triangle(enemy.pos_x + _ax, _mark_y - 9, enemy.pos_x + _ax, _mark_y + 9, enemy.pos_x + _ax - 12, _mark_y, false);
+			draw_set_alpha(1);
+		} else if (hover_enemy && state == CombatState.PLAYER_INPUT) {
+			draw_set_font(ftDefault);
+			draw_outline_text(target_locked ? "Target locked" : "Click to target", c_black, c_white, 2, enemy.pos_x, _mark_y, 1, enemy.alpha, 0);
+		}
+	}
 	
 	// Draw enemy name
 	// Outline
