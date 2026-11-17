@@ -164,3 +164,10 @@ global.ui_danger = make_color_rgb(150, 42, 42);		// can't be undone or costs you
 global.ui_quiet = make_color_rgb(70, 66, 80);		// secondary, skippable (Skip tutorial)
 
 global.ui_scale = display_get_gui_width() / 1920;
+
+// smooth edges on everything drawn in code (pips, badges, icons, panels): the best multisample anti-aliasing the
+// graphics card offers (desktop; the web build has none to set), and rounder circles than the default 24 segments
+var _aa = 0;
+if (display_aa & 8) _aa = 8; else if (display_aa & 4) _aa = 4; else if (display_aa & 2) _aa = 2;
+if (_aa > 0 && !IS_BROWSER) display_reset(_aa, false); // vsync stays off, as in the Windows options
+draw_set_circle_precision(64);

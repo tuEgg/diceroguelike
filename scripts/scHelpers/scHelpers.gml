@@ -1273,14 +1273,14 @@ function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
 			// the handle (up-right) and its metal band
 			var _h1 = insight_rot(_x, _y, 0, -18, _s), _h2 = insight_rot(_x, _y, 0, -6, _s);
 			draw_set_color(c_black);
-			draw_line_width(_h1[0], _h1[1], _h2[0], _h2[1], 7 * _s);
+			draw_line_width(_h1[0], _h1[1], _h2[0], _h2[1], max(7 * _s, 1.6));
 			draw_set_color(make_color_rgb(120, 78, 44));
-			draw_line_width(_h1[0], _h1[1], _h2[0], _h2[1], 4 * _s);
+			draw_line_width(_h1[0], _h1[1], _h2[0], _h2[1], max(4 * _s, 1.6));
 			var _f1 = insight_rot(_x, _y, 0, -7, _s), _f2 = insight_rot(_x, _y, 0, -1, _s);
 			draw_set_color(c_black);
-			draw_line_width(_f1[0], _f1[1], _f2[0], _f2[1], 11 * _s);
+			draw_line_width(_f1[0], _f1[1], _f2[0], _f2[1], max(11 * _s, 1.6));
 			draw_set_color(make_color_rgb(175, 175, 185));
-			draw_line_width(_f1[0], _f1[1], _f2[0], _f2[1], 8 * _s);
+			draw_line_width(_f1[0], _f1[1], _f2[0], _f2[1], max(8 * _s, 1.6));
 
 			if (!_dry) {
 				// loaded: a full, rounded belly of bristles soaked in ink, tapering to a point
@@ -1308,12 +1308,12 @@ function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
 				// a shine, and a drop gathering at the tip
 				var _sh1 = insight_rot(_x, _y, -2, 2, _s), _sh2 = insight_rot(_x, _y, -1.5, 8, _s);
 				draw_set_color(make_color_rgb(255, 255, 170));
-				draw_line_width(_sh1[0], _sh1[1], _sh2[0], _sh2[1], 1.5 * _s);
+				draw_line_width(_sh1[0], _sh1[1], _sh2[0], _sh2[1], max(1.5 * _s, 1.6));
 				var _drop = insight_rot(_x, _y, 0, 20, _s);
 				draw_set_color(c_black);
-				draw_circle(_drop[0], _drop[1], 3.2 * _s, false);
+				draw_circle(_drop[0], _drop[1], max(3.2 * _s, 1.5), false);
 				draw_set_color(_ink);
-				draw_circle(_drop[0], _drop[1], 2.2 * _s, false);
+				draw_circle(_drop[0], _drop[1], max(2.2 * _s, 1.5), false);
 			} else {
 				// dry: separate pale strands fanning out, ragged at the ends, with a faint streak of ink
 				var _strands = [-4.5, -2.5, -0.5, 1.5, 3.5, 5];
@@ -1328,7 +1328,7 @@ function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
 				}
 				var _st1 = insight_rot(_x, _y, 0.5, 4, _s), _st2 = insight_rot(_x, _y, 0.8, 11, _s);
 				draw_set_color(_ink);
-				draw_line_width(_st1[0], _st1[1], _st2[0], _st2[1], 1.4 * _s);
+				draw_line_width(_st1[0], _st1[1], _st2[0], _st2[1], max(1.4 * _s, 1.6));
 			}
 		break;
 
@@ -1367,13 +1367,13 @@ function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
 			// a few barbs, the insight-yellow tip, the shaft and the nib
 			draw_set_color(make_color_rgb(190, 180, 150));
 			for (var i = 3; i <= 8; i += 2) {
-				draw_line_width(_left[i][0] + (_left[i][0] < _x ? 0 : 0), _left[i][1], (_left[i][0] + _sx0 + (_ex - _sx0) * (i / 10)) / 2, (_left[i][1] + _sy0 + (_ey - _sy0) * (i / 10)) / 2, 1 * _s);
+				draw_line_width(_left[i][0] + (_left[i][0] < _x ? 0 : 0), _left[i][1], (_left[i][0] + _sx0 + (_ex - _sx0) * (i / 10)) / 2, (_left[i][1] + _sy0 + (_ey - _sy0) * (i / 10)) / 2, max(1 * _s, 1.6));
 			}
 			draw_set_color(_ink);
-			draw_circle(_ex - lengthdir_x(3 * _s, _dir), _ey - lengthdir_y(3 * _s, _dir), 2.6 * _s, false);
+			draw_circle(_ex - lengthdir_x(3 * _s, _dir), _ey - lengthdir_y(3 * _s, _dir), max(2.6 * _s, 1.5), false);
 			draw_set_color(c_black);
-			draw_line_width(_nx, _ny, _ex, _ey, 1.8 * _s);
-			draw_line_width(_nx, _ny, _sx0, _sy0, 3.5 * _s);
+			draw_line_width(_nx, _ny, _ex, _ey, max(1.8 * _s, 1.6));
+			draw_line_width(_nx, _ny, _sx0, _sy0, max(3.5 * _s, 1.6));
 			draw_set_color(make_color_rgb(40, 32, 24));
 			draw_triangle(_nx, _ny, _nx + lengthdir_x(6 * _s, _dir + 15), _ny + lengthdir_y(6 * _s, _dir + 15), _nx + lengthdir_x(6 * _s, _dir - 15), _ny + lengthdir_y(6 * _s, _dir - 15), false);
 		break;
