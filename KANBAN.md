@@ -29,7 +29,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 15: cursor | B121 | `fix/cursor-on-top` | **Ready to test.** The cursor is drawn last of all: open the bag (or the discard pile, or pick dice) and the pointer stays bright on top of the darkening and the panel; same over tooltips, the pause menu and the voyage summary. On the main menu it still shows. |
+| 15: cursor and menu | B121, F74 | `fix/cursor-on-top` | **Ready to test.** F74: a menu cog at the top right of the top bar and the Tab key open the pause menu (a fullscreen browser keeps Escape for leaving fullscreen); the toolbag, compass and bounty sit 80 px further left, and alignment particles still land on the compass. B121: The cursor is drawn last of all: open the bag (or the discard pile, or pick dice) and the pointer stays bright on top of the darkening and the panel; same over tooltips, the pause menu and the voyage summary. On the main menu it still shows. |
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
