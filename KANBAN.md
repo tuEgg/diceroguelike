@@ -23,7 +23,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 12: playtest notes | F56, F57, F58, F59, F61, F62, B94–B108 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
+| 12: playtest notes | F56, F57, F58, F59, F61, F62, F63, F64, B94–B109 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
 
 **Batch 12 test list**
 - F56 Quill (10 insight): click a glowing intent and two buttons appear under it, Reroll and Halve. Reroll: the enemy picks a different move. Halve: the number halves (range or exact), "Halved" shows under the intent, and the enemy's attack/block/heal really comes out at half. Forced moves can still be halved but not rerolled; buffs and debuffs can be rerolled but not halved (greyed, with a reason on hover). Clicking elsewhere puts the quill down. Once per turn.
@@ -53,6 +53,17 @@
 - F61 End of a spread: "Heal X HP" on the left page (small "Recover below deck" above), "Gain a random core" on the right ("Search the hold"), and "Continue" below. Heal is greyed at full health and Gain a core when your item slots are full, each saying why on hover. Text grows with the buttons.
 - F62 Custom cursor: a parchment arrow with an ink edge; it tips forward and gets a gold glint over anything you can hover or click, and dips while the button is held. Settings > Display > Custom cursor turns it off (saved). Check it in the menu, map, fights, settings and the web build.
 - Workbench: crafting now makes a sound (placeholders: a shield clang for the Hammer, rubble for the Drill, a sword swish for the Cutters). There were no tool sounds at all before.
+
+**Batch 12, round 3 (2026-11-17 feedback)**
+- B109 Workbench with too few dice in the bag (e.g. after a fight, bag nearly empty): no black screen; it deals what there is.
+- F62 Cursor: no shrinking on click; it tips further forward while the button is held. No glint circle. Tooltips that follow the mouse sit down and to the right of the pointer, clear of it.
+- F61 End of a spread: the page turns first (no buttons or darkening yet), then "The spread is done" with the two options either side of the book's spine and Continue below, then after choosing, "What happened next?" and the pages.
+- F63 The top bar stays in full colour while the map dims (drafting, spread end, chapter complete). Fights' reward screen already did.
+- F63 Embark glows and pulses green once two pages are chosen; hovering it before then says "Choose two pages first". The chosen draft pages get a thick green outline (your mockup); the locked-away one stays a dark silhouette.
+- F64 UI phase 1, colours by role: green = the main go action (Embark, Resume, Save, Turn the page, Back to the menu, tutorial note buttons, Spare, Craft when ready); brown = ordinary choices and leaving (Exit buttons, Settings, Visit the workbench, Heal/Gain a core, Cancel); dark red = costly (Start anew, Kill); grey = skippable (Skip tutorial, Continue). Red/blue/green/yellow now only mean attack/block/heal/insight.
+- F64 Main menu items are always drawn as buttons, not plain text until hovered. The abandon-run warning says "Start anew" / "Keep voyage".
+- F64 Writing: "a die" / "1 die" / "this die" wherever one die is meant (dice and keepsake descriptions, events, prompts); the new-slot tile says "Sacrifice 1 die" or "2 dice"; an empty slot says "Empty" with no "(0-0)".
+- F64 Tooltips have a logbook look: dark ink, a thin cream rule inside the edge and small diamonds at the corners; keyword boxes are plainer. Coloured words (insight, keywords) still read clearly.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
