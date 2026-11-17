@@ -2127,8 +2127,8 @@ function tips_rect(_target) {
 			with (oWorkbenchManager) return { x: start_x - wb_tile_size / 2, y: start_y - wb_tile_size / 2, w: wb_tile_size * 2 + wb_tile_padding, h: wb_tile_size };
 			break;
 		case "toolbag":
-			// oRunManager Draw GUI draws the toolbag at gui width - 860, in the top bar
-			return { x: display_get_gui_width() - 860 - 50, y: 10, w: 100, h: 100 };
+			// oRunManager Draw GUI draws the toolbag at gui width - 940, in the top bar
+			return { x: display_get_gui_width() - 940 - 50, y: 10, w: 100, h: 100 };
 		case "target_enemy":
 			if (!instance_exists(oCombat) || oCombat.enemy_target_index < 0 || oCombat.enemy_target_index >= ds_list_size(oCombat.room_enemies)) return undefined;
 			var _te = oCombat.room_enemies[| oCombat.enemy_target_index];

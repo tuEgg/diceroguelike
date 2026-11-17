@@ -1,7 +1,8 @@
 // the new run offering is a popup: keep the map behind it locked even after the bag or settings hand back the base layer
 if (new_run_offering && global.ui_layer == UI_LAYER.BASE) global.ui_layer = UI_LAYER.POPUP;
 
-key_escape = keyboard_check_pressed(vk_escape);
+// Tab works like Escape: in a fullscreen web build the browser keeps Escape for itself (it leaves fullscreen)
+key_escape = keyboard_check_pressed(vk_escape) || keyboard_check_pressed(vk_tab);
 
 // Escape closes Settings (back to the pause menu), then the bag, then opens or closes the pause menu (F35)
 if (key_escape && global.ui_layer != UI_LAYER.DEBUG && run_over == undefined) {
