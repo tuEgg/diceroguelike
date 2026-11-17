@@ -527,10 +527,27 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     draw_set_alpha(0.85);
     draw_set_color(c_black);
     draw_roundrect(xx - 2, yy - 2, xx + _width + 2, yy + _height + 2, false);
-	var bg_col = _compact ? make_color_rgb(20, 40, 70) : global.color_bg;
+	// logbook style: dark ink, a cream inner rule and small diamonds at the corners (keyword boxes a lighter touch)
+	var bg_col = _compact ? make_color_rgb(34, 38, 50) : make_color_rgb(26, 30, 40);
 	draw_set_color((oRunManager.error_timer == 0) ? bg_col : global.color_error);
     draw_roundrect(xx, yy, xx + _width, yy + _height, false);
     draw_set_alpha(1);
+	var _rule = make_color_rgb(226, 212, 176);
+	var _in = _compact ? 3 : 4;
+	draw_set_color(_rule);
+	draw_set_alpha(_compact ? 0.35 : 0.6);
+	draw_roundrect(xx + _in, yy + _in, xx + _width - _in, yy + _height - _in, true);
+	if (!_compact) {
+		draw_set_alpha(0.9);
+		var _d = 4;
+		var _cx = [xx + _in, xx + _width - _in, xx + _in, xx + _width - _in];
+		var _cy = [yy + _in, yy + _in, yy + _height - _in, yy + _height - _in];
+		for (var c = 0; c < 4; c++) {
+			draw_triangle(_cx[c] - _d, _cy[c], _cx[c], _cy[c] - _d, _cx[c] + _d, _cy[c], false);
+			draw_triangle(_cx[c] - _d, _cy[c], _cx[c], _cy[c] + _d, _cx[c] + _d, _cy[c], false);
+		}
+	}
+	draw_set_alpha(1);
 
     var content_x = xx + padding;
 
