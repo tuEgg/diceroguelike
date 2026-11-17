@@ -29,12 +29,15 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 14: workbench bag | F72, B119 | `fix/workbench-bag` | **Ready to test.** The workbench asks you to open the bag instead of opening it; the top bar can be hovered with the bag open. B119 (black screen drilling a Loaded core into a Harvest Die) needs the console trace. |
+| 14: workbench bag | F72, F73, B119, B120 | `fix/workbench-bag` | **Ready to test.** The workbench asks you to open the bag instead of opening it; the top bar can be hovered with the bag open. B119 (black screen drilling a Loaded core into a Harvest Die) needs the console trace. |
 
 **Batch 14 test list**
 - F72 At sea > Open the workbench: the bag is closed. A panel over the bench says "Take up to N dice from your bag to work on" with an "Open the bag" button. That button, or clicking the bag icon (bottom left), opens the picker. Choose and confirm: the dice land on the bench. Exit without choosing works too.
 - F72 First visit (Tutorial next run on): a tip points at that panel first; once you've chosen, the next tip points at the slots, then the toolbag, then the Drill.
 - F72 With the bag open (anywhere: bag icon, discard pile, picking dice), hovering gold, health, items, keepsakes, the toolbag or the compass in the top bar shows their tooltips. Clicking them does nothing until the bag closes.
+- F72 Click a finished die (or the Cutters' coin) on the bench: it flies into your bag (the bag count goes up) instead of back to your hand; the bench resets for the next tool.
+- B120 With Weapon Polish (or any keepsake that changes rolls), the bars previewing a core's distribution (hovering a core in the top bar, the shop, rewards, the start offer, the workbench's middle slot) keep the core's own shape on a plain d6, no stray 1s.
+- F73 New intro (turn it back on in F1 > Hotkeys, or a fresh progress file): a black screen, then four lines fade in one after another, about two seconds apart ("Like any good sailing story..." to "...forever."), hold, and fade out at about 13 seconds. The intro music plays under it and stops at the end. Hold Escape still skips.
 - B119 Drill a Loaded core into a Harvest Die at the workbench: it went black on web. Not fixed yet: send the console trace (F12) from a Debug run (F6) if it happens again.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
