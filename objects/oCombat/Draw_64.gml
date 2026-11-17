@@ -631,40 +631,14 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	    var yy = enemy.pos_y - 10 - (enemy.scale * 180);  // slightly above their head
 
 		// Quill: an intent you can rewrite this turn pulses and glows, with a quill beside it, so it can't be missed
-		var _rewritable = (intel_level >= 2 && !intel_is_blotted() && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards && enemy_can_rewrite_intent(enemy));
+		var _rewritable = (intel_level >= 2 && !intel_is_blotted() && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards && enemy_can_quill(enemy));
 		var _quill_pulse = 0.5 + 0.5 * sin(current_time / 200);
 		if (_rewritable) enemy.intent.scale = enemy.intent.start_scale * (1 + 0.12 * _quill_pulse);
 		
 		// Draw combined intents
 		var intent_array = string_split(enemy.intent.move.action_type, "/");
 		
-		// Draw dice in move (the dice show how big the move can be), unless Blotted
-		if (reveal_intent_all) {
-			for (var d = 0; d < enemy.intent.move.dice_amount; d++) {
-				var d_index = get_dice_index(enemy.intent.move.dice_value);
-				
-				draw_set_font(ftBigger);
-				draw_set_halign(fa_center);
-				draw_set_valign(fa_middle);
-							
-				// only draw dice if the intent contains blk, atk or heal
-				for (var i = 0; i < array_length(intent_array); i++) {
-					switch (intent_array[i]) {
-						case "ATK":
-						case "BLK":
-						case "HEAL":
-						draw_sprite_ext(sDiceIcon, d_index, xx - (((enemy.intent.move.dice_amount) * 40)/2) + (d * 40), yy - 10, 1, 1, 0, get_dice_color(enemy.intent.move.action_type), enemy.info_alpha * enemy.intent.alpha);
-						
-						if (d == enemy.intent.move.dice_amount - 1) {
-							draw_outline_text("+" + string(enemy.intent.move.bonus_amount), c_black, get_dice_color(enemy.intent.move.action_type), 2, xx - (((enemy.intent.move.dice_amount) * 40)/2) + ((d+1) * 45), yy - 10, 1, enemy.info_alpha * enemy.intent.alpha, 0);
-						}
-						break;
-						default:
-						draw_outline_text("-", c_black, get_dice_color(enemy.intent.move.action_type), 2, xx, yy - 10, 1, enemy.info_alpha * enemy.intent.alpha, 0);
-					}
-				}
-			}
-		}
+		// (the dice behind a move used to show on hover; the hover tooltip says it in words now)
 
 	    draw_set_halign(fa_left);
 	    draw_set_valign(fa_middle);
@@ -725,19 +699,49 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		
 		draw_outline_text(text, c_black, c_white, 2, text_x, yy, enemy.intent.scale, enemy.intent.alpha - enemy.info_alpha);
 
-		// Quill: click an intent to make the enemy choose again (once per turn)
+		// Quill: click an intent, then choose Reroll (the enemy picks a different move) or Halve (its numbers this turn)
 		var _intent_hover = mouse_hovering(xx, yy, text_w + 20, 50, true);
-		var _can_rewrite = (intel_level >= 2 && !intel_is_blotted() && !intel_rewrite_used&& state == CombatState.PLAYER_INPUT && !show_rewards);
-		if (_can_rewrite && _intent_hover) {
-			if (!enemy_can_rewrite_intent(enemy)) {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't rewrite", "This move is forced, or the enemy has nothing else to choose.", undefined, 0, undefined);
+		var _can_rewrite = (intel_level >= 2 && !intel_is_blotted() && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards);
+		if (!_can_rewrite && quill_menu_enemy == enemy) quill_menu_enemy = undefined;
+		if (_can_rewrite && _intent_hover && quill_menu_enemy != enemy) {
+			if (!enemy_can_quill(enemy)) {
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Quill: nothing to change", "This move is forced and has no numbers to halve.", undefined, 0, undefined);
 			} else {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Quill: rewrite intent", "Click to rewrite this enemy's intent. You choose to change it; the enemy picks a different move. Once per turn.", undefined, 0, undefined);
-				if (mouse_check_button_pressed(mb_left) && enemy_rewrite_intent(enemy)) {
-					intel_rewrite_used = true;
-					enemy.intent.scale = enemy.intent.start_scale * 1.4; // pop, so the change is noticed
-					add_feed_entry("You rewrote " + string(enemy.data.name) + "'s intent: " + string(enemy.intent.move.move_name));
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Quill: rewrite intent", "Click to rewrite this intent, once per turn. Reroll: the enemy picks a different move. Halve: this move's numbers are halved.", undefined, 0, undefined);
+				if (mouse_check_button_pressed(mb_left)) {
+					quill_menu_enemy = enemy;
+					quill_btn_scales = [1, 1];
 				}
+			}
+		}
+
+		// the choice, under the intent
+		if (_can_rewrite && quill_menu_enemy == enemy) {
+			var _qb_w = 120, _qb_h = 44;
+			var _qb_y = yy + 34;
+			var _reroll_ok = enemy_can_rewrite_intent(enemy);
+			var _halve_ok = enemy_can_halve_intent(enemy);
+			var _reroll = draw_gui_button(xx - _qb_w - 6, _qb_y, _qb_w, _qb_h, quill_btn_scales[0], "Reroll", global.color_intel, ftDefault, _reroll_ok, true);
+			var _halve = draw_gui_button(xx + 6, _qb_y, _qb_w, _qb_h, quill_btn_scales[1], "Halve", global.color_intel, ftDefault, _halve_ok, true);
+			quill_btn_scales[0] = _reroll.scale;
+			quill_btn_scales[1] = _halve.scale;
+			if (_reroll.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll", "The enemy picks a different move, rolled fresh.", undefined, 0, undefined);
+			if (_halve.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Halve", "This turn, this move's attack, block or heal is halved (rounded down).", undefined, 0, undefined);
+			if (!_reroll_ok && mouse_hovering(xx - _qb_w - 6, _qb_y, _qb_w, _qb_h, false)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't reroll", "This move is forced, or the enemy has nothing else to choose.", undefined, 0, undefined);
+			if (!_halve_ok && mouse_hovering(xx + 6, _qb_y, _qb_w, _qb_h, false)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't halve", "This move has no attack, block or heal to halve.", undefined, 0, undefined);
+
+			if (_reroll.click && enemy_rewrite_intent(enemy)) {
+				intel_rewrite_used = true;
+				quill_menu_enemy = undefined;
+				enemy.intent.scale = enemy.intent.start_scale * 1.4; // pop, so the change is noticed
+				add_feed_entry("You rewrote " + string(enemy.data.name) + "'s intent: " + string(enemy.intent.move.move_name));
+			} else if (_halve.click && enemy_halve_intent(enemy)) {
+				intel_rewrite_used = true;
+				quill_menu_enemy = undefined;
+				enemy.intent.scale = enemy.intent.start_scale * 1.4;
+				add_feed_entry("You halved " + string(enemy.data.name) + "'s " + string(enemy.intent.move.move_name));
+			} else if (mouse_check_button_pressed(mb_left) && !_reroll.hover && !_halve.hover && !_intent_hover) {
+				quill_menu_enemy = undefined; // clicked elsewhere: put the quill down
 			}
 		}
 	
@@ -746,6 +750,11 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		// Draw attack name
 		draw_set_font(ftBigger);
 		var move_name = ((reveal_intent_single && e == enemy_target_index) || reveal_intent_all) ? string(enemy.intent.move.move_name) : "???";
+		if (intent_is_halved(enemy)) {
+			draw_set_font(ftDefault);
+			draw_outline_text("Halved", c_black, global.color_intel, 2, xx, yy + 26, 1, enemy.intent.alpha, 0);
+			draw_set_font(ftBigger);
+		}
 		draw_outline_text(move_name, c_black, c_white, 2, xx, yy - 50, enemy.intent.scale, enemy.info_alpha * enemy.intent.alpha);
 	
 		if (hover_enemy && !show_rewards) {
@@ -755,10 +764,8 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 				if (enemy_exiting) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "The enemy intents to escape", undefined, 0, undefined);
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
-					var _intent_desc = "This turn: " + get_dice_name_and_bonus(enemy.intent.move, enemy.intent.move.bonus_amount);
-					if (intent_has_numbers(enemy.intent.move)) _intent_desc += (intel_level >= 1) ? ", exactly " + string(intent_exact_value(enemy)) : ". Reach " + string(global.player_intel_data[| 1].requirement) + " insight (Legible) to see the exact number";
-					_intent_desc += ".";
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, _intent_desc, undefined, 0, undefined);
+					// plain words: what it will do and how much (the range when Faded, the exact number from Legible)
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, intent_hover_text(enemy, intel_level), undefined, 0, undefined);
 				} else {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Your insight is below 0, so the page is blotted and enemy intents are hidden.", undefined, 0, undefined);
 				}

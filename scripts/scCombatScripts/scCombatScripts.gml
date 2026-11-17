@@ -211,6 +211,11 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		//show_debug_message("dice amount is zero - this is for flat damage - setting value to "+string(_dice_value));
 	}
 
+	// an intent the Quill halved: its attack, block or heal comes out at half
+	if (is_struct(_source) && variable_struct_exists(_source, "intent") && intent_is_halved(_source) && (_type == "ATK" || _type == "BLK" || _type == "HEAL")) {
+		amount = floor(amount / 2);
+	}
+
 
     var inst_color = c_red; // default color for damage
 	
@@ -1708,7 +1713,7 @@ function tutorial_steps() {
 		// turn 2: insight, a slot with two actions, right-click to switch
 		{
 			id: "insight", target: "insight", allow: [], button: "Next",
-			text: "Your insight came in. Below 5 you only see ranges (Faded); at 5 the enemy's numbers turn exact (Legible). At 10 you take up the Quill and can rewrite an intent.",
+			text: "Your insight came in. Below 5 you only see ranges (Faded); at 5 the enemy's numbers turn exact (Legible). At 10 you take up the Quill and can reroll or halve an intent.",
 		},
 		{
 			id: "two_types", target: "sacrifice", allow: ["sacrifice"], die_types: ["ATK", "BLK"],
@@ -2037,7 +2042,7 @@ function tips_list() {
 		},
 		{
 			id: "quill", room: rmCombat, target: "insight",
-			text: "Quill: with 10 insight, once this turn you can click a glowing enemy intent to rewrite it. You choose to change it, the enemy picks its new move.",
+			text: "Quill: with 10 insight, once a turn you can click a glowing enemy intent and choose: Reroll (the enemy picks a different move) or Halve (its attack, block or heal this turn).",
 			when: function() { return tips_combat_ready() && oCombat.intel_level >= 2 && !intel_is_blotted(); },
 		},
 		{

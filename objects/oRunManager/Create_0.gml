@@ -177,7 +177,7 @@ ds_list_add(global.player_intel_data, {
 ds_list_add(global.player_intel_data, {
 	requirement: 10,
 	name: "Quill",
-	description: "Rewrite one intent a turn.",
+	description: "Reroll or halve one intent a turn.",
 	icon: "quill",
 });
 global.intel_blotted = {

@@ -10,6 +10,7 @@ switch (state) {
 		turn_count++;
 		player_turn_done = false;
 		intel_rewrite_used = false; // Quill: one rewrite per turn
+		quill_menu_enemy = undefined;
 		target_locked = false; // Overwhelm locks it again in on_turn_start
 		delayed_enemy_attack = false;
 		
