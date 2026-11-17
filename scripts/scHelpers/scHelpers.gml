@@ -401,29 +401,27 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
     if (!global.tooltip_active) {
         global.tooltip_active = true;
 
-		// a tooltip asked for at the mouse is pinned where it first appeared, beside the pointer, and stays there while
-		// the same thing is hovered (it no longer follows the mouse)
-		if (!variable_global_exists("tooltip_pin")) global.tooltip_pin = { name: "", x: 0, y: 0, frame: -10 };
+		// a tooltip asked for at the mouse sits at a fixed place beside the thing being hovered (its right edge, top
+		// aligned; draw_all_tooltips flips it to the left near the screen edge), like Slay the Spire, so it never covers
+		// what you're pointing at or wanders with the mouse
 		if (!variable_global_exists("tooltip_frame")) global.tooltip_frame = 0;
+		var _anchor = undefined;
 		var _at_mouse = abs(_x - device_mouse_x_to_gui(0)) < 2 && abs(_y - device_mouse_y_to_gui(0)) < 2;
 		if (_at_mouse) {
-			var _pin = global.tooltip_pin;
-			if (_pin.name == _name && global.tooltip_frame - _pin.frame <= 2) {
-				_x = _pin.x;
-				_y = _pin.y;
+			if (variable_global_exists("hover_rect") && is_struct(global.hover_rect) && global.hover_rect.frame == global.tooltip_frame) {
+				_anchor = global.hover_rect;
+				_x = _anchor.x2 + 14 * global.ui_scale;
+				_y = _anchor.y1;
 			} else {
 				_x += 30 * global.ui_scale;
 				_y += 34 * global.ui_scale;
-				_pin.name = _name;
-				_pin.x = _x;
-				_pin.y = _y;
 			}
-			_pin.frame = global.tooltip_frame;
 		}
 
         global.tooltip_main = {
             x: _x, y: _y, name: _name, desc: _desc,
-            icon: _icon, index: _index, dice: _dice
+            icon: _icon, index: _index, dice: _dice,
+            anchor: _anchor // the hovered rectangle it sits beside, or undefined
         };
 
         global.tooltip_keywords = [];
@@ -485,7 +483,9 @@ function draw_all_tooltips() {
 			_max_w = max(_max_w, _s.w);
 		}
 
-		var xx = tt.x, yy = tt.y; // pinned beside the pointer by queue_tooltip
+		var xx = tt.x, yy = tt.y; // beside the hovered thing (queue_tooltip)
+		// no room on the right of the hovered thing: put it on its left instead
+		if (xx + _max_w > display_get_gui_width() - 10 && is_struct(tt.anchor)) xx = tt.anchor.x1 - 14 * global.ui_scale - _max_w;
 		if (xx + _max_w > display_get_gui_width() - 10) xx = display_get_gui_width() - _max_w - 10;
 		if (yy + _total_h > display_get_gui_height() - 10) yy = display_get_gui_height() - _total_h - 10;
 		xx = max(10, xx); yy = max(10, yy);
@@ -842,7 +842,13 @@ function parse_text_with_keywords(str) {
 function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound = noone, _click_sound = soClick4, _conditions_met = true, _layer = UI_LAYER.BASE, _id = undefined) {
 
 	var _hit = mouse_hovering_check(_x, _y, _width, _height, _centered, _hover_sound, _click_sound, _conditions_met, _layer, _id);
-	if (_hit) global.cursor_hover_time = current_time; // the custom cursor lights up over anything interactive
+	if (_hit) {
+		global.cursor_hover_time = current_time; // the custom cursor lights up over anything interactive
+		// the thing under the mouse, so a tooltip can sit beside it (queue_tooltip)
+		var _x1 = _centered ? _x - _width / 2 : _x;
+		var _y1 = _centered ? _y - _height / 2 : _y;
+		global.hover_rect = { x1: _x1, y1: _y1, x2: _x1 + _width, y2: _y1 + _height, frame: variable_global_exists("tooltip_frame") ? global.tooltip_frame : 0 };
+	}
 	return _hit;
 }
 
@@ -1233,8 +1239,8 @@ function lose_run() {
 
 /// @func draw_insight_icon(_icon, _x, _y, _scale, _alpha)
 /// @desc Placeholder icons for the insight states, drawn with shapes until real art is made (F51), about 30 pixels tall
-///       at scale 1, centred on _x, _y: "blotted" an ink spill, "faded" a dry brush tip, "legible" a brush dipped in
-///       yellow ink, "quill" a feather quill.
+///       at scale 1, centred on _x, _y: "blotted" an ink spill, "faded" a dry brush, "legible" a brush loaded with
+///       yellow ink (both tilted), "quill" a feather quill.
 function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
 	var _old_alpha = draw_get_alpha();
 	var _ink = global.color_intel;
@@ -1255,52 +1261,70 @@ function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
 
 		case "faded":
 		case "legible":
-			// a brush tip, pointing down: a stub of handle, a metal band, then bristles that swell and taper to a point.
-			// Faded: pale, dry bristles with only a touch of ink at the tip. Legible: bristles dipped in yellow ink.
+			// a brush tilted 45 degrees, tip down-left. Legible: bristles loaded with yellow ink, a drop about to fall.
+			// Faded: a dry brush, pale bristles splayed into strands with only a trace of ink.
 			var _s = _scale;
-			// bristle outline: left side down to the tip, back up the right side
-			var _br = [];
-			for (var i = 0; i <= 8; i++) {
-				var _t = i / 8;
-				var _half = (6 + 3 * sin(_t * pi * 0.9)) * (1 - _t * _t * 0.92);
-				array_push(_br, [_x - _half * _s, _y + (-3 + _t * 19) * _s]);
-			}
-			for (var i = 8; i >= 0; i--) {
-				var _t = i / 8;
-				var _half = (6 + 3 * sin(_t * pi * 0.9)) * (1 - _t * _t * 0.92);
-				array_push(_br, [_x + _half * _s, _y + (-3 + _t * 19) * _s]);
-			}
-			var _fill = (_icon == "legible") ? _ink : make_color_rgb(236, 224, 190);
-			// black edge first (the shape a little bigger), then the fill
-			for (var _pass = 0; _pass < 2; _pass++) {
-				var _grow = (_pass == 0) ? 1.6 * _s : 0;
-				draw_set_color((_pass == 0) ? c_black : _fill);
-				draw_primitive_begin(pr_trianglefan);
-				draw_vertex(_x, _y + 5 * _s);
-				for (var i = 0; i < array_length(_br); i++) {
-					var _dx = _br[i][0] - _x;
-					draw_vertex(_br[i][0] + sign(_dx) * _grow, _br[i][1] + ((i == 8 || i == 9) ? _grow : 0));
-				}
-				draw_vertex(_br[0][0] - _grow, _br[0][1]);
-				draw_primitive_end();
-			}
-			// a few bristle strokes, and on Faded a little ink at the very tip
-			draw_set_color((_icon == "legible") ? make_color_rgb(150, 140, 0) : make_color_rgb(150, 140, 110));
-			draw_line_width(_x - 2.5 * _s, _y - 1 * _s, _x - 1 * _s, _y + 10 * _s, 1 * _s);
-			draw_line_width(_x + 2.5 * _s, _y - 1 * _s, _x + 1 * _s, _y + 10 * _s, 1 * _s);
-			if (_icon == "faded") {
-				draw_set_color(_ink);
-				draw_triangle(_x - 2.2 * _s, _y + 11 * _s, _x + 2.2 * _s, _y + 11 * _s, _x, _y + 16 * _s, false);
-			}
-			// the metal band and the handle stub
+			var _dry = (_icon == "faded");
+			// the handle (up-right) and its metal band
+			var _h1 = insight_rot(_x, _y, 0, -18, _s), _h2 = insight_rot(_x, _y, 0, -6, _s);
 			draw_set_color(c_black);
-			draw_rectangle(_x - 7.5 * _s, _y - 9 * _s, _x + 7.5 * _s, _y - 2 * _s, false);
-			draw_set_color(make_color_rgb(170, 170, 180));
-			draw_rectangle(_x - 6 * _s, _y - 7.5 * _s, _x + 6 * _s, _y - 3.5 * _s, false);
-			draw_set_color(c_black);
-			draw_rectangle(_x - 4.5 * _s, _y - 17 * _s, _x + 4.5 * _s, _y - 9 * _s, false);
+			draw_line_width(_h1[0], _h1[1], _h2[0], _h2[1], 7 * _s);
 			draw_set_color(make_color_rgb(120, 78, 44));
-			draw_rectangle(_x - 3 * _s, _y - 15.5 * _s, _x + 3 * _s, _y - 9 * _s, false);
+			draw_line_width(_h1[0], _h1[1], _h2[0], _h2[1], 4 * _s);
+			var _f1 = insight_rot(_x, _y, 0, -7, _s), _f2 = insight_rot(_x, _y, 0, -1, _s);
+			draw_set_color(c_black);
+			draw_line_width(_f1[0], _f1[1], _f2[0], _f2[1], 11 * _s);
+			draw_set_color(make_color_rgb(175, 175, 185));
+			draw_line_width(_f1[0], _f1[1], _f2[0], _f2[1], 8 * _s);
+
+			if (!_dry) {
+				// loaded: a full, rounded belly of bristles soaked in ink, tapering to a point
+				var _pts = [];
+				for (var i = 0; i <= 10; i++) {
+					var _t = i / 10;
+					var _half = (4.5 + 2.5 * sin(_t * pi * 0.85)) * (1 - _t * _t * 0.95);
+					array_push(_pts, insight_rot(_x, _y, -_half, -1 + _t * 17, _s));
+				}
+				for (var i = 10; i >= 0; i--) {
+					var _t = i / 10;
+					var _half = (4.5 + 2.5 * sin(_t * pi * 0.85)) * (1 - _t * _t * 0.95);
+					array_push(_pts, insight_rot(_x, _y, _half, -1 + _t * 17, _s));
+				}
+				var _mid = insight_rot(_x, _y, 0, 6, _s);
+				for (var _pass = 0; _pass < 2; _pass++) {
+					var _g = (_pass == 0) ? 1.22 : 1;
+					draw_set_color((_pass == 0) ? c_black : _ink);
+					draw_primitive_begin(pr_trianglefan);
+					draw_vertex(_mid[0], _mid[1]);
+					for (var i = 0; i < array_length(_pts); i++) draw_vertex(_mid[0] + (_pts[i][0] - _mid[0]) * _g, _mid[1] + (_pts[i][1] - _mid[1]) * _g);
+					draw_vertex(_mid[0] + (_pts[0][0] - _mid[0]) * _g, _mid[1] + (_pts[0][1] - _mid[1]) * _g);
+					draw_primitive_end();
+				}
+				// a shine, and a drop gathering at the tip
+				var _sh1 = insight_rot(_x, _y, -2, 2, _s), _sh2 = insight_rot(_x, _y, -1.5, 8, _s);
+				draw_set_color(make_color_rgb(255, 255, 170));
+				draw_line_width(_sh1[0], _sh1[1], _sh2[0], _sh2[1], 1.5 * _s);
+				var _drop = insight_rot(_x, _y, 0, 20, _s);
+				draw_set_color(c_black);
+				draw_circle(_drop[0], _drop[1], 3.2 * _s, false);
+				draw_set_color(_ink);
+				draw_circle(_drop[0], _drop[1], 2.2 * _s, false);
+			} else {
+				// dry: separate pale strands fanning out, ragged at the ends, with a faint streak of ink
+				var _strands = [-4.5, -2.5, -0.5, 1.5, 3.5, 5];
+				for (var _pass = 0; _pass < 2; _pass++) {
+					for (var i = 0; i < array_length(_strands); i++) {
+						var _off = _strands[i];
+						var _a1 = insight_rot(_x, _y, _off * 0.8, -1, _s);
+						var _a2 = insight_rot(_x, _y, _off * 1.35, 13 + ((i mod 2) ? 2 : -1), _s);
+						draw_set_color((_pass == 0) ? c_black : make_color_rgb(225, 214, 180));
+						draw_line_width(_a1[0], _a1[1], _a2[0], _a2[1], ((_pass == 0) ? 3.4 : 1.8) * _s);
+					}
+				}
+				var _st1 = insight_rot(_x, _y, 0.5, 4, _s), _st2 = insight_rot(_x, _y, 0.8, 11, _s);
+				draw_set_color(_ink);
+				draw_line_width(_st1[0], _st1[1], _st2[0], _st2[1], 1.4 * _s);
+			}
 		break;
 
 		case "quill":
@@ -1705,4 +1729,12 @@ function ui_divider(_x1, _x2, _y, _alpha = 1) {
 	draw_triangle(_mx - 6, _y, _mx, _y + 6, _mx + 6, _y, false);
 	draw_set_alpha(1);
 	draw_set_color(c_white);
+}
+
+/// @func insight_rot(_x, _y, _lx, _ly, _scale)
+/// @desc A point of a tilted insight icon: (_lx, _ly) in the icon's own frame (pointing down), turned 45 degrees so the
+///       tip points down-left, scaled and placed at _x, _y. Returns [x, y].
+function insight_rot(_x, _y, _lx, _ly, _scale) {
+	var _c = 0.7071, _sn = 0.7071;
+	return [_x + (_lx * _c - _ly * _sn) * _scale, _y + (_lx * _sn + _ly * _c) * _scale];
 }
