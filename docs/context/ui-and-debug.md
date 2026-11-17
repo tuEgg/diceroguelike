@@ -3,7 +3,7 @@
 ## Drawing and input helpers: scHelpers
 
 - `mouse_hovering(x, y, w, h, centred, hover_sound, click_sound, conditions, layer, id)`: returns false if `global.ui_layer` is above `layer` or input is disabled. Use it for anything clickable.
-- `global.ui_layer` (enum `UI_LAYER` in `oMainMenu/Create_0`): `BASE, POPUP, BAG, SETTINGS, DEBUG`. Higher layers block lower ones.
+- `global.ui_layer` (enum `UI_LAYER` in `oMainMenu/Create_0`): `BASE, POPUP, BAG, SETTINGS, DEBUG`. Higher layers block lower ones. Exception: while the bag is open (`UI_LAYER.BAG`) the top bar can still be hovered for tooltips (`global.ui_peek_top_bar`, set around the top bar in oRunManager Draw GUI); its clicks check for the base layer.
 - Tooltips: `queue_tooltip(x, y, name, desc, icon, index, die)` queues one per frame; `draw_all_tooltips()` draws it (called at the end of `oRunManager` Draw GUI End, `Draw_75`, so tooltips sit above every window) with keyword sub-tooltips found in the description. Titles stay on one line. Draw GUI End order: dice list, `tips_draw`, `insight_panel_draw`, `dragged_item_draw` (carried core/potion), `pause_draw`, `run_summary_draw`, then tooltips.
 - Tooltip stack: `draw_all_tooltips` measures the main box and each keyword box (`draw_tooltip_box(..., measure_only)`), keeps the whole stack on screen, then draws keywords as compact boxes right under the main one. `buff_tooltip_text(inst)` (scDebuffs) builds buff/debuff tooltips.
 - Accessibility: Settings > Display > Action icons on dice (`global.action_icons`) draws `draw_action_type_icon` on dice in hand (oDice Draw GUI) and in slots (oCombat Draw GUI).
