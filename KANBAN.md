@@ -65,6 +65,15 @@
 - F64 Writing: "a die" / "1 die" / "this die" wherever one die is meant (dice and keepsake descriptions, events, prompts); the new-slot tile says "Sacrifice 1 die" or "2 dice"; an empty slot says "Empty" with no "(0-0)".
 - F64 Tooltips have a logbook look: dark ink, a thin cream rule inside the edge and small diamonds at the corners; keyword boxes are plainer. Coloured words (insight, keywords) still read clearly.
 
+**Batch 12, round 7 (2026-11-17 feedback)**
+- F02 Choosing dice at the workbench works: the chosen dice fly onto the bench and stay (the picker now blocks the Exit button that sat right under Confirm, which was ending the visit). Events that ask you to pick dice are protected the same way.
+- F02 "Sail on" sets sail for the next stop straight away.
+- F66 Tooltips sit at a fixed place beside the thing you're hovering (to its right, top-aligned; to its left near the right edge of the screen). They don't follow the mouse or stay where they started. Check enemies, intents, dice in hand, slots, top bar items, map nodes.
+- F51 Brush icons tilted 45 degrees: Legible is a brush loaded with yellow ink with a drop at the tip; Faded is a dry brush with pale splayed strands and a trace of ink.
+- F69 More padding: the At sea panel is roomier, and tooltip text sits further inside the border.
+- F69 UI kit: the Exit buttons in the workbench, events, treasure and the bounty board, and the dice picker's Confirm, are now kit buttons: big text that grows with the button, a shadow, a press-down, and a reason on hover when they can't be pressed (e.g. "Choose an option first", "Take the dice off the bench first"). The picker's button says "Take none" when nothing is chosen at the workbench.
+- F69 The fight's rewards sit on a logbook panel with a rule under the title; Next is green and the last Exit brown.
+
 **Batch 12, round 6: the At sea workbench (F02)**
 - F02 The map's "Visit the workbench" button is gone. Finishing a page's island (its last stop) earns a visit: back on the map an "At sea" panel offers "Open the workbench" or "Sail on". Choosing your next stop also counts as sailing on. Ordinary stops no longer earn a visit.
 - F02 Opening the workbench shows your bag: choose up to N dice (N = tools you own, +1 if you own the Hammer; just the Drill = 1). Confirm works with fewer, even none. No dice are dealt at random any more.
