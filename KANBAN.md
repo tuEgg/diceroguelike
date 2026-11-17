@@ -23,101 +23,6 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 12: playtest notes | F02 (workbench part), F14, F56–F59, F61–F64, F66–F70, B83, B94–B117 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
-
-**Batch 12 test list**
-- F56 Quill (10 insight): click a glowing intent and two buttons appear under it, Reroll and Halve. Reroll: the enemy picks a different move. Halve: the number halves (range or exact), "Halved" shows under the intent, and the enemy's attack/block/heal really comes out at half. Forced moves can still be halved but not rerolled; buffs and debuffs can be rerolled but not halved (greyed, with a reason on hover). Clicking elsewhere puts the quill down. Once per turn.
-- F56 Hover an enemy: no dice under the intent any more; the tooltip says it in words ("Attacks you for 4-9", "Blocks 6", "Attacks you for 5, then Blocks 3"), plus how to see exact numbers when Faded.
-- F57 Two or more enemies: a red "Target" with arrows under your target's health bar; hovering another enemy lights it faintly and says "Click to target" ("Target locked" when Overwhelmed). Your first multi-enemy fight shows a one-time tip pointing at your target.
-- B94 Multi-enemy fights: when an enemy dies the rest glide to new, centred spots and grow back to full size as they become fewer; the last one standing is centred, not pushed to a side. Summoned enemies slot in. A long action queue nudges them right without going off screen.
-- B95 Dealt dice never overlap (deal a full hand several times, also after Deepdiver draws more).
-- B96 Hovering a die: its range is in the tooltip title ("Inkwell Die (1-4)") and no longer drawn over the die and its keyword icons.
-- F58 Roll feedback: a Warrior die that rolls its minimum shows "Warrior!" over its slot and counts as its max. A die that rolls twice shows "Rolled 2 and 5, kept 5". (B97: I could not find how a Warrior showed a 1 from the code; the check is sturdier now. If you see it again, note the keepsakes and the slot.)
-- B98 Rigger's Tonic: pick it up in a fight and every slot pulses yellow; let go over a slot and its dice get +1 this turn (the slot's bonus shows). Bilge-Purge Flask works the same way. Letting go elsewhere puts it back.
-- B99 Single Focus: the +1 is on the first die of a single-type slot only (hover the slot's bonus); description says so.
-- B100 Bilge Die: heals 2 when the total on the die (roll plus bonuses) is even. A 6 with +1 (7) no longer heals; a 5 with +1 (6) does.
-- B101 Debug runs (F6): no x/y coordinates beside enemies.
-- F59 Workbench with the Cutters: the bench reads "Dice = Basic coin + Remainder", with a note under Remainder (keeps the die's effects; red if it becomes a coin and loses its core, or if the die is already a coin). Cutting a die down to a coin removes its core. A coin can't be cut (the button shakes).
-- F59 Workbench: die names sit clear of the slot edges; the distribution bars sit just above the box and only for dice bigger than a coin. While a tool is in hand, two mouse hints at the bottom: left button (hold over the Drill button / click the Cut or Combine button) and right button (put the tool down).
-- F59 First workbench visit (turn "Tutorial next run" on to see tips again): tip 1 points at the slots (die + core); once both are in, tip 2 points at the toolbag (click the Drill); once the Drill is on the bench, tip 3 points at it (pick up, hold over the Drill button, right click to put down). Each goes away by itself once done.
-- F57 First alignment fight: a tip explains kill vs spare and alignment dice. When the Kill / Spare buttons first appear, a tip points at them. Hovering Kill or Spare explains what each does (gold, compass, bounty contract for elites).
-- B102 Taking a die reward: no black flash. Buttons still look the same and grow on hover.
-- B103 Hover tooltips everywhere still look right (button panels are now reused at rounded sizes).
-
-**Batch 12, round 2 (2026-11-17 feedback)**
-- B104 Rigger's Tonic no longer crashes when dropped on a slot (the item slot was read after it had been used up).
-- B105 Hovering an enemy: the intent icon and number stay visible; the move name no longer appears above (it's the tooltip title). The enemy's name appears under its health bar, in place of "Target" (which hides while hovered); other enemies show "Click to target" under the name.
-- B106 Hovering a die hides the name drawn under it. Keyword boxes (Coin, Sticky...) sit tight under the main tooltip, smaller, with no gap, and the whole stack stays on screen.
-- B107 Buff/debuff tooltips: the description, then a grey line like "2 turns left, Strength 3" (or "Lasts all fight"); nothing about amount when it's 0.
-- B108 Taking a reward die: no black flash (second try: the flying die now sets its draw depth once when created). If it still flashes, say whether it's the web build, the desktop build or both.
-- F61 End of a spread: "Heal X HP" on the left page (small "Recover below deck" above), "Gain a random core" on the right ("Search the hold"), and "Continue" below. Heal is greyed at full health and Gain a core when your item slots are full, each saying why on hover. Text grows with the buttons.
-- F62 Custom cursor: a parchment arrow with an ink edge; it tips forward and gets a gold glint over anything you can hover or click, and dips while the button is held. Settings > Display > Custom cursor turns it off (saved). Check it in the menu, map, fights, settings and the web build.
-- Workbench: crafting now makes a sound (placeholders: a shield clang for the Hammer, rubble for the Drill, a sword swish for the Cutters). There were no tool sounds at all before.
-
-**Batch 12, round 3 (2026-11-17 feedback)**
-- B109 Workbench with too few dice in the bag (e.g. after a fight, bag nearly empty): no black screen; it deals what there is.
-- F62 Cursor: no shrinking on click; it tips further forward while the button is held. No glint circle. Tooltips that follow the mouse sit down and to the right of the pointer, clear of it.
-- F61 End of a spread: the page turns first (no buttons or darkening yet), then "The spread is done" with the two options either side of the book's spine and Continue below, then after choosing, "What happened next?" and the pages.
-- F63 The top bar stays in full colour while the map dims (drafting, spread end, chapter complete). Fights' reward screen already did.
-- F63 Embark glows and pulses green once two pages are chosen; hovering it before then says "Choose two pages first". The chosen draft pages get a thick green outline (your mockup); the locked-away one stays a dark silhouette.
-- F64 UI phase 1, colours by role: green = the main go action (Embark, Resume, Save, Turn the page, Back to the menu, tutorial note buttons, Spare, Craft when ready); brown = ordinary choices and leaving (Exit buttons, Settings, Visit the workbench, Heal/Gain a core, Cancel); dark red = costly (Start anew, Kill); grey = skippable (Skip tutorial, Continue). Red/blue/green/yellow now only mean attack/block/heal/insight.
-- F64 Main menu items are always drawn as buttons, not plain text until hovered. The abandon-run warning says "Start anew" / "Keep voyage".
-- F64 Writing: "a die" / "1 die" / "this die" wherever one die is meant (dice and keepsake descriptions, events, prompts); the new-slot tile says "Sacrifice 1 die" or "2 dice"; an empty slot says "Empty" with no "(0-0)".
-- F64 Tooltips have a logbook look: dark ink, a thin cream rule inside the edge and small diamonds at the corners; keyword boxes are plainer. Coloured words (insight, keywords) still read clearly.
-
-**Batch 12, round 11: smoother shapes**
-- B117 Desktop: edges of shapes drawn in code are smooth, not jagged: the plays pips, action icon badges, insight icons, tooltip borders, panels, buttons, the cursor. Circles are rounder. Insight icons (brushes, quill) keep their shape in the insight panel and beside intents. Check the frame rate is unchanged. (The web build can't switch this on from the game.)
-
-**Batch 12, round 10: screen sizes (B83)**
-- B83 Desktop: Settings > Display > Resolution 2560x1440 (and fullscreen). Every screen should look exactly like 1920x1080, just bigger: shop, bounty board, workbench tools and the Cutters' hit area, the intro cutscene, backgrounds, coins and particles flying to the top bar, the map, fights, tooltips, the cursor. Text may look a touch softer at 1440p (it is drawn at 1080p and scaled up). Switch back to 1920x1080: unchanged. Web: unchanged.
-- F70 The "plays left" label is bigger, with bigger pips. F14 The action icons on dice are about half as big again.
-
-**Batch 12, round 9: UI phase 3 (fight screen)**
-- B116 The bag icon (bottom left) is drawn above the map, the draft overlay and room windows, everywhere.
-- F70 Plays left: under the queue's start, a small "3 plays left" label over a row of pips, filled for plays left and hollow for plays used. Coins don't use one. Extra plays (Invisible die, keepsakes) add pips.
-- F14 Settings > Display > Action icons on dice (off by default, saved): every die in hand and in slots gets a small round badge in its bottom-left corner, a sword, shield, heart or brush, so attack, block, heal and insight can be told apart without colour. Generic dice get none.
-
-**Batch 12, round 8 (2026-11-17 feedback)**
-- B115 An Exclusive die played into a slot that already has dice ejects them all and takes the slot, whatever the slot's type, including a slot built by sacrificing neutral dice (it used to just sit beside them). Exclusive dice still can't be sacrificed (that is the keyword's rule).
-- F69 No panel behind the rewards (the rule under the title stays).
-- F66 Tooltips for things in the top bar (gold, health, items, keepsakes, toolbag, compass...) appear just below the bar, lined up with the thing.
-- F69 The workbench Craft label and the bounty board Re-roll label grow with their buttons; Re-roll is brown when available (blue is for block). A rule sits under the draft heading.
-
-**Batch 12, round 7 (2026-11-17 feedback)**
-- F02 Choosing dice at the workbench works: the chosen dice fly onto the bench and stay (the picker now blocks the Exit button that sat right under Confirm, which was ending the visit). Events that ask you to pick dice are protected the same way.
-- F02 "Sail on" sets sail for the next stop straight away.
-- F66 Tooltips sit at a fixed place beside the thing you're hovering (to its right, top-aligned; to its left near the right edge of the screen). They don't follow the mouse or stay where they started. Check enemies, intents, dice in hand, slots, top bar items, map nodes.
-- F51 Brush icons tilted 45 degrees: Legible is a brush loaded with yellow ink with a drop at the tip; Faded is a dry brush with pale splayed strands and a trace of ink.
-- F69 More padding: the At sea panel is roomier, and tooltip text sits further inside the border.
-- F69 UI kit: the Exit buttons in the workbench, events, treasure and the bounty board, and the dice picker's Confirm, are now kit buttons: big text that grows with the button, a shadow, a press-down, and a reason on hover when they can't be pressed (e.g. "Choose an option first", "Take the dice off the bench first"). The picker's button says "Take none" when nothing is chosen at the workbench.
-- F69 The fight's rewards sit on a logbook panel with a rule under the title; Next is green and the last Exit brown.
-
-**Batch 12, round 6: the At sea workbench (F02)**
-- F02 The map's "Visit the workbench" button is gone. Finishing a page's island (its last stop) earns a visit: back on the map an "At sea" panel offers "Open the workbench" or "Sail on". Choosing your next stop also counts as sailing on. Ordinary stops no longer earn a visit.
-- F02 Opening the workbench shows your bag: choose up to N dice (N = tools you own, +1 if you own the Hammer; just the Drill = 1). Confirm works with fewer, even none. No dice are dealt at random any more.
-- F02 Each tool works once per visit: when it crafts it vanishes back into the toolbag, and clicking it in the toolbag again says "Used this visit". With two or three tools you can craft two or three times.
-- F02 After a craft, click the finished die (and the Cutters' coin) to take it back into your hand; once the bench is clear the Craft button resets for the next tool. Your other chosen dice stay in your hand between crafts (they used to be sent back to the bag).
-- F02 Exit sends everything in your hand back to the bag, crafted dice included. Check the bag afterwards: right dice, no duplicates, nothing lost.
-- F02 Tips: the map tip now points at the At sea panel; the workbench tip mentions one use per tool.
-
-**Batch 12, round 5 (2026-11-17 feedback)**
-- B108 The reward flash is gone (confirmed on web).
-- B113 The bag view and the dice picker draw above every other window (events that ask you to pick dice, the shop, the workbench).
-- B114 The chosen draft pages' green outline follows the torn paper again (no rectangle, no black).
-- F59 Workbench tool mouse hints sit above the bench, not over the dice in hand.
-- F51 New placeholder insight icons: Faded is a dry brush tip (pale bristles, a touch of yellow at the point), Legible a brush dipped in yellow ink, Quill a feather quill with a dark nib. Check them above the player, in the insight panel and beside rewritable intents.
-
-**Batch 12, round 4 (2026-11-17 feedback)**
-- B110 Buttons are no longer black boxes (main menu, settings, pause...): panels are now drawn straight to the screen, with the same wobbly ink edges, held still. Draft pages: unchosen ones look normal; a chosen one has a green rounded frame. (If a page still looks black, send a screenshot.)
-- B111 Splash Die: a total below 0 counts as 0 (description says so).
-- F66 Tooltips stay where they first appeared (beside the pointer) while you keep hovering the same thing, instead of following the mouse. Moving to another thing places a new one.
-- B108 Reward flash, third try: taking a reward die no longer creates the flying die in the middle of drawing (it's made in the next step). Tell me on web whether the flash is gone.
-- B112 The dimming starts exactly where the top bar ends (rewards, new-run offer, map). Long reward names wrap inside their frames.
-- F67 Shop: clicking an item with your slots full says "No room"; anything you can't afford says how much more gold you need.
-- F67 End Turn uses the same green as Embark and gently breathes once your hand is empty.
-- F68 (withdrawn) The ship no longer opens the workbench: it was awkward. The workbench redesign is being discussed (F02).
-- F69 UI kit, phase 2: every button has a soft shadow, sinks a little while held, and a greyed-out one is a muted colour with readable text. The pause menu, voyage summary and spread-end choice sit on one logbook panel (dark ink, cream rule, corner diamonds) with a divider under the title.
-
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -150,7 +55,6 @@ All known P0 bugs are fixed, see DONE.
 | ID | Bug | Where |
 |---|---|---|
 | B82 | `draw_outline_text` coloured mode wraps every word and ignores halign/alpha. `queue_tooltip` changes the caller's font | `scHelpers.gml:290-426` |
-| B83 | Fixed 1080p coordinates break at 1440p: shop, bounty, tools, cutters hitbox, cutscene, backgrounds, particle targets | see audit notes |
 | B118 | **Parked (2026-11-17).** Web build: shapes drawn in code (button panels, pips, badges, icon outlines) have jagged edges. The browser canvas is smaller than the 1920x1080 layout, so the GUI is drawn shrunk, and a web build can't turn on anti-aliasing from inside the game (desktop is fixed, B117). Fixes, best first: real art for buttons and panels (sprites are smoothed when scaled; comes with F50), or drawing the UI to a 2x surface and shrinking it with smoothing (costly, and surfaces have misbehaved on web before). | `scDisplay`, `draw_wonky_rectangle`, UI kit |
 
 ---
@@ -177,14 +81,13 @@ All known P0 bugs are fixed, see DONE.
 Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
 
 **Core loop**
-- F02 **Rethink what happens between pages (Jared, 2026-11-17).** Workbench part built in batch 12 (At sea). Still open: the spread-end choices themselves. Built version (2026-11-17): the workbench becomes an "At sea" step between pages (after a page's island is done, before the next), replacing the map button. You choose which dice to take from your bag (not dealt at random), up to one per tool you own (plus a core for the Drill); each tool can be used once per visit and goes back in the toolbag after. "Sail on" skips it. Like FTL's ship upgrades between jumps, or the Slay the Spire campfire, but more often and smaller. Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
+- F02 **Rethink what happens between pages (Jared, 2026-11-17).** Workbench part done in batch 12 (At sea). Still open: the spread-end choices themselves. Built version (2026-11-17): the workbench becomes an "At sea" step between pages (after a page's island is done, before the next), replacing the map button. You choose which dice to take from your bag (not dealt at random), up to one per tool you own (plus a core for the Drill); each tool can be used once per visit and goes back in the toolbag after. "Sail on" skips it. Like FTL's ship upgrades between jumps, or the Slay the Spire campfire, but more often and smaller. Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
 - F03 Elite/boss chest reward
 - F05 Die roll-history stats page (death/win screens and the run summary were done in batch 10)
 - F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
 
 **Combat clarity** (the most common playtest feedback)
-- F11 Enemy targeting indicator; floating arrows at intel ≥ 6
-- F14 Colour-blind-safe palette (Jack can't tell the blues apart). Action icons on dice built in batch 12 (option); a palette change is still open
+- F14 Colour-blind-safe palette (Jack can't tell the blues apart). Action icons on dice are done (batch 12, Settings > Display); a palette change is still open
 - F15 Summon intent icon, buff animation, clearer "Nav Chart fired" feedback
 
 **Content**
@@ -333,6 +236,47 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | F13 | Settings > Gameplay > Combat speed: Slow, Normal, Fast, Fastest | Batch 10: playtest-ready | 2026-11-16 |
 | B92 | Main menu drew over Settings; it now hides while Settings is open | Batch 10: playtest-ready | 2026-11-16 |
 | B93 | Navigation Chart crashed (web black screen) when the next slot was empty; Rusty Rudder could hit a dead enemy | Batch 11: keepsake crash | 2026-11-17 |
+| F56 | Quill rerolls or halves an intent; intent hover says what the enemy does in words | Batch 12: playtest notes | 2026-11-17 |
+| F57 | Targeting: red Target marker, click-to-target hint, first multi-enemy tip; alignment and kill/spare tips and tooltips | Batch 12: playtest notes | 2026-11-17 |
+| F11 | Enemy targeting indicator (the Target marker, F57) | Batch 12: playtest notes | 2026-11-17 |
+| F58 | Roll feedback: "Warrior!", roll-twice shows both rolls | Batch 12: playtest notes | 2026-11-17 |
+| F59 | Workbench: Cutters layout (Dice = Basic coin + Remainder), core loss warning, tidy names and distributions, tool mouse hints, step-by-step first-visit tips | Batch 12: playtest notes | 2026-11-17 |
+| F02 | At sea workbench: earned per page, choose your dice, each tool once per visit, several crafts per visit (spread-end choices still open) | Batch 12: playtest notes | 2026-11-17 |
+| F61 | Spread end: page turn, then Heal X HP / Gain a random core / Continue, with reasons when unavailable | Batch 12: playtest notes | 2026-11-17 |
+| F62 | Custom logbook cursor (Settings > Display) | Batch 12: playtest notes | 2026-11-17 |
+| F63 | Top bar stays lit under dimming; Embark glows when ready; chosen draft pages outlined in green | Batch 12: playtest notes | 2026-11-17 |
+| F64 | UI phase 1: button colours by role, main menu buttons, writing pass, logbook tooltips | Batch 12: playtest notes | 2026-11-17 |
+| F66 | Tooltips sit beside the hovered thing (below the top bar for its items), keyword boxes stacked tight | Batch 12: playtest notes | 2026-11-17 |
+| F67 | Shop explains failed purchases; End Turn green and breathing when your hand is empty | Batch 12: playtest notes | 2026-11-17 |
+| F69 | UI kit: ui_panel, ui_divider, ui_button (shadow, press, disabled reason), Exits and Confirm on the kit, padding | Batch 12: playtest notes | 2026-11-17 |
+| F70 | Plays left shown as a label and pips | Batch 12: playtest notes | 2026-11-17 |
+| F14 | Action icons on dice (accessibility option); palette change still open | Batch 12: playtest notes | 2026-11-17 |
+| F51 | Insight icons redrawn: dry brush, ink-loaded brush, feather quill | Batch 12: playtest notes | 2026-11-17 |
+| B83 | Layout stays 1920x1080 at every resolution, so 1440p matches 1080p | Batch 12: playtest notes | 2026-11-17 |
+| B94 | Enemies re-centre and glide after deaths | Batch 12: playtest notes | 2026-11-17 |
+| B95 | Dealt dice never overlap | Batch 12: playtest notes | 2026-11-17 |
+| B96 | A die's range shows in its tooltip title, not over its keyword icons | Batch 12: playtest notes | 2026-11-17 |
+| B97 | Warrior check made sturdier (cause of a rolled 1 not found) | Batch 12: playtest notes | 2026-11-17 |
+| B98 | Rigger's Tonic and Bilge-Purge drop onto slots reliably, slots pulse while carried | Batch 12: playtest notes | 2026-11-17 |
+| B99 | Single Focus is first die only | Batch 12: playtest notes | 2026-11-17 |
+| B100 | Bilge Die checks the total with bonuses | Batch 12: playtest notes | 2026-11-17 |
+| B101 | Debug coordinates beside enemies turned off | Batch 12: playtest notes | 2026-11-17 |
+| B102 | Button surfaces no longer churn (and drawn without surfaces since) | Batch 12: playtest notes | 2026-11-17 |
+| B103 | Tooltip boxes measured exactly | Batch 12: playtest notes | 2026-11-17 |
+| B104 | Rigger's Tonic crash after use | Batch 12: playtest notes | 2026-11-17 |
+| B105 | Enemy hover keeps the intent icon; name replaces Target while hovered | Batch 12: playtest notes | 2026-11-17 |
+| B106 | Die name hides on hover; compact keyword boxes | Batch 12: playtest notes | 2026-11-17 |
+| B107 | Buff and debuff tooltips tidied | Batch 12: playtest notes | 2026-11-17 |
+| B108 | Black flash when taking a reward die (particle created mid-draw) | Batch 12: playtest notes | 2026-11-17 |
+| B109 | Workbench crash with too few dice in the bag | Batch 12: playtest notes | 2026-11-17 |
+| B110 | Buttons and draft pages drawing black (panels drawn without surfaces) | Batch 12: playtest notes | 2026-11-17 |
+| B111 | Splash Die never rolls below 0 | Batch 12: playtest notes | 2026-11-17 |
+| B112 | Dimming lines up with the top bar; reward names wrap | Batch 12: playtest notes | 2026-11-17 |
+| B113 | Bag view and dice picker draw above every window | Batch 12: playtest notes | 2026-11-17 |
+| B114 | Chosen draft page outline follows the paper | Batch 12: playtest notes | 2026-11-17 |
+| B115 | Exclusive dice eject whatever is in a slot | Batch 12: playtest notes | 2026-11-17 |
+| B116 | Bag icon drawn above the map | Batch 12: playtest notes | 2026-11-17 |
+| B117 | Smooth edges on desktop (anti-aliasing, rounder circles, minimum icon strokes) | Batch 12: playtest notes | 2026-11-17 |
 
 **Milestones**
 
