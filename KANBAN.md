@@ -29,6 +29,13 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 14: workbench bag | F72, B119 | `fix/workbench-bag` | **Ready to test.** The workbench asks you to open the bag instead of opening it; the top bar can be hovered with the bag open. B119 (black screen drilling a Loaded core into a Harvest Die) needs the console trace. |
+
+**Batch 14 test list**
+- F72 At sea > Open the workbench: the bag is closed. A panel over the bench says "Take up to N dice from your bag to work on" with an "Open the bag" button. That button, or clicking the bag icon (bottom left), opens the picker. Choose and confirm: the dice land on the bench. Exit without choosing works too.
+- F72 First visit (Tutorial next run on): a tip points at that panel first; once you've chosen, the next tip points at the slots, then the toolbag, then the Drill.
+- F72 With the bag open (anywhere: bag icon, discard pile, picking dice), hovering gold, health, items, keepsakes, the toolbag or the compass in the top bar shows their tooltips. Clicking them does nothing until the bag closes.
+- B119 Drill a Loaded core into a Harvest Die at the workbench: it went black on web. Not fixed yet: send the console trace (F12) from a Debug run (F6) if it happens again.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
