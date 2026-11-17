@@ -2032,8 +2032,15 @@ function tips_list() {
 			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench; },
 		},
 		{
+			id: "workbench_bag", room: rmWorkbench, target: "wb_pick",
+			text: "The workbench. First choose what to work on: open your bag and take up to one die per tool you own.",
+			when: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.pick_pending; },
+			done: function() { return instance_exists(oWorkbenchManager) && !oWorkbenchManager.pick_pending && oRunManager.dice_selection == false; },
+		},
+		{
 			id: "workbench", room: rmWorkbench, target: "wb_slots",
-			text: "The workbench. Put a die in the first slot and drag a core from the top bar into the middle one. Each tool works once per visit; click a finished die to take it back for another tool.",
+			text: "Put a die in the first slot and drag a core from the top bar into the middle one. Each tool works once per visit; click a finished die to take it back for another tool.",
+			when: function() { return instance_exists(oWorkbenchManager) && !oWorkbenchManager.pick_pending && oRunManager.dice_selection == false; },
 			done: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined; },
 		},
 		{
@@ -2111,6 +2118,10 @@ function tips_rect(_target) {
 			return { x: _gw / 2 - 320, y: _gh - 230 - 90, w: 640, h: 230 }; // the map's "At sea" panel
 		case "insight":
 			return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
+		case "wb_pick":
+			if (!instance_exists(oWorkbenchManager)) return undefined;
+			with (oWorkbenchManager) return { x: display_get_gui_width() / 2 - 280, y: start_y - wb_tile_size - 230, w: 560, h: 170 };
+			break;
 		case "wb_slots":
 			if (!instance_exists(oWorkbenchManager)) return undefined;
 			with (oWorkbenchManager) return { x: start_x - wb_tile_size / 2, y: start_y - wb_tile_size / 2, w: wb_tile_size * 2 + wb_tile_padding, h: wb_tile_size };
@@ -2403,4 +2414,19 @@ function workbench_tool_used(_object) {
 	array_push(oWorkbenchManager.tools_used, _object);
 	oRunManager.holding_item = false;
 	with (_object) instance_destroy();
+}
+
+/// @func workbench_open_picker()
+/// @desc Opens the bag to choose the dice for this workbench visit (from the prompt or the bag icon).
+function workbench_open_picker() {
+	if (!instance_exists(oWorkbenchManager) || !oWorkbenchManager.pick_pending) return;
+	oWorkbenchManager.pick_pending = false;
+	with (oRunManager) {
+		dice_selection = workbench_dice_allowance();
+		dice_selection_up_to = true;
+		dice_selection_message = "Choose up to " + string(dice_selection) + ((dice_selection == 1) ? " die" : " dice") + " to work on";
+		dice_selection_event = function(_die) { workbench_take_die(_die); };
+		bag_to_show = global.dice_bag;
+		show_bag_contents = true;
+	}
 }

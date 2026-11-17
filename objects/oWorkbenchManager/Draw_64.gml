@@ -323,6 +323,21 @@ switch (crafting_state) {
 	break;
 }
 
+// before anything else: choose the dice to work on (the bag opens on request, not by itself)
+if (pick_pending) {
+	var _pw = 560, _ph = 170;
+	var _px = gui_w / 2 - _pw / 2, _py = start_y - wb_tile_size - 230;
+	ui_panel(_px, _py, _px + _pw, _py + _ph);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_font(ftDefault);
+	var _n = workbench_dice_allowance();
+	draw_outline_text("Take up to " + string(_n) + ((_n == 1) ? " die" : " dice") + " from your bag to work on.", c_black, c_white, 2, gui_w / 2, _py + 44, 1, 1, 0);
+	var _pick = ui_button(gui_w / 2, _py + 108, 260, 64, pick_scale, "Open the bag", global.ui_primary);
+	pick_scale = _pick.scale;
+	if (_pick.click) workbench_open_picker();
+}
+
 // "Dice + Core = Output", or with the Cutters "Dice = Basic coin + Remainder"
 var _cutting = (button_text == "Cut");
 draw_outline_text(_cutting ? "=" : "+", c_black, c_white, 2, gui_w/2 - wb_tile_size/2 - wb_tile_padding/2, start_y, 1, 1.0, 0);

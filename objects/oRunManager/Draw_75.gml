@@ -218,7 +218,9 @@ draw_set_font(ftBig);
 draw_text(70, gui_h - 55, string(ds_list_size(global.dice_bag)));
 
 if (bag_hover) {
-	if (mouse_check_button_pressed(mb_left) && !global.all_input_disabled) {
+	if (mouse_check_button_pressed(mb_left) && !global.all_input_disabled && instance_exists(oWorkbenchManager) && oWorkbenchManager.pick_pending) {
+		workbench_open_picker(); // at the workbench, opening the bag is how you choose your dice
+	} else if (mouse_check_button_pressed(mb_left) && !global.all_input_disabled) {
 		show_bag_contents = 1 - show_bag_contents;
 		bag_to_show = global.dice_bag;
 		

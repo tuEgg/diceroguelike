@@ -164,6 +164,9 @@ if (new_run_offering) {
 // Draw top bar
 var bar_scale_w = global.ui_scale;
 draw_sprite_ext(sTopBar, 1, -3*bar_scale_w, -4, bar_scale_w, 1, 0, c_white, 1);
+// with the bag open, the top bar can still be hovered for its tooltips (mouse_hovering_check); its clicks are
+// guarded by the base layer, so nothing in it can be used until the bag closes
+global.ui_peek_top_bar = (global.ui_layer == UI_LAYER.BAG);
 
 // Draw voyage act
 draw_set_font(ftBig);
@@ -388,7 +391,7 @@ var num_tools = string(ds_list_size(tools));
 
 var toolbar_hover = mouse_hovering(gui_w - 860, bar_half, sprite_get_width(sToolbag) + 10, bar_height, true);
 if (toolbar_hover) {
-	if mouse_check_button_pressed(mb_left) {
+	if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
 		show_tools = 1 - show_tools;
 	}
 	if (room == rmMap) {
@@ -429,8 +432,8 @@ if (show_tools) {
 		
 		if (tool_hover) {
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc);
-			
-			if (mouse_check_button_pressed(mb_left)) {
+
+			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
 				if (room == rmWorkbench) {
 					if (instance_exists(oWorkbenchManager) && array_contains(oWorkbenchManager.tools_used, tool.object)) {
 						throw_error("Used this visit", "Each tool works once per visit to the workbench.");
@@ -577,6 +580,8 @@ for (var k = 0; k < ds_list_size(keepsakes); k++) {
 
 var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
+
+global.ui_peek_top_bar = false; // end of the top bar
 
 // the bag icon is drawn in Draw GUI End too (Draw_75), so the map and room windows never cover it
 
