@@ -474,31 +474,11 @@ if (room == rmMap) {
 		}
 	}
 	
-	// Draw the boat. The workbench is below deck: while a visit is free, the ship glows with a tools badge and
-	// clicking it goes to the workbench (the "Visit the workbench" button still works too)
+	// Draw the boat (clicking it to visit the workbench was tried and taken out: see KANBAN F02)
 	var boat_hover = mouse_hovering(boat_data.x, boat_data.y - sprite_get_height(sMapShip)/2, sprite_get_width(sMapShip), sprite_get_height(sMapShip), true);
-	var ship_workbench = (world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench && node_to_move_to == undefined);
-	if (ship_workbench) {
-		var ship_pulse = 0.5 + 0.5 * sin(current_time / 300);
-		draw_set_color(global.color_intel);
-		draw_set_alpha(0.18 + 0.2 * ship_pulse + (boat_hover ? 0.2 : 0));
-		draw_ellipse(boat_data.x - 70 - 6 * ship_pulse, boat_data.y - 40, boat_data.x + 70 + 6 * ship_pulse, boat_data.y + 40, false);
-		draw_set_alpha(1);
-	}
-	draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, boat_hover && ship_workbench ? 1.1 : 1, boat_hover && ship_workbench ? 1.1 : 1, boat_data.angle, c_white, 1.0);
-	if (ship_workbench) draw_tools_badge(boat_data.x + 40, boat_data.y - 62, 1 + 0.08 * ship_pulse);
-
-	if (boat_hover) {
-		if (ship_workbench) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your ship: the workbench", "Below deck is your workbench. Click to visit it: reshape your dice before sailing on. Once after each stop.", undefined, 0, undefined);
-			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
-				room_goto(rmWorkbench);
-				oRunManager.can_visit_workbench = false;
-			}
-		} else {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your ship", "Below deck is your workbench, free to visit once after each stop.", undefined, 0, undefined);
-		}
-	}
+	if (boat_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your ship", "Where to captain?", undefined, 0, undefined);
+	
+	draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 1, 1, boat_data.angle, c_white, 1.0);
 	
 	// Chapter complete: shown once the boss is beaten, until the player turns to the next chapter
 	if (world_state == WORLD_STATE.CHAPTER_END) {
