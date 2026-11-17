@@ -1582,3 +1582,27 @@ function ui_button_col(_state_col) {
 	if (_state_col == c_lime || _state_col == c_green) return global.ui_primary;
 	return _state_col;
 }
+
+/// @func draw_tools_badge(_x, _y, _scale)
+/// @desc A small round badge with a crossed hammer and wrench (drawn in code), e.g. over the ship when the workbench
+///       can be visited.
+function draw_tools_badge(_x, _y, _scale) {
+	var _r = 18 * _scale;
+	var _ink = make_color_rgb(40, 32, 24);
+	draw_set_alpha(1);
+	draw_set_color(_ink);
+	draw_circle(_x, _y, _r + 3, false);
+	draw_set_color(make_color_rgb(240, 228, 196));
+	draw_circle(_x, _y, _r, false);
+	draw_set_color(_ink);
+	// hammer: handle and head, leaning one way
+	var _a = 45;
+	draw_line_width(_x - lengthdir_x(11 * _scale, _a), _y - lengthdir_y(11 * _scale, _a), _x + lengthdir_x(11 * _scale, _a), _y + lengthdir_y(11 * _scale, _a), 3 * _scale);
+	var _hx = _x - lengthdir_x(10 * _scale, _a), _hy = _y - lengthdir_y(10 * _scale, _a);
+	draw_line_width(_hx - lengthdir_x(6 * _scale, _a + 90), _hy - lengthdir_y(6 * _scale, _a + 90), _hx + lengthdir_x(6 * _scale, _a + 90), _hy + lengthdir_y(6 * _scale, _a + 90), 5 * _scale);
+	// wrench: handle the other way, with an open ring at its end
+	var _b = 135;
+	draw_line_width(_x - lengthdir_x(11 * _scale, _b), _y - lengthdir_y(11 * _scale, _b), _x + lengthdir_x(9 * _scale, _b), _y + lengthdir_y(9 * _scale, _b), 3 * _scale);
+	draw_circle(_x + lengthdir_x(11 * _scale, _b), _y + lengthdir_y(11 * _scale, _b), 4 * _scale, true);
+	draw_set_color(c_white);
+}
