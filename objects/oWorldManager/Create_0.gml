@@ -206,6 +206,8 @@ workbench_scale_target = 2.0;
 workbench_scale = workbench_scale_target;
 resting_alpha = 0;
 rest_amount = 0.25;
+rest_heal_preview = undefined; // what resting heals this spread end, worked out once (keepsakes add to it)
+rest_btn_scales = [1, 1, 1];
 
 embark_scale = 1.0;
 workbench_scale = 1.0;

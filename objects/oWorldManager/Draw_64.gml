@@ -223,72 +223,64 @@ if (room == rmMap) {
 			boat_data.x = lerp(boat_data.x, 300, 0.06);
 			boat_data.y = lerp(boat_data.y, display_get_gui_height()/2, 0.06);
 			
-			// Show the option to "recover in the quarters" or "use the workbench"
-			var heal_col = global.color_heal;
-			var workbench_col = global.color_attack;
-			
+			// a choice for the end of a spread: heal on the left page, a core on the right, or just continue.
+			// Each option says why when it can't be taken (full health, no free item slot).
 			resting_alpha = lerp(resting_alpha, 1.0, 0.4);
-			
-			var spacing = 0.25;
-			var vertical_scale = 0.7;
-			
-			var button_x = gui_w - gui_w/4;
-			var button_y1 = bg_y + bg_h/2 - 100;
-			var button_y2 = bg_y + bg_h/2 + 100;
-			
-			draw_sprite_ext(sButtonSmall, 0, button_x, button_y1, heal_scale, heal_scale * vertical_scale, 0, heal_col, resting_alpha);
-			draw_sprite_ext(sButtonSmall, 0, button_x, button_y2, workbench_scale, workbench_scale * vertical_scale, 0, workbench_col, resting_alpha);
 
-			draw_set_font(ftBig);
+			// how much resting heals (keepsakes like Salted Pork add to it), worked out once per spread end
+			if (rest_heal_preview == undefined) {
+				var heal_ctx = { rest_amount: rest_amount };
+				runmanager_trigger_keepsakes("on_rest", heal_ctx);
+				rest_heal_preview = { pct: heal_ctx.rest_amount, hp: ceil(global.player_max_hp * heal_ctx.rest_amount) }; // rounds up, like the healing potion
+			}
+			var heal_amount = rest_heal_preview.hp;
+			var can_heal = global.player_hp < global.player_max_hp;
+			var can_core = get_first_free_item_slot() != -1;
+			var input_ok = (global.ui_layer == UI_LAYER.BASE) && resting_alpha > 0.9;
+
+			var opt_w = 380, opt_h = 96;
+			var left_x = gui_w * 0.29, right_x = gui_w * 0.69, opt_y = gui_h * 0.46;
+
+			// small flavour lines above each option
+			draw_set_font(ftDefault);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
-			draw_outline_text("Recover below deck", c_black, c_white, 2, button_x, button_y1, 1, resting_alpha, 0, 300);
-			draw_outline_text("Gain a random core", c_black, c_white, 2, button_x, button_y2, 1, resting_alpha, 0, 300);
-			
-			var heal_sprite_w = sprite_get_width(sButtonSmall) * heal_scale;
-			var heal_sprite_h = sprite_get_height(sButtonSmall) * heal_scale;
-			var workbench_sprite_w = sprite_get_width(sButtonSmall) * workbench_scale * vertical_scale;
-			var workbench_sprite_h = sprite_get_height(sButtonSmall) * workbench_scale * vertical_scale;
-			
-			var hover_heal = mouse_hovering(button_x, button_y1, heal_sprite_w, heal_sprite_h, true, noone, soClick4, global.ui_layer == UI_LAYER.BASE);
-			var hover_core = mouse_hovering(button_x, button_y2, workbench_sprite_w, workbench_sprite_h, true, noone, soClick4, global.ui_layer == UI_LAYER.BASE);
-			
-			heal_scale = lerp(heal_scale, hover_heal ? heal_scale_target * 1.25 : heal_scale_target, 0.2);
-			workbench_scale = lerp(workbench_scale, hover_core ? workbench_scale_target * 1.25 : workbench_scale_target, 0.2);
-			
-			if (hover_heal) {
-				var rest_heal = rest_amount;
-				
-				var heal_ctx = {
-					rest_amount: rest_heal,					
-				}
-				
-				runmanager_trigger_keepsakes("on_rest", heal_ctx);
-				
-				rest_heal = heal_ctx.rest_amount;
-				
-				var heal_amount = ceil(global.player_max_hp * rest_heal); // rounds up, like the healing potion
-				
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Heal " + string(heal_amount) + "hp", "Heal " + string(round(rest_heal * 100)) + "% of your max health - rest up before embarking to the next node");
-				
-				if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
-					global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
-					particle_emit(650, 25, "burst", c_lime);
-					start_drafting();
-				}
+			draw_outline_text("Recover below deck", c_black, c_ltgray, 2, left_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
+			draw_outline_text("Search the hold", c_black, c_ltgray, 2, right_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
+
+			var heal_btn = draw_gui_button(left_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[0], "Heal " + string(heal_amount) + " HP", global.color_heal, ftBig, can_heal && input_ok, true);
+			var core_btn = draw_gui_button(right_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[1], "Gain a random core", global.color_attack, ftBig, can_core && input_ok, true);
+			var cont_btn = draw_gui_button(gui_w / 2 - 130, gui_h * 0.72, 260, 64, rest_btn_scales[2], "Continue", c_dkgray, ftBig, input_ok, true);
+			rest_btn_scales[0] = heal_btn.scale;
+			rest_btn_scales[1] = core_btn.scale;
+			rest_btn_scales[2] = cont_btn.scale;
+
+			// tooltips, including why an option is greyed out
+			if (mouse_hovering(left_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, false)) {
+				if (can_heal) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Heal " + string(heal_amount) + " HP", string(round(rest_heal_preview.pct * 100)) + "% of your max health, before you choose your next pages.");
+				else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Already at full health", "There's nothing to heal. Take a core or continue.");
 			}
-			
-			if (hover_core) {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Gain a core", "Get a random core to upgrade a dice with at the workbench");
-				
-				if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
-					// Generate a random core
-					var consumable_options = ds_list_create();
-					generate_item_rewards(consumable_options, global.master_item_list, 1, "core");
-					gain_item(consumable_options[| 0]);
-					ds_list_destroy(consumable_options);
-					start_drafting();
-				}
+			if (mouse_hovering(right_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, false)) {
+				if (can_core) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Gain a random core", "A core goes in your item bar. Drill it into a die at the workbench.");
+				else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "No free item slot", "Use or drop an item (right click it) to make room for a core.");
+			}
+			if (cont_btn.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Continue", "Take nothing and choose your next pages.");
+
+			if (heal_btn.click) {
+				global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
+				particle_emit(650, 25, "burst", c_lime);
+				rest_heal_preview = undefined;
+				start_drafting();
+			} else if (core_btn.click) {
+				var consumable_options = ds_list_create();
+				generate_item_rewards(consumable_options, global.master_item_list, 1, "core");
+				gain_item(consumable_options[| 0]);
+				ds_list_destroy(consumable_options);
+				rest_heal_preview = undefined;
+				start_drafting();
+			} else if (cont_btn.click) {
+				rest_heal_preview = undefined;
+				start_drafting();
 			}
 		} else {
 			resting_alpha = lerp(resting_alpha, 0, 0.2);

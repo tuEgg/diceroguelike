@@ -4,6 +4,10 @@ global.double_tap_timer = 0;
 global.show_settings = false;
 
 global.resolution_index = 0;
+global.custom_cursor = true; // Settings > Display > Custom cursor (cursor_draw)
+global.cursor_hidden = false;
+global.cursor_hover_time = 0;
+global.cursor_tilt = 0;
 global.combat_speed_index = 1; // Settings > Gameplay > Combat speed: Slow, Normal, Fast, Fastest (F13)
 
 global.resolution_options = [
@@ -75,6 +79,12 @@ categories = [
 		scale: 1,
         settings: [
             {
+                name: "Custom cursor",
+                type: "toggle",
+                get_value: function() { return global.custom_cursor; },
+                set_value: function(_val) { global.custom_cursor = _val; },
+            },
+            {
                 name: "Fullscreen",
                 type: "toggle",
                 get_value: function() { return window_get_fullscreen(); },
@@ -115,7 +125,7 @@ categories = [
 ];
 
 // a web build has no resolution choice: it always fits the page (apply_browser_resolution)
-if (IS_BROWSER) array_delete(categories[1].settings, 1, 1);
+if (IS_BROWSER) array_delete(categories[1].settings, 2, 1);
 
 if (file_exists("settings.json")) {
 	load_settings();

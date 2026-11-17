@@ -790,6 +790,13 @@ function parse_text_with_keywords(str) {
 
 /// @function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound = noone, _click_sound = soClick4, _conditions_met = true, _layer = UI_LAYER.BASE, _id = undefined)
 function mouse_hovering(_x, _y, _width, _height, _centered, _hover_sound = noone, _click_sound = soClick4, _conditions_met = true, _layer = UI_LAYER.BASE, _id = undefined) {
+
+	var _hit = mouse_hovering_check(_x, _y, _width, _height, _centered, _hover_sound, _click_sound, _conditions_met, _layer, _id);
+	if (_hit) global.cursor_hover_time = current_time; // the custom cursor lights up over anything interactive
+	return _hit;
+}
+
+function mouse_hovering_check(_x, _y, _width, _height, _centered, _hover_sound = noone, _click_sound = soClick4, _conditions_met = true, _layer = UI_LAYER.BASE, _id = undefined) {
 	var mx = device_mouse_x_to_gui(0);
 	var my = device_mouse_y_to_gui(0);
 	
@@ -1591,4 +1598,54 @@ function draw_mouse_hint(_x, _y, _button, _text) {
 	draw_set_valign(fa_middle);
 	draw_outline_text(_text, c_black, c_white, 2, _x + _w / 2 + 12, _y, 1, 1, 0);
 	draw_set_halign(fa_center);
+}
+
+/// @func cursor_draw()
+/// @desc The game's own mouse pointer (Settings > Display > Custom cursor), drawn last of all by oSettingsMenu
+///       Draw GUI End: an ink-outlined parchment arrow that tips forward and gains a gold glint over anything you can
+///       hover or click, and dips while the button is held. The system cursor is hidden while it's on.
+function cursor_draw() {
+	var _on = global.custom_cursor;
+	if (_on != global.cursor_hidden) {
+		window_set_cursor(_on ? cr_none : cr_default);
+		global.cursor_hidden = _on;
+	}
+	if (!_on) return;
+
+	var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
+	var _hot = (current_time - global.cursor_hover_time) < 60;
+	var _down = mouse_check_button(mb_left);
+	global.cursor_tilt = lerp(global.cursor_tilt, _hot ? 14 : 0, 0.3);
+	var _s = (_down ? 0.88 : 1) * (_hot ? 1.08 : 1) * global.ui_scale;
+
+	// the arrow's points, tip at the mouse, rotated by the tilt
+	var _pts = [[0, 0], [0, 30], [8, 23], [14, 36], [20, 33], [14, 21], [24, 21]];
+	var _xy = [];
+	for (var i = 0; i < array_length(_pts); i++) {
+		var _px = _pts[i][0] * _s, _py = _pts[i][1] * _s;
+		var _d = point_direction(0, 0, _px, _py) + global.cursor_tilt;
+		var _l = point_distance(0, 0, _px, _py);
+		array_push(_xy, [_mx + lengthdir_x(_l, _d), _my + lengthdir_y(_l, _d)]);
+	}
+
+	// shadow, then the paper fill as a fan of triangles from the tip, then the ink edge
+	draw_set_alpha(0.35);
+	draw_set_color(c_black);
+	for (var i = 1; i < array_length(_xy) - 1; i++) draw_triangle(_xy[0][0] + 3, _xy[0][1] + 3, _xy[i][0] + 3, _xy[i][1] + 3, _xy[i + 1][0] + 3, _xy[i + 1][1] + 3, false);
+	draw_set_alpha(1);
+	draw_set_color(_hot ? make_color_rgb(255, 236, 170) : make_color_rgb(240, 228, 196));
+	for (var i = 1; i < array_length(_xy) - 1; i++) draw_triangle(_xy[0][0], _xy[0][1], _xy[i][0], _xy[i][1], _xy[i + 1][0], _xy[i + 1][1], false);
+	draw_set_color(make_color_rgb(40, 32, 24));
+	for (var i = 0; i < array_length(_xy); i++) {
+		var _n = (i + 1) mod array_length(_xy);
+		draw_line_width(_xy[i][0], _xy[i][1], _xy[_n][0], _xy[_n][1], 2.5 * global.ui_scale);
+	}
+	// a gold glint at the tip over anything interactive
+	if (_hot) {
+		draw_set_color(global.color_intel);
+		draw_set_alpha(0.8);
+		draw_circle(_mx, _my, 4 * global.ui_scale, false);
+		draw_set_alpha(1);
+	}
+	draw_set_color(c_white);
 }

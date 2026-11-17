@@ -2045,7 +2045,7 @@ function tips_list() {
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",
-			text: "A spread is done. Rest to heal, or take a core to drill into a die at the workbench. Then the page turns and you choose the next two pages.",
+			text: "A spread is done. Heal, take a core to drill into a die at the workbench, or just continue. Then the page turns and you choose the next two pages.",
 			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.TURNING; },
 		},
 		{
