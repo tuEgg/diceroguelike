@@ -23,7 +23,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 12: playtest notes | F02 (workbench part), F56–F59, F61–F64, F66–F69, B94–B115 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
+| 12: playtest notes | F02 (workbench part), F14, F56–F59, F61–F64, F66–F70, B94–B116 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
 
 **Batch 12 test list**
 - F56 Quill (10 insight): click a glowing intent and two buttons appear under it, Reroll and Halve. Reroll: the enemy picks a different move. Halve: the number halves (range or exact), "Halved" shows under the intent, and the enemy's attack/block/heal really comes out at half. Forced moves can still be halved but not rerolled; buffs and debuffs can be rerolled but not halved (greyed, with a reason on hover). Clicking elsewhere puts the quill down. Once per turn.
@@ -64,6 +64,11 @@
 - F64 Main menu items are always drawn as buttons, not plain text until hovered. The abandon-run warning says "Start anew" / "Keep voyage".
 - F64 Writing: "a die" / "1 die" / "this die" wherever one die is meant (dice and keepsake descriptions, events, prompts); the new-slot tile says "Sacrifice 1 die" or "2 dice"; an empty slot says "Empty" with no "(0-0)".
 - F64 Tooltips have a logbook look: dark ink, a thin cream rule inside the edge and small diamonds at the corners; keyword boxes are plainer. Coloured words (insight, keywords) still read clearly.
+
+**Batch 12, round 9: UI phase 3 (fight screen)**
+- B116 The bag icon (bottom left) is drawn above the map, the draft overlay and room windows, everywhere.
+- F70 Plays left: under the queue's start, a small "3 plays left" label over a row of pips, filled for plays left and hollow for plays used. Coins don't use one. Extra plays (Invisible die, keepsakes) add pips.
+- F14 Settings > Display > Action icons on dice (off by default, saved): every die in hand and in slots gets a small round badge in its bottom-left corner, a sword, shield, heart or brush, so attack, block, heal and insight can be told apart without colour. Generic dice get none.
 
 **Batch 12, round 8 (2026-11-17 feedback)**
 - B115 An Exclusive die played into a slot that already has dice ejects them all and takes the slot, whatever the slot's type, including a slot built by sacrificing neutral dice (it used to just sit beside them). Exclusive dice still can't be sacrificed (that is the keyword's rule).
@@ -171,7 +176,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 **Combat clarity** (the most common playtest feedback)
 - F11 Enemy targeting indicator; floating arrows at intel ≥ 6
-- F14 Colour-blind-safe palette (Jack can't tell the blues apart)
+- F14 Colour-blind-safe palette (Jack can't tell the blues apart). Action icons on dice built in batch 12 (option); a palette change is still open
 - F15 Summon intent icon, buff animation, clearer "Nav Chart fired" feedback
 
 **Content**
