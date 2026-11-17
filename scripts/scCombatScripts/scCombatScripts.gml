@@ -581,6 +581,10 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 		if (string_pos(_die_types[n], _slot.possible_type)) _matches = true;
 	}
 
+	// an Exclusive die always takes the whole slot: whatever is in it is ejected, as its keyword says. (A slot built by
+	// sacrificing neutral dice has no type yet but does hold dice, so "claim" alone left them in.)
+	if (_die_exclusive && !_die_neutral && ds_list_size(_slot.dice_list) > 0) return _yes("replace");
+
 	if (!_die_neutral) {
 		if (_slot_empty) return _yes("claim");
 		if (_slot_all) return _no("Coloured dice can't go in an 'All' slot.");
@@ -626,7 +630,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 
 		switch (check.action) {
 			case "replace":
-				// an Exclusive die clears out a slot of another type, then claims it
+				// an Exclusive die clears out the slot (any type), then claims it
 				eject_dice_in_slot(oCombat.action_queue[| _slot_i], oCombat.slot_positions[| _slot_i], true);
 			// fall through to claim
 			case "claim":
