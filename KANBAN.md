@@ -23,6 +23,26 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 12: playtest notes | F56, F57, F58, F59, B94–B103 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
+
+**Batch 12 test list**
+- F56 Quill (10 insight): click a glowing intent and two buttons appear under it, Reroll and Halve. Reroll: the enemy picks a different move. Halve: the number halves (range or exact), "Halved" shows under the intent, and the enemy's attack/block/heal really comes out at half. Forced moves can still be halved but not rerolled; buffs and debuffs can be rerolled but not halved (greyed, with a reason on hover). Clicking elsewhere puts the quill down. Once per turn.
+- F56 Hover an enemy: no dice under the intent any more; the tooltip says it in words ("Attacks you for 4-9", "Blocks 6", "Attacks you for 5, then Blocks 3"), plus how to see exact numbers when Faded.
+- F57 Two or more enemies: a red "Target" with arrows under your target's health bar; hovering another enemy lights it faintly and says "Click to target" ("Target locked" when Overwhelmed). Your first multi-enemy fight shows a one-time tip pointing at your target.
+- B94 Multi-enemy fights: when an enemy dies the rest glide to new, centred spots and grow back to full size as they become fewer; the last one standing is centred, not pushed to a side. Summoned enemies slot in. A long action queue nudges them right without going off screen.
+- B95 Dealt dice never overlap (deal a full hand several times, also after Deepdiver draws more).
+- B96 Hovering a die: its range is in the tooltip title ("Inkwell Die (1-4)") and no longer drawn over the die and its keyword icons.
+- F58 Roll feedback: a Warrior die that rolls its minimum shows "Warrior!" over its slot and counts as its max. A die that rolls twice shows "Rolled 2 and 5, kept 5". (B97: I could not find how a Warrior showed a 1 from the code; the check is sturdier now. If you see it again, note the keepsakes and the slot.)
+- B98 Rigger's Tonic: pick it up in a fight and every slot pulses yellow; let go over a slot and its dice get +1 this turn (the slot's bonus shows). Bilge-Purge Flask works the same way. Letting go elsewhere puts it back.
+- B99 Single Focus: the +1 is on the first die of a single-type slot only (hover the slot's bonus); description says so.
+- B100 Bilge Die: heals 2 when the total on the die (roll plus bonuses) is even. A 6 with +1 (7) no longer heals; a 5 with +1 (6) does.
+- B101 Debug runs (F6): no x/y coordinates beside enemies.
+- F59 Workbench with the Cutters: the bench reads "Dice = Basic coin + Remainder", with a note under Remainder (keeps the die's effects; red if it becomes a coin and loses its core, or if the die is already a coin). Cutting a die down to a coin removes its core. A coin can't be cut (the button shakes).
+- F59 Workbench: die names sit clear of the slot edges; the distribution bars sit just above the box and only for dice bigger than a coin. While a tool is in hand, two mouse hints at the bottom: left button (hold over the Drill button / click the Cut or Combine button) and right button (put the tool down).
+- F59 First workbench visit (turn "Tutorial next run" on to see tips again): tip 1 points at the slots (die + core); once both are in, tip 2 points at the toolbag (click the Drill); once the Drill is on the bench, tip 3 points at it (pick up, hold over the Drill button, right click to put down). Each goes away by itself once done.
+- F57 First alignment fight: a tip explains kill vs spare and alignment dice. When the Kill / Spare buttons first appear, a tip points at them. Hovering Kill or Spare explains what each does (gold, compass, bounty contract for elites).
+- B102 Taking a die reward: no black flash. Buttons still look the same and grow on hover.
+- B103 Hover tooltips everywhere still look right (button panels are now reused at rounded sizes).
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -105,6 +125,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F31 Workbench: choose which dice to draw; Dye tool; multiple crafts per visit?
 - F32 Alignment/compass effects that actually matter mid-run
 - F33 Rarity on every item + rolled offers
+- F60 **Outguess as a class idea (parked 2026-11-17).** Jared still likes Outguess (insight rolled this turn that beats your target's number halves its move, cut from batch 8 as too complex for everyone). Keep it for a future class built around reading enemies. Classes are cut for now (2026-11-15), so don't start.
 
 **Juice**
 - F40 Individual Balatro-style trigger animations per die
