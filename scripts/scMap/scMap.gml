@@ -549,14 +549,14 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	
 	var draw_scale = _scale;
 	if (!_shadow) draw_scale = 1;
-	// a chosen page in the draft gets a thick green frame around it (Jared's mockup). Drawn as plain rounded rectangles
-	// (the shader version showed black in the web build)
+	// a chosen page in the draft gets a thick green outline that follows the torn paper (Jared's mockup): the page drawn
+	// in solid green (fog) a few pixels out in every direction, behind the page. Fog works in every build, no shader.
 	if (_shadow && page.chosen && !page.locked && _alpha > 0) {
-		var _fw = sprite_get_width(_sprite) * draw_scale / 2 + 6, _fh = sprite_get_height(_sprite) * draw_scale / 2 + 6;
-		draw_set_color(make_color_rgb(70, 220, 90));
-		draw_set_alpha(_alpha * pages_alpha);
-		for (var _o = 0; _o < 5; _o++) draw_roundrect_ext(page_x - _fw - _o, page_y - _fh - _o, page_x + _fw + _o, page_y + _fh + _o, 24, 24, true);
-		draw_set_alpha(1);
+		gpu_set_fog(true, make_color_rgb(70, 220, 90), 0, 0);
+		for (var _o = 0; _o < 12; _o++) {
+			draw_sprite_ext(_sprite, page.index, page_x + lengthdir_x(7, _o * 30), page_y + lengthdir_y(7, _o * 30), draw_scale, draw_scale, 0, c_white, _alpha * pages_alpha);
+		}
+		gpu_set_fog(false, c_white, 0, 0);
 	}
 	draw_sprite_ext(_sprite, page.index, page_x, page_y, draw_scale,  draw_scale, 0, _blend, _alpha * pages_alpha);
 	
