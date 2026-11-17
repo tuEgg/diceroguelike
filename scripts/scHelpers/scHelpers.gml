@@ -1756,17 +1756,17 @@ function ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active = true, _r
 ///       Settings > Display > Action icons on dice is on, so the types can be told apart without colour (F14).
 function draw_action_type_icon(_type, _x, _y, _scale) {
 	if (_type != "ATK" && _type != "BLK" && _type != "HEAL" && _type != "INTEL") return;
-	var _r = 11 * _scale;
+	var _r = 16 * _scale;
 	draw_set_alpha(1);
 	draw_set_color(c_black);
 	draw_circle(_x, _y, _r + 2, false);
 	draw_set_color(make_color_rgb(240, 228, 196));
 	draw_circle(_x, _y, _r, false);
 	switch (_type) {
-		case "ATK": draw_sprite_ext(sIntentIcons, 0, _x, _y, 0.32 * _scale, 0.32 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
-		case "BLK": draw_sprite_ext(sIntentIcons, 1, _x, _y, 0.32 * _scale, 0.32 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
-		case "HEAL": draw_sprite_ext(sIntentIcons, 2, _x, _y, 0.32 * _scale, 0.32 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
-		case "INTEL": draw_insight_icon("legible", _x, _y, 0.55 * _scale, 1); break;
+		case "ATK": draw_sprite_ext(sIntentIcons, 0, _x, _y, 0.5 * _scale, 0.5 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
+		case "BLK": draw_sprite_ext(sIntentIcons, 1, _x, _y, 0.5 * _scale, 0.5 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
+		case "HEAL": draw_sprite_ext(sIntentIcons, 2, _x, _y, 0.5 * _scale, 0.5 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
+		case "INTEL": draw_insight_icon("legible", _x, _y, 0.85 * _scale, 1); break;
 	}
 	draw_set_color(c_white);
 }

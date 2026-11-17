@@ -8,14 +8,19 @@ function apply_resolution() {
 		return;
 	}
 
+	// B83: everything is laid out for 1920x1080 (GUI and camera stay that size at every resolution), and only the
+	// window and the render surface take the chosen size; GameMaker scales the picture up. So fixed 1080p positions
+	// (shop, bounty board, tools, cutscene, backgrounds, particles...) land in the same place at 1440p.
     var _res = global.resolution_options[global.resolution_index];
+	var _w = 1920, _h = 1080;
     window_set_size(_res.w, _res.h);
     surface_resize(application_surface, _res.w, _res.h);
-    display_set_gui_size(_res.w, _res.h);
-    camera_set_view_size(view_camera[0], _res.w, _res.h);
+    display_set_gui_size(_w, _h);
+    camera_set_view_size(view_camera[0], _w, _h);
     view_set_wport(0, _res.w);
     view_set_hport(0, _res.h);
     view_visible[0] = true;
+	global.ui_scale = 1;
     update_gui_layout();
 	if (instance_exists(oCombat)) {
 		with (oCombat) define_combat_ui_sizes();

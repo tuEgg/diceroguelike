@@ -563,8 +563,8 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	
 	
 	// Draw islands - they draw to their own surface so we can mask them out
-	var surf_w = global.resolution_options[global.resolution_index].w;
-	var surf_h = global.resolution_options[global.resolution_index].h;
+	var surf_w = display_get_gui_width(); // the GUI is always 1920x1080 (B83), so the island surfaces match it
+	var surf_h = display_get_gui_height();
 	
 	// Rebuild the surfaces if the resolution has changed since they were made
 	if (surface_exists(island_surf) && (surface_get_width(island_surf) != surf_w || surface_get_height(island_surf) != surf_h)) {

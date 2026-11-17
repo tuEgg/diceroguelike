@@ -99,11 +99,11 @@ dice_played_color = merge_colour(dice_played_color, c_white, 0.05);
 // plays left this turn, as a row of pips: filled for each play left, hollow for each used (coins don't use one)
 var _plays_total = max(dice_allowed_per_turn, dice_played);
 var _plays_left = max(0, dice_allowed_per_turn - dice_played);
-var _pip = 14 * dice_played_scale, _pip_gap = 6;
+var _pip = 20 * dice_played_scale, _pip_gap = 7;
 var _pips_w = _plays_total * _pip + (_plays_total - 1) * _pip_gap;
 var _pips_x = end_text_pos + 8 - _pips_w / 2, _pips_y = aq_start_y + aq_tile_w/2 - 40;
-draw_set_font(ftSmall);
-draw_outline_text((_plays_left == 1) ? "1 play left" : string(_plays_left) + " plays left", c_black, dice_played_color, 2, end_text_pos + 8, _pips_y - 22, 1, 1.0, 0);
+draw_set_font(ftDefault);
+draw_outline_text((_plays_left == 1) ? "1 play left" : string(_plays_left) + " plays left", c_black, dice_played_color, 2, end_text_pos + 8, _pips_y - 30, 1, 1.0, 0);
 for (var _p = 0; _p < _plays_total; _p++) {
 	var _px = _pips_x + _p * (_pip + _pip_gap);
 	draw_set_color(c_black);
