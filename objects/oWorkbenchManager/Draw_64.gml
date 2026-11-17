@@ -80,7 +80,8 @@ for (var i = 0; i < wb_list_size; i++) {
 	// Draw name underneath (with the Cutters the bench reads "Dice = Basic coin + Remainder")
 	var _cut_mode = (button_text == "Cut");
 	var _label = string(workbench_slot[i].name);
-	if (_cut_mode) _label = ["Dice", "Basic coin", "Remainder"][i];
+	var _cut_labels = ["Dice", "Basic coin", "Remainder"];
+	if (_cut_mode) _label = _cut_labels[i];
 	draw_set_font(ftBigger);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
