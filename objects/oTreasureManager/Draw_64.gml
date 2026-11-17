@@ -80,5 +80,5 @@ if (hover_exit && !oRunManager.is_dealing_dice && exit_col == c_red && !oRunMana
 	exit_scale = lerp(exit_scale, 1.0, 0.2);
 }
 
-draw_sprite_ext(sButtonSmall, 0, gui_w - 150, gui_h - 200, exit_scale*0.75, exit_scale*0.75, 0, exit_col, 1.0);
+draw_sprite_ext(sButtonSmall, 0, gui_w - 150, gui_h - 200, exit_scale*0.75, exit_scale*0.75, 0, ui_button_col(exit_col), 1.0);
 draw_outline_text("Exit", c_black, c_white, 2, gui_w - 150, gui_h - 200, 1, 1, 0);

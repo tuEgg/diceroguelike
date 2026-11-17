@@ -150,4 +150,10 @@ global.color_unknown = c_dkgray;
 global.color_bg = make_color_rgb(20, 50, 80);
 global.color_error = make_color_rgb(140, 10, 10);
 
+// button colours, by role (red/blue/green/yellow stay for attack/block/heal/insight only)
+global.ui_primary = make_color_rgb(46, 150, 90);	// the main "go" action on a screen (Embark, Resume, Save, Back to the menu)
+global.ui_neutral = make_color_rgb(128, 96, 64);	// ordinary choices and leaving (Exit, Continue, Settings)
+global.ui_danger = make_color_rgb(150, 42, 42);		// can't be undone or costs you (abandon a run, Kill)
+global.ui_quiet = make_color_rgb(70, 66, 80);		// secondary, skippable (Skip tutorial)
+
 global.ui_scale = display_get_gui_width() / 1920;

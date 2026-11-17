@@ -177,7 +177,7 @@ switch (crafting_state) {
 		    }
 		}
 
-		draw_sprite_ext(sButtonSmall, 0, gui_w/2, start_y + 280, (0.2 + button_text_w / 120) * (0.75 * button_scale), 0.75 * button_scale, angle, craft_col, 1.0);
+		draw_sprite_ext(sButtonSmall, 0, gui_w/2, start_y + 280, (0.2 + button_text_w / 120) * (0.75 * button_scale), 0.75 * button_scale, angle, ui_button_col(craft_col), 1.0);
 		draw_outline_text(button_text, c_black, c_white, 2, gui_w/2, start_y + 280, 1, 1, 0);
 	break;
 	
@@ -358,5 +358,5 @@ if (hover_exit && !oRunManager.is_dealing_dice && exit_col == c_red && !oRunMana
 	exit_scale = lerp(exit_scale, 1.0, 0.2);
 }
 
-draw_sprite_ext(sButtonSmall, 0, gui_w - 150, gui_h - 200, exit_scale*0.75, exit_scale*0.75, 0, exit_col, 1.0);
+draw_sprite_ext(sButtonSmall, 0, gui_w - 150, gui_h - 200, exit_scale*0.75, exit_scale*0.75, 0, ui_button_col(exit_col), 1.0);
 draw_outline_text("Exit", c_black, c_white, 2, gui_w - 150, gui_h - 200, 1, 1, 0);

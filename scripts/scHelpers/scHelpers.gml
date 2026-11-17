@@ -1484,7 +1484,7 @@ function pause_draw() {
 	var _bw = 320, _bh = 80;
 	with (oRunManager) {
 		for (var i = 0; i < 3; i++) {
-			var _b = draw_gui_button(_gw / 2 - _bw / 2, _gh * 0.4 + i * (_bh + 30), _bw, _bh, pause_scales[i], _labels[i], (i == 0) ? c_lime : c_orange, ftBig, true, true, UI_LAYER.SETTINGS);
+			var _b = draw_gui_button(_gw / 2 - _bw / 2, _gh * 0.4 + i * (_bh + 30), _bw, _bh, pause_scales[i], _labels[i], (i == 0) ? global.ui_primary : global.ui_neutral, ftBig, true, true, UI_LAYER.SETTINGS);
 			pause_scales[i] = _b.scale;
 			if (!_b.click) continue;
 			switch (i) {
@@ -1569,7 +1569,7 @@ function run_summary_draw() {
 
 	// back to the menu
 	var _bw = 360, _bh = 80;
-	var _b = draw_gui_button(_gw / 2 - _bw / 2, _py + _panel_h + 50, _bw, _bh, _r.btn_scale, "Back to the menu", c_orange, ftBig, _a > 0.9, true, UI_LAYER.POPUP);
+	var _b = draw_gui_button(_gw / 2 - _bw / 2, _py + _panel_h + 50, _bw, _bh, _r.btn_scale, "Back to the menu", global.ui_primary, ftBig, _a > 0.9, true, UI_LAYER.POPUP);
 	_r.btn_scale = _b.scale;
 	if (_b.click) {
 		global.ui_layer = UI_LAYER.BASE;
@@ -1650,4 +1650,12 @@ function cursor_draw() {
 /// @desc Height of the top bar (gold, health, items...). Screens dim from here down so the bar stays in full colour.
 function ui_top_bar_h() {
 	return sprite_get_height(sTopBar) - 3;
+}
+
+/// @func ui_button_col(_state_col)
+/// @desc Rooms mark a ready button with c_red (leave) or c_lime (craft) in their logic; this is the colour to draw it.
+function ui_button_col(_state_col) {
+	if (_state_col == c_red) return global.ui_neutral;
+	if (_state_col == c_lime || _state_col == c_green) return global.ui_primary;
+	return _state_col;
 }

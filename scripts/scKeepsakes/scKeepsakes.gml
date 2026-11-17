@@ -513,7 +513,7 @@ function define_keepsakes() {
 			if (event == "on_keepsake_acquired" && data.keepsake_id == _id) {
 	            // Need to add choosing functionality
 				oRunManager.dice_selection = 1;
-				oRunManager.dice_selection_message = "Choose 1 dice to add Favourite to.";
+				oRunManager.dice_selection_message = "Choose 1 die to add Favourite to.";
 				oRunManager.dice_selection_event = function(_die) {
 					die_add_keyword(_die, "Favourite"); // the keyword and its text together
 				}
@@ -601,7 +601,7 @@ function define_keepsakes() {
 	ks_balancing_compass = {
 	    _id: "balancing_compass",
 	    name: "Balancing Compass",
-	    desc: "After a dice rolls its minimum, guarantee it rolls its maximum next turn.",
+	    desc: "After a die rolls its minimum, guarantee it rolls its maximum next turn.",
 	    sub_image: 18,
 		state: { },
 	    trigger: function(event, data) {			
@@ -900,7 +900,7 @@ function define_keepsakes() {
 	ks_krakens_grasp = {
 	    _id: "krakens_grasp",
 	    name: "Kraken's Grasp",
-	    desc: "+1 dice playable per turn, draw 1 less dice per turn",
+	    desc: "+1 die playable per turn, draw 1 fewer die per turn",
 		sub_image: 34,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
@@ -956,7 +956,7 @@ function define_keepsakes() {
 	ks_medallion_of_the_deep = {
 	    _id: "medallion_of_the_deep",
 	    name: "Medallion of the Sea",
-	    desc: "+1 dice playable per turn if you have extreme alignment",
+	    desc: "+1 die playable per turn if you have extreme alignment",
 		sub_image: 37,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {

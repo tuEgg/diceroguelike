@@ -240,8 +240,8 @@ for (var i = 0; i < aq_list_size; i++) {
 	draw_set_font(ftDefault);
     draw_outline_text(label, c_black, c_white, 2, draw_x + draw_w / 2, draw_y + draw_h / 2 - (draw_h/10), 1, 1, 0);
 	
-	// Draw dice outcome
-	if (label != "") {
+	// Draw dice outcome (an empty slot has none to show)
+	if (label != "" && !(_low_roll == 0 && _high_roll == 0)) {
 		draw_set_font(ftDefault);
 	    draw_outline_text( "(" + string(_low_roll) + "-" + string(_high_roll) + ")", c_black, c_white, 2, draw_x + draw_w / 2, draw_y + draw_h - 35, 1, 1, 0);
 	}
@@ -400,7 +400,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	    draw_set_halign(fa_center);
 	    draw_set_valign(fa_middle);
 		draw_set_font(ftDefault);
-		draw_outline_text("Sacrifice \n" + string(sacrificies_til_new_action_tile) + " dice", c_black, c_white, 2, last_x + last_w / 2, last_y + last_h / 2, 1, 1, 0);
+		draw_outline_text("Sacrifice\n" + string(sacrificies_til_new_action_tile) + ((sacrificies_til_new_action_tile == 1) ? " die" : " dice"), c_black, c_white, 2, last_x + last_w / 2, last_y + last_h / 2, 1, 1, 0);
 		
 		draw_action_type_bars(last_x, last_y + last_h + 30, last_w, type_array, "None");
 	}
@@ -789,8 +789,8 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		enemy.alignment_option_btn_1_scale = lerp(enemy.alignment_option_btn_1_scale, btn_1_hover ? 1.2 : 1.0, 0.2);
 		enemy.alignment_option_btn_2_scale = lerp(enemy.alignment_option_btn_2_scale, btn_2_hover ? 1.2 : 1.0, 0.2);
 		
-		draw_sprite_ext(sButtonSmall, 0, btn1_x, btn1_y, enemy.alignment_option_btn_1_scale * 0.5, enemy.alignment_option_btn_1_scale * 0.5, 0, global.color_attack, spare_kill_alpha);
-		draw_sprite_ext(sButtonSmall, 0, btn2_x, btn2_y, enemy.alignment_option_btn_2_scale * 0.5, enemy.alignment_option_btn_2_scale * 0.5, 0, global.color_block, spare_kill_alpha);
+		draw_sprite_ext(sButtonSmall, 0, btn1_x, btn1_y, enemy.alignment_option_btn_1_scale * 0.5, enemy.alignment_option_btn_1_scale * 0.5, 0, global.ui_danger, spare_kill_alpha);
+		draw_sprite_ext(sButtonSmall, 0, btn2_x, btn2_y, enemy.alignment_option_btn_2_scale * 0.5, enemy.alignment_option_btn_2_scale * 0.5, 0, global.ui_primary, spare_kill_alpha);
 		
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);

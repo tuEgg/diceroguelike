@@ -254,9 +254,9 @@ if (room == rmMap) {
 					draw_outline_text("Search the hold", c_black, c_ltgray, 2, right_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
 				}
 
-				var heal_btn = draw_gui_button(left_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[0], "Heal " + string(heal_amount) + " HP", global.color_heal, ftBig, can_heal && input_ok, true);
-				var core_btn = draw_gui_button(right_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[1], "Gain a random core", global.color_attack, ftBig, can_core && input_ok, true);
-				var cont_btn = draw_gui_button(gui_w / 2 - 130, gui_h * 0.72, 260, 64, rest_btn_scales[2], "Continue", c_dkgray, ftBig, input_ok, true);
+				var heal_btn = draw_gui_button(left_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[0], "Heal " + string(heal_amount) + " HP", global.ui_neutral, ftBig, can_heal && input_ok, true);
+				var core_btn = draw_gui_button(right_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[1], "Gain a random core", global.ui_neutral, ftBig, can_core && input_ok, true);
+				var cont_btn = draw_gui_button(gui_w / 2 - 130, gui_h * 0.72, 260, 64, rest_btn_scales[2], "Continue", global.ui_quiet, ftBig, input_ok, true);
 				rest_btn_scales[0] = heal_btn.scale;
 				rest_btn_scales[1] = core_btn.scale;
 				rest_btn_scales[2] = cont_btn.scale;
@@ -438,7 +438,7 @@ if (room == rmMap) {
 			var hover_exit = mouse_hovering(display_get_gui_width() * 3/4, gui_h - 100, embark_scale * sprite_get_width(sButtonSmall) * 1.0, embark_scale * sprite_get_height(sButtonSmall) * 0.8, true, noone, soClick2, true);
 
 			var embark_ready = (exit_col == c_red);
-			if (embark_ready) exit_col = make_color_rgb(46, 150, 90); // the go colour, once both pages are chosen
+			if (embark_ready) exit_col = global.ui_primary; // the go colour, once both pages are chosen
 			var embark_pulse = embark_ready ? (0.5 + 0.5 * sin(current_time / 220)) : 0;
 			if (hover_exit && embark_ready) {
 				if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
@@ -507,7 +507,7 @@ if (room == rmMap) {
 			gui_h/12,
 			chapter_btn_scale,
 			voyage_over ? "Finish the voyage" : "Turn the page",
-			c_orange,
+			global.ui_primary,
 			ftBig,
 			chapter_end_alpha > 0.9,
 			true
@@ -534,7 +534,7 @@ if (room == rmMap) {
 			gui_h/15,
 			workbench_scale,
 			"Visit the\nworkbench",
-			c_orange,
+			global.ui_neutral,
 			ftBig,
 			oRunManager.can_visit_workbench,
 			true

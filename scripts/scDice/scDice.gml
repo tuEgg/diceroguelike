@@ -244,7 +244,7 @@ function generate_dice_bag() {
 	// Invisible Die
 	global.die_invisible = make_die_struct(
 	    1, 4, "None", "None", "", "Invisible die",
-	    "When Played: draw 1 dice and play +1 dice this turn.",
+	    "When played: draw 1 die and play +1 die this turn.",
 		"common",
 		30,
 	    [
@@ -266,7 +266,7 @@ function generate_dice_bag() {
 	// Surge Die
 	global.die_surge = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Surge die",
-	    "+1 bonus to this dice for every subsequent slot.",
+	    "+1 bonus to this die for every subsequent slot.",
 		"uncommon",
 		40,
 	    [
@@ -429,7 +429,7 @@ function generate_dice_bag() {
 	// Slipstream Die
 	global.die_muzzle = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Muzzle die",
-	    "Followthrough: +1 bonus to this dice for every previous slot",
+	    "Followthrough: +1 bonus to this die for every previous slot",
 		"uncommon",
 		60,
 	    [
@@ -486,7 +486,7 @@ function generate_dice_bag() {
 	// Fogcaller Die
 	global.die_fogcaller = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Fogcaller Die",
-	    "Followthrough: Gain +1 and draw a dice if the previous slot contained a coin.",
+	    "Followthrough: Gain +1 and draw a die if the previous slot contained a coin.",
 		"common",
 		40,
 	    [
@@ -603,7 +603,7 @@ function generate_dice_bag() {
 	
 	global.die_echo = make_die_struct(
 	    1, 4, "None", "None", "", "Echo Die",
-	    "When played: create another copy of this dice in the sacrificed slot",
+	    "When played: create another copy of this die in the sacrificed slot",
 		"rare",
 		60,
 	    [
@@ -797,7 +797,7 @@ function generate_dice_bag() {
 	
 	global.die_offhand = make_die_struct(
 	    1, 6, "ATK", "ATK", "", "Offhand die",
-	    "Gain 1 might this turn if this dice rolls its minimum value ({min}).",
+	    "Gain 1 might this turn if this die rolls its minimum value ({min}).",
 		"common",
 		30,
 	    [
@@ -815,7 +815,7 @@ function generate_dice_bag() {
 	
 	global.die_balanced = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Balanced die",
-	    "Gain 1 balance this turn if this dice rolls its maximum value ({max}).",
+	    "Gain 1 balance this turn if this die rolls its maximum value ({max}).",
 		"common",
 		30,
 	    [
@@ -833,7 +833,7 @@ function generate_dice_bag() {
 	
 	global.die_holy = make_die_struct(
 	    1, 8, "None", "None", "", "Holy die",
-	    "Alignment: The higher your alignment, the higher this dice's mininimum roll",
+	    "Alignment: The higher your alignment, the higher this die's minimum roll",
 		"rare",
 		30,
 	    [
@@ -849,7 +849,7 @@ function generate_dice_bag() {
 	
 	global.die_unholy = make_die_struct(
 	    1, 6, "None", "None", "", "Unholy die",
-	    "Alignment: The lower your alignment, the higher this dice's maximum roll",
+	    "Alignment: The lower your alignment, the higher this die's maximum roll",
 		"rare",
 		30,
 	    [
@@ -884,7 +884,7 @@ function generate_dice_bag() {
 	
 	global.die_warrior = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Warrior die",
-	    "If this dice rolls its minimum value ({min}), change it to its max value ({max}) instead.",
+	    "If this die rolls its minimum value ({min}), change it to its max value ({max}) instead.",
 		"common",
 		30,
 	    [

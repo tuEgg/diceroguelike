@@ -7,7 +7,7 @@
 /// _type: "atk" or "heal"
 
 function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _source, _source_index, _type, _slot_number = -1, _slot_die = undefined, _dice_list_index = 0) {
-	//show_debug_message("this dice has a value of: "+string(_dice_value));
+	//show_debug_message("this die has a value of: "+string(_dice_value));
 	
 	// Generate a unique id for this action process
 	var roll_id = string_concat(_target, _dice_amount, _dice_value, _bonus_amount, _source, _source_index, _type, _slot_number, _slot_die, _dice_list_index);
@@ -681,7 +681,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 			ds_list_add(slot.dice_list, die_copy2);
 		}
 	
-        add_feed_entry("You used a dice!");
+        add_feed_entry("You used a die!");
 		if (!die_has_keyword(die.struct, "coin")) dice_played += 1;
 		dice_played_scale = 1.2;
 		dice_played_color = c_green;
@@ -733,7 +733,7 @@ function discard_dice(_die) {
 
     // --- 5. Combat feed + reset state
     if (instance_exists(oCombat)) oCombat.is_discarding = false;
-    //with (oCombat) add_feed_entry("You discarded a dice!");
+    //with (oCombat) add_feed_entry("You discarded a die!");
 }
 
 function add_dice_to_bag(_die) {
@@ -1183,7 +1183,7 @@ function get_action_name(_slot, _num) {
 	
 	switch (action_type) {
 		case "All":
-			label = "No action";
+			label = "Empty";
 		break;
 		
 		case "ATK":
@@ -1856,7 +1856,7 @@ function tutorial_draw() {
 	if (oCombat.state != CombatState.PLAYER_INPUT || oCombat.show_rewards) return; // nothing to read while dice resolve
 
 	// Skip, top right under the bar
-	var _skip = draw_gui_button(display_get_gui_width() - 230, 90, 200, 50, 1, "Skip tutorial", c_dkgray, ftDefault, true, true, UI_LAYER.BASE);
+	var _skip = draw_gui_button(display_get_gui_width() - 230, 90, 200, 50, 1, "Skip tutorial", global.ui_quiet, ftDefault, true, true, UI_LAYER.BASE);
 	if (_skip.click) { tutorial_skip(); return; }
 
 	if (tutorial_draw_note(_s.text, tutorial_target_rect(_s.target), variable_struct_exists(_s, "button") ? _s.button : "")) {
@@ -1934,7 +1934,7 @@ function tutorial_draw_note(_text, _r, _button) {
 
 	// a note that waits for the player to read it has a button
 	if (_btn_h > 0) {
-		var _b = draw_gui_button(_nx + _note_w - 160 - _pad, _ny + _note_h - _btn_h - 8, 160, 42, 1, _button, make_color_rgb(60, 78, 181), ftDefault, true, true, UI_LAYER.BASE);
+		var _b = draw_gui_button(_nx + _note_w - 160 - _pad, _ny + _note_h - _btn_h - 8, 160, 42, 1, _button, global.ui_primary, ftDefault, true, true, UI_LAYER.BASE);
 		if (_b.click) _clicked = true;
 	}
 

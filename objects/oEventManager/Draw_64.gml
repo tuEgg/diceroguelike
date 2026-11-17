@@ -142,5 +142,5 @@ if (hover_exit && exit_col == c_red) {
 draw_set_font(ftBigger);
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
-draw_sprite_ext(sButtonSmall, 0, gui_w - 150, gui_h - 130, exit_scale*0.75, exit_scale*0.75, 0, exit_col, 1.0);
+draw_sprite_ext(sButtonSmall, 0, gui_w - 150, gui_h - 130, exit_scale*0.75, exit_scale*0.75, 0, ui_button_col(exit_col), 1.0);
 draw_outline_text("Exit", c_black, c_white, 2, gui_w - 150, gui_h - 130, 1, 1, 0);
