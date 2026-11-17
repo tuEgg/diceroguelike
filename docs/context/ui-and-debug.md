@@ -16,7 +16,7 @@
 
 ## Display: scDisplay, scSettings
 
-`apply_resolution()` (every room start) sets the window and application surface to `global.resolution_options[global.resolution_index]` (1080p, 1440p) but keeps the GUI and camera at 1920x1080, so the fixed 1080p layout works at any 16:9 size (B83); `global.ui_scale` is therefore 1. `global.gui` holds proportional sizes (`update_gui_layout`). Web builds (`IS_BROWSER`): `apply_resolution` hands over to `apply_browser_resolution` (always 1920x1080 inside, canvas fitted 16:9 into the page, refit by `browser_check_resize` from oSettingsMenu Step); no Resolution setting, no Exit button or double-Escape quit, fullscreen not restored at start-up. Export and smoke test: `docs/web-build.md`.
+`apply_resolution()` (every room start) sets the window and application surface to `global.resolution_options[global.resolution_index]` (1080p, 1440p) but keeps the GUI and camera at 1920x1080, so the fixed 1080p layout works at any 16:9 size (B83); `global.ui_scale` is therefore 1. `global.gui` holds proportional sizes (`update_gui_layout`). oSettingsMenu Create turns on the best multisample anti-aliasing (`display_reset`, desktop) and 64-segment circles, so shapes drawn in code have smooth edges. Web builds (`IS_BROWSER`): `apply_resolution` hands over to `apply_browser_resolution` (always 1920x1080 inside, canvas fitted 16:9 into the page, refit by `browser_check_resize` from oSettingsMenu Step); no Resolution setting, no Exit button or double-Escape quit, fullscreen not restored at start-up. Export and smoke test: `docs/web-build.md`.
 
 ## Debug menu: scDebug, `oDebugger` (persistent, depth -10000)
 

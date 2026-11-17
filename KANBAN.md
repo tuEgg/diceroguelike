@@ -23,7 +23,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 12: playtest notes | F02 (workbench part), F14, F56–F59, F61–F64, F66–F70, B83, B94–B116 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
+| 12: playtest notes | F02 (workbench part), F14, F56–F59, F61–F64, F66–F70, B83, B94–B117 | `feature/playtest-notes` | **Ready to test.** Jared's 2026-11-17 playtest list: Quill reroll or halve, cleaner intent hover, targeting marker and tip, enemies re-centre after deaths, dice dealt apart, ranges in tooltips, roll feedback, Rigger's Tonic, workbench Cutters layout and tool tips, alignment/spare tips, and several rule fixes. |
 
 **Batch 12 test list**
 - F56 Quill (10 insight): click a glowing intent and two buttons appear under it, Reroll and Halve. Reroll: the enemy picks a different move. Halve: the number halves (range or exact), "Halved" shows under the intent, and the enemy's attack/block/heal really comes out at half. Forced moves can still be halved but not rerolled; buffs and debuffs can be rerolled but not halved (greyed, with a reason on hover). Clicking elsewhere puts the quill down. Once per turn.
@@ -64,6 +64,9 @@
 - F64 Main menu items are always drawn as buttons, not plain text until hovered. The abandon-run warning says "Start anew" / "Keep voyage".
 - F64 Writing: "a die" / "1 die" / "this die" wherever one die is meant (dice and keepsake descriptions, events, prompts); the new-slot tile says "Sacrifice 1 die" or "2 dice"; an empty slot says "Empty" with no "(0-0)".
 - F64 Tooltips have a logbook look: dark ink, a thin cream rule inside the edge and small diamonds at the corners; keyword boxes are plainer. Coloured words (insight, keywords) still read clearly.
+
+**Batch 12, round 11: smoother shapes**
+- B117 Desktop: edges of shapes drawn in code are smooth, not jagged: the plays pips, action icon badges, insight icons, tooltip borders, panels, buttons, the cursor. Circles are rounder. Insight icons (brushes, quill) keep their shape in the insight panel and beside intents. Check the frame rate is unchanged. (The web build can't switch this on from the game.)
 
 **Batch 12, round 10: screen sizes (B83)**
 - B83 Desktop: Settings > Display > Resolution 2560x1440 (and fullscreen). Every screen should look exactly like 1920x1080, just bigger: shop, bounty board, workbench tools and the Cutters' hit area, the intro cutscene, backgrounds, coins and particles flying to the top bar, the map, fights, tooltips, the cursor. Text may look a touch softer at 1440p (it is drawn at 1080p and scaled up). Switch back to 1920x1080: unchanged. Web: unchanged.
