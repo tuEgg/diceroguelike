@@ -23,6 +23,11 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 11: keepsake crash | B93 | `fix/keepsake-crash` | **Ready to test.** Navigation Chart crashed (black screen on web) when a slot's last die rolled its minimum and the next slot was empty. Rusty Rudder could hit a dead enemy. |
+
+**Batch 11 test list**
+- B93 Take Navigation Chart (F1 > Keepsakes). Fill slot 1, leave slot 2 empty, fill slot 3. Play until slot 1's last die rolls its minimum: no crash, and the first die of slot 3 rolls twice. Within a slot, the next die still rolls twice.
+- B93 Take Rusty Rudder in a fight with two enemies. Kill one, then roll minimums: the damage only ever lands on the living enemy. Kill the last one mid-queue: no crash.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
