@@ -1151,7 +1151,7 @@ if (show_rewards) {
 			    draw_set_halign(fa_center);
 			    draw_set_valign(fa_middle);
 			    draw_set_font(ftDefault);
-			    draw_text(btn.x + btn.w / 2, btn.y + btn.h + 20, label);
+			    draw_text_ext(btn.x + btn.w / 2, btn.y + btn.h + 20 - 12 * (string_height_ext(label, -1, sprite_get_width(sRewardFrame) * 0.85) > string_height("A") * 1.5), label, -1, sprite_get_width(sRewardFrame) * 0.85); // long names wrap inside the frame
 		
 				if (btn.hover) {
 					queue_tooltip( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), keepsake.name, keepsake.desc, undefined, 0, undefined);
@@ -1239,7 +1239,7 @@ if (show_rewards) {
 			    draw_set_halign(fa_center);
 			    draw_set_valign(fa_middle);
 			    draw_set_font(ftDefault);
-			    draw_text(btn.x + btn.w / 2, btn.y + btn.h + 20, label);
+			    draw_text_ext(btn.x + btn.w / 2, btn.y + btn.h + 20 - 12 * (string_height_ext(label, -1, sprite_get_width(sRewardFrame) * 0.85) > string_height("A") * 1.5), label, -1, sprite_get_width(sRewardFrame) * 0.85); // long names wrap inside the frame
 		
 				if (btn.hover) {
 					queue_tooltip( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die.name, die_description(die), undefined, 0, die);
@@ -1334,7 +1334,7 @@ if (show_rewards) {
 			    draw_set_halign(fa_center);
 			    draw_set_valign(fa_middle);
 			    draw_set_font(ftDefault);
-			    draw_outline_text(label, c_black, col, 2, btn.x + btn.w / 2, btn.y + btn.h + 20, 1, alpha, 0);
+			    draw_outline_text(label, c_black, col, 2, btn.x + btn.w / 2, btn.y + btn.h + 20 - 12 * (string_height_ext(label, -1, sprite_get_width(sRewardFrame) * 0.85) > string_height("A") * 1.5), 1, alpha, 0, sprite_get_width(sRewardFrame) * 0.85); // long names wrap inside the frame
 				
 				// Draw chains over locked item
 				
