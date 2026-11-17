@@ -4,7 +4,7 @@ y_speed = -irandom_range(2, 3);
 grav = 0.3;
 
 // Target
-target_x = 1480 - 112 + (global.player_alignment * 2.24);
+target_x = 1400 - 112 + (global.player_alignment * 2.24); // the compass bar (moved 80 px left for the menu cog)
 target_y = 50;
 
 // Visuals

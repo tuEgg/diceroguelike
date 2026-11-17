@@ -1772,3 +1772,22 @@ function draw_action_type_icon(_type, _x, _y, _scale) {
 	}
 	draw_set_color(c_white);
 }
+
+/// @func draw_cog_icon(_x, _y, _r, _angle)
+/// @desc The menu cog drawn in code: a parchment wheel with eight teeth and a hole, ink outlined. _r is its radius.
+function draw_cog_icon(_x, _y, _r, _angle) {
+	var _ink = make_color_rgb(40, 32, 24);
+	var _paper = make_color_rgb(240, 228, 196);
+	for (var _pass = 0; _pass < 2; _pass++) {
+		var _g = (_pass == 0) ? 2.5 : 0;
+		draw_set_color((_pass == 0) ? _ink : _paper);
+		for (var i = 0; i < 8; i++) {
+			var _a = _angle + i * 45;
+			draw_line_width(_x + lengthdir_x(_r * 0.55, _a), _y + lengthdir_y(_r * 0.55, _a), _x + lengthdir_x(_r * 1.25 + _g, _a), _y + lengthdir_y(_r * 1.25 + _g, _a), _r * 0.42 + _g * 2);
+		}
+		draw_circle(_x, _y, _r + _g, false);
+	}
+	draw_set_color(_ink); // the hole in the middle
+	draw_circle(_x, _y, _r * 0.42, false);
+	draw_set_color(c_white);
+}

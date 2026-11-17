@@ -389,7 +389,7 @@ for (var i = 0; i < array_length(items); i++) {
 if (room == rmWorkbench) show_tools = true;
 var num_tools = string(ds_list_size(tools));
 
-var toolbar_hover = mouse_hovering(gui_w - 860, bar_half, sprite_get_width(sToolbag) + 10, bar_height, true);
+var toolbar_hover = mouse_hovering(gui_w - 940, bar_half, sprite_get_width(sToolbag) + 10, bar_height, true);
 if (toolbar_hover) {
 	if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
 		show_tools = 1 - show_tools;
@@ -408,7 +408,7 @@ if (toolbar_hover) {
 toolbag_scale = lerp(toolbag_scale, toolbar_hover ? 1.2 : 1.0, 0.1);
 
 draw_set_font(ftBig);
-var tools_x = gui_w - 860;
+var tools_x = gui_w - 940; // (moved 80 px left for the menu cog)
 
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
@@ -477,7 +477,7 @@ if (show_tools) {
 
 // Draw alignment
 var alignment_color = make_color_rgb(250, 166, 20);
-var alignment_x = gui_w - 450;
+var alignment_x = gui_w - 530; // (moved 80 px left for the menu cog)
 
 var alignment_hover = mouse_hovering(alignment_x - 25, bar_half, sprite_get_width(sAlignmentBar) + 50, sprite_get_height(sAlignmentBar), true, noone, noone);
 draw_sprite_ext(sMapIcon, 8, alignment_x - 170, bar_half, 1, 1, 0, c_white, 1.0);
@@ -518,7 +518,7 @@ if (alignment_hover) {
 }
 
 // Draw bounty information
-draw_sprite_ext(sMapIcon, 5, gui_w - 250, 45, 1, 1, 0, c_white, 1.0);
+draw_sprite_ext(sMapIcon, 5, gui_w - 330, 45, 1, 1, 0, c_white, 1.0); // (moved 80 px left for the menu cog)
 
 draw_set_font(ftBig);
 var bounty_name = "-";
@@ -540,9 +540,9 @@ if (active_bounty != undefined) {
 }
 draw_set_halign(fa_left);
 draw_set_valign(fa_middle);
-draw_outline_text(bounty_name, c_black, bounty_col, 2, gui_w - 250 + 30, 44, 1, 1, 0);
+draw_outline_text(bounty_name, c_black, bounty_col, 2, gui_w - 330 + 30, 44, 1, 1, 0);
 
-var bounty_hover = mouse_hovering(gui_w - 280, 20, 300, 50, false, noone, noone); 
+var bounty_hover = mouse_hovering(gui_w - 360, 20, 270, 50, false, noone, noone); 
 if (bounty_hover) {
 	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Active Bounty: " + bounty_name, bounty_description);
 }
@@ -580,6 +580,17 @@ for (var k = 0; k < ds_list_size(keepsakes); k++) {
 
 var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
+
+// the menu cog (far right): opens the pause menu, like Escape or Tab
+var cog_x = gui_w - 45, cog_y = bar_half;
+var cog_hover = mouse_hovering(cog_x, cog_y, 56, 56, true);
+cog_scale = lerp(cog_scale, cog_hover ? 1.15 : 1.0, 0.25);
+cog_turn += cog_hover ? 2 : 0;
+draw_cog_icon(cog_x, cog_y, 18 * cog_scale, cog_turn);
+if (cog_hover) {
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Menu", "Pause, settings, or save and quit. Escape or Tab opens it too.");
+	if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && run_over == undefined && oCutsceneManager.cutscene_state == CUTSCENE_STATE.FINISHED) pause_open();
+}
 
 global.ui_peek_top_bar = false; // end of the top bar
 

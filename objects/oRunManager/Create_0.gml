@@ -279,6 +279,8 @@ run_over = undefined; // { won, cause, alpha, btn_scale } once the voyage has en
 paused = false;
 pre_pause_ui_layer = UI_LAYER.BASE;
 pause_scales = [1, 1, 1];
+cog_scale = 1; // the top bar's menu cog
+cog_turn = 0;
 //global.ui_layer = UI_LAYER.POPUP;
 
 // Populate offerings with a random dice and random core pairing

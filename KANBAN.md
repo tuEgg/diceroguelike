@@ -288,6 +288,8 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 | F73 | New intro: four lines of text fading in on black (silent for now); Settings > Gameplay > Intro next run; never in a debug run | Batch 14: workbench bag | 2026-11-17 |
 | B119 | Black screen drilling a Loaded core into a Harvest Die (gone after the workbench changes) | Batch 14: workbench bag | 2026-11-17 |
 | B120 | Core distribution previews ignore keepsakes | Batch 14: workbench bag | 2026-11-17 |
+| B121 | Cursor drawn last of all (above the bag and its darkening) | Batch 15: cursor and menu | 2026-11-17 |
+| F74 | Menu cog at the top right and Tab open the pause menu (Escape stays the browser's in fullscreen) | Batch 15: cursor and menu | 2026-11-17 |
 
 **Milestones**
 
