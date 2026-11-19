@@ -170,12 +170,16 @@ function define_enemies() {
 	ds_list_add(global.enemy_list, pirate_captain);
 	
 	// Elite that disrupts intel, echoes attacks, and has 3 protective layers that block damage. The layers block 2/3/4 flat damage per attack but once the conch takes 10/12/14 damage in a single turn a layer is broken.
+	// (F20) its only move used to be Command, an ally buff, though it always fights alone: now it hums to blot your
+	// insight, echoes your last action back at you, slams and shelters behind its layers
 	var giant_conch_moves = [
-	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Command", debuff: buff_might, weight: 20, use_trigger: "FIRST", target: "other", amount: 1, duration: 1 }, // Command
-		//{ dice_amount: 3, dice_value: 2, action_type: "ATK", bonus_amount: 4, move_name: "Wrap", weight: 100 },
-	    //{ dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 4, move_name: "Shield", weight: 40 }
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Siren Hum", debuff: debuff_overwhelm, weight: 0, amount: 3, duration: 1, use_trigger: "FIRST" },
+	    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 3, move_name: "Shell Slam", weight: 40 },
+	    { dice_amount: 2, dice_value: 4, action_type: "MIMIC", bonus_amount: 2, move_name: "Echo", weight: 30 },
+	    { dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 5, move_name: "Retreat Inward", weight: 20 },
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Siren Hum", debuff: debuff_overwhelm, weight: 10, amount: 2, duration: 1 },
 	];
-	var giant_conch = enemy_create("Giant Conch", 0, 1.25, 40, 50, 0, giant_conch_moves, "weighted", true, passive_conch_layers);
+	var giant_conch = enemy_create("Giant Conch", 0, 1.25, 55, 50, 0, giant_conch_moves, "weighted", true, passive_conch_layers);
 	ds_list_add(global.enemy_list, giant_conch);
 	
 	//// Elite that buffs others and summons minions to the fight.

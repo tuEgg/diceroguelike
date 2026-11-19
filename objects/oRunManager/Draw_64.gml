@@ -264,7 +264,13 @@ for (var i = 0; i < array_length(items); i++) {
 				die = core_preview_die();
 				die.distribution = items[i].distribution;
 			}
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), items[i].name, items[i].description, undefined, 0, die);
+			// a potion says how it's used (F24: testers didn't know)
+			var _how = "";
+			if (items[i].type == "consumable" && is_struct(items[i].effects) && variable_struct_exists(items[i].effects, "trigger")) {
+				if (items[i].effects.trigger == "on_item_played_to_slot") _how = " [subtext]Drag it onto a slot in a fight to use it.";
+				else if (items[i].effects.trigger == "on_clicked") _how = " [subtext]Click it to use it.";
+			}
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), items[i].name, items[i].description + _how, undefined, 0, die);
 		}
 		
 		if (global.ui_layer == UI_LAYER.BASE) {

@@ -172,7 +172,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 0,
 		name: "Riggers Tonic",
-		description: "Choose a slot: every die in it gains +1 to its roll this turn",
+		description: "Choose a slot: every die in it gains +2 to its roll this turn",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -194,7 +194,7 @@ function define_items() {
 			},
 			modify: function(_context) {
 				// +1 on every die in this slot until the end of this round
-				slot_add_bonus(_context._slot, "Rigger's Tonic", 1, 1);
+				slot_add_bonus(_context._slot, "Rigger's Tonic", 2, 1); // F24: was +1
 			}
 		},
 		price: 25
@@ -286,7 +286,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 3,
 		name: "Corsair's Gambit",
-		description: "Gain +1 playable dice this turn for every enemy",
+		description: "Play 1 more die this turn for every enemy (at least 2 more)",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -308,7 +308,7 @@ function define_items() {
 			},
 			modify: function(_context) {
 				// select a random die in play and upgrade it
-				oCombat.dice_allowed_this_turn_bonus += ds_list_size(oCombat.room_enemies);
+				oCombat.dice_allowed_this_turn_bonus += max(2, ds_list_size(oCombat.room_enemies)); // F24: at least 2
 				oCombat.dice_played_scale = 1.5;
 				particle_emit( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", c_teal);
 				// when we eventually have multiple enemies, use a loop
@@ -423,7 +423,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 6,
 		name: "Grog of Grit",
-		description: "Gain +2 might for the rest of combat.",
+		description: "Gain +3 might for the rest of combat.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -444,7 +444,7 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
-				apply_buff("player", oRunManager.buff_might, -1, 2, oRunManager.buff_might.remove_next_turn, { source: "player", index: -1 }, true);
+				apply_buff("player", oRunManager.buff_might, -1, 3, oRunManager.buff_might.remove_next_turn, { source: "player", index: -1 }, true); // F24: was 2
 				particle_emit( global.player_x, global.player_y, "rise", c_orange);
 			}
 		},
@@ -456,7 +456,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 7,
 		name: "Captain's Brew",
-		description: "Gain +2 balance for the rest of combat.",
+		description: "Gain +3 balance for the rest of combat.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -477,7 +477,7 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
-				apply_buff("player", oRunManager.buff_balance, -1, 2, oRunManager.buff_balance.remove_next_turn, { source: "player", index: -1 }, true);
+				apply_buff("player", oRunManager.buff_balance, -1, 3, oRunManager.buff_balance.remove_next_turn, { source: "player", index: -1 }, true); // F24: was 2
 				particle_emit( global.player_x, global.player_y, "rise", c_blue);
 			}
 		},
@@ -489,7 +489,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 8,
 		name: "Navigator's Brew",
-		description: "Draw 4 dice",
+		description: "Draw 4 dice. In a fight, play 1 more die this turn too.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -510,6 +510,7 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
+				if (room == rmCombat && instance_exists(oCombat)) oCombat.dice_allowed_this_turn_bonus += 1; // F24: a play for them
 				with (oRunManager) {
 					dice_to_deal = 4;
 					is_dealing_dice = true;
@@ -525,7 +526,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 9,
 		name: "Healing Flask",
-		description: "Heal 30% of your max HP",
+		description: "Heal 40% of your max HP",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -542,7 +543,7 @@ function define_items() {
 				}
 			},
 			modify: function(_context) {
-				var heal_amount = ceil(global.player_max_hp * 0.3);
+				var heal_amount = ceil(global.player_max_hp * 0.4); // F24: was 30%
 				global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
 				particle_emit(650, 25, "burst", c_lime);
 			}
