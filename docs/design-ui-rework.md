@@ -115,5 +115,6 @@ New art for dice, enemies and backgrounds (F50, F42), and sound design. Hooks le
 - **Combat, part 2 (F131):** the top bar as a dark logbook strip (health, gold, item wells; the voyage label and pages counter dropped), the inkwell beside the player.
 - **Cards (F132):** one paper card for the bag, dice picker, quartermaster and fight dice rewards (`draw_bag_card`, `offering_card_draw`); `ui_paper_text` and `ui_text_on_paper` for ink text with dark colour-coded words; ink distributions.
 - **Map (F133):** the draft heading on a paper label (`ui_label`), Embark as the bottom-right commit (`ui_primary`, which wraps `ui_primary_button` with input), inked sea-stop names, the chapter end on a paper page.
-- **Still to do:** shop shelf and bounty rewards as cards (with the rooms), rooms, menus; Small 14 and the numeral fonts (IDE, below).
+- **Rooms (F134):** events as a logbook entry (paper page, inked heading and choices); every room's way out is the bottom-right `ui_primary` "Continue". The shop shelf keeps its dice on the shelf art (cards would not fit the shelves).
+- **Still to do:** menus (main menu, pause, settings, voyage summary, the dice picker's Confirm); Small 14 and the numeral fonts (IDE, below).
 - **Needs Jared in the IDE (fonts can't be made outside it):** set `ftDescriptions` to 14, add Lato Black numeral fonts at 20, 32 and 48, and tick SDF on the Charter and Lato fonts so they stay crisp in small windows. Until then `ui_numeral` scales ftDamage.

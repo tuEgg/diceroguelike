@@ -14,6 +14,8 @@ Each room has a manager object created by the room; most of its logic and clicks
 - `generate_event()` picks the node's remembered `event_name`, or a debug-forced one, or random, and removes it from the list (seen events are saved).
 - Many option effects open a dice picker via `oRunManager.dice_selection` and `dice_selection_event`.
 
+**Look (UI rework):** events draw as a paper page (`ui_paper`, `ui_paper_text`) with option slips; every room leaves through `ui_primary` "Continue" bottom right (`exit_btn` is its { hover, click }).
+
 ## Bounty board: `oBountyController` (persistent), `scBounties`
 
 - Created once per run in `rmMap`; drawn only in `rmBounty`. Offers 2 contracts (intended) and a free potion, drawn as the "On the house" card bottom left (oBountyController Draw GUI: `potion`, a Take it button with `potion_btn_scale`, greyed when `oRunManager.has_space_for_item` is false; a Taken stamp after).

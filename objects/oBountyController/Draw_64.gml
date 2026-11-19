@@ -51,8 +51,7 @@ if (room == rmBounty) {
 	// take it (free), or a stamp once it's yours
 	if (!pot.taken) {
 		var _room = oRunManager.has_space_for_item;
-		var _take = ui_button(_cx2 - 110, _cy2 - 52, 170, 56, potion_btn_scale, "Take it", global.ui_primary, _room, "Your item slots are full. Use or drop an item first.", UI_LAYER.BASE, 1, ftDefault);
-		potion_btn_scale = _take.scale;
+		var _take = ui_primary(_cx2 - 110, _cy2 - 52, 170, 64, "Take it", _room, "Your item slots are full. Use or drop an item first.");
 		if (_take.click && _room) gain_item(pot); // free
 		if (!_room) {
 			draw_set_font(ftDescriptions);
@@ -267,8 +266,8 @@ if (room == rmBounty) {
 		button_scale = 1.0;
 	}
 
-	var exit_btn = ui_button(gui_w - 150, gui_h - 200, 200, 70, exit_scale, button_text, ui_button_col(exit_col), true);
-	exit_scale = exit_btn.scale;
+	// the room's commit action, bottom right (ui_primary, UI rework): "Confirm" with a bounty taken, else "Continue"
+	var exit_btn = ui_primary(gui_w - 44 - 140, gui_h - 40 - 48, 280, 96, (button_text == "Exit") ? "Continue" : button_text, true);
 	if (exit_btn.click) room_goto(rmMap);
 
 }
