@@ -1450,7 +1450,7 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0, _where = 
 ///       flat stub with a dimmed number. _y is the bottom of the whole graphic (numbers included), so it sits on top of
 ///       whatever is below it; _x its left edge, or its centre with _centered. _scale makes it bigger (1: 14px bars).
 ///       A core's preview (core_preview) shows the core's own shape on a plain d6: keepsakes don't touch it.
-function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1) {
+function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _paper = false) {
 	var _min_roll = 1;
 	var _max_roll = _die.dice_value;
 	if (!variable_struct_exists(_die, "core_preview")) {
@@ -1470,13 +1470,15 @@ function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1) {
 	var _w = _n * _bw + (_n - 1) * _gap;
 	var _x0 = _centered ? _x - _w / 2 : _x;
 	var _base = _y - _pad - _num_h; // the line the bars stand on
-	var _bar_col = make_color_rgb(242, 210, 74);
+	var _bar_col = _paper ? global.ui_col.ink_soft : make_color_rgb(242, 210, 74);
 
-	// the plate
-	draw_set_alpha(0.85);
-	draw_set_color(make_color_rgb(20, 22, 30));
-	draw_roundrect_ext(_x0 - _pad, _base - _bh - _pad, _x0 + _w + _pad, _y, 8 * _scale, 8 * _scale, false);
-	draw_set_alpha(1);
+	// the plate (on paper there's none: the bars are inked straight onto it)
+	if (!_paper) {
+		draw_set_alpha(0.85);
+		draw_set_color(make_color_rgb(20, 22, 30));
+		draw_roundrect_ext(_x0 - _pad, _base - _bh - _pad, _x0 + _w + _pad, _y, 8 * _scale, 8 * _scale, false);
+		draw_set_alpha(1);
+	}
 
 	draw_set_font((_scale >= 1.4) ? ftDescriptions : ftTiny);
 	draw_set_halign(fa_center);
@@ -1484,13 +1486,13 @@ function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1) {
 	for (var i = 0; i < _n; i++) {
 		var _bx = _x0 + i * (_bw + _gap);
 		var _h = (_dist[i] > 0) ? max(3 * _scale, _bh * _dist[i] / _top) : 2 * _scale;
-		draw_set_color((_dist[i] > 0) ? _bar_col : make_color_rgb(90, 90, 100));
+		draw_set_color((_dist[i] > 0) ? _bar_col : (_paper ? global.ui_col.paper_shade : make_color_rgb(90, 90, 100)));
 		draw_rectangle(_bx, _base - _h, _bx + _bw - 1, _base, false);
-		draw_set_color((_dist[i] > 0) ? c_white : make_color_rgb(110, 110, 120));
+		draw_set_color(_paper ? ((_dist[i] > 0) ? global.ui_col.ink : global.ui_col.paper_shade) : ((_dist[i] > 0) ? c_white : make_color_rgb(110, 110, 120)));
 		draw_text(_bx + _bw / 2, _base + _num_h / 2 + 1, string(i + _min_roll));
 	}
 	// the baseline
-	draw_set_color(make_color_rgb(150, 150, 160));
+	draw_set_color(_paper ? global.ui_col.ink : make_color_rgb(150, 150, 160));
 	draw_line_width(_x0 - 2 * _scale, _base + 1, _x0 + _w + 2 * _scale, _base + 1, max(1, _scale));
 	draw_set_color(c_white);
 }

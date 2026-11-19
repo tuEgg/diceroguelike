@@ -1079,69 +1079,26 @@ if (show_rewards) {
 		break;
 		
 		case "dice":
+			// the dice on offer as the same paper cards as the bag (draw_bag_card, UI rework), side by side, all as tall as
+			// the tallest needs; hover lifts one, a click takes it
+			var _rc_w = 300, _rc_gap = 40;
+			var _rc_n = ds_list_size(reward_dice_options);
+			var _rc_h = 150;
+			for (var r = 0; r < _rc_n; r++) _rc_h = max(_rc_h, bag_card_layout(reward_dice_options[| r], _rc_w).h);
+			var _rc_cy = gui_h / 2 + 40;
 			draw_set_font(ftDefault);
-			draw_outline_text("Choose one die", c_black, c_white, 2, gui_w/2, gui_h/2 - 100, 1, 1, 0);
-	
-			for (var r = 0; r < ds_list_size(reward_dice_options); r++) {
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_outline_text("Choose one die", c_black, c_white, 2, gui_w/2, _rc_cy - _rc_h / 2 - 40, 1, 1, 0);
+
+			for (var r = 0; r < _rc_n; r++) {
 			    var die = reward_dice_options[| r];
-
-			    // --- Layout ---
-			    var reward_w = 120;
-			    var reward_h = 70;
-			    var reward_padding = 120;
-			    var reward_total_w = (ds_list_size(reward_dice_options) * reward_w) + ((ds_list_size(reward_dice_options) - 1) * reward_padding);
-			    var reward_x = gui_w / 2 - (reward_total_w / 2);
-			    var base_x = reward_x + (r * (reward_w + reward_padding));
-			    var base_y = gui_h/2;
-			    var base_w = reward_w;
-			    var base_h = reward_h;
-				
-				// Draw background sprite
-				var btn_col = make_colour_rgb(52, 55, 73);
-				switch (die.rarity) {
-					case "uncommon":
-					btn_col = make_colour_rgb(42, 90, 85);
-					break;
-					
-					case "rare":
-					btn_col = make_colour_rgb(85, 42, 90);
-					break;
-				}
-				var wobble = sin(((current_time / 1000) + r) * 3) * 3;
-				draw_sprite_ext(sRewardFrame, 0, base_x + base_w/2, base_y + base_w/2 - 10, reward_scale[| r] * 0.95, reward_scale[| r] * 0.95, wobble, btn_col, 1.0);
-
-			    // --- Draw dice sprite using hoverable scaling ---
-			    var btn = draw_gui_button(
-			        base_x, base_y,
-			        base_w, base_h,
-			        reward_scale[| r],
-			        "", // no text (we’ll draw sprite manually)
-			        die.color,
-			        ftDefault,
-			        !rewards_dice_taken,         // active
-					false,
-					UI_LAYER.POPUP
-			    );
-
-			    // Update scale for animation
-			    reward_scale[| r] = btn.scale;
-
-			    // the die, drawn in code (split in its colours if multitype), its keyword icons small above it
-			    var alpha = rewards_dice_taken ? 0.2 : 1.0;
-			    draw_die(btn.x + btn.w / 2, btn.y + btn.h / 2, 36 * btn.scale, die.dice_value, -1, die_colours(die.possible_type), 0, alpha);
-
-			    // --- Draw name ---
-			    var label = string(die.name);
-			    draw_set_color(c_white);
-			    draw_set_alpha(alpha);
-			    draw_set_halign(fa_center);
-			    draw_set_valign(fa_middle);
-			    draw_set_font(ftDefault);
-			    draw_text_ext(btn.x + btn.w / 2, btn.y + btn.h + 20 - 12 * (string_height_ext(label, -1, sprite_get_width(sRewardFrame) * 0.85) > string_height("A") * 1.5), label, -1, sprite_get_width(sRewardFrame) * 0.85); // long names wrap inside the frame
-		
-				if (btn.hover) {
-					queue_die_tip(die, btn.x + btn.w / 2, btn.y + btn.h / 2 - 40 * btn.scale);
-				}
+				var _rc_cx = gui_w / 2 - ((_rc_n - 1) * (_rc_w + _rc_gap)) / 2 + r * (_rc_w + _rc_gap);
+				var _rc_hover = !rewards_dice_taken && mouse_hovering(_rc_cx - _rc_w / 2, _rc_cy - _rc_h / 2, _rc_w, _rc_h, false, soSlotHover, noone, true, UI_LAYER.POPUP);
+				var alpha = rewards_dice_taken ? 0.35 : 1.0;
+				draw_bag_card(die, _rc_cx, _rc_cy, _rc_w, _rc_h, alpha, _rc_hover, false);
+				var btn = { x: _rc_cx - _rc_w / 2, y: _rc_cy - _rc_h / 2, w: _rc_w, h: _rc_h, hover: _rc_hover, click: _rc_hover && mouse_check_button_pressed(mb_left) };
+				if (btn.click) sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
 
 			    // --- Click logic: Take reward ---
 			    if (!rewards_dice_taken && btn.click) {

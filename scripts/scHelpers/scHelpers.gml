@@ -294,6 +294,7 @@ function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x,
 					case "subtext":												col = c_gray;					break;
 					default:													col = _fill_col;
 				}
+				if (variable_global_exists("ui_on_paper") && global.ui_on_paper) col = ui_text_on_paper(col); // on paper: the dark versions
 				array_push(colors_array, col);
 			}
 		}
@@ -2136,9 +2137,9 @@ function bag_type_label(_possible_type) {
 /// @desc A card's header band, rounded at the top and square along its bottom, in its type colour darkened so white
 ///       text reads. A multitype die's (die_colours, 2+) is split diagonally like its die: the first colour on the left,
 ///       the next from a slanted edge past the middle.
-function draw_header_band(_x1, _y1, _x2, _h, _r, _cols) {
+function draw_header_band(_x1, _y1, _x2, _h, _r, _cols, _darken = 0.5) {
 	var _y2 = _y1 + _h;
-	draw_set_color(merge_colour(_cols[0], c_black, 0.5));
+	draw_set_color(merge_colour(_cols[0], c_black, _darken));
 	draw_roundrect_ext(_x1, _y1, _x2, _y2, _r, _r, false);
 	draw_rectangle(_x1, _y2 - _r, _x2, _y2, false);
 	var _n = array_length(_cols);
@@ -2146,7 +2147,7 @@ function draw_header_band(_x1, _y1, _x2, _h, _r, _cols) {
 	var _w = _x2 - _x1, _slant = _h * 0.5;
 	for (var b = 1; b < _n; b++) {
 		var _mx = (_n == 2) ? _x1 + _w * 0.62 : _x1 + _w * b / _n; // two: the name keeps the left
-		draw_set_color(merge_colour(_cols[b], c_black, 0.5));
+		draw_set_color(merge_colour(_cols[b], c_black, _darken));
 		draw_primitive_begin(pr_trianglestrip);
 		draw_vertex(_mx + _slant, _y1); draw_vertex(_x2 - _r, _y1);
 		draw_vertex(_mx - _slant, _y2); draw_vertex(_x2 - _r, _y2);
@@ -2304,61 +2305,64 @@ function bag_card_layout(_d, _w) {
 ///       - a fitted core: its distribution under all that (the core isn't described)
 ///       Dark edge; lifts with a white edge when hovered; a green edge and tick when picked.
 function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
+	// a paper card (UI rework): a band in the die's pigment (split for multitype), its name and rarity gem; the die and
+	// what it does in ink; a fitted core's faces inked under it. Hover: it lifts with a brass edge; picked: a green stamp.
 	var _lay = bag_card_layout(_d, _w);
-	var _x1 = _cx - _w / 2, _y1 = _cy - _h / 2 - (_hover ? 4 : 0);
+	var _x1 = _cx - _w / 2, _y1 = _cy - _h / 2 - (_hover ? 5 : 0);
 	var _x2 = _x1 + _w, _y2 = _y1 + _h;
-	var _type_col = get_dice_color(_d.possible_type);
-	var _edge = _selected ? make_color_rgb(90, 220, 110) : (_hover ? c_white : make_color_rgb(14, 15, 22));
+	var _cols = die_colours(_d.possible_type);
 	var _head_h = _lay.head_h;
+	if (_hover || _selected) {
+		draw_set_alpha(_alpha);
+		draw_set_color(_selected ? global.color_heal : global.ui_col.brass);
+		draw_roundrect_ext(_x1 - 6, _y1 - 6, _x2 + 6, _y2 + 6, 14, 14, false);
+		draw_set_alpha(1);
+	}
+	ui_paper(_x1, _y1, _x2, _y2, (variable_struct_exists(_d, "uid") ? _d.uid : 1) * 3 + 1, global.ui_col.paper, _alpha);
 
-	// shadow, edge, body
-	draw_set_alpha(0.35 * _alpha);
-	draw_set_color(c_black);
-	draw_roundrect_ext(_x1 + 4, _y1 + 6, _x2 + 4, _y2 + 6, 14, 14, false);
+	// the band, inside the paper, in full pigment; the name light or dark to suit it
 	draw_set_alpha(_alpha);
-	draw_set_color(_edge);
-	draw_roundrect_ext(_x1 - 3, _y1 - 3, _x2 + 3, _y2 + 3, 16, 16, false);
-	draw_set_color(make_color_rgb(34, 36, 48));
-	draw_roundrect_ext(_x1, _y1, _x2, _y2, 14, 14, false);
-
-	// header band in its type colour (darkened so white text reads), square along its bottom; split for a multitype die
-	draw_header_band(_x1, _y1, _x2, _head_h, 14, die_colours(_d.possible_type));
-	// the name, then the gem on the right (keywords are in the description's first words, coloured)
+	draw_header_band(_x1 + 5, _y1 + 5, _x2 - 5, _head_h - 5, 6, _cols, 0);
+	draw_set_alpha(_alpha);
+	draw_set_color(global.ui_col.ink);
+	draw_line_width(_x1 + 5, _y1 + _head_h, _x2 - 5, _y1 + _head_h, 2);
+	var _lum = 0.299 * colour_get_red(_cols[0]) + 0.587 * colour_get_green(_cols[0]) + 0.114 * colour_get_blue(_cols[0]);
+	var _on = (_lum < 150) ? global.ui_col.paper_hi : global.ui_col.ink;
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
-	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + 14, _y1 + _head_h / 2, 1, _alpha, 0, _w - 14 - 34);
-	draw_rarity_gem(_x2 - 20, _y1 + _head_h / 2, _d.rarity, 1, _alpha);
+	draw_outline_text(_d.name, (_lum < 150) ? global.ui_col.ink : global.ui_col.paper_hi, _on, 1, _x1 + 16, _y1 + 4 + _head_h / 2, 1, _alpha, 0, _w - 16 - 36);
+	draw_rarity_gem(_x2 - 22, _y1 + 4 + _head_h / 2, _d.rarity, 1, _alpha);
 
-	// the die, and beside it what it is and what it does
+	// the die, and beside it what it does, in ink
 	var _dx = _x1 + 46, _dy = _y1 + _head_h + 46;
-	draw_die(_dx, _dy, 30, _d.dice_value, -1, die_colours(_d.possible_type), 0, _alpha);
+	draw_die(_dx, _dy, 30, _d.dice_value, -1, _cols, 0, _alpha);
+	if (global.action_icons) draw_action_type_icon(_d.action_type, _dx - 26, _dy + 26, 0.7);
 	var _out = get_dice_output(_d, -1, -1, true, "player"); // read only: viewing the bag must never trigger keepsakes
 	var _tx = _x1 + _lay.text_x;
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
-	// just the effect, big: the die already shows its size and colour, the bars its faces
-	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 14, 1, _alpha, 0, _lay.text_w);
+	ui_paper_text(colorcode_text(die_description(_d)), _tx, _y1 + _head_h + 14, _lay.text_w, _alpha);
 	// its size, type and range on hovering the die
 	if (_hover && mouse_hovering(_dx, _dy, 70, 70, true, noone, noone, true, UI_LAYER.BAG)) queue_die_tip(_d, _dx, _dy - 34, die_stats_line(_d, _out));
 
-	// a fitted core: how it shapes this die's faces, under the die and its words
+	// a fitted core: how it shapes this die's faces, inked under the die and its words
 	if (_d.distribution != "") {
 		draw_set_alpha(_alpha);
-		draw_dice_distribution(_d, _cx, _y1 + _lay.bars_bottom - 12, true, 1);
+		draw_dice_distribution(_d, _cx, _y1 + _lay.bars_bottom - 12, true, 1, true);
 	}
 
-	// picked (dice picker): a tick in the corner
+	// picked (dice picker): a green tick stamped on the corner
 	if (_selected) {
-		var _kx = _x1 + 2, _ky = _y1 + 2;
-		draw_set_color(c_black);
-		draw_circle(_kx, _ky, 15, false);
-		draw_set_color(make_color_rgb(90, 220, 110));
-		draw_circle(_kx, _ky, 12, false);
-		draw_set_color(c_white);
-		draw_line_width(_kx - 6, _ky, _kx - 1, _ky + 5, 3);
-		draw_line_width(_kx - 1, _ky + 5, _kx + 7, _ky - 5, 3);
+		var _kx = _x2 - 6, _ky = _y2 - 6;
+		draw_set_color(global.ui_col.ink);
+		draw_circle(_kx, _ky, 17, false);
+		draw_set_color(global.color_heal);
+		draw_circle(_kx, _ky, 14, false);
+		draw_set_color(global.ui_col.paper_hi);
+		draw_line_width(_kx - 7, _ky, _kx - 1, _ky + 6, 3.5);
+		draw_line_width(_kx - 1, _ky + 6, _kx + 8, _ky - 6, 3.5);
 	}
 
 	draw_set_alpha(1);
@@ -2507,65 +2511,66 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	var _d = _off.dice, _core = _off.core;
 	var _lay = offering_card_layout(_off, _w);
 	var _x1 = _cx - _w / 2, _x2 = _cx + _w / 2, _y1 = _top, _y2 = _top + _h;
-	var _type_col = get_dice_color(_d.possible_type);
-	var _edge = _chosen ? make_color_rgb(90, 220, 110) : (_hover ? c_white : make_color_rgb(42, 29, 18));
+	var _cols = die_colours(_d.possible_type);
 	var _head_h = _lay.head_h;
 
-	// shadow, edge, body
-	draw_set_alpha(0.35);
-	draw_set_color(c_black);
-	draw_roundrect_ext(_x1 + 6, _y1 + 10, _x2 + 6, _y2 + 10, 18, 18, false);
-	draw_set_alpha(1);
-	draw_set_color(_edge);
-	draw_roundrect_ext(_x1 - 4, _y1 - 4, _x2 + 4, _y2 + 4, 20, 20, false);
-	draw_set_color(make_color_rgb(34, 36, 48));
-	draw_roundrect_ext(_x1, _y1, _x2, _y2, 16, 16, false);
+	// the same paper card as the bag's (UI rework), a shade brighter than the page it lies on; hover: a brass edge,
+	// chosen: green
+	if (_hover || _chosen) {
+		draw_set_color(_chosen ? global.color_heal : global.ui_col.brass);
+		draw_roundrect_ext(_x1 - 7, _y1 - 7, _x2 + 7, _y2 + 7, 16, 16, false);
+	}
+	ui_paper(_x1, _y1, _x2, _y2, _cx * 0.37 + 2, global.ui_col.paper_hi, 1);
 
-	// header: name, rarity (the band split for a multitype die)
-	draw_header_band(_x1, _y1, _x2, _head_h, 16, die_colours(_d.possible_type));
+	// header: name, rarity (the band in full pigment, split for a multitype die)
+	draw_header_band(_x1 + 6, _y1 + 6, _x2 - 6, _head_h - 6, 6, _cols, 0);
+	draw_set_color(global.ui_col.ink);
+	draw_line_width(_x1 + 6, _y1 + _head_h, _x2 - 6, _y1 + _head_h, 2);
+	var _lum = 0.299 * colour_get_red(_cols[0]) + 0.587 * colour_get_green(_cols[0]) + 0.114 * colour_get_blue(_cols[0]);
 	draw_set_font(ftBig);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
-	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + 18, _y1 + _head_h / 2, 1, 1, 0);
-	draw_rarity_gem(_x2 - 24, _y1 + _head_h / 2, _d.rarity, 1.2, 1);
+	draw_outline_text(_d.name, (_lum < 150) ? global.ui_col.ink : global.ui_col.paper_hi, (_lum < 150) ? global.ui_col.paper_hi : global.ui_col.ink, 1, _x1 + 20, _y1 + 3 + _head_h / 2, 1, 1, 0);
+	draw_rarity_gem(_x2 - 26, _y1 + 3 + _head_h / 2, _d.rarity, 1.2, 1);
 
 	// the die, and what it is
 	var _dx = _x1 + 64, _dy = _y1 + _head_h + 62;
-	draw_die(_dx, _dy, 40, _d.dice_value, -1, die_colours(_d.possible_type), 0, 1);
+	draw_die(_dx, _dy, 40, _d.dice_value, -1, _cols, 0, 1);
+	if (global.action_icons) draw_action_type_icon(_d.action_type, _dx - 34, _dy + 34, 0.8);
 	var _tx = _x1 + 128;
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 	var _out = get_dice_output(_d, -1, -1, true, "player");
 	// just the effect, big; its size, type and range on hovering the die
-	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 24, 1, 1, 0, _lay.text_w);
+	ui_paper_text(colorcode_text(die_description(_d)), _tx, _y1 + _head_h + 24, _lay.text_w);
 	if (mouse_hovering(_dx, _dy, 90, 90, true, noone, noone, true, UI_LAYER.POPUP)) queue_die_tip(_d, _dx, _dy - 46, die_stats_line(_d, _out));
 
 	// the core, just under the die and its words
 	var _cy = _y1 + _lay.core_y;
-	draw_set_color(make_color_rgb(70, 72, 90));
+	draw_set_color(global.ui_col.paper_shade);
 	draw_line_width(_x1 + 18, _cy, _x2 - 18, _cy, 2);
 	draw_sprite_ext(sCores, _core.index, _x1 + 42, _cy + 40, 0.8, 0.8, 0, c_white, 1);
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
-	draw_outline_text(_core.name, c_black, make_color_rgb(242, 210, 74), 2, _x1 + 80, _cy + 16, 1, 1, 0);
+	draw_outline_text(_core.name, global.ui_col.paper_hi, global.ui_col.ink, 1, _x1 + 80, _cy + 16, 1, 1, 0);
 	draw_set_font(ftDescriptions);
-	draw_outline_text(_core.description, c_black, make_color_rgb(225, 225, 235), 2, _x1 + 80, _cy + 44, 1, 1, 0, _lay.core_w);
+	ui_paper_text(_core.description, _x1 + 80, _cy + 44, _lay.core_w);
 
 	// how this core shapes this die's faces, at the foot of the card (cards share a height, so the bars line up)
 	var _preview = clone_die(_d, "");
 	_preview.distribution = _core.distribution;
-	draw_dice_distribution(_preview, _cx, _y2 - 20, true, 1.4);
+	draw_dice_distribution(_preview, _cx, _y2 - 20, true, 1.4, true);
 
-	// chosen: a tick in the corner
+	// chosen: a green tick stamped on the corner
 	if (_chosen) {
 		var _kx = _x2 - 4, _ky = _y1 + 4;
-		draw_set_color(c_black);
+		draw_set_color(global.ui_col.ink);
 		draw_circle(_kx, _ky, 18, false);
-		draw_set_color(make_color_rgb(90, 220, 110));
+		draw_set_color(global.color_heal);
 		draw_circle(_kx, _ky, 15, false);
-		draw_set_color(c_white);
+		draw_set_color(global.ui_col.paper_hi);
 		draw_line_width(_kx - 7, _ky, _kx - 1, _ky + 6, 3.5);
 		draw_line_width(_kx - 1, _ky + 6, _kx + 8, _ky - 6, 3.5);
 	}

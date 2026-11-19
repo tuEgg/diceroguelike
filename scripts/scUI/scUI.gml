@@ -24,6 +24,7 @@ function ui_init() {
 		felt:       make_color_rgb(24, 18, 13),   // the tray under your hand
 		bonus_ink:  make_color_rgb(44, 110, 74),  // a bonus written on paper
 	};
+	global.ui_on_paper = false; // true while text is drawn on paper (ui_paper_text): colour-coded words use dark inks
 	// the action pigments: a brightness ladder (attack darkest, then heal, block, insight lightest)
 	global.color_attack = make_color_rgb(179, 58, 34);
 	global.color_block  = make_color_rgb(111, 168, 232);
@@ -288,4 +289,28 @@ function ui_primary_button(_cx, _cy, _w, _h, _text, _frame_col, _active, _hover 
 	draw_text_transformed(_cx, _cy - _lift, _text, _sc, _sc, 0);
 	draw_set_alpha(1);
 	draw_set_color(c_white);
+}
+
+/// @func ui_text_on_paper(_col)
+/// @desc The readable-on-paper version of a text colour (colour-coded words on a paper card are darker inks):
+///       used by draw_outline_text while global.ui_on_paper is true.
+function ui_text_on_paper(_col) {
+	if (_col == global.text_block || _col == global.color_block) return global.text_block_on_paper;
+	if (_col == global.text_heal || _col == global.color_heal || _col == c_lime) return global.text_heal_on_paper;
+	if (_col == global.text_attack || _col == global.color_attack || _col == c_red) return global.text_attack_on_paper;
+	if (_col == global.color_intel || _col == c_yellow) return global.text_intel_on_paper;
+	if (_col == c_aqua || _col == c_teal) return make_color_rgb(18, 104, 104);
+	if (_col == c_orange) return make_color_rgb(150, 80, 12);
+	if (_col == c_ltgray || _col == c_silver || _col == c_gray) return global.ui_col.ink_soft;
+	if (_col == make_colour_rgb(230, 50, 230)) return make_color_rgb(128, 34, 128);
+	if (_col == c_white) return global.ui_col.ink;
+	return _col;
+}
+
+/// @func ui_paper_text(_text, _x, _y, [_width], [_alpha])
+/// @desc Text on paper: ink, colour-coded words in their dark inks, a faint paper halo. Uses the current font/align.
+function ui_paper_text(_text, _x, _y, _width = -1, _alpha = 1) {
+	global.ui_on_paper = true;
+	draw_outline_text(_text, global.ui_col.paper_hi, global.ui_col.ink, 1, _x, _y, 1, _alpha, 0, _width);
+	global.ui_on_paper = false;
 }
