@@ -30,7 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 20: UI rework (combat, cards, map, rooms, menus) | F130, F131, F132, F133, F134, F135, F136, B138, B141, F142, F143, F144, F147, B134, B136, B137, B139, F140, F141, F137, F148, B135, B140, F150, B133, F138, F139, F146, F149, F145, Q15, B132, F151, F40, F41, H13, fonts | `feature/ui-rework` (off dev) | **Ready to test.** The logbook look on the combat screen (docs/design-ui-rework.md). |
+| 20: UI rework (combat, cards, map, rooms, menus) | F130, F131, F132, F133, F134, F135, F136, B138, B141, F142, F143, F144, F147, B134, B136, B137, B139, F140, F141, F137, F148, B135, B140, F150, B133, F138, F139, F146, F149, F145, Q15, B132, F151, F40, F41, H13, fonts | merged into `dev` (2026-11-19, Jared's go-ahead) | **On dev, still to playtest.** The logbook look everywhere (docs/design-ui-rework.md), plus the 2026-11-19 playtest fixes, balance, juice and fonts. |
 
 **Batch 20 test list (`feature/ui-rework`)**
 - Top bar sized down (Jared: too big next to Slay the Spire at the same resolution): health and gold numbers smaller (26 px, the max 18), the heart and coin smaller, gold and the item wells moved left to match; the alignment % much smaller (18 px) beside the compass. Reward cards play soCard as each turns over (a rare one also jingles).
