@@ -504,7 +504,9 @@ for (var i = 0; i < aq_list_size; i++) {
 				var _back_hint = "";
 				if (state == CombatState.PLAYER_INPUT) {
 					if (die_can_take_back(die_struct)) _back_hint = "\n\nClick to take it back to your hand.";
-					else if (variable_struct_exists(die_struct, "play_locked") && die_struct.play_locked && variable_struct_exists(die_struct, "played_turn") && die_struct.played_turn == turn_count) _back_hint = "\n\nIts 'when played' effect has happened, so it stays.";
+					else if (variable_struct_exists(die_struct, "play_locked") && die_struct.play_locked && variable_struct_exists(die_struct, "played_turn") && die_struct.played_turn == turn_count) {
+						_back_hint = (variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot) ? "\n\nIt built this slot, so it stays this turn." : "\n\nIts 'when played' effect has happened, so it stays.";
+					}
 				}
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die_struct.name, die_description(die_struct) + _back_hint, undefined, 0, die_struct);
 				if (mouse_check_button_pressed(mb_left) && die_can_take_back(die_struct) && state == CombatState.PLAYER_INPUT && global.ui_layer == UI_LAYER.BASE && !oRunManager.holding_item && combat_no_die_dragged()) {

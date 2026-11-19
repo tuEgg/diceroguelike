@@ -842,7 +842,8 @@ function new_slot_total() {
 
 /// @func combat_try_build_slot()
 /// @desc Builds a new slot once 2 or more dice on the tile reach the threshold. It keeps their types (all generic: an
-///       untyped slot, like the starting ones). Their "when sacrificed" effects fire now, and they go to the discard pile.
+///       untyped slot, like the starting ones). Their "when sacrificed" effects fire now, and they become the slot's
+///       first dice for this turn (locked in).
 function combat_try_build_slot() {
 	if (ds_list_size(global.sacrifice_list) < 2 || new_slot_total() < new_slot_threshold()) return;
 
@@ -872,13 +873,27 @@ function combat_try_build_slot() {
 	var _type_str = "";
 	for (var t = 0; t < array_length(_types); t++) _type_str += ((_type_str == "") ? "" : " ") + _types[t];
 	if (_type_str == "") _type_str = "None";
-	ds_list_add(action_queue, combat_new_slot(_type_str));
+	var _new_slot = combat_new_slot(_type_str);
+	var _first_type = "";
+
+	// the dice that built it become its first dice and act this turn (discarded at End Turn like the rest). They're
+	// locked in: taking one back would leave a slot built for free. The first coloured one picks the slot's type.
+	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
+		var _src = global.sacrifice_list[| j];
+		var _in = clone_die(_src, (_src.possible_type == "None") ? "temporary" : "base");
+		_in.played_turn = turn_count;
+		_in.play_locked = true;
+		_in.built_slot = true;
+		ds_list_add(_new_slot.dice_list, _in);
+		if (_first_type == "" && _src.action_type != "None") _first_type = _src.action_type;
+	}
+	if (_first_type != "" && string_pos(_first_type, _new_slot.possible_type) > 0) _new_slot.current_action_type = _first_type;
+	ds_list_clear(global.sacrifice_list);
+	update_sacrificed_type_array();
+	ds_list_add(action_queue, _new_slot);
 
 	combat_trigger_effects("after_new_slot_created", sacrifice_data);
-
-	// the dice that built it are used: off to the discard pile
-	combat_discard_slot_building();
-	particle_emit(_tx, _ty + 60, "burst", c_white, 30);
+	particle_emit(_tx, _ty + 60, "burst", c_white, 30); // the new slot takes the tile's place
 }
 
 function update_sacrificed_type_array() {

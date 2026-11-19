@@ -17,7 +17,7 @@ Branch `feature/rolled-dice`. Agreed with Jared on 2026-11-19. The goal: more de
   - slot 3: 6+, slot 4: 9+, slot 5: 12+, and so on (+3 per slot; Cursed Heart adds +3).
   - Each die dropped there uses a play (coins free) and can be taken back until the slot is built.
   - The new slot keeps the types of the dice that built it (a red and a blue die make an Attack/Block slot). It starts empty; the first matching die picks its type for the turn, and right-click still switches it.
-  - The dice that built it go to the discard pile. "When sacrificed" effects fire when the slot is built.
+  - The dice that built it become its first dice and act this turn, locked in (taking one back would leave a free slot), then are discarded at End Turn. "When sacrificed" effects fire when the slot is built.
 - **One target.** All attacks go at the marked enemy, as now.
 - **When an elite or the boss dies, the others flee.** They fade out, give no gold, and the fight is won. In kill/spare fights only the elite gets the choice.
 
