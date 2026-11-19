@@ -1437,6 +1437,7 @@ function draw_dice_distribution(_die, _x, _y, _centered = false) {
 		}
 	}
 	
+	if (max_size <= 0) max_size = 1; // all zero (a squeezed range, B125): flat bars, not 0/0
 	for (var i = 0; i < array_length(distribution_array); i++) {
 		var bar_height = distribution_array[i]/max_size;
 		draw_sprite_ext(sSmallBar, 0, xx, yy, 1, bar_height + 0.2, 0, c_white, 1.0);

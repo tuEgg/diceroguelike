@@ -62,7 +62,13 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 			for (var d = 0; d < array_length(distribution_array); d++) {
 				weight_max += distribution_array[d];
 			}
-		
+			// a squeezed range can leave a core's weights all zero (Mock caps attacks at 1, and "weighted" or "dome" give
+			// a 1-1 range no weight): every face it can still roll counts the same then, so the roll always lands (B125)
+			if (weight_max <= 0) {
+				for (var d = 0; d < array_length(distribution_array); d++) distribution_array[d] = 1;
+				weight_max = array_length(distribution_array);
+			}
+
 			// rolled dice: the number it rolled when dealt (die_roll_faces), kept within today's range
 			var _face = -1;
 			if (die_has_faces(_slot_die) && _face_index < array_length(_slot_die.faces)) _face = clamp(_slot_die.faces[_face_index], _min_roll, _max_roll);
@@ -89,6 +95,9 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 			var _force = (_slot_die.forced_roll != -1) ? _slot_die.forced_roll : _face;
 			if (_force != -1) {
 			    var _clamped_forced = clamp(_force, _min_roll, _max_roll);
+			    // the forced face must have some weight, or the lookup below stops on an earlier face, or on none (B125)
+			    var _fk = _clamped_forced - _min_roll;
+			    if (_fk >= 0 && _fk < array_length(distribution_array) && distribution_array[_fk] <= 0) distribution_array[_fk] = 1;
 			    weighted_roll = 0;
     
 			    for (var d = 0; d < (_clamped_forced - _min_roll + 1); d++) {
@@ -125,7 +134,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 						_c_slot_type: _type,
 						_slot_die: _slot_die,
 						die: _slot_die,
-						min_roll: actual_possible_numbers[0], // first row in distribution array that isn't zero,
+						min_roll: (array_length(actual_possible_numbers) > 0) ? actual_possible_numbers[0] : _min_roll, // first row in distribution array that isn't zero (never read an empty list: B125)
 						max_roll: _max_roll,
 						slot_bonus: slot_bonus_amount,
 						keepsake_bonus: _keepsake_dice_bonus_amount,
