@@ -1718,7 +1718,7 @@ function tutorial_steps() {
 		// turn 2: insight, a slot with two actions, right-click to switch
 		{
 			id: "insight", target: "insight", allow: [], button: "Next",
-			text: "Your insight came in as ink, and the log is open. With the quill: reroll or redraw a die (3), see the enemy's exact numbers (2), or make it choose again (6). Confirm to play your dice. The inkwell opens and closes the log any time on your turn, and pulses when your ink can do something.",
+			text: "Your insight is ink. Click the inkwell to use it, then with the quill: reroll or redraw a die (3), see the enemy's exact numbers (2), or make it choose again (6). Confirm when you're done. The inkwell pulses when your ink can do something.",
 		},
 		{
 			id: "two_types", target: "sacrifice", allow: ["sacrifice"], die_types: ["ATK", "BLK"],
@@ -2063,8 +2063,8 @@ function tips_list() {
 		{
 			// the guided fight is off on this branch, so this teaches insight the first time you have some to spend
 			id: "insight_spend", room: rmCombat, target: "insight",
-			text: "The log is open. Your insight is ink: with the quill, reroll or redraw a die in your hand (" + string(INSIGHT_COST_REROLL) + " each), see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + ", or 1 each when there are several), or make it choose its move again (" + string(INSIGHT_COST_QUILL) + "). Click Confirm (where End Turn is) to play; the inkwell opens and closes the log any time on your turn. Ink you don't spend carries over.",
-			when: function() { return instance_exists(oCombat) && oCombat.insight_view; },
+			text: "Your insight is ink: click the inkwell to use it, then with the quill reroll or redraw a die in your hand (" + string(INSIGHT_COST_REROLL) + " each), see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + ", or 1 each when there are several), or make it choose its move again (" + string(INSIGHT_COST_QUILL) + "). Click Confirm (where End Turn is) when you're done; the inkwell works any time on your turn. Ink you don't spend carries over.",
+			when: function() { return instance_exists(oCombat) && oCombat.ink_pulse > 0 && !oCombat.insight_view; }, // the first time the inkwell pulses
 		},
 		{
 			id: "blotted", room: rmCombat, target: "insight",
@@ -3045,7 +3045,7 @@ function combat_insight_view_draw() {
 		var _ex = global.player_x, _ey = global.player_y - 180;
 		var _ink_hov = mouse_hovering(_ex, _ey, 70, 70, true, noone, noone, true, UI_LAYER.POPUP);
 		draw_inkwell(_ex, _ey, _ink_hov ? 1.25 : 1.15, player_intel / INSIGHT_MAX, false);
-		if (_ink_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Close the log", "Back to your dice. Click the inkwell again any time this turn to reopen it.", undefined, 0, undefined, 0, "insight", { button: "left", text: "Close", col: global.color_intel });
+		if (_ink_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Put your ink away", "Back to your dice. Click the inkwell again any time this turn to use your ink.", undefined, 0, undefined, 0, "insight", { button: "left", text: "Done", col: global.color_intel });
 		var _ink_click = _ink_hov && mouse_check_button_pressed(mb_left);
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);
@@ -3064,7 +3064,7 @@ function combat_insight_view_draw() {
 			var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
 			for (var q = 0; q < ds_list_size(slot_positions); q++) { var _p = slot_positions[| q]; if (_mx >= _p.x && _mx <= _p.x + _p.w && _my >= _p.y && _my <= _p.y + _p.h) _over_slot = true; }
 			var _seal_hov = !_over_slot && mouse_hovering(_sx, _sy, _sw, _sh, false, soSlotHover, noone, true, UI_LAYER.POPUP);
-			if (_seal_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Confirm", "Done with your ink: close the log and play your dice. The inkwell reopens it; ink you don't spend carries over.");
+			if (_seal_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Confirm", "Done with your ink: put it away and play your dice. The inkwell brings it back; ink you don't spend carries over.");
 			_seal_click = _seal_hov && mouse_check_button_pressed(mb_left);
 		}
 

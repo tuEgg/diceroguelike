@@ -1066,7 +1066,7 @@ if (state != CombatState.PLAYER_DEAD) {
 	draw_inkwell(global.player_x, global.player_y - 180, _ink_s, player_intel / INSIGHT_MAX, intel_is_blotted());
 	if (intel_hover) {
 		if (intel_is_blotted()) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 insight your ink is spilled: enemy intents are hidden, and you can't write this turn.");
-		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Open the log", "Spend insight to rewrite enemy intents, see their exact numbers, or reroll and redraw your dice. Unspent insight carries over (up to " + string(INSIGHT_MAX) + ").", undefined, 0, undefined, 0, "insight", { button: "left", text: "Open", col: global.color_intel });
+		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Use your ink", "Spend insight to rewrite enemy intents, see their exact numbers, or reroll and redraw your dice. Unspent insight carries over (up to " + string(INSIGHT_MAX) + ").", undefined, 0, undefined, 0, "insight", { button: "left", text: "Use", col: global.color_intel });
 		// a toggle: the inkwell opens the log any time on your turn
 		if (mouse_check_button_pressed(mb_left) && !intel_is_blotted() && state == CombatState.PLAYER_INPUT && !show_rewards && global.ui_layer == UI_LAYER.BASE) combat_insight_view_set(true);
 	}
