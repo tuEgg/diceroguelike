@@ -2132,22 +2132,22 @@ function offering_draw() {
 	draw_set_color(_ink);
 	var _bx = _px + 50;
 	draw_text(_bx, _fy, "Your bag:");
-	_bx += string_width("Your bag:") + 24;
+	// one die every 40px: a d4's triangle is about 33px across here, so they never touch. Hover one to see what it is.
+	_bx += string_width("Your bag:") + 34; // the first die's centre
 	for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
-		var _bd = global.dice_bag[| d];
-		draw_die_shape(_bx, _fy, 14, _bd.dice_value, _ink, 0, 1);
-		draw_die_shape(_bx, _fy, 11, _bd.dice_value, get_dice_color(_bd.possible_type), 0, 1);
-		_bx += 30;
+		offering_bag_icon(global.dice_bag[| d], _bx, _fy, _ink);
+		_bx += 40;
 	}
 	var _sel = oRunManager.offer_selected;
 	if (_sel >= 0) {
-		var _sd = oRunManager.offering[_sel].dice;
-		_bx += 8;
+		// "+ the chosen die", with clear space either side of the plus
+		draw_set_font(ftBig);
+		draw_set_halign(fa_center);
 		draw_set_color(make_color_rgb(40, 130, 60));
-		draw_text(_bx, _fy, "+");
-		_bx += 22;
-		draw_die_shape(_bx, _fy, 14, _sd.dice_value, _ink, 0, 1);
-		draw_die_shape(_bx, _fy, 11, _sd.dice_value, get_dice_color(_sd.possible_type), 0, 1);
+		draw_text(_bx + 2, _fy - 2, "+");
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_left);
+		offering_bag_icon(oRunManager.offering[_sel].dice, _bx + 40, _fy, _ink);
 	}
 
 	var _label = (_sel >= 0) ? "Take the " + oRunManager.offering[_sel].dice.name : "Choose a die";
@@ -2158,6 +2158,17 @@ function offering_draw() {
 	draw_set_color(c_white);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
+}
+
+/// @func offering_bag_icon(_d, _x, _y, _ink)
+/// @desc A die in the bag strip under the offer: its shape in its colour, inked round the edge. Hover: a little bigger,
+///       and its tooltip (name, what it does, keywords).
+function offering_bag_icon(_d, _x, _y, _ink) {
+	var _hover = mouse_hovering(_x, _y, 36, 36, true, noone, noone, true, UI_LAYER.POPUP);
+	var _s = _hover ? 1.2 : 1;
+	draw_die_shape(_x, _y, 14 * _s, _d.dice_value, _hover ? c_white : _ink, 0, 1);
+	draw_die_shape(_x, _y, 11 * _s, _d.dice_value, get_dice_color(_d.possible_type), 0, 1);
+	if (_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _d.name, die_description(_d), undefined, 0, _d);
 }
 
 /// @func offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen)
