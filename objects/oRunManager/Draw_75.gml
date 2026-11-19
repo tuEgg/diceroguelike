@@ -587,6 +587,9 @@ run_summary_draw();
 // tooltips last, after every window and panel (Draw GUI End), so nothing draws over them
 draw_all_tooltips();
 
+// a room's opening ink wash (F65), over everything but the cursor
+room_wipe_draw();
+
 // the game's own mouse pointer, last of all during a run (above the bag, its darkening and every window).
 // Outside a run (main menu) oSettingsMenu draws it instead.
 cursor_draw();

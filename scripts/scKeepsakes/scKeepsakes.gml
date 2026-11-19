@@ -3,7 +3,9 @@
 
 function trigger_keepsake_visual() {
 	var index = ds_list_find_index(oRunManager.keepsakes, self);
+	if (index == -1) return; // a keepsake that isn't in the bar (yet)
 	oRunManager.keepsake_scale[| index] = 2.0;
+	self.flash_time = current_time; // its name floats up under its icon (oRunManager Draw GUI, F15)
 }
 
 function define_keepsakes() {

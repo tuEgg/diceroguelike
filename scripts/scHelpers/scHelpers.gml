@@ -1806,3 +1806,25 @@ function draw_version_tag(_x, _y) {
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 }
+
+/// @func room_wipe_draw()
+/// @desc Room transition (F65): when a room starts, dark ink covers the screen and sweeps off to the right over about
+///       0.4 s, its edge a row of ink blots. Drawn just under the cursor (oRunManager Draw GUI End in a run,
+///       oSettingsMenu otherwise), so it covers everything else. Quick, so it never slows play.
+function room_wipe_draw() {
+	if (!variable_global_exists("room_wipe_start")) return;
+	var _p = (current_time - global.room_wipe_start) / 420;
+	if (_p < 0 || _p >= 1) return;
+	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+	var _e = _p * _p * (3 - 2 * _p); // ease in and out
+	var _edge = -120 + _e * (_gw + 240); // the ink's left edge, moving right
+	draw_set_alpha(1);
+	draw_set_color(make_color_rgb(18, 22, 32));
+	draw_rectangle(_edge, 0, _gw, _gh, false);
+	// a ragged edge: blots of different sizes down the front of the wash
+	for (var _y = -20; _y <= _gh + 40; _y += 54) {
+		var _r = 36 + 22 * sin(_y * 0.037) + 10 * sin(_y * 0.11);
+		draw_circle(_edge + 8 * sin(_y * 0.05), _y, _r, false);
+	}
+	draw_set_color(c_white);
+}

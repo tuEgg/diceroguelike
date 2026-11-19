@@ -578,6 +578,17 @@ for (var k = 0; k < ds_list_size(keepsakes); k++) {
 	var btn = draw_gui_button(ks_x + xx, ks_y, btn_size, btn_size, keepsake_scale[| k], "", c_white, ftSmall, 1, false);
 	keepsake_scale[| k] = btn.scale;
 	draw_sprite_ext(sKeepsake, _keepsake.sub_image, ks_x + xx + btn_size/2, ks_y + btn_size/2, keepsake_scale[| k] * 0.8, keepsake_scale[| k] * 0.8, 0, c_white, 1);
+
+	// just fired: its name floats up from under its icon and fades (F15), so you can tell which keepsake did something
+	if (variable_struct_exists(_keepsake, "flash_time")) {
+		var _ft = (current_time - _keepsake.flash_time) / 1100;
+		if (_ft >= 0 && _ft < 1) {
+			draw_set_font(ftDefault);
+			draw_set_halign(fa_left); // left-aligned under the icon so names in the first column stay on screen
+			draw_set_valign(fa_top);
+			draw_outline_text(_keepsake.name + "!", c_black, global.color_intel, 2, ks_x + xx + 4, ks_y + btn_size + 4 - 14 * _ft, 1, 1 - _ft * _ft, 0);
+		}
+	}
 	
 	if (btn.hover) {
 		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), keepsakes[| k].name, keepsakes[| k].desc, undefined, 0, undefined);

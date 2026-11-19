@@ -692,6 +692,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 					case "HEAL": col = global.color_heal; index = 2; break;
 					case "EXIT": col = c_orange; index = 5; enemy_exiting = true; break;
 					case "DEBUFF": case "NONE": case "BUFF": col = c_white; index = 3; break;
+					case "SUMMON": col = make_color_rgb(230, 150, 60); index = 3; break; // calls for help: not the attack icon (F15)
 					default: 
 					col = c_dkgray; 
 					index = 0;
