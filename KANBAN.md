@@ -28,11 +28,128 @@
 
 ## 🧪 IN TESTING: waiting for Jared's playtest
 
+Nothing waiting: batches 17, 18 and 19 were play-tested and approved by Jared on 2026-11-19 and merged to `dev` (see DONE).
+
+---
+
+## 🐞 BUGS: P0 crashes, softlocks, lost runs
+
+| ID | Bug | Where | Size |
+|---|---|---|---|
+
+All known P0 bugs are fixed, see DONE.
+
+## 🐞 BUGS: P1 rules behave wrongly
+
+**Combat core**
+| ID | Bug | Where | Size |
+|---|---|---|---|
+| B36 | `"None!"` in `get_slot_stats` makes its condition always true. Left alone on purpose: it looks like a deliberate switch-off, and removing it would change how neutral dice count in a slot. Needs Jared's call. (The doubled `is_slot_exclusive` check was fixed in batch 2.) | `scCombatScripts.gml` | S [C] |
+
+**Dice / keepsakes / items**
+| ID | Bug | Where | Size |
+|---|---|---|---|
+
+**Map / events / bounty / workbench**
+| ID | Bug | Where | Size |
+|---|---|---|---|
+
+**Save / load**
+| ID | Bug | Size |
+|---|---|---|
+
+## 🐞 BUGS: P2 UI / polish
+
+| ID | Bug | Where |
+|---|---|---|
+| B82 | `draw_outline_text` coloured mode wraps every word and ignores halign/alpha. `queue_tooltip` changes the caller's font | `scHelpers.gml:290-426` |
+| B118 | **Parked (2026-11-17).** Web build: shapes drawn in code (button panels, pips, badges, icon outlines) have jagged edges. The browser canvas is smaller than the 1920x1080 layout, so the GUI is drawn shrunk, and a web build can't turn on anti-aliasing from inside the game (desktop is fixed, B117). Fixes, best first: real art for buttons and panels (sprites are smoothed when scaled; comes with F50), or drawing the UI to a 2x surface and shrinking it with smoothing (costly, and surfaces have misbehaved on web before). | `scDisplay`, `draw_wonky_rectangle`, UI kit |
+
+---
+
+## 🧱 TECH DEBT / REFACTORS (highest-payoff first)
+
+| ID | Refactor | Fixes | Size |
+|---|---|---|---|
+| T02 | **Buff system v2**: instances keyed by (id, permanent); a buff scales *either* stacks *or* duration (the GDD already plans this); tick once per event, outside the effect loop; source-tagged slot modifiers instead of `bonus_amount` | B21, B22, B29, B30 | M |
+| T03 | **One effect dispatcher**: dice, keepsakes, items and debuffs register `handlers[$ event]`; the dispatcher does the `owner_only` uid check; fresh uid on clone | B26, B27, B43, perf | M |
+| T05 | **`run` struct**: one object owns gold, HP, bag, keepsakes, items, tools, alignment and pools; `new_run()`/`end_run()` create and free everything; the save serialises this one struct with a version + RNG state | B70–72, leaks, 130 globals | L |
+| T06 | **Split input/state from Draw GUI** (update in Step, render in Draw). The code currently relies on draw order for clicks and on positions computed a frame late | B63, ordering bugs | L (incremental, room by room) |
+| T07 | **UI kit**: one markup format + one colour table; cached outlined text; shared `draw_die`, panel, button, scrollbar and exit-button widgets on `global.gui`; fix the `draw_wonky_rectangle` surface leak (new surfaces every frame while hovering) | B80–83, perf | M |
+| T09 | **Enums instead of strings** for action types, permanence and node types (`"BLK"` vs `"BLOCK"` bugs go away) | B64, B36 | M |
+| T10 | **Data tables**: `register_die()`, a cores table, an encounters table, a bounty table, `spawn_die()`, `pick_from_pool()` with empty-pool guards, an `oTool` parent for Hammer/Cutters/Drill | B07, B40, duplication | M |
+| T11 | Memory hygiene (enemy lists in combat done in batch 2): CleanUp for oShopManager, treasure, bounty, world (`room_enemies`, page node lists), combat (action queue + slot lists, enemy move_history/debuffs, feed lists), oRunManager lists, event option lists | leaks | S–M |
+| T12 | Per-frame performance: map `path_add` every frame; `settings.json` parsed every frame while settings is open; `clone_die` per frame in hover/workbench; `get_slot_stats`/`get_action_name` per slot per frame; 1,300 particle *instances* (Dutchman) → part system | perf | S–M |
+| T13 | Delete dead code: `parse_text`, `room_to_gui_*`, ~~`add_debug_entry`~~ (removed 2026-11-16), `draw_dice_history`, `roll_id`, `global.enemy_debuffs`, `tool_list`, the deprecated "All" slot type, and the redundant deep copy in `clone_die` | | S |
+
+---
+
+## ✨ FEATURES: proposed vertical slice (⚠️ NOT agreed yet, see Open Questions)
+
+Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
+
+**Core loop**
+- F02 **Rethink what happens between pages (Jared, 2026-11-17).** Workbench part done in batch 12 (At sea). Still open: the spread-end choices themselves. Built version (2026-11-17): the workbench becomes an "At sea" step between pages (after a page's island is done, before the next), replacing the map button. You choose which dice to take from your bag (not dealt at random), up to one per tool you own (plus a core for the Drill); each tool can be used once per visit and goes back in the toolbag after. "Sail on" skips it. Like FTL's ship upgrades between jumps, or the Slay the Spire campfire, but more often and smaller. Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
+- F03 Elite/boss chest reward
+- F05 Die roll-history stats page (death/win screens and the run summary were done in batch 10)
+- F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
+
+**Combat clarity** (the most common playtest feedback)
+- F14 Colour-blind-safe palette (Jack can't tell the blues apart). Action icons on dice are done (batch 12, Settings > Display); a palette change is still open
+- F15 Summon intent icon, buff animation, clearer "Nav Chart fired" feedback
+
+**Content**
+- F20 Enemies: 17 now (Giant Conch is a stub) → target ~15 normals + 2 elites + 2 bosses that *work*
+- F21 Dice: 37 now → target? (GDD says 100 for 0.1; the playtest list says +30)
+- F22 Keepsakes: 42 now (25 rollable) → finish the stubs (Deep Lens, Bandage, Lucky Coin, Crossword)
+- F23 Events: 16 now → 25; "craft your own die" event
+- F24 Consumables: 10 now; make them stronger (Molly didn't use any)
+- F25 New debuffs from the notes: Salt Spray, Undertow, Encumbered, Rust, Frozen, Chained
+
+**Systems**
+- F30 Shop reroll + die-removal service
+- F31 Workbench: choose which dice to draw; Dye tool; multiple crafts per visit?
+- F32 Alignment/compass effects that actually matter mid-run
+- F33 Rarity on every item + rolled offers
+- F65 **Room transitions (idea, 2026-11-17).** Today rooms cut straight over. Common choices: a quick fade through black (0.2 to 0.4 s; Slay the Spire-style, cheap and clear), a themed wipe (an ink wash or blot spreading across the page, or a page turn, fits the logbook), or a short slide. Suggestion: an ink-wash wipe into map/rooms and a fast page flip for chapter changes, both under half a second so play stays quick.
+- F60 **Outguess as a class idea (parked 2026-11-17).** Jared still likes Outguess (insight rolled this turn that beats your target's number halves its move, cut from batch 8 as too complex for everyone). Keep it for a future class built around reading enemies. Classes are cut for now (2026-11-15), so don't start.
+
+**Juice**
+- F40 Individual Balatro-style trigger animations per die
+- F41 Room transitions, death animation, enemy sprites, particles for coins/potions/sacrifice
+- F42 **Unique sprite per die** (Jared, 2026-11-19): every die gets its own sprite, keeping roughly the same silhouette per size with different textures and details. Part of the art pass (F50).
+
+**Art direction (parked, Jared wants to discuss later)**
+- F50 Decide an art style for the game. Jared isn't an artist and wants to explore AI-assisted art workflows (he's been following r/aigamedev). Covers dice, enemies, map/book, UI and backgrounds. Don't start until he raises it. Includes real sprites for the insight states (placeholders drawn by `draw_insight_icon` in scHelpers, F51).
+
+---
+
+## ❓ OPEN QUESTIONS (design decisions blocking work)
+
+- Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
+- Q7 Resolution targets: settled by B83 (batch 12): the game is laid out at 1920x1080 and scaled to any 16:9 window, so new resolutions only need adding to the list.
+- Q8 Between pages: answered by the strait and buoy (F112, F125, F126): the spread ends in sea stops on the map.
+
+## 📌 DECISIONS
+
+- 2026-11-15 **Action queue:** settled as "permanent dice eject on their second turn". Other ideas stay in the notes.
+- 2026-11-15 **Map lock stays.** It's a design pillar: "pick 1, lose 1, gain the last" choices like the rewards. Look for more places to use it.
+- 2026-11-15 **Scope cuts:** no four Act III regions, no 3 classes (F04 classes removed). **Alignment stays** in this build (F32).
+- 2026-11-15 **Platform:** a web build on itch.io for early playtests (keep exe as the dev/reference build); Steam is the long-term goal. See H07.
+- 2026-11-16 **Bounty board:** two bounties are offered, on purpose (Jared likes the choice). The potion on the bounty board is free.
+- 2026-11-16 **Intel rework:** enemy intents are always shown. On screen intel is called **Insight** (Ink was tried and felt unclear); the code keeps INTEL. Three states, named like reading an old logbook: **Faded** (0+, see ranges), **Legible** (5+, exact numbers), **Quill** (10+, rewrite one intent per turn; you choose to change it, the enemy picks the move). Below 0 (Overwhelm) the page is **Blotted** and intents are hidden. Insight dice roll in the queue and count next turn (a this-turn-only version was tried and reverted: dice could never reach Legible or Quill in time). Outguess (a this-turn effect: beat your target's number to halve its move) was built and cut: too complex. Rolling on play was tried and reverted. You can always change target, except while Overwhelmed.
+
+---
+
+## ✅ DONE
+
+**Play-tested and approved by Jared (2026-11-19), merged to `dev` (v0.2, not released yet)**
+
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 19: rolled dice prototype (phase 1) | F79, F80, F81, F82, F83, F84, F85, F86, F87, F88, F89, F90, F91, F92, F93, F94, F95, F96, F97, F98, F99, F100, F101, F102, F103, F104, F105, F106, F107, F108, F109, F110, F111, F112, F113, F114, F115, F116, F117, F118, F119, F120, F121, F122, F123, F124, F125, F126, F127, F128, F129, B125, B126, B127, B128, B129, B130, B131 | `feature/rolled-dice` (off `fix/v02-feedback`) | **Ready to test. A prototype: don't merge until we've talked it through.** Dice roll when dealt and show their numbers; slots show live totals; take dice back; a free reroll and redraw each turn; End Turn discards everything; two empty starting slots; new slots from dice adding up to a number; the crew flees when an elite or boss falls. Rules in `docs/design-rolled-dice.md`. |
-| 18: v0.2 feedback | B123, B124, F75, F76, F77, F78 | `fix/v02-feedback` (off dev) | **Ready to test.** Chainmaster's Anchor fix, a safety net for invisible dealt dice, debug runs start with 50 gold, normal enemies about 20% less health, used tools linger then grey out, bag view sort and filter. |
-| 17: v0.2 depth and feel | H10, T03 (dice), F20, F21, F23, F24, F02, F65, F15, F40 | `dev` | **Ready to test.** Version number in the menus; one effect dispatcher for dice; Giant Conch moves; 3 new dice, 2 new events; stronger potions with how-to-use tooltips; spread end offers Heal plus two rolled choices; ink-wash room transitions; keepsakes and dice show when they fire. |
+| 19: rolled dice prototype (phase 1) | F79, F80, F81, F82, F83, F84, F85, F86, F87, F88, F89, F90, F91, F92, F93, F94, F95, F96, F97, F98, F99, F100, F101, F102, F103, F104, F105, F106, F107, F108, F109, F110, F111, F112, F113, F114, F115, F116, F117, F118, F119, F120, F121, F122, F123, F124, F125, F126, F127, F128, F129, B125, B126, B127, B128, B129, B130, B131 | `feature/rolled-dice` (off `fix/v02-feedback`) | **Approved.** Dice roll when dealt and show their numbers; slots show live totals; take dice back; a free reroll and redraw each turn; End Turn discards everything; two empty starting slots; new slots from dice adding up to a number; the crew flees when an elite or boss falls. Rules in `docs/design-rolled-dice.md`. |
+| 18: v0.2 feedback | B123, B124, F75, F76, F77, F78 | `fix/v02-feedback` (off dev) | **Approved.** Chainmaster's Anchor fix, a safety net for invisible dealt dice, debug runs start with 50 gold, normal enemies about 20% less health, used tools linger then grey out, bag view sort and filter. |
+| 17: v0.2 depth and feel | H10, T03 (dice), F20, F21, F23, F24, F02, F65, F15, F40 | `dev` | **Approved.** Version number in the menus; one effect dispatcher for dice; Giant Conch moves; 3 new dice, 2 new events; stronger potions with how-to-use tooltips; spread end offers Heal plus two rolled choices; ink-wash room transitions; keepsakes and dice show when they fire. |
 
 **Batch 19 test list (`feature/rolled-dice`, the prototype)** The guided first fight is off on this branch (it teaches the old rules); a one-time tip explains the new ones in your first fight. Dice and keepsakes haven't been reworked for the new rules yet (that's phase 2), so judge the feel of the loop more than any one die.
 - F79 Dice in hand show the number they rolled (big, in the middle; keyword icons move small to the bottom edge). Hover: the title says "rolled N" with its range. Accurate dice have already rolled twice and kept the higher.
@@ -131,116 +248,7 @@
 - F15 When a keepsake fires (Looking Glass at a fight's start, Rigger, Bandage...), its name floats up yellow under its icon and fades. A summon intent (Pirate Captain's Open Barrel) shows the plain icon in orange, not the attack icon.
 - F40 Dice effects that fire after a roll pop the die's name over its slot ("Reed snap die!", "Bilge die!").
 
-## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
-| ID | Bug | Where | Size |
-|---|---|---|---|
-
-All known P0 bugs are fixed, see DONE.
-
-## 🐞 BUGS: P1 rules behave wrongly
-
-**Combat core**
-| ID | Bug | Where | Size |
-|---|---|---|---|
-| B36 | `"None!"` in `get_slot_stats` makes its condition always true. Left alone on purpose: it looks like a deliberate switch-off, and removing it would change how neutral dice count in a slot. Needs Jared's call. (The doubled `is_slot_exclusive` check was fixed in batch 2.) | `scCombatScripts.gml` | S [C] |
-
-**Dice / keepsakes / items**
-| ID | Bug | Where | Size |
-|---|---|---|---|
-
-**Map / events / bounty / workbench**
-| ID | Bug | Where | Size |
-|---|---|---|---|
-
-**Save / load**
-| ID | Bug | Size |
-|---|---|---|
-
-## 🐞 BUGS: P2 UI / polish
-
-| ID | Bug | Where |
-|---|---|---|
-| B82 | `draw_outline_text` coloured mode wraps every word and ignores halign/alpha. `queue_tooltip` changes the caller's font | `scHelpers.gml:290-426` |
-| B118 | **Parked (2026-11-17).** Web build: shapes drawn in code (button panels, pips, badges, icon outlines) have jagged edges. The browser canvas is smaller than the 1920x1080 layout, so the GUI is drawn shrunk, and a web build can't turn on anti-aliasing from inside the game (desktop is fixed, B117). Fixes, best first: real art for buttons and panels (sprites are smoothed when scaled; comes with F50), or drawing the UI to a 2x surface and shrinking it with smoothing (costly, and surfaces have misbehaved on web before). | `scDisplay`, `draw_wonky_rectangle`, UI kit |
-
----
-
-## 🧱 TECH DEBT / REFACTORS (highest-payoff first)
-
-| ID | Refactor | Fixes | Size |
-|---|---|---|---|
-| T02 | **Buff system v2**: instances keyed by (id, permanent); a buff scales *either* stacks *or* duration (the GDD already plans this); tick once per event, outside the effect loop; source-tagged slot modifiers instead of `bonus_amount` | B21, B22, B29, B30 | M |
-| T03 | **One effect dispatcher**: dice, keepsakes, items and debuffs register `handlers[$ event]`; the dispatcher does the `owner_only` uid check; fresh uid on clone | B26, B27, B43, perf | M |
-| T05 | **`run` struct**: one object owns gold, HP, bag, keepsakes, items, tools, alignment and pools; `new_run()`/`end_run()` create and free everything; the save serialises this one struct with a version + RNG state | B70–72, leaks, 130 globals | L |
-| T06 | **Split input/state from Draw GUI** (update in Step, render in Draw). The code currently relies on draw order for clicks and on positions computed a frame late | B63, ordering bugs | L (incremental, room by room) |
-| T07 | **UI kit**: one markup format + one colour table; cached outlined text; shared `draw_die`, panel, button, scrollbar and exit-button widgets on `global.gui`; fix the `draw_wonky_rectangle` surface leak (new surfaces every frame while hovering) | B80–83, perf | M |
-| T09 | **Enums instead of strings** for action types, permanence and node types (`"BLK"` vs `"BLOCK"` bugs go away) | B64, B36 | M |
-| T10 | **Data tables**: `register_die()`, a cores table, an encounters table, a bounty table, `spawn_die()`, `pick_from_pool()` with empty-pool guards, an `oTool` parent for Hammer/Cutters/Drill | B07, B40, duplication | M |
-| T11 | Memory hygiene (enemy lists in combat done in batch 2): CleanUp for oShopManager, treasure, bounty, world (`room_enemies`, page node lists), combat (action queue + slot lists, enemy move_history/debuffs, feed lists), oRunManager lists, event option lists | leaks | S–M |
-| T12 | Per-frame performance: map `path_add` every frame; `settings.json` parsed every frame while settings is open; `clone_die` per frame in hover/workbench; `get_slot_stats`/`get_action_name` per slot per frame; 1,300 particle *instances* (Dutchman) → part system | perf | S–M |
-| T13 | Delete dead code: `parse_text`, `room_to_gui_*`, ~~`add_debug_entry`~~ (removed 2026-11-16), `draw_dice_history`, `roll_id`, `global.enemy_debuffs`, `tool_list`, the deprecated "All" slot type, and the redundant deep copy in `clone_die` | | S |
-
----
-
-## ✨ FEATURES: proposed vertical slice (⚠️ NOT agreed yet, see Open Questions)
-
-Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
-
-**Core loop**
-- F02 **Rethink what happens between pages (Jared, 2026-11-17).** Workbench part done in batch 12 (At sea). Still open: the spread-end choices themselves. Built version (2026-11-17): the workbench becomes an "At sea" step between pages (after a page's island is done, before the next), replacing the map button. You choose which dice to take from your bag (not dealt at random), up to one per tool you own (plus a core for the Drill); each tool can be used once per visit and goes back in the toolbag after. "Sail on" skips it. Like FTL's ship upgrades between jumps, or the Slay the Spire campfire, but more often and smaller. Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
-- F03 Elite/boss chest reward
-- F05 Die roll-history stats page (death/win screens and the run summary were done in batch 10)
-- F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
-
-**Combat clarity** (the most common playtest feedback)
-- F14 Colour-blind-safe palette (Jack can't tell the blues apart). Action icons on dice are done (batch 12, Settings > Display); a palette change is still open
-- F15 Summon intent icon, buff animation, clearer "Nav Chart fired" feedback
-
-**Content**
-- F20 Enemies: 17 now (Giant Conch is a stub) → target ~15 normals + 2 elites + 2 bosses that *work*
-- F21 Dice: 37 now → target? (GDD says 100 for 0.1; the playtest list says +30)
-- F22 Keepsakes: 42 now (25 rollable) → finish the stubs (Deep Lens, Bandage, Lucky Coin, Crossword)
-- F23 Events: 16 now → 25; "craft your own die" event
-- F24 Consumables: 10 now; make them stronger (Molly didn't use any)
-- F25 New debuffs from the notes: Salt Spray, Undertow, Encumbered, Rust, Frozen, Chained
-
-**Systems**
-- F30 Shop reroll + die-removal service
-- F31 Workbench: choose which dice to draw; Dye tool; multiple crafts per visit?
-- F32 Alignment/compass effects that actually matter mid-run
-- F33 Rarity on every item + rolled offers
-- F65 **Room transitions (idea, 2026-11-17).** Today rooms cut straight over. Common choices: a quick fade through black (0.2 to 0.4 s; Slay the Spire-style, cheap and clear), a themed wipe (an ink wash or blot spreading across the page, or a page turn, fits the logbook), or a short slide. Suggestion: an ink-wash wipe into map/rooms and a fast page flip for chapter changes, both under half a second so play stays quick.
-- F60 **Outguess as a class idea (parked 2026-11-17).** Jared still likes Outguess (insight rolled this turn that beats your target's number halves its move, cut from batch 8 as too complex for everyone). Keep it for a future class built around reading enemies. Classes are cut for now (2026-11-15), so don't start.
-
-**Juice**
-- F40 Individual Balatro-style trigger animations per die
-- F41 Room transitions, death animation, enemy sprites, particles for coins/potions/sacrifice
-- F42 **Unique sprite per die** (Jared, 2026-11-19): every die gets its own sprite, keeping roughly the same silhouette per size with different textures and details. Part of the art pass (F50).
-
-**Art direction (parked, Jared wants to discuss later)**
-- F50 Decide an art style for the game. Jared isn't an artist and wants to explore AI-assisted art workflows (he's been following r/aigamedev). Covers dice, enemies, map/book, UI and backgrounds. Don't start until he raises it. Includes real sprites for the insight states (placeholders drawn by `draw_insight_icon` in scHelpers, F51).
-
----
-
-## ❓ OPEN QUESTIONS (design decisions blocking work)
-
-- Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
-- Q7 Resolution targets: settled by B83 (batch 12): the game is laid out at 1920x1080 and scaled to any 16:9 window, so new resolutions only need adding to the list.
-- Q8 Between pages: what should the choices be? (The workbench is now an At sea stop between pages, F02.)
-
-## 📌 DECISIONS
-
-- 2026-11-15 **Action queue:** settled as "permanent dice eject on their second turn". Other ideas stay in the notes.
-- 2026-11-15 **Map lock stays.** It's a design pillar: "pick 1, lose 1, gain the last" choices like the rewards. Look for more places to use it.
-- 2026-11-15 **Scope cuts:** no four Act III regions, no 3 classes (F04 classes removed). **Alignment stays** in this build (F32).
-- 2026-11-15 **Platform:** a web build on itch.io for early playtests (keep exe as the dev/reference build); Steam is the long-term goal. See H07.
-- 2026-11-16 **Bounty board:** two bounties are offered, on purpose (Jared likes the choice). The potion on the bounty board is free.
-- 2026-11-16 **Intel rework:** enemy intents are always shown. On screen intel is called **Insight** (Ink was tried and felt unclear); the code keeps INTEL. Three states, named like reading an old logbook: **Faded** (0+, see ranges), **Legible** (5+, exact numbers), **Quill** (10+, rewrite one intent per turn; you choose to change it, the enemy picks the move). Below 0 (Overwhelm) the page is **Blotted** and intents are hidden. Insight dice roll in the queue and count next turn (a this-turn-only version was tried and reverted: dice could never reach Legible or Quill in time). Outguess (a this-turn effect: beat your target's number to halve its move) was built and cut: too complex. Rolling on play was tried and reverted. You can always change target, except while Overwhelmed.
-
----
-
-## ✅ DONE
 
 **Fixed, play-tested by Jared, merged to `main` and pushed**
 
