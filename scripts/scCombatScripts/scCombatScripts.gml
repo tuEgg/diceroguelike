@@ -2916,25 +2916,27 @@ function intent_verbs(_move) {
 	return _out;
 }
 
-/// @func combat_queue_rect()
-/// @desc The action queue's area as drawn this frame (slots, the new-slot tile, End Turn and the dice and tokens above
-///       them), padded: { x1, y1, x2, y2 }, or undefined before the first draw. The log leaves it out of its dark.
-function combat_queue_rect() {
-	if (!instance_exists(oCombat)) return undefined;
+/// @func combat_queue_holes_draw()
+/// @desc Inside the log's overlay surface (subtract blend, white): cuts out just the queue's pieces, each to its own shape,
+///       so they stay in full colour and nothing between them lights up: every slot (and the dice above it), the new-slot
+///       tile, the End Turn button (reading Confirm; its own sprite, so the hole is exactly its outline) and the token row.
+function combat_queue_holes_draw() {
+	if (!instance_exists(oCombat)) return;
 	with (oCombat) {
-		var _x1 = infinity, _y1 = infinity, _x2 = -infinity, _y2 = -infinity;
 		for (var q = 0; q < ds_list_size(slot_positions); q++) {
 			var _p = slot_positions[| q];
-			_x1 = min(_x1, _p.x); _y1 = min(_y1, _p.y); _x2 = max(_x2, _p.x + _p.w); _y2 = max(_y2, _p.y + _p.h);
+			var _has_dice = (q < ds_list_size(action_queue)) && ds_list_size(action_queue[| q].dice_list) > 0;
+			draw_roundrect_ext(_p.x - 5, _p.y - (_has_dice ? 44 : 5), _p.x + _p.w + 5, _p.y + _p.h + 5, 10, 10, false);
 		}
-		if (is_struct(new_tile_pos)) { _x1 = min(_x1, new_tile_pos.x); _y1 = min(_y1, new_tile_pos.y); _x2 = max(_x2, new_tile_pos.x + new_tile_pos.w); _y2 = max(_y2, new_tile_pos.y + new_tile_pos.h); }
+		if (is_struct(new_tile_pos)) {
+			var _hd = ds_list_size(global.sacrifice_list) > 0;
+			draw_roundrect_ext(new_tile_pos.x - 5, new_tile_pos.y - (_hd ? 44 : 5), new_tile_pos.x + new_tile_pos.w + 5, new_tile_pos.y + new_tile_pos.h + 5, 10, 10, false);
+		}
 		if (variable_instance_exists(id, "end_turn_draw")) {
 			var _et = end_turn_draw;
-			_x1 = min(_x1, _et.x - sprite_get_xoffset(sEndTurn) * _et.s);
-			_y2 = max(_y2, _et.y + (sprite_get_height(sEndTurn) - sprite_get_yoffset(sEndTurn)) * _et.s);
+			draw_sprite_ext(sEndTurn, 0, _et.x, _et.y, _et.s * 1.04, _et.s * 1.08, 0, c_white, 1);
 		}
-		if (_x1 == infinity) return undefined;
-		return { x1: _x1 - 16, y1: _y1 - 70, x2: _x2 + 16, y2: _y2 + 40 }; // dice and tokens above, the dots below
+		if (is_struct(tokens_args)) draw_roundrect_ext(tokens_args.cx - 80, tokens_args.y - 46, tokens_args.cx + 80, tokens_args.y + 18, 12, 12, false);
 	}
 }
 
@@ -3013,9 +3015,8 @@ function combat_insight_view_draw() {
 			var _ir = _en.intent_rect;
 			draw_roundrect_ext(_ir.x - _ir.w / 2 - _pad, _ir.y - _ir.h / 2 - _pad, _ir.x + _ir.w / 2 + _pad, _ir.y + _ir.h / 2 + _pad, 18, 18, false);
 		}
-		// the action queue stays in full colour, with End Turn (reading Confirm) under it and the token row above it
-		var _q = combat_queue_rect();
-		if (is_struct(_q)) draw_roundrect_ext(_q.x1, _q.y1, _q.x2, _q.y2, 18, 18, false);
+		// the action queue's pieces stay in full colour, each cut to its own shape (combat_queue_holes_draw)
+		combat_queue_holes_draw();
 		gpu_set_blendmode(bm_normal);
 		surface_reset_target();
 		draw_surface_part(insight_surf, 0, _top, _gw, _gh - _top, 0, _top); // the top bar stays as it is
