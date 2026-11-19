@@ -1109,13 +1109,13 @@
 		options: ds_list_create(),
 	}
 	
-		// Both songs always work now (Jared, 2026-11-19): how many dice they upgrade follows your compass, merciful for the
-		// song, ruthless for the cannons (sirens_upgrade_count, sirens_upgrade)
+		// How many dice each upgrades follows your compass (Jared, 2026-11-19): merciful for the song, ruthless for the
+		// cannons. 1 each at neutral, then 2 / 0 at 75, 3 / 0 at 90 (sirens_upgrade_count). The option says what you'd get.
 		event_sirens_opt_1 = {
 			title: "Sing a song of your own",
-			description: "Upgrade 1 insight die, and 1 more for every 25 alignment toward merciful (up to 4).",
+			description: function() { return sirens_option_text("insight", sirens_upgrade_count(global.player_alignment - 50)); },
 			effect: function(_context) {
-				sirens_upgrade("INTEL", sirens_upgrade_count(global.player_alignment), global.color_intel);
+				sirens_upgrade("INTEL", sirens_upgrade_count(global.player_alignment - 50), global.color_intel);
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;
 			},
@@ -1123,9 +1123,9 @@
 		}
 		event_sirens_opt_2 = {
 			title: "Fire the cannons",
-			description: "Upgrade 1 attack die, and 1 more for every 25 alignment toward ruthless (up to 4).",
+			description: function() { return sirens_option_text("attack", sirens_upgrade_count(50 - global.player_alignment)); },
 			effect: function(_context) {
-				sirens_upgrade("ATK", sirens_upgrade_count(100 - global.player_alignment), global.color_attack);
+				sirens_upgrade("ATK", sirens_upgrade_count(50 - global.player_alignment), global.color_attack);
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
@@ -1232,10 +1232,24 @@
 }
 
 /// Shared by the Siren event options. Lives at script level so the option structs can call it.
-/// @func sirens_upgrade_count(_toward)
-/// @desc The Siren's Call: 1 die, plus 1 for every 25 points of alignment in the option's direction (_toward 0-100), up to 4.
-function sirens_upgrade_count(_toward) {
-	return clamp(1 + floor(clamp(_toward, 0, 100) / 25), 1, 4);
+/// @func sirens_upgrade_count(_lean)
+/// @desc The Siren's Call: how many dice an option upgrades. _lean is how far your alignment leans its way from neutral
+///       (50): toward merciful for the song, toward ruthless for the cannons, negative the other way.
+///       1 near neutral, 2 from 25 its way (alignment 75 / 25), 3 from 40 (90 / 10), and 0 from 25 the other way.
+function sirens_upgrade_count(_lean) {
+	if (_lean >= 40) return 3;
+	if (_lean >= 25) return 2;
+	if (_lean > -25) return 1;
+	return 0;
+}
+
+/// @func sirens_option_text(_type_word, _count)
+/// @desc What a Siren's Call option will do, with your alignment's count in it.
+function sirens_option_text(_type_word, _count) {
+	var _how = (_type_word == "insight") ? "merciful" : "ruthless";
+	var _rule = "(1 near neutral alignment, 2 at 75 and 3 at 90 toward " + _how + ", none at 75 the other way)";
+	if (_count <= 0) return "Your alignment gives this song no power: nothing is upgraded. " + _rule;
+	return "Upgrade " + string(_count) + " " + _type_word + ((_count == 1) ? " die" : " dice") + " for your alignment. " + _rule;
 }
 
 /// @func sirens_upgrade(_type, _count, _col)

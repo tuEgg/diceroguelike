@@ -41,6 +41,8 @@ if (chosen_event != undefined) {
 		draw_set_valign(fa_top);	
 		
 		var option = chosen_event.options[| i];
+		// a description can be a function, worked out as it's shown (The Siren's Call says what your alignment gives)
+		var _option_desc = is_callable(option.description) ? option.description() : option.description;
 		
 		var _w = container_width - padding * 4;
 		
@@ -48,7 +50,7 @@ if (chosen_event != undefined) {
 		var _title_h = string_height_ext(option.title, font_get_size(draw_get_font()) * 1.2, _w);
 		
 		draw_set_font(ftDescriptions);
-		var _desc_h = string_height_ext(option.description, font_get_size(draw_get_font()) * 1.2, _w);
+		var _desc_h = string_height_ext(_option_desc, font_get_size(draw_get_font()) * 1.2, _w);
 		var _h = _title_h + _desc_h + padding;
 		
 		options_hover[| i] = mouse_hovering(xx, yy - _h, _w, _h, false);
@@ -63,7 +65,7 @@ if (chosen_event != undefined) {
 		draw_outline_text(option.title, c_black, hover_col, 2, xx + padding/2, yy - _h + padding/2 - 1, options_scale[| i], option_alpha, 0, _w);
 		
 		draw_set_font(ftDescriptions);
-		var colored_desc = colorcode_text(option.description);
+		var colored_desc = colorcode_text(_option_desc);
 		draw_outline_text(colored_desc, c_black, hover_col, 2, xx + padding/2, yy - _h + padding/2 - 1 + _title_h + ((options_scale[| i] * 50) - 50), 1, option_alpha * 0.95, 0, _w);
 		
 		if (options_hover[| i]) {
