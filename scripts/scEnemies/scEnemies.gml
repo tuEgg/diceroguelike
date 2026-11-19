@@ -245,8 +245,8 @@ function enemy_set_intent(_enemy, _move) {
 	}
 
 	// the range shown when Faded (and the name shown for moves with no numbers)
-	if (_move.action_type == "DEBUFF" || _move.action_type == "BUFF") {
-		_enemy.intent.text = "";
+	if (_move.action_type == "DEBUFF" || _move.action_type == "BUFF" || _move.action_type == "SUMMON") {
+		_enemy.intent.text = ""; // just its icon (a summon has no number, F139)
 	} else if (_move.action_type == "NONE" || _move.action_type == "EXIT") {
 		_enemy.intent.text = _move.move_name;
 	} else {
@@ -257,7 +257,7 @@ function enemy_set_intent(_enemy, _move) {
 /// @func intent_has_numbers(_move)
 /// @desc Attacks, blocks and heals have numbers to reveal; buffs, debuffs, waiting and fleeing don't.
 function intent_has_numbers(_move) {
-	return !(_move.action_type == "DEBUFF" || _move.action_type == "BUFF" || _move.action_type == "NONE" || _move.action_type == "EXIT");
+	return !(_move.action_type == "DEBUFF" || _move.action_type == "BUFF" || _move.action_type == "NONE" || _move.action_type == "EXIT" || _move.action_type == "SUMMON");
 }
 
 /// @func intent_exact_value(_enemy)
@@ -310,16 +310,37 @@ function intent_hover_text(_enemy, _intel_level) {
 			case "BLK": _line = "Blocks " + _number; break;
 			case "HEAL": _line = "Heals " + _number; break;
 			case "INTEL": _line = "Gains insight"; break;
-			case "SUMMON": _line = "Calls for help"; break;
+			case "SUMMON": _line = "Calls for help" + ((variable_struct_exists(_move, "summon") && is_string(_move.summon)) ? ": " + _move.summon + " joins the fight" : ""); break;
+			case "DEBUFF": case "BUFF": _line = intent_status_text(_move); break;
 			default: _line = "";
 		}
 		if (_line != "") _text += ((_text == "") ? "" : ", then ") + _line;
 	}
 	if (_text == "") _text = "Does something unusual";
-	_text += ".";
+	if (string_char_at(_text, string_length(_text)) != ".") _text += ".";
 	if (intent_is_halved(_enemy)) _text += " Halved by your quill.";
 	if (intent_has_numbers(_move) && _intel_level < INTEL_LEGIBLE) _text += " At the start of a turn, with ink to spend, your quill can show the exact number (" + string(combat_reveal_cost()) + ").";
 	return _text;
+}
+
+/// @func intent_status_text(_move)
+/// @desc What a buff or debuff move does and to whom (F138): "Mocks you for 1 turn. Mock: attacks cannot roll higher
+///       than 1." A debuff lands on you; a buff on itself, or its allies (target "other").
+function intent_status_text(_move) {
+	if (!variable_struct_exists(_move, "debuff") || !is_struct(_move.debuff)) return "";
+	var _b = _move.debuff;
+	var _amount = variable_struct_exists(_move, "amount") ? _move.amount : 1;
+	var _dur = variable_struct_exists(_move, "duration") ? _move.duration : 1;
+	var _for = (_dur < 0) ? " for the rest of the fight" : " for " + string(_dur) + ((_dur == 1) ? " turn" : " turns");
+	var _name = _b.name;
+	if (_amount != 1 || _b.stackable) _name += " " + ((_amount > 0) ? "+" : "") + string(_amount); // "Might +1", "Might -2"
+	var _who;
+	if (_move.action_type == "DEBUFF") _who = "Puts " + _name + " on you";
+	else if (variable_struct_exists(_move, "target") && _move.target == "other") _who = "Gives its allies " + _name;
+	else _who = "Gives itself " + _name;
+	var _desc = string(_b.desc);
+	if (string_char_at(_desc, string_length(_desc)) != ".") _desc += ".";
+	return _who + _for + ". " + _b.name + ": " + _desc;
 }
 
 /// @func intent_number_text(_enemy, _intel_level)

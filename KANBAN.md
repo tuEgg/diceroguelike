@@ -30,9 +30,10 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 20: UI rework (combat, cards, map, rooms, menus) | F130, F131, F132, F133, F134, F135, F136, B138, B141, F142, F143, F144, F147, B134, B136, B137, B139, F140, F141, F137, F148, B135, B140, F150 | `feature/ui-rework` (off dev) | **Ready to test.** The logbook look on the combat screen (docs/design-ui-rework.md). |
+| 20: UI rework (combat, cards, map, rooms, menus) | F130, F131, F132, F133, F134, F135, F136, B138, B141, F142, F143, F144, F147, B134, B136, B137, B139, F140, F141, F137, F148, B135, B140, F150, B133, F138, F139, F146 | `feature/ui-rework` (off dev) | **Ready to test.** The logbook look on the combat screen (docs/design-ui-rework.md). |
 
 **Batch 20 test list (`feature/ui-rework`)**
+- B133 Mocked: while you have Mock, every die in hand that can attack wears a small red "Mock" tag on its top edge (hover: what it means); it shows in the ink view too, and the reroll hover warns that rerolling it will still roll 1. F138 hovering an enemy that will buff or debuff says what and to whom: "Puts Mock on you for 1 turn. Mock: Attacks cannot roll higher than 1." / "Gives itself Might +1 for the rest of the fight..." / "Gives its allies...". F139 a summon intent (the Barrel o' Fish) shows its own icon, two figures and a "+", with no number; its hover names who joins. (Giant Conch left for later.) F146 hovering a die in a slot lists what it comes to: "Rolled 4", its own effect, each keepsake, each buff (Might...), the slot's bonuses (its place bonus on the first die only), then "= total"; check the sum matches the ticket.
 - Balance (decisions of 2026-11-19): a new run starts on 60 HP. Enemy attack intents are about 20% higher from the first fight (a 1d4 now shows +1). Spare pays a third of the bounty (kill pays it all; the Spare tooltip and the tutorial note say so). Three spreads then the boss: check the chapter's progress in the book and pause menu ("spread 2 of 4"). At the strait there are four stops: the buoy, two rolled, and Calm water, the only one that heals (30%; Salted Pork adds to it); no other stop heals.
 - F150 sounds (part of the juice pass): spending ink (rerolls, redraws, rewrites) plays the quill, opening and closing the log a softer stroke; gold jingles as it lands (once at a time, not per coin) and when you spend it (shop, bounty board, events). Loading a game doesn't jingle.
 - Playtest fixes, part 3: F148 places you have been on the chart get a faded ink tick (island stops, the Shipwright's buoy once visited, the strait stop you took). B135 the Drill whirrs through its frames as you pick it up (the grab still never drills). B140 floating words and numbers ("X replaced with Y", damage) draw above the bag view and the dice picker; check combat damage numbers still look right.
@@ -118,7 +119,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 **Playtest 2026-11-19 (Molly, and Jared's notes): to do**
 - F137 Keywords, buffs and debuffs explained wherever they're first seen: in the die tip in fights (a line per keyword), on event options (keyword tooltips on hover), and keyword icons drawn everywhere a die is (cards, rewards, shop, slots) and hoverable.
 - F138 Enemy debuff/buff intents say what they do and to whom: "Mocks you for 2 turns: your attacks can't roll above 1"; a self-buff says it's on itself.
-- F139 Summon intent: its own icon, no number. Giant Conch: its echo attack uses the normal attack icon, no separate normal attack, less damage reduction (discuss numbers).
+- F139 Summon intent: its own icon, no number (done, in testing). Giant Conch (parked by Jared, 2026-11-19): its echo attack uses the normal attack icon, no separate normal attack, less damage reduction (discuss numbers).
 - F140 Dice picker: picking 1, any click replaces the pick; picking several, a new pick drops the oldest.
 - F141 Bag view more compact, card descriptions a size smaller again (Molly: too few words per line), same for rewards.
 - F142 The inkwell keeps pulsing until you do something (use ink, play a die, end turn), not just for 2.5 s. Ink amount under the inkwell, not beside it.

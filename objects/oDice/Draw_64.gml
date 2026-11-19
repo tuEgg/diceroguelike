@@ -56,6 +56,15 @@ if (global.ui_layer == UI_LAYER.BASE && !is_dragging) {
 		}
 	}
 }
+// Mocked: its attack can't roll above 1 while Mock lasts (B133); a red tag on its top edge, explained on hover
+if (_coded && die_is_mocked(struct) && !tumbling) {
+	var _mk = draw_mock_mark(x, y - _die_r - 6, scale);
+	var _mmx = device_mouse_x_to_gui(0), _mmy = device_mouse_y_to_gui(0);
+	if (global.ui_layer <= UI_LAYER.POPUP && !is_dragging && point_in_rectangle(_mmx, _mmy, _mk.x1, _mk.y1, _mk.x2, _mk.y2)) {
+		_kw_hover = true;
+		queue_tooltip(_mmx, _mmy, "Mocked", "While Mock lasts, this die's attack can't roll higher than 1. Rerolling it won't help.");
+	}
+}
 // Settings > Display > Action icons on dice: a small symbol so types don't rely on colour alone
 if (global.action_icons) draw_action_type_icon(struct.action_type, x - sprite_width * 0.32, y + sprite_height * 0.32, scale);
 

@@ -1347,6 +1347,62 @@ function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner, _on_de
 	
 }
 
+/// @func die_bonus_breakdown(_die, _slot_num, _die_index)
+/// @desc What a die in a slot comes to, source by source (F146), as lines for its tip: what it rolled, then its own
+///       effect, each keepsake and each of your buffs or debuffs that changes it, then the slot's bonuses, then the sum.
+///       Fires each source on its own read-only copy of get_dice_output's roll data (keep the two in step), so a
+///       source's share is what it added. A first-die bonus (the slot's place bonus is one) shows only on its first die.
+function die_bonus_breakdown(_die, _slot_num, _die_index) {
+	if (!die_has_faces(_die) || _slot_num < 0 || !instance_exists(oCombat)) return "";
+	var _slot = oCombat.action_queue[| _slot_num];
+	var _make = function(_die, _slot, _slot_num, _die_index) {
+		return {
+			previous_slot_action_type: (_slot_num > 0) ? oCombat.action_queue[| _slot_num - 1].current_action_type : "",
+			action_type: _slot.current_action_type, min_roll: 1 + _die.min_roll_bonus, max_roll: _die.dice_value,
+			_d_amount: 0, _die_struct: _die, _slot: _slot, slot_num: _slot_num, die_index: _die_index, die: _die,
+			read_only: true, on_deal: false, roll_twice: false, repeat_followthrough: false, target: "player", weighting: ""
+		};
+	};
+	var _face = die_face_total(_die);
+	var _lines = ["Rolled " + string(_face)];
+	var _sum = _face;
+	// its own effect
+	var _ctx = _make(_die, _slot, _slot_num, _die_index);
+	trigger_die_effects_single(_die, "on_roll_die", _ctx);
+	if (_ctx._d_amount != 0) { array_push(_lines, "Its effect " + ((_ctx._d_amount > 0) ? "+" : "") + string(_ctx._d_amount)); _sum += _ctx._d_amount; }
+	// each keepsake
+	for (var k = 0; k < ds_list_size(oRunManager.keepsakes); k++) {
+		var _ks = oRunManager.keepsakes[| k];
+		if (is_undefined(_ks.trigger)) continue;
+		_ctx = _make(_die, _slot, _slot_num, _die_index);
+		_ks.trigger("on_roll_die", _ctx);
+		if (_ctx._d_amount != 0) { array_push(_lines, string(_ks.name) + " " + ((_ctx._d_amount > 0) ? "+" : "") + string(_ctx._d_amount)); _sum += _ctx._d_amount; }
+	}
+	// each of your buffs and debuffs (Might, Balance...)
+	for (var b = 0; b < ds_list_size(global.player_debuffs); b++) {
+		var _inst = global.player_debuffs[| b];
+		var _one = ds_list_create();
+		ds_list_add(_one, _inst);
+		_ctx = _make(_die, _slot, _slot_num, _die_index);
+		_ctx.owner = "player";
+		// on_roll_die never counts a buff down (intent_exact_value relies on that too)
+		trigger_debuff_list(_one, "on_roll_die", _ctx);
+		ds_list_destroy(_one);
+		if (_ctx._d_amount != 0) { array_push(_lines, string(_inst.template.name) + " " + ((_ctx._d_amount > 0) ? "+" : "") + string(_ctx._d_amount)); _sum += _ctx._d_amount; }
+	}
+	// the slot's bonuses: every die's, and the first die's (its place bonus is one: "Slot 2 +1", once per slot)
+	for (var i = 0; i < array_length(_slot.bonuses); i++) {
+		var _bn = _slot.bonuses[i];
+		if (_bn.amount == 0 || (_bn.scope == "first" && _die_index != 0)) continue;
+		array_push(_lines, string(_bn.source) + " " + ((_bn.amount > 0) ? "+" : "") + string(_bn.amount));
+		_sum += _bn.amount;
+	}
+	var _out = "";
+	for (var l = 0; l < array_length(_lines); l++) _out += ((l == 0) ? "" : "\n") + _lines[l];
+	if (array_length(_lines) > 1) _out += "\n= " + string(_sum);
+	return _out;
+}
+
 /// @func dice_trigger_effects(_event, _data)
 /// @desc Fire _event on every die in the action queue (a broadcast: after_roll_die, on_dice_played_to_slot,
 ///       on_dice_ejected). Each die's effects are owner-only by default here: they fire only when the die the event is

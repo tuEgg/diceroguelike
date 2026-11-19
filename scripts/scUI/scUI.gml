@@ -328,6 +328,30 @@ function ui_primary(_cx, _cy, _w, _h, _text, _active, _reason = "", _layer = UI_
 	return { hover: _hover, click: _click };
 }
 
+/// @func ui_summon_icon(_cx, _cy, _scale, _alpha)
+/// @desc A summon intent's icon (F139): two hands' worth of crew, one in front of the other, with a "+" for the newcomer,
+///       in ink and amber, about 40 px across at scale 1.
+function ui_summon_icon(_cx, _cy, _scale = 1, _alpha = 1) {
+	var _s = _scale, _ink = global.ui_col.ink, _amb = make_color_rgb(230, 150, 60);
+	draw_set_alpha(_alpha);
+	// the one behind
+	draw_set_color(_ink);
+	draw_circle(_cx + 7 * _s, _cy - 9 * _s, 7 * _s, false);
+	draw_roundrect_ext(_cx - 3 * _s, _cy - 1 * _s, _cx + 17 * _s, _cy + 16 * _s, 10 * _s, 10 * _s, false);
+	// the newcomer in front, in amber with an ink edge
+	draw_circle(_cx - 6 * _s, _cy - 5 * _s, 8.5 * _s, false);
+	draw_roundrect_ext(_cx - 18 * _s, _cy + 3 * _s, _cx + 6 * _s, _cy + 20 * _s, 11 * _s, 11 * _s, false);
+	draw_set_color(_amb);
+	draw_circle(_cx - 6 * _s, _cy - 5 * _s, 6.5 * _s, false);
+	draw_roundrect_ext(_cx - 16 * _s, _cy + 5 * _s, _cx + 4 * _s, _cy + 20 * _s, 9 * _s, 9 * _s, false);
+	// the +
+	draw_set_color(_ink);
+	draw_line_width(_cx + 14 * _s, _cy - 22 * _s, _cx + 14 * _s, _cy - 10 * _s, 4 * _s);
+	draw_line_width(_cx + 8 * _s, _cy - 16 * _s, _cx + 20 * _s, _cy - 16 * _s, 4 * _s);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
 /// @func ui_label(_cx, _cy, _text, _font, _seed, [_alpha], [_pad])
 /// @desc A heading on a strip of paper (the draft's "Choose a page to draft"): ink text on a torn paper label.
 function ui_label(_cx, _cy, _text, _font, _seed, _alpha = 1, _pad = 28) {

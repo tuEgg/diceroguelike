@@ -70,6 +70,8 @@ scCombatScripts, TUTORIAL section. While `progress.json` has `tutorial_done` fal
 
 ## Enemies: scEnemies
 
+Intent words (scEnemies): `intent_hover_text` says what a move does; buffs and debuffs go through `intent_status_text(move)` ("Puts Mock on you for 1 turn. Mock: ..."; a buff on itself, or its allies with target "other"), also used by the enemy hover in oCombat Draw GUI. A SUMMON has no number (`intent_has_numbers` false) and draws `ui_summon_icon` (scUI). While you're Mocked, `die_is_mocked(die)` (scDebuffs) marks dice that can attack with `draw_mock_mark` (oDice Draw GUI and the ink view), and the reroll hover warns.
+
 `define_enemies()` builds `global.enemy_list` via `enemy_create(...)` (moves are structs: `dice_amount, dice_value, action_type, bonus_amount, move_name`, optional `weight, use_trigger, debuff, amount, duration, target, summon`). `add_enemy_to_fight` calls `enemy_copy_for_fight` then `enemy_apply_chapter_scaling` (scMap). Per-fight lists are freed in `oCombat/CleanUp_0` via `fight_enemy_records`.
 
 ## Effect events

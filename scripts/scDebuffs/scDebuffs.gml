@@ -488,6 +488,35 @@ function define_buffs_and_debuffs() {
 	global.status_glossary = [debuff_mock, debuff_barnacle_bind, debuff_bind, debuff_stunned, debuff_rot, debuff_overwhelm, buff_reserve, buff_might, buff_balance];
 }
 
+/// @func die_is_mocked(_die)
+/// @desc You're Mocked and this die can attack: its attack can't roll above 1 (B133). Marked on the die in hand, and the
+///       reroll hover warns that rerolling won't help.
+function die_is_mocked(_die) {
+	if (room != rmCombat || !is_struct(_die) || string_pos("ATK", string(_die.possible_type)) == 0) return false;
+	if (!variable_global_exists("player_debuffs") || !ds_safe_exists(global.player_debuffs, ds_type_list)) return false;
+	for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
+		if (global.player_debuffs[| d].template._id == "mock") return true;
+	}
+	return false;
+}
+
+/// @func draw_mock_mark(_x, _y, _scale)
+/// @desc A Mocked die's mark (B133): a small red ink tag reading "Mock", tilted like a stamp. Returns its hover box.
+function draw_mock_mark(_x, _y, _scale = 1) {
+	draw_set_font(ftDescriptions);
+	var _w = string_width("Mock") + 14 * _scale, _h = 24 * _scale;
+	draw_set_color(global.ui_col.ink);
+	draw_roundrect_ext(_x - _w / 2 - 2, _y - _h / 2 - 2, _x + _w / 2 + 2, _y + _h / 2 + 2, 8, 8, false);
+	draw_set_color(global.color_attack);
+	draw_roundrect_ext(_x - _w / 2, _y - _h / 2, _x + _w / 2, _y + _h / 2, 7, 7, false);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_color(global.ui_col.paper_hi);
+	draw_text(_x, _y, "Mock");
+	draw_set_color(c_white);
+	return { x1: _x - _w / 2, y1: _y - _h / 2, x2: _x + _w / 2, y2: _y + _h / 2 };
+}
+
 /// @func buff_tooltip_text(_inst)
 /// @desc A buff or debuff's tooltip text: its description, then how long it lasts and its strength, only when they
 ///       mean something ("2 turns left", "Lasts all fight", "Strength 3").

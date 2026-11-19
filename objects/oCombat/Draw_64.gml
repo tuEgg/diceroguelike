@@ -441,7 +441,9 @@ for (var i = 0; i < aq_list_size; i++) {
 						else if (variable_struct_exists(die_struct, "play_locked") && die_struct.play_locked) _back_hint = "\n\nIts 'when played' effect has happened, so it stays.";
 					}
 				}
-				queue_die_tip(die_struct, xx_top, yy_top - 22 * this_dice_scale, undefined, string_trim(_back_hint));
+				// what it comes to, source by source (F146), then how to take it back
+				var _breakdown = die_bonus_breakdown(die_struct, i, d);
+				queue_die_tip(die_struct, xx_top, yy_top - 22 * this_dice_scale, undefined, string_trim(_breakdown + _back_hint));
 				if (mouse_check_button_pressed(mb_left) && die_can_take_back(die_struct) && state == CombatState.PLAYER_INPUT && global.ui_layer == UI_LAYER.BASE && !oRunManager.holding_item && combat_no_die_dragged()) {
 					take_back_request = { slot: i, index: d };
 				}
@@ -619,7 +621,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 					case "HEAL": col = global.color_heal; index = 2; break;
 					case "EXIT": col = c_orange; index = 5; enemy_exiting = true; break;
 					case "DEBUFF": case "NONE": case "BUFF": col = c_white; index = 3; break;
-					case "SUMMON": col = make_color_rgb(230, 150, 60); index = 3; break; // calls for help: not the attack icon (F15)
+					case "SUMMON": col = make_color_rgb(230, 150, 60); index = 3; break; // calls for help: its own icon (ui_summon_icon, F139)
 					default: 
 					col = c_dkgray; 
 					index = 0;
@@ -638,7 +640,8 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			}
 			
 			if (col == c_white) col = global.ui_col.ink; // a white icon would vanish on the paper
-			draw_sprite_ext(sprite, index, icon_x, yy, enemy.intent.scale * bonus_scale,  enemy.intent.scale * bonus_scale, 0, col, enemy.intent.alpha);
+			if (intent_array[i] == "SUMMON" && (reveal_intent_all || (reveal_intent_single && e == enemy_target_index))) ui_summon_icon(xx, yy, enemy.intent.scale, enemy.intent.alpha);
+			else draw_sprite_ext(sprite, index, icon_x, yy, enemy.intent.scale * bonus_scale,  enemy.intent.scale * bonus_scale, 0, col, enemy.intent.alpha);
 			
 		}
 		
@@ -705,7 +708,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	
 		if (hover_enemy && !show_rewards) {
 			if (enemy.intent.move.action_type == "DEBUFF" || enemy.intent.move.action_type == "BUFF") && (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), enemy.intent.move.debuff.name, enemy.intent.move.debuff.desc, undefined, 0, undefined);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), string(enemy.intent.move.move_name), intent_status_text(enemy.intent.move), undefined, 0, undefined);
 			} else {
 				if (enemy_exiting) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "The enemy intents to escape", undefined, 0, undefined);
