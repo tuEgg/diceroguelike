@@ -1848,11 +1848,11 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1) {
 	var _light = (_lum < 150); // light pips on a dark body
 	var _pip_col = _light ? make_color_rgb(250, 248, 240) : make_color_rgb(30, 28, 36);
 	var _ring_col = _light ? make_color_rgb(20, 20, 26) : make_color_rgb(250, 248, 240);
-	// how far the pips spread: the inside of each shape (a triangle's is small and sits low)
+	// how far the pips spread: the inside of each shape (a triangle's is small)
 	var _spread = _r * 0.42, _cy = 0;
 	switch (_sides) {
 		case 2:  _spread = _r * 0.36; break;
-		case 4:  _spread = _r * 0.27; _cy = _r * 0.16; break;
+		case 4:  _spread = _r * 0.27; _cy = _r * 0.02; break; // the triangle's centre (its centroid)
 		case 8:  _spread = _r * 0.34; break;
 		case 10: _spread = _r * 0.38; break;
 	}
