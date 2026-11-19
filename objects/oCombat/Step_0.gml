@@ -227,7 +227,9 @@ switch (state) {
 						}
 					}
 				} else {
-			        reset_die();
+					// the slot's last die gets its full time in the spotlight (dice_timer) before moving on
+					if (dice_timer > 0) dice_timer -= 1;
+					else reset_die();
 				}
 			} else {
 	            reset_die();
