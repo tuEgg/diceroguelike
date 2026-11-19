@@ -7,8 +7,8 @@ A dice-building roguelike in GameMaker (GML), by Jared (solo, hobby). Sailing th
 ## How we work
 
 - Claude can't run GameMaker. Every change is unverified until Jared play-tests it.
-- Work on a branch. Commit in themed batches, each with a short "how to test" list for Jared.
-- Merge to `main` and push **only when Jared approves**. Remote is HTTPS; pushing opens a browser sign-in once.
+- **Branches (agreed 2026-11-19):** `main` is what's live on itch.io, tagged per upload (`v0.1.1`, `v0.1.2`...). `dev` is the next version (v0.2). New work goes on a short branch off `dev` and merges into `dev`. A bug in the live build gets a `hotfix/...` branch off `main`; once approved it merges into `main`, is tagged, and `main` is merged into `dev`. Release: `dev` into `main`, tag, upload. `GAME_VERSION` (scSaving) is the number in the menus: `0.2.0-dev` on dev, the plain number on main.
+- Commit in themed batches, each with a short "how to test" list for Jared. Merge and push **only when Jared approves**. Remote is HTTPS; pushing opens a browser sign-in once.
 - **Update `KANBAN.md` in the same commit as the work.** Jared's dashboard (`tools/kanban`, `node tools/kanban/server.js`, localhost:4747) renders it: each `## ` heading is a column, table rows with an ID are cards, the IN TESTING table badges cards in testing, approved cards move to the DONE table.
 - **Update the matching `docs/context/*.md` in the same commit** when you change how a system works (new function, moved responsibility, new rule). Keep them short and true; delete what goes stale.
 - Match the surrounding code: tabs, `var` locals, `_underscore` params, lowercase comments that say why. Most `.gml` files are CRLF; keep a file's line endings (edit with tools that preserve them).

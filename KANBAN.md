@@ -1,6 +1,6 @@
 # Tides of Fortune: KANBAN
 
-> Repo: `C:\Users\Jared\Projects\TidesOfFortune`, branch `main`, pushed to GitHub. `file:line` references on open cards come from the 2026-11-15 audit and may have drifted by a few lines.
+> Repo: `C:\Users\Jared\Projects\TidesOfFortune`, pushed to GitHub. **Branches:** `main` = live on itch.io (tag `v0.1.1`; hotfixes become v0.1.2...), `dev` = v0.2 in progress (see CLAUDE.md). `file:line` references on open cards come from the 2026-11-15 audit and may have drifted by a few lines.
 > **Work order (agreed):** 1. bug-fix batches → 2. debug menu (done) → 3. finish the world-map rework → 4. revisit intel.
 > **Workflow:** Claude batches fixes into commits with a test checklist. Jared play-tests, gives feedback and approves. Nothing is merged or pushed without approval.
 > **Keeping this board current:** it is updated in the same commit as the work. A card stays in its bug or debt section while open, is listed in the IN TESTING table while its batch waits for a playtest, and moves to the DONE table once Jared approves the merge.
@@ -15,9 +15,9 @@
 
 | ID | Task | Notes |
 |---|---|---|
-| H09 | **itch.io playtest build** (Jared, 2026-11-17): export the web build, put it on itch.io (`docs/itch-launch.md`), share it, collect feedback. | Next batches wait for the feedback (below). |
+| H09 | **itch.io playtest build** live at https://tuegg.itch.io/tides-of-fortune (v0.1.1, tagged on main). Collecting feedback; fixes go out as hotfixes (v0.1.2...). | Jared, ongoing |
 
-**Waiting for playtest feedback** (agreed 2026-11-17: pick from these once testers have played, in this order unless feedback says otherwise)
+**Waiting for playtest feedback** (agreed 2026-11-17; on 2026-11-19 Jared started v0.2 on `dev` with items 1-4 below, now batch 17)
 1. Game feel: room transitions (F65) and trigger animations (F40).
 2. Content gaps: stub keepsakes (F22), stronger consumables (F24), Giant Conch (F20).
 3. Between-pages choices, the rest of F02 (design talk first).
@@ -29,6 +29,19 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 17: v0.2 depth and feel | H10, T03 (dice), F20, F21, F23, F24, F02, F65, F15, F40 | `dev` | **Ready to test.** Version number in the menus; one effect dispatcher for dice; Giant Conch moves; 3 new dice, 2 new events; stronger potions with how-to-use tooltips; spread end offers Heal plus two rolled choices; ink-wash room transitions; keepsakes and dice show when they fire. |
+
+**Batch 17 test list (on `dev`, v0.2.0-dev)**
+- H10 Main menu: "v0.2.0-dev" small and faint in the bottom-right corner (not overlapping anything; hidden under Settings). Pause menu: the same in the panel's top-right corner, clear of "Paused" and the buttons.
+- T03 Dice effects behave exactly as before: Warrior, Reed snap, Bilge, Squall, Tidepusher, Harvest (gold when played or ejected), Deepdiver (only when it's the die played), Echo, Invisible, Lead Line (sacrifice twice). None of them fire for other dice.
+- F20 Giant Conch (F1 > Fight builder, or Elite 2): turn 1 Siren Hum (Overwhelm, your insight drops and target locks), then Shell Slam, Echo (copies your last action type: hover says what), Retreat Inward (block), sometimes Siren Hum again. 55 HP, its layers still soak 2 per hit and break with stun. Quill can reroll or halve its moves (not the first).
+- F21 New dice (F1 > Dice to grab them): Gunpowder (d4 attack): when it rolls in an attack slot, every other enemy takes 2 (with one enemy, nothing extra). Tidecaller (d6 heal): a 5+ also gives 3 block and pops "Tidecaller!". Ballast (d8 block): never rolls below 4 in a fight (hover a slot with it: range 4-8).
+- F23 New events (F1 > Events): "A floating crate" (60 gold, or heal 20%); "The tattooist" (40 gold: a die gains +1 min roll, refused with a message when you're short; 3 alignment; or decline).
+- F24 Potions: Rigger's Tonic +2 (was +1), Corsair's Gambit at least +2 plays, Grog of Grit and Captain's Brew +3, Navigator's Brew also gives a play in a fight, Healing Flask 40%. Hover a potion in the top bar: the tooltip ends "Click it to use it" or "Drag it onto a slot in a fight to use it".
+- F02 End of a spread: three choices on one panel: Heal X HP (left, always), plus two of: Gain a core, Remove a die, +1 min roll, Gain 50 gold (different each spread end), and Continue below. Greyed ones say why on hover (full health, item slots full, bag of 6 or fewer). Remove a die / +1 min roll open the bag to choose, over the new pages; the pages can't be clicked until you choose.
+- F65 Every room starts under dark ink that sweeps off to the right in under half a second (map, fights, shop, events, workbench, main menu). The cursor stays visible on top. It shouldn't slow anything down.
+- F15 When a keepsake fires (Looking Glass at a fight's start, Rigger, Bandage...), its name floats up yellow under its icon and fades. A summon intent (Pirate Captain's Open Barrel) shows the plain icon in orange, not the attack icon.
+- F40 Dice effects that fire after a roll pop the die's name over its slot ("Reed snap die!", "Bilge die!").
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
