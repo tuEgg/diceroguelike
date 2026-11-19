@@ -1596,9 +1596,28 @@ function draw_dice_history(_die, _x, _y, _centered = false) {
 	}
 }
 
+/// @func core_alignment_lean()
+/// @desc Where the compass leans, for the alignment cores: -1 fully ruthless (alignment 0), 0 even (50), +1 fully merciful (100).
+function core_alignment_lean() {
+	return clamp((global.player_alignment - 50) / 50, -1, 1);
+}
+
 /// @func	define_dice_distributions(_die_dist, _min_roll, _max_roll, _array)
 function define_dice_distributions(_die_dist, _min_roll, _max_roll, _array) {
 	switch (_die_dist) {
+		case "compass":
+		case "lodestone":
+		// the alignment pair (F151): at 50 every face is even; ruthless (0) leans to the edges, merciful (100) to the middle.
+		// Lodestone leans all the way (at the extremes the other faces can't come up); Compass about two-thirds of the way.
+		var _lean = core_alignment_lean();
+		var _strength = (_die_dist == "lodestone") ? 1 : 0.65;
+		for (var d = _min_roll; d <= _max_roll; d++) {
+			var _p = (_max_roll > _min_roll) ? (d - _min_roll) / (_max_roll - _min_roll) : 0.5;
+			var _middle = 1 - abs(2 * _p - 1); // 1 in the middle, 0 at the edges
+			array_push(_array, max(0, round(10 + 10 * _strength * _lean * (2 * _middle - 1))));
+		}
+		break;
+
 		case "":		
 		// by default each array is [1, 1, 1, 1] for a d4 for example
 		for (var d = _min_roll; d <= _max_roll; d++) {

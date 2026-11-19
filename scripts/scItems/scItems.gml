@@ -108,14 +108,16 @@ function define_items() {
 	}
 	ds_list_add(global.master_item_list, clone_item(item_core_dome));
 	
+	// the alignment pair (F151, 2026-11-19), in Odd and Even's place (parity barely moved a die): your compass shapes
+	// the roll, read live as it rolls (core_alignment_lean)
 	item_core_odd = {
 		sprite: sCores,
 		index: 6,
-		name: "Odd Core",
-		description: "Dice will roll odd numbers more often",
+		name: "Compass Core",
+		description: "Follows your compass: the more ruthless you are, the more it rolls its lowest or highest; the more merciful, the more it rolls its middle",
 		type: "core",
 		dragging: false,
-		distribution: "odd",
+		distribution: "compass",
 		taken: false,
 		amount: 1,
 		rarity: "uncommon",
@@ -126,11 +128,11 @@ function define_items() {
 	item_core_even = {
 		sprite: sCores,
 		index: 7,
-		name: "Even Core",
-		description: "Dice will roll even numbers more often",
+		name: "Lodestone Core",
+		description: "Follows your compass, strongly: fully ruthless it only rolls its lowest or highest; fully merciful, only its middle",
 		type: "core",
 		dragging: false,
-		distribution: "even",
+		distribution: "lodestone",
 		taken: false,
 		amount: 1,
 		rarity: "rare",
@@ -612,6 +614,9 @@ function get_first_free_item_slot() {
 }
 
 function get_item_by_name(_name) {
+	// cores renamed in a save from before 2026-11-19 (Odd and Even became the alignment pair)
+	if (_name == "Odd Core") _name = "Compass Core";
+	if (_name == "Even Core") _name = "Lodestone Core";
     for (var i = 0; i < ds_list_size(global.master_item_list); i++) {
         if (global.master_item_list[| i].name == _name) {
             return global.master_item_list[| i];

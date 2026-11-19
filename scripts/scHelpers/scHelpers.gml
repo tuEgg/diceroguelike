@@ -1323,7 +1323,7 @@ function draw_arc_thick_deg_gradient(
 }
 
 function get_random_distribution() {
-	return choose("weighted", "loaded", "edge", "binary", "bell", "dome", "odd", "even", "dual", "tower");
+	return choose("weighted", "loaded", "edge", "binary", "bell", "dome", "compass", "lodestone", "dual", "tower");
 }
 
 function get_core_index(_dice) {
@@ -1336,8 +1336,10 @@ function get_core_index(_dice) {
 		case "binary":		core_index = 3;		break;
 		case "bell":		core_index = 4;		break;
 		case "dome":		core_index = 5;		break;
-		case "odd":			core_index = 6;		break;
+		case "odd":			core_index = 6;		break; // a die cored before the alignment pair keeps its shape
 		case "even":		core_index = 7;		break;
+		case "compass":		core_index = 6;		break;
+		case "lodestone":	core_index = 7;		break;
 		case "dual":		core_index = 8;		break;
 		case "tower":		core_index = 9;		break;
 	}

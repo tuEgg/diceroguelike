@@ -30,9 +30,10 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 20: UI rework (combat, cards, map, rooms, menus) | F130, F131, F132, F133, F134, F135, F136, B138, B141, F142, F143, F144, F147, B134, B136, B137, B139, F140, F141, F137, F148, B135, B140, F150, B133, F138, F139, F146, F149, F145, Q15 | `feature/ui-rework` (off dev) | **Ready to test.** The logbook look on the combat screen (docs/design-ui-rework.md). |
+| 20: UI rework (combat, cards, map, rooms, menus) | F130, F131, F132, F133, F134, F135, F136, B138, B141, F142, F143, F144, F147, B134, B136, B137, B139, F140, F141, F137, F148, B135, B140, F150, B133, F138, F139, F146, F149, F145, Q15, B132, F151 | `feature/ui-rework` (off dev) | **Ready to test.** The logbook look on the combat screen (docs/design-ui-rework.md). |
 
 **Batch 20 test list (`feature/ui-rework`)**
+- B132 the die Message in a Bottle gives at the start of a fight now rolls (and tumbles in) like any dealt die; it sat on the table as a plain "d4" (Molly's Surge die). F151 (part) the alignment cores replace Odd and Even (parity barely changed a die): Compass Core (uncommon) leans with your compass, ruthless to its lowest and highest faces, merciful to its middle, even at 50; Lodestone Core (rare) leans all the way (fully ruthless it rolls only its lowest or highest, fully merciful only its middle). The distribution chart under a cored die changes as your alignment does. A save with an Odd or Even Core in the item bar loads it as Compass or Lodestone; dice already drilled with Odd or Even keep them. They reuse Odd and Even's art for now.
 - Slot tickets (Jared, 2026-11-19): a long name ("Flurry of Blades") stays on one line, dropping to the smaller font to fit (B137, again: the name had a line break in it). The total and its green bonus are centred together ("5 +1"); an empty slot shows its bonus alone in the middle. Coins: gold coming in is a trickle of quiet clinks, one every few frames, each a little higher, so a big haul sounds like a pile filling up; spending is one jingle.
 - Q15 keepsakes reworked: Topographic Map "Peaks and valleys": a die played that rolled its max still gives its slot +2; now a die that rolls its lowest face (dealt or rerolled) also draws you a die, at most twice a turn, with "Valley!" over it (not for a die whose min equals its max). Repeater Rail "Rapid fire": in a slot, the 2nd die gets +1, the 3rd +2 and so on; check the ticket total, the actual hit and the hover breakdown agree.
 - F145 fight dice rewards are dealt face down (slate cards in a brass frame with a compass star, bobbing), then flip one after another; each lands with a glow in its rarity colour (grey, green, purple; bigger and longer the rarer, a rare one throws rays and jingles) and its rarity named under it. A card can't be taken until it has turned. F149 in an event, click a die (or coin die) you were given to send it flying into your bag; its tip says so. While the plank waits for a die, dragging still works. F150 the gold counter also jumps when you spend.
@@ -70,7 +71,7 @@ All known P0 bugs are fixed, see DONE.
 **Dice / keepsakes / items**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B132 | Surge die didn't roll on draw (Molly, 2026-11-19). Code reads fine (it rolls like any d4; its +1 per later slot only counts in a slot): need to know what Molly saw. | scDice, Surge | S |
+| B132 | Surge die didn't roll on draw (Molly, 2026-11-19): it came from Message in a Bottle, which made its die without rolling it. Fixed, in testing. | scKeepsakes | S |
 | B133 | Mocked (forced) dice don't show it: no Mock mark on the die, no warning when rerolling it. | oDice, ink view | S |
 
 **Map / events / bounty / workbench**

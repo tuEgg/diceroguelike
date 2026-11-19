@@ -601,9 +601,11 @@ function define_keepsakes() {
 	            if (oCombat.turn_count == 1) {
 					// Grab a random dice in the master dice list
 					var d = clone_die(global.master_dice_list[| irandom(ds_list_size(global.master_dice_list)-1)], "");
-					
+					die_roll_faces(d); // it rolls as it comes, like every dealt die (it sat unrolled as "d4": B132, Molly's Surge die)
+
 					var die_inst = instance_create_layer(display_get_gui_width()/2, display_get_gui_height(), "Instances", oDice);
 					die_inst.struct = d;
+					die_inst.roll_anim = 16; // it tumbles in, then shows its roll
 					die_inst.action_type = d.action_type;
 					die_inst.dice_amount = d.dice_amount;
 					die_inst.dice_value  = d.dice_value;
