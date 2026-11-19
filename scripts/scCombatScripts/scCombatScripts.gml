@@ -3194,6 +3194,7 @@ function combat_insight_view_draw() {
 		var _rr_can = combat_insight_can(INSIGHT_COST_REROLL), _rd_can = combat_insight_can(INSIGHT_COST_REDRAW);
 		var _clicked = noone, _clicked_what = "";
 		var _over_die = false;
+		var _hint_at = undefined;
 		with (oDice) {
 			if (still || in_slot) continue;
 			var _r = 36 * scale * (1 + 0.22 * land_pop);
@@ -3207,12 +3208,16 @@ function combat_insight_view_draw() {
 			if (_hov) {
 				_over_die = true;
 				other.quill_over = true;
-				draw_mouse_hint(x - 78, y - _r - 46, "left", "Reroll", 0.6, _rr_can ? global.color_intel : make_color_rgb(90, 90, 100), _rr_can ? global.color_intel : make_color_rgb(150, 150, 160));
-				draw_mouse_hint(x + 22, y - _r - 46, "right", "Redraw", 0.6, _rd_can ? global.color_intel : make_color_rgb(90, 90, 100), _rd_can ? global.color_intel : make_color_rgb(150, 150, 160));
+				_hint_at = { x: x, y: y - _r - 46 }; // its mouse hints go on top of every die, after this loop
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll or redraw", "Left-click: spend " + string(INSIGHT_COST_REROLL) + " insight to roll this die again.\nRight-click: spend " + string(INSIGHT_COST_REDRAW) + " insight to discard it and draw a new die.", undefined, 0, undefined, INSIGHT_COST_REROLL, "insight");
 				if (mouse_check_button_pressed(mb_left) && _rr_can) { _clicked = id; _clicked_what = "reroll"; }
 				if (mouse_check_button_pressed(mb_right) && _rd_can) { _clicked = id; _clicked_what = "redraw"; }
 			}
+		}
+		// the hovered die's mouse hints, above every die
+		if (is_struct(_hint_at)) {
+			draw_mouse_hint(_hint_at.x - 78, _hint_at.y, "left", "Reroll", 0.6, _rr_can ? global.color_intel : make_color_rgb(90, 90, 100), _rr_can ? global.color_intel : make_color_rgb(150, 150, 160));
+			draw_mouse_hint(_hint_at.x + 22, _hint_at.y, "right", "Redraw", 0.6, _rd_can ? global.color_intel : make_color_rgb(90, 90, 100), _rd_can ? global.color_intel : make_color_rgb(150, 150, 160));
 		}
 		if (_clicked != noone) {
 			if (_clicked_what == "reroll") combat_reroll_die(_clicked);
