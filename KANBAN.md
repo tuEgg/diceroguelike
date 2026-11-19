@@ -60,10 +60,15 @@ All known P0 bugs are fixed, see DONE.
 **Dice / keepsakes / items**
 | ID | Bug | Where | Size |
 |---|---|---|---|
+| B132 | Surge die didn't roll on draw (Molly, 2026-11-19). | scDice, Surge | S |
+| B133 | Mocked (forced) dice don't show it: no Mock mark on the die, no warning when rerolling it. | oDice, ink view | S |
 
 **Map / events / bounty / workbench**
 | ID | Bug | Where | Size |
 |---|---|---|---|
+| B134 | Workbench: a die picked by mistake can't be swapped before the first craft. | oWorkbenchManager | S |
+| B135 | Drill only starts spinning on the first click after grabbing it, not on the grab. | oDrill | S |
+| B136 | Treasure room: leaving with the treasure untaken has no "are you sure". | oTreasureManager | S |
 
 **Save / load**
 | ID | Bug | Size |
@@ -73,6 +78,11 @@ All known P0 bugs are fixed, see DONE.
 
 | ID | Bug | Where |
 |---|---|---|
+| B137 | Long slot names ("Flurry of Blades") run out of the ticket (Molly). | ui_ticket |
+| B138 | The slot place bonus (+1 on slot 2...) isn't visible on an empty ticket. | ui_ticket |
+| B139 | Bag view: lower cards fade oddly while scrolling; the scrollbar misbehaves with few dice (under ~13). | oRunManager Draw_75 |
+| B140 | Floating text over the bag ("X die replaced with Y") draws under the bag. | spawn_floating_number |
+| B141 | Ink view: the ink number is drawn twice, overlapping. | combat_insight_view_draw |
 | B82 | `draw_outline_text` coloured mode wraps every word and ignores halign/alpha. `queue_tooltip` changes the caller's font | `scHelpers.gml:290-426` |
 | B118 | **Parked (2026-11-17).** Web build: shapes drawn in code (button panels, pips, badges, icon outlines) have jagged edges. The browser canvas is smaller than the 1920x1080 layout, so the GUI is drawn shrunk, and a web build can't turn on anti-aliasing from inside the game (desktop is fixed, B117). Fixes, best first: real art for buttons and panels (sprites are smoothed when scaled; comes with F50), or drawing the UI to a 2x surface and shrinking it with smoothing (costly, and surfaces have misbehaved on web before). | `scDisplay`, `draw_wonky_rectangle`, UI kit |
 
@@ -98,6 +108,26 @@ All known P0 bugs are fixed, see DONE.
 ## ✨ FEATURES: proposed vertical slice (⚠️ NOT agreed yet, see Open Questions)
 
 Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
+
+**Playtest 2026-11-19 (Molly, and Jared's notes): to do**
+- F137 Keywords, buffs and debuffs explained wherever they're first seen: in the die tip in fights (a line per keyword), on event options (keyword tooltips on hover), and keyword icons drawn everywhere a die is (cards, rewards, shop, slots) and hoverable.
+- F138 Enemy debuff/buff intents say what they do and to whom: "Mocks you for 2 turns: your attacks can't roll above 1"; a self-buff says it's on itself.
+- F139 Summon intent: its own icon, no number. Giant Conch: its echo attack uses the normal attack icon, no separate normal attack, less damage reduction (discuss numbers).
+- F140 Dice picker: picking 1, any click replaces the pick; picking several, a new pick drops the oldest.
+- F141 Bag view more compact, card descriptions a size smaller again (Molly: too few words per line), same for rewards.
+- F142 The inkwell keeps pulsing until you do something (use ink, play a die, end turn), not just for 2.5 s. Ink amount under the inkwell, not beside it.
+- F143 HP number smaller, on the bar; buffs and debuffs closer to the bar.
+- F144 Alignment shows a number (%) beside the compass.
+- F145 Rewards: make rarity a bigger deal, e.g. cards dealt face down that flip over with a rarity flash (common, uncommon, rare).
+- F146 Hovering a die in a slot shows its bonus breakdown (base, then each keepsake or effect).
+- F147 New slot tile says it plainly: "3+ pips" rather than "0 / 3".
+- F148 Visited map locations (islands and sea stops) get a faded ink tick, not only the green wash.
+- F149 Event dice and coins: click one to put it in your bag.
+- F150 Juice pass: coins (gain, spend), ink actions, rewards. Sounds needed from Jared: a pen/brush scratch for ink actions, coin sounds (suggestions in the reply of 2026-11-19).
+- F151 Cores beyond weighted/loaded: every core should be worth taking (no reason to take weighted or loaded otherwise). Alignment cores (chaotic rolls the lower your alignment, central rolls the higher).
+- F152 Alignment in combat: e.g. start with a d4 shaped by alignment.
+- H12 Reminder for Jared: more enemy art. Pen/brush sound and coin sounds for the juice pass.
+- H13 Relic and core art to fit the logbook look: tips and mockups for reworking the existing art.
 
 **Core loop**
 - F02 **Rethink what happens between pages (Jared, 2026-11-17).** Workbench part done in batch 12 (At sea). Still open: the spread-end choices themselves. Built version (2026-11-17): the workbench becomes an "At sea" step between pages (after a page's island is done, before the next), replacing the map button. You choose which dice to take from your bag (not dealt at random), up to one per tool you own (plus a core for the Drill); each tool can be used once per visit and goes back in the toolbag after. "Sail on" skips it. Like FTL's ship upgrades between jumps, or the Slay the Spire campfire, but more often and smaller. Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
@@ -136,6 +166,12 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 ---
 
 ## ❓ OPEN QUESTIONS (design decisions blocking work)
+
+- Q11 Difficulty (Molly breezed through, never lost more than ~4 HP): raise the intent reroll cost (6 to 9 or 12?), make ink carry-over visible, start with more HP and hit harder, steeper chapter scaling. Proposal in the reply of 2026-11-19.
+- Q12 Kill vs Spare: kill gives the full gold, spare gives none (plus its alignment)? Or another trade-off.
+- Q13 Chapter length: 7 spreads then a boss feels long: 4, or 3 then a boss?
+- Q14 The strait shouldn't heal for free: how to offer healing without too many stops.
+- Q15 Topographic Map rework (more thematic); Repeater Rail too weak now slots are scarce.
 
 - Q10 UI rework direction (branch `feature/ui-rework`): `docs/design-ui-rework.md` and the mockup `docs/mockups/ui-style-tile.html` (combat before/after, palette, type, components). Waiting for Jared's approval before any screen changes.
 - Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
