@@ -84,7 +84,7 @@ draw_set_font(ftDefault);
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
 draw_outline_text(label_text, c_black, c_white, 2, end_text_pos, btn_y + (btn_h/2), btn_scale, btn_scale, 0);
-// the insight phase draws this button again, lit, as "Seal the log" (combat_insight_view_draw)
+// the insight phase draws this button again, lit, as "Confirm" (combat_insight_view_draw)
 end_turn_draw = { x: btn_x + btn_w/2, y: btn_y + btn_h/2, s: btn_scaler, tx: end_text_pos, ty: btn_y + btn_h/2 };
 
 // Draw playable dice

@@ -1718,7 +1718,7 @@ function tutorial_steps() {
 		// turn 2: insight, a slot with two actions, right-click to switch
 		{
 			id: "insight", target: "insight", allow: [], button: "Next",
-			text: "Your insight came in as ink, and the log is open. With the quill: reroll or redraw a die (3), see the enemy's exact numbers (2), or make it choose again (6). Seal the log to play your dice.",
+			text: "Your insight came in as ink, and the log is open. With the quill: reroll or redraw a die (3), see the enemy's exact numbers (2), or make it choose again (6). Confirm to play your dice.",
 		},
 		{
 			id: "two_types", target: "sacrifice", allow: ["sacrifice"], die_types: ["ATK", "BLK"],
@@ -2063,7 +2063,7 @@ function tips_list() {
 		{
 			// the guided fight is off on this branch, so this teaches insight the first time you have some to spend
 			id: "insight_spend", room: rmCombat, target: "insight",
-			text: "The log is open. Your insight is ink: with the quill, reroll or redraw a die in your hand (" + string(INSIGHT_COST_REROLL) + " each), see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + ", or 1 each when there are several), or make it choose its move again (" + string(INSIGHT_COST_QUILL) + "). Seal the log (where End Turn is) to play. Ink you don't spend carries over.",
+			text: "The log is open. Your insight is ink: with the quill, reroll or redraw a die in your hand (" + string(INSIGHT_COST_REROLL) + " each), see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + ", or 1 each when there are several), or make it choose its move again (" + string(INSIGHT_COST_QUILL) + "). Click Confirm (where End Turn is) to play. Ink you don't spend carries over.",
 			when: function() { return instance_exists(oCombat) && oCombat.insight_view; },
 		},
 		{
@@ -2960,7 +2960,7 @@ function combat_insight_part_draw(_x1, _y1, _x2, _y2, _afford, _hover, _pulse, _
 ///       the enemy intents and the dice in your hand, which your quill can rewrite. Each intent is split in two: its
 ///       move (left) rerolled for 6, its numbers (right) shown exactly for 2 (1 each with several enemies). Each die
 ///       in hand is drawn again on top, edged in yellow: left-click rerolls it (3), right-click redraws it (3). Every
-///       one has a tooltip with its cost tag; the cursor is a quill (cursor_draw). End Turn becomes "Seal the log",
+///       one has a tooltip with its cost tag; the cursor is a quill (cursor_draw). End Turn becomes "Confirm",
 ///       the only way to end the phase (or Enter).
 function combat_insight_view_draw() {
 	if (!instance_exists(oCombat) || !oCombat.insight_view) return;
@@ -2993,7 +2993,7 @@ gpu_set_blendmode(bm_normal);
 		draw_set_valign(fa_middle);
 		draw_outline_text(string(player_intel), c_black, global.color_intel, 2, _ex + 44, _ey + 10, 1, 1, 0);
 
-		// done writing: End Turn becomes "Seal the log", drawn lit on top where End Turn is (oCombat Draw GUI sets end_turn_draw)
+		// done writing: End Turn becomes "Confirm", drawn lit on top where End Turn is (oCombat Draw GUI sets end_turn_draw)
 		var _seal_click = false;
 		if (variable_instance_exists(id, "end_turn_draw")) {
 			var _et = end_turn_draw;
@@ -3007,8 +3007,8 @@ gpu_set_blendmode(bm_normal);
 			draw_set_font(ftDefault);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
-			draw_outline_text("SEAL THE LOG", c_black, c_white, 2, _et.tx, _et.ty, close_btn_scale, 1, 0);
-			if (_seal_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Seal the log", "Done rewriting: close the log and play your dice. It stays closed until next turn; ink you don't spend carries over.");
+			draw_outline_text("CONFIRM", c_black, c_white, 2, _et.tx, _et.ty, close_btn_scale, 1, 0);
+			if (_seal_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Confirm", "Done with your ink: close the log and play your dice. It stays closed until next turn; ink you don't spend carries over.");
 			_seal_click = _seal_hov && mouse_check_button_pressed(mb_left);
 		}
 
@@ -3076,7 +3076,7 @@ gpu_set_blendmode(bm_normal);
 			else combat_redraw_die(_clicked);
 		}
 
-		// closing: only "Seal the log" (or Enter, End Turn's key: oCombat Step)
+		// closing: only "Confirm" (or Enter, End Turn's key: oCombat Step)
 		if (insight_view_age > 0 && _seal_click) combat_insight_view_set(false);
 
 		draw_set_color(c_white);

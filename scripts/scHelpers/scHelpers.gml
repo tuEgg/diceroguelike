@@ -2077,6 +2077,12 @@ function die_keyword_icons(_d) {
 	return _found;
 }
 
+/// @func die_stats_line(_d, _out)
+/// @desc "d6 Block, 1-6": a die's size, types and range (from get_dice_output), for tooltips on its picture.
+function die_stats_line(_d, _out) {
+	return "d" + string(_d.dice_value) + " " + bag_type_label(_d.possible_type) + ", " + string(_out.min_roll) + "-" + string(_out.max_roll);
+}
+
 /// @func bag_card_layout(_d, _w)
 /// @desc Where things go on a bag card, measured from its text (like offering_card_layout): the stats line and the
 ///       description beside the die, then a fitted core's distribution under whichever is lower. h is the height it needs.
@@ -2084,11 +2090,11 @@ function bag_card_layout(_d, _w) {
 	var _head_h = 42;
 	var _text_x = 88;                 // from the card's left edge
 	var _text_w = _w - _text_x - 14;
-	draw_set_font(ftDescriptions);
-	var _line = font_get_size(ftDescriptions) * 1.2;
+	draw_set_font(ftDefault);
+	var _line = font_get_size(ftDefault) * 1.5; // the line height coloured text wraps at (draw_outline_text)
 	var _desc_h = string_height_ext(die_description(_d), _line, _text_w);
 	var _die_bottom = _head_h + 40 + 36;           // the die (radius 30, a triangle reaching a bit lower)
-	var _text_bottom = _head_h + 40 + _desc_h;
+	var _text_bottom = _head_h + 14 + _desc_h;
 	var _info_bottom = max(_die_bottom, _text_bottom) + 12;
 	var _bars_h = (_d.distribution != "") ? (5 + 30 + 5 + 15) + 12 : 0; // draw_dice_distribution at scale 1, and a gap
 	return { head_h: _head_h, text_x: _text_x, text_w: _text_w, bars_bottom: _info_bottom + _bars_h, h: _info_bottom + _bars_h };
@@ -2098,7 +2104,7 @@ function bag_card_layout(_d, _w) {
 /// @desc A die's card in the bag view (and the dice picker), centred on _cx, _cy, laid out like the quartermaster's
 ///       cards (bag_card_layout):
 ///       - a header band in its type colour: its name, its keyword icons just after it, its rarity gem on the right
-///       - the die drawn in code on the left; beside it "d6 Block, 1-6" in its type colour, and what it does
+///       - the die drawn in code on the left; beside it what it does, big ("d6 Block, 1-6" only on hovering the die)
 ///       - a fitted core: its distribution under all that (the core isn't described)
 ///       Dark edge; lifts with a white edge when hovered; a green edge and tick when picked.
 function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
@@ -2146,9 +2152,10 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
-	draw_outline_text("d" + string(_d.dice_value) + " " + bag_type_label(_d.possible_type) + ", " + string(_out.min_roll) + "-" + string(_out.max_roll), c_black, merge_colour(_type_col, c_white, 0.4), 2, _tx, _y1 + _head_h + 10, 1, _alpha, 0, _lay.text_w);
-	draw_set_font(ftDescriptions);
-	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 40, 1, _alpha, 0, _lay.text_w);
+	// just the effect, big: the die already shows its size and colour, the bars its faces
+	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 14, 1, _alpha, 0, _lay.text_w);
+	// its size, type and range on hovering the die
+	if (_hover && mouse_hovering(_dx, _dy, 70, 70, true, noone, noone, true, UI_LAYER.BAG)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die_stats_line(_d, _out), die_description(_d), undefined, 0, _d);
 
 	// a fitted core: how it shapes this die's faces, under the die and its words
 	if (_d.distribution != "") {
@@ -2293,12 +2300,13 @@ function offering_card_layout(_off, _w) {
 	var _head_h = 52;
 	var _text_w = _w - 128 - 18;          // beside the die
 	var _core_w = _w - 80 - 18;           // beside the core icon
+	draw_set_font(ftDefault);
+	var _desc_h = string_height_ext(die_description(_off.dice), font_get_size(ftDefault) * 1.5, _text_w);
 	draw_set_font(ftDescriptions);
 	var _line = font_get_size(ftDescriptions) * 1.2;
-	var _desc_h = string_height_ext(die_description(_off.dice), _line, _text_w);
 	var _core_desc_h = string_height_ext(_off.core.description, _line, _core_w);
 	var _die_bottom = _head_h + 62 + 48;  // the die (radius 40, a triangle reaching a bit lower)
-	var _text_bottom = _head_h + 50 + _desc_h;
+	var _text_bottom = _head_h + 24 + _desc_h;
 	var _core_y = max(_die_bottom, _text_bottom) + 20;
 	var _bars_top = _core_y + 44 + _core_desc_h + 18;
 	var _bars_h = (5 + 30 + 5 + 15) * 1.4; // draw_dice_distribution at scale 1.4
@@ -2345,10 +2353,9 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 	var _out = get_dice_output(_d, -1, -1, true, "player");
-	draw_outline_text("d" + string(_d.dice_value) + " " + bag_type_label(_d.possible_type) + ", " + string(_out.min_roll) + "-" + string(_out.max_roll), c_black, merge_colour(_type_col, c_white, 0.4), 2, _tx, _y1 + _head_h + 18, 1, 1, 0);
-	draw_set_font(ftDescriptions);
-	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 50, 1, 1, 0, _lay.text_w);
-	if (mouse_hovering(_dx, _dy, 90, 90, true, noone, noone, true, UI_LAYER.POPUP)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _d.name, die_description(_d), undefined, 0, _d);
+	// just the effect, big; its size, type and range on hovering the die
+	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 24, 1, 1, 0, _lay.text_w);
+	if (mouse_hovering(_dx, _dy, 90, 90, true, noone, noone, true, UI_LAYER.POPUP)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die_stats_line(_d, _out), die_description(_d), undefined, 0, _d);
 
 	// the core, just under the die and its words
 	var _cy = _y1 + _lay.core_y;
