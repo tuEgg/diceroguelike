@@ -1377,6 +1377,19 @@ function effect_subject_die(_data) {
 	return undefined;
 }
 
+/// @func die_bottom_edge(_sides, _r)
+/// @desc How far below its centre a code-drawn die's lowest edge is (draw_die at radius _r): keyword icons sit centred on it.
+function die_bottom_edge(_sides, _r) {
+	if (_sides <= 2) return _r * 1.07;
+	var _pts = die_shape_points(_sides, _r * 1.07); // the outline
+	var _lo = 0;
+	for (var i = 0; i < array_length(_pts); i++) _lo = max(_lo, _pts[i][1]);
+	return _lo;
+}
+
+/// @func draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha, _where)
+/// @desc A die's keyword icons (draw_keyword_icon), centred in a row on _x, _y: callers put _y on the die's bottom edge
+///       (die_bottom_edge) so the roundels overlap it by half. Only keywords whose icon_on includes _where.
 function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0, _where = "hand") {
     // icons come from the die's keywords list, only those worth an icon _where the die is (the keyword's icon_on)
     var found = [];
@@ -1390,9 +1403,9 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0, _where = 
 
     if (array_length(found) == 0) return;
 
-    var icon_x = _x - 4;
-    var icon_y = _y + 3;
-    var icon_spacing = 35 * _scale;
+    var icon_x = _x;
+    var icon_y = _y;
+    var icon_spacing = 33 * _scale; // the roundels (30 px at scale 1) nearly touch
 	
 	icon_x -= (array_length(found)-1) * icon_spacing / 2;
 

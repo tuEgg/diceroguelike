@@ -540,7 +540,7 @@ for (var i = 0; i < aq_list_size; i++) {
 			draw_die(xx_top, yy_top, 17 * this_dice_scale, die_struct.dice_value, _shown_face, _col, 0, _acted ? 0.5 : 1);
 			
 			// Draw keyword icons above
-			draw_dice_keywords(die_struct, xx_top, yy_top - 30, 0.6, 1, "slot"); // only what matters in a slot (Sticky)
+			draw_dice_keywords(die_struct, xx_top, yy_top + die_bottom_edge(die_struct.dice_value, 17 * this_dice_scale), 0.65, 1, "slot"); // only what matters in a slot (Sticky), on its bottom edge
 			if (global.action_icons) draw_action_type_icon(die_struct.action_type, xx_top - 13, yy_top + 13, 0.8); // Settings > Display > Action icons on dice
 			
 			// Bonus badge in the die's bottom-right corner: every-die bonuses, first-die ones on the first die, and what
