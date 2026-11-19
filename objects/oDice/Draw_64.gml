@@ -15,8 +15,12 @@ if (_coded) {
 		var _can = combat_insight_can(INSIGHT_COST_REDRAW);
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);
+		draw_set_valign(fa_bottom); // wraps upwards from just above the keyword icons
+		// short, wrapped to 220px, and kept on screen (the discard pile is at the right edge)
+		var _msg = _can ? "Discard and draw  -" + string(INSIGHT_COST_REDRAW) : "Needs " + string(INSIGHT_COST_REDRAW) + " insight to discard (you have " + string(max(0, oCombat.player_intel)) + ")";
+		var _mx = clamp(x, 120, display_get_gui_width() - 120);
+		draw_outline_text(_msg, c_black, _can ? global.color_intel : make_color_rgb(150, 150, 160), 2, _mx, y - _die_r - 24, 1, 1, 0, 220);
 		draw_set_valign(fa_middle);
-		draw_outline_text(_can ? "Discard and draw:  -" + string(INSIGHT_COST_REDRAW) + " insight" : "Needs " + string(INSIGHT_COST_REDRAW) + " insight to discard (you have " + string(max(0, oCombat.player_intel)) + ")", c_black, _can ? global.color_intel : make_color_rgb(150, 150, 160), 2, x, y - _die_r - 40, 1, 1, 0); // above the keyword icons
 	}
 } else {
 	draw_sprite_ext(sprite_index, image_index, x, y, scale, scale, image_angle, image_blend, image_alpha);

@@ -2916,13 +2916,9 @@ function combat_insight_view_draw() {
 		surface_reset_target();
 		draw_surface_part(insight_surf, 0, _top, _gw, _gh - _top, 0, _top); // the top bar stays as it is
 
-		// the heading
+		// no heading: the lit intents, their cost coins and hovers say it all (Jared, 2026-11-19)
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
-		draw_set_font(ftBigger);
-		draw_outline_text("Insight: " + string(player_intel) + " to spend", c_black, global.color_intel, 2, _gw / 2, _top + 50, 1, 1, 0);
-		draw_set_font(ftDefault);
-		draw_outline_text("Click an enemy's move to reroll it, or its numbers to see them exactly. I, the eye or right-click closes this.", c_black, c_white, 2, _gw / 2, _top + 90, 1, 1, 0);
 
 		// the eye, on top, with a ring and your insight beside it: click to close
 		var _ex = global.player_x, _ey = global.player_y - 180;
