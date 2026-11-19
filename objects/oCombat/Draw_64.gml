@@ -739,7 +739,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 
 		// Quill: click an intent, then choose Reroll (the enemy picks a different move) or Halve (its numbers this turn)
 		var _intent_hover = mouse_hovering(xx, yy, text_w + 20, 50, true);
-		enemy.intent_rect = { x: xx, y: yy, w: text_w + 20, h: 50 }; // centred: insight view lights it up and takes the click
+		enemy.intent_rect = { x: xx, y: yy, w: text_w + 20, h: 50, split: text_x - 6 }; // centred; split: icon | number (insight view)
 		var _can_rewrite = false; // the old Quill menu: insight view rerolls intents now
 		if (!_can_rewrite && quill_menu_enemy == enemy) quill_menu_enemy = undefined;
 		if (_can_rewrite && _intent_hover && quill_menu_enemy != enemy) {
@@ -1053,11 +1053,11 @@ if (state != CombatState.PLAYER_DEAD) {
 	draw_sprite_ext(sIntelEye, _eye_frame, global.player_x, global.player_y - 180, intel_scale * (1 + _eye_pulse), intel_scale * (1 + _eye_pulse), 0, c_white, intel_alpha);
 	draw_outline_text("Insight", c_black, intel_is_blotted() ? c_red : global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
 	intel_scale = intel_hover ? lerp(intel_scale, 1.15, 0.2) : lerp(intel_scale, 1.0, 0.2);
-	if (intel_hover && mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && _has_insight) combat_insight_view_set(true);
+	if (intel_hover && mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && !intel_is_blotted() && state == CombatState.PLAYER_INPUT) combat_insight_view_set(true);
 	if (intel_hover) {
 		if (intel_is_blotted()) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 insight the page is smudged: enemy intents are hidden, and you can't spend insight.");
-		else if (_has_insight) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Insight: " + string(player_intel) + " to spend", "Click to see what it can buy this turn.");
-		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Insight: " + string(player_intel), "Insight dice give you insight next turn. With 2 or more, click here to spend it.");
+		else if (_has_insight) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Insight: " + string(player_intel) + " to spend", "Click (or press I) to spend it on enemy moves. Rerolling and redrawing your dice, and extra plays, are paid as you do them.");
+		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Insight: " + string(player_intel), "Insight dice give you insight next turn. Spend it on rerolls (right-click a die, 3), redraws (discard a die, 3), extra plays (4), or here on enemy moves (2 and 6).");
 	}
 
 	// the number shows when it isn't zero, negative intel (from Overwhelm) included

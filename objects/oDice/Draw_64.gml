@@ -10,13 +10,13 @@ if (_coded) {
 	var _face = tumbling ? flick_face : (die_has_faces(struct) ? die_face_total(struct) : -1);
 	var _wobble = over_discard ? sin(current_time / 70) * 9 : 0;
 	draw_die(x, y, _die_r, dice_value, _face, over_discard ? merge_colour(image_blend, c_black, 0.25) : image_blend, tumble_angle + _wobble, image_alpha);
-	// over the discard pile: say what letting go does (with a free redraw left, it draws a new one too)
+	// over the discard pile: what letting go does and costs (3 insight to discard and draw a new one), greyed if you can't
 	if (over_discard && instance_exists(oCombat)) {
-		var _redraw = (oCombat.redraws_used < combat_redraws_total());
+		var _can = combat_insight_can(INSIGHT_COST_REDRAW);
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
-		draw_outline_text(_redraw ? "Discard and draw" : "Discard", c_black, _redraw ? global.color_intel : c_white, 2, x, y - _die_r - 40, 1, 1, 0); // above the keyword icons
+		draw_outline_text(_can ? "Discard and draw:  -" + string(INSIGHT_COST_REDRAW) + " insight" : "Needs " + string(INSIGHT_COST_REDRAW) + " insight to discard (you have " + string(max(0, oCombat.player_intel)) + ")", c_black, _can ? global.color_intel : make_color_rgb(150, 150, 160), 2, x, y - _die_r - 40, 1, 1, 0); // above the keyword icons
 	}
 } else {
 	draw_sprite_ext(sprite_index, image_index, x, y, scale, scale, image_angle, image_blend, image_alpha);
@@ -53,7 +53,12 @@ if mouse_hovering(x, y, sprite_width, sprite_height, true) {
 	// rolled dice: the title says what it rolled, and the body how to reroll it
 	var _rolled = (room == rmCombat && die_has_faces(struct) && !tumbling);
 	var _title = string(struct.name) + (_rolled ? ": rolled " + string(die_face_total(struct)) : "") + " (" + string(dice_output.min_roll) + "-" + string(dice_output.max_roll) + ")";
-	var _reroll_hint = (_rolled && instance_exists(oCombat) && oCombat.rerolls_used < combat_rerolls_total()) ? "\n\nRight-click to reroll it." : ((_rolled && instance_exists(oCombat)) ? "\n\nBuy a reroll (" + string(INSIGHT_COST_REROLL) + " insight: click the eye) to reroll it." : "");
+	var _reroll_hint = (_rolled && instance_exists(oCombat)) ? "\n\nRight-click to reroll it for " + string(INSIGHT_COST_REROLL) + " insight." : "";
+	// the right mouse button over the die: reroll for 3, greyed when you can't afford it
+	if (_rolled && instance_exists(oCombat) && oCombat.state == CombatState.PLAYER_INPUT && !is_dragging) {
+		var _can_reroll = combat_insight_can(INSIGHT_COST_REROLL);
+		draw_mouse_hint(x - 40, y - sprite_height / 2 - 52, "right", "Reroll  -" + string(INSIGHT_COST_REROLL), 0.6, _can_reroll ? global.color_intel : make_color_rgb(90, 90, 100), _can_reroll ? global.color_intel : make_color_rgb(150, 150, 160));
+	}
 	queue_tooltip(x - sprite_width/2, y + sprite_height/2, _title, die_description(struct) + _reroll_hint, undefined, 0, struct);
 	
 	var off_x = 0;

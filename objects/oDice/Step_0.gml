@@ -210,10 +210,7 @@ if (is_dragging && mouse_check_button_released(mb_left)) {
     if (combat != noone) {
         // the guided first fight only lets through what its current step asks for (tutorial_allows)
         if (is_mouse_over_discard_button()) {
-            if (tutorial_allows("discard", struct)) with (combat) {
-				discard_dice(other.id);
-				combat_redraw_after_discard(); // rolled dice: the first discard each turn draws a new die
-			}
+            if (tutorial_allows("discard", struct)) with (combat) combat_discard_and_redraw(other.id); // 3 insight, or it stays in hand
         } else if (oCombat.last_hover) {
 			if (!die_has_keyword(struct, "exclusive") && tutorial_allows("sacrifice", struct)) {
 				with (combat) sacrifice_die(other.id);

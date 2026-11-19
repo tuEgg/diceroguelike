@@ -1663,24 +1663,24 @@ function run_summary_draw() {
 /// @func draw_mouse_hint(_x, _y, _button, _text)
 /// @desc A small mouse with its left or right button lit, and what that button does, e.g. at the workbench while a
 ///       tool is in hand. _x, _y is the mouse's centre; the text follows on the right.
-function draw_mouse_hint(_x, _y, _button, _text) {
-	var _w = 34, _h = 48;
+function draw_mouse_hint(_x, _y, _button, _text, _scale = 1, _lit = c_red, _text_col = c_white) {
+	var _w = 34 * _scale, _h = 48 * _scale;
 	var _x1 = _x - _w / 2, _y1 = _y - _h / 2;
 	draw_set_alpha(1);
 	draw_set_color(make_color_rgb(50, 50, 55));
-	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 16, 16, false);
+	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 16 * _scale, 16 * _scale, false);
 	// the lit button: the top half of one side
-	draw_set_color(c_red);
-	if (_button == "left") draw_roundrect_ext(_x1 + 2, _y1 + 2, _x, _y - 2, 12, 12, false);
-	else draw_roundrect_ext(_x, _y1 + 2, _x1 + _w - 2, _y - 2, 12, 12, false);
+	draw_set_color(_lit);
+	if (_button == "left") draw_roundrect_ext(_x1 + 2, _y1 + 2, _x, _y - 2, 12 * _scale, 12 * _scale, false);
+	else draw_roundrect_ext(_x, _y1 + 2, _x1 + _w - 2, _y - 2, 12 * _scale, 12 * _scale, false);
 	draw_set_color(c_black);
 	draw_line_width(_x, _y1, _x, _y, 2);
 	draw_line_width(_x1, _y, _x1 + _w, _y, 2);
-	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 16, 16, true);
+	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 16 * _scale, 16 * _scale, true);
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
-	draw_outline_text(_text, c_black, c_white, 2, _x + _w / 2 + 12, _y, 1, 1, 0);
+	draw_outline_text(_text, c_black, _text_col, 2, _x + _w / 2 + 12 * _scale, _y, 1, 1, 0);
 	draw_set_halign(fa_center);
 }
 
