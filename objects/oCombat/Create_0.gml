@@ -28,13 +28,12 @@ locked_slot = -1;
 bound_slot = -1;
 hovered_slot = -1;
 
-// rolled dice: a fight starts with two empty slots. The first coloured die played into one picks its type for the turn
+// rolled dice: a fight starts with one empty slot. The first coloured die played into one picks its type for the turn
 // (combat_new_slot has the slot's fields). docs/design-rolled-dice.md
+// One slot to start (Jared, 2026-11-19): the rest are built, and slots fill left to right (slot_placement_check).
 ds_list_add(action_queue, combat_new_slot("None"));
-ds_list_add(action_queue, combat_new_slot("None"));
-// each slot's place is worth a bonus to its total: +0, +1, then +2, +3... for the ones you build (slot_set_position_bonus)
+// each slot's place is worth a bonus to its total: +0 here, then +1, +2... for the ones you build (slot_set_position_bonus)
 slot_set_position_bonus(action_queue[| 0], 0);
-slot_set_position_bonus(action_queue[| 1], 1);
 
 played_uids = [];              // dice played this turn (uid): "when played" effects fire once per die per turn, even if it's taken back and played again
 rerolls_used = 0;              // free rerolls used this turn (right-click a die in hand); combat_rerolls_total() allowed

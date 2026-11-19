@@ -12,10 +12,11 @@ Branch `feature/rolled-dice`. Agreed with Jared on 2026-11-19. The goal: more de
 - **Reroll once per turn, free.** Right-click a die in your hand.
 - **Discard and redraw once per turn, free.** The first die you drop on the discard pile each turn draws a new one. Later discards just discard.
 - **End Turn discards everything.** Hand, slots and unfinished new-slot dice all go to the discard pile. Sticky dice stay.
-- **Slots start empty, every turn.** A fight starts with 2 empty slots. The first coloured die played into an empty slot sets its type for that turn (the old "claim"). At End Turn every slot, built ones too, is empty and untyped again. (Built slots kept their types for a while; that let one Attack/Block slot swallow everything, so it went.)
+- **One slot to start, filled left to right.** A fight starts with 1 empty slot. A die can only go in a slot if every slot before it has an action (a chained slot doesn't count), and a slot can't be emptied by taking a die back while a later slot has dice.
+- **Slots start empty, every turn.** The first coloured die played into an empty slot sets its type for that turn (the old "claim"). At End Turn every slot, built ones too, is empty and untyped again. (Built slots kept their types for a while; that let one Attack/Block slot swallow everything, so it went.)
 - **A slot's place is worth a bonus.** Added once to its total, not per die: slot 1 +0, slot 2 +1, slot 3 +2, and so on. Built slots are worth more, and with more slots than good dice, which die gets the big bonus is a choice.
-- **New slots cost a total, not a count.** Drop dice on the new-slot tile. When at least 2 dice are there and their rolled numbers add up to the threshold, the slot is built:
-  - slot 3: 6+, slot 4: 9+, slot 5: 12+, and so on (+3 per slot; Cursed Heart adds +3).
+- **New slots cost a total, not a count.** Drop dice on the new-slot tile. When enough dice are there and their rolled numbers add up to the threshold, the slot is built:
+  - slot 2: 1 die, 3+; slot 3: 2 dice, 6+; slot 4: 3 dice, 9+; and so on (slot N: N-1 dice adding to 3(N-1); Cursed Heart adds +3 to the total).
   - Each die dropped there uses a play (coins free) and can be taken back until the slot is built.
   - This turn the new slot has the types of the dice that built it (a red and a blue die: Attack/Block, right-click switches). From next turn it's an empty slot like the others.
   - The dice that built it become its first dice and act this turn, locked in (taking one back would leave a free slot), then are discarded at End Turn. "When sacrificed" effects fire when the slot is built.
@@ -34,5 +35,5 @@ Branch `feature/rolled-dice`. Agreed with Jared on 2026-11-19. The goal: more de
 - Live totals: `get_slot_stats` uses the faces.
 - Take back: `combat_take_back` (scCombatScripts), clicked in oCombat Draw GUI, run from oCombat Step.
 - Reroll and redraw: `reroll_used` / `redraw_used` on oCombat, reset at turn start.
-- Slot building: `sacrifice_die`, `new_slot_threshold`, `slot_recompute_types`. Position bonus: `slot_set_position_bonus`.
+- Slot building: `sacrifice_die`, `new_slot_threshold`, `new_slot_min_dice`, `slot_recompute_types`. Order: `slot_has_action` in `slot_placement_check` and `combat_take_back`. Position bonus: `slot_set_position_bonus`.
 - Flee: `combat_enemies_flee`.

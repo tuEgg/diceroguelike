@@ -416,13 +416,14 @@ for (var i = 0; i < aq_list_size; i++) {
 	    draw_set_halign(fa_center);
 	    draw_set_valign(fa_middle);
 		draw_set_font(ftDefault);
-		// rolled dice: 2 or more dice adding up to the threshold build a slot (combat_try_build_slot)
+		// rolled dice: enough dice adding up to the threshold build a slot (combat_try_build_slot)
 		new_tile_pos = { x: last_x, y: last_y, w: last_w, h: last_h };
 		var _need = new_slot_threshold();
 		var _have = new_slot_total();
 		draw_outline_text("New slot\n" + string(_have) + " / " + string(_need), c_black, c_white, 2, last_x + last_w / 2, last_y + last_h / 2 - (last_h / 10), 1, 1, 0);
-		draw_outline_text("2+ dice", c_black, make_color_rgb(190, 190, 200), 2, last_x + last_w / 2, last_y + last_h - 35, 1, 1, 0);
-		if (last_hover && !is_placing && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", "Drop dice here. When 2 or more of them add up to " + string(_need) + ", they build a new slot with their types. Each die uses a play (coins are free). Click a die here to take it back. Dice left here at End Turn are discarded.");
+		var _min_dice = new_slot_min_dice();
+		draw_outline_text((_min_dice == 1) ? "1+ die" : string(_min_dice) + "+ dice", c_black, make_color_rgb(190, 190, 200), 2, last_x + last_w / 2, last_y + last_h - 35, 1, 1, 0);
+		if (last_hover && !is_placing && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", "Drop dice here. When " + ((new_slot_min_dice() == 1) ? "they" : string(new_slot_min_dice()) + " or more of them") + " add up to " + string(_need) + ", they build a new slot and act in it this turn. Each die uses a play (coins are free). Click a die here to take it back. Dice left here at End Turn are discarded.");
 
 		// the dice waiting on it, above it like a slot's
 		var _wait = ds_list_size(global.sacrifice_list);

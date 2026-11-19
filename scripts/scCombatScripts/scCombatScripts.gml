@@ -585,6 +585,12 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 		return _no("No plays left this turn. Coins are still free to play.");
 	}
 
+	// slots fill left to right: every slot before this one needs an action (a chained slot doesn't count)
+	for (var j = 0; j < _slot_i; j++) {
+		if (j == locked_slot) continue;
+		if (!slot_has_action(action_queue[| j])) return _no("Slots fill in order: slot " + string(j + 1) + " needs an action first.");
+	}
+
 	var _slot_empty = (_slot.possible_type == "None");
 	var _slot_all = (_slot.possible_type == "All");
 	var _die_neutral = (_die_struct.possible_type == "None");
@@ -804,7 +810,7 @@ function add_dice_to_bag(_die) {
 
 /// @func sacrifice_die(_die)
 /// @desc Rolled dice: a die dropped on the new-slot tile waits there (it uses a play, coins are free, and it can be taken
-///       back) until 2 or more dice on it add up to new_slot_threshold. Then the slot is built (combat_try_build_slot).
+///       back) until enough dice on it (new_slot_min_dice) add up to new_slot_threshold. Then the slot is built (combat_try_build_slot).
 function sacrifice_die(_die) {
 	if (dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(_die.struct, "coin")) {
 		dice_played_scale = 1.4;
@@ -830,10 +836,16 @@ function sacrifice_die(_die) {
 }
 
 /// @func new_slot_threshold()
-/// @desc What the dice on the new-slot tile must add up to: slot 3 needs 6, then 3 more per slot (Cursed Heart: +3).
+/// @desc What the dice on the new-slot tile must add up to: 3 for slot 2, 6 for slot 3, 9 for slot 4... (Cursed Heart: +3).
 function new_slot_threshold() {
 	var _slot_number = ds_list_size(oCombat.action_queue) + 1;
-	return max(4, 3 * (_slot_number - 1) + 3 * oCombat.slot_cost_modifier);
+	return max(3, 3 * (_slot_number - 1) + 3 * oCombat.slot_cost_modifier);
+}
+
+/// @func new_slot_min_dice()
+/// @desc How many dice the new-slot tile needs at least: 1 for slot 2, 2 for slot 3, 3 for slot 4...
+function new_slot_min_dice() {
+	return max(1, ds_list_size(oCombat.action_queue));
 }
 
 /// @func new_slot_total()
@@ -850,11 +862,11 @@ function new_slot_total() {
 }
 
 /// @func combat_try_build_slot()
-/// @desc Builds a new slot once 2 or more dice on the tile reach the threshold. Their "when sacrificed" effects fire now,
+/// @desc Builds a new slot once enough dice on the tile (new_slot_min_dice) reach the threshold. Their "when sacrificed" effects fire now,
 ///       and they become the slot's first dice for this turn (locked in), so this turn it has their types. Like every
 ///       slot it's empty and untyped again after End Turn; what it keeps is its place, worth a bonus (slot_set_position_bonus).
 function combat_try_build_slot() {
-	if (ds_list_size(global.sacrifice_list) < 2 || new_slot_total() < new_slot_threshold()) return;
+	if (ds_list_size(global.sacrifice_list) < new_slot_min_dice() || new_slot_total() < new_slot_threshold()) return;
 
 	combat_trigger_effects("on_new_slot_created", { slot_index: ds_list_size(action_queue) + 1 });
 
@@ -2063,7 +2075,7 @@ function tips_list() {
 		{
 			// rolled dice prototype: the guided fight is off, so this explains the new rules once
 			id: "rolled_dice", room: rmCombat, target: "",
-			text: "Rolled dice: your dice show what they rolled. Drag them into the two empty slots (the first coloured die picks a slot's type) and watch the totals. Click a die in a slot to take it back. Once a turn, right-click a die to reroll it, and the first die you discard draws a new one. Dice on the new-slot tile build a slot when 2 or more add up to its number. End Turn discards everything.",
+			text: "Rolled dice: your dice show what they rolled. Drag them into the slots (the first coloured die picks a slot's type; slots fill left to right) and watch the totals. Click a die in a slot to take it back. Once a turn, right-click a die to reroll it, and the first die you discard draws a new one. Dice on the new-slot tile build the next slot when they add up to its number (slot 2 needs one die of 3+, slot 3 two dice adding to 6...), and later slots add more to their total. End Turn discards everything.",
 			when: function() { return tips_combat_ready() && oCombat.turn_count == 1; },
 		},
 		{
@@ -2455,6 +2467,13 @@ function combat_new_slot(_types) {
 	};
 }
 
+/// @func slot_has_action(_slot)
+/// @desc A slot with dice in it and an action to do (generic dice alone have none). Slots fill left to right: a slot can
+///       only take dice once every slot before it has one (slot_placement_check).
+function slot_has_action(_slot) {
+	return ds_list_size(_slot.dice_list) > 0 && (_slot.current_action_type != "None" || _slot.possible_type == "All");
+}
+
 /// @func slot_recompute_types(_slot)
 /// @desc A slot's types are the ones it was built with plus those of the dice in it. Empty, a starting slot is
 ///       untyped again. Keeps the selected type if it's still allowed.
@@ -2525,6 +2544,20 @@ function combat_take_back(_slot_i, _index) {
 	if (!ds_safe_exists(_list, ds_type_list) || _index < 0 || _index >= ds_list_size(_list)) return;
 	var _die = _list[| _index];
 	if (!die_can_take_back(_die)) return;
+
+	// slots fill left to right: a slot can't lose its action while a later slot has dice in it
+	if (_slot != undefined) {
+		var _coloured_left = 0;
+		for (var k = 0; k < ds_list_size(_list); k++) if (k != _index && _list[| k].possible_type != "None") _coloured_left++;
+		if (_coloured_left == 0) {
+			for (var j = _slot_i + 1; j < ds_list_size(action_queue); j++) {
+				if (j != locked_slot && ds_list_size(action_queue[| j].dice_list) > 0) {
+					throw_error("Take back later dice first", "Slots fill in order, so slot " + string(_slot_i + 1) + " can't be emptied while a later slot has dice.");
+					return;
+				}
+			}
+		}
+	}
 	ds_list_delete(_list, _index);
 
 	// back in hand, flying from where it was
