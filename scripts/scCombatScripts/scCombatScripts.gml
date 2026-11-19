@@ -881,6 +881,16 @@ function new_slot_total() {
 function combat_try_build_slot() {
 	if (ds_list_size(global.sacrifice_list) < new_slot_min_dice() || new_slot_total() < new_slot_threshold() || !combat_all_slots_have_action()) return;
 
+	// it can be taken apart again this turn (combat_unbuild_slot) unless something that can't be undone fires: a die's
+	// "when sacrificed" effect (or its "when played" one, which Lead Line fires on sacrifice)
+	var _undo_ok = true;
+	var _lead_line = runmanager_has_keepsake_id("lead_line");
+	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
+		var _sd = global.sacrifice_list[| j];
+		if (die_has_effect_trigger(_sd, "on_sacrifice_die") || (_lead_line && die_has_effect_trigger(_sd, "on_dice_played_to_slot"))) _undo_ok = false;
+	}
+	var _bonus_before = dice_allowed_this_turn_bonus; // Shipwright's Draft adds a play: given back if it's taken apart
+
 	combat_trigger_effects("on_new_slot_created", { slot_index: ds_list_size(action_queue) + 1 });
 
 	// "when sacrificed" effects. They expect the die in hand (data.die.struct), so each gets a stand-in at the tile.
@@ -901,15 +911,18 @@ function combat_try_build_slot() {
 	// untyped like every slot (it resets each turn); this turn its types come from the dice in it (slot_recompute_types)
 	var _new_slot = combat_new_slot("None");
 	slot_set_position_bonus(_new_slot, ds_list_size(action_queue));
+	_new_slot.built_turn = turn_count;
+	_new_slot.undo_ok = _undo_ok;
+	_new_slot.draft_bonus = dice_allowed_this_turn_bonus - _bonus_before;
 	var _first_type = "";
 
-	// the dice that built it become its first dice and act this turn (discarded at End Turn like the rest). They're
-	// locked in: taking one back would leave a slot built for free. The first coloured one picks the slot's type.
+	// the dice that built it become its first dice and act this turn (discarded at End Turn like the rest). Taking one
+	// back takes the slot apart (combat_unbuild_slot), if nothing irreversible fired. The first coloured one picks its type.
 	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
 		var _src = global.sacrifice_list[| j];
 		var _in = clone_die(_src, (_src.possible_type == "None") ? "temporary" : "base");
 		_in.played_turn = turn_count;
-		_in.play_locked = true;
+		_in.play_locked = !_undo_ok;
 		_in.built_slot = true;
 		ds_list_add(_new_slot.dice_list, _in);
 		if (_first_type == "" && _src.action_type != "None") _first_type = _src.action_type;
@@ -2549,6 +2562,7 @@ function die_has_effect_trigger(_die, _trigger) {
 function die_can_take_back(_die) {
 	if (!is_struct(_die) || !instance_exists(oCombat)) return false;
 	if (!variable_struct_exists(_die, "played_turn") || _die.played_turn != oCombat.turn_count) return false;
+	if (variable_struct_exists(_die, "built_slot") && _die.built_slot) return combat_built_die_can_return(_die);
 	return !(variable_struct_exists(_die, "play_locked") && _die.play_locked);
 }
 
@@ -2557,6 +2571,83 @@ function combat_no_die_dragged() {
 	var _none = true;
 	with (oDice) if (is_dragging) _none = false;
 	return _none;
+}
+
+/// @func runmanager_has_keepsake_id(_id)
+/// @desc Whether you own the keepsake with this _id.
+function runmanager_has_keepsake_id(_id) {
+	if (!instance_exists(oRunManager) || !ds_safe_exists(oRunManager.keepsakes, ds_type_list)) return false;
+	for (var i = 0; i < ds_list_size(oRunManager.keepsakes); i++) if (oRunManager.keepsakes[| i]._id == _id) return true;
+	return false;
+}
+
+/// @func combat_built_die_can_return(_die)
+/// @desc A die that built its slot can come back (taking the slot apart) when that slot is the newest, was built this
+///       turn, and nothing irreversible fired when it was built (undo_ok).
+function combat_built_die_can_return(_die) {
+	with (oCombat) {
+		var _n = ds_list_size(action_queue);
+		if (_n == 0) return false;
+		var _last = action_queue[| _n - 1];
+		if (ds_list_find_index(_last.dice_list, _die) == -1) return false;
+		return variable_struct_exists(_last, "built_turn") && _last.built_turn == turn_count && variable_struct_exists(_last, "undo_ok") && _last.undo_ok;
+	}
+	return false;
+}
+
+/// @func combat_die_to_hand(_die, _sx, _sy)
+/// @desc A die (struct) from a slot or the tile goes back to the hand with the same roll, flying from _sx, _sy, and
+///       gives its play back (not a coin's).
+function combat_die_to_hand(_die, _sx, _sy) {
+	var _inst = instance_create_layer(_sx, _sy, "Instances", oDice);
+	_inst.struct = clone_die(_die, "");
+	_inst.struct.played_turn = -1;
+	_inst.struct.built_slot = false;
+	_inst.action_type = _inst.struct.action_type;
+	_inst.dice_amount = _inst.struct.dice_amount;
+	_inst.dice_value = _inst.struct.dice_value;
+	_inst.possible_type = _inst.struct.possible_type;
+	_inst.can_discard = true;
+	_inst.no_tumble = true; // same roll as before: no tumble on the way back
+	var _target = generate_valid_targets(1, 100)[0];
+	_inst.target_x = _target[0];
+	_inst.target_y = _target[1];
+	if (!die_has_keyword(_die, "coin")) dice_played = max(0, dice_played - 1);
+}
+
+/// @func combat_unbuild_slot(_slot_i, _index)
+/// @desc Takes apart the newest slot (built this turn): the die at _index goes back to your hand, the other dice that
+///       built it go back onto the new-slot tile (still played), any dice played into it since go back to your hand, and
+///       a Shipwright's Draft play is taken back. The slot is gone; the tile is where it was.
+function combat_unbuild_slot(_slot_i, _index) {
+	var _slot = action_queue[| _slot_i];
+	var _pos = (_slot_i < ds_list_size(slot_positions)) ? slot_positions[| _slot_i] : undefined;
+	var _sx = is_struct(_pos) ? _pos.x + _pos.w / 2 : display_get_gui_width() / 2;
+	var _sy = is_struct(_pos) ? _pos.y : display_get_gui_height() / 2;
+	for (var d = 0; d < ds_list_size(_slot.dice_list); d++) {
+		var _die = _slot.dice_list[| d];
+		var _built = variable_struct_exists(_die, "built_slot") && _die.built_slot;
+		if (_built && d != _index) {
+			var _back = clone_die(_die, "temporary");
+			_back.played_turn = turn_count;
+			_back.play_locked = false;
+			_back.built_slot = false;
+			ds_list_add(global.sacrifice_list, _back);
+		} else {
+			combat_die_to_hand(_die, _sx, _sy);
+		}
+	}
+	dice_allowed_this_turn_bonus -= variable_struct_exists(_slot, "draft_bonus") ? _slot.draft_bonus : 0;
+	if (locked_slot == _slot_i) locked_slot = -1;
+	ds_list_destroy(_slot.dice_list);
+	ds_list_delete(action_queue, _slot_i);
+	update_sacrificed_type_array();
+	particle_emit(_sx, _sy + 60, "burst", c_white, 20);
+	dice_played_scale = 1.2;
+	dice_played_color = c_green;
+	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
+	add_feed_entry("You took the new slot apart.");
+	runmanager_trigger_keepsakes("after_change_current_action", {});
 }
 
 /// @func combat_take_back_blocked(_slot_i, _index)
@@ -2592,6 +2683,11 @@ function combat_take_back(_slot_i, _index) {
 	if (!ds_safe_exists(_list, ds_type_list) || _index < 0 || _index >= ds_list_size(_list)) return;
 	var _die = _list[| _index];
 	if (!die_can_take_back(_die)) return;
+	// a die that built its slot: the slot comes apart (combat_unbuild_slot)
+	if (_slot != undefined && variable_struct_exists(_die, "built_slot") && _die.built_slot) {
+		combat_unbuild_slot(_slot_i, _index);
+		return;
+	}
 
 	// slots fill left to right: a slot can't lose its action while a later slot has dice in it (combat_take_back_blocked)
 	if (_slot != undefined && combat_take_back_blocked(_slot_i, _index) != "") {
@@ -2603,20 +2699,7 @@ function combat_take_back(_slot_i, _index) {
 	// back in hand, flying from where it was
 	var _sx = is_struct(_pos) ? _pos.x + _pos.w / 2 : display_get_gui_width() / 2;
 	var _sy = is_struct(_pos) ? _pos.y : display_get_gui_height() / 2;
-	var _inst = instance_create_layer(_sx, _sy, "Instances", oDice);
-	_inst.struct = clone_die(_die, "");
-	_inst.struct.played_turn = -1;
-	_inst.action_type = _inst.struct.action_type;
-	_inst.dice_amount = _inst.struct.dice_amount;
-	_inst.dice_value = _inst.struct.dice_value;
-	_inst.possible_type = _inst.struct.possible_type;
-	_inst.can_discard = true;
-	_inst.no_tumble = true; // same roll as before: no tumble on the way back
-	var _target = generate_valid_targets(1, 100)[0];
-	_inst.target_x = _target[0];
-	_inst.target_y = _target[1];
-
-	if (!die_has_keyword(_die, "coin")) dice_played = max(0, dice_played - 1);
+	combat_die_to_hand(_die, _sx, _sy);
 	dice_played_scale = 1.2;
 	dice_played_color = c_green;
 	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);

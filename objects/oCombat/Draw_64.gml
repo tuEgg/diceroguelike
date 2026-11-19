@@ -519,9 +519,10 @@ for (var i = 0; i < aq_list_size; i++) {
 					// the order rule says why up front, rather than a click that seems to do nothing
 					var _blocked = die_can_take_back(die_struct) ? combat_take_back_blocked(i, d) : "";
 					if (_blocked != "") _back_hint = "\n\n" + _blocked;
-					else if (die_can_take_back(die_struct)) _back_hint = "\n\nClick to take it back to your hand.";
-					else if (variable_struct_exists(die_struct, "play_locked") && die_struct.play_locked && variable_struct_exists(die_struct, "played_turn") && die_struct.played_turn == turn_count) {
-						_back_hint = (variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot) ? "\n\nIt built this slot, so it stays this turn." : "\n\nIts 'when played' effect has happened, so it stays.";
+					else if (die_can_take_back(die_struct)) _back_hint = (variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot) ? "\n\nClick to take it back: this slot comes apart, and the other dice that built it wait on the new-slot tile." : "\n\nClick to take it back to your hand.";
+					else if (variable_struct_exists(die_struct, "played_turn") && die_struct.played_turn == turn_count) {
+						if (variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot) _back_hint = (i < ds_list_size(action_queue) - 1) ? "\n\nIt built this slot. Take the newer slot apart first." : "\n\nIt built this slot, and its 'when sacrificed' effect has happened, so it stays.";
+						else if (variable_struct_exists(die_struct, "play_locked") && die_struct.play_locked) _back_hint = "\n\nIts 'when played' effect has happened, so it stays.";
 					}
 				}
 				queue_die_tip(die_struct, xx_top, yy_top - 22 * this_dice_scale, undefined, string_trim(_back_hint));
@@ -541,8 +542,8 @@ for (var i = 0; i < aq_list_size; i++) {
 			
 			// Draw keyword icons above
 			draw_dice_keywords(die_struct, xx_top, yy_top + die_bottom_edge(die_struct.dice_value, 17 * this_dice_scale), 0.65, 1, "slot"); // only what matters in a slot (Sticky), on its bottom edge
-			// it built this slot this turn, so it stays (its tip says so): a small padlock on its corner
-			if (state == CombatState.PLAYER_INPUT && variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot && variable_struct_exists(die_struct, "played_turn") && die_struct.played_turn == turn_count) draw_padlock(xx_top + 15, yy_top - 13, 0.55, make_color_rgb(226, 212, 176));
+			// it built this slot this turn and can't come back out (its tip says why): a small padlock on its corner
+			if (state == CombatState.PLAYER_INPUT && variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot && variable_struct_exists(die_struct, "played_turn") && die_struct.played_turn == turn_count && !die_can_take_back(die_struct)) draw_padlock(xx_top + 15, yy_top - 13, 0.55, make_color_rgb(226, 212, 176));
 			if (global.action_icons) draw_action_type_icon(die_struct.action_type, xx_top - 13, yy_top + 13, 0.8); // Settings > Display > Action icons on dice
 			
 			// Bonus badge in the die's bottom-right corner: every-die bonuses, first-die ones on the first die, and what
