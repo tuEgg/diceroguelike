@@ -1200,52 +1200,53 @@ function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
 	
 }
 
+/// @func dice_trigger_effects(_event, _data)
+/// @desc Fire _event on every die in the action queue (a broadcast: after_roll_die, on_dice_played_to_slot,
+///       on_dice_ejected). Each die's effects are owner-only by default here: they fire only when the die the event is
+///       about (effect_subject_die) is that die. An effect can set owner_only: false to react to other dice. (T03)
 function dice_trigger_effects(_event, _data) {
-    // Iterate through all dice currently in play
-    for (var s = 0; s < ds_list_size(oCombat.action_queue); s++) {
-        var slot = oCombat.action_queue[| s];
-        for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
-            var die = slot.dice_list[| d];
-            if (is_undefined(die.effects)) continue;
-
-            // Some dice have one effect, others multiple
-            if (is_array(die.effects)) {
-                for (var e = 0; e < array_length(die.effects); e++) {
-                    var eff = die.effects[e];
-					_data._die_struct_source = die;  // the die whose effect we're about to fire
-                    if (eff.trigger == _event && is_callable(eff.modify)) {
-                        eff.modify(_data);
-                    }
-                }
-            } else {
-                var eff = die.effects;
-				_data._die_struct_source = die;  // the die whose effect we're about to fire
-                if (eff.trigger == _event && is_callable(eff.modify)) {
-                    eff.modify(_data);
-                }
-            }
-        }
-    }
+	for (var s = 0; s < ds_list_size(oCombat.action_queue); s++) {
+		var slot = oCombat.action_queue[| s];
+		for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
+			die_fire_effects(slot.dice_list[| d], _event, _data, true);
+		}
+	}
 }
 
+/// @func trigger_die_effects_single(_die_struct, _event, _data)
+/// @desc Fire _event on one die (it is the die the event is about: rolling, sacrificing, dealt, not used).
 function trigger_die_effects_single(_die_struct, _event, _data) {
-    if (is_undefined(_die_struct.effects)) return;
+	die_fire_effects(_die_struct, _event, _data, false);
+}
 
-    if (is_array(_die_struct.effects)) {
-        for (var e = 0; e < array_length(_die_struct.effects); e++) {
-            var eff = _die_struct.effects[e];
-			_data._die_struct_source = _die_struct;  // the die whose effect we're about to fire
-            if (eff.trigger == _event && is_callable(eff.modify)) {
-                eff.modify(_data);
-            }
-        }
-    } else {
-        var eff = _die_struct.effects;
-		_data._die_struct_source = _die_struct;  // the die whose effect we're about to fire
-        if (eff.trigger == _event && is_callable(eff.modify)) {
-            eff.modify(_data);
-        }
-    }
+/// @func die_fire_effects(_die, _event, _data, _broadcast)
+/// @desc The one place a die's effects fire (T03). Sets _data._die_struct_source to the die, and skips an owner-only
+///       effect (owner_only: true, or by default in a broadcast) when the event is about another die. Effects can
+///       still check uids themselves; that stays harmless.
+function die_fire_effects(_die, _event, _data, _broadcast = false) {
+	if (!is_struct(_die) || !variable_struct_exists(_die, "effects") || is_undefined(_die.effects)) return;
+	var _effs = is_array(_die.effects) ? _die.effects : [_die.effects];
+	for (var e = 0; e < array_length(_effs); e++) {
+		var eff = _effs[e];
+		if (!is_struct(eff) || eff.trigger != _event || !is_callable(eff.modify)) continue;
+		var _owner_only = variable_struct_exists(eff, "owner_only") ? eff.owner_only : _broadcast;
+		if (_owner_only) {
+			var _subject = effect_subject_die(_data);
+			if (is_struct(_subject) && variable_struct_exists(_subject, "uid") && _subject.uid != _die.uid) continue;
+		}
+		_data._die_struct_source = _die; // the die whose effect is firing
+		eff.modify(_data);
+	}
+}
+
+/// @func effect_subject_die(_data)
+/// @desc The die an event is about, from whichever field its context uses (ejected, played, rolled...), or undefined.
+function effect_subject_die(_data) {
+	var _fields = ["_ejected_die", "_d_struct", "die", "_slot_die", "_die_struct"];
+	for (var i = 0; i < array_length(_fields); i++) {
+		if (variable_struct_exists(_data, _fields[i]) && is_struct(_data[$ _fields[i]])) return _data[$ _fields[i]];
+	}
+	return undefined;
 }
 
 function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0) {
