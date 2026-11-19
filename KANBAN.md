@@ -223,6 +223,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 - Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
 - Q7 Resolution targets: settled by B83 (batch 12): the game is laid out at 1920x1080 and scaled to any 16:9 window, so new resolutions only need adding to the list.
+- Q9 Rolled dice, phase 2: porting dice and keepsakes. Every die and keepsake sorted by when it happens (when rolled, in the queue, when it acts), with what breaks and proposals, in `docs/design-port-dice-keepsakes.md`. Eight calls for Jared at its end (Sticky, Muzzle, Assassin, Deepdiver, Lantern, Guerrilla Coin, Repeater Rail, the moment rule).
 - Q8 Between pages: what should the choices be? (The workbench is now an At sea stop between pages, F02.)
 
 ## 📌 DECISIONS
