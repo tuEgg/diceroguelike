@@ -265,10 +265,10 @@ function ui_dashed_box(_x1, _y1, _x2, _y2, _col, _alpha = 1, _dash = 16, _width 
 /// @func ui_primary_button(_cx, _cy, _w, _h, _text, _frame_col, _active, [_hover])
 /// @desc The screen's one commit action (End Turn, Embark...): the brightest paper on the table in a thick frame
 ///       (brass; gold ink while the ink view is open), its words in ink. Inactive: faded. Hovered: lifts a little.
-function ui_primary_button(_cx, _cy, _w, _h, _text, _frame_col, _active, _hover = false) {
+function ui_primary_button(_cx, _cy, _w, _h, _text, _frame_col, _active, _hover = false, _alpha = 1) {
 	var _lift = (_hover && _active) ? 3 : 0;
 	var _x1 = _cx - _w / 2, _y1 = _cy - _h / 2 - _lift, _x2 = _cx + _w / 2, _y2 = _cy + _h / 2 - _lift;
-	var _a = _active ? 1 : 0.55;
+	var _a = (_active ? 1 : 0.55) * _alpha;
 	draw_set_alpha(0.45 * _a);
 	draw_set_color(c_black);
 	draw_roundrect_ext(_x1 + 4, _y1 + 10 + _lift, _x2 + 4, _y2 + 10 + _lift, 18, 18, false);
@@ -313,4 +313,33 @@ function ui_paper_text(_text, _x, _y, _width = -1, _alpha = 1) {
 	global.ui_on_paper = true;
 	draw_outline_text(_text, global.ui_col.paper_hi, global.ui_col.ink, 1, _x, _y, 1, _alpha, 0, _width);
 	global.ui_on_paper = false;
+}
+
+/// @func ui_primary(_cx, _cy, _w, _h, _text, _active, [_reason], [_layer], [_alpha], [_frame_col])
+/// @desc The screen's commit action with its input: draws ui_primary_button (lifting on hover) and returns
+///       { hover, click }. Inactive: faded, and _reason shows on hover.
+function ui_primary(_cx, _cy, _w, _h, _text, _active, _reason = "", _layer = UI_LAYER.BASE, _alpha = 1, _frame_col = undefined) {
+	if (is_undefined(_frame_col)) _frame_col = global.ui_col.brass;
+	var _hover = (_alpha > 0.5) && mouse_hovering(_cx - _w / 2, _cy - _h / 2, _w, _h, false, soSlotHover, noone, true, _layer);
+	ui_primary_button(_cx, _cy, _w, _h, _text, _frame_col, _active, _hover, _alpha);
+	if (_hover && !_active && _reason != "") queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _text, _reason);
+	var _click = _hover && _active && mouse_check_button_pressed(mb_left);
+	if (_click) sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
+	return { hover: _hover, click: _click };
+}
+
+/// @func ui_label(_cx, _cy, _text, _font, _seed, [_alpha], [_pad])
+/// @desc A heading on a strip of paper (the draft's "Choose a page to draft"): ink text on a torn paper label.
+function ui_label(_cx, _cy, _text, _font, _seed, _alpha = 1, _pad = 28) {
+	draw_set_font(_font);
+	var _w = string_width(_text) + _pad * 2, _h = string_height(_text) + _pad * 0.8;
+	ui_paper(_cx - _w / 2, _cy - _h / 2, _cx + _w / 2, _cy + _h / 2, _seed, global.ui_col.paper_hi, _alpha);
+	draw_set_font(_font);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_alpha(_alpha);
+	draw_set_color(global.ui_col.ink);
+	draw_text(_cx, _cy, _text);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
 }

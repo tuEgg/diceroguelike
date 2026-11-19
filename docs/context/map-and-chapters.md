@@ -31,6 +31,10 @@ Decides everything random **once, on the node** (so Continue brings back the sam
 - shops: `shop_stock` (`roll_shop_stock`), treasure: `treasure_keepsake`
 - `current_node` is set here and cleared on map Room Start and by debug jumps.
 
+## Look (UI rework)
+
+The draft heading is a ; Embark is  bottom right (the tip  points there); the chapter end is a  page with  at its bottom right; sea-stop names are ink with a paper halo.
+
 ## Chapters
 
 `CHAPTER_SPREADS` (7) drafted spreads, then `place_boss_page()` lays a single boss page (not drafted). `CHAPTER_COUNT` (3). Boss win → `CHAPTER_END` screen → `start_new_chapter()` (fresh book, pools refilled, saves) or, after the last chapter, "Voyage complete" back to the menu. `enemy_apply_chapter_scaling` toughens enemies per chapter (`CHAPTER_ENEMY_HP_GROWTH`, `CHAPTER_ENEMY_BONUS_GROWTH`).

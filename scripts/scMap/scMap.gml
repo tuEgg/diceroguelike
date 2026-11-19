@@ -1453,7 +1453,7 @@ function strait_draw(_ax, _ay) {
 		draw_set_font(ftDescriptions);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_top);
-		draw_outline_text(_info.name, c_black, _info.ok ? c_white : c_ltgray, 2, _sx, _sy + 36 * strait.scales[i], 1, _alpha, 0);
+		draw_outline_text(_info.name, global.ui_col.paper_hi, (_info.ok || !strait.active) ? global.ui_col.ink : global.ui_col.ink_soft, 2, _sx, _sy + 36 * strait.scales[i], 1, _alpha, 0); // ink, like the chart
 		if (_hov) {
 			// ahead (the islands aren't done yet): what it is, and that it's at the end of the spread
 			if (!strait.active) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, _info.tip + "\nAt the end of this spread: choose one stop, and heal as you pass through.");
@@ -1530,7 +1530,7 @@ function sea_buoy_draw(_bx, _by) {
 	draw_set_font(ftDescriptions);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
-	draw_outline_text("Shipwright's buoy", c_black, c_white, 2, _b.x, _b.y + 36 * _b.scale, 1, (_b.active || _b.visited) ? 1 : 0.75, 0);
+	draw_outline_text("Shipwright's buoy", global.ui_col.paper_hi, global.ui_col.ink, 2, _b.x, _b.y + 36 * _b.scale, 1, (_b.active || _b.visited) ? 1 : 0.75, 0); // ink, like the chart
 	draw_set_halign(fa_left);
 	if (_hov) {
 		var _tip = "Moor here and open the workbench: take dice from your bag (one per tool you own) and use each tool once.";

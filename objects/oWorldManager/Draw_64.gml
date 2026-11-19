@@ -212,9 +212,8 @@ if (room == rmMap) {
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBigger);
 		// one heading for one action (it used to have "What happened next?" over it as well)
-		draw_outline_text("Choose a page to draft", c_black, c_white, 3, bg_w/2, gui_h * 0.25, 1, pages_alpha, 0);
+		if (pages_alpha > 0.02) ui_label(bg_w/2, gui_h * 0.25, "Choose a page to draft", ftBigger, 41, pages_alpha); // a paper label (UI rework)
 		draw_set_font(ftDefault);
-		if (pages_alpha > 0.05) ui_divider(gui_w/2 - 200, gui_w/2 + 200, gui_h * 0.29, pages_alpha); // under the heading
 	
 		if (world_state == WORLD_STATE.OPENING) {		
 			book_open_scale = lerp(book_open_scale, 1.0, 0.08);
@@ -380,18 +379,11 @@ if (room == rmMap) {
 			// Embark: a kit button that glows and breathes once both pages are chosen, fading in with the pages
 			var embark_ready = (exit_col == c_red);
 			var embark_pulse = embark_ready ? (0.5 + 0.5 * sin(current_time / 220)) : 0;
-			var embark_x = display_get_gui_width() * 3/4, embark_y = gui_h - 100;
-			var embark_w = 240, embark_h = 84;
-			if (embark_ready) {
-				var glow_w = embark_w / 2 * embark_scale + 16 + 8 * embark_pulse;
-				var glow_h = embark_h / 2 * embark_scale + 12 + 6 * embark_pulse;
-				draw_set_color(global.color_intel);
-				draw_set_alpha(pages_alpha * (0.25 + 0.3 * embark_pulse));
-				draw_roundrect_ext(embark_x - glow_w, embark_y - glow_h, embark_x + glow_w, embark_y + glow_h, 30, 30, false);
-				draw_set_alpha(1);
-			}
-			var embark_btn = ui_button(embark_x, embark_y, embark_w * (1 + 0.05 * embark_pulse), embark_h * (1 + 0.05 * embark_pulse), embark_scale, "Embark", embark_ready ? global.ui_primary : global.ui_neutral, embark_ready, "Choose two pages first.", UI_LAYER.BASE, pages_alpha, ftBigger);
-			embark_scale = embark_btn.scale;
+			// the screen's commit action, bottom right like End Turn (ui_primary, UI rework); it breathes once both pages are chosen
+			var embark_w = 300, embark_h = 104;
+			var embark_x = gui_w - 44 - embark_w / 2, embark_y = gui_h - 40 - embark_h / 2;
+			var _eb = 1 + 0.035 * embark_pulse;
+			var embark_btn = ui_primary(embark_x, embark_y, embark_w * _eb, embark_h * _eb, "Embark", embark_ready, "Choose two pages first.", UI_LAYER.BASE, pages_alpha);
 			if (embark_btn.click) {
 				choices_locked = true;
 				save_game(1);
@@ -436,38 +428,37 @@ if (room == rmMap) {
 		chapter_end_alpha = lerp(chapter_end_alpha, 1, 0.1);
 		
 		draw_set_color(c_black);
-		draw_set_alpha(0.7 * chapter_end_alpha);
+		draw_set_alpha(0.6 * chapter_end_alpha);
 		draw_rectangle(0, ui_top_bar_h(), gui_w, gui_h, false); // the top bar stays in full colour
 		draw_set_alpha(1.0);
 
+		// the chapter's last page (UI rework): a paper page, the title in ink, what comes next, and the commit at its
+		// bottom right
+		var voyage_over = (chapter >= CHAPTER_COUNT);
+		var _pw = 820, _ph = 380;
+		var _px1 = gui_w / 2 - _pw / 2, _py1 = gui_h * 0.5 - _ph / 2 - 30;
+		ui_paper(_px1, _py1, _px1 + _pw, _py1 + _ph, 77 + chapter, global.ui_col.paper, chapter_end_alpha);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
+		draw_set_alpha(chapter_end_alpha);
+		draw_set_color(global.ui_col.ink);
+		draw_set_font(ftHuge);
+		draw_text(gui_w / 2, _py1 + 78, voyage_over ? "Voyage complete" : "Chapter " + string(chapter) + " complete");
 		draw_set_font(ftBigger);
-		var voyage_over= (chapter >= CHAPTER_COUNT);
-
-		draw_outline_text(voyage_over ? "Voyage complete" : "Chapter " + string(chapter) + " complete", c_black, c_white, 3, gui_w/2, gui_h * 0.34, 1, chapter_end_alpha, 0);
-		draw_set_font(ftBig);
-		draw_outline_text(chapter_title(chapter), c_black, c_white, 2, gui_w/2, gui_h * 0.41, 1, chapter_end_alpha, 0);
+		draw_set_color(global.ui_col.ink_soft);
+		draw_text(gui_w / 2, _py1 + 140, chapter_title(chapter));
+		draw_set_color(global.ui_col.paper_shade);
+		draw_line_width(gui_w / 2 - 160, _py1 + 172, gui_w / 2 + 160, _py1 + 172, 2);
 		draw_set_font(ftDefault);
+		draw_set_color(global.ui_col.ink);
 		var next_text = voyage_over
 			? "You have sailed all " + string(CHAPTER_COUNT) + " chapters of the logbook."
 			: "Next: Chapter " + string(chapter + 1) + ", " + chapter_title(chapter + 1) + ". The seas grow more dangerous.";
-		draw_outline_text(next_text, c_black, c_white, 2, gui_w/2, gui_h * 0.50, 1, chapter_end_alpha, 0);
+		draw_text_ext(gui_w / 2, _py1 + 212, next_text, -1, _pw - 120);
+		draw_set_alpha(1);
+		draw_set_color(c_white);
 
-		var chapter_btn = draw_gui_button(
-			gui_w/2 - gui_w/10,
-			gui_h * 0.58,
-			gui_w/5,
-			gui_h/12,
-			chapter_btn_scale,
-			voyage_over ? "Finish the voyage" : "Turn the page",
-			global.ui_primary,
-			ftBig,
-			chapter_end_alpha > 0.9,
-			true
-		);
-
-		chapter_btn_scale = lerp(chapter_btn_scale, chapter_btn.hover ? 1.2 : 1.0, 0.2);
+		var chapter_btn = ui_primary(_px1 + _pw - 30 - 150, _py1 + _ph - 30 - 48, 300, 96, voyage_over ? "Finish the voyage" : "Turn the page", chapter_end_alpha > 0.9, "", UI_LAYER.BASE, chapter_end_alpha);
 
 		if (chapter_btn.click) {
 			if (voyage_over) {
