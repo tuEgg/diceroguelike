@@ -569,6 +569,11 @@ if (dice_selection != false) {
 	}
 }
 
+// floating numbers and words ("X replaced with Y"), above the bag view and the picker (B140)
+global.damage_text_late = true;
+with (oDamageText) event_perform(ev_draw, ev_gui);
+global.damage_text_late = false;
+
 // tooltips are drawn in Draw GUI End (Draw_75), after every window, so nothing covers them
 
 // the first voyage's map notes and the one-time tips, above every window

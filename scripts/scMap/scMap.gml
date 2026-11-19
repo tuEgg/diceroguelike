@@ -747,8 +747,11 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 				}
 			}
 		
-			// show completed nodes as green
-			if (node.cleared) draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale*1.2, node.scale*1.2, 0, make_color_rgb(126, 183, 131), _alph);
+			// show completed nodes as green, with a faded ink tick on them (F148)
+			if (node.cleared) {
+				draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale*1.2, node.scale*1.2, 0, make_color_rgb(126, 183, 131), _alph);
+				map_visited_tick(node.x + 14, node.y - 12, 1, _alph);
+			}
 		}
 	}
 	
@@ -1373,6 +1376,23 @@ function strait_stop_info(_id, _heal) {
 	return { name: _name, tip: _i.label + ". " + _i.tip, ok: _i.ok, reason: _i.reason };
 }
 
+/// @func map_visited_tick(_x, _y, _scale, _alpha)
+/// @desc A place on the chart you've been (F148): a faded ink tick, as if checked off in pen, with a paper halo so it
+///       reads on any icon. Islands' nodes, the Shipwright's buoy and the strait's stops all use it.
+function map_visited_tick(_x, _y, _scale = 1, _alpha = 1) {
+	var _s = _scale;
+	draw_set_alpha(_alpha * 0.8);
+	draw_set_color(global.ui_col.paper_hi);
+	draw_line_width(_x - 9 * _s, _y, _x - 3 * _s, _y + 7 * _s, 7 * _s);
+	draw_line_width(_x - 3 * _s, _y + 7 * _s, _x + 10 * _s, _y - 9 * _s, 7 * _s);
+	draw_set_alpha(_alpha * 0.75);
+	draw_set_color(global.ui_col.ink);
+	draw_line_width(_x - 8 * _s, _y, _x - 3 * _s, _y + 6 * _s, 3.5 * _s);
+	draw_line_width(_x - 3 * _s, _y + 6 * _s, _x + 9 * _s, _y - 8 * _s, 3 * _s);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
 /// @func sea_stop_draw(_id, _x, _y, _scale, _alpha, _ok)
 /// @desc A sea stop on the map: a round inked badge with what it offers inside (code-drawn, like the dice), greyed
 ///       when it can't be taken.
@@ -1485,6 +1505,9 @@ function strait_draw(_ax, _ay) {
 			}
 		}
 
+		// been there (F148)
+		if (_taken && strait.arrived) map_visited_tick(_sx + 18, _sy - 14, 1, 1);
+
 		// the ink stamp: what you got, rising off the stop
 		if (_taken && strait.arrived) {
 			var _what = (_id == "calm") ? "Rested" : _info.name;
@@ -1533,6 +1556,7 @@ function sea_buoy_draw(_bx, _by) {
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
 	draw_outline_text("Shipwright's buoy", global.ui_col.paper_hi, global.ui_col.ink, 2, _b.x, _b.y + 36 * _b.scale, 1, (_b.active || _b.visited) ? 1 : 0.75, 0); // ink, like the chart
+	if (_b.visited) map_visited_tick(_b.x + 18, _b.y - 14, 1, 1); // been there (F148)
 	draw_set_halign(fa_left);
 	if (_hov) {
 		var _tip = "Moor here and open the workbench: take dice from your bag (one per tool you own) and use each tool once.";

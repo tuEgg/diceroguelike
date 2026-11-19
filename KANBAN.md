@@ -30,9 +30,10 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 20: UI rework (combat, cards, map, rooms, menus) | F130, F131, F132, F133, F134, F135, F136, B138, B141, F142, F143, F144, F147, B134, B136, B137, B139, F140, F141, F137 | `feature/ui-rework` (off dev) | **Ready to test.** The logbook look on the combat screen (docs/design-ui-rework.md). |
+| 20: UI rework (combat, cards, map, rooms, menus) | F130, F131, F132, F133, F134, F135, F136, B138, B141, F142, F143, F144, F147, B134, B136, B137, B139, F140, F141, F137, F148, B135, B140 | `feature/ui-rework` (off dev) | **Ready to test.** The logbook look on the combat screen (docs/design-ui-rework.md). |
 
 **Batch 20 test list (`feature/ui-rework`)**
+- Playtest fixes, part 3: F148 places you have been on the chart get a faded ink tick (island stops, the Shipwright's buoy once visited, the strait stop you took). B135 the Drill whirrs through its frames as you pick it up (the grab still never drills). B140 floating words and numbers ("X replaced with Y", damage) draw above the bag view and the dice picker; check combat damage numbers still look right.
 - F137 Keywords explained where you meet them: hovering any die (in hand, in a slot, on a card, reward or shelf) shows its tip with a line per keyword it has and per buff or debuff its effect names (Sticky, Coin, Might, Mock...), each with its icon or a bullet. Dice cards (bag, picker, fight rewards) show their keyword icons under the die; hover one for its tooltip. Hovering an event choice that names a keyword, buff or debuff ("Sticky", "Mock", "Barnacle Bind") explains it in a tooltip beside it (a choice that shows a die still shows the die). Check a choice naming none shows nothing, and that a plain "coin" in a choice reads sensibly.
 - Playtest fixes, part 2: F141 the bag view shows five cards a row, with descriptions a size smaller (more words a line), and fight reward cards are a little narrower. B139 cards only fade where they cross the panel's top or bottom edge (whole rows no longer dim); with few dice there's no scrollbar and no scrolling, with many the thumb is the share you can see and dragging it moves the rows with it. F140 the dice picker: when you've already picked as many as it wants, clicking another die swaps it for your oldest pick (picking 1: any click replaces it); clicking a picked die still unpicks it. B134 at the workbench, until your first craft a "Change dice" button left of the bench puts your hand back in the bag and opens the picker again (it goes once a tool has crafted). B136 the treasure room: Continue with the chest closed or the keepsake untaken turns into a red "Leave it?" with a line saying what you'd leave; click again within 3 s to go. B137 check a long slot name ("Flurry of Blades"): since the rework the ticket shrinks it to fit.
 - Playtest fixes, part 1: B141/F142 the ink number sits under the inkwell (once, in the ink view too), and the inkwell keeps pulsing until you use ink, play a die or end the turn. F143 HP numbers are smaller and sit on the bar (buffs and debuffs come up closer). F144 alignment shows a % left of the compass. F147 the new-slot tile reads "3+ pips" (and "2 / 3+" as dice wait on it). B138 an empty ticket shows its place bonus.
@@ -63,7 +64,7 @@ All known P0 bugs are fixed, see DONE.
 **Dice / keepsakes / items**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B132 | Surge die didn't roll on draw (Molly, 2026-11-19). | scDice, Surge | S |
+| B132 | Surge die didn't roll on draw (Molly, 2026-11-19). Code reads fine (it rolls like any d4; its +1 per later slot only counts in a slot): need to know what Molly saw. | scDice, Surge | S |
 | B133 | Mocked (forced) dice don't show it: no Mock mark on the die, no warning when rerolling it. | oDice, ink view | S |
 
 **Map / events / bounty / workbench**

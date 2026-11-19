@@ -53,6 +53,7 @@ if (!is_dragging && hovered && mouse_check_button_pressed(mb_left) && !oRunManag
 	drag_offset_y = my - y;
 	first_selected = true;
 	oWorkbenchManager.button_text = "Drill";
+	grab_spin = 24; // a whirr as you pick it up, so it feels live (the grab itself never drills)
 }
 
 if (is_dragging && mouse_check_button_pressed(mb_right)) {
@@ -83,6 +84,11 @@ if (is_dragging) {
 	} else {
 		image_xscale = 1;
 		drill_change_time = drill_change_time_start;
+		// just picked up: spin down through its frames, then rest
+		if (grab_spin > 0) {
+			grab_spin--;
+			if (grab_spin mod 3 == 0) image_index = (grab_spin > 0) ? (image_index + 1) mod 6 : 0;
+		}
 	}
 	
 	over_button = mouse_hovering(gui_w/2, gui_h/2 - 40, 160, 80, true);
