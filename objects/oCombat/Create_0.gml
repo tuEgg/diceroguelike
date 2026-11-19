@@ -120,6 +120,7 @@ insight_view = false;     // the insight phase is open: the log, before you play
 balance_next_turn = 0;      // Balance gained for next turn (Balanced die), applied as it starts (oCombat Step)
 insight_phase_done = false; // this turn's start-of-turn check has run (the inkwell pulses if ink can do something)
 ink_pulse = 0;              // frames left of the inkwell's start-of-turn pulse
+ink_waiting = false;        // ink can do something and you haven't acted yet this turn: the inkwell keeps pulsing
 quill_over = false;         // the log is open and the mouse is over something the quill can change (cursor_draw)
 close_btn_scale = 1;
 insight_view_age = 0;     // frames the view has been open (the opening click mustn't close it)

@@ -149,34 +149,32 @@ function ui_numeral(_text, _x, _y, _size, _col, _alpha = 1, _halign = fa_center)
 /// @desc A readable health bar centred on _cx: a 20 px inked bar (red for what's left), and the number under it in
 ///       the numeral face ("22 / 30"), cream with an ink halo so it reads on the table. Returns its height.
 function ui_hp_bar(_cx, _y, _w, _hp_shown, _hp, _max, _alpha = 1) {
+	// a 26 px inked bar with the number on it (Molly: smaller, on the bar, so buffs and debuffs sit close under it)
 	var _x1 = _cx - _w / 2, _x2 = _cx + _w / 2;
 	var _r = clamp(_hp_shown / max(1, _max), 0, 1);
 	draw_set_alpha(_alpha);
 	draw_set_color(global.ui_col.ink);
-	draw_roundrect_ext(_x1 - 3, _y - 3, _x2 + 3, _y + 23, 12, 12, false);
+	draw_roundrect_ext(_x1 - 3, _y - 3, _x2 + 3, _y + 29, 12, 12, false);
 	draw_set_color(make_color_rgb(28, 23, 18));
-	draw_roundrect_ext(_x1, _y, _x2, _y + 20, 10, 10, false);
+	draw_roundrect_ext(_x1, _y, _x2, _y + 26, 10, 10, false);
 	if (_r > 0) {
 		draw_set_color(global.color_attack);
-		draw_roundrect_ext(_x1 + 2, _y + 2, _x1 + 2 + (_w - 4) * _r, _y + 18, 8, 8, false);
+		draw_roundrect_ext(_x1 + 2, _y + 2, _x1 + 2 + (_w - 4) * _r, _y + 24, 8, 8, false);
 		draw_set_color(merge_colour(global.color_attack, c_white, 0.25));
 		draw_line_width(_x1 + 6, _y + 6, max(_x1 + 6, _x1 + (_w - 8) * _r), _y + 6, 2); // a little shine
 	}
-	draw_set_alpha(1);
-	// the number, with an ink halo
+	// the number on the bar, cream with an ink halo
 	var _txt = string(round(_hp)) + " / " + string(_max);
-	draw_set_font(ftDamage);
+	draw_set_font(ftBig);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
-	var _sc = 30 / 40;
 	draw_set_color(global.ui_col.ink);
-	draw_set_alpha(_alpha);
-	for (var a = 0; a < 8; a++) draw_text_transformed(_cx + lengthdir_x(3, a * 45), _y + 44 + lengthdir_y(3, a * 45), _txt, _sc, _sc, 0);
+	for (var a = 0; a < 8; a++) draw_text(_cx + lengthdir_x(2, a * 45), _y + 13 + lengthdir_y(2, a * 45), _txt);
 	draw_set_color(global.ui_col.paper_hi);
-	draw_text_transformed(_cx, _y + 44, _txt, _sc, _sc, 0);
+	draw_text(_cx, _y + 13, _txt);
 	draw_set_alpha(1);
 	draw_set_color(c_white);
-	return 62;
+	return 32;
 }
 
 /// @func ui_ticket(_x, _y, _w, _h, _type, _label, _total, _bonus, _seed, [_state])
@@ -217,6 +215,8 @@ function ui_ticket(_x, _y, _w, _h, _type, _label, _total, _bonus, _seed, _state 
 	var _sc = min(1, (_w - (_empty ? 16 : 44)) / max(1, string_width(_name)));
 	draw_text_transformed(_name_x, _by, _name, _sc, _sc, 0);
 	draw_set_alpha(1);
+	// an empty ticket still shows what its place adds (B138)
+	if (_empty && _bonus != "") ui_numeral(_bonus, _x + _w / 2, _y + _band_h + (_h - _band_h) * 0.5, 30, global.ui_col.bonus_ink, _alpha * 0.85);
 	// the total, huge in ink, and the bonus beside it
 	if (!_empty && string(_total) != "") {
 		var _tx = _bonus != "" ? _x + _w * 0.42 : _x + _w / 2;

@@ -346,13 +346,15 @@ for (var i = 0; i < aq_list_size; i++) {
 		var _filled = combat_all_slots_have_action();
 		// what its dice add up to, over what it needs, in the numeral face; "New slot" under; a padlock while a slot is empty
 		var _nc = last_x + last_w / 2;
-		ui_numeral(string(_have), _nc - 8, last_y + last_h * 0.42, 48, _filled ? global.ui_col.paper_hi : make_color_rgb(150, 140, 120), 1, fa_right);
-		ui_numeral("/ " + string(_need), _nc - 4, last_y + last_h * 0.44, 30, make_color_rgb(190, 176, 150), 1, fa_left);
-		draw_set_font(ftDefault);
+		// "3+ pips": what it needs, plainly; once dice wait on it, what they add up to so far
+		var _need_txt = (_have > 0) ? string(_have) + " / " + string(_need) + "+" : string(_need) + "+";
+		ui_numeral(_need_txt, _nc, last_y + last_h * 0.40, 40, _filled ? global.ui_col.paper_hi : make_color_rgb(150, 140, 120), 1, fa_center);
+		draw_set_font(ftBig);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
-		if (_filled) draw_outline_text("New slot", global.ui_col.ink, make_color_rgb(201, 187, 156), 2, _nc, last_y + last_h * 0.74, 1, 1, 0);
-		else draw_padlock(_nc, last_y + last_h * 0.74, 1, make_color_rgb(190, 180, 160));
+		draw_outline_text("pips", global.ui_col.ink, make_color_rgb(201, 187, 156), 2, _nc, last_y + last_h * 0.62, 1, 1, 0);
+		if (!_filled) draw_padlock(_nc, last_y + last_h * 0.84, 0.9, make_color_rgb(190, 180, 160));
+		else { draw_set_font(ftDefault); draw_outline_text("New slot", global.ui_col.ink, make_color_rgb(170, 158, 132), 2, _nc, last_y + last_h * 0.84, 1, 1, 0); }
 		if (last_hover && !is_placing && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", (!_filled ? "Fill every slot first.\n" : "") + "Drop " + ((new_slot_min_dice() == 1) ? "a die" : string(new_slot_min_dice()) + "+ dice") + " adding up to " + string(_need) + " to build a slot. They act in it this turn."); // short: the rest (plays, taking back, End Turn) works as everywhere else
 
 		// the dice waiting on it, above it like a slot's
@@ -956,7 +958,7 @@ if (state != CombatState.PLAYER_DEAD) {
 
 	// the number shows when it isn't zero, negative intel (from Overwhelm) included
 	if (player_intel != 0) {
-		ui_numeral(string(player_intel), _iw.x + 30, _iw.y + 14, 30, player_intel < 0 ? global.text_attack : global.color_intel, 1, fa_left); // beside the inkwell
+		ui_numeral(string(player_intel), _iw.x, _iw.y + 46, 30, player_intel < 0 ? global.text_attack : global.color_intel, 1, fa_center); // under the inkwell (beside it ran into the queue)
 	}
 
 }

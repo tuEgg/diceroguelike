@@ -3167,7 +3167,7 @@ function combat_insight_view_draw() {
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
-		draw_outline_text(string(player_intel), c_black, global.color_intel, 2, _ex + 44, _ey + 10, 1, 1, 0);
+		ui_numeral(string(player_intel), _ex, _ey + 46, 30, global.color_intel, 1, fa_center); // where the HUD draws it, so there's only ever one
 
 		// done writing: End Turn reads "Confirm" while the log is open (oCombat Draw GUI draws it in its place, under the
 		// bottom right, in full colour); the click is taken here, on the log's layer.
