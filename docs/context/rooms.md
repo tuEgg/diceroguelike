@@ -9,7 +9,7 @@ Each room has a manager object created by the room; most of its logic and clicks
 
 ## Events: `oEventManager`, `scEvents`
 
-- `define_events()` builds `global.master_event_list`: structs `{ name, description, options: ds_list }`, each option `{ title, description, effect(ctx), result }`. Effects set `oEventManager.event_complete` and `event_selected`; `alternate_exit` can redirect the exit (Sirens → shop). The Siren's Call upgrades by alignment: `sirens_upgrade_count`, `sirens_upgrade`. An option's `description` may be a function (worked out as it's drawn).
+- `define_events()` builds `global.master_event_list`: structs `{ name, description, options: ds_list }`, each option `{ title, description, effect(ctx), result }`. Effects set `oEventManager.event_complete` and `event_selected`; `alternate_exit` can redirect the exit (Sirens → shop). Alignment changes go through `gain_alignment(amount, x, y)` (scParticles): motes (oParticleAlignment) coloured by `alignment_colour` fly to `alignment_target()` and move the compass as they land. The Siren's Call upgrades by alignment: `sirens_upgrade_count`, `sirens_upgrade`. An option's `description` may be a function (worked out as it's drawn).
 - After an option is chosen, the event text is replaced by that option's `result` line, so every option needs a real sentence there (never a placeholder).
 - `generate_event()` picks the node's remembered `event_name`, or a debug-forced one, or random, and removes it from the list (seen events are saved).
 - Many option effects open a dice picker via `oRunManager.dice_selection` and `dice_selection_event`.

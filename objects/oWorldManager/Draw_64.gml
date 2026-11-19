@@ -502,7 +502,7 @@ if (room == rmMap) {
 	}
 
 	// At sea (F02): between pages you may work on your dice once. Setting sail for the next stop counts as sailing on.
-	if (world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench) {
+	if (world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench && workbench_useful()) {
 		if (node_to_move_to != undefined) {
 			oRunManager.can_visit_workbench = false;
 		} else {

@@ -30,7 +30,7 @@ if (room == rmMap) {
 			if (nodes_til_page_cleared == 0) {
 				pages_cleared++;
 				// a page's island is done: back on the map you're at sea, with time to work on your dice (F02)
-				oRunManager.can_visit_workbench = true;
+				oRunManager.can_visit_workbench = workbench_useful(); // not with only a Drill and no core to drill in
 				if (pages_cleared % 2 == 0) {
 					spreads_cleared++;
 				}

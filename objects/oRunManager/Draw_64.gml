@@ -337,7 +337,20 @@ draw_sprite_ext(sAlignmentBar, 0, alignment_x, bar_half, alignment_scale, alignm
 alignment_scale = lerp(alignment_scale, 1.0, 0.2);
 
 var alignment_pos_x = alignment_x - 112 + ((global.player_alignment) * 2.24);
-draw_sprite_ext(sCircleSmall, 0, alignment_pos_x, bar_half + 2, 1, 1, 0, c_white, 1.0);
+draw_sprite_ext(sCircleSmall, 0, alignment_pos_x, bar_half + 2, alignment_scale, alignment_scale, 0, c_white, 1.0); // swells as motes land
+
+// "+5 merciful" / "-7 ruthless" under the compass for a moment after it moves (gain_alignment)
+if (alignment_popup_t >= 0) {
+	alignment_popup_t++;
+	var _pa = clamp(2 - alignment_popup_t / (game_get_speed(gamespeed_fps) * 1.5), 0, 1); // holds, then fades over ~1.5s
+	if (_pa <= 0) alignment_popup_t = -1;
+	else {
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_top);
+		draw_outline_text(alignment_popup_text, c_black, alignment_popup_col, 2, alignment_x, bar_half + 26 + min(alignment_popup_t, 10), 1, _pa, 0);
+	}
+}
 
 var alignment_text = "Neutral";
 var alignment_description = "Actions have consequences, make decisions that change how the sea interacts with you.";

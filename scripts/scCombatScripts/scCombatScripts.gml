@@ -816,6 +816,15 @@ function sacrifice_die(_die) {
 		throw_error("Fill your slots first", "A new slot can only be built once every slot you have has an action.");
 		return;
 	}
+	// a slot built from one die (the first you build) takes just that die, and it has to reach the number on its own
+	if (new_slot_min_dice() == 1) {
+		var _face = die_face_total(_die.struct);
+		if (_face == -1) _face = ceil(_die.struct.dice_value / 2);
+		if (_face < new_slot_threshold()) {
+			throw_error("Too low", "This slot needs one die of " + string(new_slot_threshold()) + " or more. This one rolled " + string(_face) + ".");
+			return;
+		}
+	}
 	if (dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(_die.struct, "coin")) {
 		dice_played_scale = 1.4;
 		dice_played_color = c_red;
@@ -2376,6 +2385,24 @@ function combat_spare_choice_enemy() {
 		if (variable_struct_exists(_en, "alignment_choices_shown") && _en.alignment_choices_shown) return _en;
 	}
 	return undefined;
+}
+
+/// @func workbench_useful()
+/// @desc Is there anything to do at the workbench? The Hammer and Cutters always have work; the Drill only with a core
+///       to drill in. With nothing to do, the map doesn't offer the stop.
+function workbench_useful() {
+	var _drill = false;
+	for (var i = 0; i < ds_list_size(oRunManager.tools); i++) {
+		var _tool = oRunManager.tools[| i].object;
+		if (_tool == oHammer || _tool == oScissors) return true;
+		if (_tool == oDrill) _drill = true;
+	}
+	if (!_drill) return false;
+	for (var i = 0; i < array_length(oRunManager.items); i++) {
+		var _it = oRunManager.items[i];
+		if (is_struct(_it) && variable_struct_exists(_it, "type") && _it.type == "core") return true;
+	}
+	return false;
 }
 
 /// @func workbench_dice_allowance()
