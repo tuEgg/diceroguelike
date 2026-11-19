@@ -1,2 +1,2 @@
-global.player_alignment += 1 * negative;
-show_debug_message("player alignment: "+string(global.player_alignment));
+// a mote landed (or timed out): the compass moves one step its way, kept within 0 (ruthless) to 100 (merciful)
+global.player_alignment = clamp(global.player_alignment + negative, 0, 100);

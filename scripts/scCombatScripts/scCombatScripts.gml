@@ -19,6 +19,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	var enemy_bonus_used_once = false;
 	var first_die_bonus_used = false;
 	var _enemy_roll_index = 0; // which of the enemy's pre-rolled dice is next
+	var _face_index = 0; // rolled dice: which of the die's faces (rolled when dealt) is next
 	
 	repeat (_dice_amount) {
 		// Roll starts at default range
@@ -61,22 +62,42 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 			for (var d = 0; d < array_length(distribution_array); d++) {
 				weight_max += distribution_array[d];
 			}
-		
+			// a squeezed range can leave a core's weights all zero (Mock caps attacks at 1, and "weighted" or "dome" give
+			// a 1-1 range no weight): every face it can still roll counts the same then, so the roll always lands (B125)
+			if (weight_max <= 0) {
+				for (var d = 0; d < array_length(distribution_array); d++) distribution_array[d] = 1;
+				weight_max = array_length(distribution_array);
+			}
+
+			// rolled dice: the number it rolled when dealt (die_roll_faces), kept within today's range
+			var _face = -1;
+			if (die_has_faces(_slot_die) && _face_index < array_length(_slot_die.faces)) _face = clamp(_slot_die.faces[_face_index], _min_roll, _max_roll);
+			_face_index++;
+
 			// Roll between all the values in the array
 			var weighted_roll = irandom_range(weight_min, weight_max);
 			var _rolled_twice = undefined; // both faces, when the die rolls twice and keeps the higher
-			if (dice_output.roll_twice || _slot_die.roll_twice) { // roll advantage
+			// roll advantage. A die that already rolled twice when dealt (Accurate) doesn't again; a keepsake's
+			// "roll twice" (Navigation Chart, Starver's Efficiency) rolls once more and keeps the higher.
+			if (_slot_die.roll_twice || (dice_output.roll_twice && !(_face != -1 && variable_struct_exists(_slot_die, "faces_twice") && _slot_die.faces_twice))) {
 				var second_roll = irandom_range(weight_min, weight_max);
-				_rolled_twice = [weighted_to_face(distribution_array, weighted_roll, _min_roll), weighted_to_face(distribution_array, second_roll, _min_roll)];
+				var _first_face = (_face != -1) ? _face : weighted_to_face(distribution_array, weighted_roll, _min_roll);
+				var _second_face = weighted_to_face(distribution_array, second_roll, _min_roll);
+				_rolled_twice = [_first_face, _second_face];
 
-				if (second_roll > weighted_roll) weighted_roll = second_roll;
+				if (_face != -1) _face = max(_face, _second_face);
+				else if (second_roll > weighted_roll) weighted_roll = second_roll;
 
 				_slot_die.roll_twice = false; // reset after we roll twice
 			}
 			
-			// Get roll amount if we are forcing
-			if (_slot_die.forced_roll != -1) {
-			    var _clamped_forced = clamp(_slot_die.forced_roll, _min_roll, _max_roll);
+			// Get roll amount if we are forcing (an effect's forced roll wins over the rolled face)
+			var _force = (_slot_die.forced_roll != -1) ? _slot_die.forced_roll : _face;
+			if (_force != -1) {
+			    var _clamped_forced = clamp(_force, _min_roll, _max_roll);
+			    // the forced face must have some weight, or the lookup below stops on an earlier face, or on none (B125)
+			    var _fk = _clamped_forced - _min_roll;
+			    if (_fk >= 0 && _fk < array_length(distribution_array) && distribution_array[_fk] <= 0) distribution_array[_fk] = 1;
 			    weighted_roll = 0;
     
 			    for (var d = 0; d < (_clamped_forced - _min_roll + 1); d++) {
@@ -113,7 +134,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 						_c_slot_type: _type,
 						_slot_die: _slot_die,
 						die: _slot_die,
-						min_roll: actual_possible_numbers[0], // first row in distribution array that isn't zero,
+						min_roll: (array_length(actual_possible_numbers) > 0) ? actual_possible_numbers[0] : _min_roll, // first row in distribution array that isn't zero (never read an empty list: B125)
 						max_roll: _max_roll,
 						slot_bonus: slot_bonus_amount,
 						keepsake_bonus: _keepsake_dice_bonus_amount,
@@ -325,7 +346,10 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					};
 					
 					combat_trigger_effects("on_enemy_death", context);
-					
+
+					// when an elite or the boss falls, the rest of its crew flee: no gold, and the fight is won
+					if (enemy_is_leader(_target)) combat_enemies_flee(_target);
+
 					//show_debug_message("Enemies left this combat: " + string(enemies_left_this_combat));
 					//show_debug_message("NEW Enemy target index: " + string(enemy_target_index));
 				}
@@ -557,12 +581,16 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 	var _yes = function(_action) { return { ok: true, action: _action, reason: "" }; };
 
 	// coins are free to play; everything else needs a play left this turn
-	var _is_coin = (_die_struct.dice_value == 2);
 	if (dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(_die_struct, "coin")) {
 		return _no("No plays left this turn. Coins are still free to play.");
 	}
 
-	var _stats = get_slot_stats(_slot, _slot_i);
+	// slots fill left to right: every slot before this one needs an action (a chained slot doesn't count)
+	for (var j = 0; j < _slot_i; j++) {
+		if (j == locked_slot) continue;
+		if (!slot_has_action(action_queue[| j])) return _no("Slots fill in order: slot " + string(j + 1) + " needs an action first.");
+	}
+
 	var _slot_empty = (_slot.possible_type == "None");
 	var _slot_all = (_slot.possible_type == "All");
 	var _die_neutral = (_die_struct.possible_type == "None");
@@ -571,8 +599,7 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 	for (var i = 0; i < ds_list_size(_slot.dice_list); i++) {
 		if (die_has_keyword(_slot.dice_list[| i], "Exclusive")) _slot_exclusive = true;
 	}
-	var _big_enough = (_die_struct.dice_value >= _stats.highest_value_base);
-	var _size_reason = "Needs a d" + string(_stats.highest_value_base) + " or bigger to join this slot.";
+	// rolled dice: any size of die can join a slot (there used to be a "d6 or bigger" rule, with coins let off it)
 
 	// does the die share a type with the slot?
 	var _matches = false;
@@ -591,8 +618,7 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 		if (_matches) {
 			if (_die_exclusive) return _no("Exclusive dice need a slot to themselves.");
 			if (_slot_exclusive) return _no("This slot holds an Exclusive die, nothing can join it.");
-			if (_big_enough || _is_coin) return _yes("add");
-			return _no(_size_reason);
+			return _yes("add");
 		}
 		if (_die_exclusive) return _yes("replace");
 		return _no("This die's type doesn't match this slot.");
@@ -603,8 +629,7 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 	if (_slot_empty) return _no("Neutral dice can't start a slot. Play a coloured die here first.");
 	if (_die_exclusive) return _no("Exclusive dice need a slot to themselves.");
 	if (_slot_exclusive) return _no("This slot holds an Exclusive die, nothing can join it.");
-	if (_big_enough) return _yes("add");
-	return _no(_size_reason);
+	return _yes("add");
 }
 
 function apply_dice_to_slot(_die, _slot_i) {
@@ -627,6 +652,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 
 	if (check.ok) {
 		var sticky = die_has_keyword(die.struct, "sticky");
+		var _was_empty = (ds_list_size(slot.dice_list) == 0);
 
 		switch (check.action) {
 			case "replace":
@@ -655,8 +681,18 @@ function apply_dice_to_slot(_die, _slot_i) {
 						}
 					}
 				}
+
+				// rolled dice: the first die in an empty built slot (Attack/Block...) picks its type for the turn
+				if (_was_empty && die.struct.action_type != "None" && string_pos(die.struct.action_type, slot.possible_type) > 0) {
+					slot.current_action_type = die.struct.action_type;
+				}
 			break;
 		}
+
+		// rolled dice: it can be taken back this turn (combat_take_back), unless it has a "when played" effect of its own
+		var _added = slot.dice_list[| ds_list_size(slot.dice_list) - 1];
+		_added.played_turn = turn_count;
+		_added.play_locked = die_has_effect_trigger(die.struct, "on_dice_played_to_slot");
 	}
 
     //-----------------------------------------
@@ -673,9 +709,18 @@ function apply_dice_to_slot(_die, _slot_i) {
 		};
 		
 		particle_emit(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", get_dice_color(die.struct.possible_type), 30);
-	
-		combat_trigger_effects("on_dice_played_to_slot", played_data);
-		run_stat_add("dice_played", 1);
+
+		// "when played" effects fire once per die per turn: a die taken back and played again doesn't fire them twice
+		var _first_play = !array_contains(played_uids, die.struct.uid);
+		if (_first_play) {
+			array_push(played_uids, die.struct.uid);
+			combat_trigger_effects("on_dice_played_to_slot", played_data);
+			run_stat_add("dice_played", 1);
+			die.struct.statistics.times_played_this_combat++;
+		} else {
+			// keepsakes that read the queue (Single Focus, Repeater Rail) still work it out again
+			runmanager_trigger_keepsakes("after_change_current_action", {});
+		}
 
 		if (played_data.duplicate_die) {
 			var die_copy2 = clone_die(die.struct, "temporary");
@@ -690,9 +735,6 @@ function apply_dice_to_slot(_die, _slot_i) {
 		if (!die_has_keyword(die.struct, "coin")) dice_played += 1;
 		dice_played_scale = 1.2;
 		dice_played_color = c_green;
-		
-		// die statistics
-		die.struct.statistics.times_played_this_combat++;
 
 		var place_sound = choose(soRubble1, soRubble2, soRubble3, soRubble4);
 
@@ -729,6 +771,7 @@ function discard_dice(_die) {
 
     // --- 2. Clone the struct before adding to discard pile
     var die_copy = clone_die(die_struct, "");
+    die_clear_faces(die_copy); // rolled dice: it rolls fresh next time it's dealt
 
     // --- 3. Add to discard pile
     ds_list_add(global.discard_pile, die_copy);
@@ -754,6 +797,7 @@ function add_dice_to_bag(_die) {
 
     // --- 2. Clone the struct before adding to discard pile
     var die_copy = clone_die(die_struct, "");
+    die_clear_faces(die_copy); // rolled dice: it rolls fresh next time it's dealt
 
     // --- 3. Add to discard pile
     ds_list_add(global.dice_bag, die_copy);
@@ -764,165 +808,133 @@ function add_dice_to_bag(_die) {
 
 
 
+/// @func sacrifice_die(_die)
+/// @desc Rolled dice: a die dropped on the new-slot tile waits there (it uses a play, coins are free, and it can be taken
+///       back) until enough dice on it (new_slot_min_dice) add up to new_slot_threshold. Then the slot is built (combat_try_build_slot).
 function sacrifice_die(_die) {
-	if (dice_played + 1 > dice_allowed_per_turn) {
-		if (!die_has_keyword(_die.struct, "coin")) {
-			dice_played_scale = 1.4;
-			dice_played_color = c_red;
+	if (!combat_all_slots_have_action()) {
+		throw_error("Fill your slots first", "A new slot can only be built once every slot you have has an action.");
+		return;
+	}
+	// a slot built from one die (the first you build) takes just that die, and it has to reach the number on its own
+	if (new_slot_min_dice() == 1) {
+		var _face = die_face_total(_die.struct);
+		if (_face == -1) _face = ceil(_die.struct.dice_value / 2);
+		if (_face < new_slot_threshold()) {
+			throw_error("Too low", "This slot needs one die of " + string(new_slot_threshold()) + " or more. This one rolled " + string(_face) + ".");
 			return;
 		}
-	} 
-	
+	}
+	if (dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(_die.struct, "coin")) {
+		dice_played_scale = 1.4;
+		dice_played_color = c_red;
+		throw_error("No plays left", "No plays left this turn. Coins are still free to play.");
+		return;
+	}
 	if (!die_has_keyword(_die.struct, "coin")) dice_played += 1;
 	dice_played_scale = 1.2;
 	dice_played_color = c_green;
-	
-    var die = _die;
-    var die_struct = die.struct;
-	
-	var sacrifice_data = {
-		die: die,
-		_d_struct: die_struct,
-		slot_index: ds_list_size(oCombat.action_queue) // 1 more than the highest index currently of the action queue
-	};
-	
-	trigger_die_effects_single(die.struct, "on_sacrifice_die", sacrifice_data);
-	runmanager_trigger_keepsakes("on_sacrifice_die", sacrifice_data);
 
-    // Clone before adding
-	var _perm = "temporary";
-	if (die_struct.action_type == "None") {
-		_perm = "temporary none"; // used for tracking sacrificed history of dice used to create slots that become temporary
-		//show_debug_message("Added TEMPORARY NONE to sack history");
-	}
-	var die_copy = clone_die(die_struct, _perm);
-    ds_list_add(global.sacrifice_list, die_copy);
-	
-	//show_debug_message("Added dice to list, new length is: "+string(ds_list_size(global.sacrifice_list)));
-	
-    //var history_copy  = clone_die(die_struct, _perm);
-	//ds_list_add(global.sacrifice_history, history_copy ); // persistent record
+	var _copy = clone_die(_die.struct, "temporary");
+	_copy.played_turn = turn_count; // it can be taken back until the slot is built (combat_take_back, slot -1)
+	_copy.play_locked = false;
+	ds_list_add(global.sacrifice_list, _copy);
 
-	particle_emit( die.x, die.y, "burst", die.struct.color);
-	
-    instance_destroy(die);
+	particle_emit(_die.x, _die.y, "burst", _die.struct.color);
+	instance_destroy(_die);
+	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
 
-	var place_sound = choose(soRubble1, soRubble2, soRubble3, soRubble4);
-
-	sfx_play(place_sound, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
-
-    sacrificies_til_new_action_tile--;
-	
 	update_sacrificed_type_array();
+	combat_try_build_slot();
+}
 
-    if (sacrificies_til_new_action_tile > 0) return;
-	
-	var sacrifice_new_slot_data = {
-		slot_index: ds_list_size(oCombat.action_queue) + 1,
-	};
-	
-	combat_trigger_effects("on_new_slot_created", sacrifice_new_slot_data);
+/// @func new_slot_threshold()
+/// @desc What the dice on the new-slot tile must add up to: 3 for slot 2, 6 for slot 3, 9 for slot 4... (Cursed Heart: +3).
+function new_slot_threshold() {
+	var _slot_number = ds_list_size(oCombat.action_queue) + 1;
+	return max(3, 3 * (_slot_number - 1) + 3 * oCombat.slot_cost_modifier);
+}
 
-    // === Time to create new slot ===
-	var type_list = ds_list_create();
-	var highest_val = 4;
-	var all_generic = true;
+/// @func new_slot_min_dice()
+/// @desc How many dice the new-slot tile needs at least: 1 for slot 2, 2 for slot 3, 3 for slot 4...
+function new_slot_min_dice() {
+	return max(1, ds_list_size(oCombat.action_queue));
+}
 
-	// Analyse all sacrificed dice
+/// @func new_slot_total()
+/// @desc What the dice on the new-slot tile add up to (their rolled numbers).
+function new_slot_total() {
+	var _t = 0;
+	if (!ds_safe_exists(global.sacrifice_list, ds_type_list)) return 0;
 	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
-	    var listed_die = global.sacrifice_list[| j];
-
-	    if (listed_die.action_type != "None") {
-	        all_generic = false;
-	    }
-
-	    // Only add unique types
-	    if (ds_list_find_index(type_list, listed_die.possible_type) < 0) {
-			if (string_pos(" ", listed_die.possible_type)) {
-				var parts = string_split(listed_die.possible_type, " ");
-				var total = array_length(parts);
-
-				for (var i = 0; i < total; i++) {
-				    if (ds_list_find_index(type_list, string(parts[i])) < 0) {
-						ds_list_add(type_list, string(parts[i]));
-					}
-				}
-			} else {
-				ds_list_add(type_list, listed_die.possible_type);
-			}
-	    }
-
-	    highest_val = max(highest_val, listed_die.dice_value);
+		var _d = global.sacrifice_list[| j];
+		var _f = die_face_total(_d);
+		_t += (_f != -1) ? _f : ceil(_d.dice_value / 2); // a die that wasn't dealt (and so never rolled) counts half its size
 	}
+	return _t;
+}
 
-	// --- Now build possible_type string ---
-	var possible_type_str = "";
+/// @func combat_try_build_slot()
+/// @desc Builds a new slot once enough dice on the tile (new_slot_min_dice) reach the threshold. Their "when sacrificed" effects fire now,
+///       and they become the slot's first dice for this turn (locked in), so this turn it has their types. Like every
+///       slot it's empty and untyped again after End Turn; what it keeps is its place, worth a bonus (slot_set_position_bonus).
+function combat_try_build_slot() {
+	if (ds_list_size(global.sacrifice_list) < new_slot_min_dice() || new_slot_total() < new_slot_threshold() || !combat_all_slots_have_action()) return;
 
-	// If all sacrificed dice were generic
-	if (all_generic) {
-	    possible_type_str = "None"; // or "All" if you want full flexibility
-	} else {
-	    // Remove "None" from type_list if there are colored dice
-	    for (var i = ds_list_size(type_list) - 1; i >= 0; i--) {
-	        if (type_list[| i] == "None") {
-	            ds_list_delete(type_list, i);
-	        }
-	    }
-
-	    // Combine remaining types into a string
-	    for (var t = 0; t < ds_list_size(type_list); t++) {
-	        if (possible_type_str != "") possible_type_str += " ";
-	        possible_type_str += type_list[| t];
-	    }
-	}
-
-    // --- Determine the slot's starting action type ---
-	// Find the first non-generic (non-"None") die in the sacrifice list
-	var starting_action_type = "None";
+	// it can be taken apart again this turn (combat_unbuild_slot) unless something that can't be undone fires: a die's
+	// "when sacrificed" effect (or its "when played" one, which Lead Line fires on sacrifice)
+	var _undo_ok = true;
+	var _lead_line = runmanager_has_keepsake_id("lead_line");
 	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
-	    var listed_die = global.sacrifice_list[| j];
-	    if (listed_die.action_type != "None") {
-	        starting_action_type = listed_die.action_type;
-	        break; // stop at the first non-"None"
-	    }
+		var _sd = global.sacrifice_list[| j];
+		if (die_has_effect_trigger(_sd, "on_sacrifice_die") || (_lead_line && die_has_effect_trigger(_sd, "on_dice_played_to_slot"))) _undo_ok = false;
+	}
+	var _bonus_before = dice_allowed_this_turn_bonus; // Shipwright's Draft adds a play: given back if it's taken apart
+
+	combat_trigger_effects("on_new_slot_created", { slot_index: ds_list_size(action_queue) + 1 });
+
+	// "when sacrificed" effects. They expect the die in hand (data.die.struct), so each gets a stand-in at the tile.
+	var _tx = is_struct(new_tile_pos) ? new_tile_pos.x + new_tile_pos.w / 2 : gui_w / 2;
+	var _ty = is_struct(new_tile_pos) ? new_tile_pos.y : gui_h / 2;
+	var sacrifice_data = {};
+	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
+		var _d = global.sacrifice_list[| j];
+		sacrifice_data = {
+			die: { struct: _d, x: _tx, y: _ty, can_discard: false },
+			_d_struct: _d,
+			slot_index: ds_list_size(action_queue),
+		};
+		trigger_die_effects_single(_d, "on_sacrifice_die", sacrifice_data);
+		runmanager_trigger_keepsakes("on_sacrifice_die", sacrifice_data);
 	}
 
-	// --- Create the new slot ---
-	var new_slot = {
-	    dice_list: ds_list_create(),
-	    current_action_type: starting_action_type,
-	    possible_type: possible_type_str,
-		bonus_amount: 0,						// total of the bonuses below, the "+2" in "1d4+2" (read only, see slot_add_bonus)
-		bonuses: [],							// { source, amount, turns, scope } from keepsakes and items
-		first_die_bonus: 0,						// total of the bonuses that only apply to the first die (read only)
-	};
+	// untyped like every slot (it resets each turn); this turn its types come from the dice in it (slot_recompute_types)
+	var _new_slot = combat_new_slot("None");
+	slot_set_position_bonus(_new_slot, ds_list_size(action_queue));
+	_new_slot.built_turn = turn_count;
+	_new_slot.undo_ok = _undo_ok;
+	_new_slot.draft_bonus = dice_allowed_this_turn_bonus - _bonus_before;
+	var _first_type = "";
 
+	// the dice that built it become its first dice and act this turn (discarded at End Turn like the rest). Taking one
+	// back takes the slot apart (combat_unbuild_slot), if nothing irreversible fired. The first coloured one picks its type.
+	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
+		var _src = global.sacrifice_list[| j];
+		var _in = clone_die(_src, (_src.possible_type == "None") ? "temporary" : "base");
+		_in.played_turn = turn_count;
+		_in.play_locked = !_undo_ok;
+		_in.built_slot = true;
+		ds_list_add(_new_slot.dice_list, _in);
+		if (_first_type == "" && _src.action_type != "None") _first_type = _src.action_type;
+	}
+	slot_recompute_types(_new_slot);
+	if (_first_type != "" && string_pos(_first_type, _new_slot.possible_type) > 0) _new_slot.current_action_type = _first_type;
+	ds_list_clear(global.sacrifice_list);
+	update_sacrificed_type_array();
+	ds_list_add(action_queue, _new_slot);
 
-    // Add sacrificed dice as base copies
-    for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
-        var src = global.sacrifice_list[| j];
-		var _perma = "base";
-		
-		// "none" dice cannot be permanent
-		if (global.sacrifice_list[| j].action_type == "None") _perma = "temporary";
-		
-        var base_copy = clone_die(src, _perma);
-        ds_list_add(new_slot.dice_list, base_copy);
-    }
-
-    ds_list_add(action_queue, new_slot);
-	
 	combat_trigger_effects("after_new_slot_created", sacrifice_data);
-	
-    var slot = ds_list_size(action_queue) + 1;
-	//sacrificies_til_new_action_tile = global.fib_lookup[slot];
-	sacrificies_til_new_action_tile = max(1, ((slot + 1) div 2) + oCombat.slot_cost_modifier); // 1, 1, 2, 2, 3, 3 etc.
-	
-	// clear sacrifice list
-    ds_list_destroy(type_list);
-    ds_list_clear(global.sacrifice_list);
-	//show_debug_message("New slot created");
-	type_array = [];
+	particle_emit(_tx, _ty + 60, "burst", c_white, 30); // the new slot takes the tile's place
 }
 
 function update_sacrificed_type_array() {
@@ -961,8 +973,10 @@ function get_slot_stats(_slot, _num) {
 		
 		var dice_values = get_dice_output(die_struct, _num, -1, true, "player");
 		
-		low += dice_values.min_roll + dice_values.keepsake_dice_bonus_amount;
-		high += dice_values.max_roll + dice_values.keepsake_dice_bonus_amount;
+		// rolled dice: a die that has rolled counts its number, so the slot shows an exact total
+		var _face = die_face_total(die_struct, dice_values.min_roll, dice_values.max_roll);
+		low += ((_face != -1) ? _face : dice_values.min_roll) + dice_values.keepsake_dice_bonus_amount;
+		high += ((_face != -1) ? _face : dice_values.max_roll) + dice_values.keepsake_dice_bonus_amount;
 		
 		if (die_struct.action_type != "None!") { 
 			total_amount += die_struct.dice_amount;
@@ -1414,9 +1428,6 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 
 		if (string_pos("temporary", die.permanence) > 0 || (die_has_keyword(die, "Loose")) || _all == true) {
 				
-			// Skip slots that don't have an action, keeping neutral dice in empty slots.
-			if (_slot.current_action_type == "None") break;
-			
 			// Clean up sacrifice history
 			if (ds_safe_exists(global.sacrifice_history, ds_type_list)) {
 				for (var s = ds_list_size(global.sacrifice_history) - 1; s >= 0; s--) {
@@ -1638,7 +1649,8 @@ function slot_bonus_breakdown(_slot) {
 	for (var i = 0; i < array_length(_slot.bonuses); i++) {
 		var _bonus = _slot.bonuses[i];
 		var _sign = _bonus.amount >= 0 ? "+" : "";
-		var _line = _bonus.source + ": " + _sign + string(_bonus.amount) + (_bonus.scope == "first" ? " to the first die" : " to each die");
+		var _is_position = (string_copy(_bonus.source, 1, 5) == "Slot "); // slot_set_position_bonus: once, on the slot's total
+		var _line = _bonus.source + ": " + _sign + string(_bonus.amount) + (_is_position ? " to its total" : (_bonus.scope == "first" ? " to the first die" : " to each die"));
 		if (_bonus.turns > 0) _line += ", this round";
 		_text += (_text == "" ? "" : "\n") + _line;
 	}
@@ -1663,6 +1675,7 @@ function slot_total_bonus(_slot, _dice_count) {
 /// @func tutorial_wanted()
 /// @desc Should fights be guided? Until the tutorial has been finished or skipped once.
 function tutorial_wanted() {
+	return false; // rolled dice prototype: the guided fight teaches the old rules, so it's off until it's rewritten
 	return !progress_get("tutorial_done");
 }
 
@@ -1680,7 +1693,7 @@ function tutorial_steps() {
 		// turn 1: a slot, stacking, a slot from a sacrifice, generic dice, how long dice stay
 		{
 			id: "intent", target: "intent", allow: [], button: "Next",
-			text: "Read your enemy first. Its intent shows what it will do this turn. With 0 to 4 insight you only see a range of how much; at 5 you see the exact number.",
+			text: "Read your enemy first. Its intent shows what it will do this turn, and a range of how much. Insight dice give you ink for next turn: at the start of a turn your quill can spend 2 of it to show the exact number.",
 		},
 		{
 			id: "claim", target: "slot0", allow: ["place"], die_types: ["ATK"], slot: 0,
@@ -1718,7 +1731,7 @@ function tutorial_steps() {
 		// turn 2: insight, a slot with two actions, right-click to switch
 		{
 			id: "insight", target: "insight", allow: [], button: "Next",
-			text: "Your insight came in. Below 5 you only see ranges (Faded); at 5 the enemy's numbers turn exact (Legible). At 10 you take up the Quill and can reroll or halve an intent.",
+			text: "Your insight is ink. Click the inkwell to use it, then with the quill: reroll or redraw a die (3), see the enemy's exact numbers (2), or make it choose again (6). Confirm when you're done. The inkwell pulses when your ink can do something.",
 		},
 		{
 			id: "two_types", target: "sacrifice", allow: ["sacrifice"], die_types: ["ATK", "BLK"],
@@ -1939,7 +1952,7 @@ function tutorial_draw_note(_text, _r, _button) {
 
 	// a note that waits for the player to read it has a button
 	if (_btn_h > 0) {
-		var _b = draw_gui_button(_nx + _note_w - 160 - _pad, _ny + _note_h - _btn_h - 8, 160, 42, 1, _button, global.ui_primary, ftDefault, true, true, UI_LAYER.BASE);
+		var _b = draw_gui_button(_nx + _note_w - 160 - _pad, _ny + _note_h - _btn_h - 8, 160, 42, 1, _button, global.ui_primary, ftDefault, true, true, (instance_exists(oCombat) && oCombat.insight_view) ? UI_LAYER.POPUP : UI_LAYER.BASE); // clickable in the insight phase too
 		if (_b.click) _clicked = true;
 	}
 
@@ -1955,7 +1968,7 @@ function tutorial_map_notes() {
 	return [
 		{
 			id: "map_offering", target: "",
-			text: "Every voyage begins with a gift. Pick a die and core pair: the die joins your bag, and the core can be drilled into a die at the workbench.",
+			text: "Every voyage begins with a gift from the quartermaster: a die with a core already fitted. A core changes which faces a die rolls most often. Cores you find later can be drilled into dice at the workbench.",
 			when: function() { return oRunManager.new_run_offering; },
 			done: function() { return !oRunManager.new_run_offering; },
 		},
@@ -2028,8 +2041,8 @@ function tips_list() {
 	return [
 		{
 			id: "workbench_map", room: rmMap, target: "at_sea",
-			text: "At sea. When you finish a page's island, you can stop at the workbench before the next one: choose dice from your bag and reshape them with your tools.",
-			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench; },
+			text: "At sea. When you finish a page's island and a tool has work, a buoy floats on the way to the next one: sail to it for the workbench, or sail past.",
+			when: function() { return instance_exists(oWorldManager) && is_struct(oWorldManager.sea_buoy) && oWorldManager.sea_buoy.active; },
 		},
 		{
 			id: "workbench_bag", room: rmWorkbench, target: "wb_pick",
@@ -2057,23 +2070,31 @@ function tips_list() {
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",
-			text: "A spread is done. Choose one: Heal is always offered, beside two others that change each time (a core, removing or sharpening a die, gold). Or just continue. Then you choose the next two pages.",
-			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.TURNING; },
+			text: "The spread is done, and the route forks at sea. Sail to one stop: each offers something different (a core, losing or sharpening a die, gold, the workbench), and you heal as you pass through. Then the page turns.",
+			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.STRAIT; },
 		},
 		{
-			id: "legible", room: rmCombat, target: "insight",
-			text: "Legible: with 5 insight you see exactly what each enemy will do this turn.",
-			when: function() { return tips_combat_ready() && oCombat.intel_level >= 1 && !intel_is_blotted(); },
-		},
-		{
-			id: "quill", room: rmCombat, target: "insight",
-			text: "Quill: with 10 insight, once a turn you can click a glowing enemy intent and choose: Reroll (the enemy picks a different move) or Halve (its attack, block or heal this turn).",
-			when: function() { return tips_combat_ready() && oCombat.intel_level >= 2 && !intel_is_blotted(); },
+			// the guided fight is off on this branch, so this teaches insight the first time you have some to spend
+			id: "insight_spend", room: rmCombat, target: "insight",
+			text: "Your insight is ink: click the inkwell to use it, then with the quill reroll or redraw a die in your hand (" + string(INSIGHT_COST_REROLL) + " each), see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + ", or 1 each when there are several), or make it choose its move again (" + string(INSIGHT_COST_QUILL) + "). Click Confirm (where End Turn is) when you're done; the inkwell works any time on your turn. Ink you don't spend carries over.",
+			when: function() { return instance_exists(oCombat) && oCombat.ink_pulse > 0 && !oCombat.insight_view; }, // the first time the inkwell pulses
 		},
 		{
 			id: "blotted", room: rmCombat, target: "insight",
 			text: "Blotted: your insight fell below 0, so enemy intents are hidden this turn.",
 			when: function() { return tips_combat_ready() && intel_is_blotted(); },
+		},
+		{
+			// rolled dice prototype: the guided fight is off, so this explains the new rules once
+			id: "rolled_dice", room: rmCombat, target: "",
+			text: "Your dice show what they rolled. Drag them into your slots, left to right: the first coloured die picks a slot's type. Click a die in a slot to take it back. End Turn discards everything.",
+			when: function() { return tips_combat_ready() && oCombat.turn_count == 1; },
+		},
+		{
+			// the second half: once every slot has something in it, building the next one
+			id: "new_slot", room: rmCombat, target: "",
+			text: "Every slot has an action, so you can build another: drop dice on the new-slot tile until they add up to its number. Later slots add more to their total.",
+			when: function() { return tips_combat_ready() && tip_seen("rolled_dice") && combat_all_slots_have_action() && oCombat.state == CombatState.PLAYER_INPUT; },
 		},
 		{
 			id: "multi_enemy", room: rmCombat, target: "target_enemy",
@@ -2114,13 +2135,13 @@ function tips_list() {
 function tips_rect(_target) {
 	switch (_target) {
 		case "at_sea":
-			var _gw = display_get_gui_width(), _gh = display_get_gui_height();
-			return { x: _gw / 2 - 320, y: _gh - 230 - 90, w: 640, h: 230 }; // the map's "At sea" panel
+			if (!instance_exists(oWorldManager) || !is_struct(oWorldManager.sea_buoy) || !variable_struct_exists(oWorldManager.sea_buoy, "x")) return undefined;
+			return { x: oWorldManager.sea_buoy.x - 40, y: oWorldManager.sea_buoy.y - 40, w: 80, h: 100 }; // the buoy
 		case "insight":
 			return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
 		case "wb_pick":
 			if (!instance_exists(oWorkbenchManager)) return undefined;
-			with (oWorkbenchManager) return { x: display_get_gui_width() / 2 - 280, y: start_y - wb_tile_size - 230, w: 560, h: 170 };
+			with (oWorkbenchManager) return { x: display_get_gui_width() / 2 - 280, y: max(start_y - wb_tile_size - 230, 200), w: 560, h: 170 };
 			break;
 		case "wb_slots":
 			if (!instance_exists(oWorkbenchManager)) return undefined;
@@ -2183,74 +2204,71 @@ function tutorial_map_rect(_target) {
 }
 
 /// @func insight_panel_draw()
-/// @desc oRunManager Draw GUI End: the Insight reference panel while the insight eye is hovered. Drawn after the
-///       tutorial notes and tips so it sits on top of them (oCombat Draw GUI sets insight_panel_open).
+/// @desc oRunManager Draw GUI End: while the insight eye is hovered, what your insight buys this turn and what each
+///       costs (lit when you can afford it). Drawn after the tutorial notes and tips so it sits on top of them.
 function insight_panel_draw() {
 	if (!instance_exists(oCombat) || !oCombat.insight_panel_open) return;
 	with (oCombat) {
-		var _intel_state = intel_state(intel_level);
-		// a compact reference: one line per state, the current one highlighted, and when insight counts
-		var intel_pad = 16;
-		var intel_w = 380;
-		var intel_row_h = 40;
-		var intel_title_h = 36;
-		var intel_foot_h = 30;
-
-		// Blotted (below 0) first, then the three states
-		var intel_rows = [global.intel_blotted];
-		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) array_push(intel_rows, global.player_intel_data[| i]);
-		var _current_row = intel_is_blotted() ? 0 : intel_level + 1;
-
-		var intel_h = intel_pad + intel_title_h + intel_row_h * array_length(intel_rows) + intel_foot_h + intel_pad / 2;
-		var intel_x = global.player_x - intel_w / 2;
-		var intel_y = global.player_y - 260 - intel_h;
+		var _rows = [
+			{ what: "See exact enemy intents", how: insight_revealed ? "Bought this turn" : "Click the eye", cost: INSIGHT_COST_REVEAL, done: insight_revealed },
+			{ what: "One more reroll", how: "The + token above End Turn", cost: INSIGHT_COST_REROLL, done: false },
+			{ what: "One more redraw", how: "The + token above End Turn", cost: INSIGHT_COST_REDRAW, done: false },
+			{ what: "One more play", how: "The + token above End Turn", cost: INSIGHT_COST_PLAY, done: false },
+			{ what: "Quill: reroll or halve an intent", how: "Click an enemy's intent", cost: INSIGHT_COST_QUILL, done: false },
+		];
+		var _pad = 16, _w = 440, _row_h = 42, _title_h = 64;
+		var _h = _pad + _title_h + _row_h * array_length(_rows) + _pad;
+		var _x = global.player_x - _w / 2;
+		var _y = global.player_y - 250 - _h;
 
 		draw_set_color(c_black);
 		draw_set_alpha(0.8);
-		draw_roundrect(intel_x - 1, intel_y - 1, intel_x + intel_w + 1, intel_y + intel_h + 1, false);
+		draw_roundrect(_x - 1, _y - 1, _x + _w + 1, _y + _h + 1, false);
 		draw_set_color(global.color_bg);
-		draw_roundrect(intel_x, intel_y, intel_x + intel_w, intel_y + intel_h, false);
+		draw_roundrect(_x, _y, _x + _w, _y + _h, false);
+		draw_set_alpha(1);
 
-		// title, and your insight on the right
-		draw_set_alpha(1.0);
-		draw_set_valign(fa_middle);
+		// title: your insight, and what it is
 		draw_set_font(ftDefault);
+		draw_set_valign(fa_middle);
 		draw_set_halign(fa_left);
 		draw_set_color(c_white);
-		draw_text(intel_x + intel_pad, intel_y + intel_pad + 10, "Insight");
+		draw_text(_x + _pad, _y + _pad + 10, "Insight");
 		draw_set_halign(fa_right);
 		draw_set_color(player_intel < 0 ? c_red : global.color_intel);
-		draw_text(intel_x + intel_w - intel_pad, intel_y + intel_pad + 10, string(player_intel));
+		draw_text(_x + _w - _pad, _y + _pad + 10, string(player_intel));
+		draw_set_font(ftDescriptions);
+		draw_set_halign(fa_left);
+		draw_set_color(make_color_rgb(200, 200, 210));
+		draw_text(_x + _pad, _y + _pad + 38, intel_is_blotted() ? "Below 0 the page is smudged: enemy intents are hidden." : "Spend it this turn: it's gone at End Turn.");
 
-		// rows: icon, name, needed, what it gives
-		var _row_y = intel_y + intel_pad + intel_title_h;
-		for (var i = 0; i < array_length(intel_rows); i++) {
-			var _row = intel_rows[i];
-			var _mid = _row_y + intel_row_h / 2;
-			if (i == _current_row) {
-				draw_set_color(c_white);
-				draw_set_alpha(0.12);
-				draw_roundrect(intel_x + 6, _row_y + 2, intel_x + intel_w - 6, _row_y + intel_row_h - 2, false);
-			}
-			draw_set_alpha(1.0);
-			draw_insight_icon(_row.icon, intel_x + intel_pad + 14, _mid, 0.95, (i == _current_row) ? 1.0 : 0.6);
+		var _ry = _y + _pad + _title_h;
+		for (var i = 0; i < array_length(_rows); i++) {
+			var _row = _rows[i];
+			var _ok = !_row.done && combat_insight_can(_row.cost);
+			var _mid = _ry + _row_h / 2;
+			// the cost, as a yellow coin
+			draw_set_color(c_black);
+			draw_circle(_x + _pad + 14, _mid, 15, false);
+			draw_set_color(_ok ? global.color_intel : make_color_rgb(110, 100, 70));
+			draw_circle(_x + _pad + 14, _mid, 13, false);
 			draw_set_font(ftDefault);
+			draw_set_halign(fa_center);
+			draw_set_color(c_black);
+			draw_text(_x + _pad + 14, _mid, string(_row.cost));
+			// what, and how
 			draw_set_halign(fa_left);
-			draw_set_color((i == _current_row) ? global.color_intel : c_white);
-			draw_text(intel_x + intel_pad + 40, _mid, string(_row.name));
-			draw_set_font(ftSmall);
-			draw_set_color(c_ltgray);
-			draw_text(intel_x + intel_pad + 135, _mid, (i == 0) ? "< 0" : string(_row.requirement) + "+");
-			draw_set_color(c_white);
-			draw_text(intel_x + intel_pad + 180, _mid, string(_row.description));
-			_row_y += intel_row_h;
+			draw_set_color(_row.done ? make_color_rgb(140, 200, 140) : (_ok ? c_white : make_color_rgb(150, 150, 160)));
+			draw_text(_x + _pad + 40, _mid - 9, _row.what);
+			draw_set_font(ftDescriptions);
+			draw_set_color(make_color_rgb(170, 170, 180));
+			draw_text(_x + _pad + 40, _mid + 11, _row.how);
+			_ry += _row_h;
 		}
-
-		// how insight rolls work this turn
-		draw_set_font(ftSmall);
-		draw_set_color(c_ltgray);
-		draw_text(intel_x + intel_pad, _row_y + intel_foot_h / 2, "Insight you roll counts next turn.");
+		draw_set_alpha(1);
 		draw_set_color(c_white);
+		draw_set_halign(fa_left);
+		draw_set_valign(fa_top);
 	}
 }
 
@@ -2382,6 +2400,24 @@ function combat_spare_choice_enemy() {
 	return undefined;
 }
 
+/// @func workbench_useful()
+/// @desc Is there anything to do at the workbench? The Hammer and Cutters always have work; the Drill only with a core
+///       to drill in. With nothing to do, the map doesn't offer the stop.
+function workbench_useful() {
+	var _drill = false;
+	for (var i = 0; i < ds_list_size(oRunManager.tools); i++) {
+		var _tool = oRunManager.tools[| i].object;
+		if (_tool == oHammer || _tool == oScissors) return true;
+		if (_tool == oDrill) _drill = true;
+	}
+	if (!_drill) return false;
+	for (var i = 0; i < array_length(oRunManager.items); i++) {
+		var _it = oRunManager.items[i];
+		if (is_struct(_it) && variable_struct_exists(_it, "type") && _it.type == "core") return true;
+	}
+	return false;
+}
+
 /// @func workbench_dice_allowance()
 /// @desc How many dice you may bring to the workbench (F02): one per tool you own, plus one with the Hammer.
 function workbench_dice_allowance() {
@@ -2413,9 +2449,13 @@ function workbench_take_die(_die) {
 /// @desc A tool has crafted: it's used up for this visit and goes back in the toolbag.
 function workbench_tool_used(_object) {
 	if (!instance_exists(oWorkbenchManager)) return;
+	if (progress_get("workbench_hints_done") != true) progress_set("workbench_hints_done", true); // the tool mouse hints have done their job
 	array_push(oWorkbenchManager.tools_used, _object);
-	oRunManager.holding_item = false;
-	with (_object) instance_destroy();
+	// it stays in hand for half a second (its last pose shows), then returns to the bench greyed out (the tool's Step)
+	with (_object) {
+		tool_used = true;
+		used_timer = ceil(game_get_speed(gamespeed_fps) * 0.5);
+	}
 }
 
 /// @func workbench_open_picker()
@@ -2430,5 +2470,766 @@ function workbench_open_picker() {
 		dice_selection_event = function(_die) { workbench_take_die(_die); };
 		bag_to_show = global.dice_bag;
 		show_bag_contents = true;
+	}
+}
+
+// =====================================================================
+// ROLLED DICE (prototype, docs/design-rolled-dice.md)
+// =====================================================================
+
+/// @func slot_set_position_bonus(_slot, _index)
+/// @desc A slot's place in the queue is worth a flat bonus to its total, once (not per die): slot 1 +0, slot 2 +1,
+///       slot 3 +2... So more slots are worth building, and which die goes where is a choice. Shown with its other
+///       bonuses (the badge on its first die, the hover breakdown) and as "+N" on the slot.
+function slot_set_position_bonus(_slot, _index) {
+	slot_set_bonus(_slot, "Slot " + string(_index + 1), _index, "first");
+	_slot.position_bonus = _index;
+}
+
+/// @func combat_new_slot(_types)
+/// @desc A new, empty action slot. _types is what it was built with: "None" (a starting slot, typed by the first
+///       coloured die played into it each turn) or the types of the dice that built it ("ATK BLK").
+function combat_new_slot(_types) {
+	return {
+		dice_list: ds_list_create(),			// all dice currently in the slot
+		current_action_type: (_types == "None") ? "None" : string_split(_types, " ")[0], // the slot's selected type
+		possible_type: _types,					// allowed types
+		defined_type: _types,					// the types it was built with, what it goes back to when empty (slot_recompute_types)
+		bonus_amount: 0,						// total of the bonuses below, the "+2" in "1d4+2" (read only, see slot_add_bonus)
+		bonuses: [],							// { source, amount, turns, scope } from keepsakes and items
+		first_die_bonus: 0,						// total of the bonuses that only apply to the first die (read only)
+	};
+}
+
+/// @func slot_has_action(_slot)
+/// @desc A slot with dice in it and an action to do (generic dice alone have none). Slots fill left to right: a slot can
+///       only take dice once every slot before it has one (slot_placement_check).
+function slot_has_action(_slot) {
+	return ds_list_size(_slot.dice_list) > 0 && (_slot.current_action_type != "None" || _slot.possible_type == "All");
+}
+
+/// @func combat_all_slots_have_action()
+/// @desc Every slot (but a chained one) has an action: only then can a new slot be built.
+function combat_all_slots_have_action() {
+	for (var j = 0; j < ds_list_size(oCombat.action_queue); j++) {
+		if (j == oCombat.locked_slot) continue;
+		if (!slot_has_action(oCombat.action_queue[| j])) return false;
+	}
+	return true;
+}
+
+/// @func slot_recompute_types(_slot)
+/// @desc A slot's types are the ones it was built with plus those of the dice in it. Empty, a starting slot is
+///       untyped again. Keeps the selected type if it's still allowed.
+function slot_recompute_types(_slot) {
+	var _def = variable_struct_exists(_slot, "defined_type") ? _slot.defined_type : "None";
+	var _types = [];
+	if (_def != "None" && _def != "") _types = string_split(_def, " ");
+	for (var d = 0; d < ds_list_size(_slot.dice_list); d++) {
+		var _parts = string_split(_slot.dice_list[| d].possible_type, " ");
+		for (var p = 0; p < array_length(_parts); p++) {
+			if (_parts[p] != "None" && _parts[p] != "" && !array_contains(_types, _parts[p])) array_push(_types, _parts[p]);
+		}
+	}
+	if (array_length(_types) == 0) {
+		_slot.possible_type = "None";
+		_slot.current_action_type = "None";
+		return;
+	}
+	if (array_contains(_types, "All")) {
+		_slot.possible_type = "All"; // a Multicolor die: any type, right-click picks
+		return;
+	}
+	var _s = "";
+	for (var t = 0; t < array_length(_types); t++) _s += ((_s == "") ? "" : " ") + _types[t];
+	_slot.possible_type = _s;
+	if (!array_contains(_types, _slot.current_action_type)) _slot.current_action_type = _types[0];
+}
+
+/// @func die_has_effect_trigger(_die, _trigger)
+/// @desc Whether one of the die's own effects fires on _trigger.
+function die_has_effect_trigger(_die, _trigger) {
+	if (!is_struct(_die) || !variable_struct_exists(_die, "effects") || is_undefined(_die.effects)) return false;
+	var _effs = is_array(_die.effects) ? _die.effects : [_die.effects];
+	for (var e = 0; e < array_length(_effs); e++) {
+		if (is_struct(_effs[e]) && variable_struct_exists(_effs[e], "trigger") && _effs[e].trigger == _trigger) return true;
+	}
+	return false;
+}
+
+/// @func die_can_take_back(_die)
+/// @desc A die in a slot (or on the new-slot tile) that was played this turn and has no "when played" effect of its own.
+function die_can_take_back(_die) {
+	if (!is_struct(_die) || !instance_exists(oCombat)) return false;
+	if (!variable_struct_exists(_die, "played_turn") || _die.played_turn != oCombat.turn_count) return false;
+	if (variable_struct_exists(_die, "built_slot") && _die.built_slot) return combat_built_die_can_return(_die);
+	return !(variable_struct_exists(_die, "play_locked") && _die.play_locked);
+}
+
+/// @func combat_no_die_dragged()
+function combat_no_die_dragged() {
+	var _none = true;
+	with (oDice) if (is_dragging) _none = false;
+	return _none;
+}
+
+/// @func runmanager_has_keepsake_id(_id)
+/// @desc Whether you own the keepsake with this _id.
+function runmanager_has_keepsake_id(_id) {
+	if (!instance_exists(oRunManager) || !ds_safe_exists(oRunManager.keepsakes, ds_type_list)) return false;
+	for (var i = 0; i < ds_list_size(oRunManager.keepsakes); i++) if (oRunManager.keepsakes[| i]._id == _id) return true;
+	return false;
+}
+
+/// @func combat_built_die_can_return(_die)
+/// @desc A die that built its slot can come back (taking the slot apart) when that slot is the newest, was built this
+///       turn, and nothing irreversible fired when it was built (undo_ok).
+function combat_built_die_can_return(_die) {
+	with (oCombat) {
+		var _n = ds_list_size(action_queue);
+		if (_n == 0) return false;
+		var _last = action_queue[| _n - 1];
+		if (ds_list_find_index(_last.dice_list, _die) == -1) return false;
+		return variable_struct_exists(_last, "built_turn") && _last.built_turn == turn_count && variable_struct_exists(_last, "undo_ok") && _last.undo_ok;
+	}
+	return false;
+}
+
+/// @func combat_die_to_hand(_die, _sx, _sy)
+/// @desc A die (struct) from a slot or the tile goes back to the hand with the same roll, flying from _sx, _sy, and
+///       gives its play back (not a coin's).
+function combat_die_to_hand(_die, _sx, _sy) {
+	var _inst = instance_create_layer(_sx, _sy, "Instances", oDice);
+	_inst.struct = clone_die(_die, "");
+	_inst.struct.played_turn = -1;
+	_inst.struct.built_slot = false;
+	_inst.action_type = _inst.struct.action_type;
+	_inst.dice_amount = _inst.struct.dice_amount;
+	_inst.dice_value = _inst.struct.dice_value;
+	_inst.possible_type = _inst.struct.possible_type;
+	_inst.can_discard = true;
+	_inst.no_tumble = true; // same roll as before: no tumble on the way back
+	var _target = generate_valid_targets(1, 100)[0];
+	_inst.target_x = _target[0];
+	_inst.target_y = _target[1];
+	if (!die_has_keyword(_die, "coin")) dice_played = max(0, dice_played - 1);
+}
+
+/// @func combat_unbuild_slot(_slot_i, _index)
+/// @desc Takes apart the newest slot (built this turn): the die at _index goes back to your hand, the other dice that
+///       built it go back onto the new-slot tile (still played), any dice played into it since go back to your hand, and
+///       a Shipwright's Draft play is taken back. The slot is gone; the tile is where it was.
+function combat_unbuild_slot(_slot_i, _index) {
+	var _slot = action_queue[| _slot_i];
+	var _pos = (_slot_i < ds_list_size(slot_positions)) ? slot_positions[| _slot_i] : undefined;
+	var _sx = is_struct(_pos) ? _pos.x + _pos.w / 2 : display_get_gui_width() / 2;
+	var _sy = is_struct(_pos) ? _pos.y : display_get_gui_height() / 2;
+	for (var d = 0; d < ds_list_size(_slot.dice_list); d++) {
+		var _die = _slot.dice_list[| d];
+		var _built = variable_struct_exists(_die, "built_slot") && _die.built_slot;
+		if (_built && d != _index) {
+			var _back = clone_die(_die, "temporary");
+			_back.played_turn = turn_count;
+			_back.play_locked = false;
+			_back.built_slot = false;
+			ds_list_add(global.sacrifice_list, _back);
+		} else {
+			combat_die_to_hand(_die, _sx, _sy);
+		}
+	}
+	dice_allowed_this_turn_bonus -= variable_struct_exists(_slot, "draft_bonus") ? _slot.draft_bonus : 0;
+	if (locked_slot == _slot_i) locked_slot = -1;
+	ds_list_destroy(_slot.dice_list);
+	ds_list_delete(action_queue, _slot_i);
+	update_sacrificed_type_array();
+	particle_emit(_sx, _sy + 60, "burst", c_white, 20);
+	dice_played_scale = 1.2;
+	dice_played_color = c_green;
+	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
+	add_feed_entry("You took the new slot apart.");
+	runmanager_trigger_keepsakes("after_change_current_action", {});
+}
+
+/// @func combat_take_back_blocked(_slot_i, _index)
+/// @desc Why a die can't come back out of slot _slot_i, or "". Slots fill left to right: a slot can't lose its action
+///       while a later slot has dice. A slot keeps its action if other coloured dice stay in it, or if it's a built slot
+///       with its own type (defined_type), so neither case blocks.
+function combat_take_back_blocked(_slot_i, _index) {
+	if (_slot_i < 0 || _slot_i >= ds_list_size(action_queue)) return "";
+	var _slot = action_queue[| _slot_i];
+	var _def = variable_struct_exists(_slot, "defined_type") ? _slot.defined_type : "None";
+	if (_def != "None" && _def != "") return "";
+	var _list = _slot.dice_list;
+	for (var k = 0; k < ds_list_size(_list); k++) if (k != _index && _list[| k].possible_type != "None") return "";
+	for (var j = _slot_i + 1; j < ds_list_size(action_queue); j++) {
+		if (j != locked_slot && ds_list_size(action_queue[| j].dice_list) > 0) return "Slots fill in order: take back the dice in later slots first, or slot " + string(_slot_i + 1) + " would lose its action.";
+	}
+	return "";
+}
+
+/// @func combat_take_back(_slot_i, _index)
+/// @desc Takes a die played this turn out of a slot (or off the new-slot tile, _slot_i -1) and back to the hand with the
+///       same roll, giving its play back. Its "when played" effects don't fire again if it's replayed (played_uids).
+function combat_take_back(_slot_i, _index) {
+	var _slot = undefined;
+	var _list = global.sacrifice_list;
+	var _pos = new_tile_pos;
+	if (_slot_i >= 0) {
+		if (_slot_i >= ds_list_size(action_queue)) return;
+		_slot = action_queue[| _slot_i];
+		_list = _slot.dice_list;
+		_pos = (_slot_i < ds_list_size(slot_positions)) ? slot_positions[| _slot_i] : undefined;
+	}
+	if (!ds_safe_exists(_list, ds_type_list) || _index < 0 || _index >= ds_list_size(_list)) return;
+	var _die = _list[| _index];
+	if (!die_can_take_back(_die)) return;
+	// a die that built its slot: the slot comes apart (combat_unbuild_slot)
+	if (_slot != undefined && variable_struct_exists(_die, "built_slot") && _die.built_slot) {
+		combat_unbuild_slot(_slot_i, _index);
+		return;
+	}
+
+	// slots fill left to right: a slot can't lose its action while a later slot has dice in it (combat_take_back_blocked)
+	if (_slot != undefined && combat_take_back_blocked(_slot_i, _index) != "") {
+		throw_error("Take back later dice first", combat_take_back_blocked(_slot_i, _index));
+		return;
+	}
+	ds_list_delete(_list, _index);
+
+	// back in hand, flying from where it was
+	var _sx = is_struct(_pos) ? _pos.x + _pos.w / 2 : display_get_gui_width() / 2;
+	var _sy = is_struct(_pos) ? _pos.y : display_get_gui_height() / 2;
+	combat_die_to_hand(_die, _sx, _sy);
+	dice_played_scale = 1.2;
+	dice_played_color = c_green;
+	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
+
+	if (_slot != undefined) {
+		slot_recompute_types(_slot);
+		// a starting slot left with only neutral dice has no type: they come back too
+		if (_slot.possible_type == "None") {
+			for (var d = ds_list_size(_slot.dice_list) - 1; d >= 0; d--) {
+				if (d < ds_list_size(_slot.dice_list) && die_can_take_back(_slot.dice_list[| d])) combat_take_back(_slot_i, d);
+			}
+		}
+	} else {
+		update_sacrificed_type_array();
+	}
+
+	// keepsakes that read the queue (Single Focus, Repeater Rail) work it out again
+	runmanager_trigger_keepsakes("after_change_current_action", {});
+}
+
+/// @func combat_rerolls_total()
+/// @desc Rerolls this turn: only the ones bought with insight.
+function combat_rerolls_total() {
+	return oCombat.rerolls_bought;
+}
+
+/// @func combat_redraws_total()
+/// @desc Redraws this turn: only the ones bought with insight.
+function combat_redraws_total() {
+	return oCombat.redraws_bought;
+}
+
+/// @func combat_insight_can(_cost)
+/// @desc Can you spend this much insight now? (your turn, enough of it, not Blotted)
+function combat_insight_can(_cost) {
+	return oCombat.state == CombatState.PLAYER_INPUT && !oCombat.show_rewards && !intel_is_blotted() && oCombat.player_intel >= _cost;
+}
+
+/// @func combat_insight_spend(_cost)
+/// @desc Spends insight if you have it (a "-N" floats off the eye); otherwise says why not. True if spent.
+function combat_insight_spend(_cost) {
+	with (oCombat) {
+		if (state != CombatState.PLAYER_INPUT || show_rewards) return false;
+		if (intel_is_blotted() || player_intel < _cost) {
+			throw_error("Not enough insight", "That costs " + string(_cost) + " insight. You have " + string(max(0, player_intel)) + ".");
+			return false;
+		}
+		player_intel -= _cost;
+		var _num = spawn_floating_number("player", _cost, -1, global.color_intel, -1, -1, 0);
+		_num.x += 20;
+		_num.y -= 20;
+		sfx_play(soSlotPlace, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
+		return true;
+	}
+	return false;
+}
+
+/// @func combat_reveal_cost()
+/// @desc Seeing one enemy's exact values: 2 when it's alone, 1 each when there are several.
+function combat_reveal_cost() {
+	return (combat_living_enemies() > 1) ? 1 : INSIGHT_COST_REVEAL;
+}
+
+/// @func enemy_intent_revealed(_enemy)
+/// @desc Have you paid to see this enemy's exact values this turn?
+function enemy_intent_revealed(_enemy) {
+	return is_struct(_enemy) && variable_struct_exists(_enemy, "revealed") && _enemy.revealed;
+}
+
+/// @func combat_reveal_enemy(_enemy)
+/// @desc Pays combat_reveal_cost to see this enemy's exact values this turn.
+function combat_reveal_enemy(_enemy) {
+	if (enemy_intent_revealed(_enemy)) return;
+	with (oCombat) {
+		if (combat_insight_spend(combat_reveal_cost())) {
+			_enemy.revealed = true;
+			insight_revealed = true; // someone's revealed: the eye opens wide
+			intel_level = INTEL_LEGIBLE;
+		}
+	}
+}
+
+/// @func combat_buy(_what)
+/// @desc Spend insight on: "reveal" (exact enemy intents this turn), "reroll", "redraw" or "play" (one more of each).
+function combat_buy(_what) {
+	with (oCombat) {
+		switch (_what) {
+			case "reveal":
+				if (insight_revealed) return;
+				if (combat_insight_spend(INSIGHT_COST_REVEAL)) {
+					insight_revealed = true;
+					intel_level = INTEL_LEGIBLE;
+					add_feed_entry("You read the enemies' intent exactly.");
+				}
+			break;
+			case "reroll": if (combat_insight_spend(INSIGHT_COST_REROLL)) rerolls_bought++; break;
+			case "redraw": if (combat_insight_spend(INSIGHT_COST_REDRAW)) redraws_bought++; break;
+			case "play":   if (combat_insight_spend(INSIGHT_COST_PLAY)) plays_bought++; break;
+		}
+	}
+}
+
+/// @func combat_reroll_die(_inst)
+/// @desc Right-click a die in hand: for 3 insight it rolls again.
+function combat_reroll_die(_inst) {
+	if (state != CombatState.PLAYER_INPUT || show_rewards || !instance_exists(_inst) || !die_has_faces(_inst.struct)) return;
+	// a reroll costs 3 insight, paid as you right-click
+	if (!combat_insight_can(INSIGHT_COST_REROLL)) {
+		throw_error("Not enough insight", "Rerolling a die costs " + string(INSIGHT_COST_REROLL) + " insight. You have " + string(max(0, player_intel)) + ".");
+		return;
+	}
+	if (!combat_insight_spend(INSIGHT_COST_REROLL)) return;
+	rerolls_used++;
+	die_roll_faces(_inst.struct);
+	trigger_die_effects_single(_inst.struct, "on_die_inked", { _die_struct: _inst.struct, redrawn: false });
+	_inst.roll_anim = 18; // it tumbles in place, then lands on the new roll
+	particle_emit(_inst.x, _inst.y, "burst", get_dice_color(_inst.struct.possible_type), 20);
+	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
+}
+
+/// @func combat_discard_and_redraw(_inst)
+/// @desc A die dropped on the discard pile in your turn: for 3 insight it's discarded and a new one is drawn. Without
+///       the insight it's refused (it goes back to your hand) and says why.
+function combat_discard_and_redraw(_inst) {
+	if (state != CombatState.PLAYER_INPUT) return;
+	if (!combat_insight_can(INSIGHT_COST_REDRAW)) {
+		throw_error("Not enough insight", "Discarding a die draws a new one, for " + string(INSIGHT_COST_REDRAW) + " insight. You have " + string(max(0, player_intel)) + ".");
+		return;
+	}
+	if (!combat_insight_spend(INSIGHT_COST_REDRAW)) return;
+	discard_dice(_inst);
+	dice_to_deal += 1;
+	is_dealing_dice = true;
+}
+
+/// @func combat_discard_slot_building()
+/// @desc End of turn: dice left on the new-slot tile (the slot wasn't built) go to the discard pile.
+function combat_discard_slot_building() {
+	if (!ds_safe_exists(global.sacrifice_list, ds_type_list)) return;
+	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
+		var _p = instance_create_layer(is_struct(new_tile_pos) ? new_tile_pos.x + new_tile_pos.w / 2 : gui_w / 2, is_struct(new_tile_pos) ? new_tile_pos.y : gui_h / 2, "Instances", oDiceParticle);
+		_p.die_struct = clone_die(global.sacrifice_list[| j], "");
+		_p.color_main = get_dice_color(_p.die_struct.possible_type);
+		_p.target_x = gui_w - 150;
+		_p.target_y = gui_h - 130;
+	}
+	ds_list_clear(global.sacrifice_list);
+	update_sacrificed_type_array();
+}
+
+/// @func enemy_is_leader(_enemy)
+/// @desc An elite, or the boss in a boss fight (its biggest enemy). When one falls the others flee (combat_enemies_flee).
+function enemy_is_leader(_enemy) {
+	if (!is_struct(_enemy) || !variable_struct_exists(_enemy, "data")) return false;
+	if (variable_struct_exists(_enemy.data, "elite") && _enemy.data.elite) return true;
+	if (instance_exists(oWorldManager) && oWorldManager.current_node_type == NODE_TYPE.BOSS) {
+		for (var e = 0; e < ds_list_size(oCombat.room_enemies); e++) {
+			if (oCombat.room_enemies[| e].max_hp > _enemy.max_hp) return false;
+		}
+		return true;
+	}
+	return false;
+}
+
+/// @func combat_enemies_flee(_leader)
+/// @desc Every other enemy still standing flees: it counts as gone (the fight can be won), fades out, and gives no gold.
+function combat_enemies_flee(_leader) {
+	var _any = false;
+	for (var e = 0; e < ds_list_size(room_enemies); e++) {
+		var _en = room_enemies[| e];
+		if (_en == _leader || _en.dead) continue;
+		_en.dead = true;
+		_en.fled = true;
+		_en.looted = true; // no bounty
+		enemy_turns_remaining--;
+		enemies_left_this_combat--;
+		enemies_to_fade_out += 1;
+		ds_list_clear(_en.debuffs);
+		particle_emit(_en.pos_x, _en.pos_y, "rise", c_white);
+		_any = true;
+	}
+	if (_any) add_feed_entry("With their leader down, the rest flee!");
+}
+
+/// @func combat_turn_tokens_draw(_cx, _right_max, _y, _view)
+/// @desc Your plays this turn, above End Turn, centred on _cx but never past _right_max (the slots): "N plays left",
+///       then a brass token per play (dark once used; yellow if bought with insight), then a faded yellow pip for each
+///       more play your insight could buy (4 each): click one to buy it. Out of plays with 4+ insight, a callout above
+///       says so. Playing (or failing to) makes the tokens pulse green (or red). (_view is unused now.)
+function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
+	var _total = max(dice_allowed_per_turn, dice_played);
+	var _left = max(0, dice_allowed_per_turn - dice_played);
+	var _my_turn = (state == CombatState.PLAYER_INPUT && !show_rewards);
+	var _buyable = 0; // plays can't be bought any more (insight rewrites the log, it doesn't add plays)
+	var _r = 11, _gap = 5;
+	var _dark = make_color_rgb(42, 29, 18);
+	var _brass = make_color_rgb(232, 196, 106);
+	var _spent = make_color_rgb(90, 69, 53);
+
+	var _n = _total + _buyable;
+	var _w = _n * (_r * 2) + max(0, _n - 1) * _gap + ((_buyable > 0) ? 8 : 0); // a little space before the buyable ones
+	var _x0 = min(_cx - _w / 2, _right_max - _w);
+
+	// "N plays left", as it was
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_outline_text((_left == 1) ? "1 play left" : string(_left) + " plays left", c_black, dice_played_color, 2, _x0 + _w / 2, _y - 30, 1, 1, 0);
+
+	var _hover = mouse_hovering(_x0 - 4, _y - _r - 4, _total * (_r * 2 + _gap) + 8, _r * 2 + 8, false);
+	var _s = dice_played_scale;
+	var _ring = merge_colour(_dark, dice_played_color, clamp((dice_played_scale - 1) * 2.5, 0, 1));
+	for (var t = 0; t < _total; t++) {
+		var _tx = _x0 + _r + t * (_r * 2 + _gap);
+		var _on = (t < _left);
+		var _paid = (t >= _total - plays_bought); // bought with insight: the last ones
+		var _fill = _on ? (_paid ? global.color_intel : _brass) : _spent;
+		var _rr = _r * _s * (_hover ? 1.1 : 1);
+		draw_set_color(_ring);
+		draw_circle(_tx, _y, _rr + 3, false);
+		draw_set_color(_fill);
+		draw_circle(_tx, _y, _rr, false);
+		draw_set_color(_on ? merge_colour(_fill, c_white, 0.35) : merge_colour(_fill, c_white, 0.1));
+		draw_circle(_tx, _y - _rr * 0.35, _rr * 0.45, false);
+		draw_set_color(_fill);
+		draw_circle(_tx, _y - _rr * 0.15, _rr * 0.55, false);
+	}
+	if (_hover && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Plays", "Dice you can play this turn: " + string(_left) + " left. Coins are free to play.");
+
+	// the plays your insight could buy: faded yellow pips, click to buy one
+	for (var b = 0; b < _buyable; b++) {
+		var _bx = _x0 + 8 + _r + (_total + b) * (_r * 2 + _gap);
+		var _bhover = mouse_hovering(_bx - _r - 3, _y - _r - 3, _r * 2 + 6, _r * 2 + 6, false);
+		var _br = _r * (_bhover ? 1.2 : 1);
+		draw_set_alpha(_bhover ? 0.95 : 0.5);
+		draw_set_color(_dark);
+		draw_circle(_bx, _y, _br + 3, false);
+		draw_set_color(_bhover ? make_color_rgb(150, 145, 130) : make_color_rgb(110, 105, 95)); // faded grey until bought (then a yellow token)
+		draw_circle(_bx, _y, _br, false);
+		draw_set_alpha(1);
+		draw_set_color(global.color_intel);
+		for (var k = 0; k < 8; k++) draw_arc_thick_deg(_bx, _y, _br + 1, _br + 3, k * 45, k * 45 + 25, 4); // a dashed edge: not yours yet
+		if (_bhover) {
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Buy a play", "Spend " + string(INSIGHT_COST_PLAY) + " insight to play one more die this turn.", undefined, 0, undefined, INSIGHT_COST_PLAY, "insight");
+			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && combat_no_die_dragged()) combat_buy("play");
+		}
+	}
+
+	// out of plays, but insight could buy more: say so above the row
+	if (_left == 0 && _buyable > 0) {
+		var _name = "Out of plays";
+		var _desc = "Spend " + string(INSIGHT_COST_PLAY) + " insight to play another die: click a yellow pip.";
+		var _sz = draw_tooltip_box(0, 0, _name, _desc, undefined, 0, undefined, false, true);
+		var _bx0 = clamp(_x0 + _w / 2 - _sz.w / 2, 10, display_get_gui_width() - _sz.w - 10);
+		var _by0 = _y - 52 - _sz.h;
+		draw_tooltip_box(_bx0, _by0, _name, _desc, undefined, 0, undefined, false, false);
+		tooltip_cost_badge(_bx0 + _sz.w, _by0, INSIGHT_COST_PLAY, "insight");
+	}
+	draw_set_color(c_white);
+	draw_set_alpha(1);
+}
+
+/// @func combat_token_symbol(_group, _x, _y, _r, _col)
+/// @desc The symbol on a reroll token (a circling arrow) or a redraw token (an arrow up out of a line); plays have none.
+function combat_token_symbol(_group, _x, _y, _r, _col) {
+	draw_set_color(_col);
+	if (_group == 1) {
+		draw_arc_thick_deg(_x, _y, _r * 0.42, _r * 0.62, 50, 320, 20);
+		var _hx = _x + lengthdir_x(_r * 0.52, 50), _hy = _y + lengthdir_y(_r * 0.52, 50);
+		draw_triangle(_hx - _r * 0.38, _hy - _r * 0.05, _hx + _r * 0.3, _hy - _r * 0.22, _hx + _r * 0.02, _hy + _r * 0.42, false);
+	} else if (_group == 2) {
+		draw_line_width(_x, _y + _r * 0.35, _x, _y - _r * 0.25, max(2, _r * 0.18));
+		draw_triangle(_x - _r * 0.36, _y - _r * 0.15, _x + _r * 0.36, _y - _r * 0.15, _x, _y - _r * 0.6, false);
+		draw_line_width(_x - _r * 0.45, _y + _r * 0.5, _x + _r * 0.45, _y + _r * 0.5, max(2, _r * 0.16));
+	}
+}
+
+// =====================================================================
+// INSIGHT VIEW: the eye opens it; everything dims except what insight can buy
+// =====================================================================
+
+/// @func intent_verbs(_move)
+/// @desc What an enemy's move does, in words for a sentence: "attack", "attack and block", "heal"...
+function intent_verbs(_move) {
+	var _parts = string_split(_move.action_type, "/");
+	var _out = "";
+	for (var i = 0; i < array_length(_parts); i++) {
+		var _w = string_lower(_parts[i]);
+		switch (_parts[i]) {
+			case "ATK": _w = "attack"; break;
+			case "BLK": _w = "block"; break;
+			case "HEAL": _w = "heal"; break;
+			case "BUFF": _w = "buff"; break;
+			case "DEBUFF": _w = "debuff"; break;
+		}
+		_out += ((i == 0) ? "" : ((i == array_length(_parts) - 1) ? " and " : ", ")) + _w;
+	}
+	return _out;
+}
+
+/// @func combat_queue_holes_draw()
+/// @desc Inside the log's overlay surface (subtract blend, white): cuts out just the queue's pieces, each to its own shape,
+///       so they stay in full colour and nothing between them lights up: every slot to its sprite's outline (its dot
+///       included) and the dice above it, the new-slot
+///       tile, the End Turn button (reading Confirm; its own sprite, so the hole is exactly its outline) and the token row.
+function combat_queue_holes_draw() {
+	if (!instance_exists(oCombat)) return;
+	with (oCombat) {
+		for (var q = 0; q < ds_list_size(slot_positions); q++) {
+			var _p = slot_positions[| q];
+			var _has_dice = (q < ds_list_size(action_queue)) && ds_list_size(action_queue[| q].dice_list) > 0;
+			// the slot's own sprite (it includes the dot under it), so the hole is its outline; the dice above it as a strip
+			draw_sprite_ext(sActionSlot, 0, _p.x, _p.y, _p.w / 140, _p.h / 140, 0, c_white, 1);
+			if (_has_dice) draw_roundrect_ext(_p.x - 5, _p.y - 44, _p.x + _p.w + 5, _p.y + 6, 10, 10, false);
+		}
+		if (is_struct(new_tile_pos)) {
+			var _hd = ds_list_size(global.sacrifice_list) > 0;
+			draw_sprite_ext(sActionSlot, 2, new_tile_pos.x, new_tile_pos.y, new_tile_pos.w / 140, new_tile_pos.h / 140, 0, c_white, 1);
+			if (_hd) draw_roundrect_ext(new_tile_pos.x - 5, new_tile_pos.y - 44, new_tile_pos.x + new_tile_pos.w + 5, new_tile_pos.y + 6, 10, 10, false);
+		}
+		if (variable_instance_exists(id, "end_turn_draw")) {
+			var _et = end_turn_draw;
+			draw_sprite_ext(sEndTurn, 0, _et.x, _et.y, _et.s * 1.04, _et.s * 1.08, 0, c_white, 1);
+		}
+	}
+}
+
+/// @func combat_insight_phase_worth()
+/// @desc Is there anything your ink could do right now? (the cheapest: a reveal, or a reroll or redraw at 3)
+function combat_insight_phase_worth() {
+	return combat_insight_can(min(combat_reveal_cost(), INSIGHT_COST_REROLL, INSIGHT_COST_REDRAW));
+}
+
+/// @func combat_redraw_die(_inst)
+/// @desc In the insight phase: for 3 ink, a die in hand is discarded and a new one dealt (it rolls as it comes).
+function combat_redraw_die(_inst) {
+	if (!instance_exists(_inst) || !combat_insight_spend(INSIGHT_COST_REDRAW)) return;
+	trigger_die_effects_single(_inst.struct, "on_die_inked", { _die_struct: _inst.struct, redrawn: true });
+	discard_dice(_inst);
+	dice_to_deal += 1;
+	is_dealing_dice = true;
+}
+
+/// @func combat_insight_view_set(_open)
+/// @desc Opens or closes the insight phase. While it's open the rest of the screen ignores the mouse (UI_LAYER.POPUP).
+function combat_insight_view_set(_open) {
+	with (oCombat) {
+		if (insight_view == _open) return;
+		insight_view = _open;
+		insight_view_age = 0; // frames open (oCombat Step): the click that opened it can't also close it
+		global.ui_layer = _open ? UI_LAYER.POPUP : UI_LAYER.BASE;
+		sfx_play(soSlotPlace, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
+	}
+}
+
+/// @func combat_insight_part_draw(_x1, _y1, _x2, _y2, _afford, _hover, _pulse, _cost, _label, _coin_left)
+/// @desc One half of an intent in insight view: a yellow outline (grey if you can't afford it) and its cost on a coin at
+///       its top corner (left or right). _label is unused (the hover says what it does).
+function combat_insight_part_draw(_x1, _y1, _x2, _y2, _afford, _hover, _pulse, _cost, _label, _coin_left) {
+	var _col = _afford ? global.color_intel : make_color_rgb(120, 110, 80);
+	var _grow = _afford ? (_hover ? 4 : _pulse * 2) : 0;
+	draw_set_color(_col);
+	for (var k = 0; k < (_hover ? 4 : 2); k++) draw_roundrect_ext(_x1 - k - _grow, _y1 - k - _grow, _x2 + k + _grow, _y2 + k + _grow, 16, 16, true);
+	var _cx = _coin_left ? _x1 : _x2, _cy = _y1;
+	draw_set_color(c_black);
+	draw_circle(_cx, _cy, 17, false);
+	draw_set_color(_col);
+	draw_circle(_cx, _cy, 14, false);
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_color(c_black);
+	draw_text(_cx, _cy, string(_cost));
+	// (no "Reroll" / "Exact" labels: the coins and the hovers say it)
+}
+
+/// @func combat_insight_view_draw()
+/// @desc The insight phase, drawn first in oRunManager Draw GUI End (so the dice dim too): the screen darkens except
+///       the enemy intents and the dice in your hand, which your quill can rewrite. Each intent is split in two: its
+///       move (left) rerolled for 6, its numbers (right) shown exactly for 2 (1 each with several enemies). Each die
+///       in hand is drawn again on top, edged in yellow: left-click rerolls it (3), right-click redraws it (3). Every
+///       one has a tooltip with its cost tag; the cursor is a quill (cursor_draw). End Turn reads "Confirm"
+///       (drawn in its place, the queue left in full colour); it, the inkwell or Enter closes the log, and the inkwell
+///       opens it any time on your turn. The cursor is a quill only over something it can change (quill_over).
+function combat_insight_view_draw() {
+	if (!instance_exists(oCombat) || !oCombat.insight_view) return;
+	with (oCombat) {
+		var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+		var _top = ui_top_bar_h();
+		var _pad = 14;
+
+		// the overlay: dark, with the intents and your hand cut out of it (subtract blend), so they show at full colour
+		if (!surface_exists(insight_surf)) insight_surf = surface_create(_gw, _gh);
+		surface_set_target(insight_surf);
+		draw_clear_alpha(c_black, 0.72);
+		gpu_set_blendmode(bm_subtract);
+		draw_set_color(c_white);
+		for (var e = 0; e < ds_list_size(room_enemies); e++) {
+			var _en = room_enemies[| e];
+			if (_en.dead || !variable_struct_exists(_en, "intent_rect")) continue;
+			var _ir = _en.intent_rect;
+			draw_roundrect_ext(_ir.x - _ir.w / 2 - _pad, _ir.y - _ir.h / 2 - _pad, _ir.x + _ir.w / 2 + _pad, _ir.y + _ir.h / 2 + _pad, 18, 18, false);
+		}
+		// the action queue's pieces stay in full colour, each cut to its own shape (combat_queue_holes_draw)
+		combat_queue_holes_draw();
+		gpu_set_blendmode(bm_normal);
+		surface_reset_target();
+		if (oRunManager.ink_capturing && surface_exists(oRunManager.ink_scene)) {
+			// the ink look (F118): the frame (oRunManager Draw GUI Begin) redrawn as ink on parchment by shInk, the holes
+			// above (insight_surf's clear parts) left in colour; the top bar drawn as it is
+			shader_set(shInk);
+			shader_set_uniform_f(shader_get_uniform(shInk, "u_texel"), 1 / surface_get_width(oRunManager.ink_scene), 1 / surface_get_height(oRunManager.ink_scene));
+			shader_set_uniform_f(shader_get_uniform(shInk, "u_time"), (current_time / 1000) mod 100); // kept small: shader floats lose precision
+			shader_set_uniform_f(shader_get_uniform(shInk, "u_mask_a"), 0.72);
+			texture_set_stage(shader_get_sampler_index(shInk, "u_mask"), surface_get_texture(insight_surf));
+			gpu_set_blendenable(false);
+			draw_surface(oRunManager.ink_scene, 0, 0);
+			shader_reset();
+			draw_surface_part(oRunManager.ink_scene, 0, 0, _gw, _top, 0, 0);
+			gpu_set_blendenable(true);
+		} else {
+			// no shader (or the log opened this frame): the dark overlay
+			draw_surface_part(insight_surf, 0, _top, _gw, _gh - _top, 0, _top); // the top bar stays as it is
+		}
+
+		// the inkwell, on top, with your ink beside it: clicking it closes the log (a toggle, like Confirm)
+		var _ex = global.player_x, _ey = global.player_y - 180;
+		var _ink_hov = mouse_hovering(_ex, _ey, 70, 70, true, noone, noone, true, UI_LAYER.POPUP);
+		draw_inkwell(_ex, _ey, _ink_hov ? 1.25 : 1.15, player_intel / INSIGHT_MAX, false);
+		if (_ink_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Put your ink away", "Back to your dice. Click the inkwell again any time this turn to use your ink.", undefined, 0, undefined, 0, "insight", { button: "left", text: "Done", col: global.color_intel });
+		var _ink_click = _ink_hov && mouse_check_button_pressed(mb_left);
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_outline_text(string(player_intel), c_black, global.color_intel, 2, _ex + 44, _ey + 10, 1, 1, 0);
+
+		// done writing: End Turn reads "Confirm" while the log is open (oCombat Draw GUI draws it in its place, under the
+		// slots, in full colour); the click is taken here, on the log's layer. Not over a slot, which sits on top of it.
+		var _seal_click = false;
+		quill_over = false; // set below when the mouse is over something the quill can change (cursor_draw)
+		if (variable_instance_exists(id, "end_turn_draw")) {
+			var _et = end_turn_draw;
+			var _sw = sprite_get_width(sEndTurn) * _et.s, _sh = sprite_get_height(sEndTurn) * _et.s;
+			var _sx = _et.x - sprite_get_xoffset(sEndTurn) * _et.s, _sy = _et.y - sprite_get_yoffset(sEndTurn) * _et.s;
+			var _over_slot = false;
+			var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
+			for (var q = 0; q < ds_list_size(slot_positions); q++) { var _p = slot_positions[| q]; if (_mx >= _p.x && _mx <= _p.x + _p.w && _my >= _p.y && _my <= _p.y + _p.h) _over_slot = true; }
+			var _seal_hov = !_over_slot && mouse_hovering(_sx, _sy, _sw, _sh, false, soSlotHover, noone, true, UI_LAYER.POPUP);
+			if (_seal_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Confirm", "Done with your ink: put it away and play your dice. The inkwell brings it back; ink you don't spend carries over.");
+			_seal_click = _seal_hov && mouse_check_button_pressed(mb_left);
+		}
+
+		var _pulse = 0.5 + 0.5 * sin(current_time / 200);
+
+		// each intent: the move (left, under its icon) rerolled for 6; the numbers (right) shown exactly
+		for (var e = 0; e < ds_list_size(room_enemies); e++) {
+			var _en = room_enemies[| e];
+			if (_en.dead || !variable_struct_exists(_en, "intent_rect")) continue;
+			var _ir = _en.intent_rect;
+			var _x1 = _ir.x - _ir.w / 2 - _pad, _y1 = _ir.y - _ir.h / 2 - _pad, _x2 = _ir.x + _ir.w / 2 + _pad, _y2 = _ir.y + _ir.h / 2 + _pad;
+			var _sx = variable_struct_exists(_ir, "split") ? _ir.split : _ir.x;
+
+			var _ok = enemy_can_rewrite_intent(_en);
+			var _afford = _ok && combat_insight_can(INSIGHT_COST_QUILL);
+			var _lhover = mouse_hovering(_x1, _y1, _sx - _x1, _y2 - _y1, false, noone, soClick4, true, UI_LAYER.POPUP);
+			if (_lhover && _ok) quill_over = true;
+			combat_insight_part_draw(_x1, _y1, _sx - 2, _y2, _afford, _lhover, _pulse, INSIGHT_COST_QUILL, "", true);
+			if (_lhover) {
+				if (_ok) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll intent", "Spend " + string(INSIGHT_COST_QUILL) + " insight: " + string(_en.data.name) + " picks a different move, rolled fresh.", undefined, 0, undefined, INSIGHT_COST_QUILL, "insight");
+				else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't be rewritten", "This move is forced, or " + string(_en.data.name) + " has nothing else to choose.");
+				if (mouse_check_button_pressed(mb_left) && _ok && combat_insight_spend(INSIGHT_COST_QUILL) && enemy_rewrite_intent(_en)) {
+					_en.intent.scale = _en.intent.start_scale * 1.4; // pop, so the change is noticed
+					add_feed_entry("You rewrote " + string(_en.data.name) + "'s intent: " + string(_en.intent.move.move_name));
+				}
+			}
+
+			if (!enemy_intent_revealed(_en) && intent_has_numbers(_en.intent.move)) {
+				var _rcost = combat_reveal_cost();
+				var _rafford = combat_insight_can(_rcost);
+				var _rhover = mouse_hovering(_sx, _y1, _x2 - _sx, _y2 - _y1, false, noone, soClick4, true, UI_LAYER.POPUP);
+				if (_rhover) quill_over = true;
+				combat_insight_part_draw(_sx + 2, _y1, _x2, _y2, _rafford, _rhover, _pulse, _rcost, "", false);
+				if (_rhover) {
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reveal exact numbers", "Spend " + string(_rcost) + " insight to reveal the exact value " + string(_en.data.name) + " intends to " + intent_verbs(_en.intent.move) + " with.", undefined, 0, undefined, _rcost, "insight");
+					if (mouse_check_button_pressed(mb_left)) combat_reveal_enemy(_en);
+				}
+			}
+		}
+
+		// your dice in hand, lit above the dark: left-click rerolls (3), right-click redraws (3). Hovered: mouse hints above
+		// it and a tooltip. (Not while it's still rolling in.)
+		var _rr_can = combat_insight_can(INSIGHT_COST_REROLL), _rd_can = combat_insight_can(INSIGHT_COST_REDRAW);
+		var _clicked = noone, _clicked_what = "";
+		var _over_die = false;
+		var _hint_at = undefined;
+		with (oDice) {
+			if (still || in_slot) continue;
+			var _r = 36 * scale * (1 + 0.22 * land_pop);
+			var _face = tumbling ? flick_face : (die_has_faces(struct) ? die_face_total(struct) : -1);
+			var _ready = !is_dragging && !tumbling && die_has_faces(struct);
+			var _hov = _ready && mouse_hovering(x, y, 84, 84, true, noone, noone, true, UI_LAYER.POPUP);
+			// a yellow edge (brighter when hovered), then the die itself, on top of the dark
+			var _glow = (_rr_can || _rd_can) ? (_hov ? 1 : 0.55 + 0.25 * sin(current_time / 200)) : 0.25;
+			draw_die_shape(x, y, _r * (_hov ? 1.22 : 1.16), dice_value, global.color_intel, tumble_angle, _glow);
+			draw_die(x, y, _r * (_hov ? 1.08 : 1), dice_value, _face, die_colours(struct.possible_type), tumble_angle, 1);
+			if (_hov) {
+				_over_die = true;
+				other.quill_over = true;
+				_hint_at = { x: x, y: y - _r - 46 }; // its mouse hints go on top of every die, after this loop
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll or redraw", "Left-click: spend " + string(INSIGHT_COST_REROLL) + " insight to roll this die again.\nRight-click: spend " + string(INSIGHT_COST_REDRAW) + " insight to discard it and draw a new die.", undefined, 0, undefined, INSIGHT_COST_REROLL, "insight");
+				if (mouse_check_button_pressed(mb_left) && _rr_can) { _clicked = id; _clicked_what = "reroll"; }
+				if (mouse_check_button_pressed(mb_right) && _rd_can) { _clicked = id; _clicked_what = "redraw"; }
+			}
+		}
+		// the hovered die's mouse hints, above every die
+		if (is_struct(_hint_at)) {
+			draw_mouse_hint(_hint_at.x - 78, _hint_at.y, "left", "Reroll", 0.6, _rr_can ? global.color_intel : make_color_rgb(90, 90, 100), _rr_can ? global.color_intel : make_color_rgb(150, 150, 160));
+			draw_mouse_hint(_hint_at.x + 22, _hint_at.y, "right", "Redraw", 0.6, _rd_can ? global.color_intel : make_color_rgb(90, 90, 100), _rd_can ? global.color_intel : make_color_rgb(150, 150, 160));
+		}
+		if (_clicked != noone) {
+			if (_clicked_what == "reroll") combat_reroll_die(_clicked);
+			else combat_redraw_die(_clicked);
+		}
+
+		// closing: "Confirm", the inkwell (a toggle), or Enter (End Turn's key: oCombat Step). Right-click doesn't.
+		if (insight_view_age > 0 && (_seal_click || _ink_click)) combat_insight_view_set(false);
+
+		draw_set_color(c_white);
+		draw_set_alpha(1);
+		draw_set_halign(fa_left);
+		draw_set_valign(fa_top);
 	}
 }

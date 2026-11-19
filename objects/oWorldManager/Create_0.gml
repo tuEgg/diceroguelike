@@ -165,8 +165,13 @@ boat_data = {
 	y: display_get_gui_height()/2,
 	angle: 0,
 	base_y: display_get_gui_height()/2,
-	spd: 0
+	spd: 0,
+	entering: false, // sailing in from the book's left edge after Embark (oWorldManager Draw GUI)
+	voyage: undefined, // the voyage it's on (boat_sail_toward)
+	tilt: 0,           // how far it heels over while sailing (added to angle when drawn)
 }
+book_left_x = 262;  // the open book's water pages' outer edges this frame (oWorldManager Draw GUI): the courses into
+book_right_x = 1658; // and out of a spread start and end there, and the ship sails in and out across them
 
 circle_list = ds_list_create();
 node_x[0] = 0;
@@ -191,7 +196,8 @@ enum WORLD_STATE {
 	DRAFTING,
 	TURNING,
 	EXPLORING,
-	CHAPTER_END // the boss is beaten, waiting for the player to turn to the next chapter
+	CHAPTER_END, // the boss is beaten, waiting for the player to turn to the next chapter
+	STRAIT // the spread is done: its sea stops are on the map (strait_draw), then TURNING (added last so saved numbers keep their meaning)
 }
 world_state = WORLD_STATE.OPENING;
 
@@ -206,9 +212,8 @@ workbench_scale_target = 2.0;
 workbench_scale = workbench_scale_target;
 resting_alpha = 0;
 rest_amount = 0.25;
-rest_heal_preview = undefined; // what resting heals this spread end, worked out once (keepsakes add to it)
-rest_btn_scales = [1, 1, 1, 1];
-rest_options = undefined; // the two rolled spread-end choices beside Heal (spread_end_roll_options), once per spread end
+strait = undefined;    // this spread end's sea stops (strait_build), while world_state is STRAIT
+sea_buoy = undefined;  // the workbench buoy between a spread's pages (sea_buoy_draw)
 
 embark_scale = 1.0;
 workbench_scale = 1.0;

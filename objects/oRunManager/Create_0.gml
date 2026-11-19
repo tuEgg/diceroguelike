@@ -3,7 +3,7 @@ update_gui_layout();
 global.heal_pos = 0;
 
 randomise();
-credits = debug_mode ? 500 : 50;
+credits = 50; // the same in debug runs (F1 > Run can add gold when testing)
 generate_dice_bag();
 define_buffs_and_debuffs();
 define_enemies();
@@ -30,53 +30,57 @@ define_keepsakes();
 
 ds_list_add(keepsakes, get_keepsake_by_id("looking_glass"));
 
+// icon_on: where a die shows the keyword's icon (draw_dice_keywords): "hand" (dice you're about to play), "slot" (dice
+// in the queue). Elsewhere the words do the job: a card's or tooltip's description starts with the keyword. Coin and
+// Multitype show in the die itself (a round coin, split colours); Favourite only matters as the hand is dealt.
 global.keywords = {
     "Stowaway": {
         colour: c_aqua,
         desc: "Bonus effect when dice is left unplayed.",
-		index: 0
+		index: 0,
+		icon_on: ["hand"]
     },
 
     "Favourite": {
         colour: c_lime,
         desc: "Always appears in your starting hand.",
-		index: 1
+		index: 1,
+		icon_on: []
     },
 
     "Coin": {
         colour: c_yellow,
-        desc: "Doesn't count towards played dice total, bypasses size requirements for slot checks.",
-		index: 2
+        desc: "Doesn't use a play.",
+		index: 2,
+		icon_on: []
     },
 
     "Multitype": {
         colour: c_silver,
         desc: "Has more than one action type.",
-		index: 3
+		index: 3,
+		icon_on: []
     },
 
     "Followthrough": {
         colour: c_red,
         desc: "Bonus effects when dice is rolled dependent on previous slots.",
-		index: 4
+		index: 4,
+		icon_on: ["hand"]
     },
 
     "Exclusive": {
         colour: c_teal,
-        desc: "This die ejects all other die when played to a slot, cannot have other dice played into it and cannot be sacrificed.",
-		index: 5
+        desc: "Clears its slot when played, and no other dice can join it. It can't build a slot.",
+		index: 5,
+		icon_on: ["hand"]
     },
 
-    "Loose": {
-        colour: c_ltgray,
-        desc: "This die always ejects from its slot, regardless of permanence.",
-		index: 6
-    },
-
-    "Sticky": {
+"Sticky": {
         colour: c_dkgray,
-        desc: "This die becomes permanent to the slot it is played.",
-		index: 7
+        desc: "Stays in its slot for one extra turn, and acts again.",
+		index: 7,
+		icon_on: ["hand", "slot"]
     },
 
     "Might": {
@@ -159,31 +163,26 @@ bonus_dice_next_combat = 0;
 holding_item = false; // used for holding the hammer in the workbench, will eventually change cursor type, right now just blocks inputs in that room. Could also do it for dice.
 show_consumables_chance = 30; // percentage chance to show consumables after any given fight
 
-// player intel: three states, read like an old captain's logbook. Below 0 intel the page is Blotted (intents hidden).
-// requirement is the intel needed; icon is drawn in code by draw_insight_icon until Jared designs real ones (F51)
+// insight (player_intel): points you spend during your turn (Jared, 2026-11-19): see exact intents 2, an extra reroll
+// or redraw 3, an extra play 4, a Quill rewrite 6 (the INSIGHT_COST_ macros, scEnemies). Below 0 the page is Blotted.
+// These are the eye's two looks (sIntelEye frames): ranges, and exact numbers once you've paid to see them.
 global.player_intel_data = ds_list_create();
 ds_list_add(global.player_intel_data, {
 	requirement: 0,
-	name: "Faded",
-	description: "See enemy ranges.",
-	icon: "faded",
+	name: "Insight",
+	description: "Enemy intents show a range.",
+	index: 1,
 });
 ds_list_add(global.player_intel_data, {
-	requirement: 5,
-	name: "Legible",
-	description: "See exact numbers.",
-	icon: "legible",
-});
-ds_list_add(global.player_intel_data, {
-	requirement: 10,
-	name: "Quill",
-	description: "Reroll or halve one intent a turn.",
-	icon: "quill",
+	requirement: 0,
+	name: "Insight",
+	description: "You see exactly what each enemy will do this turn.",
+	index: 2,
 });
 global.intel_blotted = {
 	name: "Blotted",
-	description: "Enemy intents hidden.",
-	icon: "blotted",
+	description: "Below 0 insight the page is smudged: enemy intents are hidden.",
+	index: 0,
 };
 
 show_dice_list = false; // used for displaying all the dice in the master list
@@ -264,6 +263,8 @@ global.master_tool_list = ds_list_create();
 ds_list_add(global.master_tool_list, tool_hammer);
 ds_list_add(global.master_tool_list, tool_scissors);
 
+ink_scene = -1;        // the log's ink look (F118): the frame drawn into a surface while the log is open (Draw GUI Begin)
+ink_capturing = false; // this frame is going into ink_scene (set in Draw GUI Begin, reset first thing in Draw GUI End)
 can_visit_workbench = false; // "At sea": set when a page's island is done; the map offers the workbench once (F02)
 at_sea_scales = [1, 1];
 
@@ -280,6 +281,12 @@ paused = false;
 pre_pause_ui_layer = UI_LAYER.BASE;
 pause_scales = [1, 1, 1];
 cog_scale = 1; // the top bar's menu cog
+alignment_popup_text = ""; // gain_alignment: "+5 merciful" under the compass for a moment
+alignment_popup_col = c_white;
+alignment_popup_t = -1;    // frames since it appeared (-1: none)
+bag_sort = 0;        // bag view order: 0 bag order, 1 type, 2 size, 3 rarity, 4 name (bag_view_list)
+bag_filter = "All"; // bag view type filter
+bag_btn_scales = [1, 1, 1, 1, 1, 1, 1];
 cog_turn = 0;
 //global.ui_layer = UI_LAYER.POPUP;
 
@@ -291,18 +298,35 @@ generate_item_rewards(consumable_options, global.master_item_list, 3, "core");
 var dice_options = ds_list_create();
 generate_dice_rewards(dice_options, global.master_dice_list, 3);
 
+// a core does nothing on a coin, so any coin offered is swapped for another die (not one already on offer)
+for (var i = 0; i < ds_list_size(dice_options); i++) {
+	if (dice_options[| i].dice_value != 2) continue;
+	var _swap = [];
+	for (var m = 0; m < ds_list_size(global.master_dice_list); m++) {
+		var _cand = global.master_dice_list[| m];
+		if (_cand.dice_value == 2) continue;
+		var _dupe = false;
+		for (var k = 0; k < ds_list_size(dice_options); k++) if (dice_options[| k].name == _cand.name) _dupe = true;
+		if (!_dupe) array_push(_swap, _cand);
+	}
+	if (array_length(_swap) > 0) dice_options[| i] = clone_die(_swap[irandom(array_length(_swap) - 1)], "");
+}
+
 for (var i = 0; i < 3; i++) {
 	var random_core = consumable_options[| i];
 	var random_die = dice_options[| i];
-	
+
 	offering[i] = {
 		core: random_core,
 		dice: random_die,
 		core_scale: 1,
 		dice_scale: 1,
-		bg_scale: 1
+		bg_scale: 1,
+		lift: 0, // the card rising on hover / when chosen
 	}
 }
+offer_selected = -1;   // which card is chosen (-1: none yet); the button takes it
+offer_btn_scale = 1;
 
 ds_list_destroy(dice_options);
 ds_list_destroy(consumable_options);

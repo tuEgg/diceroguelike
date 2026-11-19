@@ -115,7 +115,7 @@ for (var i = 0; i < wb_list_size; i++) {
 			draw_dice_distribution(_die_here, slot_x, _bar_y, true);
 			if (_die_here.distribution != "") {
 				draw_set_font(ftDefault);
-				draw_outline_text(string(_die_here.distribution), c_black, c_white, 2, slot_x, _bar_y - 46, 1, 1, 0);
+				draw_outline_text(string(_die_here.distribution), c_black, c_white, 2, slot_x, _bar_y - 64, 1, 1, 0); // above the distribution (55px tall)
 			}
 		}
 	}
@@ -126,7 +126,7 @@ for (var i = 0; i < wb_list_size; i++) {
 
 		draw_dice_distribution(d, slot_x, _bar_y, true);
 		draw_set_font(ftDefault);
-		draw_outline_text(string(d.distribution), c_black, c_white, 2, slot_x, _bar_y - 46, 1, 1, 0);
+		draw_outline_text(string(d.distribution), c_black, c_white, 2, slot_x, _bar_y - 64, 1, 1, 0);
 	}
 	
 	// Draw output preview
@@ -332,7 +332,7 @@ switch (crafting_state) {
 // before anything else: choose the dice to work on (the bag opens on request, not by itself)
 if (pick_pending) {
 	var _pw = 560, _ph = 170;
-	var _px = gui_w / 2 - _pw / 2, _py = start_y - wb_tile_size - 230;
+	var _px = gui_w / 2 - _pw / 2, _py = max(start_y - wb_tile_size - 230, 200); // below the toolbag's tools (they drop down to about y 180)
 	ui_panel(_px, _py, _px + _pw, _py + _ph);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
@@ -354,7 +354,7 @@ var _tool_in_hand = "";
 if (instance_exists(oDrill) && oDrill.is_dragging) _tool_in_hand = "drill";
 if (instance_exists(oHammer) && oHammer.is_dragging) _tool_in_hand = "smash";
 if (instance_exists(oScissors) && oScissors.is_dragging) _tool_in_hand = "cut";
-if (_tool_in_hand != "") {
+if (_tool_in_hand != "" && progress_get("workbench_hints_done") != true) { // until a tool has crafted once (workbench_tool_used)
 	var _hint_y = start_y - wb_tile_size - 70; // above the bench, clear of the dice in hand
 	draw_mouse_hint(gui_w/2 - 230, _hint_y, "left", (_tool_in_hand == "drill") ? "Hold over the Drill button" : "Click the " + button_text + " button");
 	draw_mouse_hint(gui_w/2 + 90, _hint_y, "right", "Put the tool down");

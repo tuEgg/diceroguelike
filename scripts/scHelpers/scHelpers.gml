@@ -397,7 +397,10 @@ function trigger_bounty(_event, _data) {
 	}
 }
 
-function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dice = undefined) {
+/// @desc _cost (0: none) and _cost_kind ("insight" or "gold"): what doing this spends, shown as a "-3" badge on the
+///       tooltip's top right corner (yellow for insight, gold for gold).
+///       _hint: { button: "left"/"right", text, col }, a small mouse icon and words sitting just above the box's top right.
+function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dice = undefined, _cost = 0, _cost_kind = "insight", _hint = undefined) {
     if (!global.tooltip_active) {
         global.tooltip_active = true;
 
@@ -426,7 +429,9 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
         global.tooltip_main = {
             x: _x, y: _y, name: _name, desc: _desc,
             icon: _icon, index: _index, dice: _dice,
-            anchor: _anchor // the hovered rectangle it sits beside, or undefined
+            anchor: _anchor, // the hovered rectangle it sits beside, or undefined
+            cost: _cost, cost_kind: _cost_kind, // what it spends (tooltip_cost_badge)
+            hint: _hint, // a mouse hint above the top right (draw_mouse_hint)
         };
 
         global.tooltip_keywords = [];
@@ -471,9 +476,18 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
 }
 function draw_all_tooltips() {
 
-    if (global.tooltip_active) {
+	// a die being dragged over the discard pile: no tooltips, so it's clear what letting go does (its own label says)
+	var _over_discard = false;
+	if (room == rmCombat) with (oDice) if (over_discard) _over_discard = true;
+
+    if (global.tooltip_active && !_over_discard) {
 		// the main tooltip, with its keywords stacked tight underneath (each measured exactly, so no gaps), the whole
 		// stack kept on screen
+		var tt = global.tooltip_main;
+		var _gap = 4;
+		if (is_struct(tt) && variable_struct_exists(tt, "die_tip")) { draw_die_tip(tt); tt = undefined; } // a die's compact tip (queue_die_tip)
+	}
+	if (global.tooltip_active && !_over_discard && is_struct(global.tooltip_main) && !variable_struct_exists(global.tooltip_main, "die_tip")) {
 		var tt = global.tooltip_main;
 		var _gap = 4;
 		var _main = draw_tooltip_box(0, 0, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, true);
@@ -496,6 +510,13 @@ function draw_all_tooltips() {
 		xx = max(10, xx); yy = max(10, yy);
 
 		draw_tooltip_box(xx, yy, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, false);
+		if (variable_struct_exists(tt, "cost") && tt.cost > 0) tooltip_cost_badge(xx + _main.w, yy, tt.cost, tt.cost_kind);
+		// a mouse hint just above the box, its right end lined up with the box's (at 0.6 the mouse is 20px wide)
+		if (variable_struct_exists(tt, "hint") && is_struct(tt.hint)) {
+			draw_set_font(ftDefault);
+			var _hw = 20 + 7 + string_width(tt.hint.text);
+			draw_mouse_hint(xx + _main.w - _hw + 10, yy - 22, tt.hint.button, tt.hint.text, 0.6, tt.hint.col, tt.hint.col);
+		}
 		var _ky = yy + _main.h + _gap;
 		for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
 			var kw = global.tooltip_keywords[i];
@@ -509,6 +530,135 @@ function draw_all_tooltips() {
     global.tooltip_active = false;
     global.tooltip_main = undefined;
     global.tooltip_keywords = [];
+}
+
+/// @func die_tip_sub(_die)
+/// @desc What a die tip says beside the name: "rolled 4" once it has rolled this turn, otherwise its range ("1-6").
+function die_tip_sub(_die) {
+	if (room == rmCombat && die_has_faces(_die)) return "rolled " + string(die_face_total(_die));
+	var _out = get_dice_output(_die, -1, -1, true, "player"); // read only
+	return string(_out.min_roll) + "-" + string(_out.max_roll);
+}
+
+/// @func queue_die_tip(_die, _cx, _bottom, [_sub], [_extra], [_cost], [_cost_kind])
+/// @desc A die's compact tip (every die you hover: in hand, in slots, on cards, shelves and rewards): drawn by draw_all_tooltips centred on _cx with its pointer at
+///       _bottom (just above the die), never below it, so it never covers the hand. Name, _sub ("rolled 4" or "1-6"), a
+///       mini chart of a fitted core (draw_dist_mini), and the effect; _extra a muted last line (a hint), _cost a "-N"
+///       tag on its corner. No keyword boxes: those are on the die's icons.
+///       Takes the tooltip slot like queue_tooltip (the first asked for in a frame wins).
+function queue_die_tip(_die, _cx, _bottom, _sub = undefined, _extra = "", _cost = 0, _cost_kind = "gold") {
+	if (global.tooltip_active) return;
+	if (is_undefined(_sub)) _sub = die_tip_sub(_die);
+	global.tooltip_active = true;
+	global.tooltip_main = { die_tip: true, dice: _die, cx: _cx, bottom: _bottom, sub: _sub, extra: _extra, cost: _cost, cost_kind: _cost_kind };
+	global.tooltip_keywords = [];
+}
+
+/// @func draw_dist_mini(_die, _x, _bottom, _h)
+/// @desc A tiny bar chart of a die's distribution (its core): 5px bars, the tallest _h high, standing on _bottom from
+///       _x. Returns its width. Nothing (0) for a die with no core.
+function draw_dist_mini(_die, _x, _bottom, _h) {
+	if (!is_struct(_die) || _die.distribution == "") return 0;
+	var _out = get_dice_output(_die, undefined, -1, true, "player");
+	var _dist = [];
+	define_dice_distributions(_die.distribution, _out.min_roll, _out.max_roll, _dist);
+	var _n = array_length(_dist);
+	if (_n == 0) return 0;
+	var _top = 0;
+	for (var i = 0; i < _n; i++) _top = max(_top, _dist[i]);
+	if (_top <= 0) _top = 1;
+	for (var i = 0; i < _n; i++) {
+		var _bh = (_dist[i] > 0) ? max(2, _h * _dist[i] / _top) : 1;
+		draw_set_color((_dist[i] > 0) ? make_color_rgb(242, 210, 74) : make_color_rgb(90, 90, 100));
+		draw_rectangle(_x + i * 7, _bottom - _bh, _x + i * 7 + 4, _bottom, false);
+	}
+	draw_set_color(c_white);
+	return _n * 7 - 2;
+}
+
+/// @func draw_die_tip(_tt)
+/// @desc Draws a compact die tip (queue_die_tip): the logbook tooltip box above the die with a pointer down to it,
+///       kept on screen sideways.
+function draw_die_tip(_tt) {
+	var _d = _tt.dice;
+	var _pad = 14, _max_w = 260;
+	draw_set_font(ftDefault);
+	var _name_w = string_width(_d.name);
+	var _name_h = string_height(_d.name);
+	draw_set_font(ftDescriptions);
+	var _sub_w = string_width(_tt.sub);
+	var _desc = die_description(_d);
+	var _line = font_get_size(ftDescriptions) * 1.5;
+	var _desc_w = min(_max_w, string_width(_desc));
+	var _desc_h = string_height_ext(_desc, _line, _max_w);
+	var _extra = variable_struct_exists(_tt, "extra") ? _tt.extra : "";
+	var _extra_h = (_extra != "") ? 6 + string_height_ext(_extra, _line, _max_w) : 0;
+	if (_extra != "") _desc_w = max(_desc_w, min(_max_w, string_width(_extra)));
+	var _mini_w = (_d.distribution != "") ? _d.dice_value * 7 : 0; // about draw_dist_mini's width
+	var _w = _pad * 2 + max(_name_w + 8 + _sub_w + (_mini_w > 0 ? 10 + _mini_w : 0), _desc_w);
+	var _h = _pad * 2 + _name_h + 4 + _desc_h + _extra_h;
+	var _x1 = clamp(_tt.cx - _w / 2, 10, display_get_gui_width() - _w - 10);
+	var _y2 = _tt.bottom - 10; // room for the pointer
+	var _y1 = max(ui_top_bar_h() + 6, _y2 - _h);
+	_y2 = _y1 + _h;
+
+	// the box, like the tooltips: dark ink, a cream rule; a pointer down to the die
+	var _bg = (oRunManager.error_timer == 0) ? make_color_rgb(26, 30, 40) : global.color_error;
+	var _rule = make_color_rgb(226, 212, 176);
+	var _px = clamp(_tt.cx, _x1 + 16, _x1 + _w - 16);
+	draw_set_alpha(0.92);
+	draw_set_color(c_black);
+	draw_roundrect(_x1 - 2, _y1 - 2, _x1 + _w + 2, _y2 + 2, false);
+	draw_triangle(_px - 10, _y2, _px + 10, _y2, _px, _y2 + 12, false);
+	draw_set_color(_bg);
+	draw_roundrect(_x1, _y1, _x1 + _w, _y2, false);
+	draw_triangle(_px - 8, _y2 - 1, _px + 8, _y2 - 1, _px, _y2 + 9, false);
+	draw_set_alpha(0.6);
+	draw_set_color(_rule);
+	draw_roundrect(_x1 + 4, _y1 + 4, _x1 + _w - 4, _y2 - 4, true);
+	draw_set_alpha(1);
+
+	// the name, what it rolled, the mini chart; then the effect
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	draw_set_font(ftDefault);
+	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + _pad, _y1 + _pad, 1, 1, 0);
+	draw_set_font(ftDescriptions);
+	var _sx = _x1 + _pad + _name_w + 8;
+	draw_outline_text(_tt.sub, c_black, make_color_rgb(185, 169, 136), 1, _sx, _y1 + _pad + 3, 1, 1, 0);
+	if (_mini_w > 0) draw_dist_mini(_d, _sx + _sub_w + 10, _y1 + _pad + _name_h - 3, 16);
+	draw_outline_text(colorcode_text(_desc), c_black, c_white, 1, _x1 + _pad, _y1 + _pad + _name_h + 4, 1, 1, 0, _max_w);
+	if (_extra != "") draw_outline_text(_extra, c_black, make_color_rgb(185, 169, 136), 1, _x1 + _pad, _y1 + _pad + _name_h + 4 + _desc_h + 6, 1, 1, 0, _max_w);
+	if (variable_struct_exists(_tt, "cost") && _tt.cost > 0) tooltip_cost_badge(_x1 + _w, _y1, _tt.cost, _tt.cost_kind);
+	draw_set_color(c_white);
+}
+
+/// @func tooltip_cost_badge(_x, _y, _amount, _kind)
+/// @desc What a tooltip's action spends, as a small tag centred on its top right corner: "-3" in yellow with an eye-ish
+///       dot for insight, or "-50" in gold with a coin for gold.
+function tooltip_cost_badge(_x, _y, _amount, _kind) {
+	var _col = (_kind == "gold") ? make_color_rgb(240, 190, 60) : global.color_intel;
+	var _txt = "-" + string(_amount);
+	draw_set_font(ftDefault);
+	var _w = string_width(_txt) + 40, _h = 30;
+	var _x1 = _x - _w + 12, _y1 = _y - _h / 2; // hangs off the corner a little
+	draw_set_color(c_black);
+	draw_roundrect_ext(_x1 - 2, _y1 - 2, _x1 + _w + 2, _y1 + _h + 2, 14, 14, false);
+	draw_set_color(make_color_rgb(20, 22, 30));
+	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 12, 12, false);
+	draw_set_color(_col);
+	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 12, 12, true);
+	// the currency: a coin, or a drop of insight ink
+	var _ix = _x1 + 15, _iy = _y1 + _h / 2;
+	draw_set_color(c_black);
+	draw_circle(_ix, _iy, 8, false);
+	draw_set_color(_col);
+	draw_circle(_ix, _iy, 6, false);
+	if (_kind != "gold") { draw_set_color(c_black); draw_circle(_ix, _iy, 2.5, false); } // an eye's pupil
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_middle);
+	draw_outline_text(_txt, c_black, _col, 2, _ix + 12, _iy, 1, 1, 0);
+	draw_set_color(c_white);
 }
 
 /// @func draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice)
@@ -534,28 +684,44 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     var name_w = string_width(_name);
     var name_h = string_height(_name);
 
-    // the longest line the description wraps to
+    // the description in paragraphs: a line break ("\n", or "\n\n") starts a new one, a little apart. The coloured
+    // text drawing lays words out one by one and doesn't know about line breaks, so each paragraph is drawn on its own.
     draw_set_font(ftDescriptions);
-    var words = string_split(_desc, " ");
-    var longest_line_px = 0;
-    var current_line_str = "";
-    for (var i = 0; i < array_length(words); i++) {
-        var test_string = (current_line_str == "") ? words[i] : (current_line_str + " " + words[i]);
-        if (string_width(test_string) <= max_desc_w) {
-            current_line_str = test_string;
-        } else {
-            longest_line_px = max(longest_line_px, string_width(current_line_str));
-            current_line_str = words[i];
-        }
-    }
-    longest_line_px = max(longest_line_px, string_width(current_line_str));
+    var _paras = [];
+    var _raw = string_split(_desc, "\n");
+    for (var p = 0; p < array_length(_raw); p++) if (string_trim(_raw[p]) != "") array_push(_paras, string_trim(_raw[p]));
     var line_sep = font_get_size(ftDescriptions) * 1.5;
-    var desc_h = (_desc == "") ? 0 : string_height_ext(_desc, line_sep, max_desc_w);
+    var para_gap = line_sep * 0.5;
+
+    // the longest line the description wraps to, and its height
+    var longest_line_px = 0;
+    var desc_h = 0;
+    for (var p = 0; p < array_length(_paras); p++) {
+	    var words = string_split(_paras[p], " ");
+	    var current_line_str = "";
+	    for (var i = 0; i < array_length(words); i++) {
+	        var test_string = (current_line_str == "") ? words[i] : (current_line_str + " " + words[i]);
+	        if (string_width(test_string) <= max_desc_w) {
+	            current_line_str = test_string;
+	        } else {
+	            longest_line_px = max(longest_line_px, string_width(current_line_str));
+	            current_line_str = words[i];
+	        }
+	    }
+	    longest_line_px = max(longest_line_px, string_width(current_line_str));
+	    desc_h += string_height_ext(_paras[p], line_sep, max_desc_w) + ((p > 0) ? para_gap : 0);
+    }
 
     var has_core = (_dice != undefined && variable_struct_exists(_dice, "distribution") && _dice.distribution != "");
-    var icon_space = (_icon != undefined || has_core) ? (_compact ? 36 : 50) : 0;
+    var icon_space = (_icon != undefined) ? (_compact ? 36 : 50) : 0; // a core's icon sits beside its bars at the foot instead
     var _width  = padding * 2 + max(name_w, longest_line_px) + icon_space;
     var _height = padding * (_compact ? 1.4 : 1.6) + name_h + desc_h + (_compact ? 4 : 10);
+    // a core's distribution sits inside the box, under the words, with the core's icon just left of it
+    var _dist_h = has_core ? 55 + 8 : 0; // draw_dice_distribution at scale 1 is 55 tall
+    if (has_core) {
+	    _width = max(_width, padding * 2 + icon_space + 44 + _dice.dice_value * 17 + 10);
+	    _height += _dist_h;
+    }
 
 	if (_measure_only) return { w: _width, h: _height };
 
@@ -587,21 +753,18 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
 
     var content_x = xx + padding;
 
-    // icon, or the die's core and its distribution
+    // icon (a die's core is drawn at the foot, beside its distribution)
     var icon_sprite = undefined;
     var icon_idx = 0;
     var icon_scale = _compact ? 0.75 : 1;
     if (_icon != undefined) {
         icon_sprite = _icon;
         icon_idx = _index;
-    } else if (has_core) {
-        icon_sprite = sCores;
-        icon_idx = get_core_index(_dice);
-        icon_scale = 0.75;
     }
     if (icon_sprite != undefined) {
-        draw_sprite_ext(icon_sprite, icon_idx, content_x + (_compact ? 10 : 16), yy + (_height / 2), icon_scale, icon_scale, 0, c_white, 1);
-        if (has_core) draw_dice_distribution(_dice, content_x + 35, yy);
+        var _kw = (icon_sprite == sKeywordIcons) ? keyword_from_index(icon_idx) : "";
+        if (_kw != "") draw_keyword_icon(_kw, content_x + (_compact ? 10 : 16), yy + (_height / 2), icon_scale * 0.9, 1); // drawn in code (draw_keyword_icon)
+        else draw_sprite_ext(icon_sprite, icon_idx, content_x + (_compact ? 10 : 16), yy + (_height / 2), icon_scale, icon_scale, 0, c_white, 1);
         content_x += icon_space;
     }
 
@@ -611,7 +774,19 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     draw_set_valign(fa_top);
 	draw_outline_text(_name, c_black, _compact ? global.color_intel : c_white, 2, content_x, yy + padding, 1, 1, 0);
     draw_set_font(ftDescriptions);
-    if (_desc != "") draw_outline_text(colorcode_text(_desc), c_black, c_white, 1, content_x, yy + padding + name_h + 2, 1, 1, 0, max_desc_w);
+    var _py = yy + padding + name_h + 2;
+    for (var p = 0; p < array_length(_paras); p++) {
+	    draw_set_font(ftDescriptions);
+	    draw_outline_text(colorcode_text(_paras[p]), c_black, c_white, 1, content_x, _py, 1, 1, 0, max_desc_w);
+	    draw_set_font(ftDescriptions);
+	    _py += string_height_ext(_paras[p], line_sep, max_desc_w) + para_gap;
+    }
+
+	if (has_core) {
+		var _dist_bottom = yy + _height - padding * 0.7;
+		draw_sprite_ext(sCores, get_core_index(_dice), content_x + 16, _dist_bottom - 28, 0.75, 0.75, 0, c_white, 1);
+		draw_dice_distribution(_dice, content_x + 44, _dist_bottom, false, 1);
+	}
 
 	return { w: _width, h: _height };
 }
@@ -1247,11 +1422,26 @@ function lose_run() {
 /// @func draw_insight_icon(_icon, _x, _y, _scale, _alpha)
 /// @desc Placeholder icons for the insight states, drawn with shapes until real art is made (F51), about 30 pixels tall
 ///       at scale 1, centred on _x, _y: "blotted" an ink spill, "faded" a dry brush, "legible" a brush loaded with
-///       yellow ink (both tilted), "quill" a feather quill.
+///       yellow ink (both tilted), "inked" that with a blot, "underlined" that over a stroke, "quill" a feather quill.
 function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
 	var _old_alpha = draw_get_alpha();
 	var _ink = global.color_intel;
 	draw_set_alpha(_alpha);
+
+	// Inked: the loaded brush with a fresh blot beside it. Underlined: the loaded brush over a stroke of ink.
+	if (_icon == "inked" || _icon == "underlined") {
+		draw_set_color(c_black);
+		if (_icon == "inked") {
+			draw_circle(_x + 11 * _scale, _y + 12 * _scale, 5 * _scale, false);
+			draw_set_color(_ink);
+			draw_circle(_x + 11 * _scale, _y + 12 * _scale, 3.6 * _scale, false);
+		} else {
+			draw_line_width(_x - 15 * _scale, _y + 17 * _scale, _x + 15 * _scale, _y + 15 * _scale, max(5 * _scale, 2));
+			draw_set_color(_ink);
+			draw_line_width(_x - 14 * _scale, _y + 17 * _scale, _x + 14 * _scale, _y + 15 * _scale, max(3 * _scale, 1.4));
+		}
+		_icon = "legible";
+	}
 
 	switch (_icon) {
 		case "blotted":
@@ -1596,24 +1786,24 @@ function run_summary_draw() {
 /// @func draw_mouse_hint(_x, _y, _button, _text)
 /// @desc A small mouse with its left or right button lit, and what that button does, e.g. at the workbench while a
 ///       tool is in hand. _x, _y is the mouse's centre; the text follows on the right.
-function draw_mouse_hint(_x, _y, _button, _text) {
-	var _w = 34, _h = 48;
+function draw_mouse_hint(_x, _y, _button, _text, _scale = 1, _lit = c_red, _text_col = c_white) {
+	var _w = 34 * _scale, _h = 48 * _scale;
 	var _x1 = _x - _w / 2, _y1 = _y - _h / 2;
 	draw_set_alpha(1);
 	draw_set_color(make_color_rgb(50, 50, 55));
-	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 16, 16, false);
+	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 16 * _scale, 16 * _scale, false);
 	// the lit button: the top half of one side
-	draw_set_color(c_red);
-	if (_button == "left") draw_roundrect_ext(_x1 + 2, _y1 + 2, _x, _y - 2, 12, 12, false);
-	else draw_roundrect_ext(_x, _y1 + 2, _x1 + _w - 2, _y - 2, 12, 12, false);
+	draw_set_color(_lit);
+	if (_button == "left") draw_roundrect_ext(_x1 + 2, _y1 + 2, _x, _y - 2, 12 * _scale, 12 * _scale, false);
+	else draw_roundrect_ext(_x, _y1 + 2, _x1 + _w - 2, _y - 2, 12 * _scale, 12 * _scale, false);
 	draw_set_color(c_black);
 	draw_line_width(_x, _y1, _x, _y, 2);
 	draw_line_width(_x1, _y, _x1 + _w, _y, 2);
-	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 16, 16, true);
+	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 16 * _scale, 16 * _scale, true);
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
-	draw_outline_text(_text, c_black, c_white, 2, _x + _w / 2 + 12, _y, 1, 1, 0);
+	draw_outline_text(_text, c_black, _text_col, 2, _x + _w / 2 + 12 * _scale, _y, 1, 1, 0);
 	draw_set_halign(fa_center);
 }
 
@@ -1623,13 +1813,22 @@ function draw_mouse_hint(_x, _y, _button, _text) {
 ///       hover or click, and dips while the button is held. The system cursor is hidden while it's on.
 function cursor_draw() {
 	var _on = global.custom_cursor;
-	if (_on != global.cursor_hidden) {
-		window_set_cursor(_on ? cr_none : cr_default);
-		global.cursor_hidden = _on;
+	// the log: the cursor is a quill (draw_quill) over something it can change, its nib at the mouse; otherwise the normal one
+	var _quill = instance_exists(oCombat) && oCombat.insight_view && oCombat.quill_over; // only over something it can change
+	var _hide = _on || _quill;
+	if (_hide != global.cursor_hidden) {
+		window_set_cursor(_hide ? cr_none : cr_default);
+		global.cursor_hidden = _hide;
+	}
+	var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
+	if (_quill) {
+		// the quill, its nib at the mouse, leaning up and right (its ink outline reads on the dark); it dips when you click
+		var _qd = mouse_check_button(mb_left) ? 44 : 52;
+		draw_quill(_mx, _my, 58 * global.ui_scale, _qd);
+		return;
 	}
 	if (!_on) return;
 
-	var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
 	var _hot = (current_time - global.cursor_hover_time) < 60;
 	var _down = mouse_check_button(mb_left);
 	// tips forward over anything interactive, and further while the button is held (a tap), never shrinking
@@ -1826,5 +2025,697 @@ function room_wipe_draw() {
 		var _r = 36 + 22 * sin(_y * 0.037) + 10 * sin(_y * 0.11);
 		draw_circle(_edge + 8 * sin(_y * 0.05), _y, _r, false);
 	}
+	draw_set_color(c_white);
+}
+
+// =====================================================================
+// BAG VIEW: sort and filter (oRunManager Draw GUI End draws the bag)
+// =====================================================================
+
+/// @func bag_view_list(_list)
+/// @desc The dice to show from a bag or pile: only the chosen type (oRunManager.bag_filter: "All", "ATK", "BLK", "HEAL",
+///       "INTEL", "None"), sorted by oRunManager.bag_sort (0 bag order, 1 type, 2 size, 3 rarity, 4 name). An array.
+function bag_view_list(_list) {
+	var _out = [];
+	if (!ds_safe_exists(_list, ds_type_list)) return _out;
+	var _f = oRunManager.bag_filter;
+	for (var i = 0; i < ds_list_size(_list); i++) {
+		var _d = _list[| i];
+		if (_f == "All" || (_f == "None" && _d.action_type == "None") || (_f != "None" && string_pos(_f, _d.possible_type) > 0)) array_push(_out, _d);
+	}
+	global.bag_sort_key = oRunManager.bag_sort;
+	if (global.bag_sort_key > 0) {
+		array_sort(_out, function(_a, _b) {
+			if (global.bag_sort_key != 4) {
+				var _ra = bag_sort_value(_a, global.bag_sort_key), _rb = bag_sort_value(_b, global.bag_sort_key);
+				if (_ra != _rb) return (_ra < _rb) ? -1 : 1;
+			}
+			return text_compare(_a.name, _b.name); // by name, or ties by name
+		});
+	}
+	return _out;
+}
+
+/// @func bag_sort_value(_die, _key)
+/// @desc What a die sorts by: its type, its size (biggest first), its rarity (rarest first) or its name.
+function bag_sort_value(_die, _key) {
+	switch (_key) {
+		case 1:
+			switch (_die.action_type) { case "ATK": return 0; case "BLK": return 1; case "HEAL": return 2; case "INTEL": return 3; case "None": return 4; }
+			return 9;
+		case 2: return -_die.dice_value;
+		case 3: return (_die.rarity == "rare") ? 0 : ((_die.rarity == "uncommon") ? 1 : 2);
+	}
+	return 0;
+}
+
+/// @func bag_controls_draw(_list, _pad)
+/// @desc Above the bag panel, right of the title: a count, a Sort button that cycles, and a filter button per type with
+///       how many of that type there are.
+function bag_controls_draw(_list, _pad) {
+	if (!ds_safe_exists(_list, ds_type_list)) return;
+	var _gw = display_get_gui_width();
+	var _y = _pad - 34; // the title row, above the panel
+	var _types = [["All", "All"], ["ATK", "Attack"], ["BLK", "Block"], ["HEAL", "Heal"], ["INTEL", "Insight"], ["None", "Generic"]];
+	var _sorts = ["Bag order", "Type", "Size", "Rarity", "Name"];
+	var _w = 118, _h = 40, _gap = 8;
+	// right to left: the filters, then Sort
+	var _x = _gw - _pad - _w / 2;
+	for (var i = array_length(_types) - 1; i >= 0; i--) {
+		var _code = _types[i][0];
+		var _n = 0;
+		for (var d = 0; d < ds_list_size(_list); d++) {
+			var _die = _list[| d];
+			if (_code == "All" || (_code == "None" && _die.action_type == "None") || (_code != "None" && string_pos(_code, _die.possible_type) > 0)) _n++;
+		}
+		var _on = (oRunManager.bag_filter == _code);
+		var _b = ui_button(_x, _y, _w, _h, oRunManager.bag_btn_scales[i], _types[i][1] + " " + string(_n), _on ? global.ui_primary : global.ui_neutral, true, "", UI_LAYER.BAG, 1, ftDefault);
+		oRunManager.bag_btn_scales[i] = _b.scale;
+		if (_b.click) { oRunManager.bag_filter = _code; oRunManager.scroll_y = 0; }
+		_x -= _w + _gap;
+	}
+	// Sort sits left of the filters: its right edge 30 px before the last filter's left edge, 170 wide (clear of a long
+	// picker title on the left, which reaches about x 770)
+	var _sort_w = 170;
+	var _sort_cx = (_x + _w / 2 + _gap) - 30 - _sort_w / 2; // = 1002 - 30 - 85 = 887 at 1920 wide
+	var _sort = ui_button(_sort_cx, _y, _sort_w, _h, oRunManager.bag_btn_scales[6], "Sort: " + _sorts[oRunManager.bag_sort], global.ui_neutral, true, "", UI_LAYER.BAG, 1, ftDefault);
+	oRunManager.bag_btn_scales[6] = _sort.scale;
+	if (_sort.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Sort", "Click to change the order: bag order, type, size (biggest first), rarity (rarest first), name.");
+	if (_sort.click) { oRunManager.bag_sort = (oRunManager.bag_sort + 1) mod array_length(_sorts); oRunManager.scroll_y = 0; }
+}
+
+/// @func text_compare(_a, _b)
+/// @desc Compare two strings alphabetically, ignoring case: -1, 0 or 1 (for sorting by name).
+function text_compare(_a, _b) {
+	_a = string_lower(_a); _b = string_lower(_b);
+	var _n = min(string_length(_a), string_length(_b));
+	for (var i = 1; i <= _n; i++) {
+		var _ca = ord(string_char_at(_a, i)), _cb = ord(string_char_at(_b, i));
+		if (_ca != _cb) return (_ca < _cb) ? -1 : 1;
+	}
+	if (string_length(_a) == string_length(_b)) return 0;
+	return (string_length(_a) < string_length(_b)) ? -1 : 1;
+}
+
+/// @func bag_type_label(_possible_type)
+/// @desc A die's types in words for its card: "Attack", "Attack / Insight", "Generic", "Any".
+function bag_type_label(_possible_type) {
+	var _parts = string_split(_possible_type, " ");
+	var _out = "";
+	for (var i = 0; i < array_length(_parts); i++) {
+		var _w = "";
+		switch (_parts[i]) {
+			case "ATK": _w = "Attack"; break;
+			case "BLK": _w = "Block"; break;
+			case "HEAL": _w = "Heal"; break;
+			case "INTEL": _w = "Insight"; break;
+			case "All": _w = "Any"; break;
+			case "None": _w = "Generic"; break;
+		}
+		if (_w != "") _out += ((_out == "") ? "" : " / ") + _w;
+	}
+	return _out;
+}
+
+/// @func draw_header_band(_x1, _y1, _x2, _h, _r, _cols)
+/// @desc A card's header band, rounded at the top and square along its bottom, in its type colour darkened so white
+///       text reads. A multitype die's (die_colours, 2+) is split diagonally like its die: the first colour on the left,
+///       the next from a slanted edge past the middle.
+function draw_header_band(_x1, _y1, _x2, _h, _r, _cols) {
+	var _y2 = _y1 + _h;
+	draw_set_color(merge_colour(_cols[0], c_black, 0.5));
+	draw_roundrect_ext(_x1, _y1, _x2, _y2, _r, _r, false);
+	draw_rectangle(_x1, _y2 - _r, _x2, _y2, false);
+	var _n = array_length(_cols);
+	if (_n < 2) return;
+	var _w = _x2 - _x1, _slant = _h * 0.5;
+	for (var b = 1; b < _n; b++) {
+		var _mx = (_n == 2) ? _x1 + _w * 0.62 : _x1 + _w * b / _n; // two: the name keeps the left
+		draw_set_color(merge_colour(_cols[b], c_black, 0.5));
+		draw_primitive_begin(pr_trianglestrip);
+		draw_vertex(_mx + _slant, _y1); draw_vertex(_x2 - _r, _y1);
+		draw_vertex(_mx - _slant, _y2); draw_vertex(_x2 - _r, _y2);
+		draw_primitive_end();
+		draw_roundrect_ext(_x2 - _r * 2, _y1, _x2, _y2, _r, _r, false);
+		draw_rectangle(_x2 - _r * 2, _y2 - _r, _x2, _y2, false);
+	}
+}
+
+/// @func keyword_from_index(_index)
+/// @desc The dice keyword with this sKeywordIcons index, or "" (Might and Balance are buffs: they keep their sprite).
+function keyword_from_index(_index) {
+	var _names = ["Stowaway", "Favourite", "Coin", "Multitype", "Followthrough", "Exclusive", "Loose", "Sticky"];
+	return (_index >= 0 && _index < array_length(_names)) ? _names[_index] : "";
+}
+
+/// @func draw_keyword_icon(_key, _x, _y, _scale, _alpha)
+/// @desc A dice keyword's icon, drawn in code in the logbook's style: a parchment roundel ringed in the keyword's colour
+///       with an ink glyph (about 30 px across at scale 1, centred on _x, _y). Stowaway a barrel (it hides in the hold),
+///       Followthrough a wake of chevrons, Exclusive a pennant (it claims the slot), Sticky a drip of tar, Loose an
+///       open shackle, Favourite a star, Coin a coin, Multitype a split diamond.
+function draw_keyword_icon(_key, _x, _y, _scale = 1, _alpha = 1) {
+	var _s = _scale;
+	var _ink = make_color_rgb(42, 29, 18);
+	var _paper = make_color_rgb(236, 222, 186);
+	var _ring = variable_struct_exists(global.keywords, _key) ? global.keywords[$ _key].colour : c_white;
+	draw_set_alpha(_alpha);
+	draw_set_color(_ink);
+	draw_circle(_x, _y, 15 * _s, false);
+	draw_set_color(merge_colour(_ring, _ink, 0.25));
+	draw_circle(_x, _y, 13.5 * _s, false);
+	draw_set_color(_paper);
+	draw_circle(_x, _y, 11 * _s, false);
+	draw_set_color(_ink);
+	var _w = max(1, 1.8 * _s);
+	switch (_key) {
+		case "Stowaway": // a barrel: a fat body, two hoops, staves
+			draw_roundrect_ext(_x - 6 * _s, _y - 7.5 * _s, _x + 6 * _s, _y + 7.5 * _s, 5 * _s, 5 * _s, false);
+			draw_set_color(_paper);
+			draw_roundrect_ext(_x - 4.2 * _s, _y - 5.8 * _s, _x + 4.2 * _s, _y + 5.8 * _s, 4 * _s, 4 * _s, false);
+			draw_set_color(_ink);
+			draw_line_width(_x - 5.5 * _s, _y - 3 * _s, _x + 5.5 * _s, _y - 3 * _s, _w);
+			draw_line_width(_x - 5.5 * _s, _y + 3 * _s, _x + 5.5 * _s, _y + 3 * _s, _w);
+			draw_line_width(_x, _y - 6 * _s, _x, _y + 6 * _s, _w * 0.7);
+			break;
+		case "Followthrough": // a wake: two chevrons pointing on
+			for (var c = 0; c < 2; c++) {
+				var _cx = _x - 3.5 * _s + c * 6 * _s;
+				draw_line_width(_cx - 3 * _s, _y - 5.5 * _s, _cx + 2.5 * _s, _y, _w * 1.2);
+				draw_line_width(_cx + 2.5 * _s, _y, _cx - 3 * _s, _y + 5.5 * _s, _w * 1.2);
+			}
+			break;
+		case "Exclusive": // a pennant on a pole: it claims the slot
+			draw_line_width(_x - 4.5 * _s, _y - 8 * _s, _x - 4.5 * _s, _y + 8 * _s, _w);
+			draw_triangle(_x - 4 * _s, _y - 8 * _s, _x + 7 * _s, _y - 4.5 * _s, _x - 4 * _s, _y - 1 * _s, false);
+			break;
+		case "Sticky": // a drip of tar
+			draw_circle(_x, _y + 2.5 * _s, 5 * _s, false);
+			draw_triangle(_x - 4.3 * _s, _y + 0.5 * _s, _x + 4.3 * _s, _y + 0.5 * _s, _x, _y - 8 * _s, false);
+			draw_set_color(_paper);
+			draw_circle(_x - 1.8 * _s, _y + 1.5 * _s, 1.3 * _s, false); // a glint
+			break;
+		case "Loose": // an open shackle
+			draw_arc_thick_deg(_x, _y - 1 * _s, 3.5 * _s, 5.5 * _s, 180, 360, 12);
+			draw_line_width(_x - 4.5 * _s, _y - 1 * _s, _x - 4.5 * _s, _y + 7 * _s, _w);
+			draw_line_width(_x + 4.5 * _s, _y - 1 * _s, _x + 4.5 * _s, _y + 2 * _s, _w);
+			break;
+		case "Favourite": // a star
+			draw_primitive_begin(pr_trianglefan);
+			draw_vertex(_x, _y);
+			for (var p = 0; p <= 10; p++) {
+				var _r = ((p mod 2) == 0 ? 8 : 3.5) * _s;
+				draw_vertex(_x + lengthdir_x(_r, 90 + p * 36), _y + lengthdir_y(_r, 90 + p * 36));
+			}
+			draw_primitive_end();
+			break;
+		case "Coin": // a coin
+			draw_circle(_x, _y, 7 * _s, false);
+			draw_set_color(_paper);
+			draw_circle(_x, _y, 4.8 * _s, true);
+			break;
+		case "Multitype": // a diamond split down the diagonal
+			draw_triangle(_x, _y - 8 * _s, _x - 8 * _s, _y, _x, _y + 8 * _s, false);
+			draw_set_color(merge_colour(_ink, _paper, 0.55));
+			draw_triangle(_x, _y - 8 * _s, _x + 8 * _s, _y, _x, _y + 8 * _s, false);
+			break;
+	}
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
+/// @func rarity_colour(_rarity)
+/// @desc A rarity's gem colour: grey common, teal uncommon, violet rare (starters have no gem).
+function rarity_colour(_rarity) {
+	switch (_rarity) {
+		case "uncommon": return make_color_rgb(90, 200, 175);
+		case "rare":     return make_color_rgb(200, 120, 225);
+	}
+	return make_color_rgb(170, 170, 185);
+}
+
+/// @func draw_rarity_gem(_x, _y, _rarity, _scale, _alpha)
+/// @desc A die's rarity as a small diamond gem centred on _x, _y (about 16 x 20 at scale 1). Nothing for starters.
+///       Rarity is always shown as a gem, never as a word.
+function draw_rarity_gem(_x, _y, _rarity, _scale = 1, _alpha = 1) {
+	if (_rarity == "starter") return;
+	var _s = _scale;
+	draw_set_alpha(_alpha);
+	draw_set_color(c_black);
+	draw_primitive_begin(pr_trianglefan);
+	draw_vertex(_x, _y - 10 * _s); draw_vertex(_x + 8 * _s, _y); draw_vertex(_x, _y + 10 * _s); draw_vertex(_x - 8 * _s, _y);
+	draw_primitive_end();
+	draw_set_color(rarity_colour(_rarity));
+	draw_primitive_begin(pr_trianglefan);
+	draw_vertex(_x, _y - 7 * _s); draw_vertex(_x + 5.5 * _s, _y); draw_vertex(_x, _y + 7 * _s); draw_vertex(_x - 5.5 * _s, _y);
+	draw_primitive_end();
+	// a glint on the upper left facet
+	draw_set_color(c_white);
+	draw_set_alpha(0.55 * _alpha);
+	draw_primitive_begin(pr_trianglelist);
+	draw_vertex(_x, _y - 5 * _s); draw_vertex(_x - 3.5 * _s, _y); draw_vertex(_x - 0.5 * _s, _y - 0.5 * _s);
+	draw_primitive_end();
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
+/// @func die_stats_line(_d, _out)
+/// @desc "d6 Block, 1-6": a die's size, types and range (from get_dice_output), for tooltips on its picture.
+function die_stats_line(_d, _out) {
+	return "d" + string(_d.dice_value) + " " + bag_type_label(_d.possible_type) + ", " + string(_out.min_roll) + "-" + string(_out.max_roll);
+}
+
+/// @func bag_card_layout(_d, _w)
+/// @desc Where things go on a bag card, measured from its text (like offering_card_layout): the stats line and the
+///       description beside the die, then a fitted core's distribution under whichever is lower. h is the height it needs.
+function bag_card_layout(_d, _w) {
+	var _head_h = 42;
+	var _text_x = 88;                 // from the card's left edge
+	var _text_w = _w - _text_x - 14;
+	draw_set_font(ftDefault);
+	var _line = font_get_size(ftDefault) * 1.5; // the line height coloured text wraps at (draw_outline_text)
+	var _desc_h = string_height_ext(die_description(_d), _line, _text_w);
+	var _die_bottom = _head_h + 40 + 36;           // the die (radius 30, a triangle reaching a bit lower)
+	var _text_bottom = _head_h + 14 + _desc_h;
+	var _info_bottom = max(_die_bottom, _text_bottom) + 12;
+	var _bars_h = (_d.distribution != "") ? (5 + 30 + 5 + 15) + 12 : 0; // draw_dice_distribution at scale 1, and a gap
+	return { head_h: _head_h, text_x: _text_x, text_w: _text_w, bars_bottom: _info_bottom + _bars_h, h: _info_bottom + _bars_h };
+}
+
+/// @func draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected)
+/// @desc A die's card in the bag view (and the dice picker), centred on _cx, _cy, laid out like the quartermaster's
+///       cards (bag_card_layout):
+///       - a header band in its type colour: its name, its rarity gem on the right
+///       - the die drawn in code on the left; beside it what it does, big ("d6 Block, 1-6" only on hovering the die)
+///       - a fitted core: its distribution under all that (the core isn't described)
+///       Dark edge; lifts with a white edge when hovered; a green edge and tick when picked.
+function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
+	var _lay = bag_card_layout(_d, _w);
+	var _x1 = _cx - _w / 2, _y1 = _cy - _h / 2 - (_hover ? 4 : 0);
+	var _x2 = _x1 + _w, _y2 = _y1 + _h;
+	var _type_col = get_dice_color(_d.possible_type);
+	var _edge = _selected ? make_color_rgb(90, 220, 110) : (_hover ? c_white : make_color_rgb(14, 15, 22));
+	var _head_h = _lay.head_h;
+
+	// shadow, edge, body
+	draw_set_alpha(0.35 * _alpha);
+	draw_set_color(c_black);
+	draw_roundrect_ext(_x1 + 4, _y1 + 6, _x2 + 4, _y2 + 6, 14, 14, false);
+	draw_set_alpha(_alpha);
+	draw_set_color(_edge);
+	draw_roundrect_ext(_x1 - 3, _y1 - 3, _x2 + 3, _y2 + 3, 16, 16, false);
+	draw_set_color(make_color_rgb(34, 36, 48));
+	draw_roundrect_ext(_x1, _y1, _x2, _y2, 14, 14, false);
+
+	// header band in its type colour (darkened so white text reads), square along its bottom; split for a multitype die
+	draw_header_band(_x1, _y1, _x2, _head_h, 14, die_colours(_d.possible_type));
+	// the name, then the gem on the right (keywords are in the description's first words, coloured)
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_middle);
+	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + 14, _y1 + _head_h / 2, 1, _alpha, 0, _w - 14 - 34);
+	draw_rarity_gem(_x2 - 20, _y1 + _head_h / 2, _d.rarity, 1, _alpha);
+
+	// the die, and beside it what it is and what it does
+	var _dx = _x1 + 46, _dy = _y1 + _head_h + 46;
+	draw_die(_dx, _dy, 30, _d.dice_value, -1, die_colours(_d.possible_type), 0, _alpha);
+	var _out = get_dice_output(_d, -1, -1, true, "player"); // read only: viewing the bag must never trigger keepsakes
+	var _tx = _x1 + _lay.text_x;
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	// just the effect, big: the die already shows its size and colour, the bars its faces
+	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 14, 1, _alpha, 0, _lay.text_w);
+	// its size, type and range on hovering the die
+	if (_hover && mouse_hovering(_dx, _dy, 70, 70, true, noone, noone, true, UI_LAYER.BAG)) queue_die_tip(_d, _dx, _dy - 34, die_stats_line(_d, _out));
+
+	// a fitted core: how it shapes this die's faces, under the die and its words
+	if (_d.distribution != "") {
+		draw_set_alpha(_alpha);
+		draw_dice_distribution(_d, _cx, _y1 + _lay.bars_bottom - 12, true, 1);
+	}
+
+	// picked (dice picker): a tick in the corner
+	if (_selected) {
+		var _kx = _x1 + 2, _ky = _y1 + 2;
+		draw_set_color(c_black);
+		draw_circle(_kx, _ky, 15, false);
+		draw_set_color(make_color_rgb(90, 220, 110));
+		draw_circle(_kx, _ky, 12, false);
+		draw_set_color(c_white);
+		draw_line_width(_kx - 6, _ky, _kx - 1, _ky + 5, 3);
+		draw_line_width(_kx - 1, _ky + 5, _kx + 7, _ky - 5, 3);
+	}
+
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+}
+
+// =====================================================================
+// THE QUARTERMASTER'S OFFER (the start of a run: one die, fitted with a core)
+// =====================================================================
+
+/// @func offering_draw()
+/// @desc oRunManager Draw GUI: a logbook page with three offer cards (offering_card_draw). Click a card to choose it,
+///       then the button takes it: the die goes into your bag with its core already fitted.
+function offering_draw() {
+	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+	var _ink = make_color_rgb(42, 29, 18);
+	var _paper = make_color_rgb(231, 214, 176);
+
+	// the map behind, dimmed; the top bar stays in full colour
+	draw_set_alpha(0.8);
+	draw_set_color(c_black);
+	draw_rectangle(0, ui_top_bar_h(), _gw, _gh, false);
+	draw_set_alpha(1);
+
+	// the cards are as tall as the tallest one needs (offering_card_layout); the page fits round them
+	var _cw = 400, _gap = 40;
+	var _n = array_length(oRunManager.offering);
+	var _ch = 0;
+	for (var r = 0; r < _n; r++) _ch = max(_ch, offering_card_layout(oRunManager.offering[r], _cw).h);
+
+	// the page: heading 140, the cards, then the bag and button row
+	var _pw = 1400, _ph = 140 + _ch + 150;
+	var _px = (_gw - _pw) / 2, _py = ui_top_bar_h() + (_gh - ui_top_bar_h() - _ph) / 2;
+	draw_set_alpha(0.4);
+	draw_set_color(c_black);
+	draw_roundrect_ext(_px + 8, _py + 12, _px + _pw + 8, _py + _ph + 12, 24, 24, false);
+	draw_set_alpha(1);
+	draw_set_color(_ink);
+	draw_roundrect_ext(_px - 4, _py - 4, _px + _pw + 4, _py + _ph + 4, 26, 26, false);
+	draw_set_color(_paper);
+	draw_roundrect_ext(_px, _py, _px + _pw, _py + _ph, 22, 22, false);
+	// a faint inner rule, like the logbook's
+	draw_set_alpha(0.35);
+	draw_set_color(_ink);
+	draw_roundrect_ext(_px + 14, _py + 14, _px + _pw - 14, _py + _ph - 14, 16, 16, true);
+	draw_set_alpha(1);
+
+	// the heading
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_font(ftBigger);
+	draw_set_color(_ink);
+	draw_text(_gw / 2, _py + 56, "The quartermaster's offer");
+	draw_set_font(ftDefault);
+	draw_set_color(make_color_rgb(91, 70, 48));
+	draw_text(_gw / 2, _py + 96, "Take one die for your bag, fitted with a core. A core changes which faces a die rolls most often.");
+
+	// the cards
+	var _cx0 = _gw / 2 - ((_n - 1) * (_cw + _gap)) / 2;
+	var _ctop = _py + 140;
+	for (var r = 0; r < _n; r++) {
+		var _off = oRunManager.offering[r];
+		var _cx = _cx0 + r * (_cw + _gap);
+		var _hover = mouse_hovering(_cx - _cw / 2, _ctop, _cw, _ch, false, soSlotHover, soClick4, true, UI_LAYER.POPUP);
+		var _chosen = (oRunManager.offer_selected == r);
+		_off.lift = lerp(_off.lift, _chosen ? 12 : (_hover ? 6 : 0), 0.25);
+		offering_card_draw(_off, _cx, _ctop - _off.lift, _cw, _ch, _hover, _chosen);
+		if (_hover && mouse_check_button_pressed(mb_left)) oRunManager.offer_selected = r;
+	}
+
+	// the foot of the page: your bag (and what joins it), and the button
+	var _fy = _py + _ph - 66;
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_middle);
+	draw_set_color(_ink);
+	var _bx = _px + 50;
+	draw_text(_bx, _fy, "Your bag:");
+	// one die every 40px: a d4's triangle is about 33px across here, so they never touch. Hover one to see what it is.
+	_bx += string_width("Your bag:") + 34; // the first die's centre
+	for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
+		offering_bag_icon(global.dice_bag[| d], _bx, _fy, _ink);
+		_bx += 40;
+	}
+	var _sel = oRunManager.offer_selected;
+	if (_sel >= 0) {
+		// "+ the chosen die", with clear space either side of the plus
+		draw_set_font(ftBig);
+		draw_set_halign(fa_center);
+		draw_set_color(make_color_rgb(40, 130, 60));
+		draw_text(_bx + 2, _fy - 2, "+");
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_left);
+		offering_bag_icon(oRunManager.offering[_sel].dice, _bx + 40, _fy, _ink);
+	}
+
+	var _label = (_sel >= 0) ? "Take the " + oRunManager.offering[_sel].dice.name : "Choose a die";
+	var _btn = ui_button(_px + _pw - 200, _fy, 300, 64, oRunManager.offer_btn_scale, _label, global.ui_primary, _sel >= 0, "Click one of the three dice first.", UI_LAYER.POPUP, 1, ftDefault);
+	oRunManager.offer_btn_scale = _btn.scale;
+	if (_btn.click && _sel >= 0) offering_take(_sel, _px + _pw - 200, _fy);
+
+	draw_set_color(c_white);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+}
+
+/// @func offering_bag_icon(_d, _x, _y, _ink)
+/// @desc A die in the bag strip under the offer: its shape in its colour, inked round the edge. Hover: a little bigger,
+///       and its tooltip (name, what it does, keywords).
+function offering_bag_icon(_d, _x, _y, _ink) {
+	var _hover = mouse_hovering(_x, _y, 36, 36, true, noone, noone, true, UI_LAYER.POPUP);
+	var _s = _hover ? 1.2 : 1;
+	draw_die_shape(_x, _y, 14 * _s, _d.dice_value, _hover ? c_white : _ink, 0, 1);
+	draw_die_shape(_x, _y, 11 * _s, _d.dice_value, die_colours(_d.possible_type), 0, 1);
+	if (_hover) queue_die_tip(_d, _x, _y - 18);
+}
+
+/// @func offering_card_layout(_off, _w)
+/// @desc Where things go on an offer card, from the top, measured from its text so there's no dead space: the die's
+///       lines, the core section (core_y) just under whichever is lower (the die or its description), then the bars.
+///       h is the height the card needs.
+function offering_card_layout(_off, _w) {
+	var _head_h = 52;
+	var _text_w = _w - 128 - 18;          // beside the die
+	var _core_w = _w - 80 - 18;           // beside the core icon
+	draw_set_font(ftDefault);
+	var _desc_h = string_height_ext(die_description(_off.dice), font_get_size(ftDefault) * 1.5, _text_w);
+	draw_set_font(ftDescriptions);
+	var _line = font_get_size(ftDescriptions) * 1.2;
+	var _core_desc_h = string_height_ext(_off.core.description, _line, _core_w);
+	var _die_bottom = _head_h + 62 + 48;  // the die (radius 40, a triangle reaching a bit lower)
+	var _text_bottom = _head_h + 24 + _desc_h;
+	var _core_y = max(_die_bottom, _text_bottom) + 20;
+	var _bars_top = _core_y + 44 + _core_desc_h + 18;
+	var _bars_h = (5 + 30 + 5 + 15) * 1.4; // draw_dice_distribution at scale 1.4
+	return { head_h: _head_h, text_w: _text_w, core_w: _core_w, core_y: _core_y, bars_bottom: _bars_top + _bars_h, h: _bars_top + _bars_h + 20 };
+}
+
+/// @func offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen)
+/// @desc One offer: a header in the die's type colour with its name and rarity gem; the die drawn big beside its size, type,
+///       range and effect (its keywords are named, coloured, in the effect); then its core: icon, name, what it does,
+///       and how it shapes this die's faces (the bars). Laid out by offering_card_layout; _h is the shared height.
+function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
+	var _d = _off.dice, _core = _off.core;
+	var _lay = offering_card_layout(_off, _w);
+	var _x1 = _cx - _w / 2, _x2 = _cx + _w / 2, _y1 = _top, _y2 = _top + _h;
+	var _type_col = get_dice_color(_d.possible_type);
+	var _edge = _chosen ? make_color_rgb(90, 220, 110) : (_hover ? c_white : make_color_rgb(42, 29, 18));
+	var _head_h = _lay.head_h;
+
+	// shadow, edge, body
+	draw_set_alpha(0.35);
+	draw_set_color(c_black);
+	draw_roundrect_ext(_x1 + 6, _y1 + 10, _x2 + 6, _y2 + 10, 18, 18, false);
+	draw_set_alpha(1);
+	draw_set_color(_edge);
+	draw_roundrect_ext(_x1 - 4, _y1 - 4, _x2 + 4, _y2 + 4, 20, 20, false);
+	draw_set_color(make_color_rgb(34, 36, 48));
+	draw_roundrect_ext(_x1, _y1, _x2, _y2, 16, 16, false);
+
+	// header: name, rarity (the band split for a multitype die)
+	draw_header_band(_x1, _y1, _x2, _head_h, 16, die_colours(_d.possible_type));
+	draw_set_font(ftBig);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_middle);
+	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + 18, _y1 + _head_h / 2, 1, 1, 0);
+	draw_rarity_gem(_x2 - 24, _y1 + _head_h / 2, _d.rarity, 1.2, 1);
+
+	// the die, and what it is
+	var _dx = _x1 + 64, _dy = _y1 + _head_h + 62;
+	draw_die(_dx, _dy, 40, _d.dice_value, -1, die_colours(_d.possible_type), 0, 1);
+	var _tx = _x1 + 128;
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	var _out = get_dice_output(_d, -1, -1, true, "player");
+	// just the effect, big; its size, type and range on hovering the die
+	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 24, 1, 1, 0, _lay.text_w);
+	if (mouse_hovering(_dx, _dy, 90, 90, true, noone, noone, true, UI_LAYER.POPUP)) queue_die_tip(_d, _dx, _dy - 46, die_stats_line(_d, _out));
+
+	// the core, just under the die and its words
+	var _cy = _y1 + _lay.core_y;
+	draw_set_color(make_color_rgb(70, 72, 90));
+	draw_line_width(_x1 + 18, _cy, _x2 - 18, _cy, 2);
+	draw_sprite_ext(sCores, _core.index, _x1 + 42, _cy + 40, 0.8, 0.8, 0, c_white, 1);
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	draw_outline_text(_core.name, c_black, make_color_rgb(242, 210, 74), 2, _x1 + 80, _cy + 16, 1, 1, 0);
+	draw_set_font(ftDescriptions);
+	draw_outline_text(_core.description, c_black, make_color_rgb(225, 225, 235), 2, _x1 + 80, _cy + 44, 1, 1, 0, _lay.core_w);
+
+	// how this core shapes this die's faces, at the foot of the card (cards share a height, so the bars line up)
+	var _preview = clone_die(_d, "");
+	_preview.distribution = _core.distribution;
+	draw_dice_distribution(_preview, _cx, _y2 - 20, true, 1.4);
+
+	// chosen: a tick in the corner
+	if (_chosen) {
+		var _kx = _x2 - 4, _ky = _y1 + 4;
+		draw_set_color(c_black);
+		draw_circle(_kx, _ky, 18, false);
+		draw_set_color(make_color_rgb(90, 220, 110));
+		draw_circle(_kx, _ky, 15, false);
+		draw_set_color(c_white);
+		draw_line_width(_kx - 7, _ky, _kx - 1, _ky + 6, 3.5);
+		draw_line_width(_kx - 1, _ky + 6, _kx + 8, _ky - 6, 3.5);
+	}
+	draw_set_color(c_white);
+	draw_set_alpha(1);
+}
+
+/// @func offering_take(_index, _x, _y)
+/// @desc The chosen die, with its core fitted, flies into your bag (an oDiceParticle adds it when it lands).
+function offering_take(_index, _x, _y) {
+	var _off = oRunManager.offering[_index];
+	var _die = clone_die(_off.dice, "");
+	_die.distribution = _off.core.distribution; // the core comes fitted, not as an item
+	var _p = instance_create_layer(_x, _y, "Instances", oDiceParticle);
+	_p.target_x = global.gui.bag_x + global.gui.bag_w / 2;
+	_p.target_y = global.gui.bag_y + global.gui.bag_h / 2;
+	_p.color_main = get_dice_color(_die.possible_type);
+	_p.die_struct = _die;
+	oRunManager.new_run_offering = false;
+	oRunManager.offer_selected = -1;
+	global.ui_layer = UI_LAYER.BASE;
+	global.bag_size++;
+}
+
+/// @func draw_padlock(_x, _y, _scale, _col)
+/// @desc A small padlock centred on _x, _y (about 22 x 26 at scale 1): a shackle arc over a body with a keyhole.
+function draw_padlock(_x, _y, _scale, _col) {
+	var _s = _scale;
+	draw_set_color(c_black);
+	draw_arc_thick_deg(_x, _y - 4 * _s, 5 * _s, 10 * _s, 180, 360, 16); // the top half (y grows downwards)
+	draw_roundrect_ext(_x - 12 * _s, _y - 5 * _s, _x + 12 * _s, _y + 14 * _s, 5 * _s, 5 * _s, false);
+	draw_set_color(_col);
+	draw_arc_thick_deg(_x, _y - 4 * _s, 6.5 * _s, 8.5 * _s, 180, 360, 16);
+	draw_roundrect_ext(_x - 10 * _s, _y - 3 * _s, _x + 10 * _s, _y + 12 * _s, 4 * _s, 4 * _s, false);
+	draw_set_color(c_black);
+	draw_circle(_x, _y + 3 * _s, 2.5 * _s, false);
+	draw_line_width(_x, _y + 3 * _s, _x, _y + 8 * _s, 2 * _s);
+	draw_set_color(c_white);
+}
+
+/// @func draw_inkwell(_x, _y, _scale, _fill, _blotted)
+/// @desc Your insight as an inkwell (about 50 x 46 at scale 1, centred on _x, _y): a squat dark glass pot, golden ink
+///       inside filled to _fill (0-1), a quill standing in it while there's ink. Blotted: the pot tipped over, spilled.
+function draw_inkwell(_x, _y, _scale, _fill, _blotted) {
+	var _s = _scale;
+	var _ink = global.color_intel;
+	var _glass = make_color_rgb(32, 36, 52);
+	var _rim = make_color_rgb(70, 76, 100);
+	if (_blotted) {
+		draw_insight_icon("blotted", _x + 6 * _s, _y + 14 * _s, 1.1 * _s, 1); // the spill
+		draw_set_color(c_black);
+		draw_roundrect_ext(_x - 22 * _s, _y - 14 * _s, _x + 8 * _s, _y + 10 * _s, 10 * _s, 10 * _s, false); // the pot on its side
+		draw_set_color(_glass);
+		draw_roundrect_ext(_x - 20 * _s, _y - 12 * _s, _x + 6 * _s, _y + 8 * _s, 9 * _s, 9 * _s, false);
+		draw_set_color(c_white);
+		return;
+	}
+	// the quill behind the pot, leaning right, while there's ink to write with
+	if (_fill > 0) draw_quill(_x + 2 * _s, _y - 2 * _s, 44 * _s, 62);
+	// the pot: outline, glass, then the ink, then a shine
+	draw_set_color(c_black);
+	draw_roundrect_ext(_x - 25 * _s, _y - 8 * _s, _x + 25 * _s, _y + 24 * _s, 14 * _s, 14 * _s, false);
+	draw_roundrect_ext(_x - 12 * _s, _y - 20 * _s, _x + 12 * _s, _y - 4 * _s, 5 * _s, 5 * _s, false);
+	draw_set_color(_glass);
+	draw_roundrect_ext(_x - 22 * _s, _y - 5 * _s, _x + 22 * _s, _y + 21 * _s, 12 * _s, 12 * _s, false);
+	draw_set_color(_rim);
+	draw_roundrect_ext(_x - 9 * _s, _y - 17 * _s, _x + 9 * _s, _y - 6 * _s, 4 * _s, 4 * _s, false);
+	var _f = clamp(_fill, 0, 1);
+	if (_f > 0) {
+		var _top = _y + 19 * _s - 22 * _s * _f; // the ink's surface rises with your insight
+		draw_set_color(_ink);
+		draw_roundrect_ext(_x - 20 * _s, _top, _x + 20 * _s, _y + 19 * _s, 10 * _s, 10 * _s, false);
+		draw_set_color(merge_colour(_ink, c_white, 0.45));
+		draw_line_width(_x - 16 * _s, _top + 2 * _s, _x + 16 * _s, _top + 2 * _s, 2 * _s);
+	}
+	draw_set_alpha(0.35);
+	draw_set_color(c_white);
+	draw_roundrect_ext(_x - 18 * _s, _y - 2 * _s, _x - 12 * _s, _y + 12 * _s, 3 * _s, 3 * _s, false);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
+/// @func draw_quill(_nx, _ny, _len, _dir)
+/// @desc A feather quill in code (after Jared's reference): its nib at _nx, _ny, the feather reaching _len pixels in
+///       direction _dir (degrees, 0 right, 90 up). A parchment-white vane, wider on its upper side and curling
+///       towards its tip, with a few notches; a bare shaft near the nib; a dark split nib with a gold band; an ink outline.
+function draw_quill(_nx, _ny, _len, _dir) {
+	var _ink = make_color_rgb(34, 26, 20);
+	var _vane = make_color_rgb(244, 236, 214);
+	var _shade = make_color_rgb(214, 202, 172);
+	var _steps = 16;
+	var _left = [], _right = [], _axis = [];
+	for (var i = 0; i <= _steps; i++) {
+		var _t = i / _steps;
+		// the shaft bends a little as it goes, like the reference
+		var _d = _dir + 10 * _t * _t;
+		var _ax = _nx + lengthdir_x(_len * _t, _d), _ay = _ny + lengthdir_y(_len * _t, _d);
+		// the vane: none near the nib, widest about two thirds up, a curled point at the tip
+		var _w = (_t < 0.16) ? 0 : sin(pi * clamp((_t - 0.16) / 0.84, 0, 1)) * _len * 0.2;
+		var _wl = _w * (1 + 0.25 * _t), _wr = _w * 0.62;
+		array_push(_axis, [_ax, _ay]);
+		array_push(_left, [_ax + lengthdir_x(_wl, _d + 90), _ay + lengthdir_y(_wl, _d + 90)]);
+		array_push(_right, [_ax + lengthdir_x(_wr, _d - 90), _ay + lengthdir_y(_wr, _d - 90)]);
+	}
+	// the outline: the vane a touch bigger in ink first
+	for (var _pass = 0; _pass < 2; _pass++) {
+		var _grow = (_pass == 0) ? 2 : 0;
+		draw_set_color((_pass == 0) ? _ink : _vane);
+		draw_primitive_begin(pr_trianglelist);
+		for (var i = 0; i < _steps; i++) {
+			var _d = _dir + 10 * (i / _steps) * (i / _steps);
+			var _ux = lengthdir_x(_grow, _d + 90), _uy = lengthdir_y(_grow, _d + 90);
+			var _l0 = _left[i], _l1 = _left[i + 1], _r0 = _right[i], _r1 = _right[i + 1];
+			draw_vertex(_l0[0] + _ux, _l0[1] + _uy); draw_vertex(_l1[0] + _ux, _l1[1] + _uy); draw_vertex(_r0[0] - _ux, _r0[1] - _uy);
+			draw_vertex(_l1[0] + _ux, _l1[1] + _uy); draw_vertex(_r1[0] - _ux, _r1[1] - _uy); draw_vertex(_r0[0] - _ux, _r0[1] - _uy);
+		}
+		draw_primitive_end();
+	}
+	// a soft shade along the lower half of the vane
+	draw_set_color(_shade);
+	draw_primitive_begin(pr_trianglelist);
+	for (var i = 0; i < _steps; i++) {
+		var _a0 = _axis[i], _a1 = _axis[i + 1], _r0 = _right[i], _r1 = _right[i + 1];
+		draw_vertex(_a0[0], _a0[1]); draw_vertex(_a1[0], _a1[1]); draw_vertex(_r0[0], _r0[1]);
+		draw_vertex(_a1[0], _a1[1]); draw_vertex(_r1[0], _r1[1]); draw_vertex(_r0[0], _r0[1]);
+	}
+	draw_primitive_end();
+	// notches: little cuts slanting back from the edge towards the shaft
+	draw_set_color(_ink);
+	var _notches = [[0.38, 1], [0.56, 1], [0.74, 1], [0.47, -1], [0.66, -1]];
+	for (var n = 0; n < array_length(_notches); n++) {
+		var _i = floor(_notches[n][0] * _steps);
+		var _edge = (_notches[n][1] > 0) ? _left[_i] : _right[_i];
+		var _in = _axis[max(0, _i - 1)];
+		draw_line_width(_edge[0], _edge[1], lerp(_edge[0], _in[0], 0.55), lerp(_edge[1], _in[1], 0.55), max(1.5, _len * 0.025));
+	}
+	// the shaft, through the vane to the tip
+	draw_set_color(_ink);
+	for (var i = 0; i < _steps; i++) draw_line_width(_axis[i][0], _axis[i][1], _axis[i + 1][0], _axis[i + 1][1], max(1.5, _len * (i < 3 ? 0.045 : 0.025)));
+	// the nib: a dark point with a gold band behind it, and its slit
+	var _b = _axis[2];
+	var _nd = _dir;
+	draw_set_color(_ink);
+	draw_triangle(_nx, _ny, _b[0] + lengthdir_x(_len * 0.05, _nd + 90), _b[1] + lengthdir_y(_len * 0.05, _nd + 90), _b[0] + lengthdir_x(_len * 0.05, _nd - 90), _b[1] + lengthdir_y(_len * 0.05, _nd - 90), false);
+	draw_set_color(make_color_rgb(220, 180, 70));
+	draw_line_width(_b[0] + lengthdir_x(_len * 0.055, _nd + 90), _b[1] + lengthdir_y(_len * 0.055, _nd + 90), _b[0] + lengthdir_x(_len * 0.055, _nd - 90), _b[1] + lengthdir_y(_len * 0.055, _nd - 90), max(2, _len * 0.04));
 	draw_set_color(c_white);
 }

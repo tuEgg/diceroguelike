@@ -4,162 +4,8 @@ gui_h = display_get_gui_height();
 var bar_height = sprite_get_height(sTopBar) - 3;
 var bar_half = bar_height/2;
 
-// New run offering
-if (new_run_offering) {
-	draw_set_alpha(0.99);
-	draw_set_color(c_black);
-	draw_rectangle(0, ui_top_bar_h(), gui_w, gui_h, false); // the top bar stays in full colour
-	
-	var reward_width = 1200;
-	var reward_height = 550;
-	
-	draw_set_alpha(1.0);
-	draw_set_color(c_white);
-	draw_set_halign(fa_center);
-	draw_set_valign(fa_top);
-	draw_set_font(ftBigger);
-	draw_outline_text("New Run Offering", c_black, c_white, 2, gui_w/2, gui_h/2 - 200, 1, 1, 0);
-	
-	draw_set_font(ftDefault);
-	draw_outline_text("Choose one die and core pair", c_black, c_white, 2, gui_w/2, gui_h/2 - 140, 1, 1, 0);
-	
-	for (var r = 0; r < array_length(offering); r++) {
-		var die = offering[r].dice;
-		var core = offering[r].core;
-		var die_scale = offering[r].dice_scale;
-		var core_scale = offering[r].core_scale;
-		var bg_scale = offering[r].bg_scale;
-
-		// --- Layout ---
-		var reward_w = 70;
-		var reward_h = 70;
-		var reward_padding = 210;
-		var reward_total_w = (array_length(offering) * reward_w) + ((array_length(offering) - 1) * reward_padding);
-		var reward_x = gui_w / 2 - (reward_total_w / 2);
-		var base_x = reward_x + (r * (reward_w + reward_padding));
-		var base_y = gui_h/2;
-		var base_w = reward_w;
-		var base_h = reward_h;
-		
-		// --- Draw dice sprite using hoverable scaling ---
-		var bg_btn = draw_gui_button(
-			base_x - 55, base_y - 55,
-			base_w + 110, base_h + 110,
-			bg_scale,
-			"", // no text (we’ll draw sprite manually)
-			die.color,
-			ftDefault,
-			true,         // active
-			false,
-			UI_LAYER.POPUP,
-		);
-		
-		offering[r].bg_scale = bg_btn.scale;
-				
-		// Draw background sprite
-		var btn_col = make_colour_rgb(52, 55, 73);
-		var wobble = sin(((current_time / 1000) + r) * 3) * 3;
-		draw_sprite_ext(sRewardFrame, 0, base_x + base_w/2, base_y + base_w/2 - 10, bg_scale * 0.8, bg_scale * 0.8, wobble, btn_col, 1.0);
-
-		// --- Draw dice sprite using hoverable scaling ---
-		var dice_btn = draw_gui_button(
-			base_x - 20, base_y - 30,
-			base_w, base_h,
-			die_scale,
-			"", // no text (we’ll draw sprite manually)
-			die.color,
-			ftDefault,
-			true,         // active
-			false,
-			UI_LAYER.POPUP,
-		);
-
-		// Update scale for animation
-		offering[r].dice_scale = dice_btn.scale;
-
-		// --- Choose sprite index based on dice value ---
-		var spr_index = get_dice_index( die.dice_value );
-
-		// --- Draw the dice sprite ---
-		draw_sprite_ext(
-			sDice,
-			spr_index,
-			dice_btn.x + dice_btn.w / 2,
-			dice_btn.y + dice_btn.h / 2,
-			dice_btn.scale,
-			dice_btn.scale,
-			0,
-			get_dice_color(die.possible_type),
-			1.0
-		);
-		
-		draw_dice_keywords(die, dice_btn.x + dice_btn.w / 2, dice_btn.y + dice_btn.h / 2, 1, 1.0);
-		
-		if (dice_btn.hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die.name, die_description(die), undefined, 0, die);
-		}
-		
-		var core_btn = draw_gui_button(
-			base_x + 35, base_y + 25,
-			base_w, base_h,
-			core_scale,
-			"", // no text (we’ll draw sprite manually)
-			die.color,
-			ftDefault,
-			true,         // active
-			false,
-			UI_LAYER.POPUP,
-		);
-		
-		// --- Draw the core sprite ---
-		draw_sprite_ext(
-			sCores,
-			core.index,
-			core_btn.x + core_btn.w / 2,
-			core_btn.y + core_btn.h / 2,
-			core_btn.scale,
-			core_btn.scale,
-			0,
-			c_white,
-			1.0
-		);
-
-		// Update scale for animation
-		offering[r].core_scale = core_btn.scale;
-		
-		if (core_btn.hover) {
-			var cored_die = undefined;
-			cored_die = core_preview_die();
-			cored_die.distribution = core.distribution;
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), core.name, core.description, undefined, 0, cored_die);
-		}
-		
-				// --- Draw dice name ---
-		var label = string(die.name);
-		var core_label = string(core.name);
-		draw_set_color(c_white);
-		draw_set_alpha(1.0);
-		draw_set_halign(fa_center);
-		draw_set_valign(fa_middle);
-		draw_set_font(ftDefault);
-		draw_text(bg_btn.x + bg_btn.w / 2, bg_btn.y + bg_btn.h + 70, label + " &\n " + core_label);
-		
-		// --- Click logic: Take reward ---
-		if (bg_btn.click || dice_btn.click || core_btn.click) {
-			var p = instance_create_layer(core_btn.x + core_btn.w / 2, core_btn.y + core_btn.h / 2, "Instances", oDiceParticle);
-			p.target_x = global.gui.play_w;
-			p.target_y = gui_h - global.gui.play_h / 2;
-			p.color_main = die.color;
-			p.die_struct = clone_die(die, "");
-			
-			gain_item(clone_item(core));
-
-			new_run_offering = false;
-			global.ui_layer = UI_LAYER.BASE;
-			global.bag_size++;
-		}
-	}
-}
+// New run offering: the quartermaster's offer (offering_draw, scHelpers)
+if (new_run_offering) offering_draw();
 
 // Draw top bar
 var bar_scale_w = global.ui_scale;
@@ -422,64 +268,7 @@ draw_outline_text(num_tools, c_black, c_white, 2, tools_x, bar_half - 20, toolba
 
 draw_sprite_ext(sToolbag, 0, tools_x, bar_half + 10, toolbag_scale, toolbag_scale, 0, c_white, 1.0);
 
-if (show_tools) {
-	for (var i = 0; i < ds_list_size(tools); i++) {
-		var tool = tools[| i];
-		var tile_width = sprite_get_width(sToolButton) + 10;
-		var starting_offset = (ds_list_size(tools)-1)/2 * tile_width; // 1 tool, offset by 0, 2 tools, offset by 0.5, 3 tools offset by 1,
-		var tool_x = tools_x - starting_offset + (tile_width*i);
-		
-		var tool_hover = mouse_hovering(tool_x, 130, tile_width - 10, tile_width - 10, true);
-		
-		tools_scale[| i] = lerp(tools_scale[| i], tool_hover ? 1.2 : 1.0, 0.2);
-		
-		draw_sprite_ext(sToolButton, 0, tool_x, 130, tools_scale[| i], tools_scale[| i], 0, c_gray, 1.0);
-		draw_sprite_ext(sToolSilhouettes, tool.index, tool_x, 130, tools_scale[| i], tools_scale[| i], 0, c_gray, 1.0);
-		
-		if (tool_hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc);
-
-			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
-				if (room == rmWorkbench) {
-					if (instance_exists(oWorkbenchManager) && array_contains(oWorkbenchManager.tools_used, tool.object)) {
-						throw_error("Used this visit", "Each tool works once per visit to the workbench.");
-					} else if (!instance_exists(tool.object)) {
-						var pos_x;
-						var pos_y;
-				
-						switch(i) {
-							case 0:
-							pos_x = gui_w - 150;
-							pos_y = gui_h/2 + 50;
-							break;
-					
-							case 1:
-							pos_x = 150;
-							pos_y = gui_h/2 + 50;
-							break;
-					
-							case 2:
-							pos_x = gui_w - 300;
-							pos_y = gui_h - 200;
-							break;
-						}
-						instance_create_layer(pos_x, pos_y, "Instances", tool.object);
-					} else {
-						throw_error("Tool already exists", "This tool is already on the workbench");
-					}
-				} else {
-					throw_error("Open at the workbench", "You can't open the toolbag outside of the workbench");
-				}
-			}
-		}
-	}
-} else {
-	if (tools_scale[| 0] > 0.5) {
-		for (var i = 0; i < ds_list_size(tools); i++) {
-			tools_scale[| i] = 0.5;
-		}
-	}
-}
+// the tools themselves drop down in Draw GUI End (Draw_75), so event, shop and workbench windows can't cover them
 
 // Draw alignment
 var alignment_color = make_color_rgb(250, 166, 20);
@@ -491,7 +280,20 @@ draw_sprite_ext(sAlignmentBar, 0, alignment_x, bar_half, alignment_scale, alignm
 alignment_scale = lerp(alignment_scale, 1.0, 0.2);
 
 var alignment_pos_x = alignment_x - 112 + ((global.player_alignment) * 2.24);
-draw_sprite_ext(sCircleSmall, 0, alignment_pos_x, bar_half + 2, 1, 1, 0, c_white, 1.0);
+draw_sprite_ext(sCircleSmall, 0, alignment_pos_x, bar_half + 2, alignment_scale, alignment_scale, 0, c_white, 1.0); // swells as motes land
+
+// "+5 merciful" / "-7 ruthless" under the compass for a moment after it moves (gain_alignment)
+if (alignment_popup_t >= 0) {
+	alignment_popup_t++;
+	var _pa = clamp(2 - alignment_popup_t / (game_get_speed(gamespeed_fps) * 1.5), 0, 1); // holds, then fades over ~1.5s
+	if (_pa <= 0) alignment_popup_t = -1;
+	else {
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_top);
+		draw_outline_text(alignment_popup_text, c_black, alignment_popup_col, 2, alignment_x, bar_half + 26 + min(alignment_popup_t, 10), 1, _pa, 0);
+	}
+}
 
 var alignment_text = "Neutral";
 var alignment_description = "Actions have consequences, make decisions that change how the sea interacts with you.";

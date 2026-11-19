@@ -28,21 +28,21 @@ locked_slot = -1;
 bound_slot = -1;
 hovered_slot = -1;
 
-var new_slot1 = {
-    dice_list: ds_list_create(),			// all dice currently in the slot
-    current_action_type: "None",			// the slot's selected type
-    possible_type: "None",					// allowed types,
-	bonus_amount: 0,						// total of the bonuses below, the "+2" in "1d4+2" (read only, see slot_add_bonus)
-	bonuses: [],							// { source, amount, turns, scope } from keepsakes and items
-	first_die_bonus: 0,						// total of the bonuses that only apply to the first die (read only)
-};
+// rolled dice: a fight starts with one empty slot. The first coloured die played into one picks its type for the turn
+// (combat_new_slot has the slot's fields). docs/design-rolled-dice.md
+// One slot to start (Jared, 2026-11-19): the rest are built, and slots fill left to right (slot_placement_check).
+ds_list_add(action_queue, combat_new_slot("None"));
+// each slot's place is worth a bonus to its total: +0 here, then +1, +2... for the ones you build (slot_set_position_bonus)
+slot_set_position_bonus(action_queue[| 0], 0);
 
-//ds_list_add(new_slot1.dice_list, clone_die(global.dice_d4_none, "base"));
-ds_list_add(action_queue, new_slot1);
+played_uids = [];              // dice played this turn (uid): "when played" effects fire once per die per turn, even if it's taken back and played again
+rerolls_used = 0;              // rerolls this turn (right-click a die in hand, 3 insight each: combat_reroll_die)
+redraws_used = 0;              // unused now: a redraw is paid as you discard (combat_discard_and_redraw)
+take_back_request = undefined; // a played die clicked in Draw GUI, taken back in Step: { slot, index } (slot -1 = the new-slot tile)
+new_tile_pos = undefined;      // where the new-slot tile is drawn (Draw GUI), for dice taken back from it
 
 // Use fibonacci for determining new slot creation
 global.fib_lookup = [0, 1, 1, 2, 3, 5, 8, 13, 21];
-sacrificies_til_new_action_tile = ds_list_size(action_queue);
 slot_cost_modifier = 0;
 
 // For drawing buttons
@@ -55,6 +55,7 @@ disc_btn_scale = 1.0; // discard button hover animation
 last_action_scale = 1.0;
 try_btn_scale = 1.0;
 last_hover = false; // hovering over last button is false
+disc_bag_hover = false; // the discard bag is hovered (set in Draw GUI, read earlier in the same event for its outline)
 
 // Combat states
 enum CombatState {
@@ -93,11 +94,11 @@ action_timer = 0;
 draw_action_index = 0;
 draw_dice_index = 0;
 dice_spin = 0; // resets every time we roll a die to animate the angle
-action_delay_base = game_get_speed(gamespeed_fps) * 0.75; // time between actions at Normal combat speed
+action_delay_base = game_get_speed(gamespeed_fps) * 0.5; // time between actions at Normal combat speed (rolled dice: was 0.75, the numbers are known)
 action_delay = action_delay_base * combat_delay_scale();
 dice_index = 0;
 dice_timer = 0;
-dice_delay_base = game_get_speed(gamespeed_fps) * 0.75; // time between dice at Normal combat speed
+dice_delay_base = game_get_speed(gamespeed_fps) * 0.4; // time between dice at Normal combat speed (rolled dice: was 0.75, no roll to watch)
 dice_delay = dice_delay_base * combat_delay_scale();
 enemies_turn_done = false;
 enemy_turns_remaining = 0;
@@ -114,6 +115,20 @@ draw_intel = 0; // used to draw intel
 intel_level = 0;
 quill_menu_enemy = undefined; // the enemy whose intent shows the Quill's Reroll / Halve choice
 quill_btn_scales = [1, 1];
+insight_revealed = false; // bought this turn: exact enemy intents (combat_buy)
+insight_view = false;     // the insight phase is open: the log, before you play (combat_insight_view_set / combat_insight_view_draw)
+balance_next_turn = 0;      // Balance gained for next turn (Balanced die), applied as it starts (oCombat Step)
+insight_phase_done = false; // this turn's start-of-turn check has run (the inkwell pulses if ink can do something)
+ink_pulse = 0;              // frames left of the inkwell's start-of-turn pulse
+quill_over = false;         // the log is open and the mouse is over something the quill can change (cursor_draw)
+close_btn_scale = 1;
+insight_view_age = 0;     // frames the view has been open (the opening click mustn't close it)
+insight_surf = -1;        // the view's dark overlay, with holes over the enemy intents
+tokens_args = undefined;  // where the token row sits this frame ({ cx, right, y }), so the view can draw it again on top
+reveal_btn_scale = 1;
+rerolls_bought = 0;       // extra rerolls bought with insight this turn
+redraws_bought = 0;       // extra redraws bought this turn
+plays_bought = 0;         // extra plays bought this turn
 intel_rewrite_used = false;// the Quill state lets you rewrite one enemy intent per turn
 target_locked = false; // Overwhelm: you can't change target this turn
 intel_scale = 1.0;

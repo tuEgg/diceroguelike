@@ -3,6 +3,9 @@ if (tutorial_active()) tutorial_finish();
 
 /// oCombat - Clean Up Event
 
+if (surface_exists(insight_surf)) surface_free(insight_surf);
+if (insight_view) global.ui_layer = UI_LAYER.BASE;
+
 // --- Destroy temporary lists ---
 if (ds_safe_exists(global.discard_pile, ds_type_list)) {
 	ds_list_destroy(global.discard_pile); 

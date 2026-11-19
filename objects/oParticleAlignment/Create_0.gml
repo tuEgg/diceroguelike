@@ -1,21 +1,14 @@
-// Motion variables
-x_speed = random_range(-1, 1);
-y_speed = -irandom_range(2, 3);
-grav = 0.3;
-
-// Target
-target_x = 1400 - 112 + (global.player_alignment * 2.24); // the compass bar (moved 80 px left for the menu cog)
-target_y = 50;
-
-// Visuals
-color_main = c_white;
-scale = 0.5;
-
-// State
-life = 0;
-phase = "float"; // phases: float -> attract -> done
-
-alarm[0] = 1;
-
-image_xscale = random_range(1.0, 1.3);
-image_yscale = image_xscale;
+// a mote of alignment (gain_alignment): bursts out, then streams up to the compass marker, leaving a glowing trail.
+// gain_alignment sets delay (frames before it shows), negative (+1 merciful / -1 ruthless) and col.
+delay = 1;
+negative = 1;
+col = c_white;
+var _dir = random(360);
+var _spd = random_range(5, 10);
+vx = lengthdir_x(_spd, _dir); // the first burst outwards
+vy = lengthdir_y(_spd, _dir);
+t = 0;                        // frames since it showed
+size = random_range(5, 7.5);
+trail = [];                   // where it has been, for the trail
+spin = random(360);
+phase = random(100);         // where its curl starts, so the motes in a stream curl differently
