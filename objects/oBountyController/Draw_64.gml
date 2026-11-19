@@ -168,7 +168,8 @@ if (room == rmBounty) {
 				}
 				
 				draw_sprite_ext(sFrameSmall, 0, reward_x, reward_y, _bounty.rewards_scale[r], _bounty.rewards_scale[r], 0, frame_col, 1.0);
-				draw_sprite_ext(sprite, index, reward_x, reward_y, _bounty.rewards_scale[r], _bounty.rewards_scale[r], angle, col, 1.0);
+				if (is_dice) draw_die(reward_x, reward_y, 30 * _bounty.rewards_scale[r], _bounty.rewards[r].dice_value, -1, die_colours(_bounty.rewards[r].possible_type), 0, 1); // drawn in code: split if multitype
+				else draw_sprite_ext(sprite, index, reward_x, reward_y, _bounty.rewards_scale[r], _bounty.rewards_scale[r], angle, col, 1.0);
 			
 				var reward_hover = mouse_hovering( reward_x, reward_y, sprite_get_width(sFrameSmall), sprite_get_height(sFrameSmall), true);
 			

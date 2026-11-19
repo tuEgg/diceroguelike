@@ -1936,3 +1936,13 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1) {
 	}
 	draw_set_color(c_white);
 }
+
+/// @func dice_particle_draw()
+/// @desc oDiceParticle Draw: the die flying to the bag (or from a reward), drawn in code like every die (split if
+///       multitype; its sprite's scale as the radius), keyword icons small above it.
+function dice_particle_draw() {
+	if (!variable_instance_exists(id, "die_struct") || !is_struct(die_struct)) { draw_sprite_ext(sprite_index, image_index, x, y, image_xscale, image_yscale, image_angle, image_blend, 1.0); return; }
+	var _r = 36 * image_xscale;
+	draw_die(x, y, _r, die_struct.dice_value, -1, die_colours(die_struct.possible_type), image_angle, 1);
+	draw_dice_keywords(die_struct, x, y - _r - 12, 0.6 * image_xscale);
+}

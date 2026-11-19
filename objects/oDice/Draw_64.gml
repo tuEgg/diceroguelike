@@ -3,8 +3,9 @@ draw_set_color(c_white);
 
 image_blend = get_dice_color(struct.possible_type);
 
-// in fights the die is drawn in code (draw_die): its shape by size, real pips, tumbling as it's dealt. Elsewhere the sprite.
-var _coded = (room == rmCombat && is_struct(struct));
+// the die is drawn in code (draw_die): its shape by size, real pips in fights (tumbling as it's dealt), its size
+// ("d6") elsewhere, a multitype die split in its colours. The sprite only if it somehow has no struct.
+var _coded = is_struct(struct);
 var _die_r = 36 * scale * (1 + 0.22 * land_pop);
 if (_coded) {
 	var _face = tumbling ? flick_face : (die_has_faces(struct) ? die_face_total(struct) : -1);

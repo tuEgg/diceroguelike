@@ -1233,24 +1233,10 @@ if (show_rewards) {
 			    // Update scale for animation
 			    reward_scale[| r] = btn.scale;
 
-			    // --- Choose sprite index based on dice value ---
-			    var spr_index = get_dice_index( die.dice_value );
-
-			    // --- Draw the dice sprite ---
+			    // the die, drawn in code (split in its colours if multitype), its keyword icons small above it
 			    var alpha = rewards_dice_taken ? 0.2 : 1.0;
-			    draw_sprite_ext(
-			        sDice,
-			        spr_index,
-			        btn.x + btn.w / 2,
-			        btn.y + btn.h / 2,
-			        btn.scale,
-			        btn.scale,
-			        0,
-			        get_dice_color(die.possible_type),
-			        alpha
-			    );
-		
-				draw_dice_keywords(die, btn.x + btn.w / 2, btn.y + btn.h / 2, 1, alpha);
+			    draw_die(btn.x + btn.w / 2, btn.y + btn.h / 2, 36 * btn.scale, die.dice_value, -1, die_colours(die.possible_type), 0, alpha);
+				draw_dice_keywords(die, btn.x + btn.w / 2, btn.y + btn.h / 2 - 36 * btn.scale - 12, 0.6, alpha);
 
 			    // --- Draw name ---
 			    var label = string(die.name);
