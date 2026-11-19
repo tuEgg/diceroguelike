@@ -617,7 +617,10 @@ global.player_xstart = 355 * global.ui_scale - ((ds_list_size(action_queue)-1) *
 
 global.player_x = lerp(global.player_x, global.player_xstart, 0.2);
 
-if (keyboard_check_pressed(vk_enter) && state == CombatState.PLAYER_INPUT && !is_dealing_dice && tutorial_allows("end_turn")) {
+if (insight_view) insight_view_age++;
+if (insight_view && (state != CombatState.PLAYER_INPUT || show_rewards || intel_is_blotted())) combat_insight_view_set(false);
+
+if (keyboard_check_pressed(vk_enter) && state == CombatState.PLAYER_INPUT && !is_dealing_dice && !insight_view && tutorial_allows("end_turn")) {
     actions_submitted = true;
 }
 

@@ -1667,7 +1667,7 @@ function tutorial_steps() {
 		// turn 1: a slot, stacking, a slot from a sacrifice, generic dice, how long dice stay
 		{
 			id: "intent", target: "intent", allow: [], button: "Next",
-			text: "Read your enemy first. Its intent shows what it will do this turn, and a range of how much. Insight dice give you insight next turn: spend 2 of it (click the eye) to see the exact number.",
+			text: "Read your enemy first. Its intent shows what it will do this turn, and a range of how much. Insight dice give you insight next turn: click the eye and spend 2 of it to see the exact number.",
 		},
 		{
 			id: "claim", target: "slot0", allow: ["place"], die_types: ["ATK"], slot: 0,
@@ -1705,7 +1705,7 @@ function tutorial_steps() {
 		// turn 2: insight, a slot with two actions, right-click to switch
 		{
 			id: "insight", target: "insight", allow: [], button: "Next",
-			text: "Your insight came in. It's spent this turn or lost: click the eye to see exact enemy numbers (2), the + tokens above End Turn buy another reroll or redraw (3) or play (4), and clicking an intent rewrites it (6). Hover the eye for the list.",
+			text: "Your insight came in, and the eye is pulsing. Click it: everything dims except what insight buys. See exact enemy numbers (2), another reroll or redraw (3) or play (4), or make an enemy choose again (6). Spend it this turn or lose it.",
 		},
 		{
 			id: "two_types", target: "sacrifice", allow: ["sacrifice"], die_types: ["ATK", "BLK"],
@@ -2050,7 +2050,7 @@ function tips_list() {
 		{
 			// the guided fight is off on this branch, so this teaches insight the first time you have some to spend
 			id: "insight_spend", room: rmCombat, target: "insight",
-			text: "Insight: you have some to spend this turn. Click the eye to see exactly what each enemy will do (" + string(INSIGHT_COST_REVEAL) + "). The + tokens above End Turn buy another reroll or redraw (" + string(INSIGHT_COST_REROLL) + ") or play (" + string(INSIGHT_COST_PLAY) + "), and clicking an intent rewrites it (" + string(INSIGHT_COST_QUILL) + "). Hover the eye for the full list. What you don't spend is gone at End Turn.",
+			text: "Insight: you have some to spend. When the eye pulses, click it: everything dims except what insight can buy. See exact enemy values (" + string(INSIGHT_COST_REVEAL) + "), buy a reroll or redraw (" + string(INSIGHT_COST_REROLL) + ") or a play (" + string(INSIGHT_COST_PLAY) + "), or make an enemy choose its move again (" + string(INSIGHT_COST_QUILL) + "). What you don't spend is gone at End Turn.",
 			when: function() { return tips_combat_ready() && oCombat.player_intel >= INSIGHT_COST_REVEAL && !intel_is_blotted(); },
 		},
 		{
@@ -2642,7 +2642,7 @@ function combat_buy(_what) {
 function combat_reroll_die(_inst) {
 	if (state != CombatState.PLAYER_INPUT || show_rewards || !instance_exists(_inst) || !die_has_faces(_inst.struct)) return;
 	if (rerolls_used >= combat_rerolls_total()) {
-		throw_error("No rerolls", "Buy one for " + string(INSIGHT_COST_REROLL) + " insight: the + token after the rerolls, above End Turn.");
+		throw_error("No rerolls", "Buy one for " + string(INSIGHT_COST_REROLL) + " insight: click the eye above you, then the + reroll token.");
 		return;
 	}
 	rerolls_used++;
@@ -2710,42 +2710,49 @@ function combat_enemies_flee(_leader) {
 	if (_any) add_feed_entry("With their leader down, the rest flee!");
 }
 
-/// @func combat_turn_tokens_draw(_cx, _right_max, _y)
+/// @func combat_turn_tokens_draw(_cx, _right_max, _y, _view)
 /// @desc One row of round brass tokens, centred on _cx but never past _right_max (the slots): a token per play, then
 ///       (after a divider) a reroll token per reroll, then a redraw token per redraw. Spent tokens go dark; ones bought
-///       with insight are yellow. Each group ends with a dashed "buy" token showing its insight cost: click it to buy one
-///       more (lit when you can afford it). No text: hovering a group says what it is, how many are left and the cost.
+///       with insight are yellow. Outside insight view (_view false) a group you have none of isn't shown. In insight
+///       view each group ends with a dashed "buy" token showing its cost: click to buy one more.
 ///       Playing (or failing to) makes the play tokens pulse green (or red).
-function combat_turn_tokens_draw(_cx, _right_max, _y) {
+function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
 	var _plays_total = max(dice_allowed_per_turn, dice_played);
 	var _plays_left = max(0, dice_allowed_per_turn - dice_played);
-	var _groups = [
-		{ total: _plays_total, left: _plays_left, bought: plays_bought, buy: "play", cost: INSIGHT_COST_PLAY, title: "Plays",
+	var _all = [
+		{ g: 0, total: _plays_total, left: _plays_left, bought: plays_bought, buy: "play", cost: INSIGHT_COST_PLAY, title: "Plays",
 		  text: "Dice you can play this turn: " + string(_plays_left) + " left. Coins are free to play." },
-		{ total: combat_rerolls_total(), left: combat_rerolls_total() - rerolls_used, bought: rerolls_bought, buy: "reroll", cost: INSIGHT_COST_REROLL, title: "Reroll",
-		  text: "Right-click a die in your hand to roll it again. " + string(combat_rerolls_total() - rerolls_used) + " left this turn. Buy one with the + token." },
-		{ total: combat_redraws_total(), left: combat_redraws_total() - redraws_used, bought: redraws_bought, buy: "redraw", cost: INSIGHT_COST_REDRAW, title: "Redraw",
-		  text: "Drop a die on the discard pile and draw a new one. " + string(combat_redraws_total() - redraws_used) + " left this turn. Buy one with the + token." },
+		{ g: 1, total: combat_rerolls_total(), left: combat_rerolls_total() - rerolls_used, bought: rerolls_bought, buy: "reroll", cost: INSIGHT_COST_REROLL, title: "Reroll",
+		  text: "Right-click a die in your hand to roll it again. " + string(combat_rerolls_total() - rerolls_used) + " left this turn." },
+		{ g: 2, total: combat_redraws_total(), left: combat_redraws_total() - redraws_used, bought: redraws_bought, buy: "redraw", cost: INSIGHT_COST_REDRAW, title: "Redraw",
+		  text: "Drop a die on the discard pile and draw a new one. " + string(combat_redraws_total() - redraws_used) + " left this turn." },
 	];
+	var _groups = [];
+	for (var g = 0; g < 3; g++) if (_view || _all[g].total > 0) array_push(_groups, _all[g]);
+	var _ng = array_length(_groups);
+	if (_ng == 0) return;
+	var _layer = _view ? UI_LAYER.POPUP : UI_LAYER.BASE;
 	var _r = 11, _gap = 5, _div = 12; // token radius, space between tokens, space either side of a divider
 	var _dark = make_color_rgb(42, 29, 18);
 	var _brass = make_color_rgb(232, 196, 106);
 	var _spent = make_color_rgb(90, 69, 53);
-	var _can_buy = (state == CombatState.PLAYER_INPUT && !show_rewards);
 
-	// each group's width: its tokens, and the buy token after them
-	var _w = -_div;
-	for (var g = 0; g < 3; g++) _w += (_groups[g].total + 1) * (_r * 2) + _groups[g].total * _gap + _div * 2;
+	// each group's width: its tokens, and in the view its buy token
+	var _w = -_div * 2;
+	for (var g = 0; g < _ng; g++) {
+		var _t = _groups[g].total + (_view ? 1 : 0);
+		_w += _t * (_r * 2) + max(0, _t - 1) * _gap + _div * 2;
+	}
 	var _x = min(_cx - _w / 2, _right_max - _w);
 
-	for (var g = 0; g < 3; g++) {
+	for (var g = 0; g < _ng; g++) {
 		var _grp = _groups[g];
-		// a group with none (no rerolls bought yet) is only its buy token: -_gap cancels the gap before that token
+		// a group with none (in the view) is only its buy token: -_gap cancels the gap before that token
 		var _gw = (_grp.total > 0) ? _grp.total * (_r * 2) + (_grp.total - 1) * _gap : -_gap;
-		var _hover = (_grp.total > 0) && mouse_hovering(_x - 4, _y - _r - 4, _gw + 8, _r * 2 + 8, false);
+		var _hover = (_grp.total > 0) && mouse_hovering(_x - 4, _y - _r - 4, _gw + 8, _r * 2 + 8, false, noone, soClick4, true, _layer);
 		// the plays pulse when a die is played (green) or can't be (red): dice_played_scale and dice_played_color
-		var _s = (g == 0) ? dice_played_scale : 1;
-		var _ring = (g == 0) ? merge_colour(_dark, dice_played_color, clamp((dice_played_scale - 1) * 2.5, 0, 1)) : _dark;
+		var _s = (_grp.g == 0) ? dice_played_scale : 1;
+		var _ring = (_grp.g == 0) ? merge_colour(_dark, dice_played_color, clamp((dice_played_scale - 1) * 2.5, 0, 1)) : _dark;
 		for (var t = 0; t < _grp.total; t++) {
 			var _tx = _x + _r + t * (_r * 2 + _gap);
 			var _on = (t < _grp.left);
@@ -2761,37 +2768,40 @@ function combat_turn_tokens_draw(_cx, _right_max, _y) {
 			draw_circle(_tx, _y - _rr * 0.35, _rr * 0.45, false);
 			draw_set_color(_fill);
 			draw_circle(_tx, _y - _rr * 0.15, _rr * 0.55, false);
-			combat_token_symbol(g, _tx, _y, _rr, _on ? _dark : make_color_rgb(140, 120, 100));
+			combat_token_symbol(_grp.g, _tx, _y, _rr, _on ? _dark : make_color_rgb(140, 120, 100));
 		}
 		if (_hover && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _grp.title, _grp.text);
 
-		// the buy token: a dashed ring with the cost inside, lit when you can afford it
-		var _bx = _x + _gw + _gap + _r;
-		var _afford = _can_buy && combat_insight_can(_grp.cost);
-		var _bhover = mouse_hovering(_bx - _r - 3, _y - _r - 3, _r * 2 + 6, _r * 2 + 6, false);
-		var _br = _r * ((_bhover && _afford) ? 1.15 : 1);
-		var _bcol = _afford ? global.color_intel : make_color_rgb(120, 110, 80);
-		draw_set_alpha(_afford ? 1 : 0.6);
-		draw_set_color(_dark);
-		draw_circle(_bx, _y, _br + 3, false);
-		draw_set_color(merge_colour(_dark, _bcol, 0.25));
-		draw_circle(_bx, _y, _br, false);
-		draw_set_color(_bcol);
-		for (var k = 0; k < 8; k++) draw_arc_thick_deg(_bx, _y, _br - 2, _br, k * 45, k * 45 + 25, 4); // dashes
-		draw_set_font(ftSmall);
-		draw_set_halign(fa_center);
-		draw_set_valign(fa_middle);
-		draw_outline_text("+" + string(_grp.cost), c_black, _bcol, 1, _bx, _y, 1, _afford ? 1 : 0.6, 0);
-		draw_set_alpha(1);
-		if (_bhover && !show_rewards) {
-			var _what = (g == 0) ? "play" : ((g == 1) ? "reroll" : "redraw");
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Buy a " + _what, "Spend " + string(_grp.cost) + " insight for one more " + _what + " this turn. You have " + string(max(0, player_intel)) + " insight.", undefined, 0, undefined, _grp.cost, "insight");
-			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && combat_no_die_dragged()) combat_buy(_grp.buy);
+		var _next = _x + _gw;
+		if (_view) {
+			// the buy token: a dashed ring with the cost inside, lit when you can afford it
+			var _bx = _x + _gw + _gap + _r;
+			var _afford = combat_insight_can(_grp.cost);
+			var _bhover = mouse_hovering(_bx - _r - 3, _y - _r - 3, _r * 2 + 6, _r * 2 + 6, false, noone, soClick4, true, _layer);
+			var _br = _r * ((_bhover && _afford) ? 1.2 : 1.1);
+			var _bcol = _afford ? global.color_intel : make_color_rgb(120, 110, 80);
+			draw_set_alpha(_afford ? 1 : 0.6);
+			draw_set_color(_dark);
+			draw_circle(_bx, _y, _br + 3, false);
+			draw_set_color(merge_colour(_dark, _bcol, 0.25));
+			draw_circle(_bx, _y, _br, false);
+			draw_set_color(_bcol);
+			for (var k = 0; k < 8; k++) draw_arc_thick_deg(_bx, _y, _br - 2, _br, k * 45, k * 45 + 25, 4); // dashes
+			draw_set_font(ftSmall);
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_outline_text("+" + string(_grp.cost), c_black, _bcol, 1, _bx, _y, 1, _afford ? 1 : 0.6, 0);
+			draw_set_alpha(1);
+			if (_bhover && !show_rewards) {
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Buy a " + _grp.buy, "Spend " + string(_grp.cost) + " insight for one more " + _grp.buy + " this turn. You have " + string(max(0, player_intel)) + " insight.", undefined, 0, undefined, _grp.cost, "insight");
+				if (mouse_check_button_pressed(mb_left) && combat_no_die_dragged()) combat_buy(_grp.buy);
+			}
+			_next = _bx + _r;
 		}
 
-		_x += _gw + _gap + _r * 2 + _div;
+		_x = _next + _div;
 		// a short divider between groups
-		if (g < 2) {
+		if (g < _ng - 1) {
 			draw_set_color(_dark);
 			draw_set_alpha(0.5);
 			draw_line_width(_x, _y - _r, _x, _y + _r, 2);
@@ -2815,5 +2825,120 @@ function combat_token_symbol(_group, _x, _y, _r, _col) {
 		draw_line_width(_x, _y + _r * 0.35, _x, _y - _r * 0.25, max(2, _r * 0.18));
 		draw_triangle(_x - _r * 0.36, _y - _r * 0.15, _x + _r * 0.36, _y - _r * 0.15, _x, _y - _r * 0.6, false);
 		draw_line_width(_x - _r * 0.45, _y + _r * 0.5, _x + _r * 0.45, _y + _r * 0.5, max(2, _r * 0.16));
+	}
+}
+
+// =====================================================================
+// INSIGHT VIEW: the eye opens it; everything dims except what insight can buy
+// =====================================================================
+
+/// @func combat_insight_view_set(_open)
+/// @desc Opens or closes insight view. While it's open the rest of the screen ignores the mouse (UI_LAYER.POPUP).
+function combat_insight_view_set(_open) {
+	with (oCombat) {
+		if (insight_view == _open) return;
+		insight_view = _open;
+		insight_view_age = 0; // frames open (oCombat Step): the click that opened it can't also close it
+		global.ui_layer = _open ? UI_LAYER.POPUP : UI_LAYER.BASE;
+		sfx_play(soSlotPlace, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
+	}
+}
+
+/// @func combat_insight_view_draw()
+/// @desc oRunManager Draw GUI End (after every Draw GUI, so the dice in hand dim too): a dark overlay with holes over the
+///       enemy intents, then on top: a heading with your insight, the eye (click to close), a "See exact values" button
+///       by it (2), the token row with its buy tokens (play 4, reroll 3, redraw 3), and each intent lit in yellow with
+///       its cost (6: the enemy picks a different move). Right-click also closes it.
+function combat_insight_view_draw() {
+	if (!instance_exists(oCombat) || !oCombat.insight_view) return;
+	with (oCombat) {
+		var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+		var _top = ui_top_bar_h();
+		var _pad = 14;
+
+		// the overlay: a surface filled dark, with the intents cut out of it (subtract blend), so they show at full colour
+		if (!surface_exists(insight_surf)) insight_surf = surface_create(_gw, _gh);
+		surface_set_target(insight_surf);
+		draw_clear_alpha(c_black, 0.72);
+		gpu_set_blendmode(bm_subtract);
+		draw_set_color(c_white);
+		for (var e = 0; e < ds_list_size(room_enemies); e++) {
+			var _en = room_enemies[| e];
+			if (_en.dead || !variable_struct_exists(_en, "intent_rect")) continue;
+			var _ir = _en.intent_rect;
+			draw_roundrect_ext(_ir.x - _ir.w / 2 - _pad, _ir.y - _ir.h / 2 - _pad, _ir.x + _ir.w / 2 + _pad, _ir.y + _ir.h / 2 + _pad, 18, 18, false);
+		}
+		gpu_set_blendmode(bm_normal);
+		surface_reset_target();
+		draw_surface_part(insight_surf, 0, _top, _gw, _gh - _top, 0, _top); // the top bar stays as it is
+
+		// the heading
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_set_font(ftBigger);
+		draw_outline_text("Insight: " + string(player_intel) + " to spend", c_black, global.color_intel, 2, _gw / 2, _top + 50, 1, 1, 0);
+		draw_set_font(ftDefault);
+		draw_outline_text("Lit up: what you can buy this turn. Click the eye (or right-click) to close.", c_black, c_white, 2, _gw / 2, _top + 90, 1, 1, 0);
+
+		// the eye, on top, with a ring: click to close
+		var _ex = global.player_x, _ey = global.player_y - 180;
+		draw_set_color(global.color_intel);
+		draw_circle(_ex, _ey, 40, true);
+		draw_circle(_ex, _ey, 41, true);
+		var _eye_frame = global.player_intel_data[| intel_level].index;
+		draw_sprite_ext(sIntelEye, _eye_frame, _ex, _ey, 1.1, 1.1, 0, c_white, 1);
+		var _eye_hover = mouse_hovering(_ex, _ey, 80, 60, true, noone, soClick4, true, UI_LAYER.POPUP);
+		if (_eye_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Close insight view", "Back to your turn. Unspent insight is lost at End Turn.");
+
+		// see exact values: a button beside the eye
+		var _rb_x = _ex + 170, _rb_y = _ey;
+		var _rb = ui_button(_rb_x, _rb_y, 230, 54, reveal_btn_scale, insight_revealed ? "Values revealed" : "See exact values  -" + string(INSIGHT_COST_REVEAL), global.color_intel, !insight_revealed && combat_insight_can(INSIGHT_COST_REVEAL), insight_revealed ? "Already revealed this turn." : "Not enough insight.", UI_LAYER.POPUP, 1, ftDefault);
+		reveal_btn_scale = _rb.scale;
+		if (_rb.hover && !insight_revealed) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "See exact enemy values", "Spend " + string(INSIGHT_COST_REVEAL) + " insight: see exactly what each enemy will do this turn.", undefined, 0, undefined, INSIGHT_COST_REVEAL, "insight");
+		if (_rb.click) combat_buy("reveal");
+
+		// the token row, with its buy tokens
+		if (is_struct(tokens_args)) combat_turn_tokens_draw(tokens_args.cx, tokens_args.right, tokens_args.y, true);
+
+		// the intents: lit, with their cost; click one to have the enemy choose again
+		for (var e = 0; e < ds_list_size(room_enemies); e++) {
+			var _en = room_enemies[| e];
+			if (_en.dead || !variable_struct_exists(_en, "intent_rect")) continue;
+			var _ir = _en.intent_rect;
+			var _x1 = _ir.x - _ir.w / 2 - _pad, _y1 = _ir.y - _ir.h / 2 - _pad, _x2 = _ir.x + _ir.w / 2 + _pad, _y2 = _ir.y + _ir.h / 2 + _pad;
+			var _ok = enemy_can_rewrite_intent(_en);
+			var _afford = _ok && combat_insight_can(INSIGHT_COST_QUILL);
+			var _hover = mouse_hovering(_x1, _y1, _x2 - _x1, _y2 - _y1, false, noone, soClick4, true, UI_LAYER.POPUP);
+			var _col = _afford ? global.color_intel : make_color_rgb(120, 110, 80);
+			var _pulse = _afford ? 0.5 + 0.5 * sin(current_time / 200) : 0;
+			draw_set_color(_col);
+			for (var k = 0; k < 3; k++) draw_roundrect_ext(_x1 - k - _pulse * 3, _y1 - k - _pulse * 3, _x2 + k + _pulse * 3, _y2 + k + _pulse * 3, 18, 18, true);
+			// the cost, a coin on its corner
+			draw_set_color(c_black);
+			draw_circle(_x2, _y1, 16, false);
+			draw_set_color(_col);
+			draw_circle(_x2, _y1, 13, false);
+			draw_set_font(ftSmall);
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_set_color(c_black);
+			draw_text(_x2, _y1, string(INSIGHT_COST_QUILL));
+			if (_hover) {
+				if (!_ok) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't change this", "This move is forced, or the enemy has nothing else to choose.");
+				else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll this intent", "Spend " + string(INSIGHT_COST_QUILL) + " insight: " + string(_en.data.name) + " picks a different move, rolled fresh.", undefined, 0, undefined, INSIGHT_COST_QUILL, "insight");
+				if (mouse_check_button_pressed(mb_left) && _ok && combat_insight_spend(INSIGHT_COST_QUILL) && enemy_rewrite_intent(_en)) {
+					_en.intent.scale = _en.intent.start_scale * 1.4; // pop, so the change is noticed
+					add_feed_entry("You rewrote " + string(_en.data.name) + "'s intent: " + string(_en.intent.move.move_name));
+				}
+			}
+		}
+
+		// closing: the eye, or a right-click anywhere
+		if (insight_view_age > 0 && ((_eye_hover && mouse_check_button_pressed(mb_left)) || mouse_check_button_pressed(mb_right))) combat_insight_view_set(false);
+
+		draw_set_color(c_white);
+		draw_set_alpha(1);
+		draw_set_halign(fa_left);
+		draw_set_valign(fa_top);
 	}
 }

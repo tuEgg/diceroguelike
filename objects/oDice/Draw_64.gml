@@ -53,7 +53,7 @@ if mouse_hovering(x, y, sprite_width, sprite_height, true) {
 	// rolled dice: the title says what it rolled, and the body how to reroll it
 	var _rolled = (room == rmCombat && die_has_faces(struct) && !tumbling);
 	var _title = string(struct.name) + (_rolled ? ": rolled " + string(die_face_total(struct)) : "") + " (" + string(dice_output.min_roll) + "-" + string(dice_output.max_roll) + ")";
-	var _reroll_hint = (_rolled && instance_exists(oCombat) && oCombat.rerolls_used < combat_rerolls_total()) ? "\n\nRight-click to reroll it." : ((_rolled && instance_exists(oCombat)) ? "\n\nBuy a reroll (" + string(INSIGHT_COST_REROLL) + " insight, above End Turn) to reroll it." : "");
+	var _reroll_hint = (_rolled && instance_exists(oCombat) && oCombat.rerolls_used < combat_rerolls_total()) ? "\n\nRight-click to reroll it." : ((_rolled && instance_exists(oCombat)) ? "\n\nBuy a reroll (" + string(INSIGHT_COST_REROLL) + " insight: click the eye) to reroll it." : "");
 	queue_tooltip(x - sprite_width/2, y + sprite_height/2, _title, die_description(struct) + _reroll_hint, undefined, 0, struct);
 	
 	var off_x = 0;

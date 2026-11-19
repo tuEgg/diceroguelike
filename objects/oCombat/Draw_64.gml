@@ -98,7 +98,8 @@ dice_played_color = merge_colour(dice_played_color, c_white, 0.05);
 var _et_left = btn_x + btn_w/2 - sprite_get_xoffset(sEndTurn) * btn_scaler;
 var _et_right = btn_x + btn_w/2 + (sprite_get_width(sEndTurn) - sprite_get_xoffset(sEndTurn)) * btn_scaler;
 var _tokens_max = min(_et_right, aq_start_x - aq_tile_w * 0.1) - 10; // the row never reaches past this
-if (!show_rewards) combat_turn_tokens_draw((_et_left + _tokens_max) / 2, _tokens_max, aq_start_y + aq_tile_w/2 - 40);
+tokens_args = { cx: (_et_left + _tokens_max) / 2, right: _tokens_max, y: aq_start_y + aq_tile_w/2 - 40 }; // insight view draws it again
+if (!show_rewards && !insight_view) combat_turn_tokens_draw(tokens_args.cx, tokens_args.right, tokens_args.y, false); // the view draws its own
 draw_set_font(ftBig);
 
 // Click handling
@@ -666,8 +667,8 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	    var xx = enemy.pos_x; // enemy position on screen
 	    var yy = enemy.pos_y - 10 - (enemy.scale * 180);  // slightly above their head
 
-		// Quill: an intent you can rewrite this turn pulses and glows, with a quill beside it, so it can't be missed
-		var _rewritable = (combat_insight_can(INSIGHT_COST_QUILL) && enemy_can_quill(enemy));
+		// Quill lives in insight view now (combat_insight_view_draw): no glow or pulse out here
+		var _rewritable = false;
 		var _quill_pulse = 0.5 + 0.5 * sin(current_time / 200);
 		if (_rewritable) enemy.intent.scale = enemy.intent.start_scale * (1 + 0.12 * _quill_pulse);
 		
@@ -738,7 +739,8 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 
 		// Quill: click an intent, then choose Reroll (the enemy picks a different move) or Halve (its numbers this turn)
 		var _intent_hover = mouse_hovering(xx, yy, text_w + 20, 50, true);
-		var _can_rewrite = combat_insight_can(INSIGHT_COST_QUILL); // Quill: 6 insight a rewrite
+		enemy.intent_rect = { x: xx, y: yy, w: text_w + 20, h: 50 }; // centred: insight view lights it up and takes the click
+		var _can_rewrite = false; // the old Quill menu: insight view rerolls intents now
 		if (!_can_rewrite && quill_menu_enemy == enemy) quill_menu_enemy = undefined;
 		if (_can_rewrite && _intent_hover && quill_menu_enemy != enemy) {
 			if (!enemy_can_quill(enemy)) {
@@ -1045,17 +1047,17 @@ if (state != CombatState.PLAYER_DEAD) {
 	// the eye (sIntelEye): smudged below 0, open for ranges, wide open once exact intents are bought. Click it to buy them.
 	var _eye_frame = intel_is_blotted() ? global.intel_blotted.index : global.player_intel_data[| intel_level].index;
 	var intel_hover = mouse_hovering(global.player_x, global.player_y - 180, 80, 60, true);
-	var _can_reveal = !insight_revealed && combat_insight_can(INSIGHT_COST_REVEAL);
-	var _eye_pulse = _can_reveal ? 0.06 * (0.5 + 0.5 * sin(current_time / 200)) : 0; // breathes while seeing exactly is affordable
+	// it pulses while you have insight to spend (the cheapest buy, 2): click it for insight view
+	var _has_insight = combat_insight_can(INSIGHT_COST_REVEAL);
+	var _eye_pulse = (_has_insight && !insight_view) ? 0.12 * (0.5 + 0.5 * sin(current_time / 180)) : 0;
 	draw_sprite_ext(sIntelEye, _eye_frame, global.player_x, global.player_y - 180, intel_scale * (1 + _eye_pulse), intel_scale * (1 + _eye_pulse), 0, c_white, intel_alpha);
 	draw_outline_text("Insight", c_black, intel_is_blotted() ? c_red : global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
 	intel_scale = intel_hover ? lerp(intel_scale, 1.15, 0.2) : lerp(intel_scale, 1.0, 0.2);
-	if (intel_hover && mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && !insight_revealed) combat_buy("reveal");
-	// one line on what clicking does (what everything else costs is on the things you buy)
+	if (intel_hover && mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && _has_insight) combat_insight_view_set(true);
 	if (intel_hover) {
 		if (intel_is_blotted()) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 insight the page is smudged: enemy intents are hidden, and you can't spend insight.");
-		else if (insight_revealed) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exact values revealed", "You see exactly what each enemy will do this turn. You have " + string(player_intel) + " insight left.");
-		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reveal exact enemy values", "Click to spend " + string(INSIGHT_COST_REVEAL) + " insight and see exactly what each enemy will do this turn. You have " + string(player_intel) + ".", undefined, 0, undefined, INSIGHT_COST_REVEAL, "insight");
+		else if (_has_insight) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Insight: " + string(player_intel) + " to spend", "Click to see what it can buy this turn.");
+		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Insight: " + string(player_intel), "Insight dice give you insight next turn. With 2 or more, click here to spend it.");
 	}
 
 	// the number shows when it isn't zero, negative intel (from Overwhelm) included

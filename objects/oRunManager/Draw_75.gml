@@ -190,6 +190,9 @@ var gui_h = display_get_gui_height();
 var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
 
+// insight view (the eye in a fight): darkens everything but what insight can buy, drawn over the whole Draw GUI
+combat_insight_view_draw();
+
 // the bag icon (bottom left), above the map and every room window
 // Draw bag preview
 var bag_x = global.gui.bag_x;
