@@ -62,3 +62,6 @@ if (room == rmMainMenu && !global.all_input_disabled && !global.show_settings) {
 	}
 	}
 }
+
+// the build number, bottom right (also hidden under Settings, which covers the screen)
+if (room == rmMainMenu && !global.show_settings) draw_version_tag(display_get_gui_width() - 16, display_get_gui_height() - 12);

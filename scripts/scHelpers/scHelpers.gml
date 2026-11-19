@@ -1519,6 +1519,9 @@ function pause_draw() {
 	}
 	draw_set_font(ftDefault);
 	draw_outline_text("Your voyage is saved at the last stop you reached.", c_black, c_ltgray, 2, _gw / 2, _gh * 0.4 + 3 * (_bh + 30) + 20, 1, 1, 0);
+	// the build number, inside the panel's top-right corner (panel from _gh*0.22, right edge _gw/2 + 260), clear of the
+	// centred title below it and of the save note
+	draw_version_tag(_gw / 2 + 260 - 22, _gh * 0.22 + 34);
 }
 
 /// @func run_summary_draw()
@@ -1790,4 +1793,16 @@ function draw_cog_icon(_x, _y, _r, _angle) {
 	draw_set_color(_ink); // the hole in the middle
 	draw_circle(_x, _y, _r * 0.42, false);
 	draw_set_color(c_white);
+}
+
+/// @func draw_version_tag(_x, _y)
+/// @desc The build number (GAME_VERSION) in small faint text, right- and bottom-aligned to _x, _y, so testers can say
+///       which build they played.
+function draw_version_tag(_x, _y) {
+	draw_set_font(ftSmall);
+	draw_set_halign(fa_right);
+	draw_set_valign(fa_bottom);
+	draw_outline_text("v" + GAME_VERSION, c_black, make_color_rgb(226, 212, 176), 2, _x, _y, 1, 0.75, 0);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
 }
