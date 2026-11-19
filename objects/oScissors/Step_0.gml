@@ -7,6 +7,7 @@ if (tool_used) {
 		y = device_mouse_y(0);
 		if (used_timer <= 0) {
 			is_dragging = false;
+			oRunManager.holding_item = false; // put down: the bench and dice answer the mouse again
 			image_blend = c_gray;
 			image_alpha = 0.55;
 		}

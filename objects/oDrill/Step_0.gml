@@ -1,16 +1,29 @@
-// used this visit: it lingers in hand for a moment (its last pose shows), then goes back to its spot greyed out.
-// A used tool skips everything below, so it can't craft again or shake the Craft button.
+// used this visit: it lingers in hand for a moment (its last pose shows), and keeps spinning for as long as the button
+// is held, then goes back to its spot greyed out. A used tool skips everything below, so it can't craft again or shake
+// the Craft button.
 if (tool_used) {
-	if (used_timer > 0) {
-		used_timer--;
+	var _held = is_dragging && mouse_check_button(mb_left);
+	if (used_timer > 0 || _held) {
+		if (used_timer > 0) used_timer--;
 		x = device_mouse_x(0);
 		y = device_mouse_y(0);
-		if (used_timer <= 0) {
-			is_dragging = false;
+		// still held: it spins at full speed, as it did while drilling
+		if (_held) {
+			drill_timer++;
+			if (drill_timer >= drill_change_time_min) {
+				if (image_index == 1 || image_index == 2) image_index = 0;
+				if (image_index == 4 || image_index == 5) image_index = 3;
+				image_index += 3;
+				drill_timer = 0;
+			}
+		}
+	} else {
+		// let go (or the half second is up): put down and greyed, once
+		if (is_dragging || image_alpha > 0.55) {
+			oRunManager.holding_item = false;
 			image_blend = c_gray;
 			image_alpha = 0.55;
 		}
-	} else {
 		is_dragging = false;
 		x = lerp(x, xstart, 0.2);
 		y = lerp(y, ystart, 0.2);
