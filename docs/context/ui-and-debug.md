@@ -17,6 +17,7 @@
 - `throw_error(title, desc)` shows a red tooltip for ~1.5s.
 - A tooltip can carry a mouse hint above its top right (`queue_tooltip`'s last argument `{ button, text, col }`, drawn with `draw_mouse_hint`): the reroll hint on dice in hand.
 - Tooltips that cost something: `queue_tooltip(..., _cost, _cost_kind)` ("insight" or "gold") adds a "-N" tag on the box's top right corner (`tooltip_cost_badge`). The shop and insight purchases use it.
+- `draw_quill(nib_x, nib_y, length, dir)` (scHelpers): the feather quill, used as the insight-phase cursor and standing in the inkwell (`draw_inkwell`).
 - `draw_padlock(x, y, scale, col)` (scHelpers): the new-slot tile while a slot is empty.
 - Bag view cards: `draw_bag_card(die, cx, cy, w, h, alpha, hover, selected)` (scHelpers), with `bag_type_label` for the types in words.
 - Bag view sort and filter: `bag_controls_draw` (title row, right) sets `oRunManager.bag_filter` / `bag_sort`; `bag_view_list` builds the filtered, sorted array the view draws.

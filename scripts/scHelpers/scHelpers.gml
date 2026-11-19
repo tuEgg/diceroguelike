@@ -1705,7 +1705,7 @@ function draw_mouse_hint(_x, _y, _button, _text, _scale = 1, _lit = c_red, _text
 ///       hover or click, and dips while the button is held. The system cursor is hidden while it's on.
 function cursor_draw() {
 	var _on = global.custom_cursor;
-	// the insight phase: the cursor is a quill, its nib at the mouse, with the cost of what it's over (global.quill_hint)
+	// the insight phase: the cursor is a quill (draw_quill), its nib at the mouse; what things cost is in their tooltips
 	var _quill = instance_exists(oCombat) && oCombat.insight_view;
 	var _hide = _on || _quill;
 	if (_hide != global.cursor_hidden) {
@@ -1714,15 +1714,9 @@ function cursor_draw() {
 	}
 	var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
 	if (_quill) {
-		var _qs = 1.1 * global.ui_scale;
-		draw_insight_icon("quill", _mx + 12 * _qs, _my - 15 * _qs, _qs, 1); // the icon's nib is 12 left and 15 below its centre
-		if (variable_global_exists("quill_hint") && is_struct(global.quill_hint)) {
-			draw_set_font(ftDefault);
-			draw_set_halign(fa_left);
-			draw_set_valign(fa_middle);
-			draw_outline_text(global.quill_hint.text, c_black, global.quill_hint.ok ? global.color_intel : make_color_rgb(150, 150, 160), 2, _mx + 22, _my + 14, 1, 1, 0);
-		}
-		draw_set_color(c_white);
+		// the quill, its nib at the mouse, leaning up and right (its ink outline reads on the dark); it dips when you click
+		var _qd = mouse_check_button(mb_left) ? 44 : 52;
+		draw_quill(_mx, _my, 58 * global.ui_scale, _qd);
 		return;
 	}
 	if (!_on) return;
@@ -2387,7 +2381,7 @@ function draw_inkwell(_x, _y, _scale, _fill, _blotted) {
 		return;
 	}
 	// the quill behind the pot, leaning right, while there's ink to write with
-	if (_fill > 0) draw_insight_icon("quill", _x + 12 * _s, _y - 20 * _s, 0.85 * _s, 1);
+	if (_fill > 0) draw_quill(_x + 2 * _s, _y - 2 * _s, 44 * _s, 62);
 	// the pot: outline, glass, then the ink, then a shine
 	draw_set_color(c_black);
 	draw_roundrect_ext(_x - 25 * _s, _y - 8 * _s, _x + 25 * _s, _y + 24 * _s, 14 * _s, 14 * _s, false);
@@ -2408,5 +2402,72 @@ function draw_inkwell(_x, _y, _scale, _fill, _blotted) {
 	draw_set_color(c_white);
 	draw_roundrect_ext(_x - 18 * _s, _y - 2 * _s, _x - 12 * _s, _y + 12 * _s, 3 * _s, 3 * _s, false);
 	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
+/// @func draw_quill(_nx, _ny, _len, _dir)
+/// @desc A feather quill in code (after Jared's reference): its nib at _nx, _ny, the feather reaching _len pixels in
+///       direction _dir (degrees, 0 right, 90 up). A parchment-white vane, wider on its upper side and curling
+///       towards its tip, with a few notches; a bare shaft near the nib; a dark split nib with a gold band; an ink outline.
+function draw_quill(_nx, _ny, _len, _dir) {
+	var _ink = make_color_rgb(34, 26, 20);
+	var _vane = make_color_rgb(244, 236, 214);
+	var _shade = make_color_rgb(214, 202, 172);
+	var _steps = 16;
+	var _left = [], _right = [], _axis = [];
+	for (var i = 0; i <= _steps; i++) {
+		var _t = i / _steps;
+		// the shaft bends a little as it goes, like the reference
+		var _d = _dir + 10 * _t * _t;
+		var _ax = _nx + lengthdir_x(_len * _t, _d), _ay = _ny + lengthdir_y(_len * _t, _d);
+		// the vane: none near the nib, widest about two thirds up, a curled point at the tip
+		var _w = (_t < 0.16) ? 0 : sin(pi * clamp((_t - 0.16) / 0.84, 0, 1)) * _len * 0.2;
+		var _wl = _w * (1 + 0.25 * _t), _wr = _w * 0.62;
+		array_push(_axis, [_ax, _ay]);
+		array_push(_left, [_ax + lengthdir_x(_wl, _d + 90), _ay + lengthdir_y(_wl, _d + 90)]);
+		array_push(_right, [_ax + lengthdir_x(_wr, _d - 90), _ay + lengthdir_y(_wr, _d - 90)]);
+	}
+	// the outline: the vane a touch bigger in ink first
+	for (var _pass = 0; _pass < 2; _pass++) {
+		var _grow = (_pass == 0) ? 2 : 0;
+		draw_set_color((_pass == 0) ? _ink : _vane);
+		draw_primitive_begin(pr_trianglelist);
+		for (var i = 0; i < _steps; i++) {
+			var _d = _dir + 10 * (i / _steps) * (i / _steps);
+			var _ux = lengthdir_x(_grow, _d + 90), _uy = lengthdir_y(_grow, _d + 90);
+			var _l0 = _left[i], _l1 = _left[i + 1], _r0 = _right[i], _r1 = _right[i + 1];
+			draw_vertex(_l0[0] + _ux, _l0[1] + _uy); draw_vertex(_l1[0] + _ux, _l1[1] + _uy); draw_vertex(_r0[0] - _ux, _r0[1] - _uy);
+			draw_vertex(_l1[0] + _ux, _l1[1] + _uy); draw_vertex(_r1[0] - _ux, _r1[1] - _uy); draw_vertex(_r0[0] - _ux, _r0[1] - _uy);
+		}
+		draw_primitive_end();
+	}
+	// a soft shade along the lower half of the vane
+	draw_set_color(_shade);
+	draw_primitive_begin(pr_trianglelist);
+	for (var i = 0; i < _steps; i++) {
+		var _a0 = _axis[i], _a1 = _axis[i + 1], _r0 = _right[i], _r1 = _right[i + 1];
+		draw_vertex(_a0[0], _a0[1]); draw_vertex(_a1[0], _a1[1]); draw_vertex(_r0[0], _r0[1]);
+		draw_vertex(_a1[0], _a1[1]); draw_vertex(_r1[0], _r1[1]); draw_vertex(_r0[0], _r0[1]);
+	}
+	draw_primitive_end();
+	// notches: little cuts slanting back from the edge towards the shaft
+	draw_set_color(_ink);
+	var _notches = [[0.38, 1], [0.56, 1], [0.74, 1], [0.47, -1], [0.66, -1]];
+	for (var n = 0; n < array_length(_notches); n++) {
+		var _i = floor(_notches[n][0] * _steps);
+		var _edge = (_notches[n][1] > 0) ? _left[_i] : _right[_i];
+		var _in = _axis[max(0, _i - 1)];
+		draw_line_width(_edge[0], _edge[1], lerp(_edge[0], _in[0], 0.55), lerp(_edge[1], _in[1], 0.55), max(1.5, _len * 0.025));
+	}
+	// the shaft, through the vane to the tip
+	draw_set_color(_ink);
+	for (var i = 0; i < _steps; i++) draw_line_width(_axis[i][0], _axis[i][1], _axis[i + 1][0], _axis[i + 1][1], max(1.5, _len * (i < 3 ? 0.045 : 0.025)));
+	// the nib: a dark point with a gold band behind it, and its slit
+	var _b = _axis[2];
+	var _nd = _dir;
+	draw_set_color(_ink);
+	draw_triangle(_nx, _ny, _b[0] + lengthdir_x(_len * 0.05, _nd + 90), _b[1] + lengthdir_y(_len * 0.05, _nd + 90), _b[0] + lengthdir_x(_len * 0.05, _nd - 90), _b[1] + lengthdir_y(_len * 0.05, _nd - 90), false);
+	draw_set_color(make_color_rgb(220, 180, 70));
+	draw_line_width(_b[0] + lengthdir_x(_len * 0.055, _nd + 90), _b[1] + lengthdir_y(_len * 0.055, _nd + 90), _b[0] + lengthdir_x(_len * 0.055, _nd - 90), _b[1] + lengthdir_y(_len * 0.055, _nd - 90), max(2, _len * 0.04));
 	draw_set_color(c_white);
 }
