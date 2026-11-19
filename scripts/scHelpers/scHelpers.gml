@@ -471,7 +471,11 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
 }
 function draw_all_tooltips() {
 
-    if (global.tooltip_active) {
+	// a die being dragged over the discard pile: no tooltips, so it's clear what letting go does (its own label says)
+	var _over_discard = false;
+	if (room == rmCombat) with (oDice) if (over_discard) _over_discard = true;
+
+    if (global.tooltip_active && !_over_discard) {
 		// the main tooltip, with its keywords stacked tight underneath (each measured exactly, so no gaps), the whole
 		// stack kept on screen
 		var tt = global.tooltip_main;
@@ -534,23 +538,33 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     var name_w = string_width(_name);
     var name_h = string_height(_name);
 
-    // the longest line the description wraps to
+    // the description in paragraphs: a line break ("\n", or "\n\n") starts a new one, a little apart. The coloured
+    // text drawing lays words out one by one and doesn't know about line breaks, so each paragraph is drawn on its own.
     draw_set_font(ftDescriptions);
-    var words = string_split(_desc, " ");
-    var longest_line_px = 0;
-    var current_line_str = "";
-    for (var i = 0; i < array_length(words); i++) {
-        var test_string = (current_line_str == "") ? words[i] : (current_line_str + " " + words[i]);
-        if (string_width(test_string) <= max_desc_w) {
-            current_line_str = test_string;
-        } else {
-            longest_line_px = max(longest_line_px, string_width(current_line_str));
-            current_line_str = words[i];
-        }
-    }
-    longest_line_px = max(longest_line_px, string_width(current_line_str));
+    var _paras = [];
+    var _raw = string_split(_desc, "\n");
+    for (var p = 0; p < array_length(_raw); p++) if (string_trim(_raw[p]) != "") array_push(_paras, string_trim(_raw[p]));
     var line_sep = font_get_size(ftDescriptions) * 1.5;
-    var desc_h = (_desc == "") ? 0 : string_height_ext(_desc, line_sep, max_desc_w);
+    var para_gap = line_sep * 0.5;
+
+    // the longest line the description wraps to, and its height
+    var longest_line_px = 0;
+    var desc_h = 0;
+    for (var p = 0; p < array_length(_paras); p++) {
+	    var words = string_split(_paras[p], " ");
+	    var current_line_str = "";
+	    for (var i = 0; i < array_length(words); i++) {
+	        var test_string = (current_line_str == "") ? words[i] : (current_line_str + " " + words[i]);
+	        if (string_width(test_string) <= max_desc_w) {
+	            current_line_str = test_string;
+	        } else {
+	            longest_line_px = max(longest_line_px, string_width(current_line_str));
+	            current_line_str = words[i];
+	        }
+	    }
+	    longest_line_px = max(longest_line_px, string_width(current_line_str));
+	    desc_h += string_height_ext(_paras[p], line_sep, max_desc_w) + ((p > 0) ? para_gap : 0);
+    }
 
     var has_core = (_dice != undefined && variable_struct_exists(_dice, "distribution") && _dice.distribution != "");
     var icon_space = (_icon != undefined || has_core) ? (_compact ? 36 : 50) : 0;
@@ -611,7 +625,13 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     draw_set_valign(fa_top);
 	draw_outline_text(_name, c_black, _compact ? global.color_intel : c_white, 2, content_x, yy + padding, 1, 1, 0);
     draw_set_font(ftDescriptions);
-    if (_desc != "") draw_outline_text(colorcode_text(_desc), c_black, c_white, 1, content_x, yy + padding + name_h + 2, 1, 1, 0, max_desc_w);
+    var _py = yy + padding + name_h + 2;
+    for (var p = 0; p < array_length(_paras); p++) {
+	    draw_set_font(ftDescriptions);
+	    draw_outline_text(colorcode_text(_paras[p]), c_black, c_white, 1, content_x, _py, 1, 1, 0, max_desc_w);
+	    draw_set_font(ftDescriptions);
+	    _py += string_height_ext(_paras[p], line_sep, max_desc_w) + para_gap;
+    }
 
 	return { w: _width, h: _height };
 }
