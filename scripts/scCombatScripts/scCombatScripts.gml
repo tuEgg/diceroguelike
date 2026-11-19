@@ -2057,7 +2057,7 @@ function tips_list() {
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",
-			text: "A spread is done. Heal, take a core to drill into a die at the workbench, or just continue. Then the page turns and you choose the next two pages.",
+			text: "A spread is done. Choose one: Heal is always offered, beside two others that change each time (a core, removing or sharpening a die, gold). Or just continue. Then you choose the next two pages.",
 			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.TURNING; },
 		},
 		{

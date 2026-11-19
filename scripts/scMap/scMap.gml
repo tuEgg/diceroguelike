@@ -1229,3 +1229,78 @@ function draw_diamond(_x, _y, _r) {
 	draw_triangle(_x - _r, _y, _x, _y - _r, _x + _r, _y, false);
 	draw_triangle(_x - _r, _y, _x, _y + _r, _x + _r, _y, false);
 }
+
+// =====================================================================
+// SPREAD END (F02): Heal, plus two choices rolled from a pool, or Continue
+// =====================================================================
+
+/// @func spread_end_roll_options()
+/// @desc Two different choices for beside Heal: a core, remove a die, sharpen a die, or gold.
+function spread_end_roll_options() {
+	var _pool = ["core", "trim", "whet", "gold"];
+	var _a = irandom(3);
+	var _b = (_a + 1 + irandom(2)) mod 4; // a different one
+	return [_pool[_a], _pool[_b]];
+}
+
+/// @func spread_end_option_info(_id, _heal_amount, _can_heal)
+/// @desc What a spread-end choice shows: { flavour, label, tip, ok, reason }.
+function spread_end_option_info(_id, _heal_amount, _can_heal) {
+	switch (_id) {
+		case "heal":
+			return { flavour: "Recover below deck", label: "Heal " + string(_heal_amount) + " HP", tip: "Heal before you choose your next pages.", ok: _can_heal, reason: "You're already at full health." };
+		case "core":
+			return { flavour: "Search the hold", label: "Gain a core", tip: "A random core for your item bar. Drill it into a die at the workbench.", ok: get_first_free_item_slot() != -1, reason: "Your item slots are full. Use an item, or right click one to drop it." };
+		case "trim":
+			return { flavour: "Lighten the hold", label: "Remove a die", tip: "Choose a die to throw overboard, so the ones you want come up more often.", ok: ds_list_size(global.dice_bag) > 6, reason: "Your bag is already small (6 dice or fewer)." };
+		case "whet":
+			return { flavour: "Sharpen a die", label: "+1 min roll", tip: "Choose a die: it never rolls its lowest face again (+1 minimum roll).", ok: ds_list_size(global.dice_bag) > 0, reason: "Your bag is empty." };
+		case "gold":
+			return { flavour: "Sell some cargo", label: "Gain 50 gold", tip: "50 gold for the next shop.", ok: true, reason: "" };
+	}
+	return { flavour: "", label: "?", tip: "", ok: false, reason: "" };
+}
+
+/// @func spread_end_apply(_id, _heal_amount)
+/// @desc Do the chosen spread-end choice. Removing or sharpening opens the bag's dice picker.
+function spread_end_apply(_id, _heal_amount) {
+	switch (_id) {
+		case "heal":
+			global.player_hp = min(global.player_max_hp, global.player_hp + _heal_amount);
+			particle_emit(650, 25, "burst", c_lime);
+			break;
+		case "core":
+			var _opts = ds_list_create();
+			generate_item_rewards(_opts, global.master_item_list, 1, "core");
+			if (ds_list_size(_opts) > 0) gain_item(_opts[| 0]);
+			ds_list_destroy(_opts);
+			break;
+		case "trim":
+			with (oRunManager) {
+				dice_selection = 1;
+				dice_selection_message = "Choose a die to throw overboard";
+				dice_selection_event = function(_die) {
+					var _i = ds_list_find_index(global.dice_bag, _die);
+					if (_i == -1) return;
+					particle_emit(115, 1000, "burst", get_dice_color(_die.possible_type), 30);
+					spawn_floating_number("bag", 0, _die.name + " removed", _die.color, 0, -1, 0);
+					ds_list_delete(global.dice_bag, _i);
+				};
+			}
+			break;
+		case "whet":
+			with (oRunManager) {
+				dice_selection = 1;
+				dice_selection_message = "Choose a die to gain +1 min roll";
+				dice_selection_event = function(_die) {
+					_die.min_roll_bonus += 1;
+					particle_emit(115, 1000, "rise", get_dice_color(_die.possible_type), 30);
+					spawn_floating_number("bag", 0, _die.name + " +1 min roll", _die.color, 0, -1, 0);
+				};
+			}
+			break;
+		case "gold":
+			gain_coins(display_get_gui_width() / 2, display_get_gui_height() / 2, 50);
+			break;
+	}
+}
