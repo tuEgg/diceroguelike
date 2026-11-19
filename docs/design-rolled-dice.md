@@ -7,7 +7,7 @@ Branch `feature/rolled-dice`. Agreed with Jared on 2026-11-19. The goal: more de
 - **Dice are rolled when dealt.** Each die in hand shows the number it rolled. That number is what it does when the turn resolves. Keepsake and slot bonuses still add on top.
 - **Slots show live totals.** A slot whose dice are all rolled shows its exact total (with bonuses), not a range.
 - **Plays per turn stay** (coins are free). Same type rules as before (`slot_placement_check`), but no size rule: any die can join a slot of its type.
-- **Each deal shows its roll** above the bag before the die's number appears in hand.
+- **Dice look like dice.** In fights they're drawn in code with real pips, a shape per size. A dealt die tumbles out of the bag and lands on its roll; a reroll tumbles in place.
 - **Take dice back.** Click a die you played this turn (in a slot, or on the new-slot tile) to return it to your hand and get the play back. A die whose "when played" effect already fired is locked in.
 - **Reroll once per turn, free.** Right-click a die in your hand.
 - **Discard and redraw once per turn, free.** The first die you drop on the discard pile each turn draws a new one. Later discards just discard.

@@ -2500,6 +2500,7 @@ function combat_take_back(_slot_i, _index) {
 	_inst.dice_value = _inst.struct.dice_value;
 	_inst.possible_type = _inst.struct.possible_type;
 	_inst.can_discard = true;
+	_inst.no_tumble = true; // same roll as before: no tumble on the way back
 	var _target = generate_valid_targets(1, 100)[0];
 	_inst.target_x = _target[0];
 	_inst.target_y = _target[1];
@@ -2535,7 +2536,7 @@ function combat_reroll_die(_inst) {
 	}
 	reroll_used = true;
 	die_roll_faces(_inst.struct);
-	_inst.scale = 1.6;
+	_inst.roll_anim = 18; // it tumbles in place, then lands on the new roll
 	particle_emit(_inst.x, _inst.y, "burst", get_dice_color(_inst.struct.possible_type), 20);
 	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
 }
@@ -2596,51 +2597,4 @@ function combat_enemies_flee(_leader) {
 		_any = true;
 	}
 	if (_any) add_feed_entry("With their leader down, the rest flee!");
-}
-
-#macro DEAL_ROLL_SPIN 22 // frames a dealt die tumbles above the bag before its number shows
-#macro DEAL_ROLL_LIFE 52 // frames until it has faded away
-
-/// @func combat_deal_roll_add(_die)
-/// @desc Shows a die's roll above the bag as it's dealt, in the next place along the row.
-function combat_deal_roll_add(_die) {
-	array_push(oCombat.deal_rolls, { die: _die, face: die_face_total(_die), t: 0, slot: oCombat.deal_roll_count mod 6 });
-	oCombat.deal_roll_count++;
-}
-
-/// @func combat_deal_rolls_draw()
-/// @desc The deal rolls: a row above the bag. Each die tumbles with its numbers flicking past, lands on its roll with a
-///       pop, holds, then fades.
-function combat_deal_rolls_draw() {
-	if (show_rewards) return;
-	var _x0 = global.gui.bag_x + global.gui.bag_w / 2; // over the bag, then along to the right
-	var _y0 = global.gui.bag_y - 60;
-	draw_set_font(ftDefault);
-	draw_set_halign(fa_center);
-	draw_set_valign(fa_middle);
-	for (var r = 0; r < array_length(deal_rolls); r++) {
-		var _roll = deal_rolls[r];
-		var _d = _roll.die;
-		var _t = _roll.t;
-		var _x = _x0 + _roll.slot * 58;
-		var _col = get_dice_color(_d.possible_type);
-		var _alpha = clamp((DEAL_ROLL_LIFE - _t) / 12, 0, 1); // fades over the last 12 frames
-		var _index = get_dice_index(_d.dice_value);
-		if (_t < DEAL_ROLL_SPIN) {
-			// tumbling: hops up, spins, numbers flick past
-			var _p = _t / DEAL_ROLL_SPIN;
-			var _y = _y0 - sin(_p * pi) * 26;
-			var _ang = (1 - _p) * 540;
-			draw_sprite_ext(sDiceIcon, _index, _x, _y, 1.1, 1.1, _ang, _col, _alpha);
-			var _flick = 1 + ((_t div 3) * 7 + _roll.slot * 3) mod max(1, _d.dice_value); // looks random, steady per frame
-			draw_outline_text(string(_flick), c_black, make_color_rgb(200, 200, 200), 2, _x, _y, 1, _alpha * 0.8, 0);
-		} else {
-			// landed: a pop, then hold
-			var _since = _t - DEAL_ROLL_SPIN;
-			var _s = 1.1 + max(0, 0.5 - _since * 0.06);
-			draw_sprite_ext(sDiceIcon, _index, _x, _y0, _s, _s, 0, _col, _alpha);
-			draw_outline_text(string(_roll.face), c_black, c_white, 2, _x, _y0, _s, _alpha, 0);
-		}
-	}
-	draw_set_alpha(1);
 }

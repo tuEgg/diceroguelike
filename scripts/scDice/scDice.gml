@@ -100,11 +100,8 @@ function deal_single_die( _can_discard_this_turn = true) {
 	die_inst.possible_type = die_struct.possible_type;
 	die_inst.can_discard = _can_discard_this_turn;
 
-	// rolled dice: it tumbles above the bag first; the die in hand shows its number once that lands
-	if (room == rmCombat && instance_exists(oCombat) && die_has_faces(die_struct)) {
-		combat_deal_roll_add(die_struct);
-		die_inst.number_delay = DEAL_ROLL_SPIN;
-	}
+	// rolled dice: it tumbles as it flies out of the bag, then lands on its roll (oDice Step)
+	if (room == rmCombat && die_has_faces(die_struct)) die_inst.roll_anim = 16;
 
     var target = generate_valid_targets(1, 100) [0];
     die_inst.target_x = target[0];
@@ -1770,4 +1767,115 @@ function core_preview_die() {
 	_d.action_type = "None";
 	_d.core_preview = true;
 	return _d;
+}
+
+// =====================================================================
+// DICE DRAWN IN CODE (rolled dice prototype): a shape per size and real pips
+// =====================================================================
+
+/// @func die_shape_points(_sides, _r)
+/// @desc The corners of a die's outline around (0,0), radius _r: d4 a triangle, d6 a square, d8 a diamond, d10 a
+///       pentagon, d12 a hexagon (a coin is a circle, no points). An array of [x, y].
+function die_shape_points(_sides, _r) {
+	var _n = 4, _start = 45, _rr = _r;
+	switch (_sides) {
+		case 4:  _n = 3; _start = -90; _rr = _r * 1.18; break; // a triangle looks small at the same radius
+		case 6:  _n = 4; _start = 45;  _rr = _r * 1.08; break;
+		case 8:  _n = 4; _start = -90; _rr = _r * 1.15; break;
+		case 10: _n = 5; _start = -90; break;
+		case 12: _n = 6; _start = -90; break;
+		default: _n = 6; _start = -90; break; // anything else: a hexagon
+	}
+	var _pts = [];
+	for (var i = 0; i < _n; i++) {
+		var _a = _start + i * 360 / _n;
+		array_push(_pts, [lengthdir_x(_rr, -_a), lengthdir_y(_rr, -_a)]);
+	}
+	return _pts;
+}
+
+/// @func draw_die_shape(_x, _y, _r, _sides, _col, _angle, _alpha)
+/// @desc A die's filled outline (no pips): a circle for a coin, a polygon otherwise. _angle in degrees.
+function draw_die_shape(_x, _y, _r, _sides, _col, _angle = 0, _alpha = 1) {
+	draw_set_alpha(_alpha);
+	draw_set_color(_col);
+	if (_sides <= 2) {
+		draw_circle(_x, _y, _r, false);
+	} else {
+		var _pts = die_shape_points(_sides, _r);
+		var _n = array_length(_pts);
+		draw_primitive_begin(pr_trianglelist);
+		for (var i = 0; i < _n; i++) {
+			var _a = _pts[i], _b = _pts[(i + 1) mod _n];
+			draw_vertex(_x, _y);
+			draw_vertex(_x + _a[0] * dcos(_angle) + _a[1] * dsin(_angle), _y - _a[0] * dsin(_angle) + _a[1] * dcos(_angle));
+			draw_vertex(_x + _b[0] * dcos(_angle) + _b[1] * dsin(_angle), _y - _b[0] * dsin(_angle) + _b[1] * dcos(_angle));
+		}
+		draw_primitive_end();
+	}
+	draw_set_alpha(1);
+}
+
+/// @func die_pip_layout(_face)
+/// @desc Where the pips go for a face, on a grid from -1 to 1: the classic 1-6, then 7-9 filling the 3x3. [] past 9.
+function die_pip_layout(_face) {
+	switch (_face) {
+		case 1: return [[0, 0]];
+		case 2: return [[-1, -1], [1, 1]];
+		case 3: return [[-1, -1], [0, 0], [1, 1]];
+		case 4: return [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+		case 5: return [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]];
+		case 6: return [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]];
+		case 7: return [[-1, -1], [1, -1], [-1, 0], [0, 0], [1, 0], [-1, 1], [1, 1]];
+		case 8: return [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+		case 9: return [[-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+	}
+	return [];
+}
+
+/// @func draw_die(_x, _y, _r, _sides, _face, _col, [_angle], [_alpha])
+/// @desc A die drawn in code: its shape by size, filled with its type colour, a shadow and outline, and _face as pips
+///       (1-9; a numeral from 10, or 0). _face -1: not rolled, shows its size ("d6"). _r is about half its width.
+function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1) {
+	// shadow, outline, body, and a lighter inner face for a little depth
+	draw_die_shape(_x + _r * 0.08, _y + _r * 0.12, _r * 1.06, _sides, c_black, _angle, _alpha * 0.35);
+	draw_die_shape(_x, _y, _r * 1.07, _sides, make_color_rgb(20, 20, 26), _angle, _alpha);
+	draw_die_shape(_x, _y, _r, _sides, merge_colour(_col, c_black, 0.18), _angle, _alpha);
+	draw_die_shape(_x, _y - _r * 0.04, _r * 0.86, _sides, _col, _angle, _alpha);
+
+	// pips (or a number) on the face: light pips on dark colours, dark on light
+	var _lum = 0.299 * colour_get_red(_col) + 0.587 * colour_get_green(_col) + 0.114 * colour_get_blue(_col);
+	var _light = (_lum < 150); // light pips on a dark body
+	var _pip_col = _light ? make_color_rgb(250, 248, 240) : make_color_rgb(30, 28, 36);
+	var _ring_col = _light ? make_color_rgb(20, 20, 26) : make_color_rgb(250, 248, 240);
+	// how far the pips spread: the inside of each shape (a triangle's is small and sits low)
+	var _spread = _r * 0.42, _cy = 0;
+	switch (_sides) {
+		case 2:  _spread = _r * 0.36; break;
+		case 4:  _spread = _r * 0.27; _cy = _r * 0.16; break;
+		case 8:  _spread = _r * 0.34; break;
+		case 10: _spread = _r * 0.38; break;
+	}
+	var _pips = die_pip_layout(_face);
+	if (array_length(_pips) > 0) {
+		var _pr = max(1.5, _r * ((_face > 6) ? 0.1 : 0.13) * ((_sides == 4) ? 0.85 : 1));
+		draw_set_alpha(_alpha);
+		for (var i = 0; i < array_length(_pips); i++) {
+			var _px = _pips[i][0] * _spread, _py = _pips[i][1] * _spread + _cy;
+			var _wx = _x + _px * dcos(_angle) + _py * dsin(_angle);
+			var _wy = _y - _px * dsin(_angle) + _py * dcos(_angle);
+			draw_set_color(_ring_col);
+			draw_circle(_wx, _wy, _pr + 1, false);
+			draw_set_color(_pip_col);
+			draw_circle(_wx, _wy, _pr, false);
+		}
+		draw_set_alpha(1);
+	} else {
+		var _txt = (_face < 0) ? "d" + string(_sides) : string(_face);
+		draw_set_font((_r >= 30) ? ftBig : ftSmall);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_outline_text(_txt, _ring_col, _pip_col, 2, _x, _y + _cy, 1, _alpha, _angle);
+	}
+	draw_set_color(c_white);
 }

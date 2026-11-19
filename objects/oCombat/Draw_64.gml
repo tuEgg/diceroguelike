@@ -431,16 +431,12 @@ for (var i = 0; i < aq_list_size; i++) {
 		var _wait = ds_list_size(global.sacrifice_list);
 		for (var w = 0; w < _wait; w++) {
 			var _wd = global.sacrifice_list[| w];
-			var _wx = last_x + last_w / 2 - ((_wait - 1) * 32 / 2) + w * 32;
+			var _wx = last_x + last_w / 2 - ((_wait - 1) * 40 / 2) + w * 40;
 			var _wy = last_y - 20;
-			var _wi = get_dice_index(_wd.dice_value);
-			draw_sprite_ext(sDiceIcon, _wi, _wx, _wy, 1, 1, 0, get_dice_color(_wd.possible_type), 1);
-			var _wf = die_face_total(_wd);
-			if (_wf != -1) {
-				draw_set_font(ftSmall);
-				draw_outline_text(string(_wf), c_black, c_white, 2, _wx, _wy, 1, 1, 0);
-				draw_set_font(ftDefault);
-			}
+			draw_die(_wx, _wy, 17, _wd.dice_value, die_face_total(_wd), get_dice_color(_wd.possible_type), 0, 1); // its roll as pips
+			draw_set_font(ftDefault);
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
 			if (mouse_hovering(_wx, _wy, sprite_get_width(sDiceIcon), sprite_get_height(sDiceIcon), true) && !show_rewards) {
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _wd.name, die_description(_wd) + "\n\nClick to take it back to your hand.", undefined, 0, _wd);
 				if (mouse_check_button_pressed(mb_left) && state == CombatState.PLAYER_INPUT && global.ui_layer == UI_LAYER.BASE && !oRunManager.holding_item && combat_no_die_dragged()) {
@@ -459,7 +455,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	if (dice_count > 0) {
 	    var cx_top = draw_x + (draw_w / 2);
 	    var cy_top = draw_y - 20; // slightly above tile
-	    var spacing_top = 32;
+	    var spacing_top = 40; // room for the code-drawn dice (draw_die, radius 17)
 
 	    for (var d = 0; d < dice_count; d++) {
 	        var die_struct = slot.dice_list[| d];
@@ -493,12 +489,12 @@ for (var i = 0; i < aq_list_size; i++) {
 				dice_spin = lerp(dice_spin, 360, 0.15);
 				this_dice_spin =- dice_spin;
 				this_dice_scale = 1 - ((360/this_dice_spin)*0.3);
-				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, lerp(1.5, abs(_angle) + 1.5, 0.2), lerp(1.5, abs(_angle) + 1.5, 0.2), _angle, _col, 0.4);
+				draw_die_shape(xx_top, yy_top, 17 * lerp(1.5, abs(_angle) + 1.5, 0.2), die_struct.dice_value, _col, _angle, 0.4);
 			}
 
 	        // Outline ones that are sticky or played this turn
 			if (die_struct.permanence == "sticky" || die_struct.permanence == "base") {
-				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, 1.15 * this_dice_scale, 1.15 * this_dice_scale, this_dice_spin, c_black, 1);
+				draw_die_shape(xx_top, yy_top, 17 * 1.2 * this_dice_scale, die_struct.dice_value, c_black, this_dice_spin, 1);
 			}
 			
 			var dice_hovered = mouse_hovering(xx_top, yy_top, sprite_get_width(sDiceIcon), sprite_get_height(sDiceIcon), true);
@@ -516,16 +512,23 @@ for (var i = 0; i < aq_list_size; i++) {
 				}
 			}
 
-	        // Draw sprite
-			draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, 1 * this_dice_scale, 1 * this_dice_scale, this_dice_spin, _col, 1);
+			// the die, drawn in code (draw_die): pips for its roll. Once it has resolved, what it did; before, the face it
+			// rolled (a forced roll wins). Bonuses are the badge in its corner.
+			var _out = get_dice_output(die_struct, i, d, true, "player");
+			var _shown_face = -1;
+			if (die_struct.rolled_value != -1) _shown_face = die_struct.rolled_value;
+			else if (die_struct.forced_roll != -1) _shown_face = clamp(die_struct.forced_roll, _out.min_roll, _out.max_roll);
+			else if (die_has_faces(die_struct)) _shown_face = die_face_total(die_struct, _out.min_roll, _out.max_roll);
+			draw_die(xx_top, yy_top, 17 * this_dice_scale, die_struct.dice_value, _shown_face, _col, this_dice_spin, 1);
 			
 			// Draw keyword icons above
 			draw_dice_keywords(die_struct, xx_top + 3, yy_top - 34, 1);
 			if (global.action_icons) draw_action_type_icon(die_struct.action_type, xx_top - 13, yy_top + 13, 0.8); // Settings > Display > Action icons on dice
 			
-			// Slot bonus badge in the die's bottom-right corner: every-die bonuses, plus first-die ones on the first die.
-			// The keyword icons sit above the die and the rolled number in its middle, so the corner is free.
-			var _die_bonus = slot.bonus_amount + (d == 0 ? slot.first_die_bonus : 0);
+			// Bonus badge in the die's bottom-right corner: every-die bonuses, first-die ones on the first die, and what
+			// keepsakes and its own effects add (until it has resolved: then the pips already show what it did).
+			// The keyword icons sit above the die and the pips in its middle, so the corner is free.
+			var _die_bonus = (die_struct.rolled_value != -1) ? 0 : slot.bonus_amount + (d == 0 ? slot.first_die_bonus : 0) + _out.keepsake_dice_bonus_amount;
 			if (_die_bonus != 0) {
 				var _old_halign = draw_get_halign(); // put the alignment back after, the rolled number below relies on it
 				var _old_valign = draw_get_valign();
@@ -533,48 +536,15 @@ for (var i = 0; i < aq_list_size; i++) {
 				draw_set_halign(fa_center);
 				draw_set_valign(fa_middle);
 				var _badge_col = _die_bonus > 0 ? c_lime : c_red;
-				draw_outline_text((_die_bonus > 0 ? "+" : "") + string(_die_bonus), c_black, _badge_col, 2, xx_top + 12, yy_top + 12, this_dice_scale, 1, 0);
+				draw_outline_text((_die_bonus > 0 ? "+" : "") + string(_die_bonus), c_black, _badge_col, 2, xx_top + 15, yy_top + 14, this_dice_scale, 1, 0);
 				draw_set_halign(_old_halign);
 				draw_set_valign(_old_valign);
 			}
 			
 			
-			draw_set_font(ftSmall);
-			draw_set_color(c_black);
-				
-			// used to offset the rolled numbers
-			var off_x = -2;
-			var off_y = 1;
-				
-			switch (_index) {
-				case 1:
-				off_x = -2;
-				off_y = 3;
-				break;
-				case 2:
-				off_x = -2;
-				off_y = 1;
-				break;
-				case 3:
-				case 4:
-				case 5:
-				off_x = 0;
-				off_y = -1;
-				break;
-			}
-			
-			// Draw rolled value
-			if (die_struct.rolled_value != -1) {
-				draw_text(xx_top + off_x, yy_top + off_y, string(die_struct.rolled_value));
-			} else if (die_struct.forced_roll != -1) {
-				var _bonus = get_dice_output(die_struct, i, -1, true, "player").keepsake_dice_bonus_amount;
-					
-				draw_outline_text(string(die_struct.forced_roll + _bonus), c_black, c_white, 2, xx_top + off_x, yy_top + off_y, 1, 1, 0);
-			} else if (die_has_faces(die_struct)) {
-				// rolled dice: the number it rolled, plus what keepsakes and its own effects add here
-				var _out = get_dice_output(die_struct, i, d, true, "player");
-				draw_outline_text(string(max(0, die_face_total(die_struct, _out.min_roll, _out.max_roll) + _out.keepsake_dice_bonus_amount)), c_black, c_white, 2, xx_top + off_x, yy_top + off_y, 1, 1, 0);
-			}
+			// (the roll itself is the pips: draw_die above)
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
 			
 			//if (die_struct.min_roll_bonus > 0) {
 			//	draw_outline_text("+" + string(die_struct.min_roll_bonus) + " min", c_black, c_white, 2, xx_top + off_x, yy_top + off_y - 24, 1, 1, 0);
@@ -1586,8 +1556,6 @@ if (disc_bag_hover) {
 	}
 }
 
-// rolled dice: each die dealt tumbles above the bag, then lands on its number
-combat_deal_rolls_draw();
 
 // the guided first fight's margin notes, on top of the combat UI
 tutorial_draw();

@@ -20,8 +20,24 @@ if (!still) {
 
 image_index = get_dice_index(dice_value);
 
-// rolled dice: its number stays hidden while its roll plays above the bag (combat_deal_rolls_draw)
-if (variable_instance_exists(id, "number_delay") && number_delay > 0) number_delay--;
+// rolled dice: it tumbles while it flies out of the bag (and after a reroll), flicking through faces, then lands on its roll
+if (room == rmCombat && is_struct(struct) && die_has_faces(struct)) {
+	if (roll_anim > 0) roll_anim--;
+	var _was_tumbling = tumbling;
+	tumbling = (roll_anim > 0) || (!has_rolled && !no_tumble && !is_dragging);
+	if (tumbling) {
+		tumble_angle += 26;
+		flick_timer--;
+		if (flick_timer <= 0) {
+			flick_face = irandom_range(1, max(1, dice_value));
+			flick_timer = 3;
+		}
+	} else {
+		tumble_angle += angle_difference(0, tumble_angle) * 0.35; // settles square
+		if (_was_tumbling) land_pop = 1;
+		land_pop = lerp(land_pop, 0, 0.18);
+	}
+}
 
 // Get mouse position
 var mx = device_mouse_x_to_gui(0);
