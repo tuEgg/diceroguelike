@@ -51,7 +51,7 @@ function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _f
 	// UI rework: a button in one of the kit's colours is drawn as the paper-and-ink kit button (ui_button), so every
 	// menu, setting and note button matches; other colours (fight rewards, the old quill menu) keep this look
 	if (_draw_rect == true && variable_global_exists("ui_col") && (_color == global.ui_primary || _color == global.ui_neutral || _color == global.ui_danger || _color == global.ui_quiet)) {
-		var _kit = ui_button(_x + _base_w / 2, _y + _base_h / 2, _base_w, _base_h, _scale_ref, _text, _color, _active, _disabled_reason, _layer, _alpha, _use_font ? _font : ftDefault);
+		var _kit = ui_button(_x + _base_w / 2, _y + _base_h / 2, _base_w, _base_h, _scale_ref, _text, _color, _active, _disabled_reason, _layer, _alpha, _use_font ? _font : ftDefault, _click_sound);
 		_kit.x = _x; _kit.y = _y; _kit.w = _base_w; _kit.h = _base_h;
 		return _kit;
 	}
@@ -1962,8 +1962,9 @@ function insight_rot(_x, _y, _lx, _ly, _scale) {
 ///       paper words, global.ui_quiet slate with a cream rule (skippable), anything else plain paper with an ink edge.
 ///       Hover lifts and grows it a little; inactive, it fades and _reason shows on hover.
 ///       Returns { hover, click, scale }; keep .scale for next frame.
-function ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active = true, _reason = "", _layer = UI_LAYER.BASE, _alpha = 1, _font = ftBig) {
-	var _hover = (_alpha > 0.3) && mouse_hovering(_cx - _w / 2, _cy - _h / 2, _w, _h, false, soSlotHover, _active ? soClick2 : noone, true, _layer);
+function ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active = true, _reason = "", _layer = UI_LAYER.BASE, _alpha = 1, _font = ftBig, _click_sound = soClick2) {
+	// a button still fading in can't be pressed yet; nothing can while a cutscene has input switched off
+	var _hover = (_alpha > 0.5) && mouse_hovering(_cx - _w / 2, _cy - _h / 2, _w, _h, false, soSlotHover, _active ? _click_sound : noone, !global.all_input_disabled, _layer);
 	var _scale = lerp(_scale_ref, (_hover && _active) ? 1.06 : 1, 0.25);
 	var _pressed = _hover && _active && mouse_check_button(mb_left);
 	var _w2 = _w * _scale / 2, _h2 = _h * _scale / 2;
@@ -2011,15 +2012,16 @@ function ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active = true, _r
 /// @func draw_action_type_icon(_type, _x, _y, _scale)
 /// @desc A small round badge with the symbol of an action type (attack, block, heal, insight), drawn on dice when
 ///       Settings > Display > Action icons on dice is on, so the types can be told apart without colour (F14).
-function draw_action_type_icon(_type, _x, _y, _scale) {
+function draw_action_type_icon(_type, _x, _y, _scale, _alpha = 1) {
 	if (_type != "ATK" && _type != "BLK" && _type != "HEAL" && _type != "INTEL") return;
 	var _r = 16 * _scale;
-	draw_set_alpha(1);
+	draw_set_alpha(_alpha);
 	draw_set_color(c_black);
 	draw_circle(_x, _y, _r + 2, false);
 	draw_set_color(make_color_rgb(240, 228, 196));
 	draw_circle(_x, _y, _r, false);
-	ui_glyph(_type, _x, _y, _r * 1.35, global.ui_col.ink); // the logbook glyphs (scUI)
+	ui_glyph(_type, _x, _y, _r * 1.35, global.ui_col.ink, _alpha); // the logbook glyphs (scUI)
+	draw_set_alpha(1);
 	draw_set_color(c_white);
 }
 
@@ -2389,7 +2391,7 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 	// the die, and beside it what it does, in ink
 	var _dx = _x1 + 46, _dy = _y1 + _head_h + 46;
 	draw_die(_dx, _dy, 30, _d.dice_value, -1, _cols, 0, _alpha);
-	if (global.action_icons) draw_action_type_icon(_d.action_type, _dx - 26, _dy + 26, 0.7);
+	if (global.action_icons) draw_action_type_icon(_d.action_type, _dx - 26, _dy + 26, 0.7, _alpha);
 	var _out = get_dice_output(_d, -1, -1, true, "player"); // read only: viewing the bag must never trigger keepsakes
 	var _tx = _x1 + _lay.text_x;
 	draw_set_font(ftDefault);

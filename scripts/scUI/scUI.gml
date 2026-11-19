@@ -320,7 +320,7 @@ function ui_paper_text(_text, _x, _y, _width = -1, _alpha = 1) {
 ///       { hover, click }. Inactive: faded, and _reason shows on hover.
 function ui_primary(_cx, _cy, _w, _h, _text, _active, _reason = "", _layer = UI_LAYER.BASE, _alpha = 1, _frame_col = undefined) {
 	if (is_undefined(_frame_col)) _frame_col = global.ui_col.brass;
-	var _hover = (_alpha > 0.5) && mouse_hovering(_cx - _w / 2, _cy - _h / 2, _w, _h, false, soSlotHover, noone, true, _layer);
+	var _hover = (_alpha > 0.5) && mouse_hovering(_cx - _w / 2, _cy - _h / 2, _w, _h, false, soSlotHover, noone, !global.all_input_disabled, _layer); // not during a cutscene
 	ui_primary_button(_cx, _cy, _w, _h, _text, _frame_col, _active, _hover, _alpha);
 	if (_hover && !_active && _reason != "") queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _text, _reason);
 	var _click = _hover && _active && mouse_check_button_pressed(mb_left);
