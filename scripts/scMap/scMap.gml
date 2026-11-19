@@ -917,10 +917,11 @@ function start_drafting() {
 // spreads followed by a boss spread, then the next chapter begins.
 // =====================================================================
 
-#macro CHAPTER_SPREADS 7				// drafted spreads before the boss spread
+#macro CHAPTER_SPREADS 3				// drafted spreads before the boss spread (Q13: was 7)
 #macro CHAPTER_COUNT 3				// chapters in a voyage, beating the last boss wins the run
 #macro CHAPTER_ENEMY_HP_GROWTH 0.5		// each chapter after the first adds this fraction of an enemy's health
 #macro CHAPTER_ENEMY_BONUS_GROWTH 3		// each chapter after the first adds this to every enemy attack and block
+#macro ENEMY_ATTACK_BOOST 0.2			// every enemy attack, from chapter 1, adds about this share of its average roll (Q11)
 
 /// @desc Picks the paper art for every page of this chapter's book, never the same twice in a row.
 ///       One page per spread plus the two outer pages, so the boss spread still has a right-hand page.
@@ -1040,6 +1041,15 @@ function start_new_chapter() {
 
 /// @desc Enemies get tougher each chapter. Works on the per-fight copy, never the shared definition.
 function enemy_apply_chapter_scaling(_enemy_copy) {
+	// every attack hits about a fifth harder, from the first chapter (Q11): at least +1, from its average roll
+	for (var m = 0; m < ds_list_size(_enemy_copy.moves); m++) {
+		var _mv = _enemy_copy.moves[| m];
+		if (string_pos("ATK", _mv.action_type) > 0) {
+			var _avg = _mv.dice_amount * (_mv.dice_value + 1) / 2 + _mv.bonus_amount;
+			if (_avg > 0) _mv.bonus_amount += max(1, round(_avg * ENEMY_ATTACK_BOOST));
+		}
+	}
+
 	var _extra_chapters = oWorldManager.chapter - 1;
 	if (_extra_chapters <= 0) return;
 	
@@ -1312,7 +1322,7 @@ function spread_end_apply(_id, _heal_amount) {
 
 // =====================================================================
 // THE STRAIT (F112): the end of a spread is a place on the map, not a panel. After the last island the route forks
-// into two or three sea stops; sail to one and it happens there. You heal as you pass through whichever you take.
+// into sea stops; sail to one and it happens there. Only Calm water heals (Q14).
 // Between a spread's two pages, a buoy offers the workbench the same way (sail to it, or past it).
 // =====================================================================
 
@@ -1322,7 +1332,7 @@ function spread_end_apply(_id, _heal_amount) {
 ///       Whether each can be taken is checked when you reach it (strait_activate).
 function strait_build() {
 	var _rolled = spread_end_roll_options();
-	var _ids = ["workbench", _rolled[0], _rolled[1]];
+	var _ids = ["workbench", _rolled[0], _rolled[1], "calm"]; // calm water is the heal: it costs you the other stops (Q14)
 	strait = { ids: _ids, scales: [1, 1, 1, 1], heal: 0, chosen: -1, arrived: false, healed: false, stamp: 0, active: false, leaving: false };
 }
 
@@ -1333,9 +1343,7 @@ function strait_activate() {
 	if (!is_struct(strait)) strait_build();
 	if (strait.active) return;
 	strait.active = true;
-	var _any = false;
-	for (var i = 0; i < array_length(strait.ids); i++) if (strait_stop_info(strait.ids[i], 0).ok) _any = true;
-	if (!_any) array_push(strait.ids, "calm");
+	if (!array_contains(strait.ids, "calm")) array_push(strait.ids, "calm"); // a strait planned before Q14 (a loaded game)
 	oRunManager.can_visit_workbench = false; // the buoy is one of the stops here
 	var _ctx = { rest_amount: rest_amount };
 	runmanager_trigger_keepsakes("on_rest", _ctx);
@@ -1363,7 +1371,7 @@ function spread_sea_spots() {
 function strait_stop_info(_id, _heal) {
 	switch (_id) {
 		case "workbench": return { name: "Shipwright's buoy", tip: "Moor here and open the workbench: take dice from your bag (one per tool you own) and use each tool once.", ok: workbench_useful(), reason: "None of your tools has work to do (the Drill needs a core)." };
-		case "calm":      return { name: "Calm water", tip: "Nothing out here but a quiet night.", ok: true, reason: "" };
+		case "calm":      return { name: "Calm water", tip: "Drop anchor and rest: heal " + ((_heal > 0) ? string(_heal) + " HP" : string(round(oWorldManager.rest_amount * 100)) + "% of your health") + ".", ok: true, reason: "" };
 	}
 	var _i = spread_end_option_info(_id, _heal, true);
 	var _name = "";
@@ -1476,10 +1484,9 @@ function strait_draw(_ax, _ay) {
 		draw_outline_text(_info.name, global.ui_col.paper_hi, (_info.ok || !strait.active) ? global.ui_col.ink : global.ui_col.ink_soft, 2, _sx, _sy + 36 * strait.scales[i], 1, _alpha, 0); // ink, like the chart
 		if (_hov) {
 			// ahead (the islands aren't done yet): what it is, and that it's at the end of the spread
-			if (!strait.active) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, _info.tip + "\nAt the end of this spread: choose one stop, and heal as you pass through.");
+			if (!strait.active) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, _info.tip + "\nAt the end of this spread: choose one stop.");
 			else {
-				var _heal_line = (global.player_hp < global.player_max_hp) ? "\nPassing through, you heal " + string(strait.heal) + " HP." : "";
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, (_info.ok ? _info.tip : _info.reason) + _heal_line);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, (_info.ok ? _info.tip : _info.reason));
 			}
 			if (mouse_check_button_pressed(mb_left) && _ok_input) {
 				if (_info.ok) strait.chosen = i;
@@ -1491,7 +1498,8 @@ function strait_draw(_ax, _ay) {
 		if (_taken && !strait.arrived) {
 			if (boat_sail_toward(_sx - 10, _sy + 5)) {
 				strait.arrived = true;
-				strait.healed = (global.player_hp < global.player_max_hp);
+				// only Calm water heals (Q14)
+				strait.healed = (_id == "calm") && (global.player_hp < global.player_max_hp);
 				if (strait.healed) spread_end_apply("heal", strait.heal);
 				if (_id == "workbench") {
 					// the page turns while you're at the bench, and the draft is waiting when you come back

@@ -30,9 +30,11 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 20: UI rework (combat, cards, map, rooms, menus) | F130, F131, F132, F133, F134, F135, F136, B138, B141, F142, F143, F144, F147, B134, B136, B137, B139, F140, F141, F137, F148, B135, B140 | `feature/ui-rework` (off dev) | **Ready to test.** The logbook look on the combat screen (docs/design-ui-rework.md). |
+| 20: UI rework (combat, cards, map, rooms, menus) | F130, F131, F132, F133, F134, F135, F136, B138, B141, F142, F143, F144, F147, B134, B136, B137, B139, F140, F141, F137, F148, B135, B140, F150 | `feature/ui-rework` (off dev) | **Ready to test.** The logbook look on the combat screen (docs/design-ui-rework.md). |
 
 **Batch 20 test list (`feature/ui-rework`)**
+- Balance (decisions of 2026-11-19): a new run starts on 60 HP. Enemy attack intents are about 20% higher from the first fight (a 1d4 now shows +1). Spare pays a third of the bounty (kill pays it all; the Spare tooltip and the tutorial note say so). Three spreads then the boss: check the chapter's progress in the book and pause menu ("spread 2 of 4"). At the strait there are four stops: the buoy, two rolled, and Calm water, the only one that heals (30%; Salted Pork adds to it); no other stop heals.
+- F150 sounds (part of the juice pass): spending ink (rerolls, redraws, rewrites) plays the quill, opening and closing the log a softer stroke; gold jingles as it lands (once at a time, not per coin) and when you spend it (shop, bounty board, events). Loading a game doesn't jingle.
 - Playtest fixes, part 3: F148 places you have been on the chart get a faded ink tick (island stops, the Shipwright's buoy once visited, the strait stop you took). B135 the Drill whirrs through its frames as you pick it up (the grab still never drills). B140 floating words and numbers ("X replaced with Y", damage) draw above the bag view and the dice picker; check combat damage numbers still look right.
 - F137 Keywords explained where you meet them: hovering any die (in hand, in a slot, on a card, reward or shelf) shows its tip with a line per keyword it has and per buff or debuff its effect names (Sticky, Coin, Might, Mock...), each with its icon or a bullet. Dice cards (bag, picker, fight rewards) show their keyword icons under the die; hover one for its tooltip. Hovering an event choice that names a keyword, buff or debuff ("Sticky", "Mock", "Barnacle Bind") explains it in a tooltip beside it (a choice that shows a die still shows the die). Check a choice naming none shows nothing, and that a plain "coin" in a choice reads sensibly.
 - Playtest fixes, part 2: F141 the bag view shows five cards a row, with descriptions a size smaller (more words a line), and fight reward cards are a little narrower. B139 cards only fade where they cross the panel's top or bottom edge (whole rows no longer dim); with few dice there's no scrollbar and no scrolling, with many the thumb is the share you can see and dragging it moves the rows with it. F140 the dice picker: when you've already picked as many as it wants, clicking another die swaps it for your oldest pick (picking 1: any click replaces it); clicking a picked die still unpicks it. B134 at the workbench, until your first craft a "Change dice" button left of the bench puts your hand back in the bag and opens the picker again (it goes once a tool has crafted). B136 the treasure room: Continue with the chest closed or the keepsake untaken turns into a red "Leave it?" with a line saying what you'd leave; click again within 3 s to go. B137 check a long slot name ("Flurry of Blades"): since the rework the ticket shrinks it to fit.
@@ -130,7 +132,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F150 Juice pass: coins (gain, spend), ink actions, rewards. Sounds needed from Jared: a pen/brush scratch for ink actions, coin sounds (suggestions in the reply of 2026-11-19).
 - F151 Cores beyond weighted/loaded: every core should be worth taking (no reason to take weighted or loaded otherwise). Alignment cores (chaotic rolls the lower your alignment, central rolls the higher).
 - F152 Alignment in combat: e.g. start with a d4 shaped by alignment.
-- H12 Reminder for Jared: more enemy art. Pen/brush sound and coin sounds for the juice pass.
+- H12 Reminder for Jared: more enemy art. (Pen and coin sounds added by Jared: soQuill, soCoins.)
 - H13 Relic and core art to fit the logbook look: tips and mockups for reworking the existing art.
 
 **Core loop**
@@ -171,10 +173,6 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 ## ❓ OPEN QUESTIONS (design decisions blocking work)
 
-- Q11 Difficulty (Molly breezed through, never lost more than ~4 HP): raise the intent reroll cost (6 to 9 or 12?), make ink carry-over visible, start with more HP and hit harder, steeper chapter scaling. Proposal in the reply of 2026-11-19.
-- Q12 Kill vs Spare: kill gives the full gold, spare gives none (plus its alignment)? Or another trade-off.
-- Q13 Chapter length: 7 spreads then a boss feels long: 4, or 3 then a boss?
-- Q14 The strait shouldn't heal for free: how to offer healing without too many stops.
 - Q15 Topographic Map rework (more thematic); Repeater Rail too weak now slots are scarce.
 
 - Q10 UI rework direction (branch `feature/ui-rework`): `docs/design-ui-rework.md` and the mockup `docs/mockups/ui-style-tile.html` (combat before/after, palette, type, components). Waiting for Jared's approval before any screen changes.
@@ -184,6 +182,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 ## 📌 DECISIONS
 
+- 2026-11-19 **Balance (Q11-Q14, after Molly's playtest):** start on 60 HP; every enemy attack hits about 20% harder from chapter 1 (`ENEMY_ATTACK_BOOST`). Sparing pays a third of the bounty, killing all of it. A chapter is 3 drafted spreads, then the boss. The strait no longer heals for free: Calm water (heal 30%) is always one of its stops. The intent reroll cost stays as it is for now.
 - 2026-11-15 **Action queue:** settled as "permanent dice eject on their second turn". Other ideas stay in the notes.
 - 2026-11-15 **Map lock stays.** It's a design pillar: "pick 1, lose 1, gain the last" choices like the rewards. Look for more places to use it.
 - 2026-11-15 **Scope cuts:** no four Act III regions, no 3 classes (F04 classes removed). **Alignment stays** in this build (F32).

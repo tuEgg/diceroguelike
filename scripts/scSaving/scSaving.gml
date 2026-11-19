@@ -162,6 +162,7 @@ function load_game(_slot) {
 
     // Basic state
     oRunManager.credits = _save.credits;
+    oRunManager.credits_heard = _save.credits; // no jingle for loading a game
     global.player_hp = _save.player_hp;
     global.player_max_hp = _save.player_max_hp;
     global.player_alignment = _save.alignment;

@@ -39,7 +39,7 @@ The draft heading is a `ui_label`; Embark is `ui_primary` bottom right (the tip 
 
 ## Chapters
 
-`CHAPTER_SPREADS` (7) drafted spreads, then `place_boss_page()` lays a single boss page (not drafted). `CHAPTER_COUNT` (3). Boss win → `CHAPTER_END` screen → `start_new_chapter()` (fresh book, pools refilled, saves) or, after the last chapter, "Voyage complete" back to the menu. `enemy_apply_chapter_scaling` toughens enemies per chapter (`CHAPTER_ENEMY_HP_GROWTH`, `CHAPTER_ENEMY_BONUS_GROWTH`).
+`CHAPTER_SPREADS` (3, Q13) drafted spreads, then `place_boss_page()` lays a single boss page (not drafted). `CHAPTER_COUNT` (3). Boss win → `CHAPTER_END` screen → `start_new_chapter()` (fresh book, pools refilled, saves) or, after the last chapter, "Voyage complete" back to the menu. `enemy_apply_chapter_scaling` toughens enemies per chapter (`CHAPTER_ENEMY_HP_GROWTH`, `CHAPTER_ENEMY_BONUS_GROWTH`); from chapter 1 every attack move also gains `ENEMY_ATTACK_BOOST` (20%) of its average roll, at least +1 (Q11). The player starts on 60 HP. Only the strait's Calm water stop heals (`rest_amount` 30%, after `on_rest` keepsakes); every strait offers it beside the buoy and two rolled stops (Q14).
 
 ## Encounter pools
 

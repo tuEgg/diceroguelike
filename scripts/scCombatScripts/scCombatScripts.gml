@@ -2103,7 +2103,7 @@ function tips_list() {
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",
-			text: "The spread is done, and the route forks at sea. Sail to one stop: each offers something different (a core, losing or sharpening a die, gold, the workbench), and you heal as you pass through. Then the page turns.",
+			text: "The spread is done, and the route forks at sea. Sail to one stop: each offers something different (a core, losing or sharpening a die, gold, the workbench, or Calm water to heal). Then the page turns.",
 			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.STRAIT; },
 		},
 		{
@@ -2136,12 +2136,12 @@ function tips_list() {
 		},
 		{
 			id: "alignment_fight", room: rmCombat, target: "",
-			text: "A crossroads fight. When the enemy falls you choose: Kill it or Spare it. Killing swings your compass (top bar) toward ruthless; sparing swings it toward merciful and pays more gold. Some events and keepsakes care where your compass points. The rewards here are alignment dice.",
+			text: "A crossroads fight. When the enemy falls you choose: Kill it or Spare it. Killing swings your compass (top bar) toward ruthless; sparing swings it toward merciful but pays less gold. Some events and keepsakes care where your compass points. The rewards here are alignment dice.",
 			when: function() { return tips_combat_ready() && oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT; },
 		},
 		{
 			id: "kill_or_spare", room: rmCombat, target: "spare_buttons",
-			text: "Kill or spare? Kill: compass toward ruthless, its bounty in gold. Spare: compass toward merciful, one and a half times the gold, and it sails away. Hover each button for more.",
+			text: "Kill or spare? Kill: compass toward ruthless, its bounty in gold. Spare: compass toward merciful, a third of the gold, and it sails away. Hover each button for more.",
 			when: function() { return combat_spare_choice_enemy() != undefined; },
 		},
 		{
@@ -2808,7 +2808,7 @@ function combat_insight_spend(_cost) {
 		var _num = spawn_floating_number("player", _cost, -1, global.color_intel, -1, -1, 0);
 		_num.x += 20;
 		_num.y -= 20;
-		sfx_play(soSlotPlace, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
+		sfx_play(soQuill, AUDIO_GROUP.SFX, 0.08, 1); // the pen at work: ink spent
 		return true;
 	}
 	return false;
@@ -3108,7 +3108,7 @@ function combat_insight_view_set(_open) {
 		insight_view = _open;
 		insight_view_age = 0; // frames open (oCombat Step): the click that opened it can't also close it
 		global.ui_layer = _open ? UI_LAYER.POPUP : UI_LAYER.BASE;
-		sfx_play(soSlotPlace, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
+		sfx_play(soQuill, AUDIO_GROUP.UI, 0.1, 0.5); // a light stroke of the pen, opening or closing the log
 	}
 }
 

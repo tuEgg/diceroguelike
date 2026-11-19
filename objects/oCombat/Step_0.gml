@@ -472,7 +472,7 @@ switch (state) {
 									gain_alignment(5);
 								
 									// Earn some credits, regardless of secondary rewards
-									gain_coins(enemy.pos_x, enemy.pos_y, ceil(enemy_data.bounty * 1.5));
+									gain_coins(enemy.pos_x, enemy.pos_y, ceil(enemy_data.bounty / 3)); // a third of its bounty: killing pays (Q12)
 									
 									enemy.looted = true;
 								} else {

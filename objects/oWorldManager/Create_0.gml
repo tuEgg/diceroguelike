@@ -211,7 +211,7 @@ heal_scale = heal_scale_target;
 workbench_scale_target = 2.0;
 workbench_scale = workbench_scale_target;
 resting_alpha = 0;
-rest_amount = 0.25;
+rest_amount = 0.30; // Calm water at the strait heals this share of your health (Q14)
 strait = undefined;    // this spread end's sea stops (strait_build), while world_state is STRAIT
 sea_buoy = undefined;  // the workbench buoy between a spread's pages (sea_buoy_draw)
 

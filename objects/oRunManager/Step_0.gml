@@ -1,3 +1,10 @@
+// coins: spending jingles once; gold coming in jingles as it lands (one at a time, not one per coin)
+if (credits != credits_heard) {
+	if (credits < credits_heard) sfx_play(soCoins, AUDIO_GROUP.SFX, 0.05, 0.9);
+	else if (!audio_is_playing(soCoins)) sfx_play(soCoins, AUDIO_GROUP.SFX, 0.1, 0.6);
+	credits_heard = credits;
+}
+
 // the new run offering is a popup: keep the map behind it locked even after the bag or settings hand back the base layer
 if (new_run_offering && global.ui_layer == UI_LAYER.BASE) global.ui_layer = UI_LAYER.POPUP;
 

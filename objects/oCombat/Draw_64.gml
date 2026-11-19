@@ -750,7 +750,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		}
 		
 		if (btn_2_hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Spare", "Your compass swings 5 toward merciful. It sails away and pays one and a half times its bounty in gold. Spare every enemy and an item reward is guaranteed.");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Spare", "Your compass swings 5 toward merciful. It sails away and pays a third of its bounty in gold. Spare every enemy and an item reward is guaranteed.");
 			if (mouse_check_button_pressed(mb_left)) {
 				enemy.spared = true;
 				enemy.alignment_choices_shown = false;
