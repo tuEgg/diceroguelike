@@ -85,8 +85,8 @@ switch (state) {
 		dice_allowed_this_turn_bonus = 0;
 		ejected_dice = false;
 		played_uids = [];
-		reroll_used = false;
-		redraw_used = false;
+		rerolls_used = 0;
+		redraws_used = 0;
 		take_back_request = undefined;
 
 		player_intel = debug_turn_intel(); // 0 unless set in the F1 debug menu

@@ -112,6 +112,9 @@ for (var _p = 0; _p < _plays_total; _p++) {
 	draw_roundrect_ext(_px, _pips_y - _pip / 2, _px + _pip, _pips_y + _pip / 2, 5, 5, false);
 }
 draw_set_color(c_white);
+
+// rolled dice: this turn's free reroll and redraw, as a symbol and pips each above the plays (combat_free_actions_draw)
+if (!show_rewards) combat_free_actions_draw(end_text_pos + 8, _pips_y - 66);
 draw_set_font(ftBig);
 
 // Click handling
@@ -586,16 +589,6 @@ var disc_btn = draw_gui_button(
 // Update animation
 disc_btn_scale = disc_btn.scale;
 
-// rolled dice: this turn's free reroll and redraw, above the discard pile (grey once used)
-if (!show_rewards) {
-	draw_set_font(ftDefault);
-	draw_set_halign(fa_right);
-	draw_set_valign(fa_middle);
-	var _free_col = make_color_rgb(140, 140, 150);
-	draw_outline_text("Reroll: right-click a die" + (reroll_used ? " (used)" : ""), c_black, reroll_used ? _free_col : c_white, 2, disc_x + disc_w, disc_y - 50, 1, 1, 0);
-	draw_outline_text("Redraw: discard a die" + (redraw_used ? " (used)" : ""), c_black, redraw_used ? _free_col : c_white, 2, disc_x + disc_w, disc_y - 24, 1, 1, 0);
-	draw_set_halign(fa_center);
-}
 
 // ---------------
 // Draw enemy data
@@ -673,7 +666,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	    var yy = enemy.pos_y - 10 - (enemy.scale * 180);  // slightly above their head
 
 		// Quill: an intent you can rewrite this turn pulses and glows, with a quill beside it, so it can't be missed
-		var _rewritable = (intel_level >= 2 && !intel_is_blotted() && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards && enemy_can_quill(enemy));
+		var _rewritable = (intel_level >= INTEL_QUILL && !intel_is_blotted() && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards && enemy_can_quill(enemy));
 		var _quill_pulse = 0.5 + 0.5 * sin(current_time / 200);
 		if (_rewritable) enemy.intent.scale = enemy.intent.start_scale * (1 + 0.12 * _quill_pulse);
 		
@@ -744,7 +737,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 
 		// Quill: click an intent, then choose Reroll (the enemy picks a different move) or Halve (its numbers this turn)
 		var _intent_hover = mouse_hovering(xx, yy, text_w + 20, 50, true);
-		var _can_rewrite = (intel_level >= 2 && !intel_is_blotted() && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards);
+		var _can_rewrite = (intel_level >= INTEL_QUILL && !intel_is_blotted() && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards);
 		if (!_can_rewrite && quill_menu_enemy == enemy) quill_menu_enemy = undefined;
 		if (_can_rewrite && _intent_hover && quill_menu_enemy != enemy) {
 			if (!enemy_can_quill(enemy)) {
@@ -1048,7 +1041,7 @@ if (state != CombatState.PLAYER_DEAD) {
 	var _intel_ratio = clamp(player_intel / _intel_max, 0, 1);
 	draw_arc_thick_deg_gradient(global.player_x, global.player_y - 175, 50, 60, arc_start, arc_end, 50, global.color_intel, make_color_rgb(210 - (_intel_ratio * 50), 210 - (_intel_ratio * 100), 0), 0.7);
 
-	// a tick at each state (Faded at the start, Legible, Quill at the end)
+	// a tick at each state (Faded at the start, then every 3, Quill at the end)
 	draw_set_alpha(1.0);
 	draw_set_color(c_white);
 	for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {

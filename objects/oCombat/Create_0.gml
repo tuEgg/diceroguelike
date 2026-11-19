@@ -34,8 +34,9 @@ ds_list_add(action_queue, combat_new_slot("None"));
 ds_list_add(action_queue, combat_new_slot("None"));
 
 played_uids = [];              // dice played this turn (uid): "when played" effects fire once per die per turn, even if it's taken back and played again
-reroll_used = false;           // the free reroll (right-click a die in hand), once per turn
-redraw_used = false;           // the free redraw (the first die dropped on the discard pile draws a new one), once per turn
+rerolls_used = 0;              // free rerolls used this turn (right-click a die in hand); combat_rerolls_total() allowed
+redraws_used = 0;              // free redraws used this turn (a die dropped on the discard pile draws a new one); combat_redraws_total()
+free_hover = [1, 1];           // hover scale of the reroll and redraw symbols above the plays
 take_back_request = undefined; // a played die clicked in Draw GUI, taken back in Step: { slot, index } (slot -1 = the new-slot tile)
 new_tile_pos = undefined;      // where the new-slot tile is drawn (Draw GUI), for dice taken back from it
 

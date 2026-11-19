@@ -318,7 +318,7 @@ function intent_hover_text(_enemy, _intel_level) {
 	if (_text == "") _text = "Does something unusual";
 	_text += ".";
 	if (intent_is_halved(_enemy)) _text += " Halved by your quill.";
-	if (intent_has_numbers(_move) && _intel_level < 1) _text += " Reach " + string(global.player_intel_data[| 1].requirement) + " insight (Legible) to see the exact number.";
+	if (intent_has_numbers(_move) && _intel_level < INTEL_LEGIBLE) _text += " Reach " + string(global.player_intel_data[| 1].requirement) + " insight (Legible) to see the exact number.";
 	return _text;
 }
 
@@ -327,7 +327,7 @@ function intent_hover_text(_enemy, _intel_level) {
 function intent_number_text(_enemy, _intel_level) {
 	if (intel_is_blotted()) return "?";
 	if (!intent_has_numbers(_enemy.intent.move)) return _enemy.intent.text;
-	if (_intel_level >= 1) return string(intent_exact_value(_enemy));
+	if (_intel_level >= INTEL_LEGIBLE) return string(intent_exact_value(_enemy));
 	return intent_range_text(_enemy);
 }
 
@@ -488,6 +488,13 @@ function enemy_rewrite_intent(_enemy) {
 	return true;
 }
 
+// the insight states, in global.player_intel_data's order (oRunManager Create)
+#macro INTEL_FADED 0
+#macro INTEL_LEGIBLE 1
+#macro INTEL_INKED 2      // +1 reroll a turn
+#macro INTEL_UNDERLINED 3 // +1 redraw a turn
+#macro INTEL_QUILL 4
+
 /// @func intel_max()
 /// @desc The intel needed for the top state (Quill). Intel is capped here.
 function intel_max() {
@@ -495,7 +502,7 @@ function intel_max() {
 }
 
 /// @func intel_level_for(_intel)
-/// @desc The intel state (0 Faded, 1 Legible, 2 Quill) this much intel reaches. Below 0 is still 0, but Blotted (intel_is_blotted).
+/// @desc The intel state (the INTEL_ macros: Faded, Legible, Inked, Underlined, Quill) this much intel reaches. Below 0 is still 0, but Blotted (intel_is_blotted).
 function intel_level_for(_intel) {
 	var _level = 0;
 	for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {

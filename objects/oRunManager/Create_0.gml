@@ -159,7 +159,8 @@ bonus_dice_next_combat = 0;
 holding_item = false; // used for holding the hammer in the workbench, will eventually change cursor type, right now just blocks inputs in that room. Could also do it for dice.
 show_consumables_chance = 30; // percentage chance to show consumables after any given fight
 
-// player intel: three states, read like an old captain's logbook. Below 0 intel the page is Blotted (intents hidden).
+// player intel: five states every 3 insight, read like an old captain's logbook. Below 0 intel the page is Blotted
+// (intents hidden). Each state keeps what the ones below give. Their order is the INTEL_ macros (scEnemies).
 // requirement is the intel needed; icon is drawn in code by draw_insight_icon until Jared designs real ones (F51)
 global.player_intel_data = ds_list_create();
 ds_list_add(global.player_intel_data, {
@@ -169,13 +170,25 @@ ds_list_add(global.player_intel_data, {
 	icon: "faded",
 });
 ds_list_add(global.player_intel_data, {
-	requirement: 5,
+	requirement: 3,
 	name: "Legible",
 	description: "See exact numbers.",
 	icon: "legible",
 });
 ds_list_add(global.player_intel_data, {
-	requirement: 10,
+	requirement: 6,
+	name: "Inked",
+	description: "+1 reroll this turn.",
+	icon: "inked",
+});
+ds_list_add(global.player_intel_data, {
+	requirement: 9,
+	name: "Underlined",
+	description: "+1 redraw this turn.",
+	icon: "underlined",
+});
+ds_list_add(global.player_intel_data, {
+	requirement: 12,
 	name: "Quill",
 	description: "Reroll or halve one intent a turn.",
 	icon: "quill",

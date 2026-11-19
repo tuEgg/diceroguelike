@@ -496,7 +496,7 @@ function debug_menu_draw() {
 
 			debug_label(cx, yy + 6, "Insight at the start of every turn  " + string(dbg.turn_intel));
 			yy += row_h;
-			var intel_steps = [-3, 0, 5, 10]; // Blotted, Faded, Legible, Quill
+			var intel_steps = [-3, 0, 3, 6, 9, 12]; // Blotted, Faded, Legible, Inked, Underlined, Quill
 			var intel_w = floor(cw / array_length(intel_steps));
 			for (var i = 0; i < array_length(intel_steps); i++) {
 				if (debug_button(cx + intel_w * i, yy, intel_w, row_h, string(intel_steps[i]), dbg.turn_intel == intel_steps[i])) {

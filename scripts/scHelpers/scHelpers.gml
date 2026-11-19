@@ -1247,11 +1247,26 @@ function lose_run() {
 /// @func draw_insight_icon(_icon, _x, _y, _scale, _alpha)
 /// @desc Placeholder icons for the insight states, drawn with shapes until real art is made (F51), about 30 pixels tall
 ///       at scale 1, centred on _x, _y: "blotted" an ink spill, "faded" a dry brush, "legible" a brush loaded with
-///       yellow ink (both tilted), "quill" a feather quill.
+///       yellow ink (both tilted), "inked" that with a blot, "underlined" that over a stroke, "quill" a feather quill.
 function draw_insight_icon(_icon, _x, _y, _scale, _alpha) {
 	var _old_alpha = draw_get_alpha();
 	var _ink = global.color_intel;
 	draw_set_alpha(_alpha);
+
+	// Inked: the loaded brush with a fresh blot beside it. Underlined: the loaded brush over a stroke of ink.
+	if (_icon == "inked" || _icon == "underlined") {
+		draw_set_color(c_black);
+		if (_icon == "inked") {
+			draw_circle(_x + 11 * _scale, _y + 12 * _scale, 5 * _scale, false);
+			draw_set_color(_ink);
+			draw_circle(_x + 11 * _scale, _y + 12 * _scale, 3.6 * _scale, false);
+		} else {
+			draw_line_width(_x - 15 * _scale, _y + 17 * _scale, _x + 15 * _scale, _y + 15 * _scale, max(5 * _scale, 2));
+			draw_set_color(_ink);
+			draw_line_width(_x - 14 * _scale, _y + 17 * _scale, _x + 14 * _scale, _y + 15 * _scale, max(3 * _scale, 1.4));
+		}
+		_icon = "legible";
+	}
 
 	switch (_icon) {
 		case "blotted":

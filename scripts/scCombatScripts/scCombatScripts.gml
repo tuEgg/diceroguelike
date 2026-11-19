@@ -2033,13 +2033,23 @@ function tips_list() {
 		},
 		{
 			id: "legible", room: rmCombat, target: "insight",
-			text: "Legible: with 5 insight you see exactly what each enemy will do this turn.",
-			when: function() { return tips_combat_ready() && oCombat.intel_level >= 1 && !intel_is_blotted(); },
+			text: "Legible: with 3 insight you see exactly what each enemy will do this turn.",
+			when: function() { return tips_combat_ready() && oCombat.intel_level >= INTEL_LEGIBLE && !intel_is_blotted(); },
+		},
+		{
+			id: "inked", room: rmCombat, target: "insight",
+			text: "Inked: with 6 insight you get an extra reroll this turn (the pips above your plays).",
+			when: function() { return tips_combat_ready() && oCombat.intel_level >= INTEL_INKED && !intel_is_blotted(); },
+		},
+		{
+			id: "underlined", room: rmCombat, target: "insight",
+			text: "Underlined: with 9 insight you get an extra redraw this turn too.",
+			when: function() { return tips_combat_ready() && oCombat.intel_level >= INTEL_UNDERLINED && !intel_is_blotted(); },
 		},
 		{
 			id: "quill", room: rmCombat, target: "insight",
-			text: "Quill: with 10 insight, once a turn you can click a glowing enemy intent and choose: Reroll (the enemy picks a different move) or Halve (its attack, block or heal this turn).",
-			when: function() { return tips_combat_ready() && oCombat.intel_level >= 2 && !intel_is_blotted(); },
+			text: "Quill: with 12 insight, once a turn you can click a glowing enemy intent and choose: Reroll (the enemy picks a different move) or Halve (its attack, block or heal this turn).",
+			when: function() { return tips_combat_ready() && oCombat.intel_level >= INTEL_QUILL && !intel_is_blotted(); },
 		},
 		{
 			id: "blotted", room: rmCombat, target: "insight",
@@ -2173,7 +2183,7 @@ function insight_panel_draw() {
 		var intel_title_h = 36;
 		var intel_foot_h = 30;
 
-		// Blotted (below 0) first, then the three states
+		// Blotted (below 0) first, then the states
 		var intel_rows = [global.intel_blotted];
 		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) array_push(intel_rows, global.player_intel_data[| i]);
 		var _current_row = intel_is_blotted() ? 0 : intel_level + 1;
@@ -2541,15 +2551,27 @@ function combat_take_back(_slot_i, _index) {
 	runmanager_trigger_keepsakes("after_change_current_action", {});
 }
 
+/// @func combat_rerolls_total()
+/// @desc Free rerolls this turn: 1, and 1 more at Inked insight (6+).
+function combat_rerolls_total() {
+	return 1 + ((oCombat.intel_level >= INTEL_INKED && !intel_is_blotted()) ? 1 : 0);
+}
+
+/// @func combat_redraws_total()
+/// @desc Free redraws this turn: 1, and 1 more at Underlined insight (9+).
+function combat_redraws_total() {
+	return 1 + ((oCombat.intel_level >= INTEL_UNDERLINED && !intel_is_blotted()) ? 1 : 0);
+}
+
 /// @func combat_reroll_die(_inst)
-/// @desc The free reroll: once per turn, a die in hand rolls again.
+/// @desc A free reroll (combat_rerolls_total a turn): a die in hand rolls again.
 function combat_reroll_die(_inst) {
 	if (state != CombatState.PLAYER_INPUT || show_rewards || !instance_exists(_inst) || !die_has_faces(_inst.struct)) return;
-	if (reroll_used) {
-		throw_error("Reroll used", "You can reroll one die per turn.");
+	if (rerolls_used >= combat_rerolls_total()) {
+		throw_error("No rerolls left", "Rerolls come back next turn. Inked insight (6) gives one more.");
 		return;
 	}
-	reroll_used = true;
+	rerolls_used++;
 	die_roll_faces(_inst.struct);
 	_inst.roll_anim = 18; // it tumbles in place, then lands on the new roll
 	particle_emit(_inst.x, _inst.y, "burst", get_dice_color(_inst.struct.possible_type), 20);
@@ -2557,10 +2579,10 @@ function combat_reroll_die(_inst) {
 }
 
 /// @func combat_redraw_after_discard()
-/// @desc The free redraw: the first die discarded each turn draws a new one.
+/// @desc A free redraw (combat_redraws_total a turn): a discarded die draws a new one while there are some left.
 function combat_redraw_after_discard() {
-	if (redraw_used || state != CombatState.PLAYER_INPUT) return;
-	redraw_used = true;
+	if (redraws_used >= combat_redraws_total() || state != CombatState.PLAYER_INPUT) return;
+	redraws_used++;
 	dice_to_deal += 1;
 	is_dealing_dice = true;
 }
@@ -2612,4 +2634,74 @@ function combat_enemies_flee(_leader) {
 		_any = true;
 	}
 	if (_any) add_feed_entry("With their leader down, the rest flee!");
+}
+
+/// @func combat_free_actions_draw(_cx, _y)
+/// @desc Above the plays: the reroll symbol (a circling arrow) and the redraw symbol (a die drawn up from below), each
+///       with a pip per use this turn (filled while there's one left; insight's extra pip in yellow). Hover says how.
+function combat_free_actions_draw(_cx, _y) {
+	var _items = [
+		{ total: combat_rerolls_total(), used: rerolls_used, title: "Reroll",
+		  text: "Right-click a die in your hand to roll it again.", bonus: "Inked insight (6+) gives one more." },
+		{ total: combat_redraws_total(), used: redraws_used, title: "Redraw",
+		  text: "Drop a die on the discard pile and draw a new one.", bonus: "Underlined insight (9+) gives one more." },
+	];
+	var _pip = 14, _gap = 5, _icon_w = 30;
+	// both groups side by side, centred on _cx
+	var _w = [];
+	var _total_w = 0;
+	for (var i = 0; i < 2; i++) {
+		var _n = _items[i].total;
+		_w[i] = _icon_w + 6 + _n * _pip + (_n - 1) * _gap;
+		_total_w += _w[i];
+	}
+	_total_w += 24;
+	var _x = _cx - _total_w / 2;
+	for (var i = 0; i < 2; i++) {
+		var _it = _items[i];
+		var _left = _it.total - _it.used;
+		var _hover = mouse_hovering(_x - 4, _y - 18, _w[i] + 8, 36, false) && state == CombatState.PLAYER_INPUT;
+		free_hover[i] = lerp(free_hover[i], _hover ? 1.15 : 1, 0.25);
+		var _s = free_hover[i];
+		var _ic = (_left > 0) ? c_white : make_color_rgb(110, 110, 120);
+		var _ix = _x + _icon_w / 2, _iy = _y;
+
+		if (i == 0) {
+			// reroll: an arrow circling round, its head at the end
+			draw_set_color(c_black);
+			draw_arc_thick_deg(_ix, _iy, 7 * _s, 13 * _s, 40, 330, 24);
+			draw_set_color(_ic);
+			draw_arc_thick_deg(_ix, _iy, 8.5 * _s, 11.5 * _s, 45, 325, 24);
+			var _hx = _ix + lengthdir_x(10 * _s, 40), _hy = _iy + lengthdir_y(10 * _s, 40);
+			draw_set_color(c_black);
+			draw_triangle(_hx - 7 * _s, _hy - 2 * _s, _hx + 6 * _s, _hy - 4 * _s, _hx + 1 * _s, _hy + 8 * _s, false);
+			draw_set_color(_ic);
+			draw_triangle(_hx - 4.5 * _s, _hy - 1 * _s, _hx + 4 * _s, _hy - 2.5 * _s, _hx + 1 * _s, _hy + 5 * _s, false);
+		} else {
+			// redraw: a die coming up out of a pocket, an arrow under it
+			draw_die(_ix, _iy - 4 * _s, 9 * _s, 6, 5, (_left > 0) ? make_color_rgb(225, 225, 230) : make_color_rgb(110, 110, 120), 0, 1);
+			draw_set_color(c_black);
+			draw_line_width(_ix, _iy + 15 * _s, _ix, _iy + 6 * _s, 5 * _s);
+			draw_set_color(_ic);
+			draw_line_width(_ix, _iy + 14 * _s, _ix, _iy + 7 * _s, 2.5 * _s);
+		}
+
+		// pips: filled while left; the insight one yellow
+		for (var p = 0; p < _it.total; p++) {
+			var _px = _x + _icon_w + 6 + p * (_pip + _gap);
+			var _on = (p < _left);
+			draw_set_color(c_black);
+			draw_roundrect_ext(_px - 2, _y - _pip / 2 - 2, _px + _pip + 2, _y + _pip / 2 + 2, 6, 6, false);
+			draw_set_color(_on ? ((p >= 1) ? global.color_intel : c_white) : make_color_rgb(60, 60, 70));
+			draw_roundrect_ext(_px, _y - _pip / 2, _px + _pip, _y + _pip / 2, 5, 5, false);
+		}
+
+		if (_hover) {
+			var _left_text = (_left == 1) ? "1 left this turn." : string(_left) + " left this turn.";
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _it.title, _it.text + " Free, " + _left_text + " " + _it.bonus);
+		}
+		_x += _w[i] + 24;
+	}
+	draw_set_color(c_white);
+	draw_set_alpha(1);
 }
