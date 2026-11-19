@@ -1109,111 +1109,31 @@
 		options: ds_list_create(),
 	}
 	
+		// Both songs always work now (Jared, 2026-11-19): how many dice they upgrade follows your compass, merciful for the
+		// song, ruthless for the cannons (sirens_upgrade_count, sirens_upgrade)
 		event_sirens_opt_1 = {
 			title: "Sing a song of your own",
-			description: "Higher chance of success the higher your alignment. If successful, upgrade all of your insight dice.",
+			description: "Upgrade 1 insight die, and 1 more for every 25 alignment toward merciful (up to 4).",
 			effect: function(_context) {
-				var random_num = irandom_range(1, 100);
-				if (random_num <= global.player_alignment) {
-					var intel_list = ds_list_create();
-					
-					for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
-						var die = global.dice_bag[| d];
-					
-						// only intel dice, avoid coins
-						if (die.action_type == "INTEL") && (die.dice_value != 2) {
-							ds_list_add(intel_list, die);
-						}
-					}
-				
-					// Fail safe in case we have no heal or block die
-					if (ds_list_size(intel_list) == 0) {
-					    ds_list_destroy(intel_list);
-					    oEventManager.event_complete = 0;
-					    oEventManager.event_selected = true;
-					    return;
-					}
-				
-					for (var i = 0; i < ds_list_size(intel_list); i++) {
-						var intel_die = intel_list[| i];
-						
-						intel_die.dice_value += 2;
-						die_size_changed(intel_die);
-						spawn_floating_number("bag", 0, intel_die.name + " upgraded", intel_die.color, 0, -1, 0);
-					}
-				
-					particle_emit(115, 1000, "rise", global.color_intel);
-				
-					ds_list_destroy(intel_list);
-				} else {
-					fail_sirens();
-				}
-				
+				sirens_upgrade("INTEL", sirens_upgrade_count(global.player_alignment), global.color_intel);
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;
 			},
-			result: "You sing back at the sirens with all you've got."
+			result: "You sing back at the sirens with all you've got. The crew joins in, and the mist parts."
 		}
 		event_sirens_opt_2 = {
-			title: "Block your ears",
-			description: "Higher chance of success the more block dice you have. If successful, upgrade all of your block die.",
+			title: "Fire the cannons",
+			description: "Upgrade 1 attack die, and 1 more for every 25 alignment toward ruthless (up to 4).",
 			effect: function(_context) {
-				var random_num = irandom_range(1, 100);
-				var block_num = 0;
-				
-				for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
-					var die = global.dice_bag[| d];
-					
-					// only intel dice, avoid coins
-					if (die.action_type == "BLK") {
-						block_num++;
-					}
-				}
-				
-				if (random_num <= 35 + (block_num * 5)) {
-					var block_list = ds_list_create();
-					
-					for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
-						var die = global.dice_bag[| d];
-					
-						// only intel dice, avoid coins
-						if (die.action_type == "BLK") && (die.dice_value != 2) {
-							ds_list_add(block_list, die);
-						}
-					}
-				
-					// Fail safe in case we have no heal or block die
-					if (ds_list_size(block_list) == 0) {
-					    ds_list_destroy(block_list);
-					    oEventManager.event_complete = 0;
-					    oEventManager.event_selected = true;
-					    return;
-					}
-				
-					for (var i = 0; i < ds_list_size(block_list); i++) {
-						var block_die = block_list[| i];
-						
-						block_die.dice_value += 2;
-						die_size_changed(block_die);
-						spawn_floating_number("bag", 0, block_die.name + " upgraded", block_die.color, 0, -1, 0);
-					}
-				
-					particle_emit(115, 1000, "rise", global.color_block);
-					
-				
-					ds_list_destroy(block_list);
-				} else {
-					fail_sirens();
-				}
-				
+				sirens_upgrade("ATK", sirens_upgrade_count(100 - global.player_alignment), global.color_attack);
 				oEventManager.event_complete = 1;
 				oEventManager.event_selected = true;
 			},
-			result: "You stuff your ears with wax and grip the wheel."
+			result: "You blast the rocks where they sit. The song breaks off into screams."
 		}
 		event_sirens_opt_3 = {
 			title: "Succumb to the song",
-			description: "Crash on the rocks, lose 5 health (0 if you have protective rigging) and go straight to the shop. On failure of other events this option will be auto-selected.",
+			description: "Crash on the rocks, lose 5 health (0 if you have protective rigging) and go straight to the shop.",
 			effect: function(_context) {
 				fail_sirens();
 				
@@ -1312,6 +1232,41 @@
 }
 
 /// Shared by the Siren event options. Lives at script level so the option structs can call it.
+/// @func sirens_upgrade_count(_toward)
+/// @desc The Siren's Call: 1 die, plus 1 for every 25 points of alignment in the option's direction (_toward 0-100), up to 4.
+function sirens_upgrade_count(_toward) {
+	return clamp(1 + floor(clamp(_toward, 0, 100) / 25), 1, 4);
+}
+
+/// @func sirens_upgrade(_type, _count, _col)
+/// @desc Upgrades _count random dice of _type in the bag by one size (+2: a d4 becomes a d6). Coins and d12s are left
+///       alone. With none of that type, any die can be upgraded instead, so the song is never wasted.
+function sirens_upgrade(_type, _count, _col) {
+	var _pool = [];
+	for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
+		var _die = global.dice_bag[| d];
+		if (_die.action_type == _type && _die.dice_value != 2 && _die.dice_value < 12) array_push(_pool, _die);
+	}
+	if (array_length(_pool) == 0) {
+		for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
+			var _die = global.dice_bag[| d];
+			if (_die.dice_value != 2 && _die.dice_value < 12) array_push(_pool, _die);
+		}
+	}
+	var _done = 0;
+	while (_done < _count && array_length(_pool) > 0) {
+		var _i = irandom(array_length(_pool) - 1);
+		var _up = _pool[_i];
+		array_delete(_pool, _i, 1);
+		_up.dice_value += 2;
+		die_size_changed(_up);
+		spawn_floating_number("bag", 0, _up.name + " upgraded", _up.color, 0, -1, 0);
+		_done++;
+	}
+	if (_done > 0) particle_emit(115, 1000, "rise", _col);
+	return _done;
+}
+
 function fail_sirens() {
 	var has_rigging = false;
 			
