@@ -20,12 +20,12 @@ function define_keepsakes() {
 	ks_looking_glass = {
 	    _id: "looking_glass",
 	    name: "Looking Glass",
-	    desc: "Start each combat with 5 insight (Legible)",
+	    desc: "Start each combat with 6 insight to spend.",
 		sub_image: 5,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
 	            if (oCombat.turn_count == 1) {
-					oCombat.player_intel = 5;
+					oCombat.player_intel = max(oCombat.player_intel, 6); // never lowers insight you already had
 					trigger_keepsake_visual();
 				}
 	        }
@@ -904,13 +904,13 @@ function define_keepsakes() {
 	ks_deep_lens = {
 	    _id: "deep_lens",
 	    name: "Deep Lens",
-	    desc: "Start the first 2 turns of combat with 10 insight (Quill), replaces starting keepsake",
+	    desc: "Start the first 2 turns of combat with 12 insight to spend. Replaces the Looking Glass.",
 		replaces: "looking_glass", // takes the starting keepsake's place in the keepsake bar
 		sub_image: 35,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
 	            if (oCombat.turn_count <= 2) {
-					oCombat.player_intel = 10;
+					oCombat.player_intel = max(oCombat.player_intel, 12);
 					trigger_keepsake_visual();
 				}
 	        }

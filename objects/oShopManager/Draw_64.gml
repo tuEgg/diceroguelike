@@ -51,7 +51,7 @@ for (var c = 0; c < ds_list_size(shop_consumable_options); c++) {
 			die = core_preview_die();
 			die.distribution = consumable.distribution;
 		}
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), consumable.name, consumable.description, undefined, 0, die);
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), consumable.name, consumable.description, undefined, 0, die, consumable.taken ? 0 : consumable.price, "gold");
 		
 		if (mouse_check_button_pressed(mb_left) && !consumable.taken) {
 			// say why a purchase can't happen, rather than doing nothing
@@ -94,7 +94,7 @@ for (var d = 0; d < ds_list_size(shop_dice_options); d++) {
 		draw_outline_text(dice.price, c_black, cost_col, 2, dx, dy + coin_offset_y, shop_dice_scale[| d], 1.0, 0);
 	
 		if (hover_die) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), dice.name, die_description(dice), undefined, 0, dice);
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), dice.name, die_description(dice), undefined, 0, dice, dice.price, "gold");
 		
 			if (mouse_check_button_pressed(mb_left) && oRunManager.credits < dice.price) throw_error("Not enough gold", "You need " + string(dice.price - oRunManager.credits) + " more gold.");
 			if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= dice.price) {
@@ -138,7 +138,7 @@ for (var k = 0; k < ds_list_size(shop_keepsake_options); k++) {
 		draw_outline_text(keepsake.price, c_black, cost_col, 2, kx, ky + coin_offset_y, shop_keepsake_scale[| k], 1.0, 0);
 	
 		if (hover_die) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), keepsake.name, keepsake.desc);
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), keepsake.name, keepsake.desc, undefined, 0, undefined, keepsake.price, "gold");
 		
 			if (mouse_check_button_pressed(mb_left) && oRunManager.credits < keepsake.price) throw_error("Not enough gold", "You need " + string(keepsake.price - oRunManager.credits) + " more gold.");
 			if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= keepsake.price) {
@@ -178,7 +178,7 @@ if (ds_list_size(oRunManager.tools) < 3) {
 			draw_outline_text(tool.price, c_black, cost_col, 2, tx, ty + coin_offset_y, shop_tool_scale[| t], 1.0, 0);
 	
 			if (hover_tool) {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc, undefined, 0, undefined, tool.price, "gold");
 		
 				if (mouse_check_button_pressed(mb_left) && oRunManager.credits < tool.price) throw_error("Not enough gold", "You need " + string(tool.price - oRunManager.credits) + " more gold.");
 				if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= tool.price) {

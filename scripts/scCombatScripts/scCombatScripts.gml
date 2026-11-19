@@ -2061,7 +2061,7 @@ function tips_list() {
 		{
 			// rolled dice prototype: the guided fight is off, so this explains the new rules once
 			id: "rolled_dice", room: rmCombat, target: "",
-			text: "Rolled dice: your dice show what they rolled. Drag them into the slots (the first coloured die picks a slot's type; slots fill left to right) and watch the totals. Click a die in a slot to take it back. Once a turn, right-click a die to reroll it, and the first die you discard draws a new one. Dice on the new-slot tile build the next slot when they add up to its number (slot 2 needs one die of 3+, slot 3 two dice adding to 6...), and later slots add more to their total. End Turn discards everything.",
+			text: "Rolled dice: your dice show what they rolled. Drag them into the slots (the first coloured die picks a slot's type; slots fill left to right) and watch the totals. Click a die in a slot to take it back. Insight buys rerolls (then right-click a die) and redraws (then discard a die). Dice on the new-slot tile build the next slot when they add up to its number (slot 2 needs one die of 3+, slot 3 two dice adding to 6...), and later slots add more to their total. End Turn discards everything.",
 			when: function() { return tips_combat_ready() && oCombat.turn_count == 1; },
 		},
 		{
@@ -2581,15 +2581,15 @@ function combat_take_back(_slot_i, _index) {
 }
 
 /// @func combat_rerolls_total()
-/// @desc Rerolls this turn: 1 free, plus any bought with insight.
+/// @desc Rerolls this turn: only the ones bought with insight.
 function combat_rerolls_total() {
-	return 1 + oCombat.rerolls_bought;
+	return oCombat.rerolls_bought;
 }
 
 /// @func combat_redraws_total()
-/// @desc Redraws this turn: 1 free, plus any bought with insight.
+/// @desc Redraws this turn: only the ones bought with insight.
 function combat_redraws_total() {
-	return 1 + oCombat.redraws_bought;
+	return oCombat.redraws_bought;
 }
 
 /// @func combat_insight_can(_cost)
@@ -2642,7 +2642,7 @@ function combat_buy(_what) {
 function combat_reroll_die(_inst) {
 	if (state != CombatState.PLAYER_INPUT || show_rewards || !instance_exists(_inst) || !die_has_faces(_inst.struct)) return;
 	if (rerolls_used >= combat_rerolls_total()) {
-		throw_error("No rerolls left", "Buy another for " + string(INSIGHT_COST_REROLL) + " insight (the + token above End Turn), or wait for next turn.");
+		throw_error("No rerolls", "Buy one for " + string(INSIGHT_COST_REROLL) + " insight: the + token after the rerolls, above End Turn.");
 		return;
 	}
 	rerolls_used++;
@@ -2723,9 +2723,9 @@ function combat_turn_tokens_draw(_cx, _right_max, _y) {
 		{ total: _plays_total, left: _plays_left, bought: plays_bought, buy: "play", cost: INSIGHT_COST_PLAY, title: "Plays",
 		  text: "Dice you can play this turn: " + string(_plays_left) + " left. Coins are free to play." },
 		{ total: combat_rerolls_total(), left: combat_rerolls_total() - rerolls_used, bought: rerolls_bought, buy: "reroll", cost: INSIGHT_COST_REROLL, title: "Reroll",
-		  text: "Right-click a die in your hand to roll it again. " + string(combat_rerolls_total() - rerolls_used) + " left this turn (one is free each turn)." },
+		  text: "Right-click a die in your hand to roll it again. " + string(combat_rerolls_total() - rerolls_used) + " left this turn. Buy one with the + token." },
 		{ total: combat_redraws_total(), left: combat_redraws_total() - redraws_used, bought: redraws_bought, buy: "redraw", cost: INSIGHT_COST_REDRAW, title: "Redraw",
-		  text: "Drop a die on the discard pile and draw a new one. " + string(combat_redraws_total() - redraws_used) + " left this turn (one is free each turn)." },
+		  text: "Drop a die on the discard pile and draw a new one. " + string(combat_redraws_total() - redraws_used) + " left this turn. Buy one with the + token." },
 	];
 	var _r = 11, _gap = 5, _div = 12; // token radius, space between tokens, space either side of a divider
 	var _dark = make_color_rgb(42, 29, 18);
@@ -2740,8 +2740,9 @@ function combat_turn_tokens_draw(_cx, _right_max, _y) {
 
 	for (var g = 0; g < 3; g++) {
 		var _grp = _groups[g];
-		var _gw = _grp.total * (_r * 2) + (_grp.total - 1) * _gap;
-		var _hover = mouse_hovering(_x - 4, _y - _r - 4, _gw + 8, _r * 2 + 8, false);
+		// a group with none (no rerolls bought yet) is only its buy token: -_gap cancels the gap before that token
+		var _gw = (_grp.total > 0) ? _grp.total * (_r * 2) + (_grp.total - 1) * _gap : -_gap;
+		var _hover = (_grp.total > 0) && mouse_hovering(_x - 4, _y - _r - 4, _gw + 8, _r * 2 + 8, false);
 		// the plays pulse when a die is played (green) or can't be (red): dice_played_scale and dice_played_color
 		var _s = (g == 0) ? dice_played_scale : 1;
 		var _ring = (g == 0) ? merge_colour(_dark, dice_played_color, clamp((dice_played_scale - 1) * 2.5, 0, 1)) : _dark;
@@ -2784,7 +2785,7 @@ function combat_turn_tokens_draw(_cx, _right_max, _y) {
 		draw_set_alpha(1);
 		if (_bhover && !show_rewards) {
 			var _what = (g == 0) ? "play" : ((g == 1) ? "reroll" : "redraw");
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Buy another " + _what, "Spend " + string(_grp.cost) + " insight for one more " + _what + " this turn. You have " + string(max(0, player_intel)) + " insight.");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Buy a " + _what, "Spend " + string(_grp.cost) + " insight for one more " + _what + " this turn. You have " + string(max(0, player_intel)) + " insight.", undefined, 0, undefined, _grp.cost, "insight");
 			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && combat_no_die_dragged()) combat_buy(_grp.buy);
 		}
 

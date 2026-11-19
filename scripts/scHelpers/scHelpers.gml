@@ -397,7 +397,9 @@ function trigger_bounty(_event, _data) {
 	}
 }
 
-function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dice = undefined) {
+/// @desc _cost (0: none) and _cost_kind ("insight" or "gold"): what doing this spends, shown as a "-3" badge on the
+///       tooltip's top right corner (yellow for insight, gold for gold).
+function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dice = undefined, _cost = 0, _cost_kind = "insight") {
     if (!global.tooltip_active) {
         global.tooltip_active = true;
 
@@ -426,7 +428,8 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
         global.tooltip_main = {
             x: _x, y: _y, name: _name, desc: _desc,
             icon: _icon, index: _index, dice: _dice,
-            anchor: _anchor // the hovered rectangle it sits beside, or undefined
+            anchor: _anchor, // the hovered rectangle it sits beside, or undefined
+            cost: _cost, cost_kind: _cost_kind, // what it spends (tooltip_cost_badge)
         };
 
         global.tooltip_keywords = [];
@@ -500,6 +503,7 @@ function draw_all_tooltips() {
 		xx = max(10, xx); yy = max(10, yy);
 
 		draw_tooltip_box(xx, yy, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, false);
+		if (variable_struct_exists(tt, "cost") && tt.cost > 0) tooltip_cost_badge(xx + _main.w, yy, tt.cost, tt.cost_kind);
 		var _ky = yy + _main.h + _gap;
 		for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
 			var kw = global.tooltip_keywords[i];
@@ -513,6 +517,34 @@ function draw_all_tooltips() {
     global.tooltip_active = false;
     global.tooltip_main = undefined;
     global.tooltip_keywords = [];
+}
+
+/// @func tooltip_cost_badge(_x, _y, _amount, _kind)
+/// @desc What a tooltip's action spends, as a small tag centred on its top right corner: "-3" in yellow with an eye-ish
+///       dot for insight, or "-50" in gold with a coin for gold.
+function tooltip_cost_badge(_x, _y, _amount, _kind) {
+	var _col = (_kind == "gold") ? make_color_rgb(240, 190, 60) : global.color_intel;
+	var _txt = "-" + string(_amount);
+	draw_set_font(ftDefault);
+	var _w = string_width(_txt) + 40, _h = 30;
+	var _x1 = _x - _w + 12, _y1 = _y - _h / 2; // hangs off the corner a little
+	draw_set_color(c_black);
+	draw_roundrect_ext(_x1 - 2, _y1 - 2, _x1 + _w + 2, _y1 + _h + 2, 14, 14, false);
+	draw_set_color(make_color_rgb(20, 22, 30));
+	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 12, 12, false);
+	draw_set_color(_col);
+	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 12, 12, true);
+	// the currency: a coin, or a drop of insight ink
+	var _ix = _x1 + 15, _iy = _y1 + _h / 2;
+	draw_set_color(c_black);
+	draw_circle(_ix, _iy, 8, false);
+	draw_set_color(_col);
+	draw_circle(_ix, _iy, 6, false);
+	if (_kind != "gold") { draw_set_color(c_black); draw_circle(_ix, _iy, 2.5, false); } // an eye's pupil
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_middle);
+	draw_outline_text(_txt, c_black, _col, 2, _ix + 12, _iy, 1, 1, 0);
+	draw_set_color(c_white);
 }
 
 /// @func draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice)
@@ -2082,8 +2114,14 @@ function offering_draw() {
 	draw_rectangle(0, ui_top_bar_h(), _gw, _gh, false);
 	draw_set_alpha(1);
 
-	// the page
-	var _pw = 1400, _ph = 800;
+	// the cards are as tall as the tallest one needs (offering_card_layout); the page fits round them
+	var _cw = 400, _gap = 40;
+	var _n = array_length(oRunManager.offering);
+	var _ch = 0;
+	for (var r = 0; r < _n; r++) _ch = max(_ch, offering_card_layout(oRunManager.offering[r], _cw).h);
+
+	// the page: heading 140, the cards, then the bag and button row
+	var _pw = 1400, _ph = 140 + _ch + 150;
 	var _px = (_gw - _pw) / 2, _py = ui_top_bar_h() + (_gh - ui_top_bar_h() - _ph) / 2;
 	draw_set_alpha(0.4);
 	draw_set_color(c_black);
@@ -2110,8 +2148,6 @@ function offering_draw() {
 	draw_text(_gw / 2, _py + 96, "Take one die for your bag, fitted with a core. A core changes which faces a die rolls most often.");
 
 	// the cards
-	var _cw = 400, _ch = 470, _gap = 40;
-	var _n = array_length(oRunManager.offering);
 	var _cx0 = _gw / 2 - ((_n - 1) * (_cw + _gap)) / 2;
 	var _ctop = _py + 140;
 	for (var r = 0; r < _n; r++) {
@@ -2125,7 +2161,7 @@ function offering_draw() {
 	}
 
 	// the foot of the page: your bag (and what joins it), and the button
-	var _fy = _py + _ph - 62;
+	var _fy = _py + _ph - 66;
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
@@ -2171,15 +2207,37 @@ function offering_bag_icon(_d, _x, _y, _ink) {
 	if (_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _d.name, die_description(_d), undefined, 0, _d);
 }
 
+/// @func offering_card_layout(_off, _w)
+/// @desc Where things go on an offer card, from the top, measured from its text so there's no dead space: the die's
+///       lines, the core section (core_y) just under whichever is lower (the die or its description), then the bars.
+///       h is the height the card needs.
+function offering_card_layout(_off, _w) {
+	var _head_h = 52;
+	var _text_w = _w - 128 - 18;          // beside the die
+	var _core_w = _w - 80 - 18;           // beside the core icon
+	draw_set_font(ftDescriptions);
+	var _line = font_get_size(ftDescriptions) * 1.2;
+	var _desc_h = string_height_ext(die_description(_off.dice), _line, _text_w);
+	var _core_desc_h = string_height_ext(_off.core.description, _line, _core_w);
+	var _die_bottom = _head_h + 62 + 48;  // the die (radius 40, a triangle reaching a bit lower)
+	var _text_bottom = _head_h + 50 + _desc_h;
+	var _core_y = max(_die_bottom, _text_bottom) + 20;
+	var _bars_top = _core_y + 44 + _core_desc_h + 18;
+	var _bars_h = (5 + 30 + 5 + 15) * 1.4; // draw_dice_distribution at scale 1.4
+	return { head_h: _head_h, text_w: _text_w, core_w: _core_w, core_y: _core_y, bars_bottom: _bars_top + _bars_h, h: _bars_top + _bars_h + 20 };
+}
+
 /// @func offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen)
 /// @desc One offer: a header in the die's type colour with its name and rarity; the die drawn big beside its size, type,
-///       range and effect; then its core: icon, name, what it does, and how it shapes this die's faces (the bars).
+///       range and effect (its keywords are named, coloured, in the effect); then its core: icon, name, what it does,
+///       and how it shapes this die's faces (the bars). Laid out by offering_card_layout; _h is the shared height.
 function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	var _d = _off.dice, _core = _off.core;
+	var _lay = offering_card_layout(_off, _w);
 	var _x1 = _cx - _w / 2, _x2 = _cx + _w / 2, _y1 = _top, _y2 = _top + _h;
 	var _type_col = get_dice_color(_d.possible_type);
 	var _edge = _chosen ? make_color_rgb(90, 220, 110) : (_hover ? c_white : make_color_rgb(42, 29, 18));
-	var _head_h = 52;
+	var _head_h = _lay.head_h;
 
 	// shadow, edge, body
 	draw_set_alpha(0.35);
@@ -2206,7 +2264,6 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	// the die, and what it is
 	var _dx = _x1 + 64, _dy = _y1 + _head_h + 62;
 	draw_die(_dx, _dy, 40, _d.dice_value, -1, _type_col, 0, 1);
-	draw_dice_keywords(_d, _dx, _dy + 58, 0.7, 1);
 	var _tx = _x1 + 128;
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
@@ -2214,11 +2271,11 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	var _out = get_dice_output(_d, -1, -1, true, "player");
 	draw_outline_text("d" + string(_d.dice_value) + " " + bag_type_label(_d.possible_type) + ", " + string(_out.min_roll) + "-" + string(_out.max_roll), c_black, merge_colour(_type_col, c_white, 0.4), 2, _tx, _y1 + _head_h + 18, 1, 1, 0);
 	draw_set_font(ftDescriptions);
-	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 50, 1, 1, 0, _x2 - _tx - 18);
+	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 50, 1, 1, 0, _lay.text_w);
 	if (mouse_hovering(_dx, _dy, 90, 90, true, noone, noone, true, UI_LAYER.POPUP)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _d.name, die_description(_d), undefined, 0, _d);
 
-	// the core
-	var _cy = _y1 + 236;
+	// the core, just under the die and its words
+	var _cy = _y1 + _lay.core_y;
 	draw_set_color(make_color_rgb(70, 72, 90));
 	draw_line_width(_x1 + 18, _cy, _x2 - 18, _cy, 2);
 	draw_sprite_ext(sCores, _core.index, _x1 + 42, _cy + 40, 0.8, 0.8, 0, c_white, 1);
@@ -2227,12 +2284,12 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	draw_set_valign(fa_top);
 	draw_outline_text(_core.name, c_black, make_color_rgb(242, 210, 74), 2, _x1 + 80, _cy + 16, 1, 1, 0);
 	draw_set_font(ftDescriptions);
-	draw_outline_text(_core.description, c_black, make_color_rgb(225, 225, 235), 2, _x1 + 80, _cy + 44, 1, 1, 0, _x2 - _x1 - 98);
+	draw_outline_text(_core.description, c_black, make_color_rgb(225, 225, 235), 2, _x1 + 80, _cy + 44, 1, 1, 0, _lay.core_w);
 
-	// how this core shapes this die's faces
+	// how this core shapes this die's faces, at the foot of the card (cards share a height, so the bars line up)
 	var _preview = clone_die(_d, "");
 	_preview.distribution = _core.distribution;
-	draw_dice_distribution(_preview, _cx, _y2 - 22, true, 1.6);
+	draw_dice_distribution(_preview, _cx, _y2 - 20, true, 1.4);
 
 	// chosen: a tick in the corner
 	if (_chosen) {
