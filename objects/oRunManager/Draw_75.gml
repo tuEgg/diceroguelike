@@ -266,7 +266,7 @@ if (show_bag_contents) {
 	var bag_width =		display_get_gui_width() - (bag_inner_padding * 2);
 	var bag_height =	display_get_gui_height() - (bag_inner_padding * 2);
 
-	if ((mouse_check_button_pressed(mb_left) || mouse_check_button_pressed(mb_right)) && !mouse_hovering(bag_outer_padding, bag_outer_padding, display_get_gui_width() - bag_outer_padding*2, display_get_gui_height() - bag_outer_padding*2, false, noone, soClick4, true, UI_LAYER.BAG)) {
+	if ((mouse_check_button_pressed(mb_left) || mouse_check_button_pressed(mb_right)) && !mouse_hovering(bag_outer_padding, bag_outer_padding - 64, display_get_gui_width() - bag_outer_padding*2, display_get_gui_height() - bag_outer_padding*2 + 64, false, noone, soClick4, true, UI_LAYER.BAG) /* the title row with the sort and filter buttons counts as inside */) {
 		if (show_bag_contents && !bag_hover) {
 			if (room == rmCombat) {
 				if (!oCombat.disc_bag_hover) {
