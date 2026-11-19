@@ -753,6 +753,13 @@ function is_mouse_over_discard_button() {
 	return (mx > _x1 && mx < _x1 + sprite_get_width(sDiceBag) + 20 && my > _y1 && my < _y1 + sprite_get_height(sDiceBag) + 20);
 }
 
+/// @func combat_inkwell_pos()
+/// @desc Where the inkwell (your insight) sits in a fight: on the ground just right of you (UI rework; it used to float
+///       over your head). The ink view and the tips read it too.
+function combat_inkwell_pos() {
+	return { x: global.player_x + 140, y: global.player_y + 22 };
+}
+
 /// @func combat_discard_spot()
 /// @desc Where the discard pile sits in a fight (its sprite's draw position): bottom left, beside the draw bag, so End
 ///       Turn has the bottom right to itself (UI rework). Spent dice fly here.
@@ -1860,7 +1867,7 @@ function tutorial_target_rect(_target) {
 			case "end_turn":
 				return variable_instance_exists(id, "tut_end_turn") ? tut_end_turn : undefined;
 			case "insight":
-				return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
+				var _iw = combat_inkwell_pos(); return { x: _iw.x - 60, y: _iw.y - 65, w: 120, h: 120 };
 		}
 	}
 	return undefined;
@@ -2140,7 +2147,7 @@ function tips_rect(_target) {
 			if (!instance_exists(oWorldManager) || !is_struct(oWorldManager.sea_buoy) || !variable_struct_exists(oWorldManager.sea_buoy, "x")) return undefined;
 			return { x: oWorldManager.sea_buoy.x - 40, y: oWorldManager.sea_buoy.y - 40, w: 80, h: 100 }; // the buoy
 		case "insight":
-			return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
+			var _iw = combat_inkwell_pos(); return { x: _iw.x - 60, y: _iw.y - 65, w: 120, h: 120 };
 		case "wb_pick":
 			if (!instance_exists(oWorkbenchManager)) return undefined;
 			with (oWorkbenchManager) return { x: display_get_gui_width() / 2 - 280, y: max(start_y - wb_tile_size - 230, 200), w: 560, h: 170 };
@@ -3128,7 +3135,7 @@ function combat_insight_view_draw() {
 		}
 
 		// the inkwell, on top, with your ink beside it: clicking it closes the log (a toggle, like Confirm)
-		var _ex = global.player_x, _ey = global.player_y - 180;
+		var _ex = combat_inkwell_pos().x, _ey = combat_inkwell_pos().y;
 		var _ink_hov = mouse_hovering(_ex, _ey, 70, 70, true, noone, noone, true, UI_LAYER.POPUP);
 		draw_inkwell(_ex, _ey, _ink_hov ? 1.25 : 1.15, player_intel / INSIGHT_MAX, false);
 		if (_ink_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Put your ink away", "Back to your dice. Click the inkwell again any time this turn to use your ink.", undefined, 0, undefined, 0, "insight", { button: "left", text: "Done", col: global.color_intel });

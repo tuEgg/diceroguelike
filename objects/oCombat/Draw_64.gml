@@ -923,7 +923,8 @@ if (state != CombatState.PLAYER_DEAD) {
 	// (the old ring gauge: the inkwell's ink level shows it now)
 
 	// the inkwell: your insight as ink (draw_inkwell). Spent at the start of a turn, in the insight phase.
-	var intel_hover = mouse_hovering(global.player_x, global.player_y - 180, 70, 70, true);
+	var _iw = combat_inkwell_pos(); // beside you, on the ground (UI rework)
+	var intel_hover = mouse_hovering(_iw.x, _iw.y, 70, 70, true);
 	intel_scale = intel_hover ? lerp(intel_scale, 1.1, 0.2) : lerp(intel_scale, 1.0, 0.2);
 	// the start-of-turn pulse (ink_pulse, oCombat Step): it swells and glows, so you know your ink can do something
 	var _ink_s = intel_scale;
@@ -933,10 +934,10 @@ if (state != CombatState.PLAYER_DEAD) {
 		_ink_s *= 1 + 0.14 * _beat * _fade;
 		draw_set_alpha(0.35 * _beat * _fade);
 		draw_set_color(global.color_intel);
-		draw_circle(global.player_x, global.player_y - 180, 40 + 10 * _beat, false);
+		draw_circle(_iw.x, _iw.y, 40 + 10 * _beat, false);
 		draw_set_alpha(1);
 	}
-	draw_inkwell(global.player_x, global.player_y - 180, _ink_s, player_intel / INSIGHT_MAX, intel_is_blotted());
+	draw_inkwell(_iw.x, _iw.y, _ink_s, player_intel / INSIGHT_MAX, intel_is_blotted());
 	if (intel_hover) {
 		if (intel_is_blotted()) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 insight your ink is spilled: enemy intents are hidden, and you can't write this turn.");
 		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Use your ink", "Spend insight to rewrite enemy intents, see their exact numbers, or reroll and redraw your dice. Unspent insight carries over (up to " + string(INSIGHT_MAX) + ").", undefined, 0, undefined, 0, "insight", { button: "left", text: "Use", col: global.color_intel });
@@ -946,7 +947,7 @@ if (state != CombatState.PLAYER_DEAD) {
 
 	// the number shows when it isn't zero, negative intel (from Overwhelm) included
 	if (player_intel != 0) {
-		draw_outline_text(string(player_intel), c_black, player_intel < 0 ? c_red : c_white, 2, global.player_x + 44, global.player_y - 170, intel_scale, 1.0, 0); // beside the inkwell
+		ui_numeral(string(player_intel), _iw.x + 30, _iw.y + 14, 30, player_intel < 0 ? global.text_attack : global.color_intel, 1, fa_left); // beside the inkwell
 	}
 
 }

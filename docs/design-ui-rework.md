@@ -112,5 +112,6 @@ New art for dice, enemies and backgrounds (F50, F42), and sound design. Hooks le
 ## Progress
 
 - **Combat, part 1 (F130):** palette and glyphs (`scUI`), dimmed backdrop and felt tray (oBackgrounds), slot tickets, the new-slot place, intent tags, HP bars, End Turn bottom right, discard pile beside the draw bag.
-- **Still to do for combat:** the slim top bar (shared with the map), the inkwell beside the player, Small 14 and the numeral fonts.
+- **Combat, part 2 (F131):** the top bar as a dark logbook strip (health, gold, item wells; the voyage label and pages counter dropped), the inkwell beside the player.
+- **Still to do for combat:** Small 14 and the numeral fonts (IDE, below).
 - **Needs Jared in the IDE (fonts can't be made outside it):** set `ftDescriptions` to 14, add Lato Black numeral fonts at 20, 32 and 48, and tick SDF on the Charter and Lato fonts so they stay crisp in small windows. Until then `ui_numeral` scales ftDamage.
