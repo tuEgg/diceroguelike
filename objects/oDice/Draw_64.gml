@@ -86,7 +86,9 @@ if (!_kw_hover && mouse_hovering(x, y, sprite_width, sprite_height, true)) {
 	// mini chart of its core, and its effect. Keywords are explained on their icons.
 	var _sub = _rolled ? "rolled " + string(die_face_total(struct)) : string(dice_output.min_roll) + "-" + string(dice_output.max_roll);
 	var _r_now = (_coded ? 36 * scale : sprite_height / 2);
-	queue_die_tip(struct, x, y - _r_now * 1.25);
+	// in an event, a click sends it to the bag (F149, oDice Step); not while the plank waits for one
+	var _ev_hint = (room == rmEvent && !(instance_exists(oEventManager) && oEventManager.deleting_die == 1)) ? "Click to put it in your bag." : "";
+	queue_die_tip(struct, x, y - _r_now * 1.25, undefined, _ev_hint);
 	
 	var off_x = 0;
 	var off_y = 0;

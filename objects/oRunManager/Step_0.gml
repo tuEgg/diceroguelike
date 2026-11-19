@@ -1,6 +1,6 @@
 // coins: spending jingles once; gold coming in jingles as it lands (one at a time, not one per coin)
 if (credits != credits_heard) {
-	if (credits < credits_heard) sfx_play(soCoins, AUDIO_GROUP.SFX, 0.05, 0.9);
+	if (credits < credits_heard) { sfx_play(soCoins, AUDIO_GROUP.SFX, 0.05, 0.9); credits_scale = max(credits_scale, 1.3); } // and the counter jumps
 	else if (!audio_is_playing(soCoins)) sfx_play(soCoins, AUDIO_GROUP.SFX, 0.1, 0.6);
 	credits_heard = credits;
 }

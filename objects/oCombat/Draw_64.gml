@@ -1105,12 +1105,21 @@ if (show_rewards) {
 			draw_set_valign(fa_middle);
 			draw_outline_text("Choose one die", c_black, c_white, 2, gui_w/2, _rc_cy - _rc_h / 2 - 40, 1, 1, 0);
 
+			// dealt face down, then each flips in turn and flashes its rarity (F145); a card can't be taken until it's turned
+			reward_reveal_t++;
 			for (var r = 0; r < _rc_n; r++) {
 			    var die = reward_dice_options[| r];
 				var _rc_cx = gui_w / 2 - ((_rc_n - 1) * (_rc_w + _rc_gap)) / 2 + r * (_rc_w + _rc_gap);
+				var _flip = reward_flip_state(reward_reveal_t, r);
+				if (_flip.turned_now) sfx_play((die.rarity == "rare") ? soCoins : soSlotPlace, AUDIO_GROUP.SFX, 0.05, (die.rarity == "common" || die.rarity == "starter") ? 0.6 : 1);
+				if (!_flip.face_up) {
+					reward_card_back(_rc_cx, _rc_cy, _rc_w * _flip.squash, _rc_h, r);
+					continue;
+				}
 				var _rc_hover = !rewards_dice_taken && mouse_hovering(_rc_cx - _rc_w / 2, _rc_cy - _rc_h / 2, _rc_w, _rc_h, false, soSlotHover, noone, true, UI_LAYER.POPUP);
 				var alpha = rewards_dice_taken ? 0.35 : 1.0;
-				draw_bag_card(die, _rc_cx, _rc_cy, _rc_w, _rc_h, alpha, _rc_hover, false);
+				draw_bag_card(die, _rc_cx, _rc_cy - 14 * _flip.pop, _rc_w, _rc_h, alpha * _flip.fade_in, _rc_hover, false);
+				reward_rarity_flash(die.rarity, _rc_cx, _rc_cy, _rc_w, _rc_h, _flip.since, alpha);
 				var btn = { x: _rc_cx - _rc_w / 2, y: _rc_cy - _rc_h / 2, w: _rc_w, h: _rc_h, hover: _rc_hover, click: _rc_hover && mouse_check_button_pressed(mb_left) };
 				if (btn.click) sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
 

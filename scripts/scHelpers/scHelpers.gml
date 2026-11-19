@@ -2555,6 +2555,76 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 	draw_set_valign(fa_top);
 }
 
+/// @func reward_flip_state(_t, _i)
+/// @desc Where fight reward card _i is in its reveal (F145), _t frames after the dice rewards showed: face down until
+///       its turn (a short wait, then one every 14 frames), then 8 frames squashing shut, then face up.
+///       Returns { face_up, squash (0-1, the back's width), turned_now (the frame it turns), since (frames face up),
+///       pop (0-1, a little lift as it lands), fade_in (0-1) }.
+function reward_flip_state(_t, _i) {
+	var _start = 16 + _i * 14, _shut = 8;
+	var _since = _t - (_start + _shut);
+	if (_since < 0) return { face_up: false, squash: clamp(1 - (_t - _start) / _shut, 0.02, 1), turned_now: false, since: -1, pop: 0, fade_in: 0 };
+	return { face_up: true, squash: 1, turned_now: (_since == 0), since: _since, pop: max(0, 1 - _since / 10), fade_in: min(1, 0.35 + _since / 8) };
+}
+
+/// @func reward_card_back(_cx, _cy, _w, _h, _seed)
+/// @desc A reward card face down: dark slate in a brass frame with a compass star, squashed to _w as it flips.
+function reward_card_back(_cx, _cy, _w, _h, _seed) {
+	var _x1 = _cx - _w / 2, _x2 = _cx + _w / 2, _y1 = _cy - _h / 2, _y2 = _cy + _h / 2;
+	var _bob = sin(current_time / 260 + _seed) * 3;
+	_y1 += _bob; _y2 += _bob;
+	draw_set_color(global.ui_col.ink);
+	draw_roundrect_ext(_x1 - 3, _y1 - 3, _x2 + 3, _y2 + 3, 14, 14, false);
+	draw_set_color(global.ui_col.brass);
+	draw_roundrect_ext(_x1, _y1, _x2, _y2, 12, 12, false);
+	draw_set_color(global.ui_col.slate);
+	draw_roundrect_ext(_x1 + 6, _y1 + 6, _x2 - 6, _y2 - 6, 9, 9, false);
+	// the compass star, squashed with the card
+	var _sx = _w / 320, _my = (_y1 + _y2) / 2, _r = 46;
+	draw_set_color(global.ui_col.brass);
+	for (var a = 0; a < 4; a++) {
+		var _ang = a * 90 + 90;
+		draw_triangle(_cx + lengthdir_x(_r, _ang) * _sx, _my + lengthdir_y(_r, _ang), _cx + lengthdir_x(9, _ang + 90) * _sx, _my + lengthdir_y(9, _ang + 90), _cx + lengthdir_x(9, _ang - 90) * _sx, _my + lengthdir_y(9, _ang - 90), false);
+	}
+	draw_set_color(global.ui_col.slate);
+	draw_circle(_cx, _my, 5 * max(0.3, _sx), false);
+	draw_set_color(c_white);
+}
+
+/// @func reward_rarity_flash(_rarity, _cx, _cy, _w, _h, _since, _alpha)
+/// @desc As a reward card turns face up (F145): a glow in its rarity's colour that blooms and fades (bigger and longer for
+///       rarer cards; a rare one also throws rays), then a small rarity label under the card stays.
+function reward_rarity_flash(_rarity, _cx, _cy, _w, _h, _since, _alpha = 1) {
+	var _col = rarity_colour(_rarity);
+	var _power = (_rarity == "rare") ? 1 : ((_rarity == "uncommon") ? 0.6 : 0.25);
+	var _len = 18 + 22 * _power;
+	if (_since >= 0 && _since < _len) {
+		var _k = _since / _len;
+		var _grow = 10 + 40 * _power * _k;
+		draw_set_alpha((1 - _k) * 0.7 * _power + 0.1 * (1 - _k));
+		draw_set_color(_col);
+		draw_roundrect_ext(_cx - _w / 2 - _grow, _cy - _h / 2 - _grow, _cx + _w / 2 + _grow, _cy + _h / 2 + _grow, 24, 24, false);
+		if (_rarity == "rare") {
+			draw_set_alpha((1 - _k) * 0.6);
+			for (var a = 0; a < 12; a++) {
+				var _ang = a * 30 + _since * 2;
+				var _r1 = _h * 0.55 + 20 * _k, _r2 = _r1 + 60 + 80 * _k;
+				draw_line_width(_cx + lengthdir_x(_r1, _ang), _cy + lengthdir_y(_r1, _ang), _cx + lengthdir_x(_r2, _ang), _cy + lengthdir_y(_r2, _ang), 4);
+			}
+		}
+		draw_set_alpha(1);
+	}
+	// its rarity, named under the card (starter dice never come as rewards)
+	if (_rarity != "starter") {
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_top);
+		var _txt = string_upper(string_char_at(_rarity, 1)) + string_copy(_rarity, 2, string_length(_rarity) - 1);
+		draw_outline_text(_txt, global.ui_col.ink, _col, 2, _cx, _cy + _h / 2 + 12, 1, _alpha * min(1, max(0, _since) / 10), 0);
+	}
+	draw_set_color(c_white);
+}
+
 // =====================================================================
 // THE QUARTERMASTER'S OFFER (the start of a run: one die, fitted with a core)
 // =====================================================================

@@ -183,6 +183,7 @@ reward_consumable_options = undefined;
 reward_keepsake_options = undefined;
 rewards_dice_taken = false;
 pending_reward_die = undefined; // a reward die waiting to fly to the bag (made in Step)
+reward_reveal_t = 0;            // frames the dice rewards have been on show: they're dealt face down and flip one by one (F145)
 rewards_consumables_first_taken = -1;
 rewards_consumables_second_taken = false;
 rewards_consumables_locked = -1;
