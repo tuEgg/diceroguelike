@@ -1942,7 +1942,7 @@ function tutorial_map_notes() {
 	return [
 		{
 			id: "map_offering", target: "",
-			text: "Every voyage begins with a gift. Pick a die and core pair: the die joins your bag, and the core can be drilled into a die at the workbench.",
+			text: "Every voyage begins with a gift from the quartermaster: a die with a core already fitted. A core changes which faces a die rolls most often. Cores you find later can be drilled into dice at the workbench.",
 			when: function() { return oRunManager.new_run_offering; },
 			done: function() { return !oRunManager.new_run_offering; },
 		},

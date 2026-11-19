@@ -115,7 +115,7 @@ for (var i = 0; i < wb_list_size; i++) {
 			draw_dice_distribution(_die_here, slot_x, _bar_y, true);
 			if (_die_here.distribution != "") {
 				draw_set_font(ftDefault);
-				draw_outline_text(string(_die_here.distribution), c_black, c_white, 2, slot_x, _bar_y - 46, 1, 1, 0);
+				draw_outline_text(string(_die_here.distribution), c_black, c_white, 2, slot_x, _bar_y - 64, 1, 1, 0); // above the distribution (55px tall)
 			}
 		}
 	}
@@ -126,7 +126,7 @@ for (var i = 0; i < wb_list_size; i++) {
 
 		draw_dice_distribution(d, slot_x, _bar_y, true);
 		draw_set_font(ftDefault);
-		draw_outline_text(string(d.distribution), c_black, c_white, 2, slot_x, _bar_y - 46, 1, 1, 0);
+		draw_outline_text(string(d.distribution), c_black, c_white, 2, slot_x, _bar_y - 64, 1, 1, 0);
 	}
 	
 	// Draw output preview

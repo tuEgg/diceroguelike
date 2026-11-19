@@ -1407,9 +1407,13 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0) {
     }
 }
 
-// draw_dice_distribution(_die, _x, _y, _centered = false)
-function draw_dice_distribution(_die, _x, _y, _centered = false) {
-	// a core's preview shows the core's own shape on a plain d6: keepsakes (Weapon Polish...) don't touch it
+/// @func draw_dice_distribution(_die, _x, _y, [_centered], [_scale])
+/// @desc How likely each face of a die is (its core): a bar per face rising from one baseline, the tallest face full
+///       height, its number under the line, all on a dark plate so it reads over anything. A face it can't roll is a
+///       flat stub with a dimmed number. _y is the bottom of the whole graphic (numbers included), so it sits on top of
+///       whatever is below it; _x its left edge, or its centre with _centered. _scale makes it bigger (1: 14px bars).
+///       A core's preview (core_preview) shows the core's own shape on a plain d6: keepsakes don't touch it.
+function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1) {
 	var _min_roll = 1;
 	var _max_roll = _die.dice_value;
 	if (!variable_struct_exists(_die, "core_preview")) {
@@ -1417,40 +1421,41 @@ function draw_dice_distribution(_die, _x, _y, _centered = false) {
 		_min_roll = dice_output.min_roll;
 		_max_roll = dice_output.max_roll;
 	}
-	
-	var distribution_array = [];
-	var xx = _x;
-	var yy = _y;
-	
-	if (_centered) {
-		xx -= ((sprite_get_width(sSmallBar) * _die.dice_value) / 2) - sprite_get_width(sSmallBar) * 0.5;
+	var _dist = [];
+	define_dice_distributions(_die.distribution, _min_roll, _max_roll, _dist);
+	var _n = array_length(_dist);
+	if (_n == 0) return;
+	var _top = 0;
+	for (var i = 0; i < _n; i++) _top = max(_top, _dist[i]);
+	if (_top <= 0) _top = 1; // all zero (a squeezed range, B125): flat stubs, not 0/0
+
+	var _bw = 14 * _scale, _gap = 3 * _scale, _bh = 30 * _scale, _num_h = 15 * _scale, _pad = 5 * _scale;
+	var _w = _n * _bw + (_n - 1) * _gap;
+	var _x0 = _centered ? _x - _w / 2 : _x;
+	var _base = _y - _pad - _num_h; // the line the bars stand on
+	var _bar_col = make_color_rgb(242, 210, 74);
+
+	// the plate
+	draw_set_alpha(0.85);
+	draw_set_color(make_color_rgb(20, 22, 30));
+	draw_roundrect_ext(_x0 - _pad, _base - _bh - _pad, _x0 + _w + _pad, _y, 8 * _scale, 8 * _scale, false);
+	draw_set_alpha(1);
+
+	draw_set_font((_scale >= 1.4) ? ftDescriptions : ftTiny);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	for (var i = 0; i < _n; i++) {
+		var _bx = _x0 + i * (_bw + _gap);
+		var _h = (_dist[i] > 0) ? max(3 * _scale, _bh * _dist[i] / _top) : 2 * _scale;
+		draw_set_color((_dist[i] > 0) ? _bar_col : make_color_rgb(90, 90, 100));
+		draw_rectangle(_bx, _base - _h, _bx + _bw - 1, _base, false);
+		draw_set_color((_dist[i] > 0) ? c_white : make_color_rgb(110, 110, 120));
+		draw_text(_bx + _bw / 2, _base + _num_h / 2 + 1, string(i + _min_roll));
 	}
-	
-	define_dice_distributions(_die.distribution, _min_roll, _max_roll, distribution_array);
-	
-	var max_size = 0;
-	var curr_size = 0;
-	for (var i = 0; i < array_length(distribution_array); i++) {
-		if (curr_size < distribution_array[i]) {
-			max_size = distribution_array[i];
-			curr_size = distribution_array[i];
-		}
-	}
-	
-	if (max_size <= 0) max_size = 1; // all zero (a squeezed range, B125): flat bars, not 0/0
-	for (var i = 0; i < array_length(distribution_array); i++) {
-		var bar_height = distribution_array[i]/max_size;
-		draw_sprite_ext(sSmallBar, 0, xx, yy, 1, bar_height + 0.2, 0, c_white, 1.0);
-		draw_set_font(ftTiny);
-		draw_set_halign(fa_center);
-		if (distribution_array[i] > 0) {
-			draw_set_color(c_black);
-		} else {
-			draw_set_color(c_white);
-		}
-		draw_text(xx - 1, yy - 8, string(i + _min_roll));
-		xx += sprite_get_width(sSmallBar);
-	}
+	// the baseline
+	draw_set_color(make_color_rgb(150, 150, 160));
+	draw_line_width(_x0 - 2 * _scale, _base + 1, _x0 + _w + 2 * _scale, _base + 1, max(1, _scale));
+	draw_set_color(c_white);
 }
 
 function draw_dice_history(_die, _x, _y, _centered = false) {

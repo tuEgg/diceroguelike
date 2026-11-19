@@ -2063,3 +2063,194 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 }
+
+// =====================================================================
+// THE QUARTERMASTER'S OFFER (the start of a run: one die, fitted with a core)
+// =====================================================================
+
+/// @func offering_draw()
+/// @desc oRunManager Draw GUI: a logbook page with three offer cards (offering_card_draw). Click a card to choose it,
+///       then the button takes it: the die goes into your bag with its core already fitted.
+function offering_draw() {
+	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+	var _ink = make_color_rgb(42, 29, 18);
+	var _paper = make_color_rgb(231, 214, 176);
+
+	// the map behind, dimmed; the top bar stays in full colour
+	draw_set_alpha(0.8);
+	draw_set_color(c_black);
+	draw_rectangle(0, ui_top_bar_h(), _gw, _gh, false);
+	draw_set_alpha(1);
+
+	// the page
+	var _pw = 1400, _ph = 800;
+	var _px = (_gw - _pw) / 2, _py = ui_top_bar_h() + (_gh - ui_top_bar_h() - _ph) / 2;
+	draw_set_alpha(0.4);
+	draw_set_color(c_black);
+	draw_roundrect_ext(_px + 8, _py + 12, _px + _pw + 8, _py + _ph + 12, 24, 24, false);
+	draw_set_alpha(1);
+	draw_set_color(_ink);
+	draw_roundrect_ext(_px - 4, _py - 4, _px + _pw + 4, _py + _ph + 4, 26, 26, false);
+	draw_set_color(_paper);
+	draw_roundrect_ext(_px, _py, _px + _pw, _py + _ph, 22, 22, false);
+	// a faint inner rule, like the logbook's
+	draw_set_alpha(0.35);
+	draw_set_color(_ink);
+	draw_roundrect_ext(_px + 14, _py + 14, _px + _pw - 14, _py + _ph - 14, 16, 16, true);
+	draw_set_alpha(1);
+
+	// the heading
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_font(ftBigger);
+	draw_set_color(_ink);
+	draw_text(_gw / 2, _py + 56, "The quartermaster's offer");
+	draw_set_font(ftDefault);
+	draw_set_color(make_color_rgb(91, 70, 48));
+	draw_text(_gw / 2, _py + 96, "Take one die for your bag, fitted with a core. A core changes which faces a die rolls most often.");
+
+	// the cards
+	var _cw = 400, _ch = 470, _gap = 40;
+	var _n = array_length(oRunManager.offering);
+	var _cx0 = _gw / 2 - ((_n - 1) * (_cw + _gap)) / 2;
+	var _ctop = _py + 140;
+	for (var r = 0; r < _n; r++) {
+		var _off = oRunManager.offering[r];
+		var _cx = _cx0 + r * (_cw + _gap);
+		var _hover = mouse_hovering(_cx - _cw / 2, _ctop, _cw, _ch, false, soSlotHover, soClick4, true, UI_LAYER.POPUP);
+		var _chosen = (oRunManager.offer_selected == r);
+		_off.lift = lerp(_off.lift, _chosen ? 12 : (_hover ? 6 : 0), 0.25);
+		offering_card_draw(_off, _cx, _ctop - _off.lift, _cw, _ch, _hover, _chosen);
+		if (_hover && mouse_check_button_pressed(mb_left)) oRunManager.offer_selected = r;
+	}
+
+	// the foot of the page: your bag (and what joins it), and the button
+	var _fy = _py + _ph - 62;
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_middle);
+	draw_set_color(_ink);
+	var _bx = _px + 50;
+	draw_text(_bx, _fy, "Your bag:");
+	_bx += string_width("Your bag:") + 24;
+	for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
+		var _bd = global.dice_bag[| d];
+		draw_die_shape(_bx, _fy, 14, _bd.dice_value, _ink, 0, 1);
+		draw_die_shape(_bx, _fy, 11, _bd.dice_value, get_dice_color(_bd.possible_type), 0, 1);
+		_bx += 30;
+	}
+	var _sel = oRunManager.offer_selected;
+	if (_sel >= 0) {
+		var _sd = oRunManager.offering[_sel].dice;
+		_bx += 8;
+		draw_set_color(make_color_rgb(40, 130, 60));
+		draw_text(_bx, _fy, "+");
+		_bx += 22;
+		draw_die_shape(_bx, _fy, 14, _sd.dice_value, _ink, 0, 1);
+		draw_die_shape(_bx, _fy, 11, _sd.dice_value, get_dice_color(_sd.possible_type), 0, 1);
+	}
+
+	var _label = (_sel >= 0) ? "Take the " + oRunManager.offering[_sel].dice.name : "Choose a die";
+	var _btn = ui_button(_px + _pw - 200, _fy, 300, 64, oRunManager.offer_btn_scale, _label, global.ui_primary, _sel >= 0, "Click one of the three dice first.", UI_LAYER.POPUP, 1, ftDefault);
+	oRunManager.offer_btn_scale = _btn.scale;
+	if (_btn.click && _sel >= 0) offering_take(_sel, _px + _pw - 200, _fy);
+
+	draw_set_color(c_white);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+}
+
+/// @func offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen)
+/// @desc One offer: a header in the die's type colour with its name and rarity; the die drawn big beside its size, type,
+///       range and effect; then its core: icon, name, what it does, and how it shapes this die's faces (the bars).
+function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
+	var _d = _off.dice, _core = _off.core;
+	var _x1 = _cx - _w / 2, _x2 = _cx + _w / 2, _y1 = _top, _y2 = _top + _h;
+	var _type_col = get_dice_color(_d.possible_type);
+	var _edge = _chosen ? make_color_rgb(90, 220, 110) : (_hover ? c_white : make_color_rgb(42, 29, 18));
+	var _head_h = 52;
+
+	// shadow, edge, body
+	draw_set_alpha(0.35);
+	draw_set_color(c_black);
+	draw_roundrect_ext(_x1 + 6, _y1 + 10, _x2 + 6, _y2 + 10, 18, 18, false);
+	draw_set_alpha(1);
+	draw_set_color(_edge);
+	draw_roundrect_ext(_x1 - 4, _y1 - 4, _x2 + 4, _y2 + 4, 20, 20, false);
+	draw_set_color(make_color_rgb(34, 36, 48));
+	draw_roundrect_ext(_x1, _y1, _x2, _y2, 16, 16, false);
+
+	// header: name, rarity
+	draw_set_color(merge_colour(_type_col, c_black, 0.5));
+	draw_roundrect_ext(_x1, _y1, _x2, _y1 + _head_h, 16, 16, false);
+	draw_rectangle(_x1, _y1 + _head_h - 16, _x2, _y1 + _head_h, false);
+	draw_set_font(ftBig);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_middle);
+	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + 18, _y1 + _head_h / 2, 1, 1, 0);
+	draw_set_font(ftDescriptions);
+	draw_set_halign(fa_right);
+	draw_outline_text(_d.rarity, c_black, make_color_rgb(200, 200, 215), 2, _x2 - 18, _y1 + _head_h / 2, 1, 1, 0);
+
+	// the die, and what it is
+	var _dx = _x1 + 64, _dy = _y1 + _head_h + 62;
+	draw_die(_dx, _dy, 40, _d.dice_value, -1, _type_col, 0, 1);
+	draw_dice_keywords(_d, _dx, _dy + 58, 0.7, 1);
+	var _tx = _x1 + 128;
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	var _out = get_dice_output(_d, -1, -1, true, "player");
+	draw_outline_text("d" + string(_d.dice_value) + " " + bag_type_label(_d.possible_type) + ", " + string(_out.min_roll) + "-" + string(_out.max_roll), c_black, merge_colour(_type_col, c_white, 0.4), 2, _tx, _y1 + _head_h + 18, 1, 1, 0);
+	draw_set_font(ftDescriptions);
+	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 50, 1, 1, 0, _x2 - _tx - 18);
+	if (mouse_hovering(_dx, _dy, 90, 90, true, noone, noone, true, UI_LAYER.POPUP)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _d.name, die_description(_d), undefined, 0, _d);
+
+	// the core
+	var _cy = _y1 + 236;
+	draw_set_color(make_color_rgb(70, 72, 90));
+	draw_line_width(_x1 + 18, _cy, _x2 - 18, _cy, 2);
+	draw_sprite_ext(sCores, _core.index, _x1 + 42, _cy + 40, 0.8, 0.8, 0, c_white, 1);
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	draw_outline_text(_core.name, c_black, make_color_rgb(242, 210, 74), 2, _x1 + 80, _cy + 16, 1, 1, 0);
+	draw_set_font(ftDescriptions);
+	draw_outline_text(_core.description, c_black, make_color_rgb(225, 225, 235), 2, _x1 + 80, _cy + 44, 1, 1, 0, _x2 - _x1 - 98);
+
+	// how this core shapes this die's faces
+	var _preview = clone_die(_d, "");
+	_preview.distribution = _core.distribution;
+	draw_dice_distribution(_preview, _cx, _y2 - 22, true, 1.6);
+
+	// chosen: a tick in the corner
+	if (_chosen) {
+		var _kx = _x2 - 4, _ky = _y1 + 4;
+		draw_set_color(c_black);
+		draw_circle(_kx, _ky, 18, false);
+		draw_set_color(make_color_rgb(90, 220, 110));
+		draw_circle(_kx, _ky, 15, false);
+		draw_set_color(c_white);
+		draw_line_width(_kx - 7, _ky, _kx - 1, _ky + 6, 3.5);
+		draw_line_width(_kx - 1, _ky + 6, _kx + 8, _ky - 6, 3.5);
+	}
+	draw_set_color(c_white);
+	draw_set_alpha(1);
+}
+
+/// @func offering_take(_index, _x, _y)
+/// @desc The chosen die, with its core fitted, flies into your bag (an oDiceParticle adds it when it lands).
+function offering_take(_index, _x, _y) {
+	var _off = oRunManager.offering[_index];
+	var _die = clone_die(_off.dice, "");
+	_die.distribution = _off.core.distribution; // the core comes fitted, not as an item
+	var _p = instance_create_layer(_x, _y, "Instances", oDiceParticle);
+	_p.target_x = global.gui.bag_x + global.gui.bag_w / 2;
+	_p.target_y = global.gui.bag_y + global.gui.bag_h / 2;
+	_p.color_main = get_dice_color(_die.possible_type);
+	_p.die_struct = _die;
+	oRunManager.new_run_offering = false;
+	oRunManager.offer_selected = -1;
+	global.ui_layer = UI_LAYER.BASE;
+	global.bag_size++;
+}

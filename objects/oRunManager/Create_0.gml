@@ -289,18 +289,35 @@ generate_item_rewards(consumable_options, global.master_item_list, 3, "core");
 var dice_options = ds_list_create();
 generate_dice_rewards(dice_options, global.master_dice_list, 3);
 
+// a core does nothing on a coin, so any coin offered is swapped for another die (not one already on offer)
+for (var i = 0; i < ds_list_size(dice_options); i++) {
+	if (dice_options[| i].dice_value != 2) continue;
+	var _swap = [];
+	for (var m = 0; m < ds_list_size(global.master_dice_list); m++) {
+		var _cand = global.master_dice_list[| m];
+		if (_cand.dice_value == 2) continue;
+		var _dupe = false;
+		for (var k = 0; k < ds_list_size(dice_options); k++) if (dice_options[| k].name == _cand.name) _dupe = true;
+		if (!_dupe) array_push(_swap, _cand);
+	}
+	if (array_length(_swap) > 0) dice_options[| i] = clone_die(_swap[irandom(array_length(_swap) - 1)], "");
+}
+
 for (var i = 0; i < 3; i++) {
 	var random_core = consumable_options[| i];
 	var random_die = dice_options[| i];
-	
+
 	offering[i] = {
 		core: random_core,
 		dice: random_die,
 		core_scale: 1,
 		dice_scale: 1,
-		bg_scale: 1
+		bg_scale: 1,
+		lift: 0, // the card rising on hover / when chosen
 	}
 }
+offer_selected = -1;   // which card is chosen (-1: none yet); the button takes it
+offer_btn_scale = 1;
 
 ds_list_destroy(dice_options);
 ds_list_destroy(consumable_options);
