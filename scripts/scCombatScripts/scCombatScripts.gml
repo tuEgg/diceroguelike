@@ -2636,11 +2636,11 @@ function combat_enemies_flee(_leader) {
 	if (_any) add_feed_entry("With their leader down, the rest flee!");
 }
 
-/// @func combat_turn_tokens_draw(_right, _y)
-/// @desc One row of round brass tokens, ending at _right (growing left, clear of the slots): a plain token per play, then (after a divider) a reroll token per
+/// @func combat_turn_tokens_draw(_cx, _right_max, _y)
+/// @desc One row of round brass tokens, centred on _cx but never past _right_max (the slots): a plain token per play, then (after a divider) a reroll token per
 ///       reroll, then a redraw token per redraw. Spent tokens go dark; one given by insight is yellow. No text: hovering a
 ///       group says what it is and how many are left. Playing (or failing to) makes the play tokens pulse green (or red).
-function combat_turn_tokens_draw(_right, _y) {
+function combat_turn_tokens_draw(_cx, _right_max, _y) {
 	var _plays_total = max(dice_allowed_per_turn, dice_played);
 	var _plays_left = max(0, dice_allowed_per_turn - dice_played);
 	var _groups = [
@@ -2658,7 +2658,7 @@ function combat_turn_tokens_draw(_right, _y) {
 
 	var _w = -_div; // the row's width, so it can be centred
 	for (var g = 0; g < 3; g++) _w += _groups[g].total * (_r * 2) + (_groups[g].total - 1) * _gap + _div * 2;
-	var _x = _right - _w;
+	var _x = min(_cx - _w / 2, _right_max - _w);
 
 	for (var g = 0; g < 3; g++) {
 		var _grp = _groups[g];

@@ -93,10 +93,12 @@ draw_set_valign(fa_middle);
 dice_played_scale = lerp(dice_played_scale, 1.0, 0.05);
 dice_played_color = merge_colour(dice_played_color, c_white, 0.05);
 // this turn's plays, rerolls and redraws: one row of tokens above End Turn (combat_turn_tokens_draw)
-// The row ends at End Turn's right edge (as drawn: sprite origin and scale) and grows left, so it never runs under the
-// first slot; less a little for the token rims and a slot growing on hover.
-var _tokens_right = btn_x + btn_w/2 + (sprite_get_width(sEndTurn) - sprite_get_xoffset(sEndTurn)) * btn_scaler - 10;
-if (!show_rewards) combat_turn_tokens_draw(_tokens_right, aq_start_y + aq_tile_w/2 - 40);
+// The row sits centred over the part of End Turn you can see: from its left edge (as drawn: sprite origin and scale) to
+// wherever comes first of its right edge and the first slot (which overlaps it, and grows 10% each side on hover).
+var _et_left = btn_x + btn_w/2 - sprite_get_xoffset(sEndTurn) * btn_scaler;
+var _et_right = btn_x + btn_w/2 + (sprite_get_width(sEndTurn) - sprite_get_xoffset(sEndTurn)) * btn_scaler;
+var _tokens_max = min(_et_right, aq_start_x - aq_tile_w * 0.1) - 10; // the row never reaches past this
+if (!show_rewards) combat_turn_tokens_draw((_et_left + _tokens_max) / 2, _tokens_max, aq_start_y + aq_tile_w/2 - 40);
 draw_set_font(ftBig);
 
 // Click handling
