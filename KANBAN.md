@@ -126,6 +126,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 ## ❓ OPEN QUESTIONS (design decisions blocking work)
 
+- Q10 UI rework direction (branch `feature/ui-rework`): `docs/design-ui-rework.md` and the mockup `docs/mockups/ui-style-tile.html` (combat before/after, palette, type, components). Waiting for Jared's approval before any screen changes.
 - Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
 - Q7 Resolution targets: settled by B83 (batch 12): the game is laid out at 1920x1080 and scaled to any 16:9 window, so new resolutions only need adding to the list.
 - Q8 Between pages: answered by the strait and buoy (F112, F125, F126): the spread ends in sea stops on the map.
