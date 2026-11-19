@@ -470,13 +470,19 @@ for (var i = 0; i < aq_list_size; i++) {
 			var this_dice_spin = 0;
 			var this_dice_scale = 1;
 			
-			// Emphasise rolled dice
-			if (d == draw_dice_index && state == CombatState.RESOLVE_ROUND && i == draw_action_index && !player_turn_done) {
-				_angle = sin(((current_time / 1000) + 20) * 3.33) * 3;
-				dice_spin = lerp(dice_spin, 360, 0.15);
-				this_dice_spin =- dice_spin;
-				this_dice_scale = 1 - ((360/this_dice_spin)*0.3);
-				draw_die_shape(xx_top, yy_top, 17 * lerp(1.5, abs(_angle) + 1.5, 0.2), die_struct.dice_value, _col, _angle, 0.4);
+			// resolving: the die acting now pops up and glows (its number is already known, so no roll); the ones that
+			// have acted this round fade back. dice_spin counts 0 to 360 for each die (reset in Step as it acts).
+			var _resolving = (state == CombatState.RESOLVE_ROUND);
+			var _players_part = _resolving && action_index < ds_list_size(action_queue); // then the enemies act: all yours have
+			var _acting = _players_part && i == draw_action_index && d == draw_dice_index;
+			var _acted = _resolving && (!_players_part || i < draw_action_index || (i == draw_action_index && d < draw_dice_index));
+			if (_acting) {
+				dice_spin = lerp(dice_spin, 360, 0.25);
+				var _pop = 1 - dice_spin / 360; // 1 when it starts acting, easing to 0
+				this_dice_scale = 1.25 + 0.3 * _pop;
+				var _glow = 0.45 + 0.2 * sin(current_time / 80);
+				draw_die_shape(xx_top, yy_top, 17 * this_dice_scale * 1.45, die_struct.dice_value, c_white, 0, _glow * 0.6);
+				draw_die_shape(xx_top, yy_top, 17 * this_dice_scale * 1.3, die_struct.dice_value, _col, 0, _glow);
 			}
 
 	        // Outline ones that are sticky or played this turn
@@ -508,7 +514,7 @@ for (var i = 0; i < aq_list_size; i++) {
 			if (die_struct.rolled_value != -1) _shown_face = die_struct.rolled_value;
 			else if (die_struct.forced_roll != -1) _shown_face = clamp(die_struct.forced_roll, _out.min_roll, _out.max_roll);
 			else if (die_has_faces(die_struct)) _shown_face = die_face_total(die_struct, _out.min_roll, _out.max_roll);
-			draw_die(xx_top, yy_top, 17 * this_dice_scale, die_struct.dice_value, _shown_face, _col, this_dice_spin, 1);
+			draw_die(xx_top, yy_top, 17 * this_dice_scale, die_struct.dice_value, _shown_face, _col, 0, _acted ? 0.5 : 1);
 			
 			// Draw keyword icons above
 			draw_dice_keywords(die_struct, xx_top + 3, yy_top - 34, 1);
