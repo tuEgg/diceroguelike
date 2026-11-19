@@ -130,14 +130,32 @@ function ui_glyph(_type, _x, _y, _size, _col, _alpha = 1) {
 	draw_set_color(c_white);
 }
 
+/// @func ui_numeral_font(_size)
+/// @desc The numeral face for about _size px: { font, scale }. Lato Black SDF fonts at 20, 32 and 48 (ftNum20/32/48,
+///       made 2026-11-19); the nearest one at or above the size, scaled down to it (SDF stays crisp when scaled).
+function ui_numeral_font(_size) {
+	if (_size <= 20) return { font: ftNum20, scale: _size / 20 };
+	if (_size <= 32) return { font: ftNum32, scale: _size / 32 };
+	return { font: ftNum48, scale: _size / 48 };
+}
+
+/// @func ui_numeral_width(_text, _size)
+/// @desc How wide ui_numeral draws _text at _size, for laying numbers out side by side.
+function ui_numeral_width(_text, _size) {
+	var _f = ui_numeral_font(_size);
+	draw_set_font(_f.font);
+	return string_width(string(_text)) * _f.scale;
+}
+
 /// @func ui_numeral(_text, _x, _y, _size, _col, [_alpha], [_halign])
-/// @desc A number in the numeral face (Lato Black, ftDamage at 40 px) at about _size px: 48 totals and intents, 32 HP,
-///       20 bonuses and counts. Scaled from the one Lato font until the numeral fonts are made (see the design doc).
+/// @desc A number in the numeral face (Lato Black) at about _size px: 48 totals and intents, 32 HP, 20 bonuses and
+///       counts (ui_numeral_font picks the SDF font).
 function ui_numeral(_text, _x, _y, _size, _col, _alpha = 1, _halign = fa_center) {
-	draw_set_font(ftDamage);
+	var _f = ui_numeral_font(_size);
+	draw_set_font(_f.font);
 	draw_set_halign(_halign);
 	draw_set_valign(fa_middle);
-	var _sc = (abs(_size - 40) <= 8) ? 1 : _size / 40; // near its own size: drawn unscaled, crisp (scaled up, it blurs)
+	var _sc = _f.scale;
 	draw_set_alpha(_alpha);
 	draw_set_color(_col);
 	draw_text_transformed(_x, _y, string(_text), _sc, _sc, 0);
@@ -225,12 +243,11 @@ function ui_ticket(_x, _y, _w, _h, _type, _label, _total, _bonus, _seed, _state 
 	var _has_total = !_empty && string(_total) != "";
 	var _ny = _y + _band_h + (_h - _band_h) * 0.52;
 	var _bsize = min(30, _h * 0.2);
-	draw_set_font(ftDamage);
-	var _tw = _has_total ? string_width(string(_total)) : 0; // 44 px draws unscaled (ui_numeral)
-	var _bw = (_bonus != "") ? string_width(_bonus) * ((abs(_bsize - 40) <= 8) ? 1 : _bsize / 40) : 0;
+	var _tw = _has_total ? ui_numeral_width(_total, 44) : 0;
+	var _bw = (_bonus != "") ? ui_numeral_width(_bonus, _bsize) : 0;
 	var _gap = (_has_total && _bonus != "") ? 10 : 0;
 	var _left = _x + _w / 2 - (_tw + _gap + _bw) / 2;
-	if (_has_total) ui_numeral(_total, _left, _ny, 44, global.ui_col.ink, _alpha, fa_left); // the numeral face at its own size: crisp
+	if (_has_total) ui_numeral(_total, _left, _ny, 44, global.ui_col.ink, _alpha, fa_left);
 	if (_bonus != "") ui_numeral(_bonus, _left + _tw + _gap, _ny, _bsize, global.ui_col.bonus_ink, _alpha * (_has_total ? 1 : 0.85), fa_left);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
