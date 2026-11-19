@@ -155,6 +155,19 @@ if (is_dragging) {
 	}
 }
 
+// --- Safety net (B123): a die in hand that's off screen, or still drifting long after it was dealt, is placed in the hand area
+if (!is_dragging && !in_slot && !still) {
+	stray_timer = (variable_instance_exists(id, "stray_timer") ? stray_timer : 0) + 1;
+	var _off = (x < -40 || y < -40 || x > display_get_gui_width() + 40 || y > display_get_gui_height() + 40);
+	if ((_off && has_rolled) || (!has_rolled && stray_timer > game_get_speed(gamespeed_fps) * 3)) {
+		var _spot = generate_valid_targets(1, 100)[0];
+		x = _spot[0]; y = _spot[1];
+		target_x = x; target_y = y;
+		speed = 0;
+		has_rolled = true;
+	}
+}
+
 // --- Snap back smoothly when not dragging ---
 if (!is_dragging && has_rolled && !in_slot && !still) {
 

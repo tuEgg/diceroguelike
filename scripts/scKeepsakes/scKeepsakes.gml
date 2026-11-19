@@ -408,30 +408,15 @@ function define_keepsakes() {
 		state: { effect_used: false, first_die: undefined },
 	    trigger: function(event, data) {
 	        if (event == "on_roll_die") {
-				if (die_has_keyword(data.die, "Followthrough")) {
-					// the first Followthrough die in the queue, in the order the slots resolve
-					var _first_die = undefined;
-					if (instance_exists(oCombat)) {
-						for (var s = 0; s < ds_list_size(oCombat.action_queue) && _first_die == undefined; s++) {
-							var _dice_list = oCombat.action_queue[| s].dice_list;
-							for (var d = 0; d < ds_list_size(_dice_list); d++) {
-								if (die_has_keyword(_dice_list[| d], "Followthrough")) {
-									_first_die = _dice_list[| d];
-									break;
-								}
-							}
-						}
-					}
-					
-					if (data.die != _first_die) return;
-					
-					data.repeat_followthrough = true;
-					
-					if (!data.read_only && !self.state.effect_used) {
-						self.state.effect_used = true;
-				
-						trigger_keepsake_visual();
-					}
+				// only when a Followthrough die's effect actually fired this roll (its condition was met: it added to
+				// the roll), and only the first time each turn. Previews show the doubled bonus while it's unused.
+				if (!die_has_keyword(data.die, "Followthrough") || self.state.effect_used) return;
+				var _fired = variable_struct_exists(data, "die_effects_added") && data.die_effects_added > 0;
+				if (!_fired) return;
+				data.repeat_followthrough = true;
+				if (!data.read_only) {
+					self.state.effect_used = true;
+					trigger_keepsake_visual();
 				}
 			}
 			

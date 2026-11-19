@@ -3,7 +3,7 @@ update_gui_layout();
 global.heal_pos = 0;
 
 randomise();
-credits = debug_mode ? 500 : 50;
+credits = 50; // the same in debug runs (F1 > Run can add gold when testing)
 generate_dice_bag();
 define_buffs_and_debuffs();
 define_enemies();

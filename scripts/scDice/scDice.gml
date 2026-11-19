@@ -1259,7 +1259,8 @@ function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
 	return {
 		min_roll: roll_data.min_roll,
 		max_roll: roll_data.max_roll,
-		keepsake_dice_bonus_amount: roll_data._d_amount * (roll_data.repeat_followthrough + 1), // double the bonuses if we're repeating followthrough
+		// a repeated Followthrough (Chainmaster's Anchor) adds the die's own effect once more, not every keepsake's bonus too
+		keepsake_dice_bonus_amount: roll_data._d_amount + (roll_data.repeat_followthrough ? (variable_struct_exists(roll_data, "die_effects_added") ? roll_data.die_effects_added : 0) : 0),
 		previous_slot_type: roll_data.previous_slot_action_type,
 		roll_twice: roll_data.roll_twice,
 		weighting: roll_data.weighting
@@ -1292,6 +1293,9 @@ function trigger_die_effects_single(_die_struct, _event, _data) {
 ///       still check uids themselves; that stays harmless.
 function die_fire_effects(_die, _event, _data, _broadcast = false) {
 	if (!is_struct(_die) || !variable_struct_exists(_die, "effects") || is_undefined(_die.effects)) return;
+	// what this die's own effects add to the roll bonus (_d_amount), kept on the context as die_effects_added so
+	// keepsakes can tell whether the die's effect actually did something (Chainmaster's Anchor)
+	var _before = (variable_struct_exists(_data, "_d_amount") && is_real(_data._d_amount)) ? _data._d_amount : 0;
 	var _effs = is_array(_die.effects) ? _die.effects : [_die.effects];
 	for (var e = 0; e < array_length(_effs); e++) {
 		var eff = _effs[e];
@@ -1304,6 +1308,7 @@ function die_fire_effects(_die, _event, _data, _broadcast = false) {
 		_data._die_struct_source = _die; // the die whose effect is firing
 		eff.modify(_data);
 	}
+	if (variable_struct_exists(_data, "_d_amount") && is_real(_data._d_amount)) _data.die_effects_added = _data._d_amount - _before;
 }
 
 /// @func effect_subject_die(_data)
