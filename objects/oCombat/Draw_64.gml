@@ -427,7 +427,7 @@ for (var i = 0; i < aq_list_size; i++) {
 		draw_outline_text(string(_have) + " / " + string(_need), c_black, _filled ? c_white : make_color_rgb(150, 150, 160), 2, last_x + last_w / 2, last_y + last_h / 2 - (_filled ? 0 : 14), 1, 1, 0);
 		draw_set_font(ftDefault);
 		if (!_filled) draw_padlock(last_x + last_w / 2, last_y + last_h / 2 + 26, 1, make_color_rgb(190, 190, 200));
-		if (last_hover && !is_placing && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", (!_filled ? "Locked: every slot needs an action before you can build another. " : "") + "Drop dice here. When " + ((new_slot_min_dice() == 1) ? "they" : string(new_slot_min_dice()) + " or more of them") + " add up to " + string(_need) + ", they build a new slot and act in it this turn. Each die uses a play (coins are free). Click a die here to take it back. Dice left here at End Turn are discarded.");
+		if (last_hover && !is_placing && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", (!_filled ? "Fill every slot first.\n" : "") + "Drop " + ((new_slot_min_dice() == 1) ? "a die" : string(new_slot_min_dice()) + "+ dice") + " adding up to " + string(_need) + " to build a slot. They act in it this turn."); // short: the rest (plays, taking back, End Turn) works as everywhere else
 
 		// the dice waiting on it, above it like a slot's
 		var _wait = ds_list_size(global.sacrifice_list);

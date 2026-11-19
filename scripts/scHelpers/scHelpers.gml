@@ -610,6 +610,12 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     var icon_space = (_icon != undefined || has_core) ? (_compact ? 36 : 50) : 0;
     var _width  = padding * 2 + max(name_w, longest_line_px) + icon_space;
     var _height = padding * (_compact ? 1.4 : 1.6) + name_h + desc_h + (_compact ? 4 : 10);
+    // a core's distribution sits inside the box, under the words (it used to float above the box, over the die)
+    var _dist_h = has_core ? 55 + 8 : 0; // draw_dice_distribution at scale 1 is 55 tall
+    if (has_core) {
+	    _width = max(_width, padding * 2 + icon_space + _dice.dice_value * 17 + 10);
+	    _height += _dist_h;
+    }
 
 	if (_measure_only) return { w: _width, h: _height };
 
@@ -655,7 +661,6 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     }
     if (icon_sprite != undefined) {
         draw_sprite_ext(icon_sprite, icon_idx, content_x + (_compact ? 10 : 16), yy + (_height / 2), icon_scale, icon_scale, 0, c_white, 1);
-        if (has_core) draw_dice_distribution(_dice, content_x + 35, yy);
         content_x += icon_space;
     }
 
@@ -672,6 +677,8 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
 	    draw_set_font(ftDescriptions);
 	    _py += string_height_ext(_paras[p], line_sep, max_desc_w) + para_gap;
     }
+
+	if (has_core) draw_dice_distribution(_dice, content_x, yy + _height - padding * 0.7, false, 1);
 
 	return { w: _width, h: _height };
 }
