@@ -33,7 +33,7 @@ Decides everything random **once, on the node** (so Continue brings back the sam
 
 ## Look (UI rework)
 
-The draft heading is a ; Embark is  bottom right (the tip  points there); the chapter end is a  page with  at its bottom right; sea-stop names are ink with a paper halo.
+The draft heading is a `ui_label`; Embark is `ui_primary` bottom right (the tip `embark` points there); the chapter end is a `ui_paper` page with `ui_primary` at its bottom right; sea-stop names are ink with a paper halo.
 
 ## Chapters
 
