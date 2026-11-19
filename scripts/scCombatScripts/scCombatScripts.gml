@@ -754,10 +754,34 @@ function is_mouse_over_discard_button() {
 }
 
 /// @func combat_inkwell_pos()
-/// @desc Where the inkwell (your insight) sits in a fight: on the ground just right of you (UI rework; it used to float
-///       over your head). The ink view and the tips read it too.
+/// @desc Where the inkwell (your insight) sits in a fight: just before the action queue (UI rework; it used to float
+///       over your head), so it reads as something you use. The ink view and the tips read it too.
 function combat_inkwell_pos() {
+	// just before the action queue, at its middle: the ink is something you use on your turn, not a buff you carry
+	if (instance_exists(oCombat) && variable_instance_exists(oCombat, "aq_left")) return { x: oCombat.aq_left - 78 * global.ui_scale, y: oCombat.aq_mid_y + 8 };
 	return { x: global.player_x + 140, y: global.player_y + 22 };
+}
+
+/// @func combat_shuffle_effect(_n)
+/// @desc The discard pile is shuffled back into the bag (deal_single_die): a burst at the pile, up to 8 dice flying out
+///       of it in an arc and into the bag (look-only oDiceParticles: visual_only, so landing adds or discards
+///       nothing), another burst as they land, and a shuffle sound.
+function combat_shuffle_effect(_n) {
+	var _s = combat_discard_spot();
+	var _fx = _s.x + sprite_get_width(sDiceBag) / 2, _fy = _s.y - sprite_get_height(sDiceBag) / 2;
+	var _tx = global.gui.bag_x + global.gui.bag_w / 2, _ty = global.gui.bag_y + global.gui.bag_h / 2;
+	particle_emit(_fx, _fy, "burst", global.ui_col.rule, 24);
+	repeat (min(8, max(1, _n))) {
+		var _p = instance_create_layer(_fx + irandom_range(-14, 14), _fy + irandom_range(-10, 10), "Instances", oDiceParticle);
+		_p.visual_only = true;
+		_p.target_x = _tx;
+		_p.target_y = _ty;
+		_p.x_speed = random_range(-3.5, -1.5); // up and back toward the bag
+		_p.y_speed = -irandom_range(9, 13);
+		_p.die_struct = clone_die(global.discard_pile[| irandom(ds_list_size(global.discard_pile) - 1)], "");
+		_p.color_main = get_dice_color(_p.die_struct.possible_type);
+	}
+	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.35);
 }
 
 /// @func combat_discard_spot()
@@ -1579,7 +1603,7 @@ function define_combat_ui_sizes() {
 	aq_tile_w = 140; // size of an action queue tile, needed to be declared here to reposition enemies in fights. 140 is the default value
 
 	global.enemy_x = (1600 * global.ui_scale) + (enemies_left_this_combat * (100 * global.ui_scale));
-	global.enemy_y = 735 * global.ui_scale;
+	global.enemy_y = 665 * global.ui_scale; // (UI rework: raised, so the bottom right stays clear for End Turn)
 	global.player_x = 355 * global.ui_scale - (25 * global.ui_scale);
 	global.player_xstart = global.player_x;
 	global.player_y = global.enemy_y;

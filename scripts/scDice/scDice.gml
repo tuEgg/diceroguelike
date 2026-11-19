@@ -18,6 +18,8 @@ function deal_single_die( _can_discard_this_turn = true) {
 	    // outside a fight the discard pile has been freed (oCombat CleanUp), so only a live one can be reshuffled (B109)
 	    if (ds_safe_exists(global.discard_pile, ds_type_list) && ds_list_size(global.discard_pile) > 0) {
 	        //show_debug_message("Dice bag empty — reshuffling discard pile!");
+	        // in a fight, you see it happen: the spent dice fly out of the discard pile and back into the bag
+	        if (room == rmCombat) combat_shuffle_effect(ds_list_size(global.discard_pile));
 	        for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
 	            var discard_die = global.discard_pile[| i];
 	            var die_copy = clone_die(discard_die, "");
@@ -568,7 +570,7 @@ function generate_dice_bag() {
 	// Fogcaller Die
 	global.die_fogcaller = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Fogcaller Die",
-	    "Followthrough: +1 if the previous slot has a coin. Played there, draw a die.",
+	    "Followthrough: if the slot before it holds a coin, +1 and draw a die.",
 		"common",
 		40,
 	    [
@@ -1954,7 +1956,7 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1) {
 	}
 	var _pips = die_pip_layout(_face);
 	if (array_length(_pips) > 0) {
-		var _pr = max(1.5, _r * ((_face > 6) ? 0.1 : 0.13) * ((_sides == 4) ? 0.85 : 1));
+		var _pr = max(2, _r * ((_face > 6) ? 0.125 : 0.165) * ((_sides == 4) ? 0.85 : 1)); // chunky enough to count at a glance
 		draw_set_alpha(_alpha);
 		for (var i = 0; i < array_length(_pips); i++) {
 			var _px = _pips[i][0] * _spread, _py = _pips[i][1] * _spread + _cy;

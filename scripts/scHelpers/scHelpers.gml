@@ -2338,11 +2338,11 @@ function die_stats_line(_d, _out) {
 /// @desc Where things go on a bag card, measured from its text (like offering_card_layout): the stats line and the
 ///       description beside the die, then a fitted core's distribution under whichever is lower. h is the height it needs.
 function bag_card_layout(_d, _w) {
-	var _head_h = 42;
+	var _head_h = 48;
 	var _text_x = 88;                 // from the card's left edge
 	var _text_w = _w - _text_x - 14;
-	draw_set_font(ftDefault);
-	var _line = font_get_size(ftDefault) * 1.5; // the line height coloured text wraps at (draw_outline_text)
+	draw_set_font(ftBig); // the effect at 20 px (UI rework, round 2)
+	var _line = font_get_size(ftBig) * 1.5; // the line height coloured text wraps at (draw_outline_text)
 	var _desc_h = string_height_ext(die_description(_d), _line, _text_w);
 	var _die_bottom = _head_h + 40 + 36;           // the die (radius 30, a triangle reaching a bit lower)
 	var _text_bottom = _head_h + 14 + _desc_h;
@@ -2382,7 +2382,7 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 	draw_line_width(_x1 + 5, _y1 + _head_h, _x2 - 5, _y1 + _head_h, 2);
 	var _lum = 0.299 * colour_get_red(_cols[0]) + 0.587 * colour_get_green(_cols[0]) + 0.114 * colour_get_blue(_cols[0]);
 	var _on = (_lum < 150) ? global.ui_col.paper_hi : global.ui_col.ink;
-	draw_set_font(ftDefault);
+	draw_set_font(ftBig);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
 	draw_outline_text(_d.name, (_lum < 150) ? global.ui_col.ink : global.ui_col.paper_hi, _on, 1, _x1 + 16, _y1 + 4 + _head_h / 2, 1, _alpha, 0, _w - 16 - 36);
@@ -2394,7 +2394,7 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 	if (global.action_icons) draw_action_type_icon(_d.action_type, _dx - 26, _dy + 26, 0.7, _alpha);
 	var _out = get_dice_output(_d, -1, -1, true, "player"); // read only: viewing the bag must never trigger keepsakes
 	var _tx = _x1 + _lay.text_x;
-	draw_set_font(ftDefault);
+	draw_set_font(ftBig);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 	ui_paper_text(colorcode_text(die_description(_d)), _tx, _y1 + _head_h + 14, _lay.text_w, _alpha);

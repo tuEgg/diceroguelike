@@ -240,6 +240,8 @@ if (toolbar_hover) {
 	if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
 		show_tools = 1 - show_tools;
 	}
+}
+if (toolbar_hover && !show_tools) { // (its tip would cover the tools once they're out)
 	if (room == rmMap) {
 		if (can_visit_workbench) {
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools used to manipulate your dice at the workbench.");

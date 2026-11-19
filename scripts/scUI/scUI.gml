@@ -137,7 +137,7 @@ function ui_numeral(_text, _x, _y, _size, _col, _alpha = 1, _halign = fa_center)
 	draw_set_font(ftDamage);
 	draw_set_halign(_halign);
 	draw_set_valign(fa_middle);
-	var _sc = _size / 40;
+	var _sc = (abs(_size - 40) <= 8) ? 1 : _size / 40; // near its own size: drawn unscaled, crisp (scaled up, it blurs)
 	draw_set_alpha(_alpha);
 	draw_set_color(_col);
 	draw_text_transformed(_x, _y, string(_text), _sc, _sc, 0);
@@ -207,7 +207,7 @@ function ui_ticket(_x, _y, _w, _h, _type, _label, _total, _bonus, _seed, _state 
 	var _on = (_lum < 150) ? global.ui_col.paper_hi : global.ui_col.ink;
 	var _by = _y + 4 + (_band_h - 4) / 2;
 	if (!_empty) ui_glyph(_type, _x + 20, _by, _band_h * 0.55, _on, _alpha);
-	draw_set_font(ftDefault);
+	draw_set_font(ftBig); // 20 px: readable at 1080 (UI rework, round 2)
 	draw_set_halign(_empty ? fa_center : fa_left);
 	draw_set_valign(fa_middle);
 	draw_set_color(_on);
@@ -220,7 +220,7 @@ function ui_ticket(_x, _y, _w, _h, _type, _label, _total, _bonus, _seed, _state 
 	// the total, huge in ink, and the bonus beside it
 	if (!_empty && string(_total) != "") {
 		var _tx = _bonus != "" ? _x + _w * 0.42 : _x + _w / 2;
-		ui_numeral(_total, _tx, _y + _band_h + (_h - _band_h) * 0.52, min(64, _h * 0.42), global.ui_col.ink, _alpha);
+		ui_numeral(_total, _tx, _y + _band_h + (_h - _band_h) * 0.52, 44, global.ui_col.ink, _alpha); // the numeral face at its own size: crisp
 		if (_bonus != "") ui_numeral(_bonus, _x + _w * 0.78, _y + _band_h + (_h - _band_h) * 0.5, min(30, _h * 0.2), global.ui_col.bonus_ink, _alpha);
 	}
 	draw_set_halign(fa_left);

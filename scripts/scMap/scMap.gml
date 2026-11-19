@@ -1517,16 +1517,18 @@ function strait_draw(_ax, _ay) {
 ///       tool has work (oRunManager.can_visit_workbench and workbench_useful): it opens the workbench. Clicking the next
 ///       island sails past it. sea_buoy.visited remembers you went (the route drawn as taken).
 function sea_buoy_draw(_bx, _by) {
-	if (!is_struct(sea_buoy) || sea_buoy.spread != ds_list_size(chosen_pages)) sea_buoy = { scale: 1, sailing: false, visited: false, active: false, spread: ds_list_size(chosen_pages) }; // one per spread
+	if (!is_struct(sea_buoy) || sea_buoy.spread != ds_list_size(chosen_pages)) sea_buoy = { scale: 1, sailing: false, visited: false, active: false, passed: false, spread: ds_list_size(chosen_pages) }; // one per spread
 	var _b = sea_buoy;
 	_b.x = _bx; _b.y = _by;
 	var _open = world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench && next_node != undefined && !_b.visited;
 	var _useful = workbench_useful();
 	_b.active = _open && _useful;
-	if (_open && !_b.sailing && node_to_move_to != undefined) oRunManager.can_visit_workbench = false; // sailed past
+	if (_open && !_b.sailing && node_to_move_to != undefined) { oRunManager.can_visit_workbench = false; _b.passed = true; } // sailed past
+	if (_open && !_useful) _b.passed = true; // nothing to do there: it stays dark from now on
 	var _hov = !_b.sailing && mouse_hovering(_b.x, _b.y, 64, 64, true, soSlotHover, noone);
 	_b.scale = lerp(_b.scale, (_hov && _b.active) ? 1.25 : 1, 0.2);
-	sea_stop_draw("workbench", _b.x, _b.y, _b.scale, (_b.active || _b.visited) ? 1 : 0.75, _b.active || !_open);
+	var _dark = _b.passed && !_b.visited; // couldn't be used, or sailed past: it stays dark
+	sea_stop_draw("workbench", _b.x, _b.y, _b.scale, (_b.active || _b.visited) ? 1 : 0.75, (_b.active || !_open) && !_dark);
 	draw_set_font(ftDescriptions);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
@@ -1623,13 +1625,13 @@ function boat_sail_toward(_tx, _ty) {
 	var _v = boat_data.voyage;
 	if (!is_struct(_v) || point_distance(_v.x1, _v.y1, _tx, _ty) > 40) {
 		var _len = point_distance(boat_data.x, boat_data.y, _tx, _ty);
-		_v = { x0: boat_data.x, y0: boat_data.y, x1: _tx, y1: _ty, t: 0, dur: clamp(_len / 3.2, 35, 150), waves: max(1, round(_len / 180)) };
+		_v = { x0: boat_data.x, y0: boat_data.y, x1: _tx, y1: _ty, t: 0, dur: clamp(_len / 4.6, 26, 95), waves: max(1, round(_len / 200)) }; // (round 2: a third quicker)
 		boat_data.voyage = _v;
 	}
 	_v.x1 = _tx; _v.y1 = _ty; // a stop that drifts a little is followed, not restarted
 	_v.t = min(1, _v.t + 1 / _v.dur);
 	var _t = _v.t;
-	var _e = _t * _t * _t * (_t * (_t * 6 - 15) + 10); // smootherstep: eased at both ends
+	var _e = _t * _t * (3 - 2 * _t); // smoothstep: eased at both ends, but quicker off the mark than smootherstep (round 2)
 	var _dir = point_direction(_v.x0, _v.y0, _v.x1, _v.y1);
 	// the weave: across the course, swelling mid-voyage
 	var _amp = 16 * sin(_t * pi);

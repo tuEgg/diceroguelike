@@ -3,13 +3,22 @@ var my = device_mouse_y_to_gui(0);
 
 var tooltip = "";
 
-aq_tile_w = 62.48177 * power(1.000414, gui_w); // using desmos graphic calculator, expontential regression at these values: 1600 = 120, 1920 = 140, 2560 = 180
+aq_tile_w = 62.48177 * power(1.000414, gui_w) * 1.12; // (UI rework: tickets 12% bigger, so names and totals read) // using desmos graphic calculator, expontential regression at these values: 1600 = 120, 1920 = 140, 2560 = 180
 
 var aq_list_size = ds_list_size(action_queue);
 var aq_tile_padding = aq_tile_w / 7;
 var aq_total_w = ((aq_list_size + 1) * aq_tile_w) + ((aq_list_size) * aq_tile_padding);
 var aq_start_x = gui_w / 2 - (aq_total_w / 2);
-var aq_start_y = gui_h / 2;
+// the queue keeps clear of the enemies (a crowd pushes it left), but stays right of you and the inkwell before it
+var _q_right = gui_w;
+for (var _qe = 0; _qe < ds_list_size(room_enemies); _qe++) {
+	var _qen = room_enemies[| _qe];
+	if (!_qen.dead && variable_struct_exists(_qen, "pos_x_start")) _q_right = min(_q_right, _qen.pos_x_start - 150 * global.ui_scale);
+}
+aq_start_x = min(aq_start_x, _q_right - aq_total_w);
+aq_start_x = max(aq_start_x, global.player_x + 230 * global.ui_scale);
+var aq_start_y = gui_h / 2 - 70; // the fight sits a little higher, leaving the bottom right to End Turn
+aq_left = aq_start_x; aq_mid_y = aq_start_y + aq_tile_w / 2; // the inkwell sits just before the queue (combat_inkwell_pos)
 
 // Keep tile_scale list synced with action_queue size
 if (ds_list_size(tile_scale) < aq_list_size) {
@@ -1081,7 +1090,7 @@ if (show_rewards) {
 		case "dice":
 			// the dice on offer as the same paper cards as the bag (draw_bag_card, UI rework), side by side, all as tall as
 			// the tallest needs; hover lifts one, a click takes it
-			var _rc_w = 300, _rc_gap = 40;
+			var _rc_w = 360, _rc_gap = 40;
 			var _rc_n = ds_list_size(reward_dice_options);
 			var _rc_h = 150;
 			for (var r = 0; r < _rc_n; r++) _rc_h = max(_rc_h, bag_card_layout(reward_dice_options[| r], _rc_w).h);
