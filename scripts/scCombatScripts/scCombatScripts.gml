@@ -2414,8 +2414,11 @@ function workbench_take_die(_die) {
 function workbench_tool_used(_object) {
 	if (!instance_exists(oWorkbenchManager)) return;
 	array_push(oWorkbenchManager.tools_used, _object);
-	oRunManager.holding_item = false;
-	with (_object) instance_destroy();
+	// it stays in hand for half a second (its last pose shows), then returns to the bench greyed out (the tool's Step)
+	with (_object) {
+		tool_used = true;
+		used_timer = ceil(game_get_speed(gamespeed_fps) * 0.5);
+	}
 }
 
 /// @func workbench_open_picker()

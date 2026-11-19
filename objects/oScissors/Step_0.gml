@@ -1,3 +1,25 @@
+// used this visit: it lingers in hand for a moment (its last pose shows), then goes back to its spot greyed out.
+// A used tool skips everything below, so it can't craft again or shake the Craft button.
+if (tool_used) {
+	if (used_timer > 0) {
+		used_timer--;
+		x = device_mouse_x(0);
+		y = device_mouse_y(0);
+		if (used_timer <= 0) {
+			is_dragging = false;
+			image_blend = c_gray;
+			image_alpha = 0.55;
+		}
+	} else {
+		is_dragging = false;
+		x = lerp(x, xstart, 0.2);
+		y = lerp(y, ystart, 0.2);
+		over_button = false;
+		if (position_meeting(device_mouse_x(0), device_mouse_y(0), self)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "The Cutters (used)", "Each tool works once per visit to the workbench.", undefined, 0, undefined);
+	}
+	exit;
+}
+
 var gui_w = display_get_gui_width();
 var gui_h = display_get_gui_height();
 
