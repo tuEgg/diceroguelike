@@ -2042,7 +2042,7 @@ function tips_list() {
 		{
 			id: "workbench_map", room: rmMap, target: "at_sea",
 			text: "At sea. When you finish a page's island and a tool has work, a buoy floats on the way to the next one: sail to it for the workbench, or sail past.",
-			when: function() { return instance_exists(oWorldManager) && is_struct(oWorldManager.sea_buoy); },
+			when: function() { return instance_exists(oWorldManager) && is_struct(oWorldManager.sea_buoy) && oWorldManager.sea_buoy.active; },
 		},
 		{
 			id: "workbench_bag", room: rmWorkbench, target: "wb_pick",
@@ -2135,13 +2135,13 @@ function tips_list() {
 function tips_rect(_target) {
 	switch (_target) {
 		case "at_sea":
-			if (!instance_exists(oWorldManager) || !is_struct(oWorldManager.sea_buoy)) return undefined;
+			if (!instance_exists(oWorldManager) || !is_struct(oWorldManager.sea_buoy) || !variable_struct_exists(oWorldManager.sea_buoy, "x")) return undefined;
 			return { x: oWorldManager.sea_buoy.x - 40, y: oWorldManager.sea_buoy.y - 40, w: 80, h: 100 }; // the buoy
 		case "insight":
 			return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
 		case "wb_pick":
 			if (!instance_exists(oWorkbenchManager)) return undefined;
-			with (oWorkbenchManager) return { x: display_get_gui_width() / 2 - 280, y: start_y - wb_tile_size - 230, w: 560, h: 170 };
+			with (oWorkbenchManager) return { x: display_get_gui_width() / 2 - 280, y: max(start_y - wb_tile_size - 230, 200), w: 560, h: 170 };
 			break;
 		case "wb_slots":
 			if (!instance_exists(oWorkbenchManager)) return undefined;

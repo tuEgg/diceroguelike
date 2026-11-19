@@ -270,7 +270,7 @@ if (room == rmMap) {
 			
 					var left_or_right_page = ds_list_size(chosen_pages) mod 2;
 					
-					var drawn_page_x = gui_w * (0.333 + (0.333 * left_or_right_page));
+					var drawn_page_x = gui_w * (0.333 + (0.333 * left_or_right_page)) - 70; // a little left: room for the sea stop past each island (spread_sea_spots)
 					var drawn_page_y = gui_h * 0.5;
 			
 			
@@ -394,10 +394,14 @@ if (room == rmMap) {
 		}
 	}
 	
-	// the strait (the spread's end): its sea stops on the outer side of the right page, under the ship
-	// at sea (F02): between a spread's pages, a buoy offers the workbench (sea_buoy_draw); sailing on to the next island skips it
-	sea_buoy_draw();
-	if (world_state == WORLD_STATE.STRAIT) strait_draw(gui_w/2 + page_pos_offset + page_w * page_xscale * 0.8, page_y);
+	// the spread as a chart (F125): dotted courses between its stops, the Shipwright's buoy between the pages and the
+	// strait's stops past the right page, on the map the whole spread (sailable when you get there), under the ship
+	var _spots = spread_sea_spots();
+	if (_spots.left != undefined && (world_state == WORLD_STATE.EXPLORING || world_state == WORLD_STATE.STRAIT)) {
+		spread_routes_draw(_spots);
+		sea_buoy_draw(_spots.buoy.x, _spots.buoy.y);
+		strait_draw(_spots.strait.x, _spots.strait.y);
+	}
 
 	// Draw the boat (clicking it to visit the workbench was tried and taken out: see KANBAN F02)
 	var boat_hover = mouse_hovering(boat_data.x, boat_data.y - sprite_get_height(sMapShip)/2, sprite_get_width(sMapShip), sprite_get_height(sMapShip), true);

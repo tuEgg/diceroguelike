@@ -901,6 +901,7 @@ function deserialise_page(_data) {
 
 function start_drafting() {
 	world_state = WORLD_STATE.DRAFTING;
+	strait = undefined; // the next spread plans its own (strait_build)
 	for (var n = 0; n < ds_list_size(all_nodes); n++) {
 		if (!all_nodes[| n].disappeared) all_nodes[| n].disappeared = true;
 	}
@@ -1059,8 +1060,7 @@ function world_finish_spread_if_done() {
 	if (_last_page != undefined && page_is_boss(_last_page)) {
 		world_state = WORLD_STATE.CHAPTER_END;
 	} else {
-		// the strait: the spread's end is a fork of sea stops on the map (strait_draw), then the page turns
-		strait = undefined;
+		// the strait: the spread's end is a fork of sea stops on the map (planned since the spread began, strait_draw)
 		world_state = WORLD_STATE.STRAIT;
 	}
 }
@@ -1314,31 +1314,52 @@ function spread_end_apply(_id, _heal_amount) {
 // =====================================================================
 
 /// @func strait_build()
-/// @desc oWorldManager: lays out this spread end's stops (once): the workbench buoy if a tool has work, then two rolled
-///       from the pool (spread_end_roll_options). If none of those can be taken, calm water (the heal alone).
+/// @desc oWorldManager: plans this spread's strait as soon as it's being sailed (strait_draw), so its stops are on the
+///       map from the start: the Shipwright's buoy (the workbench) and two rolled from the pool (spread_end_roll_options).
+///       Whether each can be taken is checked when you reach it (strait_activate).
 function strait_build() {
-	var _ids = [];
-	if (oRunManager.can_visit_workbench && workbench_useful()) array_push(_ids, "workbench");
 	var _rolled = spread_end_roll_options();
-	array_push(_ids, _rolled[0], _rolled[1]);
-	var _any = false;
-	for (var i = 0; i < array_length(_ids); i++) if (strait_stop_info(_ids[i], 0).ok) _any = true;
-	if (!_any) array_push(_ids, "calm");
-	oRunManager.can_visit_workbench = false; // the buoy is one of the stops now
+	var _ids = ["workbench", _rolled[0], _rolled[1]];
+	strait = { ids: _ids, scales: [1, 1, 1, 1], heal: 0, chosen: -1, arrived: false, healed: false, stamp: 0, active: false };
+}
 
-	// what passing through heals (keepsakes like Salted Pork add to it), worked out once
+/// @func strait_activate()
+/// @desc The spread's islands are done (WORLD_STATE.STRAIT): the stops can be sailed to. Works out what passing through
+///       heals (keepsakes like Salted Pork add to it), and adds calm water (the heal alone) if no stop can be taken.
+function strait_activate() {
+	if (!is_struct(strait)) strait_build();
+	if (strait.active) return;
+	strait.active = true;
+	var _any = false;
+	for (var i = 0; i < array_length(strait.ids); i++) if (strait_stop_info(strait.ids[i], 0).ok) _any = true;
+	if (!_any) array_push(strait.ids, "calm");
+	oRunManager.can_visit_workbench = false; // the buoy is one of the stops here
 	var _ctx = { rest_amount: rest_amount };
 	runmanager_trigger_keepsakes("on_rest", _ctx);
-	var _scales = [];
-	for (var i = 0; i < array_length(_ids); i++) array_push(_scales, 1);
-	strait = { ids: _ids, scales: _scales, heal: ceil(global.player_max_hp * _ctx.rest_amount), chosen: -1, arrived: false, healed: false, stamp: 0 };
+	strait.heal = ceil(global.player_max_hp * _ctx.rest_amount);
+}
+
+/// @func spread_sea_spots()
+/// @desc Where this spread's sea stops sit, from its two islands' pages: { buoy: {x, y} } just past the left page's
+///       island, { strait: {x, y} } past the right page's. Undefined parts on a single-page (boss) spread.
+function spread_sea_spots() {
+	var _n = ds_list_size(chosen_pages);
+	var _out = { buoy: undefined, strait: undefined, left: undefined, right: undefined };
+	if (_n < 2 || world_state == WORLD_STATE.DRAFTING || world_state == WORLD_STATE.OPENING) return _out;
+	var _l = chosen_pages[| _n - 2], _r = chosen_pages[| _n - 1];
+	if (page_is_boss(_r)) return _out;
+	var _half = sprite_get_width(sMapParchment) / 2;
+	_out.left = _l; _out.right = _r;
+	_out.buoy = { x: _l.x + _half + 70, y: _l.y };
+	_out.strait = { x: _r.x + _half + 80, y: _r.y };
+	return _out;
 }
 
 /// @func strait_stop_info(_id, _heal)
 /// @desc What a sea stop is called and does: { name, tip, ok, reason }. The heal is added to the tip by strait_draw.
 function strait_stop_info(_id, _heal) {
 	switch (_id) {
-		case "workbench": return { name: "Shipwright's buoy", tip: "Moor here and open the workbench: take dice from your bag (one per tool you own) and use each tool once.", ok: true, reason: "" };
+		case "workbench": return { name: "Shipwright's buoy", tip: "Moor here and open the workbench: take dice from your bag (one per tool you own) and use each tool once.", ok: workbench_useful(), reason: "None of your tools has work to do (the Drill needs a core)." };
 		case "calm":      return { name: "Calm water", tip: "Nothing out here but a quiet night.", ok: true, reason: "" };
 	}
 	var _i = spread_end_option_info(_id, _heal, true);
@@ -1402,18 +1423,10 @@ function sea_stop_draw(_id, _x, _y, _scale, _alpha, _ok) {
 	draw_set_color(c_white);
 }
 
-/// @func sea_route_draw(_x1, _y1, _x2, _y2, _alpha)
-/// @desc A dotted course from the ship to a sea stop, in ink like the routes between islands.
-function sea_route_draw(_x1, _y1, _x2, _y2, _alpha) {
-	var _len = point_distance(_x1, _y1, _x2, _y2);
-	draw_set_color(c_black);
-	draw_set_alpha(0.55 * _alpha);
-	for (var d = 34; d < _len - 34; d += 14) {
-		var _t = d / _len;
-		draw_circle(lerp(_x1, _x2, _t), lerp(_y1, _y2, _t) - sin(_t * pi) * 18, 3, false); // a gentle bow
-	}
-	draw_set_alpha(1);
-	draw_set_color(c_white);
+/// @func strait_stop_spot(_i, _n, _ax, _ay)
+/// @desc Where stop _i of _n sits round the strait's anchor: stacked down the page, staggered a little in and out.
+function strait_stop_spot(_i, _n, _ax, _ay) {
+	return { x: _ax + ((_i mod 2) ? 24 : -24) * (_n > 2), y: _ay + (_i - (_n - 1) / 2) * 130 };
 }
 
 /// @func strait_draw(_ax, _ay)
@@ -1423,26 +1436,31 @@ function sea_route_draw(_x1, _y1, _x2, _y2, _alpha) {
 ///       turns when you come back); an ink stamp shows what you got, then the page turns.
 function strait_draw(_ax, _ay) {
 	if (!is_struct(strait)) strait_build();
+	if (world_state == WORLD_STATE.STRAIT) strait_activate();
 	var _n = array_length(strait.ids);
-	var _gap = 150;
-	var _ok_input = (global.ui_layer == UI_LAYER.BASE);
+	var _gap = 130;
+	var _ok_input = (global.ui_layer == UI_LAYER.BASE) && strait.active;
 	for (var i = 0; i < _n; i++) {
 		var _id = strait.ids[i];
-		var _sx = _ax + ((i mod 2) ? 26 : -26) * (_n > 2), _sy = _ay + (i - (_n - 1) / 2) * _gap;
+		var _sp = strait_stop_spot(i, _n, _ax, _ay);
+		var _sx = _sp.x, _sy = _sp.y;
 		var _info = strait_stop_info(_id, strait.heal);
 		var _taken = (strait.chosen == i);
-		var _alpha = (strait.chosen == -1 || _taken) ? 1 : 0.35;
-		if (strait.chosen == -1) sea_route_draw(boat_data.x, boat_data.y, _sx, _sy, 1);
+		var _alpha = (strait.chosen == -1 || _taken) ? (strait.active ? 1 : 0.85) : 0.35;
 		var _hov = (strait.chosen == -1) && mouse_hovering(_sx, _sy, 64, 64, true, soSlotHover, noone);
 		strait.scales[i] = lerp(strait.scales[i], _hov ? 1.25 : 1, 0.2);
-		sea_stop_draw(_id, _sx, _sy, strait.scales[i], _alpha, _info.ok);
+		sea_stop_draw(_id, _sx, _sy, strait.scales[i], _alpha, _info.ok || !strait.active);
 		draw_set_font(ftDescriptions);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_top);
 		draw_outline_text(_info.name, c_black, _info.ok ? c_white : c_ltgray, 2, _sx, _sy + 36 * strait.scales[i], 1, _alpha, 0);
 		if (_hov) {
-			var _heal_line = (global.player_hp < global.player_max_hp) ? "\nPassing through, you heal " + string(strait.heal) + " HP." : "";
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, (_info.ok ? _info.tip : _info.reason) + _heal_line);
+			// ahead (the islands aren't done yet): what it is, and that it's at the end of the spread
+			if (!strait.active) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, _info.tip + "\nAt the end of this spread: choose one stop, and heal as you pass through.");
+			else {
+				var _heal_line = (global.player_hp < global.player_max_hp) ? "\nPassing through, you heal " + string(strait.heal) + " HP." : "";
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, (_info.ok ? _info.tip : _info.reason) + _heal_line);
+			}
 			if (mouse_check_button_pressed(mb_left) && _ok_input) {
 				if (_info.ok) strait.chosen = i;
 				else throw_error("Not now", _info.reason);
@@ -1492,38 +1510,102 @@ function strait_draw(_ax, _ay) {
 	draw_set_valign(fa_top);
 }
 
-/// @func sea_buoy_draw()
-/// @desc oWorldManager Draw GUI, mid-spread: when a page's island is done and a tool has work
-///       (oRunManager.can_visit_workbench), a buoy floats between the ship and the next island. Sail to it for the
-///       workbench, or click the next island to sail past (that clears it, oWorldManager Draw GUI).
-function sea_buoy_draw() {
-	if (!(world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench && workbench_useful() && next_node != undefined)) {
-		sea_buoy = undefined;
-		return;
-	}
-	if (!is_struct(sea_buoy)) sea_buoy = { x: lerp(boat_data.x, next_node.x, 0.5), y: min(boat_data.y, next_node.y) - 90, scale: 1, sailing: false };
+/// @func sea_buoy_draw(_bx, _by)
+/// @desc oWorldManager Draw GUI: the Shipwright's buoy between a spread's pages, at _bx, _by (spread_sea_spots), on the
+///       map the whole spread. You can sail to it once the left page's island is done, before the right one, if a
+///       tool has work (oRunManager.can_visit_workbench and workbench_useful): it opens the workbench. Clicking the next
+///       island sails past it. sea_buoy.visited remembers you went (the route drawn as taken).
+function sea_buoy_draw(_bx, _by) {
+	if (!is_struct(sea_buoy) || sea_buoy.spread != ds_list_size(chosen_pages)) sea_buoy = { scale: 1, sailing: false, visited: false, active: false, spread: ds_list_size(chosen_pages) }; // one per spread
 	var _b = sea_buoy;
-	if (!_b.sailing && node_to_move_to != undefined) { oRunManager.can_visit_workbench = false; sea_buoy = undefined; return; } // sailed past
-	if (!_b.sailing) sea_route_draw(boat_data.x, boat_data.y, _b.x, _b.y, 0.8);
+	_b.x = _bx; _b.y = _by;
+	var _open = world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench && next_node != undefined && !_b.visited;
+	var _useful = workbench_useful();
+	_b.active = _open && _useful;
+	if (_open && !_b.sailing && node_to_move_to != undefined) oRunManager.can_visit_workbench = false; // sailed past
 	var _hov = !_b.sailing && mouse_hovering(_b.x, _b.y, 64, 64, true, soSlotHover, noone);
-	_b.scale = lerp(_b.scale, _hov ? 1.25 : 1, 0.2);
-	sea_stop_draw("workbench", _b.x, _b.y, _b.scale, 1, true);
+	_b.scale = lerp(_b.scale, (_hov && _b.active) ? 1.25 : 1, 0.2);
+	sea_stop_draw("workbench", _b.x, _b.y, _b.scale, (_b.active || _b.visited) ? 1 : 0.75, _b.active || !_open);
 	draw_set_font(ftDescriptions);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
-	draw_outline_text("Shipwright's buoy", c_black, c_white, 2, _b.x, _b.y + 36 * _b.scale, 1, 1, 0);
+	draw_outline_text("Shipwright's buoy", c_black, c_white, 2, _b.x, _b.y + 36 * _b.scale, 1, (_b.active || _b.visited) ? 1 : 0.75, 0);
 	draw_set_halign(fa_left);
 	if (_hov) {
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Shipwright's buoy", "Moor here and open the workbench: take dice from your bag (one per tool you own) and use each tool once.\nOr sail on to the next island.");
-		if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && node_to_move_to == undefined) _b.sailing = true;
+		var _tip = "Moor here and open the workbench: take dice from your bag (one per tool you own) and use each tool once.";
+		if (_b.active) _tip += "\nOr sail on to the next island.";
+		else if (_open) _tip = "None of your tools has work to do (the Drill needs a core). Sail on to the next island.";
+		else _tip += "\nBetween this spread's islands, when one of your tools has work.";
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Shipwright's buoy", _tip);
+		if (mouse_check_button_pressed(mb_left) && _b.active && global.ui_layer == UI_LAYER.BASE && node_to_move_to == undefined) _b.sailing = true;
 	}
 	if (_b.sailing) {
 		boat_data.x = lerp(boat_data.x, _b.x - 10, 0.05);
 		boat_data.y = lerp(boat_data.y, _b.y + 5, 0.05);
 		if (point_distance(boat_data.x, boat_data.y, _b.x - 10, _b.y + 5) < 10) {
 			oRunManager.can_visit_workbench = false;
-			sea_buoy = undefined;
+			_b.sailing = false;
+			_b.visited = true;
 			room_goto(rmWorkbench);
+		}
+	}
+}
+
+/// @func route_draw(_x1, _y1, _x2, _y2, _alpha)
+/// @desc A dotted S-curve course between two map stops (a cubic Bezier leaving and arriving level), its dots stopping
+///       short of both ends so they don't run under the icons. Ink brown; _alpha says taken (strong) or possible (faint).
+function route_draw(_x1, _y1, _x2, _y2, _alpha) {
+	if (_alpha <= 0) return;
+	var _mx = (_x1 + _x2) / 2;
+	var _steps = 48, _px = _x1, _py = _y1, _len = 0;
+	var _xs = [_x1], _ys = [_y1], _ls = [0];
+	for (var i = 1; i <= _steps; i++) {
+		var _t = i / _steps, _u = 1 - _t;
+		var _x = _u*_u*_u*_x1 + 3*_u*_u*_t*_mx + 3*_u*_t*_t*_mx + _t*_t*_t*_x2;
+		var _y = _u*_u*_u*_y1 + 3*_u*_u*_t*_y1 + 3*_u*_t*_t*_y2 + _t*_t*_t*_y2;
+		_len += point_distance(_px, _py, _x, _y);
+		array_push(_xs, _x); array_push(_ys, _y); array_push(_ls, _len);
+		_px = _x; _py = _y;
+	}
+	draw_set_color(make_color_rgb(42, 29, 18));
+	draw_set_alpha(_alpha);
+	var _k = 0;
+	for (var _d = 30; _d <= _len - 30; _d += 13) {
+		while (_k < _steps - 1 && _ls[_k + 1] < _d) _k++;
+		var _f = (_ls[_k + 1] > _ls[_k]) ? (_d - _ls[_k]) / (_ls[_k + 1] - _ls[_k]) : 0;
+		draw_circle(lerp(_xs[_k], _xs[_k + 1], _f), lerp(_ys[_k], _ys[_k + 1], _f), 3.2, false);
+	}
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
+/// @func spread_routes_draw(_spots)
+/// @desc The courses between this spread's stops, like a chart (oWorldManager Draw GUI, over the islands, under the
+///       stops and ship): each island's nodes in order; the left island's last to the buoy and to the right island's
+///       first (sail past); the buoy on to it; the right island's last to each strait stop. Taken courses are inked
+///       strong, possible ones faint, ones you passed by fainter still.
+function spread_routes_draw(_spots) {
+	if (_spots.left == undefined) return;
+	var _taken = 0.85, _poss = 0.38, _gone = 0.12;
+	var _L = _spots.left.nodes, _R = _spots.right.nodes;
+	var _ln = ds_list_size(_L), _rn = ds_list_size(_R);
+	for (var i = 0; i < _ln - 1; i++) route_draw(_L[| i].x, _L[| i].y, _L[| i + 1].x, _L[| i + 1].y, _L[| i + 1].cleared ? _taken : _poss);
+	for (var i = 0; i < _rn - 1; i++) route_draw(_R[| i].x, _R[| i].y, _R[| i + 1].x, _R[| i + 1].y, _R[| i + 1].cleared ? _taken : _poss);
+	if (_ln > 0 && _rn > 0) {
+		var _a = _L[| _ln - 1], _b = _R[| 0];
+		var _visited = is_struct(sea_buoy) && sea_buoy.visited;
+		var _decided = _b.cleared || _visited || (node_to_move_to == _b);
+		var _bx = _spots.buoy.x, _by = _spots.buoy.y;
+		route_draw(_a.x, _a.y, _bx, _by, _visited ? _taken : (_decided ? _gone : _poss));
+		route_draw(_bx, _by, _b.x, _b.y, (_visited && _b.cleared) ? _taken : (_decided && !_visited ? _gone : _poss));
+		route_draw(_a.x, _a.y, _b.x, _b.y, (_b.cleared && !_visited) ? _taken : (_visited ? _gone : _poss));
+	}
+	if (_rn > 0 && is_struct(strait)) {
+		var _z = _R[| _rn - 1];
+		var _n = array_length(strait.ids);
+		for (var s = 0; s < _n; s++) {
+			var _sp = strait_stop_spot(s, _n, _spots.strait.x, _spots.strait.y);
+			route_draw(_z.x, _z.y, _sp.x, _sp.y, (strait.chosen == s) ? _taken : (strait.chosen == -1 ? _poss : _gone));
 		}
 	}
 }

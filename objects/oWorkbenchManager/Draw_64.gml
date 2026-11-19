@@ -332,7 +332,7 @@ switch (crafting_state) {
 // before anything else: choose the dice to work on (the bag opens on request, not by itself)
 if (pick_pending) {
 	var _pw = 560, _ph = 170;
-	var _px = gui_w / 2 - _pw / 2, _py = start_y - wb_tile_size - 230;
+	var _px = gui_w / 2 - _pw / 2, _py = max(start_y - wb_tile_size - 230, 200); // below the toolbag's tools (they drop down to about y 180)
 	ui_panel(_px, _py, _px + _pw, _py + _ph);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
