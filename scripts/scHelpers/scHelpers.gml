@@ -48,6 +48,13 @@ function choose_weighting_list(list) {
 function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rect, _layer = UI_LAYER.BASE, _hover_sound = noone, _click_sound = soClick2, _disabled_reason = "", _use_font = false, _alpha = 1) {
 	
 	// this function needs to be deprecated soon as its leftover from when we originally first did buttons
+	// UI rework: a button in one of the kit's colours is drawn as the paper-and-ink kit button (ui_button), so every
+	// menu, setting and note button matches; other colours (fight rewards, the old quill menu) keep this look
+	if (_draw_rect == true && variable_global_exists("ui_col") && (_color == global.ui_primary || _color == global.ui_neutral || _color == global.ui_danger || _color == global.ui_quiet)) {
+		var _kit = ui_button(_x + _base_w / 2, _y + _base_h / 2, _base_w, _base_h, _scale_ref, _text, _color, _active, _disabled_reason, _layer, _alpha, _use_font ? _font : ftDefault);
+		_kit.x = _x; _kit.y = _y; _kit.w = _base_w; _kit.h = _base_h;
+		return _kit;
+	}
     var mx = device_mouse_x_to_gui(0);
     var my = device_mouse_y_to_gui(0);
 
@@ -1949,11 +1956,56 @@ function insight_rot(_x, _y, _lx, _ly, _scale) {
 	return [_x + (_lx * _c - _ly * _sn) * _scale, _y + (_lx * _sn + _ly * _c) * _scale];
 }
 
-/// @func ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active, _reason, _layer)
-/// @desc The kit's standard button, centred on _cx, _cy, with big text that grows with it. _reason shows on hover
-///       while it can't be pressed. Returns draw_gui_button's { hover, click, scale, ... }; keep .scale for next frame.
+/// @func ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active, _reason, _layer, _alpha, _font)
+/// @desc The kit's standard button, centred on _cx, _cy, in paper and ink (UI rework). _col picks its kind:
+///       global.ui_primary a bright paper label in a brass frame (the commit action), global.ui_danger dark red with
+///       paper words, global.ui_quiet slate with a cream rule (skippable), anything else plain paper with an ink edge.
+///       Hover lifts and grows it a little; inactive, it fades and _reason shows on hover.
+///       Returns { hover, click, scale }; keep .scale for next frame.
 function ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active = true, _reason = "", _layer = UI_LAYER.BASE, _alpha = 1, _font = ftBig) {
-	return draw_gui_button(_cx - _w / 2, _cy - _h / 2, _w, _h, _scale_ref, _text, _col, _font, _active, true, _layer, noone, soClick2, _reason, true, _alpha);
+	var _hover = (_alpha > 0.3) && mouse_hovering(_cx - _w / 2, _cy - _h / 2, _w, _h, false, soSlotHover, _active ? soClick2 : noone, true, _layer);
+	var _scale = lerp(_scale_ref, (_hover && _active) ? 1.06 : 1, 0.25);
+	var _pressed = _hover && _active && mouse_check_button(mb_left);
+	var _w2 = _w * _scale / 2, _h2 = _h * _scale / 2;
+	var _lift = _pressed ? -2 : ((_hover && _active) ? 3 : 0);
+	var _x1 = _cx - _w2, _y1 = _cy - _h2 - _lift, _x2 = _cx + _w2, _y2 = _cy + _h2 - _lift;
+	var _a = (_active ? 1 : 0.5) * _alpha;
+
+	var _fill = global.ui_col.paper, _text_col = global.ui_col.ink, _edge = global.ui_col.ink, _frame = -1;
+	if (_col == global.ui_primary) { _fill = global.ui_col.paper_hi; _frame = global.ui_col.brass; }
+	else if (_col == global.ui_danger) { _fill = global.ui_col.danger; _text_col = global.ui_col.paper_hi; }
+	else if (_col == global.ui_quiet) { _fill = global.ui_col.slate; _text_col = global.ui_col.rule; _edge = make_color_rgb(110, 100, 84); }
+
+	// shadow, ink edge (a brass frame for the primary), the fill
+	draw_set_alpha(0.4 * _a);
+	draw_set_color(c_black);
+	draw_roundrect_ext(_x1 + 3, _y1 + 7 + _lift, _x2 + 3, _y2 + 7 + _lift, 12, 12, false);
+	draw_set_alpha(_a);
+	draw_set_color(_edge);
+	draw_roundrect_ext(_x1 - 2, _y1 - 2, _x2 + 2, _y2 + 2, 12, 12, false);
+	var _inset = 0;
+	if (_frame != -1) {
+		draw_set_color(_frame);
+		draw_roundrect_ext(_x1, _y1, _x2, _y2, 11, 11, false);
+		draw_set_color(_edge);
+		draw_roundrect_ext(_x1 + 5, _y1 + 5, _x2 - 5, _y2 - 5, 8, 8, false);
+		_inset = 7;
+	}
+	draw_set_color(_fill);
+	draw_roundrect_ext(_x1 + _inset, _y1 + _inset, _x2 - _inset, _y2 - _inset, 10, 10, false);
+
+	// the words, shrunk to fit
+	draw_set_font(_font);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_color(_text_col);
+	var _ts = min(1, (_w * _scale - 24 - _inset * 2) / max(1, string_width(_text)));
+	draw_text_transformed(_cx, _cy - _lift, _text, _ts, _ts, 0);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+
+	if (_hover && !_active && _reason != "") queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _text, _reason);
+	return { hover: _hover, click: _hover && _active && mouse_check_button_pressed(mb_left), scale: _scale };
 }
 
 /// @func draw_action_type_icon(_type, _x, _y, _scale)

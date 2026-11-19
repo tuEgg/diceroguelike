@@ -530,7 +530,7 @@ if (dice_selection != false) {
 	var button_scale = 1.0;
 
 	var _can_confirm = (dice_selection_num_selected == dice_selection || (dice_selection_up_to && dice_selection_num_selected <= dice_selection));
-	var _confirm = ui_button(gui_w - 150, gui_h - 200, 200, 70, dice_selection_scale, (dice_selection_up_to && dice_selection_num_selected == 0) ? "Take none" : button_text, global.ui_primary, _can_confirm, "Choose " + string(dice_selection) + ((dice_selection == 1) ? " die" : " dice") + " first.", UI_LAYER.BAG);
+	var _confirm = ui_button(gui_w - 44 - 140, gui_h - 20 - 44, 280, 88, dice_selection_scale, (dice_selection_up_to && dice_selection_num_selected == 0) ? "Take none" : button_text, global.ui_primary, _can_confirm, "Choose " + string(dice_selection) + ((dice_selection == 1) ? " die" : " dice") + " first.", UI_LAYER.BAG);
 	dice_selection_scale = _confirm.scale;
 
 	if (_confirm.hover || !_can_confirm) {
