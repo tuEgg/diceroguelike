@@ -15,6 +15,7 @@
 
 | ID | Task | Notes |
 |---|---|---|
+| H11 | **Reminder for Jared:** the shop's exit door is drawn twice (it's in the room background and is also the exit object's sprite). Remove it from the background. | Jared, art |
 | H09 | **itch.io playtest build** live at https://tuegg.itch.io/tides-of-fortune (v0.1.1, tagged on main). Collecting feedback; fixes go out as hotfixes (v0.1.2...). | Jared, ongoing |
 
 **Waiting for playtest feedback** (agreed 2026-11-17; on 2026-11-19 Jared started v0.2 on `dev` with items 1-4 below, now batch 17)
@@ -29,7 +30,16 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 18: v0.2 feedback | B123, B124, F75, F76, F77, F78 | `fix/v02-feedback` (off dev) | **Ready to test.** Chainmaster's Anchor fix, a safety net for invisible dealt dice, debug runs start with 50 gold, normal enemies about 20% less health, used tools linger then grey out, bag view sort and filter. |
 | 17: v0.2 depth and feel | H10, T03 (dice), F20, F21, F23, F24, F02, F65, F15, F40 | `dev` | **Ready to test.** Version number in the menus; one effect dispatcher for dice; Giant Conch moves; 3 new dice, 2 new events; stronger potions with how-to-use tooltips; spread end offers Heal plus two rolled choices; ink-wash room transitions; keepsakes and dice show when they fire. |
+
+**Batch 18 test list (`fix/v02-feedback`)**
+- B124 Chainmaster's Anchor with a Tidebreaker die: in the first slot (no block slot before it) the Anchor doesn't pop and nothing doubles. After a block slot, Tidebreaker's +2 becomes +4 (once per turn; the Anchor pops then). Other keepsake bonuses (Weapon Polish...) are no longer doubled with it.
+- B123 Dealt dice always show. If a die ever ends up off screen, or hasn't settled 3 seconds after being dealt, it's put back in the hand area. (Tell me if a hand ever goes missing again: which turn, which enemies, and where the dice flew from when you ended the turn.)
+- F75 A debug run (F6) starts with 50 gold like any other (F1 > Run still adds gold).
+- F76 Normal enemies have about 20% less health (Ruffian 18, Deckhand 23, Thug 28, Kraken 20...). Elites and the boss are unchanged. Early fights should end a turn or two sooner.
+- F77 Workbench: after a tool crafts, it stays in your hand for half a second in its last pose (drill down, hammer mid-smash, cutters closed), then slides back to its spot greyed out. It can't be picked up again (hover says "(used)"); the Craft button doesn't shake while you're still holding. A core still can't be picked back up mid-drill.
+- F78 Bag view (the bag, the discard pile, and the dice picker): above the panel on the right, filters with counts (All, Attack, Block, Heal, Insight, Generic; multitype dice count in each of their types) and a "Sort:" button cycling Bag order, Type, Size (biggest first), Rarity (rarest first), Name. Clicking them doesn't close the bag; scrolling resets to the top. A long picker title on the left doesn't overlap them.
 
 **Batch 17 test list (on `dev`, v0.2.0-dev)**
 - H10 Main menu: "v0.2.0-dev" small and faint in the bottom-right corner (not overlapping anything; hidden under Settings). Pause menu: the same in the panel's top-right corner, clear of "Paused" and the buttons.
@@ -128,7 +138,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 **Juice**
 - F40 Individual Balatro-style trigger animations per die
 - F41 Room transitions, death animation, enemy sprites, particles for coins/potions/sacrifice
-- F42 Unique visual per die
+- F42 **Unique sprite per die** (Jared, 2026-11-19): every die gets its own sprite, keeping roughly the same silhouette per size with different textures and details. Part of the art pass (F50).
 
 **Art direction (parked, Jared wants to discuss later)**
 - F50 Decide an art style for the game. Jared isn't an artist and wants to explore AI-assisted art workflows (he's been following r/aigamedev). Covers dice, enemies, map/book, UI and backgrounds. Don't start until he raises it. Includes real sprites for the insight states (placeholders drawn by `draw_insight_icon` in scHelpers, F51).
