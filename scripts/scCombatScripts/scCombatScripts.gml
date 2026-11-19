@@ -2918,7 +2918,8 @@ function intent_verbs(_move) {
 
 /// @func combat_queue_holes_draw()
 /// @desc Inside the log's overlay surface (subtract blend, white): cuts out just the queue's pieces, each to its own shape,
-///       so they stay in full colour and nothing between them lights up: every slot (and the dice above it), the new-slot
+///       so they stay in full colour and nothing between them lights up: every slot to its sprite's outline (its dot
+///       included) and the dice above it, the new-slot
 ///       tile, the End Turn button (reading Confirm; its own sprite, so the hole is exactly its outline) and the token row.
 function combat_queue_holes_draw() {
 	if (!instance_exists(oCombat)) return;
@@ -2926,11 +2927,14 @@ function combat_queue_holes_draw() {
 		for (var q = 0; q < ds_list_size(slot_positions); q++) {
 			var _p = slot_positions[| q];
 			var _has_dice = (q < ds_list_size(action_queue)) && ds_list_size(action_queue[| q].dice_list) > 0;
-			draw_roundrect_ext(_p.x - 5, _p.y - (_has_dice ? 44 : 5), _p.x + _p.w + 5, _p.y + _p.h + 5, 10, 10, false);
+			// the slot's own sprite (it includes the dot under it), so the hole is its outline; the dice above it as a strip
+			draw_sprite_ext(sActionSlot, 0, _p.x, _p.y, _p.w / 140, _p.h / 140, 0, c_white, 1);
+			if (_has_dice) draw_roundrect_ext(_p.x - 5, _p.y - 44, _p.x + _p.w + 5, _p.y + 6, 10, 10, false);
 		}
 		if (is_struct(new_tile_pos)) {
 			var _hd = ds_list_size(global.sacrifice_list) > 0;
-			draw_roundrect_ext(new_tile_pos.x - 5, new_tile_pos.y - (_hd ? 44 : 5), new_tile_pos.x + new_tile_pos.w + 5, new_tile_pos.y + new_tile_pos.h + 5, 10, 10, false);
+			draw_sprite_ext(sActionSlot, 2, new_tile_pos.x, new_tile_pos.y, new_tile_pos.w / 140, new_tile_pos.h / 140, 0, c_white, 1);
+			if (_hd) draw_roundrect_ext(new_tile_pos.x - 5, new_tile_pos.y - 44, new_tile_pos.x + new_tile_pos.w + 5, new_tile_pos.y + 6, 10, 10, false);
 		}
 		if (variable_instance_exists(id, "end_turn_draw")) {
 			var _et = end_turn_draw;
