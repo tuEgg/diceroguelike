@@ -259,6 +259,7 @@ if (show_bag_contents) {
 	}
 	
 	draw_outline_text(bag_title, c_black, c_white, 2, bag_outer_padding, bag_outer_padding - 56, 1, 1, 0);
+	bag_controls_draw(bag_to_show, bag_outer_padding);
 	ui_divider(bag_outer_padding, bag_outer_padding + 420, bag_outer_padding - 10);
 	ui_panel(bag_outer_padding, bag_outer_padding, display_get_gui_width() - bag_outer_padding, display_get_gui_height() - bag_outer_padding);
 	
@@ -291,7 +292,9 @@ if (show_bag_contents) {
 	var inner_padding_w = box_width/2
 	var inner_padding_h = box_height/2;
 	
-	for (var i = 0; i < ds_list_size(bag_to_show); i++) {
+	// what's shown: the bag filtered by type and sorted (bag_view_list, the controls above the panel)
+	var _view = bag_view_list(bag_to_show);
+	for (var i = 0; i < array_length(_view); i++) {
 		
 		// Increase spacing for next dice
 		var dice_x = (bag_inner_padding + inner_padding_w + scrollbar_w*2) +		i mod 5 * col_spacing;
@@ -302,7 +305,7 @@ if (show_bag_contents) {
 		
 		if (top_of_box < display_get_gui_height() - bag_inner_padding && bottom_of_box > bag_inner_padding) {
 		
-			var dice = bag_to_show[| i];
+			var dice = _view[i];
 			
 			var top_edge_overlap = bag_inner_padding - top_of_box;
 			var bottom_edge_overlap = (bottom_of_box - (display_get_gui_height() - bag_inner_padding));
@@ -470,7 +473,7 @@ if (show_bag_contents) {
 	if (mouse_wheel_up()) scroll_y += 100;
 	
 	// Total pixel height of the bag height, its never less than 3 rows high (hence 15)
-	var minimum_size = min(3 * -row_spacing, (ds_list_size(bag_to_show) div 5 + ceil((ds_list_size(bag_to_show) mod 5)/5)) * -row_spacing);
+	var minimum_size = min(3 * -row_spacing, (array_length(_view) div 5 + ceil((array_length(_view) mod 5)/5)) * -row_spacing);
 	
 	// The adaptive height of the scrollable area
 	var scroll_height = minimum_size + bag_height;

@@ -280,6 +280,9 @@ paused = false;
 pre_pause_ui_layer = UI_LAYER.BASE;
 pause_scales = [1, 1, 1];
 cog_scale = 1; // the top bar's menu cog
+bag_sort = 0;       // bag view order: 0 bag order, 1 type, 2 size, 3 rarity, 4 name (bag_view_list)
+bag_filter = "All"; // bag view type filter
+bag_btn_scales = [1, 1, 1, 1, 1, 1, 1];
 cog_turn = 0;
 //global.ui_layer = UI_LAYER.POPUP;
 

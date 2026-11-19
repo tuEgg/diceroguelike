@@ -1828,3 +1828,92 @@ function room_wipe_draw() {
 	}
 	draw_set_color(c_white);
 }
+
+// =====================================================================
+// BAG VIEW: sort and filter (oRunManager Draw GUI End draws the bag)
+// =====================================================================
+
+/// @func bag_view_list(_list)
+/// @desc The dice to show from a bag or pile: only the chosen type (oRunManager.bag_filter: "All", "ATK", "BLK", "HEAL",
+///       "INTEL", "None"), sorted by oRunManager.bag_sort (0 bag order, 1 type, 2 size, 3 rarity, 4 name). An array.
+function bag_view_list(_list) {
+	var _out = [];
+	if (!ds_safe_exists(_list, ds_type_list)) return _out;
+	var _f = oRunManager.bag_filter;
+	for (var i = 0; i < ds_list_size(_list); i++) {
+		var _d = _list[| i];
+		if (_f == "All" || (_f == "None" && _d.action_type == "None") || (_f != "None" && string_pos(_f, _d.possible_type) > 0)) array_push(_out, _d);
+	}
+	global.bag_sort_key = oRunManager.bag_sort;
+	if (global.bag_sort_key > 0) {
+		array_sort(_out, function(_a, _b) {
+			if (global.bag_sort_key != 4) {
+				var _ra = bag_sort_value(_a, global.bag_sort_key), _rb = bag_sort_value(_b, global.bag_sort_key);
+				if (_ra != _rb) return (_ra < _rb) ? -1 : 1;
+			}
+			return text_compare(_a.name, _b.name); // by name, or ties by name
+		});
+	}
+	return _out;
+}
+
+/// @func bag_sort_value(_die, _key)
+/// @desc What a die sorts by: its type, its size (biggest first), its rarity (rarest first) or its name.
+function bag_sort_value(_die, _key) {
+	switch (_key) {
+		case 1:
+			switch (_die.action_type) { case "ATK": return 0; case "BLK": return 1; case "HEAL": return 2; case "INTEL": return 3; case "None": return 4; }
+			return 9;
+		case 2: return -_die.dice_value;
+		case 3: return (_die.rarity == "rare") ? 0 : ((_die.rarity == "uncommon") ? 1 : 2);
+	}
+	return 0;
+}
+
+/// @func bag_controls_draw(_list, _pad)
+/// @desc Above the bag panel, right of the title: a count, a Sort button that cycles, and a filter button per type with
+///       how many of that type there are.
+function bag_controls_draw(_list, _pad) {
+	if (!ds_safe_exists(_list, ds_type_list)) return;
+	var _gw = display_get_gui_width();
+	var _y = _pad - 34; // the title row, above the panel
+	var _types = [["All", "All"], ["ATK", "Attack"], ["BLK", "Block"], ["HEAL", "Heal"], ["INTEL", "Insight"], ["None", "Generic"]];
+	var _sorts = ["Bag order", "Type", "Size", "Rarity", "Name"];
+	var _w = 118, _h = 40, _gap = 8;
+	// right to left: the filters, then Sort
+	var _x = _gw - _pad - _w / 2;
+	for (var i = array_length(_types) - 1; i >= 0; i--) {
+		var _code = _types[i][0];
+		var _n = 0;
+		for (var d = 0; d < ds_list_size(_list); d++) {
+			var _die = _list[| d];
+			if (_code == "All" || (_code == "None" && _die.action_type == "None") || (_code != "None" && string_pos(_code, _die.possible_type) > 0)) _n++;
+		}
+		var _on = (oRunManager.bag_filter == _code);
+		var _b = ui_button(_x, _y, _w, _h, oRunManager.bag_btn_scales[i], _types[i][1] + " " + string(_n), _on ? global.ui_primary : global.ui_neutral, true, "", UI_LAYER.BAG, 1, ftDefault);
+		oRunManager.bag_btn_scales[i] = _b.scale;
+		if (_b.click) { oRunManager.bag_filter = _code; oRunManager.scroll_y = 0; }
+		_x -= _w + _gap;
+	}
+	// Sort sits left of the filters: its right edge 30 px before the last filter's left edge, 170 wide (clear of a long
+	// picker title on the left, which reaches about x 770)
+	var _sort_w = 170;
+	var _sort_cx = (_x + _w / 2 + _gap) - 30 - _sort_w / 2; // = 1002 - 30 - 85 = 887 at 1920 wide
+	var _sort = ui_button(_sort_cx, _y, _sort_w, _h, oRunManager.bag_btn_scales[6], "Sort: " + _sorts[oRunManager.bag_sort], global.ui_neutral, true, "", UI_LAYER.BAG, 1, ftDefault);
+	oRunManager.bag_btn_scales[6] = _sort.scale;
+	if (_sort.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Sort", "Click to change the order: bag order, type, size (biggest first), rarity (rarest first), name.");
+	if (_sort.click) { oRunManager.bag_sort = (oRunManager.bag_sort + 1) mod array_length(_sorts); oRunManager.scroll_y = 0; }
+}
+
+/// @func text_compare(_a, _b)
+/// @desc Compare two strings alphabetically, ignoring case: -1, 0 or 1 (for sorting by name).
+function text_compare(_a, _b) {
+	_a = string_lower(_a); _b = string_lower(_b);
+	var _n = min(string_length(_a), string_length(_b));
+	for (var i = 1; i <= _n; i++) {
+		var _ca = ord(string_char_at(_a, i)), _cb = ord(string_char_at(_b, i));
+		if (_ca != _cb) return (_ca < _cb) ? -1 : 1;
+	}
+	if (string_length(_a) == string_length(_b)) return 0;
+	return (string_length(_a) < string_length(_b)) ? -1 : 1;
+}
