@@ -138,7 +138,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 						max_roll: _max_roll,
 						slot_bonus: slot_bonus_amount,
 						keepsake_bonus: _keepsake_dice_bonus_amount,
-						// the slot's first-die bonus, if this is that die (Repeater Rail, Single Focus)
+						// the slot's first-die bonus, if this is that die (Single Focus, a slot's place bonus)
 						first_bonus: (_dice_list_index == 0 && !first_die_bonus_used && _slot_number >= 0 && _slot_number < ds_list_size(oCombat.action_queue)) ? oCombat.action_queue[| _slot_number].first_die_bonus : 0,
 						dice_index: _dice_list_index,
 						_slot: oCombat.action_queue[| _slot_number],
@@ -161,7 +161,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					final_roll = ctx._d_amount + slot_bonus_amount + _keepsake_dice_bonus_amount;
 					final_roll = max(0, final_roll); // a die never rolls below 0 (Splash's -2 on a 1)
 
-					// bonuses that only apply to the first die in the slot (Repeater Rail)
+					// bonuses that only apply to the first die in the slot (a slot's place bonus)
 					if (_dice_list_index == 0 && !first_die_bonus_used && _slot_number >= 0 && _slot_number < ds_list_size(oCombat.action_queue)) {
 						final_roll += oCombat.action_queue[| _slot_number].first_die_bonus;
 						first_die_bonus_used = true;
@@ -718,7 +718,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 			run_stat_add("dice_played", 1);
 			die.struct.statistics.times_played_this_combat++;
 		} else {
-			// keepsakes that read the queue (Single Focus, Repeater Rail) still work it out again
+			// keepsakes that read the queue (Single Focus) still work it out again
 			runmanager_trigger_keepsakes("after_change_current_action", {});
 		}
 
@@ -1004,7 +1004,7 @@ function get_slot_stats(_slot, _num) {
         var die_struct = _slot.dice_list[| i];
 		var die_base = die_struct.permanence == "base" ? true : false;
 		
-		var dice_values = get_dice_output(die_struct, _num, -1, true, "player");
+		var dice_values = get_dice_output(die_struct, _num, i, true, "player"); // its place in the slot (Repeater Rail counts it)
 		
 		// rolled dice: a die that has rolled counts its number, so the slot shows an exact total
 		var _face = die_face_total(die_struct, dice_values.min_roll, dice_values.max_roll);
@@ -1616,7 +1616,7 @@ function define_combat_ui_sizes() {
 // SLOT BONUSES
 // A slot's flat bonuses are kept as separate entries, each tagged with where it came from, so keepsakes
 // and items can't overwrite or undo each other. A bonus applies to every die in the slot ("each") unless
-// its description says otherwise ("first", only the first die, like Repeater Rail).
+// its description says otherwise ("first", only the first die, like a slot's place bonus).
 // slot.bonus_amount is the "each" total and slot.first_die_bonus the "first" total, kept up to date by
 // these functions and read by the rest of the game. Never write them directly.
 // =====================================================================
@@ -1639,7 +1639,7 @@ function slot_add_bonus(_slot, _source, _amount, _turns, _scope = "each") {
 }
 
 /// @desc Set a source's bonus to exactly this amount, replacing what that source gave before.
-///       For bonuses that depend on how the queue looks right now (Single Focus, Repeater Rail).
+///       For bonuses that depend on how the queue looks right now (Single Focus).
 function slot_set_bonus(_slot, _source, _amount, _scope = "each") {
 	slot_remove_bonus(_slot, _source);
 	if (_amount != 0) array_push(_slot.bonuses, { source: _source, amount: _amount, turns: -1, scope: _scope });
@@ -2773,7 +2773,7 @@ function combat_take_back(_slot_i, _index) {
 		update_sacrificed_type_array();
 	}
 
-	// keepsakes that read the queue (Single Focus, Repeater Rail) work it out again
+	// keepsakes that read the queue (Single Focus) work it out again
 	runmanager_trigger_keepsakes("after_change_current_action", {});
 }
 
