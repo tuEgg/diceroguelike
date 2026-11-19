@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tides of Fortune: UI direction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+:root {
+	--ink: #2A1D12; --ink-soft: #5B4632; --paper: #E7D6B0; --paper-hi: #F1E4C4; --paper-shade: #C9B48A;
+	--slate: #1A1E28; --slate-2: #232836; --rule: #E2D4B0; --gold: #F2D24A; --gold-deep: #C9A227;
+	--atk: #B33A22; --blk: #6FA8E8; --heal: #3C9A68; --neutral: #E9E0CC; --danger: #6E1E18;
+	--table: #15171d; --table-2: #1f1b17;
+	--serif: Charter, "Bitstream Charter", "Source Serif 4", Georgia, serif;
+	--num: "Lato", "Arial Black", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #0f1015; color: var(--rule); font: 16px/1.5 var(--serif); }
+main { max-width: 1240px; margin: 0 auto; padding: 28px 16px 80px; }
+h1 { font-size: 40px; font-weight: 600; margin: 0; color: var(--paper-hi); letter-spacing: .2px; }
+h2 { font-size: 24px; font-weight: 600; margin: 56px 0 6px; color: var(--paper-hi); }
+p.lede { color: #b9ad94; max-width: 760px; margin: 8px 0 0; }
+p.note { color: #8f877a; font-size: 14px; margin: 4px 0 18px; max-width: 820px; }
+.eyebrow { font: 900 12px var(--num); letter-spacing: 2px; text-transform: uppercase; color: var(--gold); }
+.row { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+
+/* paper: parchment with a deckled edge (the edge filter) and a soft shadow */
+/* the paper itself is a layer behind the content, so the torn edge never warps the text */
+.paper { position: relative; color: var(--ink); isolation: isolate; }
+.paper::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 6px; pointer-events: none;
+	background: radial-gradient(120% 90% at 30% 20%, rgba(255,255,255,.22), transparent 60%),
+		radial-gradient(90% 70% at 85% 95%, rgba(120,80,30,.16), transparent 60%), var(--paper);
+	box-shadow: 0 10px 24px rgba(0,0,0,.45); }
+.deckle::before { filter: url(#deckle); }
+.inkline { border: 2px solid var(--ink); }
+
+/* palette */
+.swatch { width: 132px; }
+.swatch .chip { height: 74px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.swatch b { display: block; font-size: 14px; margin-top: 8px; color: var(--paper-hi); font-weight: 600; }
+.swatch span { display: block; font-size: 12px; color: #8f877a; }
+
+/* type */
+.type { padding: 26px 30px; width: 100%; }
+.type .t48 { font-size: 48px; line-height: 1.1; font-weight: 600; }
+.type .t24 { font-size: 24px; font-weight: 600; }
+.type .t16 { font-size: 16px; }
+.type .t12 { font-size: 14px; color: var(--ink-soft); }
+.type .num { font: 900 44px var(--num); }
+.type .lab { font: 900 11px var(--num); letter-spacing: 1.5px; color: var(--ink-soft); text-transform: uppercase; margin-top: 16px; }
+
+/* buttons */
+.btn { font: 600 18px var(--serif); padding: 12px 26px; border-radius: 8px; border: 2px solid var(--ink);
+	background: var(--paper); color: var(--ink); box-shadow: 0 4px 0 var(--ink), 0 8px 16px rgba(0,0,0,.35);
+	cursor: pointer; transition: transform .12s, box-shadow .12s; position: relative; }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--ink), 0 12px 20px rgba(0,0,0,.4); }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink), 0 4px 8px rgba(0,0,0,.35); }
+.btn.primary { background: var(--paper-hi); color: var(--ink); border: 4px solid var(--ink); outline: 4px solid #C9A060; outline-offset: -9px; font-size: 20px; padding: 14px 30px; }
+.btn.danger { background: var(--danger); color: #F4EBD3; }
+.btn.off { opacity: .45; cursor: not-allowed; transform: none; }
+.btn .sub { display: block; font: 900 11px var(--num); letter-spacing: 1.5px; opacity: .8; }
+
+/* slate tooltip */
+.tip { background: var(--slate); border-radius: 8px; padding: 14px 16px; color: var(--rule); position: relative;
+	box-shadow: 0 10px 22px rgba(0,0,0,.5); width: 290px; }
+.tip::after { content: ""; position: absolute; inset: 4px; border: 1px solid rgba(226,212,176,.55); border-radius: 5px; pointer-events: none; }
+.tip b { font-size: 16px; color: #fff; font-weight: 600; }
+.tip .muted { color: #b9a988; font-size: 13px; }
+.tip p { margin: 4px 0 0; font-size: 13.5px; }
+.tag { position: absolute; top: -10px; right: -10px; background: var(--gold); color: var(--ink); font: 900 14px var(--num);
+	border-radius: 999px; padding: 3px 9px; border: 2px solid var(--ink); }
+.k-at { color: #E2735F; } .k-bl { color: #8FBDF0; } .k-in { color: var(--gold); } .k-st, .st { color: #7FD6D0; }
+/* on paper the pigments need their text strengths (4.5:1 or better) */
+.paper .k-at { color: #9A2E1C; } .paper .k-bl { color: #1F4F8F; } .paper .k-in { color: #6E520A; } .paper .k-he { color: #2C6E4A; }
+
+/* card */
+.card { width: 300px; }
+.card .band { margin: 5px 5px 0; border-radius: 4px; padding: 9px 12px; font-weight: 600; font-size: 18px; color: #F4EBD3; display: flex; justify-content: space-between; align-items: center; }
+.card .body { display: flex; gap: 14px; padding: 14px; align-items: flex-start; }
+.card .eff { font-size: 16px; line-height: 1.35; }
+.gem { width: 14px; height: 18px; background: #5ac8af; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); box-shadow: 0 0 0 2px var(--ink); }
+
+/* stamp */
+.stamp { font: 700 30px var(--serif); color: var(--ink); border: 4px solid var(--ink); background: rgba(231,214,176,.9); border-radius: 8px; padding: 4px 16px;
+	transform: rotate(-8deg); display: inline-block; opacity: .9; letter-spacing: 2px; text-transform: uppercase; }
+
+/* the combat mockups: drawn at 1920x1080, scaled to fit */
+.frame { width: 100%; aspect-ratio: 16/9; position: relative; overflow: hidden; border-radius: 12px; box-shadow: 0 14px 40px rgba(0,0,0,.6); }
+.frame svg.stage { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cap { display: flex; justify-content: space-between; align-items: baseline; margin: 22px 0 8px; }
+.cap b { font-size: 18px; color: var(--paper-hi); font-weight: 600; }
+.cap span { font-size: 13px; color: #8f877a; }
+ol.why { color: #b9ad94; font-size: 15px; margin: 14px 0 0; padding-left: 22px; max-width: 980px; }
+ol.why li { margin: 4px 0; }
+ol.why b { color: var(--paper-hi); font-weight: 600; }
+</style>
+</head>
+<body>
+<!-- a deckled paper edge: a little turbulence pushes the outline about -->
+<svg width="0" height="0" style="position:absolute">
+	<filter id="deckle" x="-5%" y="-5%" width="110%" height="110%">
+		<feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="n"/>
+		<feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+	</filter>
+</svg>
+<main>
+	<div class="eyebrow">Tides of Fortune · UI rework · direction for approval</div>
+	<h1>The captain's logbook, on the chart table at dusk</h1>
+	<p class="lede">Everything you <i>read</i> is ink on paper. Everything you <i>play with</i> sits on the dark table. Gold ink only ever means insight. The one commit action sits bottom right, numbers are louder than words, every colour also has a shape, and anything you don't need at a glance waits for a hover.</p>
+
+	<h2>The combat screen, before and after</h2>
+	<p class="note">Same fight, same information. The after keeps every system you have; it changes how loudly each thing speaks.</p>
+	<div class="cap"><b>Now</b><span>from your screenshots (redrawn)</span></div>
+	<div class="frame" id="before"></div>
+	<div class="cap"><b>Proposed</b><span>1920×1080, scaled</span></div>
+	<div class="frame" id="after"></div>
+	<ol class="why">
+		<li><b>Only the backdrop recedes.</b> The scene is dimmed and cooled toward dusk; you, the enemies, dice and paper keep full colour, so the eye goes to what you can act on.</li>
+		<li><b>Intents are big paper tags</b> hung over each enemy: one glyph, one large number, the name beneath. They're the thing you read every turn, so they're the loudest thing on the right.</li>
+		<li><b>Slots are paper tickets</b>: action glyph and name on a band, the total huge in ink, the bonus inked beside it, dice resting on top.</li>
+		<li><b>Every die carries its action glyph</b> (sword, shield, eye) and the four pigments step from dark to light, so nothing depends on colour alone.</li>
+		<li><b>End Turn is the one primary, bottom right</b>: the brightest paper on the table, in a brass frame, plays left as studs along its top. The bag and spent pile sit together bottom left.</li>
+		<li><b>The top bar holds what you check mid-fight</b>: HP, gold (brass), keepsakes as paper roundels, the menu. Ink appears once, at the inkwell beside you.</li>
+		<li><b>Nothing under 20 px at 1080</b> on the table, so it still reads in a small window.</li>
+	</ol>
+
+	<h2>Palette</h2>
+	<p class="note">Pigments, not screen primaries: each action colour has a clearly different brightness, so they stay distinct in greyscale and for colour-blind players, and every one also has a glyph.</p>
+	<div class="row" id="swatches"></div>
+
+	<h2>Type</h2>
+	<p class="note">Charter for every word, four sizes. Lato Black only for numbers.</p>
+	<div class="paper type deckle">
+		<div class="t48">The quartermaster's offer</div><div class="lab">Title 48 · screen titles, rare</div>
+		<div class="t24">Shipwright's buoy</div><div class="lab">Heading 24 · panels, cards</div>
+		<div class="t16">Moor here and open the workbench: take dice from your bag and use each tool once.</div><div class="lab">Body 16 · most text</div>
+		<div class="t12">Stowaway: its bonus happens if you leave it unplayed.</div><div class="lab">Small 14 · descriptions, tips (nothing smaller)</div>
+		<div class="num"><span style="font-size:48px">12</span> · <span style="font-size:32px">40/40</span> · <span style="font-size:20px">+3</span></div><div class="lab">Numerals · Lato Black · 48 / 32 / 20 · rolls, totals, HP, gold</div>
+	</div>
+
+	<h2>Components</h2>
+	<p class="note">One kit in one script (<code>scUI</code>). Hover lifts, press sinks, everything answers in 0.12 s.</p>
+	<div class="row" style="align-items:center; gap:22px">
+		<button class="btn primary">End turn<span class="sub">The one primary</span></button>
+		<button class="btn">Sail on</button>
+		<button class="btn danger">Abandon voyage</button>
+		<button class="btn off">Take it</button>
+		<div class="stamp">Taken</div>
+	</div>
+	<div class="row" style="margin-top:26px; gap:26px">
+		<div class="paper card deckle">
+			<div class="band" style="background:linear-gradient(100deg,#2c4f78 0 62%,#7a6420 62%)"><span>Deflect die</span><div class="gem"></div></div>
+			<div class="body">
+				<svg width="70" height="70" viewBox="-35 -35 70 70"><rect x="-26" y="-26" width="52" height="52" rx="7" fill="#1d1712"/><clipPath id="cl"><rect x="-23" y="-23" width="46" height="46" rx="6"/></clipPath><g clip-path="url(#cl)"><rect x="-23" y="-23" width="46" height="46" fill="#6FA8E8"/><polygon points="-23,-23 23,-23 -23,23" fill="#F2D24A"/></g><text y="7" text-anchor="middle" font-family="Lato" font-weight="900" font-size="18" fill="#fff" stroke="#1d1712" stroke-width="3" paint-order="stroke">d6</text></svg>
+				<div class="eff"><span class="k-bl">Block</span> or <span class="k-in">insight</span>: it makes either kind of slot.</div>
+			</div>
+			<div style="display:flex;gap:3px;align-items:flex-end;padding:0 14px 14px"><i style="width:14px;height:22px;background:#5B4632;display:block"></i><i style="width:14px;height:8px;background:#5B4632;display:block"></i><i style="width:14px;height:22px;background:#5B4632;display:block"></i><i style="width:14px;height:8px;background:#5B4632;display:block"></i><i style="width:14px;height:22px;background:#5B4632;display:block"></i><i style="width:14px;height:8px;background:#5B4632;display:block"></i><span style="font-size:12px;color:var(--ink-soft);margin-left:8px">Odd core</span></div>
+		</div>
+		<div class="tip"><b>Reveal exact numbers</b><div class="tag">−1</div><p>Spend 1 insight to reveal the exact value the Deckhand intends to <span class="k-at">attack</span> with.</p></div>
+		<div class="tip" style="width:250px"><b>Lookout die</b> <span class="muted">rolled 1</span><p><span class="st">Stowaway</span>: gain <span class="k-in">3 insight</span> next turn.</p></div>
+		<div id="badges" class="row" style="gap:14px"></div>
+	</div>
+
+	<h2>What changes, screen by screen</h2>
+	<ol class="why">
+		<li><b>Kit first</b>: palette, type and components in <code>scUI</code>; old helpers call into it, so every screen improves as it moves over.</li>
+		<li><b>Combat</b>: as above.</li>
+		<li><b>Map</b>: already closest. Tidy the top bar, the draft heading, the strait labels; routes and stops in the same ink.</li>
+		<li><b>One card everywhere</b>: bag, shop shelf, rewards, the quartermaster and the bounty board on a single card layout.</li>
+		<li><b>Rooms</b>: events as a logbook entry with inked choices; the shop as a counter; the workbench as a bench; treasure as a chest on paper.</li>
+		<li><b>Menus</b>: main menu, pause, settings and the voyage summary on paper.</li>
+	</ol>
+	<p class="note" style="margin-top:14px">Each step lands as its own commit with before and after screenshots for you, and the branch stays mergeable throughout. Out of scope: new art for dice, enemies and backgrounds (F50, F42), and sound.</p>
+</main>
+
+<script>
+const S = (tag, attrs, inner = "") => `<${tag} ${Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(" ")}>${inner}</${tag}>`;
+
+// palette
+const pal = [["Ink", "#2A1D12", "text, outlines, primary button"], ["Parchment", "#E7D6B0", "paper surfaces"], ["Paper shade", "#C9B48A", "edges, pressed"], ["Slate", "#1A1E28", "tooltips"], ["Cream rule", "#E2D4B0", "lines on slate"], ["Brass", "#C9A060", "primary edge, coins, studs"], ["Attack", "#B33A22", "darkest · text on paper #9A2E1C"], ["Heal", "#3C9A68", "text on paper #2C6E4A"], ["Block", "#6FA8E8", "text on paper #1F4F8F"], ["Insight (gold ink)", "#F2D24A", "lightest · on paper #6E520A"], ["Neutral (bone)", "#E9E0CC", "ink outline, told by material"], ["Danger", "#6E1E18", "can't undo, with a glyph"]];
+document.getElementById("swatches").innerHTML = pal.map(([n, c, u]) => `<div class="swatch"><div class="chip" style="background:${c}"></div><b>${n}</b><span>${c} · ${u}</span></div>`).join("");
+
+// glyphs for the action types and keywords (paper roundels, ink)
+const glyph = {
+	sword: `<path d="M-6 6 L6 -6 M3 -7 L7 -7 L7 -3 M-7 3 L-3 7 M-8 8 L-5 5" stroke="#2A1D12" stroke-width="2.4" fill="none" stroke-linecap="round"/>`,
+	shield: `<path d="M0 -8 L7 -5 L6 3 Q0 9 0 9 Q0 9 -6 3 L-7 -5 Z" fill="#2A1D12"/>`,
+	heart: `<path d="M0 7 L-7 0 A4 4 0 0 1 0 -5 A4 4 0 0 1 7 0 Z" fill="#2A1D12"/>`,
+	eye: `<path d="M-8 0 Q0 -8 8 0 Q0 8 -8 0 Z" fill="none" stroke="#2A1D12" stroke-width="2"/><circle r="2.6" fill="#2A1D12"/>`,
+	barrel: `<rect x="-6" y="-7.5" width="12" height="15" rx="5" fill="#2A1D12"/><rect x="-4.2" y="-5.8" width="8.4" height="11.6" rx="4" fill="#ECDEBA"/><path d="M-5.5 -3 H5.5 M-5.5 3 H5.5 M0 -6 V6" stroke="#2A1D12" stroke-width="1.6"/>`,
+	chev: `<path d="M-6.5 -5.5 L-1 0 L-6.5 5.5 M-0.5 -5.5 L5 0 L-0.5 5.5" stroke="#2A1D12" stroke-width="2.3" fill="none"/>`,
+};
+const roundel = (g, ring, label) => `<div style="text-align:center;width:64px"><svg width="56" height="56" viewBox="-17 -17 34 34"><circle r="15.5" fill="#2A1D12"/><circle r="14" fill="${ring}"/><circle r="11.5" fill="#ECDEBA"/>${glyph[g]}</svg><div style="font-size:11px;color:#8f877a">${label}</div></div>`;
+document.getElementById("badges").innerHTML = roundel("sword", "#B33A22", "Attack") + roundel("shield", "#6FA8E8", "Block") + roundel("heart", "#3C9A68", "Heal") + roundel("eye", "#F2D24A", "Insight") + roundel("barrel", "#3aa8a8", "Stowaway") + roundel("chev", "#B33A22", "Followthrough");
+
+// ---- dice
+function pips(n, r, col) {
+	const L = { 1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]], 5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], 6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]] }[n] || [];
+	return L.map(([x, y]) => `<circle cx="${x * r}" cy="${y * r}" r="${r * 0.34}" fill="${col}"/>`).join("");
+}
+function die(x, y, sides, face, col, size = 1, opts = {}) {
+	const s = size, dark = "#1d1712";
+	let body;
+	if (sides === 4) {
+		const p = (k) => [[0, -40 * k], [36 * k, 22 * k], [-36 * k, 22 * k]].map(q => q.join(",")).join(" ");
+		body = `<polygon points="${p(s * 1.1)}" fill="${dark}"/><polygon points="${p(s)}" fill="${col}"/>` + `<g transform="translate(0 ${6 * s})">${pips(face, 9 * s, opts.pip || "#fff")}</g>`;
+	} else {
+		body = `<rect x="${-30 * s}" y="${-30 * s}" width="${60 * s}" height="${60 * s}" rx="${9 * s}" fill="${dark}"/><rect x="${-27 * s}" y="${-27 * s}" width="${54 * s}" height="${54 * s}" rx="${7 * s}" fill="${col}"/>` + pips(face, 13 * s, opts.pip || "#fff");
+	}
+	const shadow = opts.shadow === false ? "" : `<ellipse cx="0" cy="${30 * s}" rx="${32 * s}" ry="${7 * s}" fill="rgba(0,0,0,.35)"/>`;
+	return `<g transform="translate(${x} ${y}) rotate(${opts.rot || 0})">${shadow}${body}${opts.extra || ""}</g>`;
+}
+
+// ---- the BEFORE stage (redrawn from the screenshots: saturated colour everywhere, flat panels, small type)
+function before() {
+	let g = "";
+	g += `<rect width="1920" height="1080" fill="#7a5b43"/>`;
+	g += `<rect y="0" width="1920" height="300" fill="#c98d5c"/><path d="M0 520 Q480 470 960 520 T1920 520 V1080 H0Z" fill="#6a4a33"/><path d="M0 760 Q600 720 1200 780 T1920 760 V1080 H0Z" fill="#4f3624"/>`;
+	// top bar
+	g += `<rect width="1920" height="86" fill="#5a2f86"/><rect x="40" y="18" width="150" height="50" rx="8" fill="#8d61b5"/><text x="235" y="58" font-family="Lato" font-weight="900" font-size="30" fill="#fff">40/40</text><text x="420" y="58" font-family="Lato" font-weight="900" font-size="30" fill="#ffd84a">99</text>`;
+	g += `<rect x="1060" y="20" width="58" height="46" fill="#8a5a2b"/><rect x="1300" y="30" width="300" height="26" fill="#2a1a40"/><rect x="1300" y="30" width="150" height="26" fill="#f0a01a"/><circle cx="1780" cy="43" r="24" fill="#fff"/><text x="1520" y="140" font-family="Georgia" font-size="22" fill="#fff">Chapter 1</text>`;
+	// player and enemies
+	g += `<circle cx="330" cy="520" r="70" fill="#2e7fa0"/><rect x="270" y="590" width="120" height="120" fill="#2e7fa0"/><rect x="180" y="740" width="300" height="34" fill="#7a0d0d"/><text x="200" y="766" font-family="Lato" font-weight="900" font-size="24" fill="#ddd">40 / 40</text><rect x="300" y="360" width="60" height="44" rx="10" fill="#2a3040"/><text x="380" y="392" font-family="Lato" font-weight="900" font-size="24" fill="#ff0">6</text>`;
+	[[1350, 470], [1650, 450]].forEach(([x, y], i) => {
+		g += `<circle cx="${x}" cy="${y}" r="70" fill="#6c7a5a"/><rect x="${x - 70}" y="${y + 60}" width="140" height="130" fill="#6c7a5a"/><rect x="${x - 110}" y="${y + 230}" width="220" height="30" fill="#7a0d0d"/><text x="${x - 90}" y="${y + 253}" font-family="Lato" font-weight="900" font-size="22" fill="#ddd">22 / 22</text>`;
+		g += `<rect x="${x - 60}" y="${y - 175}" width="120" height="70" rx="8" fill="#2a3040"/><rect x="${x - 45}" y="${y - 165}" width="40" height="50" fill="${i ? '#1ea0ff' : '#ff2a2a'}"/><text x="${x + 10}" y="${y - 125}" font-family="Lato" font-weight="900" font-size="28" fill="#fff">${i ? '4' : '6'}</text>`;
+	});
+	// queue
+	g += `<text x="560" y="300" font-family="Georgia" font-size="26" fill="#fff" stroke="#000" stroke-width="4" paint-order="stroke">4 plays left</text>`;
+	[0, 1, 2, 3].forEach(i => g += `<circle cx="${575 + i * 34}" cy="330" r="14" fill="${i < 2 ? '#e8c46a' : '#5a4535'}" stroke="#2a1d12" stroke-width="3"/>`);
+	g += `<rect x="530" y="370" width="210" height="80" fill="#2e9a5a" stroke="#000" stroke-width="5"/><text x="560" y="420" font-family="Georgia" font-weight="700" font-size="24" fill="#fff">END TURN 1</text>`;
+	g += `<rect x="730" y="310" width="160" height="160" fill="#1f8fe0" stroke="#000" stroke-width="5"/><text x="810" y="380" text-anchor="middle" font-family="Georgia" font-weight="700" font-size="24" fill="#fff">Sidestep</text><text x="810" y="430" text-anchor="middle" font-family="Lato" font-weight="900" font-size="26" fill="#fff">1</text>`;
+	g += `<rect x="910" y="310" width="160" height="160" fill="#e00000" stroke="#000" stroke-width="5"/><text x="990" y="380" text-anchor="middle" font-family="Georgia" font-weight="700" font-size="24" fill="#fff">Pistol Shot</text><text x="990" y="430" text-anchor="middle" font-family="Lato" font-weight="900" font-size="26" fill="#fff">7</text><text x="1040" y="340" font-family="Lato" font-weight="900" font-size="24" fill="#0f0">+1</text>`;
+	g += `<rect x="1090" y="310" width="160" height="160" fill="none" stroke="#000" stroke-width="5" stroke-dasharray="16 12"/><text x="1170" y="400" text-anchor="middle" font-family="Georgia" font-size="30" fill="#222">0 / 6</text>`;
+	[810, 990, 1170].forEach(x => g += `<circle cx="${x}" cy="500" r="11" fill="#999" stroke="#000" stroke-width="3"/>`);
+	g += die(810, 270, 4, 1, "#1ea0ff", .55) + die(990, 270, 6, 4, "#ff3030", .55);
+	// hand
+	[[760, 760, "#ff2020", 4], [880, 820, "#1ea0ff", 4], [1060, 870, "#e0d000", 1, "#000"], [1150, 760, "#1ea0ff", 4]].forEach(([x, y, c, f, p]) => g += die(x, y, 4, f, c, 1, { pip: p }));
+	// bags
+	g += `<rect x="40" y="960" width="80" height="90" rx="20" fill="#6b4a2a"/><text x="140" y="1040" font-family="Georgia" font-weight="700" font-size="34" fill="#fff" stroke="#000" stroke-width="5" paint-order="stroke">DRAW</text><rect x="1800" y="960" width="80" height="90" rx="20" fill="#6b4a2a"/>`;
+	return g;
+}
+
+// ---- the AFTER stage
+// pigments with a real brightness ladder (attack darkest, then heal, block, insight lightest); neutral dice are bone
+const P = { atk: "#B33A22", heal: "#3C9A68", blk: "#6FA8E8", ins: "#F2D24A", bone: "#E9E0CC", ink: "#2A1D12", paper: "#E7D6B0" };
+const G = {
+	sword: (c) => `<path d="M-7 7 L6 -6 M3 -8 L8 -8 L8 -3 M-8 3 L-3 8 M-9 9 L-6 6" stroke="${c}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`,
+	shield: (c) => `<path d="M0 -9 L8 -6 L7 3 Q0 10 0 10 Q0 10 -7 3 L-8 -6 Z" fill="${c}"/>`,
+	heart: (c) => `<path d="M0 8 L-8 0 A4.5 4.5 0 0 1 0 -6 A4.5 4.5 0 0 1 8 0 Z" fill="${c}"/>`,
+	eye: (c) => `<path d="M-9 0 Q0 -9 9 0 Q0 9 -9 0 Z" fill="none" stroke="${c}" stroke-width="2.2"/><circle r="3" fill="${c}"/>`,
+};
+// a die: its shape in its pigment with an ink outline; pips dark on light pigments, light on dark; its action glyph in a corner
+function die2(x, y, sides, face, col, glyph, s = 1, rot = 0) {
+	const light = (col === P.blk || col === P.ins || col === P.bone);
+	const pip = light ? P.ink : "#F7EFDB";
+	let body;
+	if (sides === 4) {
+		const p = (k) => [[0, -40 * k], [36 * k, 22 * k], [-36 * k, 22 * k]].map(q => q.join(",")).join(" ");
+		body = `<polygon points="${p(s * 1.12)}" fill="${P.ink}"/><polygon points="${p(s)}" fill="${col}"/><g transform="translate(0 ${6 * s})">${pips(face, 9 * s, pip)}</g>`;
+		if (glyph) body += `<g transform="translate(${-24 * s} ${14 * s}) scale(${0.55 * s})">${G[glyph](pip)}</g>`;
+	} else {
+		body = `<rect x="${-31 * s}" y="${-31 * s}" width="${62 * s}" height="${62 * s}" rx="${9 * s}" fill="${P.ink}"/><rect x="${-27 * s}" y="${-27 * s}" width="${54 * s}" height="${54 * s}" rx="${7 * s}" fill="${col}"/>` + pips(face, 13 * s, pip);
+	}
+	return `<g transform="translate(${x} ${y}) rotate(${rot})"><ellipse cx="0" cy="${30 * s}" rx="${34 * s}" ry="${8 * s}" fill="rgba(0,0,0,.4)"/>${body}</g>`;
+}
+function after() {
+	let g = "";
+	g += `<defs>
+		<radialGradient id="vig" cx="50%" cy="45%" r="78%"><stop offset="60%" stop-color="rgba(0,0,0,0)"/><stop offset="100%" stop-color="rgba(10,6,4,.55)"/></radialGradient>
+		<linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5f45"/><stop offset=".45" stop-color="#6e4b36"/><stop offset="1" stop-color="#4a3325"/></linearGradient>
+		<filter id="pd" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity=".5"/></filter>
+		<filter id="edge" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency=".04" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="4" xChannelSelector="R" yChannelSelector="G"/></filter>
+		<pattern id="grain" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#E7D6B0"/><circle cx="1" cy="2" r=".6" fill="#d8c59b"/><circle cx="4" cy="5" r=".5" fill="#efe0bd"/></pattern>
+	</defs>`;
+	// the backdrop only is dimmed and desaturated (warm dusk); the actors keep full value
+	g += `<rect width="1920" height="1080" fill="url(#dusk)"/>`;
+	g += `<path d="M0 520 Q480 470 960 520 T1920 520 V1080 H0Z" fill="#5a3f2d"/><path d="M0 760 Q600 720 1200 780 T1920 760 V1080 H0Z" fill="#46301f"/>`;
+	g += `<rect width="1920" height="1080" fill="url(#vig)"/>`;
+
+	// top bar: slim; HP, gold coin in brass, keepsakes as paper roundels with ink glyphs, the menu. Ink lives at the inkwell.
+	g += `<rect width="1920" height="72" fill="#1c1712"/><rect y="71" width="1920" height="2" fill="rgba(226,212,176,.3)"/>`;
+	g += `<g transform="translate(46 36)">${G.heart(P.atk)}<text x="22" y="11" font-family="Lato" font-weight="900" font-size="32" fill="#F1E4C4">40<tspan fill="#9a8f7c" font-size="22">/40</tspan></text></g>`;
+	g += `<g transform="translate(250 36)"><circle r="14" fill="#B08A4A" stroke="${P.ink}" stroke-width="3"/><circle r="7" fill="none" stroke="#7a5d2c" stroke-width="2"/><text x="26" y="11" font-family="Lato" font-weight="900" font-size="32" fill="#F1E4C4">99</text></g>`;
+	const ks = ["anchor", "compass", "bottle", "rope", "lantern", "map"];
+	ks.forEach((k, i) => {
+		const x = 760 + i * 68;
+		g += `<g transform="translate(${x} 36)"><circle r="25" fill="${P.ink}"/><circle r="22" fill="${P.paper}"/>`;
+		g += {
+			anchor: `<path d="M0 -12 V12 M-10 4 Q0 16 10 4 M-6 -6 H6" stroke="${P.ink}" stroke-width="2.8" fill="none" stroke-linecap="round"/><circle cy="-13" r="3" fill="none" stroke="${P.ink}" stroke-width="2.4"/>`,
+			compass: `<circle r="11" fill="none" stroke="${P.ink}" stroke-width="2.4"/><path d="M0 -9 L3 0 L0 9 L-3 0Z" fill="${P.ink}"/>`,
+			bottle: `<path d="M-3 -13 H3 V-6 Q8 -3 8 4 V11 H-8 V4 Q-8 -3 -3 -6Z" fill="${P.ink}"/>`,
+			rope: `<circle r="10" fill="none" stroke="${P.ink}" stroke-width="3" stroke-dasharray="5 3"/>`,
+			lantern: `<rect x="-7" y="-9" width="14" height="18" rx="3" fill="none" stroke="${P.ink}" stroke-width="2.6"/><path d="M-4 -13 H4" stroke="${P.ink}" stroke-width="2.6"/><circle r="3" fill="${P.ink}"/>`,
+			map: `<path d="M-11 -8 L-4 -11 L4 -8 L11 -11 V8 L4 11 L-4 8 L-11 11Z" fill="none" stroke="${P.ink}" stroke-width="2.4"/>`,
+		}[k] + `</g>`;
+	});
+	g += `<g transform="translate(1862 36)"><circle r="22" fill="none" stroke="#E2D4B0" stroke-width="2.5"/><path d="M-9 -6 H9 M-9 0 H9 M-9 6 H9" stroke="#E2D4B0" stroke-width="3"/></g>`;
+
+	// HP: a readable bar with the number beside it
+	const hp = (x, y, w, cur, max) => `<g transform="translate(${x} ${y})"><rect x="${-w / 2}" y="0" width="${w}" height="20" rx="10" fill="#1c1712" stroke="${P.ink}" stroke-width="3"/><rect x="${-w / 2 + 3}" y="3" width="${(w - 6) * cur / max}" height="14" rx="7" fill="${P.atk}"/><text y="52" text-anchor="middle" font-family="Lato" font-weight="900" font-size="30" fill="#F7EFDB" stroke="#1c1712" stroke-width="5" paint-order="stroke">${cur}<tspan font-size="22" fill="#c9bb9c"> / ${max}</tspan></text></g>`;
+	g += `<g filter="url(#pd)"><circle cx="330" cy="500" r="66" fill="#2e7fa0"/><rect x="272" y="566" width="116" height="122" rx="10" fill="#2e7fa0"/></g>` + hp(330, 712, 230, 40, 40);
+	// the inkwell: ink shown once, here
+	g += `<g transform="translate(476 600)"><ellipse cx="0" cy="26" rx="36" ry="8" fill="rgba(0,0,0,.4)"/><path d="M-30 -6 Q-32 24 -22 26 H22 Q32 24 30 -6 Q24 -14 12 -14 V-22 H-12 V-14 Q-24 -14 -30 -6Z" fill="#1f2430" stroke="#E2D4B0" stroke-width="2.5"/><path d="M-26 4 Q-27 22 -20 23 H20 Q27 22 26 4Z" fill="${P.ins}"/><path d="M2 -20 L40 -96" stroke="${P.ink}" stroke-width="3"/><path d="M18 -52 C 8 -70, 22 -96, 46 -110 C 46 -90, 40 -66, 22 -48 Z" fill="#ECDEBA" stroke="${P.ink}" stroke-width="2"/><text x="0" y="62" text-anchor="middle" font-family="Lato" font-weight="900" font-size="30" fill="${P.ins}" stroke="#1c1712" stroke-width="5" paint-order="stroke">6</text></g>`;
+
+	// intents: bigger paper tags, one glyph, one number, the enemy's name under
+	const tag = (x, y, col, glyph, num, name) => `<g transform="translate(${x} ${y})"><line x1="0" y1="-70" x2="0" y2="-38" stroke="#E2D4B0" stroke-width="3"/><g filter="url(#pd)"><g filter="url(#edge)"><rect x="-96" y="-38" width="192" height="100" rx="8" fill="url(#grain)" stroke="${P.ink}" stroke-width="3.5"/></g></g><circle cx="-46" cy="12" r="31" fill="${col}"/><g transform="translate(-46 12) scale(1.7)">${G[glyph](col === P.blk ? P.ink : "#F7EFDB")}</g><text x="32" y="34" text-anchor="middle" font-family="Lato" font-weight="900" font-size="60" fill="${P.ink}">${num}</text><text y="98" text-anchor="middle" font-family="Source Serif 4,Georgia" font-weight="600" font-size="22" fill="#F1E4C4" stroke="#1c1712" stroke-width="4" paint-order="stroke">${name}</text></g>`;
+	[[1360, 480, P.atk, "sword", "6", "Deckhand"], [1660, 460, P.blk, "shield", "4", "Bosun"]].forEach(([x, y, c, gl, n, name]) => {
+		g += `<g filter="url(#pd)"><circle cx="${x}" cy="${y}" r="66" fill="#6c7a5a"/><rect x="${x - 66}" y="${y + 58}" width="132" height="124" rx="10" fill="#6c7a5a"/></g>` + hp(x, y + 212, 210, 22, 22);
+		g += tag(x, y - 175, c, gl, n, name);
+	});
+
+	// the action queue: paper tickets, dice resting on top, the bonus inked at numeral size beside the total
+	const ticket = (x, name, col, glyph, total, bonus) => {
+		const onDark = (col === P.atk || col === P.heal);
+		let t = `<g transform="translate(${x} 300)"><g filter="url(#pd)"><g filter="url(#edge)"><rect x="0" y="0" width="180" height="200" rx="6" fill="url(#grain)"/><path d="M6 0 H174 Q180 0 180 6 V50 H0 V6 Q0 0 6 0Z" fill="${col}"/><rect x="0" y="0" width="180" height="200" rx="6" fill="none" stroke="${P.ink}" stroke-width="3.5"/></g></g>`;
+		t += `<g transform="translate(26 25)">${G[glyph](onDark ? "#F7EFDB" : P.ink)}</g><text x="46" y="34" font-family="Source Serif 4,Georgia" font-weight="700" font-size="24" fill="${onDark ? "#F7EFDB" : P.ink}">${name}</text>`;
+		t += `<text x="${bonus ? 74 : 90}" y="150" text-anchor="middle" font-family="Lato" font-weight="900" font-size="76" fill="${P.ink}">${total}</text>`;
+		if (bonus) t += `<text x="140" y="146" text-anchor="middle" font-family="Lato" font-weight="900" font-size="34" fill="#2C6E4A">${bonus}</text>`;
+		t += `<circle cx="90" cy="186" r="6" fill="${P.ink}"/></g>`;
+		return t;
+	};
+	g += ticket(640, "Sidestep", P.blk, "shield", "1", "");
+	g += ticket(840, "Pistol shot", P.atk, "sword", "7", "+1");
+	g += `<g transform="translate(1040 300)"><rect x="0" y="0" width="180" height="200" rx="10" fill="rgba(231,214,176,.08)" stroke="rgba(231,214,176,.6)" stroke-width="3.5" stroke-dasharray="16 11"/><text x="90" y="112" text-anchor="middle" font-family="Lato" font-weight="900" font-size="48" fill="#F1E4C4">0<tspan font-size="30" fill="#c9bb9c"> / 6</tspan></text><text x="90" y="154" text-anchor="middle" font-family="Source Serif 4,Georgia" font-weight="600" font-size="22" fill="#c9bb9c">New slot</text></g>`;
+	g += die2(730, 262, 4, 1, P.blk, "shield", .6) + die2(930, 262, 6, 6, P.atk, "sword", .6);
+
+	// the hand on a felt tray; draw and discard satchels together at the left, counts only
+	g += `<rect x="0" y="780" width="1920" height="300" fill="rgba(24,18,13,.82)"/><rect x="0" y="780" width="1920" height="3" fill="rgba(226,212,176,.22)"/>`;
+	[[660, 912, P.atk, 4, "sword"], [820, 930, P.blk, 4, "shield"], [980, 916, P.ins, 1, "eye"], [1140, 926, P.blk, 4, "shield"], [1300, 914, P.bone, 3, ""]].forEach(([x, y, c, f, gl], i) => g += die2(x, y, 4, f, c, gl, 1.2, [-6, 4, -2, 7, -4][i]));
+	// one die hovered: its compact tip right above it
+	g += `<g transform="translate(980 862)"><g filter="url(#pd)"><rect x="-176" y="-112" width="352" height="96" rx="8" fill="#1A1E28"/></g><rect x="-171" y="-107" width="342" height="86" rx="5" fill="none" stroke="rgba(226,212,176,.55)"/><text x="-154" y="-74" font-family="Source Serif 4,Georgia" font-weight="600" font-size="24" fill="#fff">Lookout die <tspan font-weight="400" font-size="19" fill="#c9b99a">rolled 1</tspan></text><text x="-154" y="-40" font-family="Source Serif 4,Georgia" font-size="20" fill="#E2D4B0"><tspan fill="#7FD6D0">Stowaway</tspan>: gain <tspan fill="${P.ins}">3 insight</tspan> next turn.</text><polygon points="-11,-16 11,-16 0,-3" fill="#1A1E28"/></g>`;
+	const satchel = (x, n) => `<g transform="translate(${x} 950)"><g filter="url(#pd)"><path d="M-46 -38 Q0 -62 46 -38 L52 40 Q0 56 -52 40 Z" fill="#5a4330" stroke="${P.ink}" stroke-width="3"/></g><path d="M-28 -46 Q0 -74 28 -46" stroke="${P.ink}" stroke-width="5" fill="none"/><text y="16" text-anchor="middle" font-family="Lato" font-weight="900" font-size="38" fill="#F1E4C4">${n}</text></g>`;
+	g += satchel(96, 7) + `<g transform="translate(218 950) scale(.8)" opacity=".85">` + satchel(0, 3).replace('translate(0 950)', 'translate(0 0)') + `</g>`;
+	g += `<text x="96" y="1050" text-anchor="middle" font-family="Source Serif 4,Georgia" font-weight="600" font-size="20" fill="#c9bb9c">Bag</text><text x="218" y="1050" text-anchor="middle" font-family="Source Serif 4,Georgia" font-weight="600" font-size="20" fill="#c9bb9c">Spent</text>`;
+
+	// End Turn: the one primary, bottom right; ink-filled with a brass edge; plays left as studs along its top
+	g += `<g transform="translate(1700 930)"><g filter="url(#pd)"><rect x="-156" y="-62" width="312" height="124" rx="16" fill="#C9A060" stroke="${P.ink}" stroke-width="4"/><rect x="-146" y="-52" width="292" height="104" rx="11" fill="url(#grain)" stroke="${P.ink}" stroke-width="3"/></g><text y="16" text-anchor="middle" font-family="Source Serif 4,Georgia" font-weight="700" font-size="42" fill="${P.ink}">End turn</text>`;
+	for (let i = 0; i < 4; i++) g += `<circle cx="${-51 + i * 34}" cy="-56" r="13" fill="${i < 2 ? "#E8C46A" : "#3a3128"}" stroke="${P.ink}" stroke-width="3.5"/>`;
+	g += `<text y="-82" text-anchor="middle" font-family="Source Serif 4,Georgia" font-weight="600" font-size="22" fill="#F1E4C4" stroke="#1c1712" stroke-width="4" paint-order="stroke">2 plays left</text></g>`;
+	return g;
+}
+
+const stage = (id, inner) => document.getElementById(id).innerHTML = `<svg class="stage" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet">${inner}</svg>`;
+stage("before", before());
+stage("after", after());
+</script>
+</body>
+</html>

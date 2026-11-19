@@ -342,6 +342,11 @@ if (pick_pending) {
 	var _pick = ui_button(gui_w / 2, _py + 108, 260, 64, pick_scale, "Open the bag", global.ui_primary);
 	pick_scale = _pick.scale;
 	if (_pick.click) workbench_open_picker();
+} else if (workbench_can_change_dice()) {
+	// picked the wrong die? until the first craft you can put them back and choose again (B134)
+	var _change = ui_button(start_x - wb_tile_size / 2 - 170, start_y, 220, 56, pick_scale, "Change dice", global.ui_quiet);
+	pick_scale = _change.scale;
+	if (_change.click) workbench_change_dice();
 }
 
 // "Dice + Core = Output", or with the Cutters "Dice = Basic coin + Remainder"
@@ -366,6 +371,6 @@ if	(workbench_slot[2].dice == undefined && instance_number(oDice) == 0 && instan
 	(workbench_slot[0].dice == undefined && workbench_slot[1].core == undefined && workbench_slot[1].dice == undefined && workbench_slot[2].dice == undefined) exit_col = c_red;
 
 var exit_ready = (exit_col == c_red) && !oRunManager.is_dealing_dice && !oRunManager.holding_item;
-var exit_btn = ui_button(gui_w - 150, gui_h - 200, 180, 70, exit_scale, "Exit", global.ui_neutral, exit_ready, "Take the dice off the bench first (click a finished die).");
-exit_scale = exit_btn.scale;
+// the room's commit action, bottom right (ui_primary, UI rework)
+var exit_btn = ui_primary(gui_w - 44 - 140, gui_h - 40 - 48, 280, 96, "Continue", exit_ready, "Take the dice off the bench first (click a finished die).");
 if (exit_btn.click) exiting = true;

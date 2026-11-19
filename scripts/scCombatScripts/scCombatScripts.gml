@@ -138,7 +138,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 						max_roll: _max_roll,
 						slot_bonus: slot_bonus_amount,
 						keepsake_bonus: _keepsake_dice_bonus_amount,
-						// the slot's first-die bonus, if this is that die (Repeater Rail, Single Focus)
+						// the slot's first-die bonus, if this is that die (Single Focus, a slot's place bonus)
 						first_bonus: (_dice_list_index == 0 && !first_die_bonus_used && _slot_number >= 0 && _slot_number < ds_list_size(oCombat.action_queue)) ? oCombat.action_queue[| _slot_number].first_die_bonus : 0,
 						dice_index: _dice_list_index,
 						_slot: oCombat.action_queue[| _slot_number],
@@ -161,7 +161,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					final_roll = ctx._d_amount + slot_bonus_amount + _keepsake_dice_bonus_amount;
 					final_roll = max(0, final_roll); // a die never rolls below 0 (Splash's -2 on a 1)
 
-					// bonuses that only apply to the first die in the slot (Repeater Rail)
+					// bonuses that only apply to the first die in the slot (a slot's place bonus)
 					if (_dice_list_index == 0 && !first_die_bonus_used && _slot_number >= 0 && _slot_number < ds_list_size(oCombat.action_queue)) {
 						final_roll += oCombat.action_queue[| _slot_number].first_die_bonus;
 						first_die_bonus_used = true;
@@ -305,6 +305,8 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					
 	                _target.hp = max(0, _target.hp - final_damage);
 	                spawn_floating_number(_target, final_damage, -1, c_red, -1, -1, _dice_list_index);
+					_target.hit_t = current_time; // a white flash (oCombat Draw GUI)
+					if (final_damage >= 8) screen_shake(min(10, 2 + final_damage * 0.4)); // a big hit lands
 					run_stat_add("damage_dealt", final_damage);
 					run_stat_max("biggest_hit", final_damage);
 	            }
@@ -327,6 +329,11 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					
 					enemies_to_fade_out += 1;
 					_target.alpha = 0.5;
+					// it goes down: a flash, a tilt and a sink (oCombat Draw GUI), a shake and a splash of ink
+					_target.death_t = current_time;
+					screen_shake(7);
+					particle_emit_later(_target.pos_x, _target.pos_y, "burst", global.ui_col.ink, 26);
+					particle_emit_later(_target.pos_x, _target.pos_y, "rise", global.color_attack, 12);
 					
 					var possible_new_targets = ds_list_create();
 					var new_target = undefined;
@@ -372,6 +379,8 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	            if (final_damage > 0) {
 	                global.player_hp = max(0, global.player_hp - final_damage);
 	                spawn_floating_number("player", final_damage, -1, c_red, -1, -1, _dice_list_index);
+					player_hit_t = current_time; // a white flash on your ship
+					screen_shake(clamp(2 + final_damage * 0.5, 3, 12)); // you feel every hit, more the bigger it is
 					run_stat_add("damage_taken", final_damage);
 				
 	            }
@@ -718,7 +727,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 			run_stat_add("dice_played", 1);
 			die.struct.statistics.times_played_this_combat++;
 		} else {
-			// keepsakes that read the queue (Single Focus, Repeater Rail) still work it out again
+			// keepsakes that read the queue (Single Focus) still work it out again
 			runmanager_trigger_keepsakes("after_change_current_action", {});
 		}
 
@@ -746,16 +755,49 @@ function apply_dice_to_slot(_die, _slot_i) {
 
 /// is_mouse_over_discard_button()
 function is_mouse_over_discard_button() {
-    var mx = device_mouse_x_to_gui(0);
-    var my = device_mouse_y_to_gui(0);
+	// the discard pile, beside the draw bag bottom left (combat_discard_spot)
+	var _s = combat_discard_spot();
+	var _x1 = _s.x - sprite_get_xoffset(sDiceBag) - 10, _y1 = _s.y - sprite_get_yoffset(sDiceBag) - 10;
+	var mx = device_mouse_x_to_gui(0), my = device_mouse_y_to_gui(0);
+	return (mx > _x1 && mx < _x1 + sprite_get_width(sDiceBag) + 20 && my > _y1 && my < _y1 + sprite_get_height(sDiceBag) + 20);
+}
 
-    // Bottom-right button area (adjust as needed)
-    var btn_w = global.gui.discard_w;
-    var btn_h = global.gui.discard_h;
-    var btn_x = display_get_gui_width() - btn_w - 40;
-    var btn_y = display_get_gui_height() - btn_h - 40;
+/// @func combat_inkwell_pos()
+/// @desc Where the inkwell (your insight) sits in a fight: just before the action queue (UI rework; it used to float
+///       over your head), so it reads as something you use. The ink view and the tips read it too.
+function combat_inkwell_pos() {
+	// just before the action queue, at its middle: the ink is something you use on your turn, not a buff you carry
+	if (instance_exists(oCombat) && variable_instance_exists(oCombat, "aq_left")) return { x: oCombat.aq_left - 78 * global.ui_scale, y: oCombat.aq_mid_y + 8 };
+	return { x: global.player_x + 140, y: global.player_y + 22 };
+}
 
-    return (mx > btn_x && mx < btn_x + btn_w && my > btn_y && my < btn_y + btn_h);
+/// @func combat_shuffle_effect(_n)
+/// @desc The discard pile is shuffled back into the bag (deal_single_die): a burst at the pile, up to 8 dice flying out
+///       of it in an arc and into the bag (look-only oDiceParticles: visual_only, so landing adds or discards
+///       nothing), another burst as they land, and a shuffle sound.
+function combat_shuffle_effect(_n) {
+	var _s = combat_discard_spot();
+	var _fx = _s.x + sprite_get_width(sDiceBag) / 2, _fy = _s.y - sprite_get_height(sDiceBag) / 2;
+	var _tx = global.gui.bag_x + global.gui.bag_w / 2, _ty = global.gui.bag_y + global.gui.bag_h / 2;
+	particle_emit(_fx, _fy, "burst", global.ui_col.rule, 24);
+	repeat (min(8, max(1, _n))) {
+		var _p = instance_create_layer(_fx + irandom_range(-14, 14), _fy + irandom_range(-10, 10), "Instances", oDiceParticle);
+		_p.visual_only = true;
+		_p.target_x = _tx;
+		_p.target_y = _ty;
+		_p.x_speed = random_range(-3.5, -1.5); // up and back toward the bag
+		_p.y_speed = -irandom_range(9, 13);
+		_p.die_struct = clone_die(global.discard_pile[| irandom(ds_list_size(global.discard_pile) - 1)], "");
+		_p.color_main = get_dice_color(_p.die_struct.possible_type);
+	}
+	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.35);
+}
+
+/// @func combat_discard_spot()
+/// @desc Where the discard pile sits in a fight (its sprite's draw position): bottom left, beside the draw bag, so End
+///       Turn has the bottom right to itself (UI rework). Spent dice fly here.
+function combat_discard_spot() {
+	return { x: 330, y: display_get_gui_height() - 40 };
 }
 
 function discard_dice(_die) {
@@ -906,8 +948,12 @@ function combat_try_build_slot() {
 		};
 		trigger_die_effects_single(_d, "on_sacrifice_die", sacrifice_data);
 		runmanager_trigger_keepsakes("on_sacrifice_die", sacrifice_data);
+		// given up to build the slot (F41): it bursts in its colour and embers rise off the new tile
+		particle_emit_later(_tx, _ty + 60, "burst", get_dice_color(_d.possible_type), 14);
+		particle_emit_later(_tx, _ty + 60, "rise", global.color_intel, 8);
 	}
 
+	screen_shake(3); // the new slot thuds into place
 	// untyped like every slot (it resets each turn); this turn its types come from the dice in it (slot_recompute_types)
 	var _new_slot = combat_new_slot("None");
 	slot_set_position_bonus(_new_slot, ds_list_size(action_queue));
@@ -971,7 +1017,7 @@ function get_slot_stats(_slot, _num) {
         var die_struct = _slot.dice_list[| i];
 		var die_base = die_struct.permanence == "base" ? true : false;
 		
-		var dice_values = get_dice_output(die_struct, _num, -1, true, "player");
+		var dice_values = get_dice_output(die_struct, _num, i, true, "player"); // its place in the slot (Repeater Rail counts it)
 		
 		// rolled dice: a die that has rolled counts its number, so the slot shows an exact total
 		var _face = die_face_total(die_struct, dice_values.min_roll, dice_values.max_roll);
@@ -1333,8 +1379,8 @@ function discard_dice_in_play(_all = false) {
 		    p.die_struct = clone_die(d_struct, d_struct.permanence);
 		    p.color_main = col;
 			if (room == rmCombat) {
-			    p.target_x = oCombat.gui_w - 150;  // discard button position
-			    p.target_y = oCombat.gui_h - 130;
+			    p.target_x = combat_discard_spot().x;  // the discard pile
+			    p.target_y = combat_discard_spot().y - 40;
 			} else {
 				p.target_x = 60;
 				p.target_y = 1040;
@@ -1445,8 +1491,8 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 
 			// Spawn particle
 			var p = instance_create_layer(start_x, start_y, "Instances", oDiceParticle);
-			p.target_x = oCombat.gui_w - 150;  // discard button target
-			p.target_y = oCombat.gui_h - 130;
+			p.target_x = combat_discard_spot().x;  // the discard pile
+			p.target_y = combat_discard_spot().y - 40;
 			p.color_main = die.color;
 
 			// Clone the die struct so the particle has its own independent copy
@@ -1570,7 +1616,7 @@ function define_combat_ui_sizes() {
 	aq_tile_w = 140; // size of an action queue tile, needed to be declared here to reposition enemies in fights. 140 is the default value
 
 	global.enemy_x = (1600 * global.ui_scale) + (enemies_left_this_combat * (100 * global.ui_scale));
-	global.enemy_y = 735 * global.ui_scale;
+	global.enemy_y = 665 * global.ui_scale; // (UI rework: raised, so the bottom right stays clear for End Turn)
 	global.player_x = 355 * global.ui_scale - (25 * global.ui_scale);
 	global.player_xstart = global.player_x;
 	global.player_y = global.enemy_y;
@@ -1583,7 +1629,7 @@ function define_combat_ui_sizes() {
 // SLOT BONUSES
 // A slot's flat bonuses are kept as separate entries, each tagged with where it came from, so keepsakes
 // and items can't overwrite or undo each other. A bonus applies to every die in the slot ("each") unless
-// its description says otherwise ("first", only the first die, like Repeater Rail).
+// its description says otherwise ("first", only the first die, like a slot's place bonus).
 // slot.bonus_amount is the "each" total and slot.first_die_bonus the "first" total, kept up to date by
 // these functions and read by the rest of the game. Never write them directly.
 // =====================================================================
@@ -1606,7 +1652,7 @@ function slot_add_bonus(_slot, _source, _amount, _turns, _scope = "each") {
 }
 
 /// @desc Set a source's bonus to exactly this amount, replacing what that source gave before.
-///       For bonuses that depend on how the queue looks right now (Single Focus, Repeater Rail).
+///       For bonuses that depend on how the queue looks right now (Single Focus).
 function slot_set_bonus(_slot, _source, _amount, _scope = "each") {
 	slot_remove_bonus(_slot, _source);
 	if (_amount != 0) array_push(_slot.bonuses, { source: _source, amount: _amount, turns: -1, scope: _scope });
@@ -1858,7 +1904,7 @@ function tutorial_target_rect(_target) {
 			case "end_turn":
 				return variable_instance_exists(id, "tut_end_turn") ? tut_end_turn : undefined;
 			case "insight":
-				return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
+				var _iw = combat_inkwell_pos(); return { x: _iw.x - 60, y: _iw.y - 65, w: 120, h: 120 };
 		}
 	}
 	return undefined;
@@ -2070,7 +2116,7 @@ function tips_list() {
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",
-			text: "The spread is done, and the route forks at sea. Sail to one stop: each offers something different (a core, losing or sharpening a die, gold, the workbench), and you heal as you pass through. Then the page turns.",
+			text: "The spread is done, and the route forks at sea. Sail to one stop: each offers something different (a core, losing or sharpening a die, gold, the workbench, or Calm water to heal). Then the page turns.",
 			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.STRAIT; },
 		},
 		{
@@ -2103,12 +2149,12 @@ function tips_list() {
 		},
 		{
 			id: "alignment_fight", room: rmCombat, target: "",
-			text: "A crossroads fight. When the enemy falls you choose: Kill it or Spare it. Killing swings your compass (top bar) toward ruthless; sparing swings it toward merciful and pays more gold. Some events and keepsakes care where your compass points. The rewards here are alignment dice.",
+			text: "A crossroads fight. When the enemy falls you choose: Kill it or Spare it. Killing swings your compass (top bar) toward ruthless; sparing swings it toward merciful but pays less gold. Some events and keepsakes care where your compass points. The rewards here are alignment dice.",
 			when: function() { return tips_combat_ready() && oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT; },
 		},
 		{
 			id: "kill_or_spare", room: rmCombat, target: "spare_buttons",
-			text: "Kill or spare? Kill: compass toward ruthless, its bounty in gold. Spare: compass toward merciful, one and a half times the gold, and it sails away. Hover each button for more.",
+			text: "Kill or spare? Kill: compass toward ruthless, its bounty in gold. Spare: compass toward merciful, a third of the gold, and it sails away. Hover each button for more.",
 			when: function() { return combat_spare_choice_enemy() != undefined; },
 		},
 		{
@@ -2138,7 +2184,7 @@ function tips_rect(_target) {
 			if (!instance_exists(oWorldManager) || !is_struct(oWorldManager.sea_buoy) || !variable_struct_exists(oWorldManager.sea_buoy, "x")) return undefined;
 			return { x: oWorldManager.sea_buoy.x - 40, y: oWorldManager.sea_buoy.y - 40, w: 80, h: 100 }; // the buoy
 		case "insight":
-			return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
+			var _iw = combat_inkwell_pos(); return { x: _iw.x - 60, y: _iw.y - 65, w: 120, h: 120 };
 		case "wb_pick":
 			if (!instance_exists(oWorkbenchManager)) return undefined;
 			with (oWorkbenchManager) return { x: display_get_gui_width() / 2 - 280, y: max(start_y - wb_tile_size - 230, 200), w: 560, h: 170 };
@@ -2181,8 +2227,8 @@ function tutorial_map_rect(_target) {
 				}
 				return { x: _x1, y: _y1, w: _x2 - _x1, h: _y2 - _y1 };
 			case "embark":
-				var _ew = 240, _eh = 84; // the Embark kit button (oWorldManager Draw GUI)
-				return { x: display_get_gui_width() * 3/4 - _ew / 2, y: display_get_gui_height() - 100 - _eh / 2, w: _ew, h: _eh };
+				var _ew = 300, _eh = 104; // Embark, the map's commit action bottom right (oWorldManager Draw GUI)
+				return { x: display_get_gui_width() - 44 - _ew, y: display_get_gui_height() - 40 - _eh, w: _ew, h: _eh };
 			case "first_stop":
 				// the first stop not yet cleared, in the order the pages were chosen
 				for (var p = 0; p < ds_list_size(chosen_pages); p++) {
@@ -2293,6 +2339,13 @@ function roll_popup(_slot_number, _dice_index, _text, _color) {
 		if (_slot_number != undefined && _slot_number >= 0 && ds_safe_exists(slot_positions, ds_type_list) && _slot_number < ds_list_size(slot_positions)) {
 			_x = slot_positions[| _slot_number].x + global.gui.action_tile_w / 2;
 			_y = slot_positions[| _slot_number].y - 60 - _dice_index * 26;
+		}
+	}
+	// the die itself wobbles as its effect fires (F40)
+	with (oCombat) {
+		if (_slot_number >= 0 && _slot_number < ds_list_size(action_queue)) {
+			var _dl = action_queue[| _slot_number].dice_list;
+			if (_dice_index >= 0 && _dice_index < ds_list_size(_dl)) die_jiggle(_dl[| _dice_index]);
 		}
 	}
 	var _inst = instance_create_layer(_x, _y, "Instances", oDamageText);
@@ -2471,6 +2524,30 @@ function workbench_open_picker() {
 		bag_to_show = global.dice_bag;
 		show_bag_contents = true;
 	}
+}
+
+/// @func workbench_can_change_dice()
+/// @desc Before the first craft of a visit you may swap the dice you brought (B134): nothing crafted, nothing being picked.
+function workbench_can_change_dice() {
+	if (!instance_exists(oWorkbenchManager)) return false;
+	var _wb = instance_find(oWorkbenchManager, 0);
+	if (_wb.pick_pending || array_length(_wb.tools_used) > 0 || _wb.crafting_state != "waiting") return false;
+	return oRunManager.dice_selection == false && instance_exists(oDice);
+}
+
+/// @func workbench_change_dice()
+/// @desc The dice in your hand go back to the bag and the picker opens again (B134).
+function workbench_change_dice() {
+	if (!workbench_can_change_dice()) return;
+	with (oDice) {
+		ds_list_add(global.dice_bag, struct);
+		instance_destroy();
+	}
+	with (oWorkbenchManager) {
+		for (var s = 0; s < array_length(workbench_slot); s++) workbench_slot[s].dice = undefined;
+		pick_pending = true;
+	}
+	workbench_open_picker();
 }
 
 // =====================================================================
@@ -2716,7 +2793,7 @@ function combat_take_back(_slot_i, _index) {
 		update_sacrificed_type_array();
 	}
 
-	// keepsakes that read the queue (Single Focus, Repeater Rail) work it out again
+	// keepsakes that read the queue (Single Focus) work it out again
 	runmanager_trigger_keepsakes("after_change_current_action", {});
 }
 
@@ -2751,7 +2828,7 @@ function combat_insight_spend(_cost) {
 		var _num = spawn_floating_number("player", _cost, -1, global.color_intel, -1, -1, 0);
 		_num.x += 20;
 		_num.y -= 20;
-		sfx_play(soSlotPlace, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
+		sfx_play(soQuill, AUDIO_GROUP.SFX, 0.08, 1); // the pen at work: ink spent
 		return true;
 	}
 	return false;
@@ -2843,8 +2920,8 @@ function combat_discard_slot_building() {
 		var _p = instance_create_layer(is_struct(new_tile_pos) ? new_tile_pos.x + new_tile_pos.w / 2 : gui_w / 2, is_struct(new_tile_pos) ? new_tile_pos.y : gui_h / 2, "Instances", oDiceParticle);
 		_p.die_struct = clone_die(global.sacrifice_list[| j], "");
 		_p.color_main = get_dice_color(_p.die_struct.possible_type);
-		_p.target_x = gui_w - 150;
-		_p.target_y = gui_h - 130;
+		_p.target_x = combat_discard_spot().x;
+		_p.target_y = combat_discard_spot().y - 40;
 	}
 	ds_list_clear(global.sacrifice_list);
 	update_sacrificed_type_array();
@@ -3012,17 +3089,17 @@ function combat_queue_holes_draw() {
 			var _p = slot_positions[| q];
 			var _has_dice = (q < ds_list_size(action_queue)) && ds_list_size(action_queue[| q].dice_list) > 0;
 			// the slot's own sprite (it includes the dot under it), so the hole is its outline; the dice above it as a strip
-			draw_sprite_ext(sActionSlot, 0, _p.x, _p.y, _p.w / 140, _p.h / 140, 0, c_white, 1);
+			draw_roundrect_ext(_p.x - 8, _p.y - 8, _p.x + _p.w + 8, _p.y + _p.h + 44, 12, 12, false); // the ticket and its type marks below
 			if (_has_dice) draw_roundrect_ext(_p.x - 5, _p.y - 44, _p.x + _p.w + 5, _p.y + 6, 10, 10, false);
 		}
 		if (is_struct(new_tile_pos)) {
 			var _hd = ds_list_size(global.sacrifice_list) > 0;
-			draw_sprite_ext(sActionSlot, 2, new_tile_pos.x, new_tile_pos.y, new_tile_pos.w / 140, new_tile_pos.h / 140, 0, c_white, 1);
+			draw_roundrect_ext(new_tile_pos.x - 8, new_tile_pos.y - 8, new_tile_pos.x + new_tile_pos.w + 8, new_tile_pos.y + new_tile_pos.h + 44, 12, 12, false);
 			if (_hd) draw_roundrect_ext(new_tile_pos.x - 5, new_tile_pos.y - 44, new_tile_pos.x + new_tile_pos.w + 5, new_tile_pos.y + 6, 10, 10, false);
 		}
 		if (variable_instance_exists(id, "end_turn_draw")) {
 			var _et = end_turn_draw;
-			draw_sprite_ext(sEndTurn, 0, _et.x, _et.y, _et.s * 1.04, _et.s * 1.08, 0, c_white, 1);
+			draw_roundrect_ext(_et.x1 - 10, _et.y1 - 10, _et.x2 + 10, _et.y2 + 10, 20, 20, false); // End Turn (reading Confirm)
 		}
 	}
 }
@@ -3051,7 +3128,7 @@ function combat_insight_view_set(_open) {
 		insight_view = _open;
 		insight_view_age = 0; // frames open (oCombat Step): the click that opened it can't also close it
 		global.ui_layer = _open ? UI_LAYER.POPUP : UI_LAYER.BASE;
-		sfx_play(soSlotPlace, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
+		sfx_play(soQuill, AUDIO_GROUP.UI, 0.1, 0.5); // a light stroke of the pen, opening or closing the log
 	}
 }
 
@@ -3126,7 +3203,7 @@ function combat_insight_view_draw() {
 		}
 
 		// the inkwell, on top, with your ink beside it: clicking it closes the log (a toggle, like Confirm)
-		var _ex = global.player_x, _ey = global.player_y - 180;
+		var _ex = combat_inkwell_pos().x, _ey = combat_inkwell_pos().y;
 		var _ink_hov = mouse_hovering(_ex, _ey, 70, 70, true, noone, noone, true, UI_LAYER.POPUP);
 		draw_inkwell(_ex, _ey, _ink_hov ? 1.25 : 1.15, player_intel / INSIGHT_MAX, false);
 		if (_ink_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Put your ink away", "Back to your dice. Click the inkwell again any time this turn to use your ink.", undefined, 0, undefined, 0, "insight", { button: "left", text: "Done", col: global.color_intel });
@@ -3134,20 +3211,16 @@ function combat_insight_view_draw() {
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
-		draw_outline_text(string(player_intel), c_black, global.color_intel, 2, _ex + 44, _ey + 10, 1, 1, 0);
+		ui_numeral(string(player_intel), _ex, _ey + 46, 30, global.color_intel, 1, fa_center); // where the HUD draws it, so there's only ever one
 
 		// done writing: End Turn reads "Confirm" while the log is open (oCombat Draw GUI draws it in its place, under the
-		// slots, in full colour); the click is taken here, on the log's layer. Not over a slot, which sits on top of it.
+		// bottom right, in full colour); the click is taken here, on the log's layer.
 		var _seal_click = false;
 		quill_over = false; // set below when the mouse is over something the quill can change (cursor_draw)
 		if (variable_instance_exists(id, "end_turn_draw")) {
 			var _et = end_turn_draw;
-			var _sw = sprite_get_width(sEndTurn) * _et.s, _sh = sprite_get_height(sEndTurn) * _et.s;
-			var _sx = _et.x - sprite_get_xoffset(sEndTurn) * _et.s, _sy = _et.y - sprite_get_yoffset(sEndTurn) * _et.s;
-			var _over_slot = false;
-			var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
-			for (var q = 0; q < ds_list_size(slot_positions); q++) { var _p = slot_positions[| q]; if (_mx >= _p.x && _mx <= _p.x + _p.w && _my >= _p.y && _my <= _p.y + _p.h) _over_slot = true; }
-			var _seal_hov = !_over_slot && mouse_hovering(_sx, _sy, _sw, _sh, false, soSlotHover, noone, true, UI_LAYER.POPUP);
+			// End Turn's rectangle (bottom right, oCombat Draw GUI)
+			var _seal_hov = mouse_hovering(_et.x1, _et.y1, _et.x2 - _et.x1, _et.y2 - _et.y1, false, soSlotHover, noone, true, UI_LAYER.POPUP);
 			if (_seal_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Confirm", "Done with your ink: put it away and play your dice. The inkwell brings it back; ink you don't spend carries over.");
 			_seal_click = _seal_hov && mouse_check_button_pressed(mb_left);
 		}
@@ -3205,11 +3278,12 @@ function combat_insight_view_draw() {
 			var _glow = (_rr_can || _rd_can) ? (_hov ? 1 : 0.55 + 0.25 * sin(current_time / 200)) : 0.25;
 			draw_die_shape(x, y, _r * (_hov ? 1.22 : 1.16), dice_value, global.color_intel, tumble_angle, _glow);
 			draw_die(x, y, _r * (_hov ? 1.08 : 1), dice_value, _face, die_colours(struct.possible_type), tumble_angle, 1);
+			if (!tumbling && die_is_mocked(struct)) draw_mock_mark(x, y - _r - 6, scale); // lit with it, so you see it before rerolling (B133)
 			if (_hov) {
 				_over_die = true;
 				other.quill_over = true;
 				_hint_at = { x: x, y: y - _r - 46 }; // its mouse hints go on top of every die, after this loop
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll or redraw", "Left-click: spend " + string(INSIGHT_COST_REROLL) + " insight to roll this die again.\nRight-click: spend " + string(INSIGHT_COST_REDRAW) + " insight to discard it and draw a new die.", undefined, 0, undefined, INSIGHT_COST_REROLL, "insight");
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll or redraw", "Left-click: spend " + string(INSIGHT_COST_REROLL) + " insight to roll this die again.\nRight-click: spend " + string(INSIGHT_COST_REDRAW) + " insight to discard it and draw a new die." + (die_is_mocked(struct) ? "\nMocked: rerolling it will still roll 1. Redrawing might bring a die that isn't." : ""), undefined, 0, undefined, INSIGHT_COST_REROLL, "insight");
 				if (mouse_check_button_pressed(mb_left) && _rr_can) { _clicked = id; _clicked_what = "reroll"; }
 				if (mouse_check_button_pressed(mb_right) && _rd_can) { _clicked = id; _clicked_what = "redraw"; }
 			}

@@ -48,6 +48,13 @@ function choose_weighting_list(list) {
 function draw_gui_button(_x, _y, _base_w, _base_h, _scale_ref, _text, _color, _font, _active, _draw_rect, _layer = UI_LAYER.BASE, _hover_sound = noone, _click_sound = soClick2, _disabled_reason = "", _use_font = false, _alpha = 1) {
 	
 	// this function needs to be deprecated soon as its leftover from when we originally first did buttons
+	// UI rework: a button in one of the kit's colours is drawn as the paper-and-ink kit button (ui_button), so every
+	// menu, setting and note button matches; other colours (fight rewards, the old quill menu) keep this look
+	if (_draw_rect == true && variable_global_exists("ui_col") && (_color == global.ui_primary || _color == global.ui_neutral || _color == global.ui_danger || _color == global.ui_quiet)) {
+		var _kit = ui_button(_x + _base_w / 2, _y + _base_h / 2, _base_w, _base_h, _scale_ref, _text, _color, _active, _disabled_reason, _layer, _alpha, _use_font ? _font : ftDefault, _click_sound);
+		_kit.x = _x; _kit.y = _y; _kit.w = _base_w; _kit.h = _base_h;
+		return _kit;
+	}
     var mx = device_mouse_x_to_gui(0);
     var my = device_mouse_y_to_gui(0);
 
@@ -287,13 +294,14 @@ function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x,
 					case "sticky":												col = c_ltgray;					break;
 					case "multitype":											col = c_silver;					break;
 					case "alignment":											col = make_colour_rgb(230, 50, 230)	break;
-					case "block":												col = global.color_block;		break;
-					case "heal":												col = global.color_heal;		break;
-					case "attack":												col = global.color_attack;		break;
+					case "block":												col = global.text_block;		break; // readable on dark surfaces
+					case "heal":												col = global.text_heal;			break;
+					case "attack":												col = global.text_attack;		break;
 					case "intel":												col = global.color_intel;		break;
 					case "subtext":												col = c_gray;					break;
 					default:													col = _fill_col;
 				}
+				if (variable_global_exists("ui_on_paper") && global.ui_on_paper) col = ui_text_on_paper(col); // on paper: the dark versions
 				array_push(colors_array, col);
 			}
 		}
@@ -532,6 +540,86 @@ function draw_all_tooltips() {
     global.tooltip_keywords = [];
 }
 
+/// @func glossary_terms(_text)
+/// @desc The keywords, buffs and debuffs a piece of text names (whole words, any case), each once: an array of
+///       { name, desc, key } (key is the keyword for draw_keyword_icon, "" for a buff or debuff). A name inside a
+///       longer one also found ("Bind" in "Barnacle Bind") is left out. F137: explain them wherever they're seen.
+function glossary_terms(_text) {
+	var _out = [];
+	if (!is_string(_text) || _text == "") return _out;
+	// letters only, so "[sticky]", "Sticky." and "Sticky:" all read as the word
+	var _up = string_upper(_text), _clean = " ";
+	for (var i = 1; i <= string_length(_up); i++) {
+		var _c = string_char_at(_up, i);
+		_clean += (_c >= "A" && _c <= "Z") ? _c : " ";
+	}
+	_clean += " ";
+	var _found = [];
+	var _keys = variable_struct_get_names(global.keywords);
+	for (var k = 0; k < array_length(_keys); k++) {
+		if (_keys[k] == "Loose") continue; // retired
+		array_push(_found, { name: _keys[k], desc: global.keywords[$ _keys[k]].desc, key: _keys[k] });
+	}
+	if (variable_global_exists("status_glossary")) {
+		for (var s = 0; s < array_length(global.status_glossary); s++) {
+			var _b = global.status_glossary[s];
+			array_push(_found, { name: _b.name, desc: _b.desc, key: "" });
+		}
+	}
+	for (var f = 0; f < array_length(_found); f++) {
+		var _t = _found[f];
+		if (string_pos(" " + string_upper(_t.name) + " ", _clean) == 0) continue;
+		var _dupe = false;
+		for (var o = 0; o < array_length(_out); o++) if (string_pos(string_upper(_t.name), string_upper(_out[o].name)) > 0) _dupe = true;
+		if (!_dupe) array_push(_out, _t);
+	}
+	// drop any already kept that sit inside a longer one found after them
+	var _kept = [];
+	for (var o = 0; o < array_length(_out); o++) {
+		var _inside = false;
+		for (var p = 0; p < array_length(_out); p++) if (p != o && string_length(_out[p].name) > string_length(_out[o].name) && string_pos(string_upper(_out[o].name), string_upper(_out[p].name)) > 0) _inside = true;
+		if (!_inside) array_push(_kept, _out[o]);
+	}
+	return _kept;
+}
+
+/// @func die_glossary(_die)
+/// @desc The terms a die tip explains: its own keywords first, then anything else its effect names (Might, Mock...).
+function die_glossary(_die) {
+	var _out = [];
+	if (variable_struct_exists(_die, "keywords")) {
+		for (var i = 0; i < array_length(_die.keywords); i++) {
+			var _k = _die.keywords[i];
+			if (_k == "Loose" || !variable_struct_exists(global.keywords, _k)) continue;
+			array_push(_out, { name: _k, desc: global.keywords[$ _k].desc, key: _k });
+		}
+	}
+	var _more = glossary_terms(die_description(_die));
+	for (var m = 0; m < array_length(_more); m++) {
+		var _have = false;
+		for (var o = 0; o < array_length(_out); o++) if (_out[o].name == _more[m].name) _have = true;
+		if (!_have) array_push(_out, _more[m]);
+	}
+	return _out;
+}
+
+/// @func queue_glossary_tooltip(_text)
+/// @desc Explains the keywords, buffs and debuffs a hovered piece of text names (an event's choice): the first as the
+///       tooltip, the rest as keyword boxes under it. Nothing when it names none, or something else took the tooltip.
+function queue_glossary_tooltip(_text) {
+	if (global.tooltip_active) return;
+	var _terms = glossary_terms(_text);
+	if (array_length(_terms) == 0) return;
+	var _k0 = _terms[0].key;
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _terms[0].name, _terms[0].desc, (_k0 != "") ? sKeywordIcons : undefined, (_k0 != "") ? global.keywords[$ _k0].index : 0);
+	global.tooltip_keywords = [];
+	for (var i = 1; i < array_length(_terms); i++) {
+		var _icon = (_terms[i].key != "") ? sKeywordIcons : undefined;
+		var _index = (_terms[i].key != "") ? global.keywords[$ _terms[i].key].index : 0;
+		array_push(global.tooltip_keywords, { name: _terms[i].name, desc: _terms[i].desc, icon: _icon, index: _index });
+	}
+}
+
 /// @func die_tip_sub(_die)
 /// @desc What a die tip says beside the name: "rolled 4" once it has rolled this turn, otherwise its range ("1-6").
 function die_tip_sub(_die) {
@@ -593,10 +681,22 @@ function draw_die_tip(_tt) {
 	var _desc_h = string_height_ext(_desc, _line, _max_w);
 	var _extra = variable_struct_exists(_tt, "extra") ? _tt.extra : "";
 	var _extra_h = (_extra != "") ? 6 + string_height_ext(_extra, _line, _max_w) : 0;
+	// its keywords, buffs and debuffs, a line each under the effect (F137): "Sticky: stays in its slot..."
+	var _terms = die_glossary(_d);
+	var _term_txt = [], _term_h = [], _terms_h = 0;
+	for (var i = 0; i < array_length(_terms); i++) {
+		var _tx = _terms[i].name + ": " + _terms[i].desc;
+		array_push(_term_txt, _tx);
+		var _th = max(24, string_height_ext(_tx, _line, _max_w - 26));
+		array_push(_term_h, _th);
+		_terms_h += 6 + _th;
+		_desc_w = max(_desc_w, min(_max_w, 26 + string_width(_tx)));
+	}
+	if (_terms_h > 0) _terms_h += 4; // and a rule above them
 	if (_extra != "") _desc_w = max(_desc_w, min(_max_w, string_width(_extra)));
 	var _mini_w = (_d.distribution != "") ? _d.dice_value * 7 : 0; // about draw_dist_mini's width
 	var _w = _pad * 2 + max(_name_w + 8 + _sub_w + (_mini_w > 0 ? 10 + _mini_w : 0), _desc_w);
-	var _h = _pad * 2 + _name_h + 4 + _desc_h + _extra_h;
+	var _h = _pad * 2 + _name_h + 4 + _desc_h + _terms_h + _extra_h;
 	var _x1 = clamp(_tt.cx - _w / 2, 10, display_get_gui_width() - _w - 10);
 	var _y2 = _tt.bottom - 10; // room for the pointer
 	var _y1 = max(ui_top_bar_h() + 6, _y2 - _h);
@@ -628,7 +728,22 @@ function draw_die_tip(_tt) {
 	draw_outline_text(_tt.sub, c_black, make_color_rgb(185, 169, 136), 1, _sx, _y1 + _pad + 3, 1, 1, 0);
 	if (_mini_w > 0) draw_dist_mini(_d, _sx + _sub_w + 10, _y1 + _pad + _name_h - 3, 16);
 	draw_outline_text(colorcode_text(_desc), c_black, c_white, 1, _x1 + _pad, _y1 + _pad + _name_h + 4, 1, 1, 0, _max_w);
-	if (_extra != "") draw_outline_text(_extra, c_black, make_color_rgb(185, 169, 136), 1, _x1 + _pad, _y1 + _pad + _name_h + 4 + _desc_h + 6, 1, 1, 0, _max_w);
+	var _ty = _y1 + _pad + _name_h + 4 + _desc_h;
+	if (_terms_h > 0) {
+		draw_set_alpha(0.35);
+		draw_set_color(_rule);
+		draw_line(_x1 + _pad, _ty + 5, _x1 + _w - _pad, _ty + 5);
+		draw_set_alpha(1);
+		_ty += 4;
+		for (var i = 0; i < array_length(_terms); i++) {
+			_ty += 6;
+			if (_terms[i].key != "") draw_keyword_icon(_terms[i].key, _x1 + _pad + 10, _ty + 11, 0.7);
+			else { draw_set_color(_rule); draw_circle(_x1 + _pad + 10, _ty + 11, 4, false); } // a buff or debuff: a plain bullet
+			draw_outline_text(_term_txt[i], c_black, make_color_rgb(205, 192, 160), 1, _x1 + _pad + 26, _ty, 1, 1, 0, _max_w - 26);
+			_ty += _term_h[i];
+		}
+	}
+	if (_extra != "") draw_outline_text(_extra, c_black, make_color_rgb(185, 169, 136), 1, _x1 + _pad, _ty + 6, 1, 1, 0, _max_w);
 	if (variable_struct_exists(_tt, "cost") && _tt.cost > 0) tooltip_cost_badge(_x1 + _w, _y1, _tt.cost, _tt.cost_kind);
 	draw_set_color(c_white);
 }
@@ -1208,7 +1323,7 @@ function draw_arc_thick_deg_gradient(
 }
 
 function get_random_distribution() {
-	return choose("weighted", "loaded", "edge", "binary", "bell", "dome", "odd", "even", "dual", "tower");
+	return choose("weighted", "loaded", "edge", "binary", "bell", "dome", "compass", "lodestone", "dual", "tower");
 }
 
 function get_core_index(_dice) {
@@ -1221,8 +1336,10 @@ function get_core_index(_dice) {
 		case "binary":		core_index = 3;		break;
 		case "bell":		core_index = 4;		break;
 		case "dome":		core_index = 5;		break;
-		case "odd":			core_index = 6;		break;
+		case "odd":			core_index = 6;		break; // a die cored before the alignment pair keeps its shape
 		case "even":		core_index = 7;		break;
+		case "compass":		core_index = 6;		break;
+		case "lodestone":	core_index = 7;		break;
 		case "dual":		core_index = 8;		break;
 		case "tower":		core_index = 9;		break;
 	}
@@ -1400,6 +1517,8 @@ function lose_run() {
 	var _cause = "Your hull gave out on the voyage";
 	if (instance_exists(oCombat)) {
 		oCombat.state = CombatState.PLAYER_DEAD;
+		oCombat.player_death_t = current_time; // the ship keels over and sinks (oCombat Draw GUI)
+		screen_shake(16);
 		var _names = [];
 		var _list = oCombat.room_enemies;
 		if (ds_safe_exists(_list, ds_type_list)) {
@@ -1948,30 +2067,72 @@ function insight_rot(_x, _y, _lx, _ly, _scale) {
 	return [_x + (_lx * _c - _ly * _sn) * _scale, _y + (_lx * _sn + _ly * _c) * _scale];
 }
 
-/// @func ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active, _reason, _layer)
-/// @desc The kit's standard button, centred on _cx, _cy, with big text that grows with it. _reason shows on hover
-///       while it can't be pressed. Returns draw_gui_button's { hover, click, scale, ... }; keep .scale for next frame.
-function ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active = true, _reason = "", _layer = UI_LAYER.BASE, _alpha = 1, _font = ftBig) {
-	return draw_gui_button(_cx - _w / 2, _cy - _h / 2, _w, _h, _scale_ref, _text, _col, _font, _active, true, _layer, noone, soClick2, _reason, true, _alpha);
+/// @func ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active, _reason, _layer, _alpha, _font)
+/// @desc The kit's standard button, centred on _cx, _cy, in paper and ink (UI rework). _col picks its kind:
+///       global.ui_primary a bright paper label in a brass frame (the commit action), global.ui_danger dark red with
+///       paper words, global.ui_quiet slate with a cream rule (skippable), anything else plain paper with an ink edge.
+///       Hover lifts and grows it a little; inactive, it fades and _reason shows on hover.
+///       Returns { hover, click, scale }; keep .scale for next frame.
+function ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active = true, _reason = "", _layer = UI_LAYER.BASE, _alpha = 1, _font = ftBig, _click_sound = soClick2) {
+	// a button still fading in can't be pressed yet; nothing can while a cutscene has input switched off
+	var _hover = (_alpha > 0.5) && mouse_hovering(_cx - _w / 2, _cy - _h / 2, _w, _h, false, soSlotHover, _active ? _click_sound : noone, !global.all_input_disabled, _layer);
+	var _scale = lerp(_scale_ref, (_hover && _active) ? 1.06 : 1, 0.25);
+	var _pressed = _hover && _active && mouse_check_button(mb_left);
+	var _w2 = _w * _scale / 2, _h2 = _h * _scale / 2;
+	var _lift = _pressed ? -2 : ((_hover && _active) ? 3 : 0);
+	var _x1 = _cx - _w2, _y1 = _cy - _h2 - _lift, _x2 = _cx + _w2, _y2 = _cy + _h2 - _lift;
+	var _a = (_active ? 1 : 0.5) * _alpha;
+
+	var _fill = global.ui_col.paper, _text_col = global.ui_col.ink, _edge = global.ui_col.ink, _frame = -1;
+	if (_col == global.ui_primary) { _fill = global.ui_col.paper_hi; _frame = global.ui_col.brass; }
+	else if (_col == global.ui_danger) { _fill = global.ui_col.danger; _text_col = global.ui_col.paper_hi; }
+	else if (_col == global.ui_quiet) { _fill = global.ui_col.slate; _text_col = global.ui_col.rule; _edge = make_color_rgb(110, 100, 84); }
+
+	// shadow, ink edge (a brass frame for the primary), the fill
+	draw_set_alpha(0.4 * _a);
+	draw_set_color(c_black);
+	draw_roundrect_ext(_x1 + 3, _y1 + 7 + _lift, _x2 + 3, _y2 + 7 + _lift, 12, 12, false);
+	draw_set_alpha(_a);
+	draw_set_color(_edge);
+	draw_roundrect_ext(_x1 - 2, _y1 - 2, _x2 + 2, _y2 + 2, 12, 12, false);
+	var _inset = 0;
+	if (_frame != -1) {
+		draw_set_color(_frame);
+		draw_roundrect_ext(_x1, _y1, _x2, _y2, 11, 11, false);
+		draw_set_color(_edge);
+		draw_roundrect_ext(_x1 + 5, _y1 + 5, _x2 - 5, _y2 - 5, 8, 8, false);
+		_inset = 7;
+	}
+	draw_set_color(_fill);
+	draw_roundrect_ext(_x1 + _inset, _y1 + _inset, _x2 - _inset, _y2 - _inset, 10, 10, false);
+
+	// the words, shrunk to fit
+	draw_set_font(_font);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_color(_text_col);
+	var _ts = min(1, (_w * _scale - 24 - _inset * 2) / max(1, string_width(_text)));
+	draw_text_transformed(_cx, _cy - _lift, _text, _ts, _ts, 0);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+
+	if (_hover && !_active && _reason != "") queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _text, _reason);
+	return { hover: _hover, click: _hover && _active && mouse_check_button_pressed(mb_left), scale: _scale };
 }
 
 /// @func draw_action_type_icon(_type, _x, _y, _scale)
 /// @desc A small round badge with the symbol of an action type (attack, block, heal, insight), drawn on dice when
 ///       Settings > Display > Action icons on dice is on, so the types can be told apart without colour (F14).
-function draw_action_type_icon(_type, _x, _y, _scale) {
+function draw_action_type_icon(_type, _x, _y, _scale, _alpha = 1) {
 	if (_type != "ATK" && _type != "BLK" && _type != "HEAL" && _type != "INTEL") return;
 	var _r = 16 * _scale;
-	draw_set_alpha(1);
+	draw_set_alpha(_alpha);
 	draw_set_color(c_black);
 	draw_circle(_x, _y, _r + 2, false);
 	draw_set_color(make_color_rgb(240, 228, 196));
 	draw_circle(_x, _y, _r, false);
-	switch (_type) {
-		case "ATK": draw_sprite_ext(sIntentIcons, 0, _x, _y, 0.5 * _scale, 0.5 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
-		case "BLK": draw_sprite_ext(sIntentIcons, 1, _x, _y, 0.5 * _scale, 0.5 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
-		case "HEAL": draw_sprite_ext(sIntentIcons, 2, _x, _y, 0.5 * _scale, 0.5 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
-		case "INTEL": draw_insight_icon("legible", _x, _y, 0.85 * _scale, 1); break;
-	}
+	ui_glyph(_type, _x, _y, _r * 1.35, global.ui_col.ink, _alpha); // the logbook glyphs (scUI)
+	draw_set_alpha(1);
 	draw_set_color(c_white);
 }
 
@@ -2141,9 +2302,9 @@ function bag_type_label(_possible_type) {
 /// @desc A card's header band, rounded at the top and square along its bottom, in its type colour darkened so white
 ///       text reads. A multitype die's (die_colours, 2+) is split diagonally like its die: the first colour on the left,
 ///       the next from a slanted edge past the middle.
-function draw_header_band(_x1, _y1, _x2, _h, _r, _cols) {
+function draw_header_band(_x1, _y1, _x2, _h, _r, _cols, _darken = 0.5) {
 	var _y2 = _y1 + _h;
-	draw_set_color(merge_colour(_cols[0], c_black, 0.5));
+	draw_set_color(merge_colour(_cols[0], c_black, _darken));
 	draw_roundrect_ext(_x1, _y1, _x2, _y2, _r, _r, false);
 	draw_rectangle(_x1, _y2 - _r, _x2, _y2, false);
 	var _n = array_length(_cols);
@@ -2151,7 +2312,7 @@ function draw_header_band(_x1, _y1, _x2, _h, _r, _cols) {
 	var _w = _x2 - _x1, _slant = _h * 0.5;
 	for (var b = 1; b < _n; b++) {
 		var _mx = (_n == 2) ? _x1 + _w * 0.62 : _x1 + _w * b / _n; // two: the name keeps the left
-		draw_set_color(merge_colour(_cols[b], c_black, 0.5));
+		draw_set_color(merge_colour(_cols[b], c_black, _darken));
 		draw_primitive_begin(pr_trianglestrip);
 		draw_vertex(_mx + _slant, _y1); draw_vertex(_x2 - _r, _y1);
 		draw_vertex(_mx - _slant, _y2); draw_vertex(_x2 - _r, _y2);
@@ -2284,17 +2445,30 @@ function die_stats_line(_d, _out) {
 	return "d" + string(_d.dice_value) + " " + bag_type_label(_d.possible_type) + ", " + string(_out.min_roll) + "-" + string(_out.max_roll);
 }
 
+/// @func card_keywords(_die)
+/// @desc The keywords a card shows as icons under its die (F137): the die's own, but not retired Loose.
+function card_keywords(_die) {
+	var _out = [];
+	if (!variable_struct_exists(_die, "keywords")) return _out;
+	for (var i = 0; i < array_length(_die.keywords); i++) {
+		var _k = _die.keywords[i];
+		if (_k != "Loose" && variable_struct_exists(global.keywords, _k)) array_push(_out, _k);
+	}
+	return _out;
+}
+
 /// @func bag_card_layout(_d, _w)
 /// @desc Where things go on a bag card, measured from its text (like offering_card_layout): the stats line and the
 ///       description beside the die, then a fitted core's distribution under whichever is lower. h is the height it needs.
 function bag_card_layout(_d, _w) {
-	var _head_h = 42;
+	var _head_h = 48;
 	var _text_x = 88;                 // from the card's left edge
 	var _text_w = _w - _text_x - 14;
-	draw_set_font(ftDefault);
+	draw_set_font(ftDefault); // the effect at 16 px: more words a line (Molly)
 	var _line = font_get_size(ftDefault) * 1.5; // the line height coloured text wraps at (draw_outline_text)
 	var _desc_h = string_height_ext(die_description(_d), _line, _text_w);
 	var _die_bottom = _head_h + 40 + 36;           // the die (radius 30, a triangle reaching a bit lower)
+	if (array_length(card_keywords(_d)) > 0) _die_bottom += 30; // its keyword icons under it
 	var _text_bottom = _head_h + 14 + _desc_h;
 	var _info_bottom = max(_die_bottom, _text_bottom) + 12;
 	var _bars_h = (_d.distribution != "") ? (5 + 30 + 5 + 15) + 12 : 0; // draw_dice_distribution at scale 1, and a gap
@@ -2305,71 +2479,154 @@ function bag_card_layout(_d, _w) {
 /// @desc A die's card in the bag view (and the dice picker), centred on _cx, _cy, laid out like the quartermaster's
 ///       cards (bag_card_layout):
 ///       - a header band in its type colour: its name, its rarity gem on the right
-///       - the die drawn in code on the left; beside it what it does, big ("d6 Block, 1-6" only on hovering the die)
+///       - the die drawn in code on the left, its keyword icons under it (hover one to read it); beside it what it does, big ("d6 Block, 1-6" only on hovering the die)
 ///       - a fitted core: its distribution under all that (the core isn't described)
 ///       Dark edge; lifts with a white edge when hovered; a green edge and tick when picked.
 function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
+	// a paper card (UI rework): a band in the die's pigment (split for multitype), its name and rarity gem; the die and
+	// what it does in ink; a fitted core's faces inked under it. Hover: it lifts with a brass edge; picked: a green stamp.
 	var _lay = bag_card_layout(_d, _w);
-	var _x1 = _cx - _w / 2, _y1 = _cy - _h / 2 - (_hover ? 4 : 0);
+	var _x1 = _cx - _w / 2, _y1 = _cy - _h / 2 - (_hover ? 5 : 0);
 	var _x2 = _x1 + _w, _y2 = _y1 + _h;
-	var _type_col = get_dice_color(_d.possible_type);
-	var _edge = _selected ? make_color_rgb(90, 220, 110) : (_hover ? c_white : make_color_rgb(14, 15, 22));
+	var _cols = die_colours(_d.possible_type);
 	var _head_h = _lay.head_h;
+	if (_hover || _selected) {
+		draw_set_alpha(_alpha);
+		draw_set_color(_selected ? global.color_heal : global.ui_col.brass);
+		draw_roundrect_ext(_x1 - 6, _y1 - 6, _x2 + 6, _y2 + 6, 14, 14, false);
+		draw_set_alpha(1);
+	}
+	ui_paper(_x1, _y1, _x2, _y2, (variable_struct_exists(_d, "uid") ? _d.uid : 1) * 3 + 1, global.ui_col.paper, _alpha);
 
-	// shadow, edge, body
-	draw_set_alpha(0.35 * _alpha);
-	draw_set_color(c_black);
-	draw_roundrect_ext(_x1 + 4, _y1 + 6, _x2 + 4, _y2 + 6, 14, 14, false);
+	// the band, inside the paper, in full pigment; the name light or dark to suit it
 	draw_set_alpha(_alpha);
-	draw_set_color(_edge);
-	draw_roundrect_ext(_x1 - 3, _y1 - 3, _x2 + 3, _y2 + 3, 16, 16, false);
-	draw_set_color(make_color_rgb(34, 36, 48));
-	draw_roundrect_ext(_x1, _y1, _x2, _y2, 14, 14, false);
-
-	// header band in its type colour (darkened so white text reads), square along its bottom; split for a multitype die
-	draw_header_band(_x1, _y1, _x2, _head_h, 14, die_colours(_d.possible_type));
-	// the name, then the gem on the right (keywords are in the description's first words, coloured)
-	draw_set_font(ftDefault);
+	draw_header_band(_x1 + 5, _y1 + 5, _x2 - 5, _head_h - 5, 6, _cols, 0);
+	draw_set_alpha(_alpha);
+	draw_set_color(global.ui_col.ink);
+	draw_line_width(_x1 + 5, _y1 + _head_h, _x2 - 5, _y1 + _head_h, 2);
+	var _lum = 0.299 * colour_get_red(_cols[0]) + 0.587 * colour_get_green(_cols[0]) + 0.114 * colour_get_blue(_cols[0]);
+	var _on = (_lum < 150) ? global.ui_col.paper_hi : global.ui_col.ink;
+	draw_set_font(ftBig);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
-	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + 14, _y1 + _head_h / 2, 1, _alpha, 0, _w - 14 - 34);
-	draw_rarity_gem(_x2 - 20, _y1 + _head_h / 2, _d.rarity, 1, _alpha);
+	draw_outline_text(_d.name, (_lum < 150) ? global.ui_col.ink : global.ui_col.paper_hi, _on, 1, _x1 + 16, _y1 + 4 + _head_h / 2, 1, _alpha, 0, _w - 16 - 36);
+	draw_rarity_gem(_x2 - 22, _y1 + 4 + _head_h / 2, _d.rarity, 1, _alpha);
 
-	// the die, and beside it what it is and what it does
+	// the die, and beside it what it does, in ink
 	var _dx = _x1 + 46, _dy = _y1 + _head_h + 46;
-	draw_die(_dx, _dy, 30, _d.dice_value, -1, die_colours(_d.possible_type), 0, _alpha);
+	draw_die(_dx, _dy, 30, _d.dice_value, -1, _cols, 0, _alpha);
+	if (global.action_icons) draw_action_type_icon(_d.action_type, _dx - 26, _dy + 26, 0.7, _alpha);
 	var _out = get_dice_output(_d, -1, -1, true, "player"); // read only: viewing the bag must never trigger keepsakes
 	var _tx = _x1 + _lay.text_x;
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
-	// just the effect, big: the die already shows its size and colour, the bars its faces
-	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 14, 1, _alpha, 0, _lay.text_w);
+	ui_paper_text(colorcode_text(die_description(_d)), _tx, _y1 + _head_h + 14, _lay.text_w, _alpha);
+	// its keywords as icons under the die, each explained on hover (F137); asked for before the die's tip so they win
+	var _kws = card_keywords(_d);
+	var _kn = array_length(_kws);
+	for (var k = 0; k < _kn; k++) {
+		var _kx = _dx + (k - (_kn - 1) / 2) * 26, _ky = _dy + 46;
+		draw_keyword_icon(_kws[k], _kx, _ky, 0.8, _alpha);
+		if (_hover && _alpha > 0.5 && mouse_hovering(_kx, _ky, 24, 24, true, noone, noone, true, UI_LAYER.BAG)) {
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _kws[k], global.keywords[$ _kws[k]].desc, sKeywordIcons, global.keywords[$ _kws[k]].index);
+		}
+	}
 	// its size, type and range on hovering the die
 	if (_hover && mouse_hovering(_dx, _dy, 70, 70, true, noone, noone, true, UI_LAYER.BAG)) queue_die_tip(_d, _dx, _dy - 34, die_stats_line(_d, _out));
 
-	// a fitted core: how it shapes this die's faces, under the die and its words
+	// a fitted core: how it shapes this die's faces, inked under the die and its words
 	if (_d.distribution != "") {
 		draw_set_alpha(_alpha);
-		draw_dice_distribution(_d, _cx, _y1 + _lay.bars_bottom - 12, true, 1);
+		draw_dice_distribution(_d, _cx, _y1 + _lay.bars_bottom - 12, true, 1, true);
 	}
 
-	// picked (dice picker): a tick in the corner
+	// picked (dice picker): a green tick stamped on the corner
 	if (_selected) {
-		var _kx = _x1 + 2, _ky = _y1 + 2;
-		draw_set_color(c_black);
-		draw_circle(_kx, _ky, 15, false);
-		draw_set_color(make_color_rgb(90, 220, 110));
-		draw_circle(_kx, _ky, 12, false);
-		draw_set_color(c_white);
-		draw_line_width(_kx - 6, _ky, _kx - 1, _ky + 5, 3);
-		draw_line_width(_kx - 1, _ky + 5, _kx + 7, _ky - 5, 3);
+		var _kx = _x2 - 6, _ky = _y2 - 6;
+		draw_set_color(global.ui_col.ink);
+		draw_circle(_kx, _ky, 17, false);
+		draw_set_color(global.color_heal);
+		draw_circle(_kx, _ky, 14, false);
+		draw_set_color(global.ui_col.paper_hi);
+		draw_line_width(_kx - 7, _ky, _kx - 1, _ky + 6, 3.5);
+		draw_line_width(_kx - 1, _ky + 6, _kx + 8, _ky - 6, 3.5);
 	}
 
 	draw_set_alpha(1);
 	draw_set_color(c_white);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
+}
+
+/// @func reward_flip_state(_t, _i)
+/// @desc Where fight reward card _i is in its reveal (F145), _t frames after the dice rewards showed: face down until
+///       its turn (a short wait, then one every 14 frames), then 8 frames squashing shut, then face up.
+///       Returns { face_up, squash (0-1, the back's width), turned_now (the frame it turns), since (frames face up),
+///       pop (0-1, a little lift as it lands), fade_in (0-1) }.
+function reward_flip_state(_t, _i) {
+	var _start = 16 + _i * 14, _shut = 8;
+	var _since = _t - (_start + _shut);
+	if (_since < 0) return { face_up: false, squash: clamp(1 - (_t - _start) / _shut, 0.02, 1), turned_now: false, since: -1, pop: 0, fade_in: 0 };
+	return { face_up: true, squash: 1, turned_now: (_since == 0), since: _since, pop: max(0, 1 - _since / 10), fade_in: min(1, 0.35 + _since / 8) };
+}
+
+/// @func reward_card_back(_cx, _cy, _w, _h, _seed)
+/// @desc A reward card face down: dark slate in a brass frame with a compass star, squashed to _w as it flips.
+function reward_card_back(_cx, _cy, _w, _h, _seed) {
+	var _x1 = _cx - _w / 2, _x2 = _cx + _w / 2, _y1 = _cy - _h / 2, _y2 = _cy + _h / 2;
+	var _bob = sin(current_time / 260 + _seed) * 3;
+	_y1 += _bob; _y2 += _bob;
+	draw_set_color(global.ui_col.ink);
+	draw_roundrect_ext(_x1 - 3, _y1 - 3, _x2 + 3, _y2 + 3, 14, 14, false);
+	draw_set_color(global.ui_col.brass);
+	draw_roundrect_ext(_x1, _y1, _x2, _y2, 12, 12, false);
+	draw_set_color(global.ui_col.slate);
+	draw_roundrect_ext(_x1 + 6, _y1 + 6, _x2 - 6, _y2 - 6, 9, 9, false);
+	// the compass star, squashed with the card
+	var _sx = _w / 320, _my = (_y1 + _y2) / 2, _r = 46;
+	draw_set_color(global.ui_col.brass);
+	for (var a = 0; a < 4; a++) {
+		var _ang = a * 90 + 90;
+		draw_triangle(_cx + lengthdir_x(_r, _ang) * _sx, _my + lengthdir_y(_r, _ang), _cx + lengthdir_x(9, _ang + 90) * _sx, _my + lengthdir_y(9, _ang + 90), _cx + lengthdir_x(9, _ang - 90) * _sx, _my + lengthdir_y(9, _ang - 90), false);
+	}
+	draw_set_color(global.ui_col.slate);
+	draw_circle(_cx, _my, 5 * max(0.3, _sx), false);
+	draw_set_color(c_white);
+}
+
+/// @func reward_rarity_flash(_rarity, _cx, _cy, _w, _h, _since, _alpha)
+/// @desc As a reward card turns face up (F145): a glow in its rarity's colour that blooms and fades (bigger and longer for
+///       rarer cards; a rare one also throws rays), then a small rarity label under the card stays.
+function reward_rarity_flash(_rarity, _cx, _cy, _w, _h, _since, _alpha = 1) {
+	var _col = rarity_colour(_rarity);
+	var _power = (_rarity == "rare") ? 1 : ((_rarity == "uncommon") ? 0.6 : 0.25);
+	var _len = 18 + 22 * _power;
+	if (_since >= 0 && _since < _len) {
+		var _k = _since / _len;
+		var _grow = 10 + 40 * _power * _k;
+		draw_set_alpha((1 - _k) * 0.7 * _power + 0.1 * (1 - _k));
+		draw_set_color(_col);
+		draw_roundrect_ext(_cx - _w / 2 - _grow, _cy - _h / 2 - _grow, _cx + _w / 2 + _grow, _cy + _h / 2 + _grow, 24, 24, false);
+		if (_rarity == "rare") {
+			draw_set_alpha((1 - _k) * 0.6);
+			for (var a = 0; a < 12; a++) {
+				var _ang = a * 30 + _since * 2;
+				var _r1 = _h * 0.55 + 20 * _k, _r2 = _r1 + 60 + 80 * _k;
+				draw_line_width(_cx + lengthdir_x(_r1, _ang), _cy + lengthdir_y(_r1, _ang), _cx + lengthdir_x(_r2, _ang), _cy + lengthdir_y(_r2, _ang), 4);
+			}
+		}
+		draw_set_alpha(1);
+	}
+	// its rarity, named under the card (starter dice never come as rewards)
+	if (_rarity != "starter") {
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_top);
+		var _txt = string_upper(string_char_at(_rarity, 1)) + string_copy(_rarity, 2, string_length(_rarity) - 1);
+		draw_outline_text(_txt, global.ui_col.ink, _col, 2, _cx, _cy + _h / 2 + 12, 1, _alpha * min(1, max(0, _since) / 10), 0);
+	}
+	draw_set_color(c_white);
 }
 
 // =====================================================================
@@ -2512,65 +2769,66 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	var _d = _off.dice, _core = _off.core;
 	var _lay = offering_card_layout(_off, _w);
 	var _x1 = _cx - _w / 2, _x2 = _cx + _w / 2, _y1 = _top, _y2 = _top + _h;
-	var _type_col = get_dice_color(_d.possible_type);
-	var _edge = _chosen ? make_color_rgb(90, 220, 110) : (_hover ? c_white : make_color_rgb(42, 29, 18));
+	var _cols = die_colours(_d.possible_type);
 	var _head_h = _lay.head_h;
 
-	// shadow, edge, body
-	draw_set_alpha(0.35);
-	draw_set_color(c_black);
-	draw_roundrect_ext(_x1 + 6, _y1 + 10, _x2 + 6, _y2 + 10, 18, 18, false);
-	draw_set_alpha(1);
-	draw_set_color(_edge);
-	draw_roundrect_ext(_x1 - 4, _y1 - 4, _x2 + 4, _y2 + 4, 20, 20, false);
-	draw_set_color(make_color_rgb(34, 36, 48));
-	draw_roundrect_ext(_x1, _y1, _x2, _y2, 16, 16, false);
+	// the same paper card as the bag's (UI rework), a shade brighter than the page it lies on; hover: a brass edge,
+	// chosen: green
+	if (_hover || _chosen) {
+		draw_set_color(_chosen ? global.color_heal : global.ui_col.brass);
+		draw_roundrect_ext(_x1 - 7, _y1 - 7, _x2 + 7, _y2 + 7, 16, 16, false);
+	}
+	ui_paper(_x1, _y1, _x2, _y2, _cx * 0.37 + 2, global.ui_col.paper_hi, 1);
 
-	// header: name, rarity (the band split for a multitype die)
-	draw_header_band(_x1, _y1, _x2, _head_h, 16, die_colours(_d.possible_type));
+	// header: name, rarity (the band in full pigment, split for a multitype die)
+	draw_header_band(_x1 + 6, _y1 + 6, _x2 - 6, _head_h - 6, 6, _cols, 0);
+	draw_set_color(global.ui_col.ink);
+	draw_line_width(_x1 + 6, _y1 + _head_h, _x2 - 6, _y1 + _head_h, 2);
+	var _lum = 0.299 * colour_get_red(_cols[0]) + 0.587 * colour_get_green(_cols[0]) + 0.114 * colour_get_blue(_cols[0]);
 	draw_set_font(ftBig);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
-	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + 18, _y1 + _head_h / 2, 1, 1, 0);
-	draw_rarity_gem(_x2 - 24, _y1 + _head_h / 2, _d.rarity, 1.2, 1);
+	draw_outline_text(_d.name, (_lum < 150) ? global.ui_col.ink : global.ui_col.paper_hi, (_lum < 150) ? global.ui_col.paper_hi : global.ui_col.ink, 1, _x1 + 20, _y1 + 3 + _head_h / 2, 1, 1, 0);
+	draw_rarity_gem(_x2 - 26, _y1 + 3 + _head_h / 2, _d.rarity, 1.2, 1);
 
 	// the die, and what it is
 	var _dx = _x1 + 64, _dy = _y1 + _head_h + 62;
-	draw_die(_dx, _dy, 40, _d.dice_value, -1, die_colours(_d.possible_type), 0, 1);
+	draw_die(_dx, _dy, 40, _d.dice_value, -1, _cols, 0, 1);
+	if (global.action_icons) draw_action_type_icon(_d.action_type, _dx - 34, _dy + 34, 0.8);
 	var _tx = _x1 + 128;
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 	var _out = get_dice_output(_d, -1, -1, true, "player");
 	// just the effect, big; its size, type and range on hovering the die
-	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 24, 1, 1, 0, _lay.text_w);
+	ui_paper_text(colorcode_text(die_description(_d)), _tx, _y1 + _head_h + 24, _lay.text_w);
 	if (mouse_hovering(_dx, _dy, 90, 90, true, noone, noone, true, UI_LAYER.POPUP)) queue_die_tip(_d, _dx, _dy - 46, die_stats_line(_d, _out));
 
 	// the core, just under the die and its words
 	var _cy = _y1 + _lay.core_y;
-	draw_set_color(make_color_rgb(70, 72, 90));
+	draw_set_color(global.ui_col.paper_shade);
 	draw_line_width(_x1 + 18, _cy, _x2 - 18, _cy, 2);
 	draw_sprite_ext(sCores, _core.index, _x1 + 42, _cy + 40, 0.8, 0.8, 0, c_white, 1);
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
-	draw_outline_text(_core.name, c_black, make_color_rgb(242, 210, 74), 2, _x1 + 80, _cy + 16, 1, 1, 0);
+	draw_outline_text(_core.name, global.ui_col.paper_hi, global.ui_col.ink, 1, _x1 + 80, _cy + 16, 1, 1, 0);
 	draw_set_font(ftDescriptions);
-	draw_outline_text(_core.description, c_black, make_color_rgb(225, 225, 235), 2, _x1 + 80, _cy + 44, 1, 1, 0, _lay.core_w);
+	ui_paper_text(_core.description, _x1 + 80, _cy + 44, _lay.core_w);
 
 	// how this core shapes this die's faces, at the foot of the card (cards share a height, so the bars line up)
 	var _preview = clone_die(_d, "");
 	_preview.distribution = _core.distribution;
-	draw_dice_distribution(_preview, _cx, _y2 - 20, true, 1.4);
+	draw_dice_distribution(_preview, _cx, _y2 - 20, true, 1.4, true);
 
-	// chosen: a tick in the corner
+	// chosen: a green tick stamped on the corner
 	if (_chosen) {
 		var _kx = _x2 - 4, _ky = _y1 + 4;
-		draw_set_color(c_black);
+		draw_set_color(global.ui_col.ink);
 		draw_circle(_kx, _ky, 18, false);
-		draw_set_color(make_color_rgb(90, 220, 110));
+		draw_set_color(global.color_heal);
 		draw_circle(_kx, _ky, 15, false);
-		draw_set_color(c_white);
+		draw_set_color(global.ui_col.paper_hi);
 		draw_line_width(_kx - 7, _ky, _kx - 1, _ky + 6, 3.5);
 		draw_line_width(_kx - 1, _ky + 6, _kx + 8, _ky - 6, 3.5);
 	}

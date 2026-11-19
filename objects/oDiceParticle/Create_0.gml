@@ -7,6 +7,9 @@ grav = 0.3;
 target_x = x;
 target_y = y;
 
+// look-only (the discard pile shuffling back into the bag): landing adds or discards nothing (Destroy)
+visual_only = false;
+
 // Visuals
 color_main = c_white;
 scale = 5;

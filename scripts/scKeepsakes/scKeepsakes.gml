@@ -375,20 +375,14 @@ function define_keepsakes() {
 	ks_repeater_rail = {
 	    _id: "repeater_rail",
 	    name: "Repeater Rail",
-	    desc: "Slots gain +1 to their first dice for every slot of the same type before them",
+	    desc: "Rapid fire: in a slot, each die after the first gets +1 for every die before it (the 2nd +1, the 3rd +2...).",
 		sub_image: 12,
 		state: { },
 	    trigger: function(event, data) {
-			// +1 for every slot of the same type directly before this one, worked out again whenever the queue changes
-			if (event == "on_dice_played_to_slot" || event == "after_new_slot_created" || event == "on_turn_start" || event == "after_change_current_action") {
-				var _last_type = "";
-				var _streak = 0;
-				for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
-					var _slot = oCombat.action_queue[| i];
-					_streak = (_slot.current_action_type == _last_type && _last_type != "None") ? _streak + 1 : 0;
-					slot_set_bonus(_slot, "Repeater Rail", _streak, "first"); // only the slot's first die, as its description says
-					_last_type = _slot.current_action_type;
-				}
+			// Q15 (2026-11-19): rewards stacking one slot, now slots are scarce. A die's place in its slot (die_index) is its
+			// bonus; live in the slot's total (slot_get_total passes each die's index) and in the hover breakdown.
+			if (event == "on_roll_die" && data.slot_num >= 0 && is_real(data.die_index) && data.die_index > 0) {
+				data._d_amount += data.die_index;
 			}
 	    }
 	};
@@ -518,10 +512,22 @@ function define_keepsakes() {
 	ks_topographic_map = {
 	    _id: "topographic_map",
 	    name: "Topographic Map",
-	    desc: "When you play a die that rolled its max, its slot gets +2 this turn.",
+	    desc: "Peaks and valleys: when you play a die that rolled its max, its slot gets +2 this turn. When a die rolls its lowest face, draw a die (twice a turn).",
 	    sub_image: 20,
-		state: { },
+		state: { draws: 0, turn: -1 },
 	    trigger: function(event, data) {
+			// a valley: a die that rolls its lowest face draws you another (Q15), at most twice a turn so a run of 1s can't
+			// chain on and on
+			if (event == "on_die_rolled" && room == rmCombat && instance_exists(oCombat) && data.min_roll < data.max_roll && data.face <= data.min_roll) {
+				if (self.state.turn != oCombat.turn_count) { self.state.turn = oCombat.turn_count; self.state.draws = 0; }
+				if (self.state.draws < 2) {
+					self.state.draws++;
+					die_effect_popup(data._die_struct, "Valley!", global.color_intel);
+					oCombat.dice_to_deal += 1;
+					oCombat.is_dealing_dice = true;
+					trigger_keepsake_visual();
+				}
+			}
 			// rolled dice: the roll is known as it's played, so the bonus goes on its slot (live in the total)
 			if (event == "on_dice_played_to_slot" && is_struct(data._d_struct) && is_struct(data._slot)) {
 				var _out = get_dice_output(data._d_struct, -1, -1, true, "player");
@@ -595,9 +601,11 @@ function define_keepsakes() {
 	            if (oCombat.turn_count == 1) {
 					// Grab a random dice in the master dice list
 					var d = clone_die(global.master_dice_list[| irandom(ds_list_size(global.master_dice_list)-1)], "");
-					
+					die_roll_faces(d); // it rolls as it comes, like every dealt die (it sat unrolled as "d4": B132, Molly's Surge die)
+
 					var die_inst = instance_create_layer(display_get_gui_width()/2, display_get_gui_height(), "Instances", oDice);
 					die_inst.struct = d;
+					die_inst.roll_anim = 16; // it tumbles in, then shows its roll
 					die_inst.action_type = d.action_type;
 					die_inst.dice_amount = d.dice_amount;
 					die_inst.dice_value  = d.dice_value;

@@ -18,20 +18,22 @@ if (chosen_event != undefined) {
 	var padding = 40;
 	var row_h = 50;
 	
-	draw_set_alpha(0.8);
-	draw_set_color(c_black);
-	draw_rectangle(container_x, container_y, container_x + container_width, container_y + container_height, false);
-
-	// Draw title
+	// a logbook entry (UI rework): a page of paper, the event's name as its heading in ink, what happens in ink
+	// under a ruled line, and the choices inked below as lines you can pick
+	ui_paper(container_x, container_y, container_x + container_width, container_y + container_height, 23, global.ui_col.paper, 1);
 	draw_set_halign(fa_left);
-	draw_set_valign(fa_top);	
+	draw_set_valign(fa_top);
 	draw_set_font(ftBigger);
-	draw_outline_text(string(chosen_event.name), c_black, c_white, 2, container_x + padding, container_y + padding, 1, 1, 0);
-	
-	// Draw description
+	draw_set_color(global.ui_col.ink);
+	draw_text(container_x + padding, container_y + padding, string(chosen_event.name));
+	draw_set_color(global.ui_col.paper_shade);
+	draw_line_width(container_x + padding, container_y + padding + 40, container_x + container_width - padding, container_y + padding + 40, 2);
+	draw_set_color(c_white);
+
+	// what happens (and, once chosen, how it turned out)
 	draw_set_font(ftBig);
 	var text = event_complete >= 0 ? string(chosen_option.result) : string(chosen_event.description);
-	draw_outline_text(text, c_black, c_white, 2, container_x + padding, container_y + padding + row_h * 1, 1, 1, 0, container_width - padding * 2);
+	ui_paper_text(colorcode_text(text), container_x + padding, container_y + padding + row_h * 1 + 6, container_width - padding * 2);
 	
 	var xx = container_x + padding;
 	var yy = container_y + container_height - padding;
@@ -53,20 +55,30 @@ if (chosen_event != undefined) {
 		var _desc_h = string_height_ext(_option_desc, font_get_size(draw_get_font()) * 1.2, _w);
 		var _h = _title_h + _desc_h + padding;
 		
-		options_hover[| i] = mouse_hovering(xx, yy - _h, _w, _h, false);
+		options_hover[| i] = mouse_hovering(xx, yy - _h, _w + padding, _h, false); // the whole slip (it reaches _w + padding)
 		options_scale[| i] = lerp(options_scale[| i], !event_selected * options_hover[| i] ? 1.1 : 1.0, 0.2);
 		
-		var hover_col = !event_selected * options_hover[| i] ? make_color_rgb(155, 255, 155) : c_white;
-		var option_alpha = event_selected ? 0.2 : 1.0;
-		
-		draw_sprite_ext(sButtonWide, 0, xx, yy - _h, options_scale[| i] * 1.15, (options_scale[| i] / sprite_get_height(sButtonWide)) * _h, 0, c_dkgray, option_alpha);
-		
+		var _picked_hover = !event_selected && options_hover[| i];
+		var option_alpha = event_selected ? 0.35 : 1.0;
+
+		// a choice: a slip of shaded paper with an ink rule down its left; hovered, it brightens with a brass rule
+		var _ox1 = xx, _oy1 = yy - _h, _ox2 = xx + _w + padding, _oy2 = yy - padding / 4;
+		draw_set_alpha(option_alpha);
+		draw_set_color(_picked_hover ? global.ui_col.paper_hi : merge_colour(global.ui_col.paper, global.ui_col.paper_shade, 0.45));
+		draw_roundrect_ext(_ox1, _oy1, _ox2, _oy2, 8, 8, false);
+		draw_set_color(_picked_hover ? global.ui_col.brass : global.ui_col.ink);
+		draw_rectangle(_ox1, _oy1 + 4, _ox1 + (_picked_hover ? 7 : 4), _oy2 - 4, false);
+		draw_set_alpha(1);
+		draw_set_color(c_white);
+
 		draw_set_font(ftDefault);
-		draw_outline_text(option.title, c_black, hover_col, 2, xx + padding/2, yy - _h + padding/2 - 1, options_scale[| i], option_alpha, 0, _w);
-		
+		draw_outline_text(option.title, global.ui_col.paper_hi, global.ui_col.ink, 1, xx + padding/2, yy - _h + padding/2 - 1, 1, option_alpha, 0, _w);
+
 		draw_set_font(ftDescriptions);
 		var colored_desc = colorcode_text(_option_desc);
-		draw_outline_text(colored_desc, c_black, hover_col, 2, xx + padding/2, yy - _h + padding/2 - 1 + _title_h + ((options_scale[| i] * 50) - 50), 1, option_alpha * 0.95, 0, _w);
+		global.ui_on_paper = true; // coloured words in their dark inks
+		draw_outline_text(colored_desc, global.ui_col.paper_hi, global.ui_col.ink_soft, 1, xx + padding/2, yy - _h + padding/2 - 1 + _title_h, 1, option_alpha, 0, _w);
+		global.ui_on_paper = false;
 		
 		if (options_hover[| i]) {
 			if (mouse_check_button_pressed(mb_left) && !event_selected) {
@@ -76,6 +88,8 @@ if (chosen_event != undefined) {
 			if (variable_struct_exists(option, "hover")) {
 				option.hover();
 			}
+			// and the keywords, buffs and debuffs it names (F137), unless the choice showed its own tooltip
+			if (!event_selected) queue_glossary_tooltip(option.title + " " + _option_desc);
 		}
 		
 		yy -= _h + padding/4;
@@ -130,6 +144,6 @@ if (deleting_die > 0) {
 var exit_col = c_dkgray;
 if (event_complete >= 0) exit_col = c_red;
 
-var exit_btn = ui_button(gui_w - 150, gui_h - 130, 180, 70, exit_scale, "Exit", global.ui_neutral, exit_col == c_red, "Choose an option first.");
-exit_scale = exit_btn.scale;
+// the room's commit action, bottom right like End Turn and Embark (ui_primary, UI rework)
+var exit_btn = ui_primary(gui_w - 44 - 140, gui_h - 40 - 48, 280, 96, "Continue", exit_col == c_red, "Choose an option first.");
 if (exit_btn.click) exiting = true;

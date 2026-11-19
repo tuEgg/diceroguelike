@@ -1,3 +1,22 @@
+// juice: queued particle bursts are made here (not in Draw GUI); the screen shake eases off
+particles_flush();
+if (variable_global_exists("shake")) global.shake = (global.shake < 0.4) ? 0 : global.shake * 0.82;
+
+// coins: spending jingles once; gold coming in is a trickle, a quiet clink for each coin as it lands, at most one every
+// 4 frames (so about six overlap at most), each a little higher than the last, so a big haul sounds like a pile filling up
+if (coin_tick_cd > 0) coin_tick_cd--;
+if (coin_streak_idle++ > 20) coin_streak = 0; // a pause: the next haul starts low again
+if (credits != credits_heard) {
+	if (credits < credits_heard) { sfx_play(soCoins, AUDIO_GROUP.SFX, 0.05, 0.9); credits_scale = max(credits_scale, 1.3); } // and the counter jumps
+	else if (coin_tick_cd <= 0) {
+		sfx_play_layered(soCoins, AUDIO_GROUP.SFX, min(1.35, 0.92 + coin_streak * 0.025) + random_range(-0.03, 0.03), 0.35);
+		coin_streak++;
+		coin_tick_cd = 4;
+	}
+	if (credits > credits_heard) coin_streak_idle = 0;
+	credits_heard = credits;
+}
+
 // the new run offering is a popup: keep the map behind it locked even after the bag or settings hand back the base layer
 if (new_run_offering && global.ui_layer == UI_LAYER.BASE) global.ui_layer = UI_LAYER.POPUP;
 

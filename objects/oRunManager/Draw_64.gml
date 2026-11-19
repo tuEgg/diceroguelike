@@ -7,66 +7,53 @@ var bar_half = bar_height/2;
 // New run offering: the quartermaster's offer (offering_draw, scHelpers)
 if (new_run_offering) offering_draw();
 
-// Draw top bar
-var bar_scale_w = global.ui_scale;
-draw_sprite_ext(sTopBar, 1, -3*bar_scale_w, -4, bar_scale_w, 1, 0, c_white, 1);
+// The top bar (UI rework, docs/design-ui-rework.md): a dark logbook strip with a cream rule, not the purple sprite.
+// Only what you check mid-run, in the numeral face: health, gold, items, tools, the compass, the bounty, the menu.
+// (The voyage number and the count of pages explored are on the map and in the voyage summary.)
+draw_set_color(make_color_rgb(28, 23, 18));
+draw_rectangle(0, 0, gui_w, ui_top_bar_h(), false);
+draw_set_color(make_color_rgb(40, 33, 26));
+draw_rectangle(0, 0, gui_w, 3, false); // a little light along the top edge
+draw_set_alpha(0.35);
+draw_set_color(global.ui_col.rule);
+draw_line_width(0, ui_top_bar_h() - 1, gui_w, ui_top_bar_h() - 1, 2);
+draw_set_alpha(1);
+draw_set_color(c_white);
 // with the bag open, the top bar can still be hovered for its tooltips (mouse_hovering_check); its clicks are
 // guarded by the base layer, so nothing in it can be used until the bag closes
 global.ui_peek_top_bar = (global.ui_layer == UI_LAYER.BAG);
 
-// Draw voyage act
-draw_set_font(ftBig);
-draw_set_halign(fa_left);
-draw_set_valign(fa_middle);
-var act = "I";
-switch (voyage) {
-	case 1:
-	act = "II";
-	break;
-	case 2:
-	act = "III";
-	break;
-	case 3:
-	act = "IV";
-	break;
-}
-draw_outline_text("Voyage " + act, c_black, c_white, 2, 20, bar_half, 1, 1, 0);
-var voyage_hover = mouse_hovering(20, bar_half, string_width("Voyage III"), string_height("Voyage III"), false, noone, noone);
-if (voyage_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Voyages Sailed", "You are on voyage " + string(act) + "/III", undefined, 0, undefined);
-
-// Draw pages turned
-draw_set_font(ftBig);
-draw_set_halign(fa_center);
-draw_set_valign(fa_top);
-var pages_x = 190;
-draw_sprite_ext(sPaper, 0, pages_x, bar_half, 0.8, 0.8, 0, c_white, 1.0);
-draw_outline_text(string(oWorldManager.nodes_cleared), c_black, c_white, 2, pages_x + 20, bar_half, 1, 1, 0);
-var pages_hover = mouse_hovering(pages_x, bar_half, sprite_get_width(sPaper), sprite_get_height(sPaper), true, noone, noone);
-if (pages_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Events Explored", "You have explored " + string(oWorldManager.nodes_cleared) + " events from the Captain's logbook", undefined, 0, undefined);
-
-// Draw money
-draw_set_font(ftBig);
-var nodes_x = pages_x + 80;
-draw_sprite_ext(sCoin, 1, nodes_x, bar_half, credits_scale * 0.8, credits_scale * 0.8, 0, c_white, 1.0);
-draw_outline_text(string(credits), c_black, c_white, 2, nodes_x + 20, bar_half, 1, 1, 0);
-var credits_hover = mouse_hovering(nodes_x, bar_half, sprite_get_width(sPaper), sprite_get_height(sPaper), true);
-if (credits_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Gold Doubloons", "You have " + string(credits) + " gold doubloons", undefined, 0, undefined);
-credits_scale = lerp(credits_scale, 1.0, 0.05);
-
-// Draw health
-var health_x = nodes_x + 100;
+// Health: a red heart and the number
+var health_x = 44;
 global.heal_pos = health_x;
-draw_sprite(sHeart, 0, health_x, bar_half);
-draw_set_halign(fa_left);
-draw_set_valign(fa_middle);
-draw_set_font(ftBig);
-draw_outline_text(string(global.player_hp) + "/" +string(global.player_max_hp), c_black, c_white, 2, health_x + 30, bar_half, 1, 1, 0);
 health_scale = lerp(health_scale, 1.0, 0.2);
-var health_hover = mouse_hovering(health_x + 55, bar_half, 135, 50, true, noone, noone);
-if (health_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your Health", "You have " + string(global.player_hp) + "/" +string(global.player_max_hp) + " health");
+// sized down (Jared, 2026-11-19: the bar read too big next to Slay the Spire at the same resolution)
+ui_glyph("HEAL", health_x, bar_half, 24 * health_scale, global.color_attack);
+ui_numeral(string(global.player_hp), health_x + 22, bar_half, 26, global.ui_col.paper_hi, 1, fa_left);
+var _hp_w = ui_numeral_width(global.player_hp, 26);
+ui_numeral("/" + string(global.player_max_hp), health_x + 25 + _hp_w, bar_half + 2, 18, make_color_rgb(154, 143, 124), 1, fa_left);
+var health_hover = mouse_hovering(health_x - 20, bar_half - 25, 150, 50, false, noone, noone);
+if (health_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your health", "You have " + string(global.player_hp) + " of " + string(global.player_max_hp) + " health.");
+
+// Gold: a brass coin and the number
+var nodes_x = health_x + 170;
+global.gold_pos = nodes_x; // where gold flies to (oParticleCoin)
+credits_scale = lerp(credits_scale, 1.0, 0.05);
+var _coin_r = 12 * credits_scale;
+draw_set_color(global.ui_col.ink);
+draw_circle(nodes_x, bar_half, _coin_r + 3, false);
+draw_set_color(global.ui_col.brass);
+draw_circle(nodes_x, bar_half, _coin_r, false);
+draw_set_color(make_color_rgb(150, 112, 56));
+draw_circle(nodes_x, bar_half, _coin_r * 0.55, true);
+draw_set_color(c_white);
+ui_numeral(string(credits), nodes_x + 22, bar_half, 26, global.ui_col.paper_hi, 1, fa_left);
+var credits_hover = mouse_hovering(nodes_x - 20, bar_half - 25, 130, 50, false);
+if (credits_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Gold", "You have " + string(credits) + " gold doubloons.");
+var pages_x = nodes_x; // (kept for anything below that measured from it)
 
 // Draw cores and consumables
-var core_x = health_x + 185;
+var core_x = nodes_x + 140; // after gold
 var core_y = bar_half;
 
 for (var i = 0; i < array_length(items); i++) {
@@ -84,7 +71,14 @@ for (var i = 0; i < array_length(items); i++) {
 		}
 	}
 	
-	draw_sprite_ext(sTopBarSlot, 0, core_x + i_x, core_y, 0.8, 0.8, 0, c_white, 1.0);
+	// an item slot: a dark well with a faint cream rule
+	draw_set_color(make_color_rgb(42, 34, 26));
+	draw_roundrect_ext(core_x + i_x - 30, core_y - 26, core_x + i_x + 30, core_y + 26, 10, 10, false);
+	draw_set_alpha(0.35);
+	draw_set_color(global.ui_col.rule);
+	draw_roundrect_ext(core_x + i_x - 30, core_y - 26, core_x + i_x + 30, core_y + 26, 10, 10, true);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
 	
 	if (items[i] != undefined) {
 		var default_scale = 0.8;
@@ -212,7 +206,10 @@ for (var i = 0; i < array_length(items); i++) {
 						items[i].dragging = false;
 						holding_item = false;
 						// a potion that goes on a slot: used if it was let go over one
-						if (combat_item_drop(items[i])) items[i] = undefined;
+						if (combat_item_drop(items[i])) {
+							items[i] = undefined;
+							potion_burst(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0)); // the bottle breaks over the slot
+						}
 					}
 			
 					// (the potion may have just been used on a slot above, leaving the item slot empty)
@@ -228,6 +225,7 @@ for (var i = 0; i < array_length(items); i++) {
 							if (ctx.use_potion) {
 								items[i] = undefined;
 								holding_item = false;
+								potion_burst(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0)); // drunk: glass and a puff
 							}
 						}
 					}
@@ -246,6 +244,8 @@ if (toolbar_hover) {
 	if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
 		show_tools = 1 - show_tools;
 	}
+}
+if (toolbar_hover && !show_tools) { // (its tip would cover the tools once they're out)
 	if (room == rmMap) {
 		if (can_visit_workbench) {
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools used to manipulate your dice at the workbench.");
@@ -281,6 +281,8 @@ alignment_scale = lerp(alignment_scale, 1.0, 0.2);
 
 var alignment_pos_x = alignment_x - 112 + ((global.player_alignment) * 2.24);
 draw_sprite_ext(sCircleSmall, 0, alignment_pos_x, bar_half + 2, alignment_scale, alignment_scale, 0, c_white, 1.0); // swells as motes land
+// the number too (Molly): 0-100, read as a percentage
+ui_numeral(string(round(global.player_alignment)) + "%", alignment_x - 188, bar_half, 18, global.ui_col.paper_hi, 1, fa_right); // left of the compass (the bar's right end meets the bounty)
 
 // "+5 merciful" / "-7 ruthless" under the compass for a moment after it moves (gain_alignment)
 if (alignment_popup_t >= 0) {

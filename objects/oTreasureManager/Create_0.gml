@@ -19,3 +19,5 @@ if (_remembered != undefined) {
 } else {
 	generate_keepsake_rewards(keepsake_reward, global.rollable_keepsake_list, 1);
 }
+
+exit_confirm = 0; // frames left of "Leave it behind?" after a first Continue with the treasure untaken (B136)

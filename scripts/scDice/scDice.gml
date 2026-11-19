@@ -18,6 +18,8 @@ function deal_single_die( _can_discard_this_turn = true) {
 	    // outside a fight the discard pile has been freed (oCombat CleanUp), so only a live one can be reshuffled (B109)
 	    if (ds_safe_exists(global.discard_pile, ds_type_list) && ds_list_size(global.discard_pile) > 0) {
 	        //show_debug_message("Dice bag empty — reshuffling discard pile!");
+	        // in a fight, you see it happen: the spent dice fly out of the discard pile and back into the bag
+	        if (room == rmCombat) combat_shuffle_effect(ds_list_size(global.discard_pile));
 	        for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
 	            var discard_die = global.discard_pile[| i];
 	            var die_copy = clone_die(discard_die, "");
@@ -148,6 +150,7 @@ function die_roll_faces(_die) {
 /// @func die_effect_popup(_die, _text, _col)
 /// @desc A die's "when rolled" effect firing: a word over it in your hand (or where dice are dealt, as it comes out).
 function die_effect_popup(_die, _text, _col) {
+	die_jiggle(_die); // and the die wobbles (F40)
 	var _x = global.gui.bag_x_deal, _y = global.gui.bag_y_deal - 60;
 	with (oDice) if (struct == _die) { _x = x; _y = y - 60; }
 	var _inst = instance_create_layer(_x, _y, "Instances", oDamageText);
@@ -568,7 +571,7 @@ function generate_dice_bag() {
 	// Fogcaller Die
 	global.die_fogcaller = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Fogcaller Die",
-	    "Followthrough: +1 if the previous slot has a coin. Played there, draw a die.",
+	    "Followthrough: if the slot before it holds a coin, +1 and draw a die.",
 		"common",
 		40,
 	    [
@@ -1345,6 +1348,62 @@ function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner, _on_de
 	
 }
 
+/// @func die_bonus_breakdown(_die, _slot_num, _die_index)
+/// @desc What a die in a slot comes to, source by source (F146), as lines for its tip: what it rolled, then its own
+///       effect, each keepsake and each of your buffs or debuffs that changes it, then the slot's bonuses, then the sum.
+///       Fires each source on its own read-only copy of get_dice_output's roll data (keep the two in step), so a
+///       source's share is what it added. A first-die bonus (the slot's place bonus is one) shows only on its first die.
+function die_bonus_breakdown(_die, _slot_num, _die_index) {
+	if (!die_has_faces(_die) || _slot_num < 0 || !instance_exists(oCombat)) return "";
+	var _slot = oCombat.action_queue[| _slot_num];
+	var _make = function(_die, _slot, _slot_num, _die_index) {
+		return {
+			previous_slot_action_type: (_slot_num > 0) ? oCombat.action_queue[| _slot_num - 1].current_action_type : "",
+			action_type: _slot.current_action_type, min_roll: 1 + _die.min_roll_bonus, max_roll: _die.dice_value,
+			_d_amount: 0, _die_struct: _die, _slot: _slot, slot_num: _slot_num, die_index: _die_index, die: _die,
+			read_only: true, on_deal: false, roll_twice: false, repeat_followthrough: false, target: "player", weighting: ""
+		};
+	};
+	var _face = die_face_total(_die);
+	var _lines = ["Rolled " + string(_face)];
+	var _sum = _face;
+	// its own effect
+	var _ctx = _make(_die, _slot, _slot_num, _die_index);
+	trigger_die_effects_single(_die, "on_roll_die", _ctx);
+	if (_ctx._d_amount != 0) { array_push(_lines, "Its effect " + ((_ctx._d_amount > 0) ? "+" : "") + string(_ctx._d_amount)); _sum += _ctx._d_amount; }
+	// each keepsake
+	for (var k = 0; k < ds_list_size(oRunManager.keepsakes); k++) {
+		var _ks = oRunManager.keepsakes[| k];
+		if (is_undefined(_ks.trigger)) continue;
+		_ctx = _make(_die, _slot, _slot_num, _die_index);
+		_ks.trigger("on_roll_die", _ctx);
+		if (_ctx._d_amount != 0) { array_push(_lines, string(_ks.name) + " " + ((_ctx._d_amount > 0) ? "+" : "") + string(_ctx._d_amount)); _sum += _ctx._d_amount; }
+	}
+	// each of your buffs and debuffs (Might, Balance...)
+	for (var b = 0; b < ds_list_size(global.player_debuffs); b++) {
+		var _inst = global.player_debuffs[| b];
+		var _one = ds_list_create();
+		ds_list_add(_one, _inst);
+		_ctx = _make(_die, _slot, _slot_num, _die_index);
+		_ctx.owner = "player";
+		// on_roll_die never counts a buff down (intent_exact_value relies on that too)
+		trigger_debuff_list(_one, "on_roll_die", _ctx);
+		ds_list_destroy(_one);
+		if (_ctx._d_amount != 0) { array_push(_lines, string(_inst.template.name) + " " + ((_ctx._d_amount > 0) ? "+" : "") + string(_ctx._d_amount)); _sum += _ctx._d_amount; }
+	}
+	// the slot's bonuses: every die's, and the first die's (its place bonus is one: "Slot 2 +1", once per slot)
+	for (var i = 0; i < array_length(_slot.bonuses); i++) {
+		var _bn = _slot.bonuses[i];
+		if (_bn.amount == 0 || (_bn.scope == "first" && _die_index != 0)) continue;
+		array_push(_lines, string(_bn.source) + " " + ((_bn.amount > 0) ? "+" : "") + string(_bn.amount));
+		_sum += _bn.amount;
+	}
+	var _out = "";
+	for (var l = 0; l < array_length(_lines); l++) _out += ((l == 0) ? "" : "\n") + _lines[l];
+	if (array_length(_lines) > 1) _out += "\n= " + string(_sum);
+	return _out;
+}
+
 /// @func dice_trigger_effects(_event, _data)
 /// @desc Fire _event on every die in the action queue (a broadcast: after_roll_die, on_dice_played_to_slot,
 ///       on_dice_ejected). Each die's effects are owner-only by default here: they fire only when the die the event is
@@ -1450,7 +1509,7 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0, _where = 
 ///       flat stub with a dimmed number. _y is the bottom of the whole graphic (numbers included), so it sits on top of
 ///       whatever is below it; _x its left edge, or its centre with _centered. _scale makes it bigger (1: 14px bars).
 ///       A core's preview (core_preview) shows the core's own shape on a plain d6: keepsakes don't touch it.
-function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1) {
+function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _paper = false) {
 	var _min_roll = 1;
 	var _max_roll = _die.dice_value;
 	if (!variable_struct_exists(_die, "core_preview")) {
@@ -1470,13 +1529,15 @@ function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1) {
 	var _w = _n * _bw + (_n - 1) * _gap;
 	var _x0 = _centered ? _x - _w / 2 : _x;
 	var _base = _y - _pad - _num_h; // the line the bars stand on
-	var _bar_col = make_color_rgb(242, 210, 74);
+	var _bar_col = _paper ? global.ui_col.ink_soft : make_color_rgb(242, 210, 74);
 
-	// the plate
-	draw_set_alpha(0.85);
-	draw_set_color(make_color_rgb(20, 22, 30));
-	draw_roundrect_ext(_x0 - _pad, _base - _bh - _pad, _x0 + _w + _pad, _y, 8 * _scale, 8 * _scale, false);
-	draw_set_alpha(1);
+	// the plate (on paper there's none: the bars are inked straight onto it)
+	if (!_paper) {
+		draw_set_alpha(0.85);
+		draw_set_color(make_color_rgb(20, 22, 30));
+		draw_roundrect_ext(_x0 - _pad, _base - _bh - _pad, _x0 + _w + _pad, _y, 8 * _scale, 8 * _scale, false);
+		draw_set_alpha(1);
+	}
 
 	draw_set_font((_scale >= 1.4) ? ftDescriptions : ftTiny);
 	draw_set_halign(fa_center);
@@ -1484,13 +1545,13 @@ function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1) {
 	for (var i = 0; i < _n; i++) {
 		var _bx = _x0 + i * (_bw + _gap);
 		var _h = (_dist[i] > 0) ? max(3 * _scale, _bh * _dist[i] / _top) : 2 * _scale;
-		draw_set_color((_dist[i] > 0) ? _bar_col : make_color_rgb(90, 90, 100));
+		draw_set_color((_dist[i] > 0) ? _bar_col : (_paper ? global.ui_col.paper_shade : make_color_rgb(90, 90, 100)));
 		draw_rectangle(_bx, _base - _h, _bx + _bw - 1, _base, false);
-		draw_set_color((_dist[i] > 0) ? c_white : make_color_rgb(110, 110, 120));
+		draw_set_color(_paper ? ((_dist[i] > 0) ? global.ui_col.ink : global.ui_col.paper_shade) : ((_dist[i] > 0) ? c_white : make_color_rgb(110, 110, 120)));
 		draw_text(_bx + _bw / 2, _base + _num_h / 2 + 1, string(i + _min_roll));
 	}
 	// the baseline
-	draw_set_color(make_color_rgb(150, 150, 160));
+	draw_set_color(_paper ? global.ui_col.ink : make_color_rgb(150, 150, 160));
 	draw_line_width(_x0 - 2 * _scale, _base + 1, _x0 + _w + 2 * _scale, _base + 1, max(1, _scale));
 	draw_set_color(c_white);
 }
@@ -1536,9 +1597,28 @@ function draw_dice_history(_die, _x, _y, _centered = false) {
 	}
 }
 
+/// @func core_alignment_lean()
+/// @desc Where the compass leans, for the alignment cores: -1 fully ruthless (alignment 0), 0 even (50), +1 fully merciful (100).
+function core_alignment_lean() {
+	return clamp((global.player_alignment - 50) / 50, -1, 1);
+}
+
 /// @func	define_dice_distributions(_die_dist, _min_roll, _max_roll, _array)
 function define_dice_distributions(_die_dist, _min_roll, _max_roll, _array) {
 	switch (_die_dist) {
+		case "compass":
+		case "lodestone":
+		// the alignment pair (F151): at 50 every face is even; ruthless (0) leans to the edges, merciful (100) to the middle.
+		// Lodestone leans all the way (at the extremes the other faces can't come up); Compass about two-thirds of the way.
+		var _lean = core_alignment_lean();
+		var _strength = (_die_dist == "lodestone") ? 1 : 0.65;
+		for (var d = _min_roll; d <= _max_roll; d++) {
+			var _p = (_max_roll > _min_roll) ? (d - _min_roll) / (_max_roll - _min_roll) : 0.5;
+			var _middle = 1 - abs(2 * _p - 1); // 1 in the middle, 0 at the edges
+			array_push(_array, max(0, round(10 + 10 * _strength * _lean * (2 * _middle - 1))));
+		}
+		break;
+
 		case "":		
 		// by default each array is [1, 1, 1, 1] for a d4 for example
 		for (var d = _min_roll; d <= _max_roll; d++) {
@@ -1697,7 +1777,7 @@ function get_dice_color(_action) {
 			case "HEAL": _col = global.color_heal; break;
 			case "INTEL": _col = global.color_intel; break;
 		
-			default: _col = c_ltgray;
+			default: _col = variable_global_exists("ui_col") ? global.ui_col.bone : c_ltgray; // neutral dice: bone
 		}
 		return _col;
 	}
@@ -1952,7 +2032,7 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1) {
 	}
 	var _pips = die_pip_layout(_face);
 	if (array_length(_pips) > 0) {
-		var _pr = max(1.5, _r * ((_face > 6) ? 0.1 : 0.13) * ((_sides == 4) ? 0.85 : 1));
+		var _pr = max(2, _r * ((_face > 6) ? 0.125 : 0.165) * ((_sides == 4) ? 0.85 : 1)); // chunky enough to count at a glance
 		draw_set_alpha(_alpha);
 		for (var i = 0; i < array_length(_pips); i++) {
 			var _px = _pips[i][0] * _spread, _py = _pips[i][1] * _spread + _cy;

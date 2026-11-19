@@ -11,7 +11,8 @@ if (_coded) {
 	var _face = tumbling ? flick_face : (die_has_faces(struct) ? die_face_total(struct) : -1);
 	var _wobble = over_discard ? sin(current_time / 70) * 9 : 0;
 	var _cols = die_colours(struct.possible_type); // a multitype die is split diagonally in its colours
-	draw_die(x, y, _die_r, dice_value, _face, over_discard ? colours_merge(_cols, c_black, 0.25) : _cols, tumble_angle + _wobble, image_alpha);
+	var _jig = die_jiggle_pose(struct); // its effect firing: a punch and a wobble (F40)
+	draw_die(x, y, _die_r * _jig.scale, dice_value, _face, over_discard ? colours_merge(_cols, c_black, 0.25) : _cols, tumble_angle + _wobble + _jig.angle, image_alpha);
 	// over the discard pile: letting go discards it (redraws are bought in the insight phase)
 	if (over_discard && instance_exists(oCombat)) {
 		var _can = true;
@@ -56,6 +57,15 @@ if (global.ui_layer == UI_LAYER.BASE && !is_dragging) {
 		}
 	}
 }
+// Mocked: its attack can't roll above 1 while Mock lasts (B133); a red tag on its top edge, explained on hover
+if (_coded && die_is_mocked(struct) && !tumbling) {
+	var _mk = draw_mock_mark(x, y - _die_r - 6, scale);
+	var _mmx = device_mouse_x_to_gui(0), _mmy = device_mouse_y_to_gui(0);
+	if (global.ui_layer <= UI_LAYER.POPUP && !is_dragging && point_in_rectangle(_mmx, _mmy, _mk.x1, _mk.y1, _mk.x2, _mk.y2)) {
+		_kw_hover = true;
+		queue_tooltip(_mmx, _mmy, "Mocked", "While Mock lasts, this die's attack can't roll higher than 1. Rerolling it won't help.");
+	}
+}
 // Settings > Display > Action icons on dice: a small symbol so types don't rely on colour alone
 if (global.action_icons) draw_action_type_icon(struct.action_type, x - sprite_width * 0.32, y + sprite_height * 0.32, scale);
 
@@ -77,7 +87,9 @@ if (!_kw_hover && mouse_hovering(x, y, sprite_width, sprite_height, true)) {
 	// mini chart of its core, and its effect. Keywords are explained on their icons.
 	var _sub = _rolled ? "rolled " + string(die_face_total(struct)) : string(dice_output.min_roll) + "-" + string(dice_output.max_roll);
 	var _r_now = (_coded ? 36 * scale : sprite_height / 2);
-	queue_die_tip(struct, x, y - _r_now * 1.25);
+	// in an event, a click sends it to the bag (F149, oDice Step); not while the plank waits for one
+	var _ev_hint = (room == rmEvent && !(instance_exists(oEventManager) && oEventManager.deleting_die == 1)) ? "Click to put it in your bag." : "";
+	queue_die_tip(struct, x, y - _r_now * 1.25, undefined, _ev_hint);
 	
 	var off_x = 0;
 	var off_y = 0;

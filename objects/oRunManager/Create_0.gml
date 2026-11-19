@@ -12,7 +12,7 @@ define_events();
 
 fullscreen = false;
 
-global.player_max_hp = 40;
+global.player_max_hp = 60; // Q11 (2026-11-19): more health, enemies hit harder (ENEMY_ATTACK_BOOST)
 global.player_hp = global.player_max_hp;
 global.player_alignment = 50;
 global.alignment_stage = 0;
@@ -21,6 +21,12 @@ global.player_luck = 50; // used for reward generation
 keepsakes = ds_list_create();
 keepsake_scale = ds_list_create();
 credits_scale = 1.0;
+credits_heard = credits; // the gold the coin sound last knew of (Step): a change jingles
+global.shake = 0;                 // screen shake, px (screen_shake): decays in Step, applied in Draw GUI Begin
+global.particles_pending = [];    // particle bursts asked for from Draw GUI (particle_emit_later), made in Step
+coin_tick_cd = 0;// frames until the next coin clink may play (the trickle)
+coin_streak = 0;        // clinks in this haul: each one a little higher
+coin_streak_idle = 0;   // frames since gold last came in
 voyage = 0; // voyage act I to start with
 depth = -100;
 

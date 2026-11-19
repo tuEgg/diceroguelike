@@ -472,7 +472,7 @@ switch (state) {
 									gain_alignment(5);
 								
 									// Earn some credits, regardless of secondary rewards
-									gain_coins(enemy.pos_x, enemy.pos_y, ceil(enemy_data.bounty * 1.5));
+									gain_coins(enemy.pos_x, enemy.pos_y, ceil(enemy_data.bounty / 3)); // a third of its bounty: killing pays (Q12)
 									
 									enemy.looted = true;
 								} else {
@@ -629,9 +629,11 @@ if (insight_view) insight_view_age++;
 // something (combat_insight_phase_worth). Click the inkwell to open it.
 if (state == CombatState.PLAYER_INPUT && !insight_phase_done && !is_dealing_dice && dice_to_deal <= 0 && !show_rewards) {
 	insight_phase_done = true;
-	if (combat_insight_phase_worth()) ink_pulse = round(game_get_speed(gamespeed_fps) * 2.5);
+	if (combat_insight_phase_worth()) { ink_pulse = round(game_get_speed(gamespeed_fps) * 2.5); ink_waiting = true; }
 }
-if (ink_pulse > 0) ink_pulse--;
+// it keeps pulsing until you act: use your ink, play a die or end the turn (then it fades out)
+if (ink_waiting && (insight_view || actions_submitted || dice_played > 0 || state != CombatState.PLAYER_INPUT)) ink_waiting = false;
+if (ink_waiting) ink_pulse = max(ink_pulse, 21); else if (ink_pulse > 0) ink_pulse--;
 if (insight_view) ink_pulse = 0;
 // Enter confirms (closes the log), like the button that stands in for End Turn (it can't be reopened until next turn)
 var _sealed_now = false;

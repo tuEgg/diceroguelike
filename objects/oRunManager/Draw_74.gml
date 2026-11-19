@@ -13,3 +13,8 @@ if (room == rmCombat && instance_exists(oCombat) && oCombat.insight_view && shad
 	if (surface_exists(application_surface)) draw_surface_stretched(application_surface, 0, 0, _gw, _gh);
 	ink_capturing = true;
 }
+
+// the screen shake (screen_shake): this frame's Draw GUI is drawn offset; Draw GUI End puts it back first thing
+if (variable_global_exists("shake") && global.shake > 0 && !ink_capturing) {
+	matrix_set(matrix_world, matrix_build(random_range(-global.shake, global.shake), random_range(-global.shake, global.shake), 0, 0, 0, 0, 1, 1, 1));
+}

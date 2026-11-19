@@ -81,8 +81,18 @@ if (over_discard) hover_target = 1.7;
 scale = lerp(scale, hover_target, hover_speed);
 
 // --- Start dragging ---
+// an event's dice (and coins) go into the bag with a click (F149), unless the plank is waiting for one to be dragged onto it
+var _event_click = (room == rmEvent) && !(instance_exists(oEventManager) && oEventManager.deleting_die == 1) && global.ui_layer == UI_LAYER.BASE;
 if (!is_dragging && hovered && mouse_check_button_pressed(mb_left)) {
-	if (!still) {
+	if (_event_click) {
+		var _p = instance_create_depth(x, y, -13, oDiceParticle);
+		_p.die_struct = clone_die(struct, struct.permanence);
+		_p.color_main = get_dice_color(struct.possible_type);
+		_p.target_x = 60;
+		_p.target_y = 1040;
+		sfx_play(soClick4, AUDIO_GROUP.UI, 0.05, 1);
+		instance_destroy();
+	} else if (!still) {
 	    is_dragging = true;
 	    drag_offset_x = mx - x;
 	    drag_offset_y = my - y;

@@ -747,8 +747,11 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 				}
 			}
 		
-			// show completed nodes as green
-			if (node.cleared) draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale*1.2, node.scale*1.2, 0, make_color_rgb(126, 183, 131), _alph);
+			// show completed nodes as green, with a faded ink tick on them (F148)
+			if (node.cleared) {
+				draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale*1.2, node.scale*1.2, 0, make_color_rgb(126, 183, 131), _alph);
+				map_visited_tick(node.x + 14, node.y - 12, 1, _alph);
+			}
 		}
 	}
 	
@@ -914,10 +917,11 @@ function start_drafting() {
 // spreads followed by a boss spread, then the next chapter begins.
 // =====================================================================
 
-#macro CHAPTER_SPREADS 7				// drafted spreads before the boss spread
+#macro CHAPTER_SPREADS 3				// drafted spreads before the boss spread (Q13: was 7)
 #macro CHAPTER_COUNT 3				// chapters in a voyage, beating the last boss wins the run
 #macro CHAPTER_ENEMY_HP_GROWTH 0.5		// each chapter after the first adds this fraction of an enemy's health
 #macro CHAPTER_ENEMY_BONUS_GROWTH 3		// each chapter after the first adds this to every enemy attack and block
+#macro ENEMY_ATTACK_BOOST 0.2			// every enemy attack, from chapter 1, adds about this share of its average roll (Q11)
 
 /// @desc Picks the paper art for every page of this chapter's book, never the same twice in a row.
 ///       One page per spread plus the two outer pages, so the boss spread still has a right-hand page.
@@ -1037,6 +1041,15 @@ function start_new_chapter() {
 
 /// @desc Enemies get tougher each chapter. Works on the per-fight copy, never the shared definition.
 function enemy_apply_chapter_scaling(_enemy_copy) {
+	// every attack hits about a fifth harder, from the first chapter (Q11): at least +1, from its average roll
+	for (var m = 0; m < ds_list_size(_enemy_copy.moves); m++) {
+		var _mv = _enemy_copy.moves[| m];
+		if (string_pos("ATK", _mv.action_type) > 0) {
+			var _avg = _mv.dice_amount * (_mv.dice_value + 1) / 2 + _mv.bonus_amount;
+			if (_avg > 0) _mv.bonus_amount += max(1, round(_avg * ENEMY_ATTACK_BOOST));
+		}
+	}
+
 	var _extra_chapters = oWorldManager.chapter - 1;
 	if (_extra_chapters <= 0) return;
 	
@@ -1309,7 +1322,7 @@ function spread_end_apply(_id, _heal_amount) {
 
 // =====================================================================
 // THE STRAIT (F112): the end of a spread is a place on the map, not a panel. After the last island the route forks
-// into two or three sea stops; sail to one and it happens there. You heal as you pass through whichever you take.
+// into sea stops; sail to one and it happens there. Only Calm water heals (Q14).
 // Between a spread's two pages, a buoy offers the workbench the same way (sail to it, or past it).
 // =====================================================================
 
@@ -1319,7 +1332,7 @@ function spread_end_apply(_id, _heal_amount) {
 ///       Whether each can be taken is checked when you reach it (strait_activate).
 function strait_build() {
 	var _rolled = spread_end_roll_options();
-	var _ids = ["workbench", _rolled[0], _rolled[1]];
+	var _ids = ["workbench", _rolled[0], _rolled[1], "calm"]; // calm water is the heal: it costs you the other stops (Q14)
 	strait = { ids: _ids, scales: [1, 1, 1, 1], heal: 0, chosen: -1, arrived: false, healed: false, stamp: 0, active: false, leaving: false };
 }
 
@@ -1330,9 +1343,7 @@ function strait_activate() {
 	if (!is_struct(strait)) strait_build();
 	if (strait.active) return;
 	strait.active = true;
-	var _any = false;
-	for (var i = 0; i < array_length(strait.ids); i++) if (strait_stop_info(strait.ids[i], 0).ok) _any = true;
-	if (!_any) array_push(strait.ids, "calm");
+	if (!array_contains(strait.ids, "calm")) array_push(strait.ids, "calm"); // a strait planned before Q14 (a loaded game)
 	oRunManager.can_visit_workbench = false; // the buoy is one of the stops here
 	var _ctx = { rest_amount: rest_amount };
 	runmanager_trigger_keepsakes("on_rest", _ctx);
@@ -1360,7 +1371,7 @@ function spread_sea_spots() {
 function strait_stop_info(_id, _heal) {
 	switch (_id) {
 		case "workbench": return { name: "Shipwright's buoy", tip: "Moor here and open the workbench: take dice from your bag (one per tool you own) and use each tool once.", ok: workbench_useful(), reason: "None of your tools has work to do (the Drill needs a core)." };
-		case "calm":      return { name: "Calm water", tip: "Nothing out here but a quiet night.", ok: true, reason: "" };
+		case "calm":      return { name: "Calm water", tip: "Drop anchor and rest: heal " + ((_heal > 0) ? string(_heal) + " HP" : string(round(oWorldManager.rest_amount * 100)) + "% of your health") + ".", ok: true, reason: "" };
 	}
 	var _i = spread_end_option_info(_id, _heal, true);
 	var _name = "";
@@ -1371,6 +1382,23 @@ function strait_stop_info(_id, _heal) {
 		case "gold":  _name = "Flotsam"; break;
 	}
 	return { name: _name, tip: _i.label + ". " + _i.tip, ok: _i.ok, reason: _i.reason };
+}
+
+/// @func map_visited_tick(_x, _y, _scale, _alpha)
+/// @desc A place on the chart you've been (F148): a faded ink tick, as if checked off in pen, with a paper halo so it
+///       reads on any icon. Islands' nodes, the Shipwright's buoy and the strait's stops all use it.
+function map_visited_tick(_x, _y, _scale = 1, _alpha = 1) {
+	var _s = _scale;
+	draw_set_alpha(_alpha * 0.8);
+	draw_set_color(global.ui_col.paper_hi);
+	draw_line_width(_x - 9 * _s, _y, _x - 3 * _s, _y + 7 * _s, 7 * _s);
+	draw_line_width(_x - 3 * _s, _y + 7 * _s, _x + 10 * _s, _y - 9 * _s, 7 * _s);
+	draw_set_alpha(_alpha * 0.75);
+	draw_set_color(global.ui_col.ink);
+	draw_line_width(_x - 8 * _s, _y, _x - 3 * _s, _y + 6 * _s, 3.5 * _s);
+	draw_line_width(_x - 3 * _s, _y + 6 * _s, _x + 9 * _s, _y - 8 * _s, 3 * _s);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
 }
 
 /// @func sea_stop_draw(_id, _x, _y, _scale, _alpha, _ok)
@@ -1453,13 +1481,12 @@ function strait_draw(_ax, _ay) {
 		draw_set_font(ftDescriptions);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_top);
-		draw_outline_text(_info.name, c_black, _info.ok ? c_white : c_ltgray, 2, _sx, _sy + 36 * strait.scales[i], 1, _alpha, 0);
+		draw_outline_text(_info.name, global.ui_col.paper_hi, (_info.ok || !strait.active) ? global.ui_col.ink : global.ui_col.ink_soft, 2, _sx, _sy + 36 * strait.scales[i], 1, _alpha, 0); // ink, like the chart
 		if (_hov) {
 			// ahead (the islands aren't done yet): what it is, and that it's at the end of the spread
-			if (!strait.active) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, _info.tip + "\nAt the end of this spread: choose one stop, and heal as you pass through.");
+			if (!strait.active) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, _info.tip + "\nAt the end of this spread: choose one stop.");
 			else {
-				var _heal_line = (global.player_hp < global.player_max_hp) ? "\nPassing through, you heal " + string(strait.heal) + " HP." : "";
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, (_info.ok ? _info.tip : _info.reason) + _heal_line);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, (_info.ok ? _info.tip : _info.reason));
 			}
 			if (mouse_check_button_pressed(mb_left) && _ok_input) {
 				if (_info.ok) strait.chosen = i;
@@ -1471,7 +1498,8 @@ function strait_draw(_ax, _ay) {
 		if (_taken && !strait.arrived) {
 			if (boat_sail_toward(_sx - 10, _sy + 5)) {
 				strait.arrived = true;
-				strait.healed = (global.player_hp < global.player_max_hp);
+				// only Calm water heals (Q14)
+				strait.healed = (_id == "calm") && (global.player_hp < global.player_max_hp);
 				if (strait.healed) spread_end_apply("heal", strait.heal);
 				if (_id == "workbench") {
 					// the page turns while you're at the bench, and the draft is waiting when you come back
@@ -1484,6 +1512,9 @@ function strait_draw(_ax, _ay) {
 				strait.stamp = 1;
 			}
 		}
+
+		// been there (F148)
+		if (_taken && strait.arrived) map_visited_tick(_sx + 18, _sy - 14, 1, 1);
 
 		// the ink stamp: what you got, rising off the stop
 		if (_taken && strait.arrived) {
@@ -1517,20 +1548,23 @@ function strait_draw(_ax, _ay) {
 ///       tool has work (oRunManager.can_visit_workbench and workbench_useful): it opens the workbench. Clicking the next
 ///       island sails past it. sea_buoy.visited remembers you went (the route drawn as taken).
 function sea_buoy_draw(_bx, _by) {
-	if (!is_struct(sea_buoy) || sea_buoy.spread != ds_list_size(chosen_pages)) sea_buoy = { scale: 1, sailing: false, visited: false, active: false, spread: ds_list_size(chosen_pages) }; // one per spread
+	if (!is_struct(sea_buoy) || sea_buoy.spread != ds_list_size(chosen_pages)) sea_buoy = { scale: 1, sailing: false, visited: false, active: false, passed: false, spread: ds_list_size(chosen_pages) }; // one per spread
 	var _b = sea_buoy;
 	_b.x = _bx; _b.y = _by;
 	var _open = world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench && next_node != undefined && !_b.visited;
 	var _useful = workbench_useful();
 	_b.active = _open && _useful;
-	if (_open && !_b.sailing && node_to_move_to != undefined) oRunManager.can_visit_workbench = false; // sailed past
+	if (_open && !_b.sailing && node_to_move_to != undefined) { oRunManager.can_visit_workbench = false; _b.passed = true; } // sailed past
+	if (_open && !_useful) _b.passed = true; // nothing to do there: it stays dark from now on
 	var _hov = !_b.sailing && mouse_hovering(_b.x, _b.y, 64, 64, true, soSlotHover, noone);
 	_b.scale = lerp(_b.scale, (_hov && _b.active) ? 1.25 : 1, 0.2);
-	sea_stop_draw("workbench", _b.x, _b.y, _b.scale, (_b.active || _b.visited) ? 1 : 0.75, _b.active || !_open);
+	var _dark = _b.passed && !_b.visited; // couldn't be used, or sailed past: it stays dark
+	sea_stop_draw("workbench", _b.x, _b.y, _b.scale, (_b.active || _b.visited) ? 1 : 0.75, (_b.active || !_open) && !_dark);
 	draw_set_font(ftDescriptions);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
-	draw_outline_text("Shipwright's buoy", c_black, c_white, 2, _b.x, _b.y + 36 * _b.scale, 1, (_b.active || _b.visited) ? 1 : 0.75, 0);
+	draw_outline_text("Shipwright's buoy", global.ui_col.paper_hi, global.ui_col.ink, 2, _b.x, _b.y + 36 * _b.scale, 1, (_b.active || _b.visited) ? 1 : 0.75, 0); // ink, like the chart
+	if (_b.visited) map_visited_tick(_b.x + 18, _b.y - 14, 1, 1); // been there (F148)
 	draw_set_halign(fa_left);
 	if (_hov) {
 		var _tip = "Moor here and open the workbench: take dice from your bag (one per tool you own) and use each tool once.";
@@ -1623,13 +1657,13 @@ function boat_sail_toward(_tx, _ty) {
 	var _v = boat_data.voyage;
 	if (!is_struct(_v) || point_distance(_v.x1, _v.y1, _tx, _ty) > 40) {
 		var _len = point_distance(boat_data.x, boat_data.y, _tx, _ty);
-		_v = { x0: boat_data.x, y0: boat_data.y, x1: _tx, y1: _ty, t: 0, dur: clamp(_len / 3.2, 35, 150), waves: max(1, round(_len / 180)) };
+		_v = { x0: boat_data.x, y0: boat_data.y, x1: _tx, y1: _ty, t: 0, dur: clamp(_len / 4.6, 26, 95), waves: max(1, round(_len / 200)) }; // (round 2: a third quicker)
 		boat_data.voyage = _v;
 	}
 	_v.x1 = _tx; _v.y1 = _ty; // a stop that drifts a little is followed, not restarted
 	_v.t = min(1, _v.t + 1 / _v.dur);
 	var _t = _v.t;
-	var _e = _t * _t * _t * (_t * (_t * 6 - 15) + 10); // smootherstep: eased at both ends
+	var _e = _t * _t * (3 - 2 * _t); // smoothstep: eased at both ends, but quicker off the mark than smootherstep (round 2)
 	var _dir = point_direction(_v.x0, _v.y0, _v.x1, _v.y1);
 	// the weave: across the course, swelling mid-voyage
 	var _amp = 16 * sin(_t * pi);
