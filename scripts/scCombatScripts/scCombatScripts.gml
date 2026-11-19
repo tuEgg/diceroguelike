@@ -1718,7 +1718,7 @@ function tutorial_steps() {
 		// turn 2: insight, a slot with two actions, right-click to switch
 		{
 			id: "insight", target: "insight", allow: [], button: "Next",
-			text: "Your insight came in as ink, and the log is open. With the quill: reroll or redraw a die (3), see the enemy's exact numbers (2), or make it choose again (6). Confirm to play your dice. The inkwell opens and closes the log any time on your turn.",
+			text: "Your insight came in as ink, and the log is open. With the quill: reroll or redraw a die (3), see the enemy's exact numbers (2), or make it choose again (6). Confirm to play your dice. The inkwell opens and closes the log any time on your turn, and pulses when your ink can do something.",
 		},
 		{
 			id: "two_types", target: "sacrifice", allow: ["sacrifice"], die_types: ["ATK", "BLK"],
@@ -2559,6 +2559,23 @@ function combat_no_die_dragged() {
 	return _none;
 }
 
+/// @func combat_take_back_blocked(_slot_i, _index)
+/// @desc Why a die can't come back out of slot _slot_i, or "". Slots fill left to right: a slot can't lose its action
+///       while a later slot has dice. A slot keeps its action if other coloured dice stay in it, or if it's a built slot
+///       with its own type (defined_type), so neither case blocks.
+function combat_take_back_blocked(_slot_i, _index) {
+	if (_slot_i < 0 || _slot_i >= ds_list_size(action_queue)) return "";
+	var _slot = action_queue[| _slot_i];
+	var _def = variable_struct_exists(_slot, "defined_type") ? _slot.defined_type : "None";
+	if (_def != "None" && _def != "") return "";
+	var _list = _slot.dice_list;
+	for (var k = 0; k < ds_list_size(_list); k++) if (k != _index && _list[| k].possible_type != "None") return "";
+	for (var j = _slot_i + 1; j < ds_list_size(action_queue); j++) {
+		if (j != locked_slot && ds_list_size(action_queue[| j].dice_list) > 0) return "Slots fill in order: take back the dice in later slots first, or slot " + string(_slot_i + 1) + " would lose its action.";
+	}
+	return "";
+}
+
 /// @func combat_take_back(_slot_i, _index)
 /// @desc Takes a die played this turn out of a slot (or off the new-slot tile, _slot_i -1) and back to the hand with the
 ///       same roll, giving its play back. Its "when played" effects don't fire again if it's replayed (played_uids).
@@ -2576,18 +2593,10 @@ function combat_take_back(_slot_i, _index) {
 	var _die = _list[| _index];
 	if (!die_can_take_back(_die)) return;
 
-	// slots fill left to right: a slot can't lose its action while a later slot has dice in it
-	if (_slot != undefined) {
-		var _coloured_left = 0;
-		for (var k = 0; k < ds_list_size(_list); k++) if (k != _index && _list[| k].possible_type != "None") _coloured_left++;
-		if (_coloured_left == 0) {
-			for (var j = _slot_i + 1; j < ds_list_size(action_queue); j++) {
-				if (j != locked_slot && ds_list_size(action_queue[| j].dice_list) > 0) {
-					throw_error("Take back later dice first", "Slots fill in order, so slot " + string(_slot_i + 1) + " can't be emptied while a later slot has dice.");
-					return;
-				}
-			}
-		}
+	// slots fill left to right: a slot can't lose its action while a later slot has dice in it (combat_take_back_blocked)
+	if (_slot != undefined && combat_take_back_blocked(_slot_i, _index) != "") {
+		throw_error("Take back later dice first", combat_take_back_blocked(_slot_i, _index));
+		return;
 	}
 	ds_list_delete(_list, _index);
 
@@ -2907,6 +2916,28 @@ function intent_verbs(_move) {
 	return _out;
 }
 
+/// @func combat_queue_rect()
+/// @desc The action queue's area as drawn this frame (slots, the new-slot tile, End Turn and the dice and tokens above
+///       them), padded: { x1, y1, x2, y2 }, or undefined before the first draw. The log leaves it out of its dark.
+function combat_queue_rect() {
+	if (!instance_exists(oCombat)) return undefined;
+	with (oCombat) {
+		var _x1 = infinity, _y1 = infinity, _x2 = -infinity, _y2 = -infinity;
+		for (var q = 0; q < ds_list_size(slot_positions); q++) {
+			var _p = slot_positions[| q];
+			_x1 = min(_x1, _p.x); _y1 = min(_y1, _p.y); _x2 = max(_x2, _p.x + _p.w); _y2 = max(_y2, _p.y + _p.h);
+		}
+		if (is_struct(new_tile_pos)) { _x1 = min(_x1, new_tile_pos.x); _y1 = min(_y1, new_tile_pos.y); _x2 = max(_x2, new_tile_pos.x + new_tile_pos.w); _y2 = max(_y2, new_tile_pos.y + new_tile_pos.h); }
+		if (variable_instance_exists(id, "end_turn_draw")) {
+			var _et = end_turn_draw;
+			_x1 = min(_x1, _et.x - sprite_get_xoffset(sEndTurn) * _et.s);
+			_y2 = max(_y2, _et.y + (sprite_get_height(sEndTurn) - sprite_get_yoffset(sEndTurn)) * _et.s);
+		}
+		if (_x1 == infinity) return undefined;
+		return { x1: _x1 - 16, y1: _y1 - 70, x2: _x2 + 16, y2: _y2 + 40 }; // dice and tokens above, the dots below
+	}
+}
+
 /// @func combat_insight_phase_worth()
 /// @desc Is there anything your ink could do right now? (the cheapest: a reveal, or a reroll or redraw at 3)
 function combat_insight_phase_worth() {
@@ -2960,8 +2991,9 @@ function combat_insight_part_draw(_x1, _y1, _x2, _y2, _afford, _hover, _pulse, _
 ///       the enemy intents and the dice in your hand, which your quill can rewrite. Each intent is split in two: its
 ///       move (left) rerolled for 6, its numbers (right) shown exactly for 2 (1 each with several enemies). Each die
 ///       in hand is drawn again on top, edged in yellow: left-click rerolls it (3), right-click redraws it (3). Every
-///       one has a tooltip with its cost tag; the cursor is a quill (cursor_draw). End Turn becomes "Confirm"; it
-///       or the inkwell closes it (or Enter), and the inkwell reopens it any time on your turn.
+///       one has a tooltip with its cost tag; the cursor is a quill (cursor_draw). End Turn reads "Confirm"
+///       (drawn in its place, the queue left in full colour); it, the inkwell or Enter closes the log, and the inkwell
+///       opens it any time on your turn. The cursor is a quill only over something it can change (quill_over).
 function combat_insight_view_draw() {
 	if (!instance_exists(oCombat) || !oCombat.insight_view) return;
 	with (oCombat) {
@@ -2981,7 +3013,10 @@ function combat_insight_view_draw() {
 			var _ir = _en.intent_rect;
 			draw_roundrect_ext(_ir.x - _ir.w / 2 - _pad, _ir.y - _ir.h / 2 - _pad, _ir.x + _ir.w / 2 + _pad, _ir.y + _ir.h / 2 + _pad, 18, 18, false);
 		}
-gpu_set_blendmode(bm_normal);
+		// the action queue stays in full colour, with End Turn (reading Confirm) under it and the token row above it
+		var _q = combat_queue_rect();
+		if (is_struct(_q)) draw_roundrect_ext(_q.x1, _q.y1, _q.x2, _q.y2, 18, 18, false);
+		gpu_set_blendmode(bm_normal);
 		surface_reset_target();
 		draw_surface_part(insight_surf, 0, _top, _gw, _gh - _top, 0, _top); // the top bar stays as it is
 
@@ -2996,22 +3031,19 @@ gpu_set_blendmode(bm_normal);
 		draw_set_valign(fa_middle);
 		draw_outline_text(string(player_intel), c_black, global.color_intel, 2, _ex + 44, _ey + 10, 1, 1, 0);
 
-		// done writing: End Turn becomes "Confirm", drawn lit on top where End Turn is (oCombat Draw GUI sets end_turn_draw)
+		// done writing: End Turn reads "Confirm" while the log is open (oCombat Draw GUI draws it in its place, under the
+		// slots, in full colour); the click is taken here, on the log's layer. Not over a slot, which sits on top of it.
 		var _seal_click = false;
+		quill_over = false; // set below when the mouse is over something the quill can change (cursor_draw)
 		if (variable_instance_exists(id, "end_turn_draw")) {
 			var _et = end_turn_draw;
 			var _sw = sprite_get_width(sEndTurn) * _et.s, _sh = sprite_get_height(sEndTurn) * _et.s;
 			var _sx = _et.x - sprite_get_xoffset(sEndTurn) * _et.s, _sy = _et.y - sprite_get_yoffset(sEndTurn) * _et.s;
-			var _seal_hov = mouse_hovering(_sx, _sy, _sw, _sh, false, soSlotHover, noone, true, UI_LAYER.POPUP);
-			close_btn_scale = lerp(close_btn_scale, _seal_hov ? 1.08 : 1, 0.25);
-			var _breathe = 1 + 0.03 * (0.5 + 0.5 * sin(current_time / 220));
-			var _ss = close_btn_scale * _breathe * _et.s;
-			draw_sprite_ext(sEndTurn, 0, _et.x, _et.y, _ss, _ss, 0, global.color_intel, 1);
-			draw_set_font(ftDefault);
-			draw_set_halign(fa_center);
-			draw_set_valign(fa_middle);
-			draw_outline_text("CONFIRM", c_black, c_white, 2, _et.tx, _et.ty, close_btn_scale, 1, 0);
-			if (_seal_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Confirm", "Done with your ink: close the log and play your dice. It stays closed until next turn; ink you don't spend carries over.");
+			var _over_slot = false;
+			var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
+			for (var q = 0; q < ds_list_size(slot_positions); q++) { var _p = slot_positions[| q]; if (_mx >= _p.x && _mx <= _p.x + _p.w && _my >= _p.y && _my <= _p.y + _p.h) _over_slot = true; }
+			var _seal_hov = !_over_slot && mouse_hovering(_sx, _sy, _sw, _sh, false, soSlotHover, noone, true, UI_LAYER.POPUP);
+			if (_seal_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Confirm", "Done with your ink: close the log and play your dice. The inkwell reopens it; ink you don't spend carries over.");
 			_seal_click = _seal_hov && mouse_check_button_pressed(mb_left);
 		}
 
@@ -3028,6 +3060,7 @@ gpu_set_blendmode(bm_normal);
 			var _ok = enemy_can_rewrite_intent(_en);
 			var _afford = _ok && combat_insight_can(INSIGHT_COST_QUILL);
 			var _lhover = mouse_hovering(_x1, _y1, _sx - _x1, _y2 - _y1, false, noone, soClick4, true, UI_LAYER.POPUP);
+			if (_lhover && _ok) quill_over = true;
 			combat_insight_part_draw(_x1, _y1, _sx - 2, _y2, _afford, _lhover, _pulse, INSIGHT_COST_QUILL, "", true);
 			if (_lhover) {
 				if (_ok) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll intent", "Spend " + string(INSIGHT_COST_QUILL) + " insight: " + string(_en.data.name) + " picks a different move, rolled fresh.", undefined, 0, undefined, INSIGHT_COST_QUILL, "insight");
@@ -3042,6 +3075,7 @@ gpu_set_blendmode(bm_normal);
 				var _rcost = combat_reveal_cost();
 				var _rafford = combat_insight_can(_rcost);
 				var _rhover = mouse_hovering(_sx, _y1, _x2 - _sx, _y2 - _y1, false, noone, soClick4, true, UI_LAYER.POPUP);
+				if (_rhover) quill_over = true;
 				combat_insight_part_draw(_sx + 2, _y1, _x2, _y2, _rafford, _rhover, _pulse, _rcost, "", false);
 				if (_rhover) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reveal exact numbers", "Spend " + string(_rcost) + " insight to reveal the exact value " + string(_en.data.name) + " intends to " + intent_verbs(_en.intent.move) + " with.", undefined, 0, undefined, _rcost, "insight");
@@ -3067,6 +3101,7 @@ gpu_set_blendmode(bm_normal);
 			draw_die(x, y, _r * (_hov ? 1.08 : 1), dice_value, _face, die_colours(struct.possible_type), tumble_angle, 1);
 			if (_hov) {
 				_over_die = true;
+				other.quill_over = true;
 				draw_mouse_hint(x - 78, y - _r - 46, "left", "Reroll", 0.6, _rr_can ? global.color_intel : make_color_rgb(90, 90, 100), _rr_can ? global.color_intel : make_color_rgb(150, 150, 160));
 				draw_mouse_hint(x + 22, y - _r - 46, "right", "Redraw", 0.6, _rd_can ? global.color_intel : make_color_rgb(90, 90, 100), _rd_can ? global.color_intel : make_color_rgb(150, 150, 160));
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll or redraw", "Left-click: spend " + string(INSIGHT_COST_REROLL) + " insight to roll this die again.\nRight-click: spend " + string(INSIGHT_COST_REDRAW) + " insight to discard it and draw a new die.", undefined, 0, undefined, INSIGHT_COST_REROLL, "insight");

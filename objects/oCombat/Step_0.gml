@@ -108,7 +108,7 @@ switch (state) {
 		
 		// capped at INSIGHT_MAX (12); it can go below 0 (Overwhelm), which hides enemy intents
 		player_intel = min(player_intel, intel_max());
-		insight_phase_done = false; // the log opens once the hand is dealt (oCombat Step, PLAYER_INPUT)
+		insight_phase_done = false; // the inkwell pulses once the hand is dealt, if ink can do something (oCombat Step, PLAYER_INPUT)
 		intel_level = insight_revealed ? INTEL_LEGIBLE : INTEL_FADED;
 		//show_debug_message("Player intel amount: "+string(player_intel));
 		//show_debug_message("Player intel level: "+string(intel_level));
@@ -621,11 +621,14 @@ global.player_x = lerp(global.player_x, global.player_xstart, 0.2);
 
 if (insight_view) insight_view_age++;
 // I opens and closes insight view
-// the insight phase: once the hand is dealt, the log opens if there's ink to write with (combat_insight_phase_worth)
-if (state == CombatState.PLAYER_INPUT && !insight_phase_done && !is_dealing_dice && dice_to_deal <= 0 && !show_rewards && global.ui_layer == UI_LAYER.BASE) {
+// the log doesn't open by itself: once the hand is dealt, the inkwell pulses for a few seconds if your ink can do
+// something (combat_insight_phase_worth). Click the inkwell to open it.
+if (state == CombatState.PLAYER_INPUT && !insight_phase_done && !is_dealing_dice && dice_to_deal <= 0 && !show_rewards) {
 	insight_phase_done = true;
-	if (combat_insight_phase_worth()) combat_insight_view_set(true);
+	if (combat_insight_phase_worth()) ink_pulse = round(game_get_speed(gamespeed_fps) * 2.5);
 }
+if (ink_pulse > 0) ink_pulse--;
+if (insight_view) ink_pulse = 0;
 // Enter confirms (closes the log), like the button that stands in for End Turn (it can't be reopened until next turn)
 var _sealed_now = false;
 if (keyboard_check_pressed(vk_enter) && insight_view && insight_view_age > 0) { combat_insight_view_set(false); _sealed_now = true; }

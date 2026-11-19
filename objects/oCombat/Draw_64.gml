@@ -42,6 +42,9 @@ switch (state) {
 		if (dice_to_deal > 0) {
 			label_text = "DEALING DICE";
 			label_col = c_dkgray;
+		} else if (insight_view) {
+			label_text = "CONFIRM"; // the log is open: this closes it (clicked in combat_insight_view_draw)
+			label_col = global.color_intel;
 		} else {
 			label_text = "END TURN " + string(turn_count);
 			label_col = global.ui_primary; // the screen's main go action, same green as Embark
@@ -84,7 +87,7 @@ draw_set_font(ftDefault);
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
 draw_outline_text(label_text, c_black, c_white, 2, end_text_pos, btn_y + (btn_h/2), btn_scale, btn_scale, 0);
-// the insight phase draws this button again, lit, as "Confirm" (combat_insight_view_draw)
+// where End Turn is, for the log's Confirm click and for leaving it out of the log's dark (combat_insight_view_draw)
 end_turn_draw = { x: btn_x + btn_w/2, y: btn_y + btn_h/2, s: btn_scaler, tx: end_text_pos, ty: btn_y + btn_h/2 };
 
 // Draw playable dice
@@ -100,8 +103,8 @@ dice_played_color = merge_colour(dice_played_color, c_white, 0.05);
 var _et_left = btn_x + btn_w/2 - sprite_get_xoffset(sEndTurn) * btn_scaler;
 var _et_right = btn_x + btn_w/2 + (sprite_get_width(sEndTurn) - sprite_get_xoffset(sEndTurn)) * btn_scaler;
 var _tokens_max = min(_et_right, aq_start_x - aq_tile_w * 0.1) - 10; // the row never reaches past this
-tokens_args = { cx: (_et_left + _tokens_max) / 2, right: _tokens_max, y: aq_start_y + aq_tile_w/2 - 40 }; // insight view draws it again
-if (!show_rewards && !insight_view) combat_turn_tokens_draw(tokens_args.cx, tokens_args.right, tokens_args.y, false); // the view draws its own
+tokens_args = { cx: (_et_left + _tokens_max) / 2, right: _tokens_max, y: aq_start_y + aq_tile_w/2 - 40 };
+if (!show_rewards) combat_turn_tokens_draw(tokens_args.cx, tokens_args.right, tokens_args.y, false); // the log leaves the queue in full colour
 draw_set_font(ftBig);
 
 // Click handling
@@ -513,7 +516,10 @@ for (var i = 0; i < aq_list_size; i++) {
 				// rolled dice: a die played this turn can be clicked back to the hand (combat_take_back, from Step)
 				var _back_hint = "";
 				if (state == CombatState.PLAYER_INPUT) {
-					if (die_can_take_back(die_struct)) _back_hint = "\n\nClick to take it back to your hand.";
+					// the order rule says why up front, rather than a click that seems to do nothing
+					var _blocked = die_can_take_back(die_struct) ? combat_take_back_blocked(i, d) : "";
+					if (_blocked != "") _back_hint = "\n\n" + _blocked;
+					else if (die_can_take_back(die_struct)) _back_hint = "\n\nClick to take it back to your hand.";
 					else if (variable_struct_exists(die_struct, "play_locked") && die_struct.play_locked && variable_struct_exists(die_struct, "played_turn") && die_struct.played_turn == turn_count) {
 						_back_hint = (variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot) ? "\n\nIt built this slot, so it stays this turn." : "\n\nIts 'when played' effect has happened, so it stays.";
 					}
@@ -1046,11 +1052,22 @@ if (state != CombatState.PLAYER_DEAD) {
 	// the inkwell: your insight as ink (draw_inkwell). Spent at the start of a turn, in the insight phase.
 	var intel_hover = mouse_hovering(global.player_x, global.player_y - 180, 70, 70, true);
 	intel_scale = intel_hover ? lerp(intel_scale, 1.1, 0.2) : lerp(intel_scale, 1.0, 0.2);
-	draw_inkwell(global.player_x, global.player_y - 180, intel_scale, player_intel / INSIGHT_MAX, intel_is_blotted());
+	// the start-of-turn pulse (ink_pulse, oCombat Step): it swells and glows, so you know your ink can do something
+	var _ink_s = intel_scale;
+	if (ink_pulse > 0) {
+		var _beat = 0.5 + 0.5 * sin(current_time / 140);
+		var _fade = min(1, ink_pulse / 20);
+		_ink_s *= 1 + 0.14 * _beat * _fade;
+		draw_set_alpha(0.35 * _beat * _fade);
+		draw_set_color(global.color_intel);
+		draw_circle(global.player_x, global.player_y - 180, 40 + 10 * _beat, false);
+		draw_set_alpha(1);
+	}
+	draw_inkwell(global.player_x, global.player_y - 180, _ink_s, player_intel / INSIGHT_MAX, intel_is_blotted());
 	if (intel_hover) {
 		if (intel_is_blotted()) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 insight your ink is spilled: enemy intents are hidden, and you can't write this turn.");
 		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Open the log", "Spend insight to rewrite enemy intents, see their exact numbers, or reroll and redraw your dice. Unspent insight carries over (up to " + string(INSIGHT_MAX) + ").", undefined, 0, undefined, 0, "insight", { button: "left", text: "Open", col: global.color_intel });
-		// a toggle: the inkwell opens the log any time on your turn (it opens by itself once the hand is dealt)
+		// a toggle: the inkwell opens the log any time on your turn
 		if (mouse_check_button_pressed(mb_left) && !intel_is_blotted() && state == CombatState.PLAYER_INPUT && !show_rewards && global.ui_layer == UI_LAYER.BASE) combat_insight_view_set(true);
 	}
 

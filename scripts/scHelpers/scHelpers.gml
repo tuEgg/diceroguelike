@@ -1705,8 +1705,8 @@ function draw_mouse_hint(_x, _y, _button, _text, _scale = 1, _lit = c_red, _text
 ///       hover or click, and dips while the button is held. The system cursor is hidden while it's on.
 function cursor_draw() {
 	var _on = global.custom_cursor;
-	// the insight phase: the cursor is a quill (draw_quill), its nib at the mouse; what things cost is in their tooltips
-	var _quill = instance_exists(oCombat) && oCombat.insight_view;
+	// the log: the cursor is a quill (draw_quill) over something it can change, its nib at the mouse; otherwise the normal one
+	var _quill = instance_exists(oCombat) && oCombat.insight_view && oCombat.quill_over; // only over something it can change
 	var _hide = _on || _quill;
 	if (_hide != global.cursor_hidden) {
 		window_set_cursor(_hide ? cr_none : cr_default);
@@ -2431,10 +2431,10 @@ function offering_take(_index, _x, _y) {
 function draw_padlock(_x, _y, _scale, _col) {
 	var _s = _scale;
 	draw_set_color(c_black);
-	draw_arc_thick_deg(_x, _y - 4 * _s, 5 * _s, 10 * _s, 0, 180, 16);
+	draw_arc_thick_deg(_x, _y - 4 * _s, 5 * _s, 10 * _s, 180, 360, 16); // the top half (y grows downwards)
 	draw_roundrect_ext(_x - 12 * _s, _y - 5 * _s, _x + 12 * _s, _y + 14 * _s, 5 * _s, 5 * _s, false);
 	draw_set_color(_col);
-	draw_arc_thick_deg(_x, _y - 4 * _s, 6.5 * _s, 8.5 * _s, 0, 180, 16);
+	draw_arc_thick_deg(_x, _y - 4 * _s, 6.5 * _s, 8.5 * _s, 180, 360, 16);
 	draw_roundrect_ext(_x - 10 * _s, _y - 3 * _s, _x + 10 * _s, _y + 12 * _s, 4 * _s, 4 * _s, false);
 	draw_set_color(c_black);
 	draw_circle(_x, _y + 3 * _s, 2.5 * _s, false);
