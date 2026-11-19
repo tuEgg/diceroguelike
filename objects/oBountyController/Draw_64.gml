@@ -17,47 +17,56 @@ if (room == rmBounty) {
 		c_black, c_white, 2, 50, 370, 1, 1, 0, 400);
 	
 
-	draw_set_font(ftBigger);
-
-	// Offer the player a potion
-	draw_outline_text("Grab a drink", c_black, c_white, 2, 125, 635, 1, 1, 0);
-
-	var pot_x = 75;
-	var pot_y = 650;
-
+	// "On the house" (F129): the free potion as a card of its own, so it's clearly yours to take: the potion bobbing on a
+	// plate, its name and what it does, and a Take it button (it says why when your item slots are full); a stamp once taken
 	var pot = potion;
-
-	var potion_w = potion_scale * sprite_get_width(pot.sprite);
-	var potion_h =  potion_scale * sprite_get_height(pot.sprite);
-	
-	var hover_con = mouse_hovering(pot_x, pot_y, potion_w, potion_h, true);
-	potion_scale = lerp(potion_scale, !pot.taken && hover_con ? 1.2 : 1.0, 0.2);
-	
-	var alpha = pot.taken ? 0 : 1.0;
-	
-	draw_set_alpha(0.4 * alpha);
+	var _cx1 = 50, _cy1 = 600, _cx2 = 450, _cy2 = 860;
+	ui_panel(_cx1, _cy1, _cx2, _cy2);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	draw_set_font(ftBig);
+	draw_outline_text("On the house", c_black, make_color_rgb(242, 210, 74), 2, _cx1 + 26, _cy1 + 22, 1, 1, 0);
+	// the potion on a plate
+	var pot_x = _cx1 + 80, pot_y = _cy1 + 130 + sin(current_time / 400) * 4 * !pot.taken;
+	draw_set_alpha(0.35);
 	draw_set_color(c_black);
-	draw_ellipse(pot_x - sprite_get_width(pot.sprite)/2, pot_y + sprite_get_height(pot.sprite)/2 - 7, pot_x + sprite_get_width(pot.sprite)/2, pot_y + sprite_get_height(pot.sprite)/2 + 7, false);
-	draw_sprite_ext(pot.sprite, pot.index, pot_x, pot_y, potion_scale, potion_scale, 0, c_white, alpha);
-	draw_set_alpha(1.0);
-
-	if (hover_con && alpha > 0) {
+	draw_ellipse(pot_x - 44, _cy1 + 160, pot_x + 44, _cy1 + 178, false);
+	draw_set_alpha(1);
+	draw_set_color(make_color_rgb(200, 190, 170));
+	draw_ellipse(pot_x - 40, _cy1 + 156, pot_x + 40, _cy1 + 172, false);
+	var hover_con = !pot.taken && mouse_hovering(pot_x, pot_y, sprite_get_width(pot.sprite), sprite_get_height(pot.sprite), true);
+	potion_scale = lerp(potion_scale, hover_con ? 1.15 : 1.0, 0.2);
+	draw_sprite_ext(pot.sprite, pot.index, pot_x, pot_y, potion_scale, potion_scale, 0, c_white, pot.taken ? 0.35 : 1);
+	if (hover_con) {
 		var die = undefined;
-		if (string_pos("Core", pot.name) > 0) {
-			die = core_preview_die();
-			die.distribution = pot.distribution;
-		}
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), pot.name, pot.description + " Free to take.", undefined, 0, die);
-		
-		if (mouse_check_button_pressed(mb_left) && !pot.taken) {
-			// say why when it can't be taken, instead of doing nothing
-			if (!oRunManager.has_space_for_item) {
-				throw_error("No room for this", "Free up an item slot first.");
-			} else {
-				gain_item(pot); // the bounty board's potion is free
-			}
-		}
+		if (string_pos("Core", pot.name) > 0) { die = core_preview_die(); die.distribution = pot.distribution; }
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), pot.name, pot.description, undefined, 0, die);
 	}
+	// its name and what it does
+	var _tx = _cx1 + 150;
+	draw_set_font(ftDefault);
+	draw_outline_text(pot.name, c_black, c_white, 2, _tx, _cy1 + 78, 1, 1, 0, _cx2 - _tx - 20);
+	draw_set_font(ftDescriptions);
+	draw_outline_text(colorcode_text(pot.description), c_black, make_color_rgb(225, 225, 235), 1, _tx, _cy1 + 108, 1, 1, 0, _cx2 - _tx - 20);
+	// take it (free), or a stamp once it's yours
+	if (!pot.taken) {
+		var _room = oRunManager.has_space_for_item;
+		var _take = ui_button(_cx2 - 110, _cy2 - 52, 170, 56, potion_btn_scale, "Take it", global.ui_primary, _room, "Your item slots are full. Use or drop an item first.", UI_LAYER.BASE, 1, ftDefault);
+		potion_btn_scale = _take.scale;
+		if (_take.click && _room) gain_item(pot); // free
+		if (!_room) {
+			draw_set_font(ftDescriptions);
+			draw_set_halign(fa_left);
+			draw_outline_text("Item slots full", c_black, make_color_rgb(230, 120, 110), 1, _cx1 + 26, _cy2 - 62, 1, 1, 0);
+		}
+	} else {
+		draw_set_font(ftBig);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_outline_text("Taken", c_black, make_color_rgb(120, 200, 120), 3, _cx2 - 110, _cy2 - 52, 1, 1, 12);
+	}
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
 	
 	// Draw the bounties
 	for (var b = 0; b < array_length(bounty); b++) {

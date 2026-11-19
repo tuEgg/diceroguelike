@@ -16,7 +16,7 @@ Each room has a manager object created by the room; most of its logic and clicks
 
 ## Bounty board: `oBountyController` (persistent), `scBounties`
 
-- Created once per run in `rmMap`; drawn only in `rmBounty`. Offers 2 contracts (intended) and a free potion.
+- Created once per run in `rmMap`; drawn only in `rmBounty`. Offers 2 contracts (intended) and a free potion, drawn as the "On the house" card bottom left (oBountyController Draw GUI: `potion`, a Take it button with `potion_btn_scale`, greyed when `oRunManager.has_space_for_item` is false; a Taken stamp after).
 - Contract `{ enemy_name, condition, rewards [item, keepsake, die], elite_encounter, complete }`; conditions in `condition_list` have `trigger(event, data)` that sets `failed`. Taking one sets `oRunManager.active_bounty`; the bounty elite replaces `possible_elites` until fought.
 - Rerolling the board (10 gold) clears `oRunManager.active_bounty`, so a contract can only be active while it is on the board. Contract names come from `generate_bounties` (Elite 1 and Elite 3 are both Pirate Captain fights).
 - Saved with the run: `serialise_bounty_board` / `deserialise_bounty_board`.
