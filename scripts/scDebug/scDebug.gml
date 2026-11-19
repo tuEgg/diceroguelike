@@ -621,7 +621,7 @@ function debug_menu_draw() {
 
 			// Live read-out
 			debug_label(cx, yy, "Turn " + string(oCombat.turn_count)
-				+ "   Insight " + string(oCombat.player_intel) + " (" + string(intel_state(oCombat.intel_level).name) + ")"
+				+ "   Insight " + string(oCombat.player_intel) + (oCombat.insight_revealed ? " (exact intents)" : "")
 				+ "   Dice played " + string(oCombat.dice_played) + " / " + string(oCombat.dice_allowed_per_turn));
 			yy += row_h;
 			debug_label(cx, yy, "Bag " + string(ds_list_size(global.dice_bag))

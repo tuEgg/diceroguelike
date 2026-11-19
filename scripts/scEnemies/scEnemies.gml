@@ -318,7 +318,7 @@ function intent_hover_text(_enemy, _intel_level) {
 	if (_text == "") _text = "Does something unusual";
 	_text += ".";
 	if (intent_is_halved(_enemy)) _text += " Halved by your quill.";
-	if (intent_has_numbers(_move) && _intel_level < INTEL_LEGIBLE) _text += " Reach " + string(global.player_intel_data[| 1].requirement) + " insight (Legible) to see the exact number.";
+	if (intent_has_numbers(_move) && _intel_level < INTEL_LEGIBLE) _text += " Click the insight eye and spend " + string(INSIGHT_COST_REVEAL) + " insight to see the exact number.";
 	return _text;
 }
 
@@ -488,17 +488,21 @@ function enemy_rewrite_intent(_enemy) {
 	return true;
 }
 
-// the insight states, in global.player_intel_data's order (oRunManager Create)
+// intel_level is what you can see of enemy intents: a range, or exact numbers once you've spent insight on it
 #macro INTEL_FADED 0
 #macro INTEL_LEGIBLE 1
-#macro INTEL_INKED 2      // +1 reroll a turn
-#macro INTEL_UNDERLINED 3 // +1 redraw a turn
-#macro INTEL_QUILL 4
+// what insight buys during your turn (combat_buy)
+#macro INSIGHT_COST_REVEAL 2 // see exact enemy intents this turn
+#macro INSIGHT_COST_REROLL 3 // one more reroll
+#macro INSIGHT_COST_REDRAW 3 // one more redraw
+#macro INSIGHT_COST_PLAY 4   // one more play
+#macro INSIGHT_COST_QUILL 6  // rewrite an intent (reroll or halve it)
+#macro INSIGHT_MAX 12        // the most you can hold (the gauge)
 
 /// @func intel_max()
 /// @desc The intel needed for the top state (Quill). Intel is capped here.
 function intel_max() {
-	return global.player_intel_data[| ds_list_size(global.player_intel_data) - 1].requirement;
+	return INSIGHT_MAX;
 }
 
 /// @func intel_level_for(_intel)

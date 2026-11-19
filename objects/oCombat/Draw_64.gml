@@ -667,7 +667,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	    var yy = enemy.pos_y - 10 - (enemy.scale * 180);  // slightly above their head
 
 		// Quill: an intent you can rewrite this turn pulses and glows, with a quill beside it, so it can't be missed
-		var _rewritable = (intel_level >= INTEL_QUILL && !intel_is_blotted() && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards && enemy_can_quill(enemy));
+		var _rewritable = (combat_insight_can(INSIGHT_COST_QUILL) && enemy_can_quill(enemy));
 		var _quill_pulse = 0.5 + 0.5 * sin(current_time / 200);
 		if (_rewritable) enemy.intent.scale = enemy.intent.start_scale * (1 + 0.12 * _quill_pulse);
 		
@@ -738,13 +738,13 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 
 		// Quill: click an intent, then choose Reroll (the enemy picks a different move) or Halve (its numbers this turn)
 		var _intent_hover = mouse_hovering(xx, yy, text_w + 20, 50, true);
-		var _can_rewrite = (intel_level >= INTEL_QUILL && !intel_is_blotted() && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards);
+		var _can_rewrite = combat_insight_can(INSIGHT_COST_QUILL); // Quill: 6 insight a rewrite
 		if (!_can_rewrite && quill_menu_enemy == enemy) quill_menu_enemy = undefined;
 		if (_can_rewrite && _intent_hover && quill_menu_enemy != enemy) {
 			if (!enemy_can_quill(enemy)) {
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Quill: nothing to change", "This move is forced and has no numbers to halve.", undefined, 0, undefined);
 			} else {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Quill: rewrite intent", "Click to rewrite this intent, once per turn. Reroll: the enemy picks a different move. Halve: this move's numbers are halved.", undefined, 0, undefined);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Quill: rewrite intent (" + string(INSIGHT_COST_QUILL) + " insight)", "Click to rewrite this intent for " + string(INSIGHT_COST_QUILL) + " insight. Reroll: the enemy picks a different move. Halve: this move's numbers are halved.", undefined, 0, undefined);
 				if (mouse_check_button_pressed(mb_left)) {
 					quill_menu_enemy = enemy;
 					quill_btn_scales = [1, 1];
@@ -767,12 +767,12 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			if (!_reroll_ok && mouse_hovering(xx - _qb_w - 6, _qb_y, _qb_w, _qb_h, false)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't reroll", "This move is forced, or the enemy has nothing else to choose.", undefined, 0, undefined);
 			if (!_halve_ok && mouse_hovering(xx + 6, _qb_y, _qb_w, _qb_h, false)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't halve", "This move has no attack, block or heal to halve.", undefined, 0, undefined);
 
-			if (_reroll.click && enemy_rewrite_intent(enemy)) {
+			if (_reroll.click && enemy_can_rewrite_intent(enemy) && combat_insight_spend(INSIGHT_COST_QUILL) && enemy_rewrite_intent(enemy)) {
 				intel_rewrite_used = true;
 				quill_menu_enemy = undefined;
 				enemy.intent.scale = enemy.intent.start_scale * 1.4; // pop, so the change is noticed
 				add_feed_entry("You rewrote " + string(enemy.data.name) + "'s intent: " + string(enemy.intent.move.move_name));
-			} else if (_halve.click && enemy_halve_intent(enemy)) {
+			} else if (_halve.click && enemy_can_halve_intent(enemy) && combat_insight_spend(INSIGHT_COST_QUILL) && enemy_halve_intent(enemy)) {
 				intel_rewrite_used = true;
 				quill_menu_enemy = undefined;
 				enemy.intent.scale = enemy.intent.start_scale * 1.4;
@@ -1042,37 +1042,22 @@ if (state != CombatState.PLAYER_DEAD) {
 	var _intel_ratio = clamp(player_intel / _intel_max, 0, 1);
 	draw_arc_thick_deg_gradient(global.player_x, global.player_y - 175, 50, 60, arc_start, arc_end, 50, global.color_intel, make_color_rgb(210 - (_intel_ratio * 50), 210 - (_intel_ratio * 100), 0), 0.7);
 
-	// a tick at each state (Faded at the start, then every 3, Quill at the end)
-	draw_set_alpha(1.0);
-	draw_set_color(c_white);
-	for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
-		var _tick = 180 + (global.player_intel_data[| i].requirement / _intel_max) * 180;
-		draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, (_tick - 2 + 360) mod 360, (_tick + 2) mod 360, 50);
-	}
-
-	var _intel_state = intel_state(intel_level);
-	draw_insight_icon(_intel_state.icon, global.player_x, global.player_y - 180, intel_scale * 1.6, intel_alpha);
-	draw_outline_text(string(_intel_state.name), c_black, intel_is_blotted() ? c_red : global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
-	var intel_hover = mouse_hovering(global.player_x, global.player_y - 190, 120, 120, true);
-	insight_panel_open = intel_hover; // the panel itself draws in oRunManager Draw GUI End (insight_panel_draw), over the tutorial notes
-
-	intel_scale = intel_hover ? lerp(intel_scale, 1.2, 0.2) : lerp(intel_scale, 1.0, 0.2);
+	// the eye (sIntelEye): smudged below 0, open for ranges, wide open once exact intents are bought. Click it to buy them.
+	var _eye_frame = intel_is_blotted() ? global.intel_blotted.index : global.player_intel_data[| intel_level].index;
+	var intel_hover = mouse_hovering(global.player_x, global.player_y - 180, 120, 90, true);
+	insight_panel_open = intel_hover; // the price list draws in oRunManager Draw GUI End (insight_panel_draw), over the tutorial notes
+	var _can_reveal = !insight_revealed && combat_insight_can(INSIGHT_COST_REVEAL);
+	var _eye_pulse = _can_reveal ? 0.06 * (0.5 + 0.5 * sin(current_time / 200)) : 0; // breathes while seeing exactly is affordable
+	draw_sprite_ext(sIntelEye, _eye_frame, global.player_x, global.player_y - 180, intel_scale * (1.5 + _eye_pulse), intel_scale * (1.5 + _eye_pulse), 0, c_white, intel_alpha);
+	draw_outline_text("Insight", c_black, intel_is_blotted() ? c_red : global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
+	intel_scale = intel_hover ? lerp(intel_scale, 1.15, 0.2) : lerp(intel_scale, 1.0, 0.2);
+	if (intel_hover && mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && !insight_revealed) combat_buy("reveal");
 
 	// the number shows when it isn't zero, negative intel (from Overwhelm) included
 	if (player_intel != 0) {
 		draw_outline_text(string(player_intel), c_black, player_intel < 0 ? c_red : c_white, 2, global.player_x + 30, global.player_y - 170, intel_scale, 1.0, 0);
 	}
 
-	if (intel_hover) {
-
-		// the tooltip only says what matters now
-		var _intel_tip = string(_intel_state.description);
-		if (!intel_is_blotted() && intel_level < ds_list_size(global.player_intel_data) - 1) {
-			var _next_state = global.player_intel_data[| intel_level + 1];
-			_intel_tip += " " + string(_next_state.requirement - player_intel) + " more for " + string(_next_state.name) + ".";
-		}
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Insight: " + string(_intel_state.name), _intel_tip, undefined, 0, undefined);
-	}
 }
 
 /// PLAYER DEAD

@@ -1667,7 +1667,7 @@ function tutorial_steps() {
 		// turn 1: a slot, stacking, a slot from a sacrifice, generic dice, how long dice stay
 		{
 			id: "intent", target: "intent", allow: [], button: "Next",
-			text: "Read your enemy first. Its intent shows what it will do this turn. With 0 to 4 insight you only see a range of how much; at 5 you see the exact number.",
+			text: "Read your enemy first. Its intent shows what it will do this turn, and a range of how much. Insight dice give you insight next turn: spend 2 of it (click the eye) to see the exact number.",
 		},
 		{
 			id: "claim", target: "slot0", allow: ["place"], die_types: ["ATK"], slot: 0,
@@ -1705,7 +1705,7 @@ function tutorial_steps() {
 		// turn 2: insight, a slot with two actions, right-click to switch
 		{
 			id: "insight", target: "insight", allow: [], button: "Next",
-			text: "Your insight came in. Below 5 you only see ranges (Faded); at 5 the enemy's numbers turn exact (Legible). At 10 you take up the Quill and can reroll or halve an intent.",
+			text: "Your insight came in. It's spent this turn or lost: click the eye to see exact enemy numbers (2), the + tokens above End Turn buy another reroll or redraw (3) or play (4), and clicking an intent rewrites it (6). Hover the eye for the list.",
 		},
 		{
 			id: "two_types", target: "sacrifice", allow: ["sacrifice"], die_types: ["ATK", "BLK"],
@@ -2048,24 +2048,10 @@ function tips_list() {
 			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.TURNING; },
 		},
 		{
-			id: "legible", room: rmCombat, target: "insight",
-			text: "Legible: with 3 insight you see exactly what each enemy will do this turn.",
-			when: function() { return tips_combat_ready() && oCombat.intel_level >= INTEL_LEGIBLE && !intel_is_blotted(); },
-		},
-		{
-			id: "inked", room: rmCombat, target: "insight",
-			text: "Inked: with 6 insight you get an extra reroll this turn (the pips above your plays).",
-			when: function() { return tips_combat_ready() && oCombat.intel_level >= INTEL_INKED && !intel_is_blotted(); },
-		},
-		{
-			id: "underlined", room: rmCombat, target: "insight",
-			text: "Underlined: with 9 insight you get an extra redraw this turn too.",
-			when: function() { return tips_combat_ready() && oCombat.intel_level >= INTEL_UNDERLINED && !intel_is_blotted(); },
-		},
-		{
-			id: "quill", room: rmCombat, target: "insight",
-			text: "Quill: with 12 insight, once a turn you can click a glowing enemy intent and choose: Reroll (the enemy picks a different move) or Halve (its attack, block or heal this turn).",
-			when: function() { return tips_combat_ready() && oCombat.intel_level >= INTEL_QUILL && !intel_is_blotted(); },
+			// the guided fight is off on this branch, so this teaches insight the first time you have some to spend
+			id: "insight_spend", room: rmCombat, target: "insight",
+			text: "Insight: you have some to spend this turn. Click the eye to see exactly what each enemy will do (" + string(INSIGHT_COST_REVEAL) + "). The + tokens above End Turn buy another reroll or redraw (" + string(INSIGHT_COST_REROLL) + ") or play (" + string(INSIGHT_COST_PLAY) + "), and clicking an intent rewrites it (" + string(INSIGHT_COST_QUILL) + "). Hover the eye for the full list. What you don't spend is gone at End Turn.",
+			when: function() { return tips_combat_ready() && oCombat.player_intel >= INSIGHT_COST_REVEAL && !intel_is_blotted(); },
 		},
 		{
 			id: "blotted", room: rmCombat, target: "insight",
@@ -2186,74 +2172,71 @@ function tutorial_map_rect(_target) {
 }
 
 /// @func insight_panel_draw()
-/// @desc oRunManager Draw GUI End: the Insight reference panel while the insight eye is hovered. Drawn after the
-///       tutorial notes and tips so it sits on top of them (oCombat Draw GUI sets insight_panel_open).
+/// @desc oRunManager Draw GUI End: while the insight eye is hovered, what your insight buys this turn and what each
+///       costs (lit when you can afford it). Drawn after the tutorial notes and tips so it sits on top of them.
 function insight_panel_draw() {
 	if (!instance_exists(oCombat) || !oCombat.insight_panel_open) return;
 	with (oCombat) {
-		var _intel_state = intel_state(intel_level);
-		// a compact reference: one line per state, the current one highlighted, and when insight counts
-		var intel_pad = 16;
-		var intel_w = 380;
-		var intel_row_h = 40;
-		var intel_title_h = 36;
-		var intel_foot_h = 30;
-
-		// Blotted (below 0) first, then the states
-		var intel_rows = [global.intel_blotted];
-		for (var i = 0; i < ds_list_size(global.player_intel_data); i++) array_push(intel_rows, global.player_intel_data[| i]);
-		var _current_row = intel_is_blotted() ? 0 : intel_level + 1;
-
-		var intel_h = intel_pad + intel_title_h + intel_row_h * array_length(intel_rows) + intel_foot_h + intel_pad / 2;
-		var intel_x = global.player_x - intel_w / 2;
-		var intel_y = global.player_y - 260 - intel_h;
+		var _rows = [
+			{ what: "See exact enemy intents", how: insight_revealed ? "Bought this turn" : "Click the eye", cost: INSIGHT_COST_REVEAL, done: insight_revealed },
+			{ what: "One more reroll", how: "The + token above End Turn", cost: INSIGHT_COST_REROLL, done: false },
+			{ what: "One more redraw", how: "The + token above End Turn", cost: INSIGHT_COST_REDRAW, done: false },
+			{ what: "One more play", how: "The + token above End Turn", cost: INSIGHT_COST_PLAY, done: false },
+			{ what: "Quill: reroll or halve an intent", how: "Click an enemy's intent", cost: INSIGHT_COST_QUILL, done: false },
+		];
+		var _pad = 16, _w = 440, _row_h = 42, _title_h = 64;
+		var _h = _pad + _title_h + _row_h * array_length(_rows) + _pad;
+		var _x = global.player_x - _w / 2;
+		var _y = global.player_y - 250 - _h;
 
 		draw_set_color(c_black);
 		draw_set_alpha(0.8);
-		draw_roundrect(intel_x - 1, intel_y - 1, intel_x + intel_w + 1, intel_y + intel_h + 1, false);
+		draw_roundrect(_x - 1, _y - 1, _x + _w + 1, _y + _h + 1, false);
 		draw_set_color(global.color_bg);
-		draw_roundrect(intel_x, intel_y, intel_x + intel_w, intel_y + intel_h, false);
+		draw_roundrect(_x, _y, _x + _w, _y + _h, false);
+		draw_set_alpha(1);
 
-		// title, and your insight on the right
-		draw_set_alpha(1.0);
-		draw_set_valign(fa_middle);
+		// title: your insight, and what it is
 		draw_set_font(ftDefault);
+		draw_set_valign(fa_middle);
 		draw_set_halign(fa_left);
 		draw_set_color(c_white);
-		draw_text(intel_x + intel_pad, intel_y + intel_pad + 10, "Insight");
+		draw_text(_x + _pad, _y + _pad + 10, "Insight");
 		draw_set_halign(fa_right);
 		draw_set_color(player_intel < 0 ? c_red : global.color_intel);
-		draw_text(intel_x + intel_w - intel_pad, intel_y + intel_pad + 10, string(player_intel));
+		draw_text(_x + _w - _pad, _y + _pad + 10, string(player_intel));
+		draw_set_font(ftDescriptions);
+		draw_set_halign(fa_left);
+		draw_set_color(make_color_rgb(200, 200, 210));
+		draw_text(_x + _pad, _y + _pad + 38, intel_is_blotted() ? "Below 0 the page is smudged: enemy intents are hidden." : "Spend it this turn: it's gone at End Turn.");
 
-		// rows: icon, name, needed, what it gives
-		var _row_y = intel_y + intel_pad + intel_title_h;
-		for (var i = 0; i < array_length(intel_rows); i++) {
-			var _row = intel_rows[i];
-			var _mid = _row_y + intel_row_h / 2;
-			if (i == _current_row) {
-				draw_set_color(c_white);
-				draw_set_alpha(0.12);
-				draw_roundrect(intel_x + 6, _row_y + 2, intel_x + intel_w - 6, _row_y + intel_row_h - 2, false);
-			}
-			draw_set_alpha(1.0);
-			draw_insight_icon(_row.icon, intel_x + intel_pad + 14, _mid, 0.95, (i == _current_row) ? 1.0 : 0.6);
+		var _ry = _y + _pad + _title_h;
+		for (var i = 0; i < array_length(_rows); i++) {
+			var _row = _rows[i];
+			var _ok = !_row.done && combat_insight_can(_row.cost);
+			var _mid = _ry + _row_h / 2;
+			// the cost, as a yellow coin
+			draw_set_color(c_black);
+			draw_circle(_x + _pad + 14, _mid, 15, false);
+			draw_set_color(_ok ? global.color_intel : make_color_rgb(110, 100, 70));
+			draw_circle(_x + _pad + 14, _mid, 13, false);
 			draw_set_font(ftDefault);
+			draw_set_halign(fa_center);
+			draw_set_color(c_black);
+			draw_text(_x + _pad + 14, _mid, string(_row.cost));
+			// what, and how
 			draw_set_halign(fa_left);
-			draw_set_color((i == _current_row) ? global.color_intel : c_white);
-			draw_text(intel_x + intel_pad + 40, _mid, string(_row.name));
-			draw_set_font(ftSmall);
-			draw_set_color(c_ltgray);
-			draw_text(intel_x + intel_pad + 135, _mid, (i == 0) ? "< 0" : string(_row.requirement) + "+");
-			draw_set_color(c_white);
-			draw_text(intel_x + intel_pad + 180, _mid, string(_row.description));
-			_row_y += intel_row_h;
+			draw_set_color(_row.done ? make_color_rgb(140, 200, 140) : (_ok ? c_white : make_color_rgb(150, 150, 160)));
+			draw_text(_x + _pad + 40, _mid - 9, _row.what);
+			draw_set_font(ftDescriptions);
+			draw_set_color(make_color_rgb(170, 170, 180));
+			draw_text(_x + _pad + 40, _mid + 11, _row.how);
+			_ry += _row_h;
 		}
-
-		// how insight rolls work this turn
-		draw_set_font(ftSmall);
-		draw_set_color(c_ltgray);
-		draw_text(intel_x + intel_pad, _row_y + intel_foot_h / 2, "Insight you roll counts next turn.");
+		draw_set_alpha(1);
 		draw_set_color(c_white);
+		draw_set_halign(fa_left);
+		draw_set_valign(fa_top);
 	}
 }
 
@@ -2598,15 +2581,60 @@ function combat_take_back(_slot_i, _index) {
 }
 
 /// @func combat_rerolls_total()
-/// @desc Free rerolls this turn: 1, and 1 more at Inked insight (6+).
+/// @desc Rerolls this turn: 1 free, plus any bought with insight.
 function combat_rerolls_total() {
-	return 1 + ((oCombat.intel_level >= INTEL_INKED && !intel_is_blotted()) ? 1 : 0);
+	return 1 + oCombat.rerolls_bought;
 }
 
 /// @func combat_redraws_total()
-/// @desc Free redraws this turn: 1, and 1 more at Underlined insight (9+).
+/// @desc Redraws this turn: 1 free, plus any bought with insight.
 function combat_redraws_total() {
-	return 1 + ((oCombat.intel_level >= INTEL_UNDERLINED && !intel_is_blotted()) ? 1 : 0);
+	return 1 + oCombat.redraws_bought;
+}
+
+/// @func combat_insight_can(_cost)
+/// @desc Can you spend this much insight now? (your turn, enough of it, not Blotted)
+function combat_insight_can(_cost) {
+	return oCombat.state == CombatState.PLAYER_INPUT && !oCombat.show_rewards && !intel_is_blotted() && oCombat.player_intel >= _cost;
+}
+
+/// @func combat_insight_spend(_cost)
+/// @desc Spends insight if you have it (a "-N" floats off the eye); otherwise says why not. True if spent.
+function combat_insight_spend(_cost) {
+	with (oCombat) {
+		if (state != CombatState.PLAYER_INPUT || show_rewards) return false;
+		if (intel_is_blotted() || player_intel < _cost) {
+			throw_error("Not enough insight", "That costs " + string(_cost) + " insight. You have " + string(max(0, player_intel)) + ".");
+			return false;
+		}
+		player_intel -= _cost;
+		var _num = spawn_floating_number("player", _cost, -1, global.color_intel, -1, -1, 0);
+		_num.x += 20;
+		_num.y -= 20;
+		sfx_play(soSlotPlace, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
+		return true;
+	}
+	return false;
+}
+
+/// @func combat_buy(_what)
+/// @desc Spend insight on: "reveal" (exact enemy intents this turn), "reroll", "redraw" or "play" (one more of each).
+function combat_buy(_what) {
+	with (oCombat) {
+		switch (_what) {
+			case "reveal":
+				if (insight_revealed) return;
+				if (combat_insight_spend(INSIGHT_COST_REVEAL)) {
+					insight_revealed = true;
+					intel_level = INTEL_LEGIBLE;
+					add_feed_entry("You read the enemies' intent exactly.");
+				}
+			break;
+			case "reroll": if (combat_insight_spend(INSIGHT_COST_REROLL)) rerolls_bought++; break;
+			case "redraw": if (combat_insight_spend(INSIGHT_COST_REDRAW)) redraws_bought++; break;
+			case "play":   if (combat_insight_spend(INSIGHT_COST_PLAY)) plays_bought++; break;
+		}
+	}
 }
 
 /// @func combat_reroll_die(_inst)
@@ -2614,7 +2642,7 @@ function combat_redraws_total() {
 function combat_reroll_die(_inst) {
 	if (state != CombatState.PLAYER_INPUT || show_rewards || !instance_exists(_inst) || !die_has_faces(_inst.struct)) return;
 	if (rerolls_used >= combat_rerolls_total()) {
-		throw_error("No rerolls left", "Rerolls come back next turn. Inked insight (6) gives one more.");
+		throw_error("No rerolls left", "Buy another for " + string(INSIGHT_COST_REROLL) + " insight (the + token above End Turn), or wait for next turn.");
 		return;
 	}
 	rerolls_used++;
@@ -2683,27 +2711,31 @@ function combat_enemies_flee(_leader) {
 }
 
 /// @func combat_turn_tokens_draw(_cx, _right_max, _y)
-/// @desc One row of round brass tokens, centred on _cx but never past _right_max (the slots): a plain token per play, then (after a divider) a reroll token per
-///       reroll, then a redraw token per redraw. Spent tokens go dark; one given by insight is yellow. No text: hovering a
-///       group says what it is and how many are left. Playing (or failing to) makes the play tokens pulse green (or red).
+/// @desc One row of round brass tokens, centred on _cx but never past _right_max (the slots): a token per play, then
+///       (after a divider) a reroll token per reroll, then a redraw token per redraw. Spent tokens go dark; ones bought
+///       with insight are yellow. Each group ends with a dashed "buy" token showing its insight cost: click it to buy one
+///       more (lit when you can afford it). No text: hovering a group says what it is, how many are left and the cost.
+///       Playing (or failing to) makes the play tokens pulse green (or red).
 function combat_turn_tokens_draw(_cx, _right_max, _y) {
 	var _plays_total = max(dice_allowed_per_turn, dice_played);
 	var _plays_left = max(0, dice_allowed_per_turn - dice_played);
 	var _groups = [
-		{ kind: 0, total: _plays_total, left: _plays_left, title: "Plays",
+		{ total: _plays_total, left: _plays_left, bought: plays_bought, buy: "play", cost: INSIGHT_COST_PLAY, title: "Plays",
 		  text: "Dice you can play this turn: " + string(_plays_left) + " left. Coins are free to play." },
-		{ kind: 1, total: combat_rerolls_total(), left: combat_rerolls_total() - rerolls_used, title: "Reroll",
-		  text: "Right-click a die in your hand to roll it again. Free, " + string(combat_rerolls_total() - rerolls_used) + " left this turn. Inked insight (6+) gives one more." },
-		{ kind: 2, total: combat_redraws_total(), left: combat_redraws_total() - redraws_used, title: "Redraw",
-		  text: "Drop a die on the discard pile and draw a new one. Free, " + string(combat_redraws_total() - redraws_used) + " left this turn. Underlined insight (9+) gives one more." },
+		{ total: combat_rerolls_total(), left: combat_rerolls_total() - rerolls_used, bought: rerolls_bought, buy: "reroll", cost: INSIGHT_COST_REROLL, title: "Reroll",
+		  text: "Right-click a die in your hand to roll it again. " + string(combat_rerolls_total() - rerolls_used) + " left this turn (one is free each turn)." },
+		{ total: combat_redraws_total(), left: combat_redraws_total() - redraws_used, bought: redraws_bought, buy: "redraw", cost: INSIGHT_COST_REDRAW, title: "Redraw",
+		  text: "Drop a die on the discard pile and draw a new one. " + string(combat_redraws_total() - redraws_used) + " left this turn (one is free each turn)." },
 	];
 	var _r = 11, _gap = 5, _div = 12; // token radius, space between tokens, space either side of a divider
 	var _dark = make_color_rgb(42, 29, 18);
 	var _brass = make_color_rgb(232, 196, 106);
 	var _spent = make_color_rgb(90, 69, 53);
+	var _can_buy = (state == CombatState.PLAYER_INPUT && !show_rewards);
 
-	var _w = -_div; // the row's width, so it can be centred
-	for (var g = 0; g < 3; g++) _w += _groups[g].total * (_r * 2) + (_groups[g].total - 1) * _gap + _div * 2;
+	// each group's width: its tokens, and the buy token after them
+	var _w = -_div;
+	for (var g = 0; g < 3; g++) _w += (_groups[g].total + 1) * (_r * 2) + _groups[g].total * _gap + _div * 2;
 	var _x = min(_cx - _w / 2, _right_max - _w);
 
 	for (var g = 0; g < 3; g++) {
@@ -2716,7 +2748,8 @@ function combat_turn_tokens_draw(_cx, _right_max, _y) {
 		for (var t = 0; t < _grp.total; t++) {
 			var _tx = _x + _r + t * (_r * 2 + _gap);
 			var _on = (t < _grp.left);
-			var _fill = _on ? ((g > 0 && t >= 1) ? global.color_intel : _brass) : _spent; // a second reroll/redraw comes from insight
+			var _paid = (t >= _grp.total - _grp.bought); // bought with insight: the last ones in the group
+			var _fill = _on ? (_paid ? global.color_intel : _brass) : _spent;
 			var _rr = _r * _s * (_hover ? 1.1 : 1);
 			draw_set_color(_ring);
 			draw_circle(_tx, _y, _rr + 3, false);
@@ -2727,25 +2760,35 @@ function combat_turn_tokens_draw(_cx, _right_max, _y) {
 			draw_circle(_tx, _y - _rr * 0.35, _rr * 0.45, false);
 			draw_set_color(_fill);
 			draw_circle(_tx, _y - _rr * 0.15, _rr * 0.55, false);
-
-			// the symbol engraved on reroll and redraw tokens
-			var _ink = _on ? _dark : make_color_rgb(140, 120, 100);
-			draw_set_color(_ink);
-			if (g == 1) {
-				// a circling arrow
-				draw_arc_thick_deg(_tx, _y, _rr * 0.42, _rr * 0.62, 50, 320, 20);
-				var _hx = _tx + lengthdir_x(_rr * 0.52, 50), _hy = _y + lengthdir_y(_rr * 0.52, 50);
-				draw_triangle(_hx - _rr * 0.38, _hy - _rr * 0.05, _hx + _rr * 0.3, _hy - _rr * 0.22, _hx + _rr * 0.02, _hy + _rr * 0.42, false);
-			} else if (g == 2) {
-				// an arrow up out of a line (a die drawn up)
-				draw_line_width(_tx, _y + _rr * 0.35, _tx, _y - _rr * 0.25, max(2, _rr * 0.18));
-				draw_triangle(_tx - _rr * 0.36, _y - _rr * 0.15, _tx + _rr * 0.36, _y - _rr * 0.15, _tx, _y - _rr * 0.6, false);
-				draw_line_width(_tx - _rr * 0.45, _y + _rr * 0.5, _tx + _rr * 0.45, _y + _rr * 0.5, max(2, _rr * 0.16));
-			}
+			combat_token_symbol(g, _tx, _y, _rr, _on ? _dark : make_color_rgb(140, 120, 100));
 		}
 		if (_hover && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _grp.title, _grp.text);
 
-		_x += _gw + _div;
+		// the buy token: a dashed ring with the cost inside, lit when you can afford it
+		var _bx = _x + _gw + _gap + _r;
+		var _afford = _can_buy && combat_insight_can(_grp.cost);
+		var _bhover = mouse_hovering(_bx - _r - 3, _y - _r - 3, _r * 2 + 6, _r * 2 + 6, false);
+		var _br = _r * ((_bhover && _afford) ? 1.15 : 1);
+		var _bcol = _afford ? global.color_intel : make_color_rgb(120, 110, 80);
+		draw_set_alpha(_afford ? 1 : 0.6);
+		draw_set_color(_dark);
+		draw_circle(_bx, _y, _br + 3, false);
+		draw_set_color(merge_colour(_dark, _bcol, 0.25));
+		draw_circle(_bx, _y, _br, false);
+		draw_set_color(_bcol);
+		for (var k = 0; k < 8; k++) draw_arc_thick_deg(_bx, _y, _br - 2, _br, k * 45, k * 45 + 25, 4); // dashes
+		draw_set_font(ftSmall);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_outline_text("+" + string(_grp.cost), c_black, _bcol, 1, _bx, _y, 1, _afford ? 1 : 0.6, 0);
+		draw_set_alpha(1);
+		if (_bhover && !show_rewards) {
+			var _what = (g == 0) ? "play" : ((g == 1) ? "reroll" : "redraw");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Buy another " + _what, "Spend " + string(_grp.cost) + " insight for one more " + _what + " this turn. You have " + string(max(0, player_intel)) + " insight.");
+			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && combat_no_die_dragged()) combat_buy(_grp.buy);
+		}
+
+		_x += _gw + _gap + _r * 2 + _div;
 		// a short divider between groups
 		if (g < 2) {
 			draw_set_color(_dark);
@@ -2757,4 +2800,19 @@ function combat_turn_tokens_draw(_cx, _right_max, _y) {
 	}
 	draw_set_color(c_white);
 	draw_set_alpha(1);
+}
+
+/// @func combat_token_symbol(_group, _x, _y, _r, _col)
+/// @desc The symbol on a reroll token (a circling arrow) or a redraw token (an arrow up out of a line); plays have none.
+function combat_token_symbol(_group, _x, _y, _r, _col) {
+	draw_set_color(_col);
+	if (_group == 1) {
+		draw_arc_thick_deg(_x, _y, _r * 0.42, _r * 0.62, 50, 320, 20);
+		var _hx = _x + lengthdir_x(_r * 0.52, 50), _hy = _y + lengthdir_y(_r * 0.52, 50);
+		draw_triangle(_hx - _r * 0.38, _hy - _r * 0.05, _hx + _r * 0.3, _hy - _r * 0.22, _hx + _r * 0.02, _hy + _r * 0.42, false);
+	} else if (_group == 2) {
+		draw_line_width(_x, _y + _r * 0.35, _x, _y - _r * 0.25, max(2, _r * 0.18));
+		draw_triangle(_x - _r * 0.36, _y - _r * 0.15, _x + _r * 0.36, _y - _r * 0.15, _x, _y - _r * 0.6, false);
+		draw_line_width(_x - _r * 0.45, _y + _r * 0.5, _x + _r * 0.45, _y + _r * 0.5, max(2, _r * 0.16));
+	}
 }

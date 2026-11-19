@@ -19,7 +19,11 @@ switch (state) {
     case CombatState.START_TURN:
 		turn_count++;
 		player_turn_done = false;
-		intel_rewrite_used = false; // Quill: one rewrite per turn
+		intel_rewrite_used = false;
+		insight_revealed = false; // what insight bought last turn is gone
+		rerolls_bought = 0;
+		redraws_bought = 0;
+		plays_bought = 0;
 		quill_menu_enemy = undefined;
 		target_locked = false; // Overwhelm locks it again in on_turn_start
 		delayed_enemy_attack = false;
@@ -102,7 +106,7 @@ switch (state) {
 		
 		// capped at the top state; it can go below 0 (Overwhelm), which hides enemy intents
 		player_intel = min(player_intel, intel_max());
-		intel_level = intel_level_for(player_intel);
+		intel_level = insight_revealed ? INTEL_LEGIBLE : INTEL_FADED;
 		//show_debug_message("Player intel amount: "+string(player_intel));
 		//show_debug_message("Player intel level: "+string(intel_level));
 		
@@ -570,7 +574,7 @@ switch (state) {
 	break;
 }
 		
-dice_allowed_per_turn = dice_allowed_per_turn_original + dice_allowed_this_turn_bonus + oRunManager.bonus_dice_next_combat;
+dice_allowed_per_turn = dice_allowed_per_turn_original + dice_allowed_this_turn_bonus + oRunManager.bonus_dice_next_combat + plays_bought;
 
 if (is_dealing_dice) {
 	if (dice_deal_timer > 0) {
@@ -618,7 +622,7 @@ if (keyboard_check_pressed(vk_enter) && state == CombatState.PLAYER_INPUT && !is
 }
 
 // intel can change mid-turn (keepsakes), so its state is kept up to date every frame
-intel_level = intel_level_for(player_intel);
+intel_level = insight_revealed ? INTEL_LEGIBLE : INTEL_FADED;
 
 // the guided first fight moves on as its steps are done
 tutorial_step();

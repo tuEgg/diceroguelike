@@ -965,7 +965,7 @@ function generate_dice_bag() {
 	
 	global.die_assassin = make_die_struct(
 	    1, 4, "ATK", "ATK INTEL", "", "Assassin Die",
-	    "Multitype. Can create ATK and INSIGHT slots. Gains +1 minimum roll for every insight state above Faded.",
+	    "Multitype. Can create ATK and INSIGHT slots. Gains +1 minimum roll for every 3 insight you have.",
 		"rare",
 		70,
 	    [
@@ -973,7 +973,7 @@ function generate_dice_bag() {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
 					// only in a fight, this also runs when the die is shown in the bag or shop
-					if (instance_exists(oCombat)) _context.min_roll += oCombat.intel_level;
+					if (instance_exists(oCombat)) _context.min_roll += floor(max(0, oCombat.player_intel) / 3);
 	            }
 	        }
 	    ]

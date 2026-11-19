@@ -10,6 +10,7 @@ Branch `feature/rolled-dice`. Agreed with Jared on 2026-11-19. The goal: more de
 - **Dice look like dice.** In fights they're drawn in code with real pips, a shape per size. A dealt die tumbles out of the bag and lands on its roll; a reroll tumbles in place.
 - **Take dice back.** Click a die you played this turn (in a slot, or on the new-slot tile) to return it to your hand and get the play back. A die whose "when played" effect already fired is locked in.
 - **Reroll once per turn, free.** Right-click a die in your hand.
+- **Insight is spent.** See exact intents 2, another reroll or redraw 3, another play 4, a Quill rewrite 6. Unspent insight is lost at End Turn.
 - **Discard and redraw once per turn, free.** The first die you drop on the discard pile each turn draws a new one. Later discards just discard.
 - **End Turn discards everything.** Hand, slots and unfinished new-slot dice all go to the discard pile. Sticky dice stay.
 - **One slot to start, filled left to right.** A fight starts with 1 empty slot. A die can only go in a slot if every slot before it has an action (a chained slot doesn't count), and a slot can't be emptied by taking a die back while a later slot has dice.
