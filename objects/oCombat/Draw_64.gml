@@ -1504,6 +1504,12 @@ if (show_rewards) {
 }
 
 // Draw discard bag either side (draw bag in oRunManager)
+// outlined like the draw bag when hovered or open; while a die is dragged over it, the outline swells and pulses
+var _disc_open = (oRunManager.show_bag_contents && oRunManager.bag_to_show == global.discard_pile);
+if (is_discarding || disc_bag_hover || _disc_open) {
+	var _pulse = is_discarding ? 0.05 + 0.03 * sin(current_time / 90) : 0;
+	draw_sprite_ext(sDiceBag, 1, gui_w - 60 - sprite_get_width(sDiceBag) - 4, gui_h - 36, 1.07 + _pulse, 1.07 + _pulse, 0, is_discarding ? c_white : c_black, 1);
+}
 draw_sprite(sDiceBag, 1, gui_w - 60 - sprite_get_width(sDiceBag), gui_h - 40);
 draw_set_font(ftBigger);
 draw_set_valign(fa_bottom)

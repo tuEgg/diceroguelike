@@ -1932,3 +1932,114 @@ function text_compare(_a, _b) {
 	if (string_length(_a) == string_length(_b)) return 0;
 	return (string_length(_a) < string_length(_b)) ? -1 : 1;
 }
+
+/// @func bag_type_label(_possible_type)
+/// @desc A die's types in words for its card: "Attack", "Attack / Insight", "Generic", "Any".
+function bag_type_label(_possible_type) {
+	var _parts = string_split(_possible_type, " ");
+	var _out = "";
+	for (var i = 0; i < array_length(_parts); i++) {
+		var _w = "";
+		switch (_parts[i]) {
+			case "ATK": _w = "Attack"; break;
+			case "BLK": _w = "Block"; break;
+			case "HEAL": _w = "Heal"; break;
+			case "INTEL": _w = "Insight"; break;
+			case "All": _w = "Any"; break;
+			case "None": _w = "Generic"; break;
+		}
+		if (_w != "") _out += ((_out == "") ? "" : " / ") + _w;
+	}
+	return _out;
+}
+
+/// @func draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected)
+/// @desc A die's card in the bag view (and the dice picker), centred on _cx, _cy:
+///       - a header band in its type colour with its name, and a gem in its rarity colour (none for starters)
+///       - on the left, the die drawn in code (its size on the face), its range, its types and keyword icons
+///       - on the right, its description; a core's icon in the bottom-right corner
+///       Edged in its rarity colour; lifts with a white edge when hovered; a green edge and tick when picked.
+function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
+	var _x1 = _cx - _w / 2, _y1 = _cy - _h / 2 - (_hover ? 4 : 0);
+	var _x2 = _x1 + _w, _y2 = _y1 + _h;
+	var _type_col = get_dice_color(_d.possible_type);
+	var _rar_col = make_color_rgb(120, 112, 100); // starter
+	switch (_d.rarity) {
+		case "common":   _rar_col = make_color_rgb(170, 170, 185); break;
+		case "uncommon": _rar_col = make_color_rgb(90, 200, 175); break;
+		case "rare":     _rar_col = make_color_rgb(200, 120, 225); break;
+	}
+	var _edge = _selected ? make_color_rgb(90, 220, 110) : (_hover ? c_white : _rar_col);
+	var _header_h = 40;
+
+	// shadow, edge, body
+	draw_set_alpha(0.35 * _alpha);
+	draw_set_color(c_black);
+	draw_roundrect_ext(_x1 + 4, _y1 + 6, _x2 + 4, _y2 + 6, 14, 14, false);
+	draw_set_alpha(_alpha);
+	draw_set_color(_edge);
+	draw_roundrect_ext(_x1 - 3, _y1 - 3, _x2 + 3, _y2 + 3, 16, 16, false);
+	draw_set_color(make_color_rgb(34, 36, 48));
+	draw_roundrect_ext(_x1, _y1, _x2, _y2, 14, 14, false);
+
+	// header band in its type colour (darkened so white text reads), square along its bottom
+	draw_set_color(merge_colour(_type_col, c_black, 0.5));
+	draw_roundrect_ext(_x1, _y1, _x2, _y1 + _header_h, 14, 14, false);
+	draw_rectangle(_x1, _y1 + _header_h - 14, _x2, _y1 + _header_h, false);
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_middle);
+	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + 14, _y1 + _header_h / 2, 1, _alpha, 0, _w - 50);
+	// rarity gem
+	if (_d.rarity != "starter") {
+		var _gx = _x2 - 20, _gy = _y1 + _header_h / 2;
+		draw_set_color(c_black);
+		draw_primitive_begin(pr_trianglefan);
+		draw_vertex(_gx, _gy - 10); draw_vertex(_gx + 8, _gy); draw_vertex(_gx, _gy + 10); draw_vertex(_gx - 8, _gy);
+		draw_primitive_end();
+		draw_set_color(_rar_col);
+		draw_primitive_begin(pr_trianglefan);
+		draw_vertex(_gx, _gy - 7); draw_vertex(_gx + 5.5, _gy); draw_vertex(_gx, _gy + 7); draw_vertex(_gx - 5.5, _gy);
+		draw_primitive_end();
+	}
+
+	// left column: the die, its range, its types, its keywords
+	var _lx = _x1 + 52;
+	var _dy = _y1 + _header_h + 42;
+	draw_die(_lx, _dy, 28, _d.dice_value, -1, _type_col, 0, _alpha);
+	var _out = get_dice_output(_d, -1, -1, true, "player"); // read only: viewing the bag must never trigger keepsakes
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_outline_text(string(_out.min_roll) + "-" + string(_out.max_roll), c_black, c_white, 2, _lx, _dy + 46, 1, _alpha, 0);
+	draw_set_font(ftSmall);
+	draw_outline_text(bag_type_label(_d.possible_type), c_black, merge_colour(_type_col, c_white, 0.35), 2, _lx, _dy + 68, 1, _alpha, 0, 92);
+	draw_dice_keywords(_d, _lx, _dy + 90, 0.6, _alpha);
+
+	// right column: what it does
+	var _tx = _x1 + 104;
+	draw_set_font(ftDescriptions);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _header_h + 12, 1, _alpha, 0, _x2 - _tx - 12);
+
+	// a core in it
+	if (_d.distribution != "") draw_sprite_ext(sCores, get_core_index(_d), _x2 - 26, _y2 - 26, 0.6, 0.6, 0, c_white, _alpha);
+
+	// picked (dice picker): a tick in the corner
+	if (_selected) {
+		var _kx = _x1 + 2, _ky = _y1 + 2;
+		draw_set_color(c_black);
+		draw_circle(_kx, _ky, 15, false);
+		draw_set_color(make_color_rgb(90, 220, 110));
+		draw_circle(_kx, _ky, 12, false);
+		draw_set_color(c_white);
+		draw_line_width(_kx - 6, _ky, _kx - 1, _ky + 5, 3);
+		draw_line_width(_kx - 1, _ky + 5, _kx + 7, _ky - 5, 3);
+	}
+
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+}

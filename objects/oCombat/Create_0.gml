@@ -53,6 +53,7 @@ disc_btn_scale = 1.0; // discard button hover animation
 last_action_scale = 1.0;
 try_btn_scale = 1.0;
 last_hover = false; // hovering over last button is false
+disc_bag_hover = false; // the discard bag is hovered (set in Draw GUI, read earlier in the same event for its outline)
 
 // Combat states
 enum CombatState {

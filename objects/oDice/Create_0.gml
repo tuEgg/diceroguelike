@@ -33,5 +33,6 @@ flick_timer = 0;
 roll_anim = 0;     // frames of tumbling still to go (deal, reroll)
 land_pop = 0;      // 1 just after landing, back to 0
 no_tumble = false; // taken back from a slot: it keeps its roll, so it doesn't tumble
+over_discard = false; // being dragged over the discard pile (Step): it swells, wobbles and says what letting go does
 
 alarm[0] = 1; // delay moving until we've defined create event

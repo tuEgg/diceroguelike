@@ -8,7 +8,16 @@ var _coded = (room == rmCombat && is_struct(struct));
 var _die_r = 36 * scale * (1 + 0.22 * land_pop);
 if (_coded) {
 	var _face = tumbling ? flick_face : (die_has_faces(struct) ? die_face_total(struct) : -1);
-	draw_die(x, y, _die_r, dice_value, _face, image_blend, tumble_angle, image_alpha);
+	var _wobble = over_discard ? sin(current_time / 70) * 9 : 0;
+	draw_die(x, y, _die_r, dice_value, _face, over_discard ? merge_colour(image_blend, c_black, 0.25) : image_blend, tumble_angle + _wobble, image_alpha);
+	// over the discard pile: say what letting go does (with a free redraw left, it draws a new one too)
+	if (over_discard && instance_exists(oCombat)) {
+		var _redraw = (oCombat.redraws_used < combat_redraws_total());
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_outline_text(_redraw ? "Discard and draw" : "Discard", c_black, _redraw ? global.color_intel : c_white, 2, x, y - _die_r - 40, 1, 1, 0); // above the keyword icons
+	}
 } else {
 	draw_sprite_ext(sprite_index, image_index, x, y, scale, scale, image_angle, image_blend, image_alpha);
 }

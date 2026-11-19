@@ -314,14 +314,7 @@ if (show_bag_contents) {
 		
 			var info_hover = mouse_hovering(dice_x - box_width/2, dice_y - box_height/2, box_width, box_height, false, noone, soClick4, true, UI_LAYER.BAG);
 		
-			if (info_hover) {
-				dice_hover = dice;
-				
-				// Give highlighted dice a white border
-				draw_set_alpha(dice_alpha);
-				draw_set_color(c_white);
-				draw_roundrect(dice_x - box_width/2 - 2, dice_y - box_height/2 - 2, dice_x + box_width/2 + 2, dice_y + box_height/2 + 2, false);
-			}
+			if (info_hover) dice_hover = dice;
 			
 			// Functionality for selection events
 			if (dice_selection != false) {
@@ -360,88 +353,11 @@ if (show_bag_contents) {
 				}
 			}
 			
-			// Give each dice its own background, edged in its rarity colour
-			draw_set_alpha(dice_alpha);
-			var rarity_col = make_color_rgb(44, 40, 62);
-			switch(dice.rarity) {
-				case "common": rarity_col = global.color_common; break;
-				case "uncommon": rarity_col = global.color_uncommon; break;
-				case "rare": rarity_col = global.color_rare; break;
-			}
-			draw_set_color(rarity_col);
-			draw_roundrect(dice_x - box_width/2 - 3, dice_y - box_height/2 - 3, dice_x + box_width/2 + 3, dice_y + box_height/2 + 3, false);
-			draw_set_color(make_color_rgb(44, 40, 62));
-			if (dice.selected) draw_set_color(c_green);
-			draw_roundrect(dice_x - box_width/2, dice_y - box_height/2, dice_x + box_width/2, dice_y + box_height/2, false);
-		
-			// Draw dice sprite (multitype dice blend their colours)
-			draw_sprite_ext(sDice, get_dice_index(dice.dice_value), dice_x - box_width/3.75, dice_y - box_height/3.75, 1.0, 1.0, 0, get_dice_color(dice.possible_type), dice_alpha);
-		
-			// Draw dice keywords
-			draw_dice_keywords(dice, dice_x - box_width/3.75, dice_y - box_height/3.75, 1, dice_alpha);
-			
-			// Draw dice range
-			var dice_output = get_dice_output(dice, -1, -1, true, "player"); // read only: viewing the bag must never trigger keepsakes
-	
-			var off_x = 0;
-			var off_y = 0;
-	
-			// nudge the numbers to suit this die's shape (it used oRunManager's own image_index, so it never changed)
-			switch (get_dice_index(dice.dice_value)) {
-				case 1:
-				off_x = -4;
-				off_y = 3;
-				break;
-				case 2:
-				off_x = -2;
-				off_y = 1;
-				break;
-				case 3:
-				case 4:
-				case 5:
-				off_x = -2;
-				off_y = -1;
-				break;
-			}
-			
-			var _min_roll = dice_output.min_roll;			
-			var _max_roll = dice_output.max_roll;
-	
-			draw_set_font(ftSmall);
-			draw_set_halign(fa_center);
-			draw_set_valign(fa_middle);
-			draw_outline_text(string(_min_roll) + "-" + string(_max_roll), c_black, c_white, 2, dice_x - box_width/3.75 + off_x, dice_y - box_height/3.75 + off_y, 1, 1, 0, -1);
-		
-			// Draw dice name
-			draw_set_font(ftDefault);
-			draw_set_valign(fa_middle);
-			draw_set_halign(fa_left);
-			draw_outline_text(dice.name, c_black, c_white, 2, dice_x - 10, dice_y - box_height/3.5, 1, dice_alpha, 0, box_width/4);
-		
-			// Draw dice description
-			draw_set_font(ftDescriptions);
-			draw_set_valign(fa_top);
-		    var desc_x = dice_x - box_width/2 + 20;
-		    var desc_y = dice_y;
-			
-			var colored_desc = colorcode_text(die_description(dice));
-			draw_outline_text(colored_desc, c_black, c_white, 2, desc_x, desc_y, 1, dice_alpha, 0, col_spacing - 40);
-			
-			// Draw distribution
-			if (dice.distribution != "") {
-				var core_index = get_core_index(dice);
-				
-				draw_sprite_ext(
-		            sCores, core_index,
-		            dice_x + box_width/2 - 40,
-		            dice_y - box_height/3.5 + 5,
-		            0.75, 0.75, 0, c_white, 1
-		        );
-			
-				if (info_hover) {
-					draw_dice_distribution(dice, dice_x, dice_y - 100, true);
-				}
-			}
+			// the card (draw_bag_card): header with its name, the die and its range and types, the description
+			draw_bag_card(dice, dice_x, dice_y, box_width, box_height, dice_alpha, info_hover, dice.selected);
+
+			// a core's distribution, while hovered
+			if (dice.distribution != "" && info_hover) draw_dice_distribution(dice, dice_x, dice_y - 100, true);
 			
 			
 		}

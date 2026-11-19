@@ -1872,7 +1872,7 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1) {
 		draw_set_alpha(1);
 	} else {
 		var _txt = (_face < 0) ? "d" + string(_sides) : string(_face);
-		draw_set_font((_r >= 30) ? ftBig : ftSmall);
+		draw_set_font((_r >= 30) ? ftBig : ((_r >= 22) ? ftDefault : ftSmall));
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		draw_outline_text(_txt, _ring_col, _pip_col, 2, _x, _y + _cy, 1, _alpha, _angle);

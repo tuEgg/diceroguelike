@@ -75,6 +75,9 @@ if (!hovered_local && global.hovered_dice_id == id) {
 
 // --- Smooth scaling ---
 hover_target = hovered ? hover_scale : 1.0;
+// dragged over the discard pile: it swells and wobbles (oDice Draw GUI) so it's clear letting go discards it
+over_discard = (room == rmCombat && is_dragging && is_mouse_over_discard_button());
+if (over_discard) hover_target = 1.7;
 scale = lerp(scale, hover_target, hover_speed);
 
 // --- Start dragging ---
