@@ -1135,7 +1135,10 @@ if (show_rewards) {
 			    var die = reward_dice_options[| r];
 				var _rc_cx = gui_w / 2 - ((_rc_n - 1) * (_rc_w + _rc_gap)) / 2 + r * (_rc_w + _rc_gap);
 				var _flip = reward_flip_state(reward_reveal_t, r);
-				if (_flip.turned_now) sfx_play((die.rarity == "rare") ? soCoins : soSlotPlace, AUDIO_GROUP.SFX, 0.05, (die.rarity == "common" || die.rarity == "starter") ? 0.6 : 1);
+				if (_flip.turned_now) {
+					sfx_play_layered(soCard, AUDIO_GROUP.SFX, 1 + random_range(-0.06, 0.06) + r * 0.04, 1); // each card turning over (Jared's soCard), a touch higher each
+					if (die.rarity == "rare") sfx_play(soCoins, AUDIO_GROUP.SFX, 0.05, 0.9); // and a rare one jingles
+				}
 				if (!_flip.face_up) {
 					reward_card_back(_rc_cx, _rc_cy, _rc_w * _flip.squash, _rc_h, r);
 					continue;

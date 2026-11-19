@@ -109,6 +109,7 @@
     {"id":{"name":"shInk","path":"shaders/shInk/shInk.yy",},},
     {"id":{"name":"shWhiteFill","path":"shaders/shWhiteFill/shWhiteFill.yy",},},
     {"id":{"name":"sIntro","path":"sounds/sIntro/sIntro.yy",},},
+    {"id":{"name":"soCard","path":"sounds/soCard/soCard.yy",},},
     {"id":{"name":"soClick1","path":"sounds/soClick1/soClick1.yy",},},
     {"id":{"name":"soClick2","path":"sounds/soClick2/soClick2.yy",},},
     {"id":{"name":"soClick3","path":"sounds/soClick3/soClick3.yy",},},

@@ -27,18 +27,19 @@ global.ui_peek_top_bar = (global.ui_layer == UI_LAYER.BAG);
 var health_x = 44;
 global.heal_pos = health_x;
 health_scale = lerp(health_scale, 1.0, 0.2);
-ui_glyph("HEAL", health_x, bar_half, 30 * health_scale, global.color_attack);
-ui_numeral(string(global.player_hp), health_x + 26, bar_half, 34, global.ui_col.paper_hi, 1, fa_left);
-var _hp_w = ui_numeral_width(global.player_hp, 34);
-ui_numeral("/" + string(global.player_max_hp), health_x + 30 + _hp_w, bar_half + 3, 24, make_color_rgb(154, 143, 124), 1, fa_left);
-var health_hover = mouse_hovering(health_x - 20, bar_half - 25, 190, 50, false, noone, noone);
+// sized down (Jared, 2026-11-19: the bar read too big next to Slay the Spire at the same resolution)
+ui_glyph("HEAL", health_x, bar_half, 24 * health_scale, global.color_attack);
+ui_numeral(string(global.player_hp), health_x + 22, bar_half, 26, global.ui_col.paper_hi, 1, fa_left);
+var _hp_w = ui_numeral_width(global.player_hp, 26);
+ui_numeral("/" + string(global.player_max_hp), health_x + 25 + _hp_w, bar_half + 2, 18, make_color_rgb(154, 143, 124), 1, fa_left);
+var health_hover = mouse_hovering(health_x - 20, bar_half - 25, 150, 50, false, noone, noone);
 if (health_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your health", "You have " + string(global.player_hp) + " of " + string(global.player_max_hp) + " health.");
 
 // Gold: a brass coin and the number
-var nodes_x = health_x + 210;
+var nodes_x = health_x + 170;
 global.gold_pos = nodes_x; // where gold flies to (oParticleCoin)
 credits_scale = lerp(credits_scale, 1.0, 0.05);
-var _coin_r = 15 * credits_scale;
+var _coin_r = 12 * credits_scale;
 draw_set_color(global.ui_col.ink);
 draw_circle(nodes_x, bar_half, _coin_r + 3, false);
 draw_set_color(global.ui_col.brass);
@@ -46,13 +47,13 @@ draw_circle(nodes_x, bar_half, _coin_r, false);
 draw_set_color(make_color_rgb(150, 112, 56));
 draw_circle(nodes_x, bar_half, _coin_r * 0.55, true);
 draw_set_color(c_white);
-ui_numeral(string(credits), nodes_x + 26, bar_half, 34, global.ui_col.paper_hi, 1, fa_left);
+ui_numeral(string(credits), nodes_x + 22, bar_half, 26, global.ui_col.paper_hi, 1, fa_left);
 var credits_hover = mouse_hovering(nodes_x - 20, bar_half - 25, 130, 50, false);
 if (credits_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Gold", "You have " + string(credits) + " gold doubloons.");
 var pages_x = nodes_x; // (kept for anything below that measured from it)
 
 // Draw cores and consumables
-var core_x = nodes_x + 170; // after gold
+var core_x = nodes_x + 140; // after gold
 var core_y = bar_half;
 
 for (var i = 0; i < array_length(items); i++) {
@@ -281,7 +282,7 @@ alignment_scale = lerp(alignment_scale, 1.0, 0.2);
 var alignment_pos_x = alignment_x - 112 + ((global.player_alignment) * 2.24);
 draw_sprite_ext(sCircleSmall, 0, alignment_pos_x, bar_half + 2, alignment_scale, alignment_scale, 0, c_white, 1.0); // swells as motes land
 // the number too (Molly): 0-100, read as a percentage
-ui_numeral(string(round(global.player_alignment)) + "%", alignment_x - 198, bar_half, 34, global.ui_col.paper_hi, 1, fa_right); // left of the compass (the bar's right end meets the bounty)
+ui_numeral(string(round(global.player_alignment)) + "%", alignment_x - 188, bar_half, 18, global.ui_col.paper_hi, 1, fa_right); // left of the compass (the bar's right end meets the bounty)
 
 // "+5 merciful" / "-7 ruthless" under the compass for a moment after it moves (gain_alignment)
 if (alignment_popup_t >= 0) {
