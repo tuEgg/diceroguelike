@@ -342,6 +342,11 @@ if (pick_pending) {
 	var _pick = ui_button(gui_w / 2, _py + 108, 260, 64, pick_scale, "Open the bag", global.ui_primary);
 	pick_scale = _pick.scale;
 	if (_pick.click) workbench_open_picker();
+} else if (workbench_can_change_dice()) {
+	// picked the wrong die? until the first craft you can put them back and choose again (B134)
+	var _change = ui_button(start_x - wb_tile_size / 2 - 170, start_y, 220, 56, pick_scale, "Change dice", global.ui_quiet);
+	pick_scale = _change.scale;
+	if (_change.click) workbench_change_dice();
 }
 
 // "Dice + Core = Output", or with the Cutters "Dice = Basic coin + Remainder"

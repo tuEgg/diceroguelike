@@ -2341,8 +2341,8 @@ function bag_card_layout(_d, _w) {
 	var _head_h = 48;
 	var _text_x = 88;                 // from the card's left edge
 	var _text_w = _w - _text_x - 14;
-	draw_set_font(ftBig); // the effect at 20 px (UI rework, round 2)
-	var _line = font_get_size(ftBig) * 1.5; // the line height coloured text wraps at (draw_outline_text)
+	draw_set_font(ftDefault); // the effect at 16 px: more words a line (Molly)
+	var _line = font_get_size(ftDefault) * 1.5; // the line height coloured text wraps at (draw_outline_text)
 	var _desc_h = string_height_ext(die_description(_d), _line, _text_w);
 	var _die_bottom = _head_h + 40 + 36;           // the die (radius 30, a triangle reaching a bit lower)
 	var _text_bottom = _head_h + 14 + _desc_h;
@@ -2394,7 +2394,7 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 	if (global.action_icons) draw_action_type_icon(_d.action_type, _dx - 26, _dy + 26, 0.7, _alpha);
 	var _out = get_dice_output(_d, -1, -1, true, "player"); // read only: viewing the bag must never trigger keepsakes
 	var _tx = _x1 + _lay.text_x;
-	draw_set_font(ftBig);
+	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 	ui_paper_text(colorcode_text(die_description(_d)), _tx, _y1 + _head_h + 14, _lay.text_w, _alpha);

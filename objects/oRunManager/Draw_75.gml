@@ -190,7 +190,7 @@ if (show_dice_list) {
 		scroll_y = lerp(scroll_y, s_grab_y + (m_grab_y - device_mouse_y_to_gui(0)), 0.5);
 		scroll_y = clamp(scroll_y, scroll_height, 0);
 	}
-	
+
 }
 
 // the bag view and the dice picker (moved from Draw GUI so event, shop and workbench windows can't cover them)
@@ -358,8 +358,8 @@ if (show_bag_contents) {
 	// Set draw sizes
 	var scrollbar_w = 30;
 	
-	// four cards a row; every row as tall as the tallest card in view needs (bag_card_layout), so nothing overflows
-	var bag_cols = 4;
+	// five cards a row (compact, Molly); every row as tall as the tallest card in view needs (bag_card_layout)
+	var bag_cols = 5;
 	var col_spacing = (bag_width - (scrollbar_w * 4)) / bag_cols;
 	var box_width = col_spacing - 24;
 
@@ -388,7 +388,7 @@ if (show_bag_contents) {
 			var top_edge_overlap = bag_inner_padding - top_of_box;
 			var bottom_edge_overlap = (bottom_of_box - (display_get_gui_height() - bag_inner_padding));
 			edge_overlap = max(top_edge_overlap, bottom_edge_overlap);
-			var dice_alpha = min(1, 1 - (edge_overlap / (box_height/1.5)));
+			var dice_alpha = clamp(1 - edge_overlap / 50, 0, 1); // only fades as it crosses the panel's edge (it used to dim whole rows)
 		
 			var info_hover = mouse_hovering(dice_x - box_width/2, dice_y - box_height/2, box_width, box_height, false, noone, soClick4, true, UI_LAYER.BAG);
 		
@@ -420,6 +420,12 @@ if (show_bag_contents) {
 							ds_list_delete(dice_selection_list, _ind);
 							show_debug_message("dice_selection_list size: " + string(ds_list_size(dice_selection_list)));
 						} else {
+							// already full: the oldest pick makes way, so a new click always picks (Molly: picking 1 replaces it)
+							if (dice_selection_num_selected >= dice_selection && ds_list_size(dice_selection_list) > 0) {
+								dice_selection_list[| 0].selected = false;
+								ds_list_delete(dice_selection_list, 0);
+								dice_selection_num_selected -= 1;
+							}
 							if (dice_selection_num_selected < dice_selection) {
 								dice.selected = true;
 								dice_selection_num_selected += 1;
@@ -464,13 +470,10 @@ if (show_bag_contents) {
 	if (mouse_wheel_down()) scroll_y -= 100;
 	if (mouse_wheel_up()) scroll_y += 100;
 	
-	// Total pixel height of the bag height, its never less than 3 rows high (hence 15)
-	var minimum_size = min(floor(bag_height / row_spacing) * -row_spacing, ceil(array_length(_view) / bag_cols) * -row_spacing);
-	
-	// The adaptive height of the scrollable area
-	var scroll_height = minimum_size + bag_height;
-	
-	// The Y position in the world of the scroll bar
+	// how far it can scroll: the rows' height past what the panel shows (none when everything fits)
+	var _content_h = ceil(array_length(_view) / bag_cols) * row_spacing;
+	var _max_scroll = max(0, _content_h - bag_height);
+	var scroll_height = -_max_scroll;
 	scroll_y = clamp(scroll_y, scroll_height, 0);
 	
 	//if (keyboard_check_pressed(vk_enter)) {
@@ -481,10 +484,10 @@ if (show_bag_contents) {
 	//	show_debug_message("Scroll Y: " + string(scroll_y));
 	//}
 	
-	// Draw scrollbar -- If room height is 1000, and scroll height is 2000, the scroll bar should be half the screen
-	var scrollbar_size_ratio = bag_height / abs(scroll_height - bag_height);
-	var scrollbar_h = scrollbar_size_ratio * bag_height;
-	var scrollbar_y = (abs(scroll_y) / abs(scroll_height - (bag_height*1))) * bag_height;
+	// the scrollbar: its thumb is the share of the rows you can see, at where you are; no bar when everything fits
+	var scrollbar_h = (_max_scroll > 0) ? bag_height * bag_height / _content_h : 0;
+	var scrollbar_y = (_max_scroll > 0) ? (-scroll_y / _max_scroll) * (bag_height - scrollbar_h) : 0;
+	if (_max_scroll > 0) {
 	
 	draw_set_color(c_black);
 	draw_set_alpha(0.4);
@@ -509,9 +512,11 @@ if (show_bag_contents) {
 	if (!mouse_check_button(mb_left)) scroll_dragging = false;
 		
 	if (scroll_dragging) {
-		scroll_y = lerp(scroll_y, s_grab_y + (m_grab_y - device_mouse_y_to_gui(0)), 0.5);
+		// dragging the thumb down moves the rows up, in step with the thumb
+		scroll_y = s_grab_y - (device_mouse_y_to_gui(0) - m_grab_y) * (_max_scroll / max(1, bag_height - scrollbar_h));
 		scroll_y = clamp(scroll_y, scroll_height, 0);
 	}
+	} else scroll_dragging = false;
 } else {
 	dice_hover = undefined;
 }

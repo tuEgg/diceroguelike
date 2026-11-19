@@ -1092,7 +1092,7 @@ if (show_rewards) {
 		case "dice":
 			// the dice on offer as the same paper cards as the bag (draw_bag_card, UI rework), side by side, all as tall as
 			// the tallest needs; hover lifts one, a click takes it
-			var _rc_w = 360, _rc_gap = 40;
+			var _rc_w = 320, _rc_gap = 40;
 			var _rc_n = ds_list_size(reward_dice_options);
 			var _rc_h = 150;
 			for (var r = 0; r < _rc_n; r++) _rc_h = max(_rc_h, bag_card_layout(reward_dice_options[| r], _rc_w).h);

@@ -2506,6 +2506,30 @@ function workbench_open_picker() {
 	}
 }
 
+/// @func workbench_can_change_dice()
+/// @desc Before the first craft of a visit you may swap the dice you brought (B134): nothing crafted, nothing being picked.
+function workbench_can_change_dice() {
+	if (!instance_exists(oWorkbenchManager)) return false;
+	var _wb = instance_find(oWorkbenchManager, 0);
+	if (_wb.pick_pending || array_length(_wb.tools_used) > 0 || _wb.crafting_state != "waiting") return false;
+	return oRunManager.dice_selection == false && instance_exists(oDice);
+}
+
+/// @func workbench_change_dice()
+/// @desc The dice in your hand go back to the bag and the picker opens again (B134).
+function workbench_change_dice() {
+	if (!workbench_can_change_dice()) return;
+	with (oDice) {
+		ds_list_add(global.dice_bag, struct);
+		instance_destroy();
+	}
+	with (oWorkbenchManager) {
+		for (var s = 0; s < array_length(workbench_slot); s++) workbench_slot[s].dice = undefined;
+		pick_pending = true;
+	}
+	workbench_open_picker();
+}
+
 // =====================================================================
 // ROLLED DICE (prototype, docs/design-rolled-dice.md)
 // =====================================================================
