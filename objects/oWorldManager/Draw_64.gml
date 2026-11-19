@@ -229,8 +229,7 @@ if (room == rmMap) {
 		if (world_state == WORLD_STATE.TURNING) {
 			
 			// the ship sails off the right edge of the book while the page turns (it sails in again after Embark)
-			boat_data.x = lerp(boat_data.x, book_right_x + 140, 0.04);
-			boat_data.y = lerp(boat_data.y, page_y, 0.05);
+			if (boat_data.x < book_right_x + 130) boat_sail_toward(book_right_x + 140, page_y);
 			
 			// the choice was made at sea (strait_draw): once the page has turned, choose the next pages
 			if (current_page_turn < -0.9) start_drafting();
@@ -418,11 +417,9 @@ if (room == rmMap) {
 
 	// sailing in from the book's edge to the start of the course (after Embark); clicking an island takes over
 	if (boat_data.entering) {
-		if (node_to_move_to != undefined || world_state != WORLD_STATE.EXPLORING) boat_data.entering = false;
+		if (node_to_move_to != undefined || world_state != WORLD_STATE.EXPLORING) { boat_data.entering = false; boat_data.voyage = undefined; }
 		else {
-			boat_data.x = lerp(boat_data.x, book_left_x + 40, 0.05);
-			boat_data.y = lerp(boat_data.y, gui_h / 2, 0.05);
-			if (abs(boat_data.x - (book_left_x + 40)) < 2) boat_data.entering = false;
+			if (boat_sail_toward(book_left_x + 40, gui_h / 2)) boat_data.entering = false;
 		}
 	}
 
@@ -431,7 +428,8 @@ if (room == rmMap) {
 	if (boat_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your ship", "Where to captain?", undefined, 0, undefined);
 	
 	var _boat_a = 1 - clamp((boat_data.x - book_right_x) / 90, 0, 1) - clamp((book_left_x - boat_data.x) / 90, 0, 1); // off the book: gone
-	if (_boat_a > 0) draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 1, 1, boat_data.angle, c_white, _boat_a);
+	if (!is_struct(boat_data.voyage)) boat_data.tilt = lerp(boat_data.tilt, 0, 0.1); // settles once it's there
+	if (_boat_a > 0) draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 1, 1, boat_data.angle + boat_data.tilt, c_white, _boat_a);
 	
 	// Chapter complete: shown once the boss is beaten, until the player turns to the next chapter
 	if (world_state == WORLD_STATE.CHAPTER_END) {

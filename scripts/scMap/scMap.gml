@@ -1469,9 +1469,7 @@ function strait_draw(_ax, _ay) {
 
 		// sailing there
 		if (_taken && !strait.arrived) {
-			boat_data.x = lerp(boat_data.x, _sx - 10, 0.05);
-			boat_data.y = lerp(boat_data.y, _sy + 5, 0.05);
-			if (point_distance(boat_data.x, boat_data.y, _sx - 10, _sy + 5) < 10) {
+			if (boat_sail_toward(_sx - 10, _sy + 5)) {
 				strait.arrived = true;
 				strait.healed = (global.player_hp < global.player_max_hp);
 				if (strait.healed) spread_end_apply("heal", strait.heal);
@@ -1503,9 +1501,7 @@ function strait_draw(_ax, _ay) {
 		if (oRunManager.dice_selection == false) strait.stamp = max(0, strait.stamp - 1 / 70);
 		if (strait.stamp <= 0) {
 			strait.leaving = true;
-			boat_data.x = lerp(boat_data.x, book_right_x - 10, 0.05);
-			boat_data.y = lerp(boat_data.y, _ay, 0.05);
-			if (abs(boat_data.x - (book_right_x - 10)) < 12) {
+			if (boat_sail_toward(book_right_x - 10, _ay)) {
 				strait = undefined;
 				world_state = WORLD_STATE.TURNING;
 			}
@@ -1545,9 +1541,7 @@ function sea_buoy_draw(_bx, _by) {
 		if (mouse_check_button_pressed(mb_left) && _b.active && global.ui_layer == UI_LAYER.BASE && node_to_move_to == undefined) _b.sailing = true;
 	}
 	if (_b.sailing) {
-		boat_data.x = lerp(boat_data.x, _b.x - 10, 0.05);
-		boat_data.y = lerp(boat_data.y, _b.y + 5, 0.05);
-		if (point_distance(boat_data.x, boat_data.y, _b.x - 10, _b.y + 5) < 10) {
+		if (boat_sail_toward(_b.x - 10, _b.y + 5)) {
 			oRunManager.can_visit_workbench = false;
 			_b.sailing = false;
 			_b.visited = true;
@@ -1618,4 +1612,36 @@ function spread_routes_draw(_spots) {
 			route_draw(_sp.x, _sp.y, book_right_x, _spots.strait.y, (strait.chosen == s && strait.leaving) ? _taken : (strait.chosen == -1 || strait.chosen == s ? _poss : _gone));
 		}
 	}
+}
+
+/// @func boat_sail_toward(_tx, _ty)
+/// @desc oWorldManager: moves the ship one frame along a voyage to _tx, _ty and returns true once it's there. A voyage
+///       eases in and out (smootherstep over a time set by its length), and it's perilous: the ship weaves side to side
+///       across its course (strongest mid-voyage, none at the ends), pitches into each turn and heels over with the
+///       weave (boat_data.tilt, added to its angle when drawn). A new target starts a new voyage from where it is.
+function boat_sail_toward(_tx, _ty) {
+	var _v = boat_data.voyage;
+	if (!is_struct(_v) || point_distance(_v.x1, _v.y1, _tx, _ty) > 40) {
+		var _len = point_distance(boat_data.x, boat_data.y, _tx, _ty);
+		_v = { x0: boat_data.x, y0: boat_data.y, x1: _tx, y1: _ty, t: 0, dur: clamp(_len / 3.2, 35, 150), waves: max(1, round(_len / 180)) };
+		boat_data.voyage = _v;
+	}
+	_v.x1 = _tx; _v.y1 = _ty; // a stop that drifts a little is followed, not restarted
+	_v.t = min(1, _v.t + 1 / _v.dur);
+	var _t = _v.t;
+	var _e = _t * _t * _t * (_t * (_t * 6 - 15) + 10); // smootherstep: eased at both ends
+	var _dir = point_direction(_v.x0, _v.y0, _v.x1, _v.y1);
+	// the weave: across the course, swelling mid-voyage
+	var _amp = 16 * sin(_t * pi);
+	var _side = _amp * sin(_t * pi * 2 * _v.waves);
+	boat_data.x = lerp(_v.x0, _v.x1, _e) + lengthdir_x(_side, _dir + 90);
+	boat_data.y = lerp(_v.y0, _v.y1, _e) + lengthdir_y(_side, _dir + 90);
+	// heel with the weave and pitch with the swell
+	boat_data.tilt = 9 * sin(_t * pi) * cos(_t * pi * 2 * _v.waves) + 4 * sin(_t * pi * 6) * sin(_t * pi);
+	if (_t >= 1) {
+		boat_data.voyage = undefined;
+		boat_data.x = _v.x1; boat_data.y = _v.y1;
+		return true;
+	}
+	return false;
 }

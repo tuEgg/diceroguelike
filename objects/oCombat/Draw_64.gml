@@ -103,7 +103,7 @@ dice_played_color = merge_colour(dice_played_color, c_white, 0.05);
 var _et_left = btn_x + btn_w/2 - sprite_get_xoffset(sEndTurn) * btn_scaler;
 var _et_right = btn_x + btn_w/2 + (sprite_get_width(sEndTurn) - sprite_get_xoffset(sEndTurn)) * btn_scaler;
 var _tokens_max = min(_et_right, aq_start_x - aq_tile_w * 0.1) - 10; // the row never reaches past this
-tokens_args = { cx: (_et_left + _tokens_max) / 2, right: _tokens_max, y: aq_start_y + aq_tile_w/2 - 40 };
+tokens_args = { cx: (_et_left + min(_et_right, aq_start_x)) / 2, right: _tokens_max, y: aq_start_y + aq_tile_w/2 - 32 }; // centred on the visible part of the button, just above it
 if (!show_rewards) combat_turn_tokens_draw(tokens_args.cx, tokens_args.right, tokens_args.y, false); // the log leaves the queue in full colour
 draw_set_font(ftBig);
 

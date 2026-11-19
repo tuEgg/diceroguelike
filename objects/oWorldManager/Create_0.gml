@@ -167,6 +167,8 @@ boat_data = {
 	base_y: display_get_gui_height()/2,
 	spd: 0,
 	entering: false, // sailing in from the book's left edge after Embark (oWorldManager Draw GUI)
+	voyage: undefined, // the voyage it's on (boat_sail_toward)
+	tilt: 0,           // how far it heels over while sailing (added to angle when drawn)
 }
 book_left_x = 262;  // the open book's water pages' outer edges this frame (oWorldManager Draw GUI): the courses into
 book_right_x = 1658; // and out of a spread start and end there, and the ship sails in and out across them

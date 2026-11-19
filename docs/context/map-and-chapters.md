@@ -20,6 +20,7 @@ Room `rmMap`, object `oWorldManager` (persistent for the run). Logic in `oWorldM
 - `generate_pages()` fills `pages_shown` with 3 candidate pages (1–2 nodes each) using the `*_chance` odds (retuned in Room End, `Other_5`). Drafting one clones it into `chosen_pages` and adds its nodes to `all_nodes`; the first pick locks one of the other two (the map lock is a design pillar, keep it).
 - Page struct: `index, island_index, num_nodes, nodes (ds_list), layout, margin, x, y, chosen, locked, cleared, is_boss`. `draw_page` draws the island (masked with surfaces and shaders `shWhiteFill`, `shErode`) and node icons, and handles node clicks.
 - Node templates `node_combat`, `node_event`, `node_shop`, `node_elite`, `node_boss`, `node_treasure`, `node_alignment`, `node_bounty`... copy with `clone_node_static`.
+- The ship moves by voyages (`boat_sail_toward(x, y)`, scMap, returns true on arrival): smootherstep eased at both ends, weaving across its course with a heel (`boat_data.tilt`) strongest mid-voyage. Every move uses it (islands, buoy, strait stops, sailing in and out of the book).
 - Clicking `next_node` sails the boat; arriving calls `enter_node(node)`, marks it cleared and updates `nodes_til_drafting`, `nodes_til_page_cleared`, `pages_cleared`, `spreads_cleared`.
 
 ## Entering a node: `enter_node`
