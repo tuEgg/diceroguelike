@@ -17,6 +17,7 @@
 - `throw_error(title, desc)` shows a red tooltip for ~1.5s.
 - A tooltip can carry a mouse hint above its top right (`queue_tooltip`'s last argument `{ button, text, col }`, drawn with `draw_mouse_hint`): the reroll hint on dice in hand.
 - Tooltips that cost something: `queue_tooltip(..., _cost, _cost_kind)` ("insight" or "gold") adds a "-N" tag on the box's top right corner (`tooltip_cost_badge`). The shop and insight purchases use it.
+- `draw_padlock(x, y, scale, col)` (scHelpers): the new-slot tile while a slot is empty.
 - Bag view cards: `draw_bag_card(die, cx, cy, w, h, alpha, hover, selected)` (scHelpers), with `bag_type_label` for the types in words.
 - Bag view sort and filter: `bag_controls_draw` (title row, right) sets `oRunManager.bag_filter` / `bag_sort`; `bag_view_list` builds the filtered, sorted array the view draws.
 - Bag view and the dice picker (`dice_selection`) are drawn in `oRunManager/Draw_75` (Draw GUI End), above every room's windows; the bag icon itself stays in Draw_64. Bag view and the debug dice list (`oRunManager/Draw_75`): each die box is edged in its rarity colour; scrollbars drag while `scroll_dragging` is true, which clears whenever the mouse button is up. Use GUI-space mouse positions (`device_mouse_y_to_gui`), never `mouse_y`, for anything drawn in Draw GUI.

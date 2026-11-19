@@ -243,7 +243,7 @@ for (var i = 0; i < aq_list_size; i++) {
     draw_set_halign(fa_center);
     draw_set_valign(fa_middle);
 	draw_set_font(ftDefault);
-    draw_outline_text(label, c_black, c_white, 2, draw_x + draw_w / 2, draw_y + draw_h / 2 - (draw_h/10), 1, 1, 0);
+    if (label != "No action") draw_outline_text(label, c_black, c_white, 2, draw_x + draw_w / 2, draw_y + draw_h / 2 - (draw_h/10), 1, 1, 0); // an empty slot is plainly empty
 
 	// what this slot's place adds to its total (slot_set_position_bonus), in its top-right corner
 	var _pos_bonus = variable_struct_exists(action_queue[| i], "position_bonus") ? action_queue[| i].position_bonus : 0;
@@ -421,11 +421,13 @@ for (var i = 0; i < aq_list_size; i++) {
 		new_tile_pos = { x: last_x, y: last_y, w: last_w, h: last_h };
 		var _need = new_slot_threshold();
 		var _have = new_slot_total();
-		draw_outline_text("New slot\n" + string(_have) + " / " + string(_need), c_black, c_white, 2, last_x + last_w / 2, last_y + last_h / 2 - (last_h / 10), 1, 1, 0);
-		var _min_dice = new_slot_min_dice();
+		// just what its dice add up to and what they need; a padlock while a slot is still empty (the hover explains)
 		var _filled = combat_all_slots_have_action();
-		draw_outline_text(!_filled ? "Fill slots first" : ((_min_dice == 1) ? "1+ die" : string(_min_dice) + "+ dice"), c_black, make_color_rgb(190, 190, 200), 2, last_x + last_w / 2, last_y + last_h - 35, 1, 1, 0);
-		if (last_hover && !is_placing && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", (!_filled ? "Every slot needs an action before you can build another. " : "") + "Drop dice here. When " + ((new_slot_min_dice() == 1) ? "they" : string(new_slot_min_dice()) + " or more of them") + " add up to " + string(_need) + ", they build a new slot and act in it this turn. Each die uses a play (coins are free). Click a die here to take it back. Dice left here at End Turn are discarded.");
+		draw_set_font(ftBig);
+		draw_outline_text(string(_have) + " / " + string(_need), c_black, _filled ? c_white : make_color_rgb(150, 150, 160), 2, last_x + last_w / 2, last_y + last_h / 2 - (_filled ? 0 : 14), 1, 1, 0);
+		draw_set_font(ftDefault);
+		if (!_filled) draw_padlock(last_x + last_w / 2, last_y + last_h / 2 + 26, 1, make_color_rgb(190, 190, 200));
+		if (last_hover && !is_placing && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", (!_filled ? "Locked: every slot needs an action before you can build another. " : "") + "Drop dice here. When " + ((new_slot_min_dice() == 1) ? "they" : string(new_slot_min_dice()) + " or more of them") + " add up to " + string(_need) + ", they build a new slot and act in it this turn. Each die uses a play (coins are free). Click a die here to take it back. Dice left here at End Turn are discarded.");
 
 		// the dice waiting on it, above it like a slot's
 		var _wait = ds_list_size(global.sacrifice_list);
@@ -896,10 +898,10 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			draw_triangle(enemy.pos_x - _ax, _mark_y - 9, enemy.pos_x - _ax, _mark_y + 9, enemy.pos_x - _ax + 12, _mark_y, false);
 			draw_triangle(enemy.pos_x + _ax, _mark_y - 9, enemy.pos_x + _ax, _mark_y + 9, enemy.pos_x + _ax - 12, _mark_y, false);
 			draw_set_alpha(1);
-		} else if (e != enemy_target_index && hover_enemy && state == CombatState.PLAYER_INPUT) {
-			// under the name, which shows while hovered
+		} else if (e != enemy_target_index && hover_enemy && state == CombatState.PLAYER_INPUT && target_locked) {
+			// only when the click won't work: Overwhelm has locked the target (otherwise the cursor says it's clickable)
 			draw_set_font(ftDefault);
-			draw_outline_text(target_locked ? "Target locked" : "Click to target", c_black, c_ltgray, 2, enemy.pos_x, _mark_y + 26, 1, enemy.alpha, 0);
+			draw_outline_text("Target locked", c_black, c_ltgray, 2, enemy.pos_x, _mark_y + 26, 1, enemy.alpha, 0);
 		}
 	}
 	

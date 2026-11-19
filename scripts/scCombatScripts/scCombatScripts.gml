@@ -2065,8 +2065,14 @@ function tips_list() {
 		{
 			// rolled dice prototype: the guided fight is off, so this explains the new rules once
 			id: "rolled_dice", room: rmCombat, target: "",
-			text: "Rolled dice: your dice show what they rolled. Drag them into the slots (the first coloured die picks a slot's type; slots fill left to right) and watch the totals. Click a die in a slot to take it back. Insight pays for rerolls (right-click a die) and redraws (discard a die). Dice on the new-slot tile build the next slot when they add up to its number (slot 2 needs one die of 3+, slot 3 two dice adding to 6...), and later slots add more to their total. End Turn discards everything.",
+			text: "Your dice show what they rolled. Drag them into your slots, left to right: the first coloured die picks a slot's type. Click a die in a slot to take it back. End Turn discards everything.",
 			when: function() { return tips_combat_ready() && oCombat.turn_count == 1; },
+		},
+		{
+			// the second half: once every slot has something in it, building the next one
+			id: "new_slot", room: rmCombat, target: "",
+			text: "Every slot has an action, so you can build another: drop dice on the new-slot tile until they add up to its number. Later slots add more to their total.",
+			when: function() { return tips_combat_ready() && tip_seen("rolled_dice") && combat_all_slots_have_action() && oCombat.state == CombatState.PLAYER_INPUT; },
 		},
 		{
 			id: "multi_enemy", room: rmCombat, target: "target_enemy",
@@ -2403,6 +2409,7 @@ function workbench_take_die(_die) {
 /// @desc A tool has crafted: it's used up for this visit and goes back in the toolbag.
 function workbench_tool_used(_object) {
 	if (!instance_exists(oWorkbenchManager)) return;
+	if (progress_get("workbench_hints_done") != true) progress_set("workbench_hints_done", true); // the tool mouse hints have done their job
 	array_push(oWorkbenchManager.tools_used, _object);
 	// it stays in hand for half a second (its last pose shows), then returns to the bench greyed out (the tool's Step)
 	with (_object) {
@@ -2867,8 +2874,8 @@ function combat_insight_view_set(_open) {
 }
 
 /// @func combat_insight_part_draw(_x1, _y1, _x2, _y2, _afford, _hover, _pulse, _cost, _label, _coin_left)
-/// @desc One half of an intent in insight view: a yellow outline (grey if you can't afford it), its cost on a coin at
-///       its top corner (left or right), and a small label under it ("Reroll", "Exact").
+/// @desc One half of an intent in insight view: a yellow outline (grey if you can't afford it) and its cost on a coin at
+///       its top corner (left or right). _label is unused (the hover says what it does).
 function combat_insight_part_draw(_x1, _y1, _x2, _y2, _afford, _hover, _pulse, _cost, _label, _coin_left) {
 	var _col = _afford ? global.color_intel : make_color_rgb(120, 110, 80);
 	var _grow = _afford ? (_hover ? 4 : _pulse * 2) : 0;
@@ -2884,8 +2891,7 @@ function combat_insight_part_draw(_x1, _y1, _x2, _y2, _afford, _hover, _pulse, _
 	draw_set_valign(fa_middle);
 	draw_set_color(c_black);
 	draw_text(_cx, _cy, string(_cost));
-	draw_set_font(ftSmall);
-	draw_outline_text(_label, c_black, _col, 2, (_x1 + _x2) / 2, _y2 + 14, 1, 1, 0);
+	// (no "Reroll" / "Exact" labels: the coins and the hovers say it)
 }
 
 /// @func combat_insight_view_draw()

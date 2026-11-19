@@ -2330,3 +2330,19 @@ function offering_take(_index, _x, _y) {
 	global.ui_layer = UI_LAYER.BASE;
 	global.bag_size++;
 }
+
+/// @func draw_padlock(_x, _y, _scale, _col)
+/// @desc A small padlock centred on _x, _y (about 22 x 26 at scale 1): a shackle arc over a body with a keyhole.
+function draw_padlock(_x, _y, _scale, _col) {
+	var _s = _scale;
+	draw_set_color(c_black);
+	draw_arc_thick_deg(_x, _y - 4 * _s, 5 * _s, 10 * _s, 0, 180, 16);
+	draw_roundrect_ext(_x - 12 * _s, _y - 5 * _s, _x + 12 * _s, _y + 14 * _s, 5 * _s, 5 * _s, false);
+	draw_set_color(_col);
+	draw_arc_thick_deg(_x, _y - 4 * _s, 6.5 * _s, 8.5 * _s, 0, 180, 16);
+	draw_roundrect_ext(_x - 10 * _s, _y - 3 * _s, _x + 10 * _s, _y + 12 * _s, 4 * _s, 4 * _s, false);
+	draw_set_color(c_black);
+	draw_circle(_x, _y + 3 * _s, 2.5 * _s, false);
+	draw_line_width(_x, _y + 3 * _s, _x, _y + 8 * _s, 2 * _s);
+	draw_set_color(c_white);
+}

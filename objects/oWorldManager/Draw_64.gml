@@ -204,10 +204,10 @@ if (room == rmMap) {
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBigger);
 		if (world_state == WORLD_STATE.TURNING && resting_alpha > 0.05) draw_outline_text("The spread is done", c_black, c_white, 3, gui_w/2, gui_h * 0.25, 1, resting_alpha, 0);
-		draw_outline_text("What happened next?", c_black, c_white, 3, gui_w/2, gui_h * 0.25, 1, pages_alpha, 0);
+		// one heading for one action (it used to have "What happened next?" over it as well)
+		draw_outline_text("Choose a page to draft", c_black, c_white, 3, bg_w/2, gui_h * 0.25, 1, pages_alpha, 0);
 		draw_set_font(ftDefault);
-		draw_outline_text("Choose a page to draft", c_black, c_white, 2, bg_w/2, gui_h * 0.29, 1, pages_alpha, 0);
-		if (pages_alpha > 0.05) ui_divider(gui_w/2 - 200, gui_w/2 + 200, gui_h * 0.32, pages_alpha);
+		if (pages_alpha > 0.05) ui_divider(gui_w/2 - 200, gui_w/2 + 200, gui_h * 0.29, pages_alpha); // under the heading
 	
 		if (world_state == WORLD_STATE.OPENING) {		
 			book_open_scale = lerp(book_open_scale, 1.0, 0.08);
@@ -513,9 +513,7 @@ if (room == rmMap) {
 			draw_set_valign(fa_middle);
 			draw_set_font(ftBig);
 			draw_outline_text("At sea", c_black, c_white, 2, gui_w / 2, sea_y1 + 44, 1, 1, 0);
-			draw_set_font(ftDefault);
-			draw_outline_text("Between islands there's time to work on your dice.", c_black, c_ltgray, 2, gui_w / 2, sea_y1 + 86, 1, 1, 0);
-			var sea_open = draw_gui_button(gui_w / 2 - 262, sea_y1 + 128, 270, 64, oRunManager.at_sea_scales[0], "Open the workbench", global.ui_primary, ftBig, true, true);
+var sea_open = draw_gui_button(gui_w / 2 - 262, sea_y1 + 128, 270, 64, oRunManager.at_sea_scales[0], "Open the workbench", global.ui_primary, ftBig, true, true);
 			var sea_sail = draw_gui_button(gui_w / 2 + 38, sea_y1 + 128, 220, 64, oRunManager.at_sea_scales[1], "Sail on", global.ui_quiet, ftBig, true, true);
 			oRunManager.at_sea_scales[0] = sea_open.scale;
 			oRunManager.at_sea_scales[1] = sea_sail.scale;

@@ -354,7 +354,7 @@ var _tool_in_hand = "";
 if (instance_exists(oDrill) && oDrill.is_dragging) _tool_in_hand = "drill";
 if (instance_exists(oHammer) && oHammer.is_dragging) _tool_in_hand = "smash";
 if (instance_exists(oScissors) && oScissors.is_dragging) _tool_in_hand = "cut";
-if (_tool_in_hand != "") {
+if (_tool_in_hand != "" && progress_get("workbench_hints_done") != true) { // until a tool has crafted once (workbench_tool_used)
 	var _hint_y = start_y - wb_tile_size - 70; // above the bench, clear of the dice in hand
 	draw_mouse_hint(gui_w/2 - 230, _hint_y, "left", (_tool_in_hand == "drill") ? "Hold over the Drill button" : "Click the " + button_text + " button");
 	draw_mouse_hint(gui_w/2 + 90, _hint_y, "right", "Put the tool down");
