@@ -570,6 +570,13 @@ switch (state) {
 		
 dice_allowed_per_turn = dice_allowed_per_turn_original + dice_allowed_this_turn_bonus + oRunManager.bonus_dice_next_combat;
 
+// rolled dice: the deal rolls above the bag age, and go once they've faded
+for (var _r = array_length(deal_rolls) - 1; _r >= 0; _r--) {
+	deal_rolls[_r].t++;
+	if (deal_rolls[_r].t >= DEAL_ROLL_LIFE) array_delete(deal_rolls, _r, 1);
+}
+if (array_length(deal_rolls) == 0) deal_roll_count = 0;
+
 if (is_dealing_dice) {
 	if (dice_deal_timer > 0) {
 		dice_deal_timer--;

@@ -572,12 +572,10 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 	var _yes = function(_action) { return { ok: true, action: _action, reason: "" }; };
 
 	// coins are free to play; everything else needs a play left this turn
-	var _is_coin = (_die_struct.dice_value == 2);
 	if (dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(_die_struct, "coin")) {
 		return _no("No plays left this turn. Coins are still free to play.");
 	}
 
-	var _stats = get_slot_stats(_slot, _slot_i);
 	var _slot_empty = (_slot.possible_type == "None");
 	var _slot_all = (_slot.possible_type == "All");
 	var _die_neutral = (_die_struct.possible_type == "None");
@@ -586,8 +584,7 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 	for (var i = 0; i < ds_list_size(_slot.dice_list); i++) {
 		if (die_has_keyword(_slot.dice_list[| i], "Exclusive")) _slot_exclusive = true;
 	}
-	var _big_enough = (_die_struct.dice_value >= _stats.highest_value_base);
-	var _size_reason = "Needs a d" + string(_stats.highest_value_base) + " or bigger to join this slot.";
+	// rolled dice: any size of die can join a slot (there used to be a "d6 or bigger" rule, with coins let off it)
 
 	// does the die share a type with the slot?
 	var _matches = false;
@@ -606,8 +603,7 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 		if (_matches) {
 			if (_die_exclusive) return _no("Exclusive dice need a slot to themselves.");
 			if (_slot_exclusive) return _no("This slot holds an Exclusive die, nothing can join it.");
-			if (_big_enough || _is_coin) return _yes("add");
-			return _no(_size_reason);
+			return _yes("add");
 		}
 		if (_die_exclusive) return _yes("replace");
 		return _no("This die's type doesn't match this slot.");
@@ -618,8 +614,7 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 	if (_slot_empty) return _no("Neutral dice can't start a slot. Play a coloured die here first.");
 	if (_die_exclusive) return _no("Exclusive dice need a slot to themselves.");
 	if (_slot_exclusive) return _no("This slot holds an Exclusive die, nothing can join it.");
-	if (_big_enough) return _yes("add");
-	return _no(_size_reason);
+	return _yes("add");
 }
 
 function apply_dice_to_slot(_die, _slot_i) {
@@ -2601,4 +2596,51 @@ function combat_enemies_flee(_leader) {
 		_any = true;
 	}
 	if (_any) add_feed_entry("With their leader down, the rest flee!");
+}
+
+#macro DEAL_ROLL_SPIN 22 // frames a dealt die tumbles above the bag before its number shows
+#macro DEAL_ROLL_LIFE 52 // frames until it has faded away
+
+/// @func combat_deal_roll_add(_die)
+/// @desc Shows a die's roll above the bag as it's dealt, in the next place along the row.
+function combat_deal_roll_add(_die) {
+	array_push(oCombat.deal_rolls, { die: _die, face: die_face_total(_die), t: 0, slot: oCombat.deal_roll_count mod 6 });
+	oCombat.deal_roll_count++;
+}
+
+/// @func combat_deal_rolls_draw()
+/// @desc The deal rolls: a row above the bag. Each die tumbles with its numbers flicking past, lands on its roll with a
+///       pop, holds, then fades.
+function combat_deal_rolls_draw() {
+	if (show_rewards) return;
+	var _x0 = global.gui.bag_x + global.gui.bag_w / 2; // over the bag, then along to the right
+	var _y0 = global.gui.bag_y - 60;
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	for (var r = 0; r < array_length(deal_rolls); r++) {
+		var _roll = deal_rolls[r];
+		var _d = _roll.die;
+		var _t = _roll.t;
+		var _x = _x0 + _roll.slot * 58;
+		var _col = get_dice_color(_d.possible_type);
+		var _alpha = clamp((DEAL_ROLL_LIFE - _t) / 12, 0, 1); // fades over the last 12 frames
+		var _index = get_dice_index(_d.dice_value);
+		if (_t < DEAL_ROLL_SPIN) {
+			// tumbling: hops up, spins, numbers flick past
+			var _p = _t / DEAL_ROLL_SPIN;
+			var _y = _y0 - sin(_p * pi) * 26;
+			var _ang = (1 - _p) * 540;
+			draw_sprite_ext(sDiceIcon, _index, _x, _y, 1.1, 1.1, _ang, _col, _alpha);
+			var _flick = 1 + ((_t div 3) * 7 + _roll.slot * 3) mod max(1, _d.dice_value); // looks random, steady per frame
+			draw_outline_text(string(_flick), c_black, make_color_rgb(200, 200, 200), 2, _x, _y, 1, _alpha * 0.8, 0);
+		} else {
+			// landed: a pop, then hold
+			var _since = _t - DEAL_ROLL_SPIN;
+			var _s = 1.1 + max(0, 0.5 - _since * 0.06);
+			draw_sprite_ext(sDiceIcon, _index, _x, _y0, _s, _s, 0, _col, _alpha);
+			draw_outline_text(string(_roll.face), c_black, c_white, 2, _x, _y0, _s, _alpha, 0);
+		}
+	}
+	draw_set_alpha(1);
 }

@@ -26,7 +26,7 @@ if (struct.rarity != "starter") {
 }
 
 // rolled dice: the number it rolled when dealt, in the middle of the die (bonuses show once it's in a slot)
-if (room == rmCombat && die_has_faces(struct)) {
+if (room == rmCombat && die_has_faces(struct) && !(variable_instance_exists(id, "number_delay") && number_delay > 0)) {
 	// the die art's face sits a little off centre depending on its shape (the same nudges the slot icons use, at this size)
 	var _fx = 0, _fy = 0;
 	switch (image_index) {

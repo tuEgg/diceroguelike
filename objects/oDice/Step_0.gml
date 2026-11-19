@@ -20,6 +20,9 @@ if (!still) {
 
 image_index = get_dice_index(dice_value);
 
+// rolled dice: its number stays hidden while its roll plays above the bag (combat_deal_rolls_draw)
+if (variable_instance_exists(id, "number_delay") && number_delay > 0) number_delay--;
+
 // Get mouse position
 var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);

@@ -100,6 +100,12 @@ function deal_single_die( _can_discard_this_turn = true) {
 	die_inst.possible_type = die_struct.possible_type;
 	die_inst.can_discard = _can_discard_this_turn;
 
+	// rolled dice: it tumbles above the bag first; the die in hand shows its number once that lands
+	if (room == rmCombat && instance_exists(oCombat) && die_has_faces(die_struct)) {
+		combat_deal_roll_add(die_struct);
+		die_inst.number_delay = DEAL_ROLL_SPIN;
+	}
+
     var target = generate_valid_targets(1, 100) [0];
     die_inst.target_x = target[0];
     die_inst.target_y = target[1];

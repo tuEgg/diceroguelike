@@ -1586,5 +1586,8 @@ if (disc_bag_hover) {
 	}
 }
 
+// rolled dice: each die dealt tumbles above the bag, then lands on its number
+combat_deal_rolls_draw();
+
 // the guided first fight's margin notes, on top of the combat UI
 tutorial_draw();
