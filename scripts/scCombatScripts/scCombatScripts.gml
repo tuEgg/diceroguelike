@@ -2940,7 +2940,6 @@ function combat_queue_holes_draw() {
 			var _et = end_turn_draw;
 			draw_sprite_ext(sEndTurn, 0, _et.x, _et.y, _et.s * 1.04, _et.s * 1.08, 0, c_white, 1);
 		}
-		if (is_struct(tokens_args)) draw_roundrect_ext(tokens_args.cx - 80, tokens_args.y - 46, tokens_args.cx + 80, tokens_args.y + 18, 12, 12, false);
 	}
 }
 

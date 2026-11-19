@@ -41,8 +41,8 @@ if (struct.rarity != "starter" && room != rmCombat) {
 
 // --- Draw effect keyword icons ---
 // a coded die has pips in the middle, so its keyword icons sit small just above it
-if (_coded) draw_dice_keywords(struct, x, y - _die_r - 12, 0.6);
-else draw_dice_keywords(struct, x, y, 1);
+// keyword icons only on dice you're about to play (a fight); elsewhere the tooltip's words say it
+if (_coded && room == rmCombat) draw_dice_keywords(struct, x, y - _die_r - 14, 0.75, 1, "hand");
 // Settings > Display > Action icons on dice: a small symbol so types don't rely on colour alone
 if (global.action_icons) draw_action_type_icon(struct.action_type, x - sprite_width * 0.32, y + sprite_height * 0.32, scale);
 

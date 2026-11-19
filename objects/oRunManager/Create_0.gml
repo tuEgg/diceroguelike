@@ -30,53 +30,64 @@ define_keepsakes();
 
 ds_list_add(keepsakes, get_keepsake_by_id("looking_glass"));
 
+// icon_on: where a die shows the keyword's icon (draw_dice_keywords): "hand" (dice you're about to play), "slot" (dice
+// in the queue). Elsewhere the words do the job: a card's or tooltip's description starts with the keyword. Coin and
+// Multitype show in the die itself (a round coin, split colours); Favourite only matters as the hand is dealt.
 global.keywords = {
     "Stowaway": {
         colour: c_aqua,
         desc: "Bonus effect when dice is left unplayed.",
-		index: 0
+		index: 0,
+		icon_on: ["hand"]
     },
 
     "Favourite": {
         colour: c_lime,
         desc: "Always appears in your starting hand.",
-		index: 1
+		index: 1,
+		icon_on: []
     },
 
     "Coin": {
         colour: c_yellow,
         desc: "Doesn't count towards played dice total, bypasses size requirements for slot checks.",
-		index: 2
+		index: 2,
+		icon_on: []
     },
 
     "Multitype": {
         colour: c_silver,
         desc: "Has more than one action type.",
-		index: 3
+		index: 3,
+		icon_on: []
     },
 
     "Followthrough": {
         colour: c_red,
         desc: "Bonus effects when dice is rolled dependent on previous slots.",
-		index: 4
+		index: 4,
+		icon_on: ["hand"]
     },
 
     "Exclusive": {
         colour: c_teal,
         desc: "This die ejects all other die when played to a slot, cannot have other dice played into it and cannot be sacrificed.",
-		index: 5
+		index: 5,
+		icon_on: ["hand"]
     },
 
     "Loose": {
         colour: c_ltgray,
         desc: "This die always ejects from its slot, regardless of permanence.",
-		index: 6
+		index: 6,
+		icon_on: ["hand", "slot"]
     },
 
     "Sticky": {
         colour: c_dkgray,
         desc: "This die becomes permanent to the slot it is played.",
-		index: 7
+		index: 7,
+		icon_on: ["hand", "slot"]
     },
 
     "Might": {

@@ -656,7 +656,9 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
         icon_idx = _index;
     }
     if (icon_sprite != undefined) {
-        draw_sprite_ext(icon_sprite, icon_idx, content_x + (_compact ? 10 : 16), yy + (_height / 2), icon_scale, icon_scale, 0, c_white, 1);
+        var _kw = (icon_sprite == sKeywordIcons) ? keyword_from_index(icon_idx) : "";
+        if (_kw != "") draw_keyword_icon(_kw, content_x + (_compact ? 10 : 16), yy + (_height / 2), icon_scale * 0.9, 1); // drawn in code (draw_keyword_icon)
+        else draw_sprite_ext(icon_sprite, icon_idx, content_x + (_compact ? 10 : 16), yy + (_height / 2), icon_scale, icon_scale, 0, c_white, 1);
         content_x += icon_space;
     }
 
@@ -2053,6 +2055,88 @@ function draw_header_band(_x1, _y1, _x2, _h, _r, _cols) {
 	}
 }
 
+/// @func keyword_from_index(_index)
+/// @desc The dice keyword with this sKeywordIcons index, or "" (Might and Balance are buffs: they keep their sprite).
+function keyword_from_index(_index) {
+	var _names = ["Stowaway", "Favourite", "Coin", "Multitype", "Followthrough", "Exclusive", "Loose", "Sticky"];
+	return (_index >= 0 && _index < array_length(_names)) ? _names[_index] : "";
+}
+
+/// @func draw_keyword_icon(_key, _x, _y, _scale, _alpha)
+/// @desc A dice keyword's icon, drawn in code in the logbook's style: a parchment roundel ringed in the keyword's colour
+///       with an ink glyph (about 30 px across at scale 1, centred on _x, _y). Stowaway a barrel (it hides in the hold),
+///       Followthrough a wake of chevrons, Exclusive a pennant (it claims the slot), Sticky a drip of tar, Loose an
+///       open shackle, Favourite a star, Coin a coin, Multitype a split diamond.
+function draw_keyword_icon(_key, _x, _y, _scale = 1, _alpha = 1) {
+	var _s = _scale;
+	var _ink = make_color_rgb(42, 29, 18);
+	var _paper = make_color_rgb(236, 222, 186);
+	var _ring = variable_struct_exists(global.keywords, _key) ? global.keywords[$ _key].colour : c_white;
+	draw_set_alpha(_alpha);
+	draw_set_color(_ink);
+	draw_circle(_x, _y, 15 * _s, false);
+	draw_set_color(merge_colour(_ring, _ink, 0.25));
+	draw_circle(_x, _y, 13.5 * _s, false);
+	draw_set_color(_paper);
+	draw_circle(_x, _y, 11 * _s, false);
+	draw_set_color(_ink);
+	var _w = max(1, 1.8 * _s);
+	switch (_key) {
+		case "Stowaway": // a barrel: a fat body, two hoops, staves
+			draw_roundrect_ext(_x - 6 * _s, _y - 7.5 * _s, _x + 6 * _s, _y + 7.5 * _s, 5 * _s, 5 * _s, false);
+			draw_set_color(_paper);
+			draw_roundrect_ext(_x - 4.2 * _s, _y - 5.8 * _s, _x + 4.2 * _s, _y + 5.8 * _s, 4 * _s, 4 * _s, false);
+			draw_set_color(_ink);
+			draw_line_width(_x - 5.5 * _s, _y - 3 * _s, _x + 5.5 * _s, _y - 3 * _s, _w);
+			draw_line_width(_x - 5.5 * _s, _y + 3 * _s, _x + 5.5 * _s, _y + 3 * _s, _w);
+			draw_line_width(_x, _y - 6 * _s, _x, _y + 6 * _s, _w * 0.7);
+			break;
+		case "Followthrough": // a wake: two chevrons pointing on
+			for (var c = 0; c < 2; c++) {
+				var _cx = _x - 3.5 * _s + c * 6 * _s;
+				draw_line_width(_cx - 3 * _s, _y - 5.5 * _s, _cx + 2.5 * _s, _y, _w * 1.2);
+				draw_line_width(_cx + 2.5 * _s, _y, _cx - 3 * _s, _y + 5.5 * _s, _w * 1.2);
+			}
+			break;
+		case "Exclusive": // a pennant on a pole: it claims the slot
+			draw_line_width(_x - 4.5 * _s, _y - 8 * _s, _x - 4.5 * _s, _y + 8 * _s, _w);
+			draw_triangle(_x - 4 * _s, _y - 8 * _s, _x + 7 * _s, _y - 4.5 * _s, _x - 4 * _s, _y - 1 * _s, false);
+			break;
+		case "Sticky": // a drip of tar
+			draw_circle(_x, _y + 2.5 * _s, 5 * _s, false);
+			draw_triangle(_x - 4.3 * _s, _y + 0.5 * _s, _x + 4.3 * _s, _y + 0.5 * _s, _x, _y - 8 * _s, false);
+			draw_set_color(_paper);
+			draw_circle(_x - 1.8 * _s, _y + 1.5 * _s, 1.3 * _s, false); // a glint
+			break;
+		case "Loose": // an open shackle
+			draw_arc_thick_deg(_x, _y - 1 * _s, 3.5 * _s, 5.5 * _s, 180, 360, 12);
+			draw_line_width(_x - 4.5 * _s, _y - 1 * _s, _x - 4.5 * _s, _y + 7 * _s, _w);
+			draw_line_width(_x + 4.5 * _s, _y - 1 * _s, _x + 4.5 * _s, _y + 2 * _s, _w);
+			break;
+		case "Favourite": // a star
+			draw_primitive_begin(pr_trianglefan);
+			draw_vertex(_x, _y);
+			for (var p = 0; p <= 10; p++) {
+				var _r = ((p mod 2) == 0 ? 8 : 3.5) * _s;
+				draw_vertex(_x + lengthdir_x(_r, 90 + p * 36), _y + lengthdir_y(_r, 90 + p * 36));
+			}
+			draw_primitive_end();
+			break;
+		case "Coin": // a coin
+			draw_circle(_x, _y, 7 * _s, false);
+			draw_set_color(_paper);
+			draw_circle(_x, _y, 4.8 * _s, true);
+			break;
+		case "Multitype": // a diamond split down the diagonal
+			draw_triangle(_x, _y - 8 * _s, _x - 8 * _s, _y, _x, _y + 8 * _s, false);
+			draw_set_color(merge_colour(_ink, _paper, 0.55));
+			draw_triangle(_x, _y - 8 * _s, _x + 8 * _s, _y, _x, _y + 8 * _s, false);
+			break;
+	}
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
 /// @func rarity_colour(_rarity)
 /// @desc A rarity's gem colour: grey common, teal uncommon, violet rare (starters have no gem).
 function rarity_colour(_rarity) {
@@ -2088,19 +2172,6 @@ function draw_rarity_gem(_x, _y, _rarity, _scale = 1, _alpha = 1) {
 	draw_set_color(c_white);
 }
 
-/// @func die_keyword_icons(_d)
-/// @desc The keywords a die shows as icons (Coin and Multitype have none: they show in its shape and colour). An array of names.
-function die_keyword_icons(_d) {
-	var _found = [];
-	var _keys = variable_struct_get_names(global.keywords);
-	for (var k = 0; k < array_length(_keys); k++) {
-		var _key = _keys[k];
-		if (_key == "Coin" || _key == "Multitype") continue;
-		if (die_has_keyword(_d, _key) && !is_undefined(global.keywords[$ _key].index)) array_push(_found, _key);
-	}
-	return _found;
-}
-
 /// @func die_stats_line(_d, _out)
 /// @desc "d6 Block, 1-6": a die's size, types and range (from get_dice_output), for tooltips on its picture.
 function die_stats_line(_d, _out) {
@@ -2127,7 +2198,7 @@ function bag_card_layout(_d, _w) {
 /// @func draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected)
 /// @desc A die's card in the bag view (and the dice picker), centred on _cx, _cy, laid out like the quartermaster's
 ///       cards (bag_card_layout):
-///       - a header band in its type colour: its name, its keyword icons just after it, its rarity gem on the right
+///       - a header band in its type colour: its name, its rarity gem on the right
 ///       - the die drawn in code on the left; beside it what it does, big ("d6 Block, 1-6" only on hovering the die)
 ///       - a fitted core: its distribution under all that (the core isn't described)
 ///       Dark edge; lifts with a white edge when hovered; a green edge and tick when picked.
@@ -2151,19 +2222,11 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 
 	// header band in its type colour (darkened so white text reads), square along its bottom; split for a multitype die
 	draw_header_band(_x1, _y1, _x2, _head_h, 14, die_colours(_d.possible_type));
-	// the name, then its keyword icons right after it, then the gem on the right
-	var _icons = die_keyword_icons(_d);
-	var _icon_s = 0.7, _icon_step = 27;
-	var _name_max = _w - 14 - 34 - array_length(_icons) * _icon_step;
+	// the name, then the gem on the right (keywords are in the description's first words, coloured)
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
-	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + 14, _y1 + _head_h / 2, 1, _alpha, 0, _name_max);
-	var _ix = _x1 + 14 + min(string_width(_d.name), _name_max) + 8 + 13;
-	for (var k = 0; k < array_length(_icons); k++) {
-		draw_sprite_ext(sKeywordIcons, global.keywords[$ _icons[k]].index, _ix, _y1 + _head_h / 2, _icon_s, _icon_s, 0, c_white, _alpha);
-		_ix += _icon_step;
-	}
+	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + 14, _y1 + _head_h / 2, 1, _alpha, 0, _w - 14 - 34);
 	draw_rarity_gem(_x2 - 20, _y1 + _head_h / 2, _d.rarity, 1, _alpha);
 
 	// the die, and beside it what it is and what it does

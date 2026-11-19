@@ -1377,13 +1377,14 @@ function effect_subject_die(_data) {
 	return undefined;
 }
 
-function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0) {
-    // icons come from the die's keywords list; Coin and Multitype have no icon (they show in the die's shape and colour)
+function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0, _where = "hand") {
+    // icons come from the die's keywords list, only those worth an icon _where the die is (the keyword's icon_on)
     var found = [];
     var key_names = variable_struct_get_names(global.keywords);
     for (var k = 0; k < array_length(key_names); k++) {
         var key = key_names[k];
-        if (key == "Coin" || key == "Multitype") continue;
+        var _on = variable_struct_exists(global.keywords[$ key], "icon_on") ? global.keywords[$ key].icon_on : [];
+        if (!array_contains(_on, _where)) continue;
         if (die_has_keyword(_die_struct, key)) array_push(found, key);
     }
 
@@ -1399,9 +1400,7 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0) {
         var key = found[i];
         var data = global.keywords[$ key];
 
-        if (!is_undefined(data.index)) {
-			draw_sprite_ext(sKeywordIcons, data.index, icon_x, icon_y, _scale, _scale, 0, c_white, _alpha);
-        }
+        draw_keyword_icon(key, icon_x, icon_y, _scale, _alpha);
 
         icon_x += icon_spacing;
     }
@@ -1939,10 +1938,9 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1) {
 
 /// @func dice_particle_draw()
 /// @desc oDiceParticle Draw: the die flying to the bag (or from a reward), drawn in code like every die (split if
-///       multitype; its sprite's scale as the radius), keyword icons small above it.
+///       multitype; its sprite's scale as the radius).
 function dice_particle_draw() {
 	if (!variable_instance_exists(id, "die_struct") || !is_struct(die_struct)) { draw_sprite_ext(sprite_index, image_index, x, y, image_xscale, image_yscale, image_angle, image_blend, 1.0); return; }
 	var _r = 36 * image_xscale;
 	draw_die(x, y, _r, die_struct.dice_value, -1, die_colours(die_struct.possible_type), image_angle, 1);
-	draw_dice_keywords(die_struct, x, y - _r - 12, 0.6 * image_xscale);
 }

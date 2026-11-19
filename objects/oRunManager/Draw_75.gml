@@ -56,9 +56,7 @@ if (show_dice_list) {
 		// Draw dice sprite
 		draw_die(dice_x, dice_y, row_spacing * 0.4, dice.dice_value, -1, die_colours(dice.possible_type), 0, 1);
 		
-		// Draw dice keywords
-		draw_dice_keywords(dice, dice_x, dice_y, 1);
-		
+
 		// Draw dice name
 		draw_set_font(ftDefault);
 		draw_set_valign(fa_middle);
