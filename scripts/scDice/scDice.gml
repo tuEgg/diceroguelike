@@ -1648,39 +1648,10 @@ function get_dice_color(_action) {
 		    }
 		}
 
-		// --- Fallbacks and Pulsing Blends --------------------------------------
-
-		var blended;
-
-		if (count == 0) {
-		    blended = c_white;
-		}
-		else if (count == 1) {
-		    blended = colours[0];
-		}
-		else {
-		    // 2+ colours: pulse through all of them in a loop
-
-		    // Pulse speed (tweak to taste)
-		    var spd = 0.006;
-
-		    // Normalized sine wave from 0..1
-		    var t = (sin(current_time * spd) + 1) * 0.5;
-
-		    // Index selection: smoothly moves between colour slots
-		    // t spreads across (count-1) intervals
-		    var pos = t * (count - 1);
-
-		    var index_a = floor(pos);
-		    var index_b = min(index_a + 1, count - 1);
-
-		    var local_t = pos - index_a;
-
-		    // Blend between those two colours only
-		    blended = merge_colour(colours[index_a], colours[index_b], local_t);
-		}
-		
-		return blended;
+		// a multitype die is drawn split diagonally in its colours (die_colours); one colour stands for it in text and
+		// particles: its first type's (it used to pulse between them)
+		if (count == 0) return c_white;
+		return colours[0];
 	} else {
 		var _col;
 		switch (_action) {
@@ -1692,6 +1663,74 @@ function get_dice_color(_action) {
 			default: _col = c_ltgray;
 		}
 		return _col;
+	}
+}
+
+/// @func die_colours(_possible_type)
+/// @desc A die's colours for drawing: one for a single type, one per type for a multitype die ("ATK INTEL": attack red
+///       and insight yellow), which draw_die and draw_die_shape split diagonally. An array.
+function die_colours(_possible_type) {
+	if (string_pos(" ", _possible_type) == 0) return [get_dice_color(_possible_type)];
+	var _out = [];
+	var _parts = string_split(_possible_type, " ");
+	for (var i = 0; i < array_length(_parts); i++) {
+		var _p = string_upper(_parts[i]);
+		if (_p == "ATK" || _p == "BLK" || _p == "HEAL" || _p == "INTEL") array_push(_out, get_dice_color(_p));
+	}
+	if (array_length(_out) == 0) array_push(_out, get_dice_color(_possible_type));
+	return _out;
+}
+
+/// @func colours_merge(_col, _to, _amount)
+/// @desc merge_colour for a colour or an array of colours (die_colours): each one merged the same way.
+function colours_merge(_col, _to, _amount) {
+	if (!is_array(_col)) return merge_colour(_col, _to, _amount);
+	var _out = [];
+	for (var i = 0; i < array_length(_col); i++) array_push(_out, merge_colour(_col[i], _to, _amount));
+	return _out;
+}
+
+/// @func draw_split_polygon(_x, _y, _pts, _cols, _angle)
+/// @desc A convex polygon (_pts around 0,0, [x, y] each) filled in diagonal bands, one per colour, the split running
+///       from bottom left to top right (first colour top left), turned with the shape by _angle. Clips each band out of
+///       the polygon (two half-planes) and fans it.
+function draw_split_polygon(_x, _y, _pts, _cols, _angle) {
+	var _n = array_length(_cols);
+	// how far along the diagonal each corner is (x + y: top left is low)
+	var _lo = infinity, _hi = -infinity;
+	for (var i = 0; i < array_length(_pts); i++) { var _d = _pts[i][0] + _pts[i][1]; _lo = min(_lo, _d); _hi = max(_hi, _d); }
+	var _c = dcos(_angle), _s = dsin(_angle);
+	for (var b = 0; b < _n; b++) {
+		var _a0 = (b == 0) ? -infinity : lerp(_lo, _hi, b / _n);
+		var _a1 = (b == _n - 1) ? infinity : lerp(_lo, _hi, (b + 1) / _n);
+		var _poly = _pts;
+		// keep x + y >= _a0, then x + y <= _a1
+		for (var side = 0; side < 2; side++) {
+			var _lim = (side == 0) ? _a0 : _a1;
+			if (abs(_lim) == infinity) continue;
+			var _clip = [];
+			var _m = array_length(_poly);
+			for (var i = 0; i < _m; i++) {
+				var _p = _poly[i], _q = _poly[(i + 1) mod _m];
+				var _dp = (_p[0] + _p[1] - _lim) * ((side == 0) ? 1 : -1);
+				var _dq = (_q[0] + _q[1] - _lim) * ((side == 0) ? 1 : -1);
+				if (_dp >= 0) array_push(_clip, _p);
+				if ((_dp >= 0) != (_dq >= 0)) {
+					var _t = _dp / (_dp - _dq);
+					array_push(_clip, [lerp(_p[0], _q[0], _t), lerp(_p[1], _q[1], _t)]);
+				}
+			}
+			_poly = _clip;
+		}
+		var _k = array_length(_poly);
+		if (_k < 3) continue;
+		draw_set_color(_cols[b]);
+		draw_primitive_begin(pr_trianglelist);
+		for (var i = 1; i < _k - 1; i++) {
+			var _v = [_poly[0], _poly[i], _poly[i + 1]];
+			for (var j = 0; j < 3; j++) draw_vertex(_x + _v[j][0] * _c + _v[j][1] * _s, _y - _v[j][0] * _s + _v[j][1] * _c);
+		}
+		draw_primitive_end();
 	}
 }
 
@@ -1801,9 +1840,19 @@ function die_shape_points(_sides, _r) {
 }
 
 /// @func draw_die_shape(_x, _y, _r, _sides, _col, _angle, _alpha)
-/// @desc A die's filled outline (no pips): a circle for a coin, a polygon otherwise. _angle in degrees.
+/// @desc A die's filled outline (no pips): a circle for a coin, a polygon otherwise. _angle in degrees. _col can be an
+///       array of colours (die_colours): a multitype die, split diagonally (draw_split_polygon).
 function draw_die_shape(_x, _y, _r, _sides, _col, _angle = 0, _alpha = 1) {
+	if (is_array(_col) && array_length(_col) == 1) _col = _col[0];
 	draw_set_alpha(_alpha);
+	if (is_array(_col)) {
+		var _pts = [];
+		if (_sides <= 2) { for (var i = 0; i < 28; i++) array_push(_pts, [lengthdir_x(_r, i * 360 / 28), lengthdir_y(_r, i * 360 / 28)]); }
+		else _pts = die_shape_points(_sides, _r);
+		draw_split_polygon(_x, _y, _pts, _col, _angle);
+		draw_set_alpha(1);
+		return;
+	}
 	draw_set_color(_col);
 	if (_sides <= 2) {
 		draw_circle(_x, _y, _r, false);
@@ -1840,17 +1889,19 @@ function die_pip_layout(_face) {
 }
 
 /// @func draw_die(_x, _y, _r, _sides, _face, _col, [_angle], [_alpha])
-/// @desc A die drawn in code: its shape by size, filled with its type colour, a shadow and outline, and _face as pips
+/// @desc A die drawn in code: its shape by size, filled with its type colour (or die_colours, split), a shadow and outline, and _face as pips
 ///       (1-9; a numeral from 10, or 0). _face -1: not rolled, shows its size ("d6"). _r is about half its width.
 function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1) {
 	// shadow, outline, body, and a lighter inner face for a little depth
 	draw_die_shape(_x + _r * 0.08, _y + _r * 0.12, _r * 1.06, _sides, c_black, _angle, _alpha * 0.35);
 	draw_die_shape(_x, _y, _r * 1.07, _sides, make_color_rgb(20, 20, 26), _angle, _alpha);
-	draw_die_shape(_x, _y, _r, _sides, merge_colour(_col, c_black, 0.18), _angle, _alpha);
+	draw_die_shape(_x, _y, _r, _sides, colours_merge(_col, c_black, 0.18), _angle, _alpha);
 	draw_die_shape(_x, _y - _r * 0.04, _r * 0.86, _sides, _col, _angle, _alpha);
 
-	// pips (or a number) on the face: light pips on dark colours, dark on light
-	var _lum = 0.299 * colour_get_red(_col) + 0.587 * colour_get_green(_col) + 0.114 * colour_get_blue(_col);
+	// pips (or a number) on the face: light pips on dark colours, dark on light (a split die: by its colours' average)
+	var _cols = is_array(_col) ? _col : [_col];
+	var _lum = 0;
+	for (var c = 0; c < array_length(_cols); c++) _lum += (0.299 * colour_get_red(_cols[c]) + 0.587 * colour_get_green(_cols[c]) + 0.114 * colour_get_blue(_cols[c])) / array_length(_cols);
 	var _light = (_lum < 150); // light pips on a dark body
 	var _pip_col = _light ? make_color_rgb(250, 248, 240) : make_color_rgb(30, 28, 36);
 	var _ring_col = _light ? make_color_rgb(20, 20, 26) : make_color_rgb(250, 248, 240);

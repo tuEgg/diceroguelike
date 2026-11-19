@@ -14,7 +14,7 @@ All three are structs with effects that hook named events. Definitions are built
 - `deal_single_die` draws from `global.dice_bag` (reshuffles the discard pile; the F1 menu can inject a die via `debug_take_next_die`). `oDice` is the in-hand instance (`struct` holds the die).
 - `get_dice_output(die, slot, index, read_only, owner)`: with no slot (-1 or undefined) the die is previewed as its own `action_type`. Hover and bag previews must pass `read_only` true. An unslotted die always has `slot_num` -1 in the context; effects that count slots (Surge, Kill Coin) must check `slot_num >= 0` first. `oDice` copies `action_type`, `dice_amount`, `dice_value`, `possible_type` from its `struct` every step; the struct is the truth.
 - Permanence strings: `"base"` (stays a turn), `"temporary"`, `"temporary none"`, `"sticky"`.
-- Colour: `get_dice_color(die.possible_type)` (not `action_type`), so multitype dice blend their types' colours.
+- Colour: `get_dice_color(die.possible_type)` (not `action_type`): one colour, a multitype die's first type (no more pulsing blend), for text and particles. To draw a die use `die_colours(possible_type)` (an array): `draw_die` / `draw_die_shape` take a colour or that array and split a multitype die diagonally (`draw_split_polygon`; `colours_merge` shades an array). Card headers use `draw_header_band` (scHelpers), split the same way. Sprite-drawn dice (shop, rewards, workbench, out of fights) still show the first colour.
 
 ## Keepsakes: scKeepsakes
 

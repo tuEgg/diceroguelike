@@ -437,7 +437,7 @@ for (var i = 0; i < aq_list_size; i++) {
 			var _wd = global.sacrifice_list[| w];
 			var _wx = last_x + last_w / 2 - ((_wait - 1) * 40 / 2) + w * 40;
 			var _wy = last_y - 20;
-			draw_die(_wx, _wy, 17, _wd.dice_value, die_face_total(_wd), get_dice_color(_wd.possible_type), 0, 1); // its roll as pips
+			draw_die(_wx, _wy, 17, _wd.dice_value, die_face_total(_wd), die_colours(_wd.possible_type), 0, 1); // its roll as pips
 			draw_set_font(ftDefault);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
@@ -477,7 +477,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	        }
 			
 			// multitype dice blend their types' colours, like they do everywhere else
-			if (string_pos(" ", die_struct.possible_type) > 0) _col = get_dice_color(die_struct.possible_type);
+			if (string_pos(" ", die_struct.possible_type) > 0) _col = die_colours(die_struct.possible_type); // multitype: split diagonally
 
 	        draw_set_alpha(1.0);
 

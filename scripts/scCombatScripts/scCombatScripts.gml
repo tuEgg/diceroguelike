@@ -3061,7 +3061,7 @@ gpu_set_blendmode(bm_normal);
 			// a yellow edge (brighter when hovered), then the die itself, on top of the dark
 			var _glow = (_rr_can || _rd_can) ? (_hov ? 1 : 0.55 + 0.25 * sin(current_time / 200)) : 0.25;
 			draw_die_shape(x, y, _r * (_hov ? 1.22 : 1.16), dice_value, global.color_intel, tumble_angle, _glow);
-			draw_die(x, y, _r * (_hov ? 1.08 : 1), dice_value, _face, get_dice_color(struct.possible_type), tumble_angle, 1);
+			draw_die(x, y, _r * (_hov ? 1.08 : 1), dice_value, _face, die_colours(struct.possible_type), tumble_angle, 1);
 			if (_hov) {
 				_over_die = true;
 				draw_mouse_hint(x - 78, y - _r - 46, "left", "Reroll", 0.6, _rr_can ? global.color_intel : make_color_rgb(90, 90, 100), _rr_can ? global.color_intel : make_color_rgb(150, 150, 160));

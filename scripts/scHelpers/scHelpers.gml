@@ -2029,6 +2029,30 @@ function bag_type_label(_possible_type) {
 	return _out;
 }
 
+/// @func draw_header_band(_x1, _y1, _x2, _h, _r, _cols)
+/// @desc A card's header band, rounded at the top and square along its bottom, in its type colour darkened so white
+///       text reads. A multitype die's (die_colours, 2+) is split diagonally like its die: the first colour on the left,
+///       the next from a slanted edge past the middle.
+function draw_header_band(_x1, _y1, _x2, _h, _r, _cols) {
+	var _y2 = _y1 + _h;
+	draw_set_color(merge_colour(_cols[0], c_black, 0.5));
+	draw_roundrect_ext(_x1, _y1, _x2, _y2, _r, _r, false);
+	draw_rectangle(_x1, _y2 - _r, _x2, _y2, false);
+	var _n = array_length(_cols);
+	if (_n < 2) return;
+	var _w = _x2 - _x1, _slant = _h * 0.5;
+	for (var b = 1; b < _n; b++) {
+		var _mx = (_n == 2) ? _x1 + _w * 0.62 : _x1 + _w * b / _n; // two: the name keeps the left
+		draw_set_color(merge_colour(_cols[b], c_black, 0.5));
+		draw_primitive_begin(pr_trianglestrip);
+		draw_vertex(_mx + _slant, _y1); draw_vertex(_x2 - _r, _y1);
+		draw_vertex(_mx - _slant, _y2); draw_vertex(_x2 - _r, _y2);
+		draw_primitive_end();
+		draw_roundrect_ext(_x2 - _r * 2, _y1, _x2, _y2, _r, _r, false);
+		draw_rectangle(_x2 - _r * 2, _y2 - _r, _x2, _y2, false);
+	}
+}
+
 /// @func rarity_colour(_rarity)
 /// @desc A rarity's gem colour: grey common, teal uncommon, violet rare (starters have no gem).
 function rarity_colour(_rarity) {
@@ -2125,10 +2149,8 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 	draw_set_color(make_color_rgb(34, 36, 48));
 	draw_roundrect_ext(_x1, _y1, _x2, _y2, 14, 14, false);
 
-	// header band in its type colour (darkened so white text reads), square along its bottom
-	draw_set_color(merge_colour(_type_col, c_black, 0.5));
-	draw_roundrect_ext(_x1, _y1, _x2, _y1 + _head_h, 14, 14, false);
-	draw_rectangle(_x1, _y1 + _head_h - 14, _x2, _y1 + _head_h, false);
+	// header band in its type colour (darkened so white text reads), square along its bottom; split for a multitype die
+	draw_header_band(_x1, _y1, _x2, _head_h, 14, die_colours(_d.possible_type));
 	// the name, then its keyword icons right after it, then the gem on the right
 	var _icons = die_keyword_icons(_d);
 	var _icon_s = 0.7, _icon_step = 27;
@@ -2146,7 +2168,7 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 
 	// the die, and beside it what it is and what it does
 	var _dx = _x1 + 46, _dy = _y1 + _head_h + 46;
-	draw_die(_dx, _dy, 30, _d.dice_value, -1, _type_col, 0, _alpha);
+	draw_die(_dx, _dy, 30, _d.dice_value, -1, die_colours(_d.possible_type), 0, _alpha);
 	var _out = get_dice_output(_d, -1, -1, true, "player"); // read only: viewing the bag must never trigger keepsakes
 	var _tx = _x1 + _lay.text_x;
 	draw_set_font(ftDefault);
@@ -2288,7 +2310,7 @@ function offering_bag_icon(_d, _x, _y, _ink) {
 	var _hover = mouse_hovering(_x, _y, 36, 36, true, noone, noone, true, UI_LAYER.POPUP);
 	var _s = _hover ? 1.2 : 1;
 	draw_die_shape(_x, _y, 14 * _s, _d.dice_value, _hover ? c_white : _ink, 0, 1);
-	draw_die_shape(_x, _y, 11 * _s, _d.dice_value, get_dice_color(_d.possible_type), 0, 1);
+	draw_die_shape(_x, _y, 11 * _s, _d.dice_value, die_colours(_d.possible_type), 0, 1);
 	if (_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _d.name, die_description(_d), undefined, 0, _d);
 }
 
@@ -2335,10 +2357,8 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	draw_set_color(make_color_rgb(34, 36, 48));
 	draw_roundrect_ext(_x1, _y1, _x2, _y2, 16, 16, false);
 
-	// header: name, rarity
-	draw_set_color(merge_colour(_type_col, c_black, 0.5));
-	draw_roundrect_ext(_x1, _y1, _x2, _y1 + _head_h, 16, 16, false);
-	draw_rectangle(_x1, _y1 + _head_h - 16, _x2, _y1 + _head_h, false);
+	// header: name, rarity (the band split for a multitype die)
+	draw_header_band(_x1, _y1, _x2, _head_h, 16, die_colours(_d.possible_type));
 	draw_set_font(ftBig);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
@@ -2347,7 +2367,7 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 
 	// the die, and what it is
 	var _dx = _x1 + 64, _dy = _y1 + _head_h + 62;
-	draw_die(_dx, _dy, 40, _d.dice_value, -1, _type_col, 0, 1);
+	draw_die(_dx, _dy, 40, _d.dice_value, -1, die_colours(_d.possible_type), 0, 1);
 	var _tx = _x1 + 128;
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
