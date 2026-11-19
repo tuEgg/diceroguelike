@@ -445,7 +445,7 @@ for (var i = 0; i < aq_list_size; i++) {
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
 			if (mouse_hovering(_wx, _wy, sprite_get_width(sDiceIcon), sprite_get_height(sDiceIcon), true) && !show_rewards) {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _wd.name, die_description(_wd) + "\n\nClick to take it back to your hand.", undefined, 0, _wd);
+				queue_die_tip(_wd, _wx, _wy - 22, undefined, "Click to take it back to your hand.");
 				if (mouse_check_button_pressed(mb_left) && state == CombatState.PLAYER_INPUT && global.ui_layer == UI_LAYER.BASE && !oRunManager.holding_item && combat_no_die_dragged()) {
 					take_back_request = { slot: -1, index: w };
 				}
@@ -524,7 +524,7 @@ for (var i = 0; i < aq_list_size; i++) {
 						_back_hint = (variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot) ? "\n\nIt built this slot, so it stays this turn." : "\n\nIts 'when played' effect has happened, so it stays.";
 					}
 				}
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die_struct.name, die_description(die_struct) + _back_hint, undefined, 0, die_struct);
+				queue_die_tip(die_struct, xx_top, yy_top - 22 * this_dice_scale, undefined, string_trim(_back_hint));
 				if (mouse_check_button_pressed(mb_left) && die_can_take_back(die_struct) && state == CombatState.PLAYER_INPUT && global.ui_layer == UI_LAYER.BASE && !oRunManager.holding_item && combat_no_die_dragged()) {
 					take_back_request = { slot: i, index: d };
 				}
@@ -541,6 +541,8 @@ for (var i = 0; i < aq_list_size; i++) {
 			
 			// Draw keyword icons above
 			draw_dice_keywords(die_struct, xx_top, yy_top + die_bottom_edge(die_struct.dice_value, 17 * this_dice_scale), 0.65, 1, "slot"); // only what matters in a slot (Sticky), on its bottom edge
+			// it built this slot this turn, so it stays (its tip says so): a small padlock on its corner
+			if (state == CombatState.PLAYER_INPUT && variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot && variable_struct_exists(die_struct, "played_turn") && die_struct.played_turn == turn_count) draw_padlock(xx_top + 15, yy_top - 13, 0.55, make_color_rgb(226, 212, 176));
 			if (global.action_icons) draw_action_type_icon(die_struct.action_type, xx_top - 13, yy_top + 13, 0.8); // Settings > Display > Action icons on dice
 			
 			// Bonus badge in the die's bottom-right corner: every-die bonuses, first-die ones on the first die, and what
@@ -1266,7 +1268,7 @@ if (show_rewards) {
 			    draw_text_ext(btn.x + btn.w / 2, btn.y + btn.h + 20 - 12 * (string_height_ext(label, -1, sprite_get_width(sRewardFrame) * 0.85) > string_height("A") * 1.5), label, -1, sprite_get_width(sRewardFrame) * 0.85); // long names wrap inside the frame
 		
 				if (btn.hover) {
-					queue_tooltip( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die.name, die_description(die), undefined, 0, die);
+					queue_die_tip(die, btn.x + btn.w / 2, btn.y + btn.h / 2 - 40 * btn.scale);
 				}
 
 			    // --- Click logic: Take reward ---

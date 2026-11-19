@@ -93,7 +93,7 @@ for (var d = 0; d < ds_list_size(shop_dice_options); d++) {
 		draw_outline_text(dice.price, c_black, cost_col, 2, dx, dy + coin_offset_y, shop_dice_scale[| d], 1.0, 0);
 	
 		if (hover_die) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), dice.name, die_description(dice), undefined, 0, dice, dice.price, "gold");
+			queue_die_tip(dice, dx, dy - 40 * shop_dice_scale[| d], undefined, "", dice.price, "gold");
 		
 			if (mouse_check_button_pressed(mb_left) && oRunManager.credits < dice.price) throw_error("Not enough gold", "You need " + string(dice.price - oRunManager.credits) + " more gold.");
 			if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= dice.price) {

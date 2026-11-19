@@ -532,15 +532,25 @@ function draw_all_tooltips() {
     global.tooltip_keywords = [];
 }
 
-/// @func queue_die_tip(_die, _cx, _bottom, _sub)
-/// @desc A die's compact tip (the hovered die in hand): drawn by draw_all_tooltips centred on _cx with its pointer at
+/// @func die_tip_sub(_die)
+/// @desc What a die tip says beside the name: "rolled 4" once it has rolled this turn, otherwise its range ("1-6").
+function die_tip_sub(_die) {
+	if (room == rmCombat && die_has_faces(_die)) return "rolled " + string(die_face_total(_die));
+	var _out = get_dice_output(_die, -1, -1, true, "player"); // read only
+	return string(_out.min_roll) + "-" + string(_out.max_roll);
+}
+
+/// @func queue_die_tip(_die, _cx, _bottom, [_sub], [_extra], [_cost], [_cost_kind])
+/// @desc A die's compact tip (every die you hover: in hand, in slots, on cards, shelves and rewards): drawn by draw_all_tooltips centred on _cx with its pointer at
 ///       _bottom (just above the die), never below it, so it never covers the hand. Name, _sub ("rolled 4" or "1-6"), a
-///       mini chart of a fitted core (draw_dist_mini), and the effect. No keyword boxes: those are on the die's icons.
+///       mini chart of a fitted core (draw_dist_mini), and the effect; _extra a muted last line (a hint), _cost a "-N"
+///       tag on its corner. No keyword boxes: those are on the die's icons.
 ///       Takes the tooltip slot like queue_tooltip (the first asked for in a frame wins).
-function queue_die_tip(_die, _cx, _bottom, _sub) {
+function queue_die_tip(_die, _cx, _bottom, _sub = undefined, _extra = "", _cost = 0, _cost_kind = "gold") {
 	if (global.tooltip_active) return;
+	if (is_undefined(_sub)) _sub = die_tip_sub(_die);
 	global.tooltip_active = true;
-	global.tooltip_main = { die_tip: true, dice: _die, cx: _cx, bottom: _bottom, sub: _sub };
+	global.tooltip_main = { die_tip: true, dice: _die, cx: _cx, bottom: _bottom, sub: _sub, extra: _extra, cost: _cost, cost_kind: _cost_kind };
 	global.tooltip_keywords = [];
 }
 
@@ -581,9 +591,12 @@ function draw_die_tip(_tt) {
 	var _line = font_get_size(ftDescriptions) * 1.5;
 	var _desc_w = min(_max_w, string_width(_desc));
 	var _desc_h = string_height_ext(_desc, _line, _max_w);
+	var _extra = variable_struct_exists(_tt, "extra") ? _tt.extra : "";
+	var _extra_h = (_extra != "") ? 6 + string_height_ext(_extra, _line, _max_w) : 0;
+	if (_extra != "") _desc_w = max(_desc_w, min(_max_w, string_width(_extra)));
 	var _mini_w = (_d.distribution != "") ? _d.dice_value * 7 : 0; // about draw_dist_mini's width
 	var _w = _pad * 2 + max(_name_w + 8 + _sub_w + (_mini_w > 0 ? 10 + _mini_w : 0), _desc_w);
-	var _h = _pad * 2 + _name_h + 4 + _desc_h;
+	var _h = _pad * 2 + _name_h + 4 + _desc_h + _extra_h;
 	var _x1 = clamp(_tt.cx - _w / 2, 10, display_get_gui_width() - _w - 10);
 	var _y2 = _tt.bottom - 10; // room for the pointer
 	var _y1 = max(ui_top_bar_h() + 6, _y2 - _h);
@@ -615,6 +628,8 @@ function draw_die_tip(_tt) {
 	draw_outline_text(_tt.sub, c_black, make_color_rgb(185, 169, 136), 1, _sx, _y1 + _pad + 3, 1, 1, 0);
 	if (_mini_w > 0) draw_dist_mini(_d, _sx + _sub_w + 10, _y1 + _pad + _name_h - 3, 16);
 	draw_outline_text(colorcode_text(_desc), c_black, c_white, 1, _x1 + _pad, _y1 + _pad + _name_h + 4, 1, 1, 0, _max_w);
+	if (_extra != "") draw_outline_text(_extra, c_black, make_color_rgb(185, 169, 136), 1, _x1 + _pad, _y1 + _pad + _name_h + 4 + _desc_h + 6, 1, 1, 0, _max_w);
+	if (variable_struct_exists(_tt, "cost") && _tt.cost > 0) tooltip_cost_badge(_x1 + _w, _y1, _tt.cost, _tt.cost_kind);
 	draw_set_color(c_white);
 }
 
@@ -2331,7 +2346,7 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 	// just the effect, big: the die already shows its size and colour, the bars its faces
 	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 14, 1, _alpha, 0, _lay.text_w);
 	// its size, type and range on hovering the die
-	if (_hover && mouse_hovering(_dx, _dy, 70, 70, true, noone, noone, true, UI_LAYER.BAG)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die_stats_line(_d, _out), die_description(_d), undefined, 0, _d);
+	if (_hover && mouse_hovering(_dx, _dy, 70, 70, true, noone, noone, true, UI_LAYER.BAG)) queue_die_tip(_d, _dx, _dy - 34, die_stats_line(_d, _out));
 
 	// a fitted core: how it shapes this die's faces, under the die and its words
 	if (_d.distribution != "") {
@@ -2465,7 +2480,7 @@ function offering_bag_icon(_d, _x, _y, _ink) {
 	var _s = _hover ? 1.2 : 1;
 	draw_die_shape(_x, _y, 14 * _s, _d.dice_value, _hover ? c_white : _ink, 0, 1);
 	draw_die_shape(_x, _y, 11 * _s, _d.dice_value, die_colours(_d.possible_type), 0, 1);
-	if (_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _d.name, die_description(_d), undefined, 0, _d);
+	if (_hover) queue_die_tip(_d, _x, _y - 18);
 }
 
 /// @func offering_card_layout(_off, _w)
@@ -2529,7 +2544,7 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	var _out = get_dice_output(_d, -1, -1, true, "player");
 	// just the effect, big; its size, type and range on hovering the die
 	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 24, 1, 1, 0, _lay.text_w);
-	if (mouse_hovering(_dx, _dy, 90, 90, true, noone, noone, true, UI_LAYER.POPUP)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die_stats_line(_d, _out), die_description(_d), undefined, 0, _d);
+	if (mouse_hovering(_dx, _dy, 90, 90, true, noone, noone, true, UI_LAYER.POPUP)) queue_die_tip(_d, _dx, _dy - 46, die_stats_line(_d, _out));
 
 	// the core, just under the die and its words
 	var _cy = _y1 + _lay.core_y;
