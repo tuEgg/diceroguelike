@@ -950,6 +950,66 @@ function generate_dice_bag() {
 	    ]
 	);
 	ds_list_add(global.master_dice_list, clone_die(global.die_splash, ""));
+
+	// --- v0.2 dice (F21) ---
+	// Gunpowder: when it rolls, every other enemy takes 2 (at roll time, so enemies only ever fall while the queue resolves)
+	global.die_gunpowder = make_die_struct(
+	    1, 4, "ATK", "ATK", "", "Gunpowder die",
+	    "When this die rolls, every other enemy takes 2 damage.",
+		"common",
+		40,
+	    [
+	        {
+	            trigger: "after_roll_die", // owner-only: fires for this die's own roll (die_fire_effects)
+	            modify: function(_context) {
+					if (_context._c_slot_type != "ATK") return; // only as an attack
+					with (oCombat) {
+						for (var i = 0; i < ds_list_size(room_enemies); i++) {
+							if (i != enemy_target_index && !room_enemies[| i].dead) process_action(room_enemies[| i], 0, 2, 0, "player", -1, "ATK", undefined, undefined, 0);
+						}
+					}
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_gunpowder, ""));
+
+	// Tidecaller: a high heal also raises your guard
+	global.die_tidecaller = make_die_struct(
+	    1, 6, "HEAL", "HEAL", "", "Tidecaller die",
+	    "If this die rolls 5 or higher, also gain 3 block.",
+		"uncommon",
+		50,
+	    [
+	        {
+	            trigger: "after_roll_die",
+	            modify: function(_context) {
+					if (_context._d_amount >= 5) {
+						with (oCombat) process_action("player", 0, 3, 0, "player", undefined, "BLK");
+						roll_popup(_context.slot_num, _context.dice_index, "Tidecaller!", global.color_block);
+					}
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_tidecaller, ""));
+
+	// Ballast: a heavy die that never rolls low
+	global.die_ballast = make_die_struct(
+	    1, 8, "BLK", "BLK", "", "Ballast die",
+	    "Never rolls below 4.",
+		"uncommon",
+		55,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					_context.min_roll = max(_context.min_roll, 4);
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_ballast, ""));
 	
 	// Add to bag - STARTING DICE SET HERE
 	repeat(3)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_atk, "")); }

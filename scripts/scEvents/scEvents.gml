@@ -1226,6 +1226,89 @@
 	ds_list_add(event_sirens.options, event_sirens_opt_2);
 	ds_list_add(event_sirens.options, event_sirens_opt_3);
 	ds_list_add(global.master_event_list, event_sirens);
+
+	// --------------------------
+	// EVENT (v0.2, F23)
+	// --------------------------
+
+	event_crate = {
+		name: "A floating crate",
+		description: "A crate bobs alongside the hull, lashed shut and stamped with a merchant's mark. The crew hook it aboard and look to you.",
+		options: ds_list_create(),
+	}
+		event_crate_opt_1 = {
+			title: "Pry it open",
+			description: "Gain 60 gold.",
+			effect: function(_context) {
+				gain_coins(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), 60);
+				oEventManager.event_complete = 0;
+				oEventManager.event_selected = true;
+			},
+			result: "Coins spill across the deck. Someone back home is having a bad week."
+		}
+		event_crate_opt_2 = {
+			title: "Break it up for planks",
+			description: "Heal 20% of your max health.",
+			effect: function(_context) {
+				if (global.player_hp < global.player_max_hp) process_action("player", 0, ceil(global.player_max_hp * 0.2), 0, "player", undefined, "HEAL");
+				oEventManager.event_complete = 1;
+				oEventManager.event_selected = true;
+			},
+			result: "The crew patch the hull with it, and you rest easier for it."
+		}
+	ds_list_add(event_crate.options, event_crate_opt_1);
+	ds_list_add(event_crate.options, event_crate_opt_2);
+	ds_list_add(global.master_event_list, event_crate);
+
+	event_tattooist = {
+		name: "The tattooist",
+		description: "In a quiet port a weathered tattooist offers to ink the crew. \"Every mark is a promise,\" she says, needle already in hand.",
+		options: ds_list_create(),
+	}
+		event_tattooist_opt_1 = {
+			title: "An anchor (40 gold)",
+			description: "Lose 40 gold. Choose a die to gain +1 min roll.",
+			effect: function(_context) {
+				if (oRunManager.credits < 40) {
+					throw_error("Need more gold", "40 gold needed for this one.");
+					return;
+				}
+				oRunManager.credits -= 40;
+				oRunManager.dice_selection = 1;
+				oRunManager.dice_selection_message = "Choose a die to gain +1 min roll";
+				oRunManager.dice_selection_event = function(_die) {
+					_die.min_roll_bonus += 1;
+					particle_emit(115, 1000, "rise", get_dice_color(_die.possible_type), 30);
+					spawn_floating_number("bag", 0, _die.name + " +1 min roll", _die.color, 0, -1, 0);
+				}
+				oEventManager.event_complete = 0;
+				oEventManager.event_selected = true;
+			},
+			result: "The anchor sits heavy on your arm. That die won't roll so low again."
+		}
+		event_tattooist_opt_2 = {
+			title: "A swallow (free)",
+			description: "Gain 3 alignment.",
+			effect: function(_context) {
+				gain_alignment(3);
+				oEventManager.event_complete = 1;
+				oEventManager.event_selected = true;
+			},
+			result: "A swallow for a safe return. Your compass leans a little kinder."
+		}
+		event_tattooist_opt_3 = {
+			title: "Politely decline",
+			description: "Nothing happens.",
+			effect: function(_context) {
+				oEventManager.event_complete = 2;
+				oEventManager.event_selected = true;
+			},
+			result: "She shrugs and goes back to her needles."
+		}
+	ds_list_add(event_tattooist.options, event_tattooist_opt_1);
+	ds_list_add(event_tattooist.options, event_tattooist_opt_2);
+	ds_list_add(event_tattooist.options, event_tattooist_opt_3);
+	ds_list_add(global.master_event_list, event_tattooist);
 }
 
 /// Shared by the Siren event options. Lives at script level so the option structs can call it.

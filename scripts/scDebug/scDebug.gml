@@ -42,7 +42,7 @@ function debug_menu_init() {
 		// Events
 		event_names: ["Pirate Prisoner", "A Great Storm", "Clear skies", "Broken sails", "Dividing up the bounty", "A Hidden Trunk",
 			"Some old loot", "Spare Ammunition", "A bird flies aboard", "The Wishing Well", "An island dream", "The Flying Dutchman",
-			"Rough tides", "The constellation", "A precious ingot", "The Siren's Call"],
+			"Rough tides", "The constellation", "A precious ingot", "The Siren's Call", "A floating crate", "The tattooist"],
 		forced_event: "",			// name of the event the next event room must show
 
 		// Dice
