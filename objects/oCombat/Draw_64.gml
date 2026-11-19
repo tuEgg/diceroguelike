@@ -423,8 +423,9 @@ for (var i = 0; i < aq_list_size; i++) {
 		var _have = new_slot_total();
 		draw_outline_text("New slot\n" + string(_have) + " / " + string(_need), c_black, c_white, 2, last_x + last_w / 2, last_y + last_h / 2 - (last_h / 10), 1, 1, 0);
 		var _min_dice = new_slot_min_dice();
-		draw_outline_text((_min_dice == 1) ? "1+ die" : string(_min_dice) + "+ dice", c_black, make_color_rgb(190, 190, 200), 2, last_x + last_w / 2, last_y + last_h - 35, 1, 1, 0);
-		if (last_hover && !is_placing && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", "Drop dice here. When " + ((new_slot_min_dice() == 1) ? "they" : string(new_slot_min_dice()) + " or more of them") + " add up to " + string(_need) + ", they build a new slot and act in it this turn. Each die uses a play (coins are free). Click a die here to take it back. Dice left here at End Turn are discarded.");
+		var _filled = combat_all_slots_have_action();
+		draw_outline_text(!_filled ? "Fill slots first" : ((_min_dice == 1) ? "1+ die" : string(_min_dice) + "+ dice"), c_black, make_color_rgb(190, 190, 200), 2, last_x + last_w / 2, last_y + last_h - 35, 1, 1, 0);
+		if (last_hover && !is_placing && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", (!_filled ? "Every slot needs an action before you can build another. " : "") + "Drop dice here. When " + ((new_slot_min_dice() == 1) ? "they" : string(new_slot_min_dice()) + " or more of them") + " add up to " + string(_need) + ", they build a new slot and act in it this turn. Each die uses a play (coins are free). Click a die here to take it back. Dice left here at End Turn are discarded.");
 
 		// the dice waiting on it, above it like a slot's
 		var _wait = ds_list_size(global.sacrifice_list);
@@ -662,7 +663,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		var reveal_intent_single = !intel_is_blotted();
 		var reveal_intent_all = !intel_is_blotted();
 	
-	    var text = intent_number_text(enemy, intel_level);
+	    var text = intent_number_text(enemy, enemy_intent_revealed(enemy) ? INTEL_LEGIBLE : INTEL_FADED); // exact once paid for (per enemy)
 
 	    var xx = enemy.pos_x; // enemy position on screen
 	    var yy = enemy.pos_y - 10 - (enemy.scale * 180);  // slightly above their head
@@ -804,7 +805,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "The enemy intents to escape", undefined, 0, undefined);
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
 					// plain words: what it will do and how much (the range when Faded, the exact number from Legible)
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, intent_hover_text(enemy, intel_level), undefined, 0, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, intent_hover_text(enemy, enemy_intent_revealed(enemy) ? INTEL_LEGIBLE : INTEL_FADED), undefined, 0, undefined);
 				} else {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Your insight is below 0, so the page is blotted and enemy intents are hidden.", undefined, 0, undefined);
 				}
@@ -1047,8 +1048,8 @@ if (state != CombatState.PLAYER_DEAD) {
 	// the eye (sIntelEye): smudged below 0, open for ranges, wide open once exact intents are bought. Click it to buy them.
 	var _eye_frame = intel_is_blotted() ? global.intel_blotted.index : global.player_intel_data[| intel_level].index;
 	var intel_hover = mouse_hovering(global.player_x, global.player_y - 180, 80, 60, true);
-	// it pulses while you have insight to spend (the cheapest buy, 2): click it for insight view
-	var _has_insight = combat_insight_can(INSIGHT_COST_REVEAL);
+	// it pulses while you have insight to spend on an enemy (the cheapest buy: a reveal, combat_reveal_cost)
+	var _has_insight = combat_insight_can(combat_reveal_cost());
 	var _eye_pulse = (_has_insight && !insight_view) ? 0.12 * (0.5 + 0.5 * sin(current_time / 180)) : 0;
 	draw_sprite_ext(sIntelEye, _eye_frame, global.player_x, global.player_y - 180, intel_scale * (1 + _eye_pulse), intel_scale * (1 + _eye_pulse), 0, c_white, intel_alpha);
 	draw_outline_text("Insight", c_black, intel_is_blotted() ? c_red : global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
@@ -1056,8 +1057,7 @@ if (state != CombatState.PLAYER_DEAD) {
 	if (intel_hover && mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && !intel_is_blotted() && state == CombatState.PLAYER_INPUT) combat_insight_view_set(true);
 	if (intel_hover) {
 		if (intel_is_blotted()) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 insight the page is smudged: enemy intents are hidden, and you can't spend insight.");
-		else if (_has_insight) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Insight: " + string(player_intel) + " to spend", "Click (or press I) to spend it on enemy moves. Rerolling and redrawing your dice, and extra plays, are paid as you do them.");
-		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Insight: " + string(player_intel), "Insight dice give you insight next turn. Spend it on rerolls (right-click a die, 3), redraws (discard a die, 3), extra plays (4), or here on enemy moves (2 and 6).");
+		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Enter insight view", "Manipulate enemy intents");
 	}
 
 	// the number shows when it isn't zero, negative intel (from Overwhelm) included

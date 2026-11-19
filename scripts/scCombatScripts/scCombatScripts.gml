@@ -812,6 +812,10 @@ function add_dice_to_bag(_die) {
 /// @desc Rolled dice: a die dropped on the new-slot tile waits there (it uses a play, coins are free, and it can be taken
 ///       back) until enough dice on it (new_slot_min_dice) add up to new_slot_threshold. Then the slot is built (combat_try_build_slot).
 function sacrifice_die(_die) {
+	if (!combat_all_slots_have_action()) {
+		throw_error("Fill your slots first", "A new slot can only be built once every slot you have has an action.");
+		return;
+	}
 	if (dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(_die.struct, "coin")) {
 		dice_played_scale = 1.4;
 		dice_played_color = c_red;
@@ -866,7 +870,7 @@ function new_slot_total() {
 ///       and they become the slot's first dice for this turn (locked in), so this turn it has their types. Like every
 ///       slot it's empty and untyped again after End Turn; what it keeps is its place, worth a bonus (slot_set_position_bonus).
 function combat_try_build_slot() {
-	if (ds_list_size(global.sacrifice_list) < new_slot_min_dice() || new_slot_total() < new_slot_threshold()) return;
+	if (ds_list_size(global.sacrifice_list) < new_slot_min_dice() || new_slot_total() < new_slot_threshold() || !combat_all_slots_have_action()) return;
 
 	combat_trigger_effects("on_new_slot_created", { slot_index: ds_list_size(action_queue) + 1 });
 
@@ -2050,8 +2054,8 @@ function tips_list() {
 		{
 			// the guided fight is off on this branch, so this teaches insight the first time you have some to spend
 			id: "insight_spend", room: rmCombat, target: "insight",
-			text: "Insight: you have some to spend this turn. Right-click a die to reroll it (" + string(INSIGHT_COST_REROLL) + "), drop one on the discard pile to draw a new one (" + string(INSIGHT_COST_REDRAW) + "), or click a yellow pip by your plays for another play (" + string(INSIGHT_COST_PLAY) + "). Click the pulsing eye (or press I) to see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + ") or make it choose its move again (" + string(INSIGHT_COST_QUILL) + "). What you don't spend is gone at End Turn.",
-			when: function() { return tips_combat_ready() && oCombat.player_intel >= INSIGHT_COST_REVEAL && !intel_is_blotted(); },
+			text: "Insight: you have some to spend this turn. Right-click a die to reroll it (" + string(INSIGHT_COST_REROLL) + "), drop one on the discard pile to draw a new one (" + string(INSIGHT_COST_REDRAW) + "), or click a yellow pip by your plays for another play (" + string(INSIGHT_COST_PLAY) + "). Click the pulsing eye (or press I) to see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + ", or 1 each when there are several) or make it choose its move again (" + string(INSIGHT_COST_QUILL) + "). What you don't spend is gone at End Turn.",
+			when: function() { return tips_combat_ready() && oCombat.player_intel >= combat_reveal_cost() && !intel_is_blotted(); },
 		},
 		{
 			id: "blotted", room: rmCombat, target: "insight",
@@ -2457,6 +2461,16 @@ function slot_has_action(_slot) {
 	return ds_list_size(_slot.dice_list) > 0 && (_slot.current_action_type != "None" || _slot.possible_type == "All");
 }
 
+/// @func combat_all_slots_have_action()
+/// @desc Every slot (but a chained one) has an action: only then can a new slot be built.
+function combat_all_slots_have_action() {
+	for (var j = 0; j < ds_list_size(oCombat.action_queue); j++) {
+		if (j == oCombat.locked_slot) continue;
+		if (!slot_has_action(oCombat.action_queue[| j])) return false;
+	}
+	return true;
+}
+
 /// @func slot_recompute_types(_slot)
 /// @desc A slot's types are the ones it was built with plus those of the dice in it. Empty, a starting slot is
 ///       untyped again. Keeps the selected type if it's still allowed.
@@ -2615,6 +2629,31 @@ function combat_insight_spend(_cost) {
 		return true;
 	}
 	return false;
+}
+
+/// @func combat_reveal_cost()
+/// @desc Seeing one enemy's exact values: 2 when it's alone, 1 each when there are several.
+function combat_reveal_cost() {
+	return (combat_living_enemies() > 1) ? 1 : INSIGHT_COST_REVEAL;
+}
+
+/// @func enemy_intent_revealed(_enemy)
+/// @desc Have you paid to see this enemy's exact values this turn?
+function enemy_intent_revealed(_enemy) {
+	return is_struct(_enemy) && variable_struct_exists(_enemy, "revealed") && _enemy.revealed;
+}
+
+/// @func combat_reveal_enemy(_enemy)
+/// @desc Pays combat_reveal_cost to see this enemy's exact values this turn.
+function combat_reveal_enemy(_enemy) {
+	if (enemy_intent_revealed(_enemy)) return;
+	with (oCombat) {
+		if (combat_insight_spend(combat_reveal_cost())) {
+			_enemy.revealed = true;
+			insight_revealed = true; // someone's revealed: the eye opens wide
+			intel_level = INTEL_LEGIBLE;
+		}
+	}
 }
 
 /// @func combat_buy(_what)
@@ -2921,13 +2960,14 @@ function combat_insight_view_draw() {
 			}
 
 			// right: see the exact numbers (every enemy's, for this turn)
-			if (!insight_revealed && intent_has_numbers(_en.intent.move)) {
-				var _rafford = combat_insight_can(INSIGHT_COST_REVEAL);
+			if (!enemy_intent_revealed(_en) && intent_has_numbers(_en.intent.move)) {
+				var _rcost = combat_reveal_cost();
+				var _rafford = combat_insight_can(_rcost);
 				var _rhover = mouse_hovering(_sx, _y1, _x2 - _sx, _y2 - _y1, false, noone, soClick4, true, UI_LAYER.POPUP);
-				combat_insight_part_draw(_sx + 2, _y1, _x2, _y2, _rafford, _rhover, _pulse, INSIGHT_COST_REVEAL, "Exact", false);
+				combat_insight_part_draw(_sx + 2, _y1, _x2, _y2, _rafford, _rhover, _pulse, _rcost, "Exact", false);
 				if (_rhover) {
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "See exact values", "Spend " + string(INSIGHT_COST_REVEAL) + " insight: see exactly what every enemy will do this turn, instead of a range.", undefined, 0, undefined, INSIGHT_COST_REVEAL, "insight");
-					if (mouse_check_button_pressed(mb_left)) combat_buy("reveal");
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "See exact values", "Spend " + string(_rcost) + " insight: see exactly what " + string(_en.data.name) + " will do this turn, instead of a range." + ((_rcost == 1) ? " With several enemies, it's 1 each." : ""), undefined, 0, undefined, _rcost, "insight");
+					if (mouse_check_button_pressed(mb_left)) combat_reveal_enemy(_en);
 				}
 			}
 		}

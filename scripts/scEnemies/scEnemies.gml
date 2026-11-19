@@ -318,7 +318,7 @@ function intent_hover_text(_enemy, _intel_level) {
 	if (_text == "") _text = "Does something unusual";
 	_text += ".";
 	if (intent_is_halved(_enemy)) _text += " Halved by your quill.";
-	if (intent_has_numbers(_move) && _intel_level < INTEL_LEGIBLE) _text += " Click the insight eye and spend " + string(INSIGHT_COST_REVEAL) + " insight to see the exact number.";
+	if (intent_has_numbers(_move) && _intel_level < INTEL_LEGIBLE) _text += " Enter insight view (the eye, or I) and spend " + string(combat_reveal_cost()) + " insight to see the exact number.";
 	return _text;
 }
 

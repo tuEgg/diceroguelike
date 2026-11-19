@@ -21,6 +21,7 @@ switch (state) {
 		player_turn_done = false;
 		intel_rewrite_used = false;
 		insight_revealed = false; // what insight bought last turn is gone
+		for (var e = 0; e < ds_list_size(room_enemies); e++) room_enemies[| e].revealed = false; // exact values, per enemy
 		rerolls_bought = 0;
 		redraws_bought = 0;
 		plays_bought = 0;

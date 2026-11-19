@@ -399,7 +399,8 @@ function trigger_bounty(_event, _data) {
 
 /// @desc _cost (0: none) and _cost_kind ("insight" or "gold"): what doing this spends, shown as a "-3" badge on the
 ///       tooltip's top right corner (yellow for insight, gold for gold).
-function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dice = undefined, _cost = 0, _cost_kind = "insight") {
+///       _hint: { button: "left"/"right", text, col }, a small mouse icon and words sitting just above the box's top right.
+function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dice = undefined, _cost = 0, _cost_kind = "insight", _hint = undefined) {
     if (!global.tooltip_active) {
         global.tooltip_active = true;
 
@@ -430,6 +431,7 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
             icon: _icon, index: _index, dice: _dice,
             anchor: _anchor, // the hovered rectangle it sits beside, or undefined
             cost: _cost, cost_kind: _cost_kind, // what it spends (tooltip_cost_badge)
+            hint: _hint, // a mouse hint above the top right (draw_mouse_hint)
         };
 
         global.tooltip_keywords = [];
@@ -504,6 +506,12 @@ function draw_all_tooltips() {
 
 		draw_tooltip_box(xx, yy, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, false);
 		if (variable_struct_exists(tt, "cost") && tt.cost > 0) tooltip_cost_badge(xx + _main.w, yy, tt.cost, tt.cost_kind);
+		// a mouse hint just above the box, its right end lined up with the box's (at 0.6 the mouse is 20px wide)
+		if (variable_struct_exists(tt, "hint") && is_struct(tt.hint)) {
+			draw_set_font(ftDefault);
+			var _hw = 20 + 7 + string_width(tt.hint.text);
+			draw_mouse_hint(xx + _main.w - _hw + 10, yy - 22, tt.hint.button, tt.hint.text, 0.6, tt.hint.col, tt.hint.col);
+		}
 		var _ky = yy + _main.h + _gap;
 		for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
 			var kw = global.tooltip_keywords[i];

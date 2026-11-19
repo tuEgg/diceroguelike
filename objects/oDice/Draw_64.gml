@@ -53,13 +53,10 @@ if mouse_hovering(x, y, sprite_width, sprite_height, true) {
 	// rolled dice: the title says what it rolled, and the body how to reroll it
 	var _rolled = (room == rmCombat && die_has_faces(struct) && !tumbling);
 	var _title = string(struct.name) + (_rolled ? ": rolled " + string(die_face_total(struct)) : "") + " (" + string(dice_output.min_roll) + "-" + string(dice_output.max_roll) + ")";
-	var _reroll_hint = (_rolled && instance_exists(oCombat)) ? "\n\nRight-click to reroll it for " + string(INSIGHT_COST_REROLL) + " insight." : "";
-	// the right mouse button over the die: reroll for 3, greyed when you can't afford it
-	if (_rolled && instance_exists(oCombat) && oCombat.state == CombatState.PLAYER_INPUT && !is_dragging) {
-		var _can_reroll = combat_insight_can(INSIGHT_COST_REROLL);
-		draw_mouse_hint(x - 40, y - sprite_height / 2 - 52, "right", "Reroll  -" + string(INSIGHT_COST_REROLL), 0.6, _can_reroll ? global.color_intel : make_color_rgb(90, 90, 100), _can_reroll ? global.color_intel : make_color_rgb(150, 150, 160));
-	}
-	queue_tooltip(x - sprite_width/2, y + sprite_height/2, _title, die_description(struct) + _reroll_hint, undefined, 0, struct);
+	// with 3+ insight to spend, the tooltip carries a right-mouse hint above its top right: reroll for 3
+	var _reroll_hint = undefined;
+	if (_rolled && instance_exists(oCombat) && !is_dragging && combat_insight_can(INSIGHT_COST_REROLL)) _reroll_hint = { button: "right", text: "Reroll  -" + string(INSIGHT_COST_REROLL), col: global.color_intel };
+	queue_tooltip(x - sprite_width/2, y + sprite_height/2, _title, die_description(struct), undefined, 0, struct, 0, "insight", _reroll_hint);
 	
 	var off_x = 0;
 	var off_y = 0;
