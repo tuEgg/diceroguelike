@@ -2810,7 +2810,7 @@ function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
 		draw_set_alpha(_bhover ? 0.95 : 0.5);
 		draw_set_color(_dark);
 		draw_circle(_bx, _y, _br + 3, false);
-		draw_set_color(global.color_intel);
+		draw_set_color(_bhover ? make_color_rgb(150, 145, 130) : make_color_rgb(110, 105, 95)); // faded grey until bought (then a yellow token)
 		draw_circle(_bx, _y, _br, false);
 		draw_set_alpha(1);
 		draw_set_color(global.color_intel);
