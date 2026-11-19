@@ -607,13 +607,13 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     }
 
     var has_core = (_dice != undefined && variable_struct_exists(_dice, "distribution") && _dice.distribution != "");
-    var icon_space = (_icon != undefined || has_core) ? (_compact ? 36 : 50) : 0;
+    var icon_space = (_icon != undefined) ? (_compact ? 36 : 50) : 0; // a core's icon sits beside its bars at the foot instead
     var _width  = padding * 2 + max(name_w, longest_line_px) + icon_space;
     var _height = padding * (_compact ? 1.4 : 1.6) + name_h + desc_h + (_compact ? 4 : 10);
-    // a core's distribution sits inside the box, under the words (it used to float above the box, over the die)
+    // a core's distribution sits inside the box, under the words, with the core's icon just left of it
     var _dist_h = has_core ? 55 + 8 : 0; // draw_dice_distribution at scale 1 is 55 tall
     if (has_core) {
-	    _width = max(_width, padding * 2 + icon_space + _dice.dice_value * 17 + 10);
+	    _width = max(_width, padding * 2 + icon_space + 44 + _dice.dice_value * 17 + 10);
 	    _height += _dist_h;
     }
 
@@ -647,17 +647,13 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
 
     var content_x = xx + padding;
 
-    // icon, or the die's core and its distribution
+    // icon (a die's core is drawn at the foot, beside its distribution)
     var icon_sprite = undefined;
     var icon_idx = 0;
     var icon_scale = _compact ? 0.75 : 1;
     if (_icon != undefined) {
         icon_sprite = _icon;
         icon_idx = _index;
-    } else if (has_core) {
-        icon_sprite = sCores;
-        icon_idx = get_core_index(_dice);
-        icon_scale = 0.75;
     }
     if (icon_sprite != undefined) {
         draw_sprite_ext(icon_sprite, icon_idx, content_x + (_compact ? 10 : 16), yy + (_height / 2), icon_scale, icon_scale, 0, c_white, 1);
@@ -678,7 +674,11 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
 	    _py += string_height_ext(_paras[p], line_sep, max_desc_w) + para_gap;
     }
 
-	if (has_core) draw_dice_distribution(_dice, content_x, yy + _height - padding * 0.7, false, 1);
+	if (has_core) {
+		var _dist_bottom = yy + _height - padding * 0.7;
+		draw_sprite_ext(sCores, get_core_index(_dice), content_x + 16, _dist_bottom - 28, 0.75, 0.75, 0, c_white, 1);
+		draw_dice_distribution(_dice, content_x + 44, _dist_bottom, false, 1);
+	}
 
 	return { w: _width, h: _height };
 }

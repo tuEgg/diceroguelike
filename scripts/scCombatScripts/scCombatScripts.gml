@@ -2028,8 +2028,8 @@ function tips_list() {
 	return [
 		{
 			id: "workbench_map", room: rmMap, target: "at_sea",
-			text: "At sea. When you finish a page's island, you can stop at the workbench before the next one: choose dice from your bag and reshape them with your tools.",
-			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench; },
+			text: "At sea. When you finish a page's island and a tool has work, a buoy floats on the way to the next one: sail to it for the workbench, or sail past.",
+			when: function() { return instance_exists(oWorldManager) && is_struct(oWorldManager.sea_buoy); },
 		},
 		{
 			id: "workbench_bag", room: rmWorkbench, target: "wb_pick",
@@ -2057,8 +2057,8 @@ function tips_list() {
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",
-			text: "A spread is done. Choose one: Heal is always offered, beside two others that change each time (a core, removing or sharpening a die, gold). Or just continue. Then you choose the next two pages.",
-			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.TURNING; },
+			text: "The spread is done, and the route forks at sea. Sail to one stop: each offers something different (a core, losing or sharpening a die, gold, the workbench), and you heal as you pass through. Then the page turns.",
+			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.STRAIT; },
 		},
 		{
 			// the guided fight is off on this branch, so this teaches insight the first time you have some to spend
@@ -2122,8 +2122,8 @@ function tips_list() {
 function tips_rect(_target) {
 	switch (_target) {
 		case "at_sea":
-			var _gw = display_get_gui_width(), _gh = display_get_gui_height();
-			return { x: _gw / 2 - 320, y: _gh - 230 - 90, w: 640, h: 230 }; // the map's "At sea" panel
+			if (!instance_exists(oWorldManager) || !is_struct(oWorldManager.sea_buoy)) return undefined;
+			return { x: oWorldManager.sea_buoy.x - 40, y: oWorldManager.sea_buoy.y - 40, w: 80, h: 100 }; // the buoy
 		case "insight":
 			return { x: global.player_x - 60, y: global.player_y - 245, w: 120, h: 120 };
 		case "wb_pick":

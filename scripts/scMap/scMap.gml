@@ -736,7 +736,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), node.name, node.text, sMapIcon, node.subimg, undefined);
 					 
 					// on click, if we haven't picked a node to move to and we are on the base layer of the UI, set this node as the next node ot move to.
-					if (mouse_check_button_pressed(mb_left) && node_to_move_to == undefined && global.ui_layer == UI_LAYER.BASE) {
+					if (mouse_check_button_pressed(mb_left) && node_to_move_to == undefined && global.ui_layer == UI_LAYER.BASE && !(is_struct(sea_buoy) && sea_buoy.sailing)) { // not while sailing to the buoy
 						if (node == next_node) {
 							node_to_move_to = node;
 							node_to_move_to.y += 10;
@@ -1059,7 +1059,9 @@ function world_finish_spread_if_done() {
 	if (_last_page != undefined && page_is_boss(_last_page)) {
 		world_state = WORLD_STATE.CHAPTER_END;
 	} else {
-		world_state = WORLD_STATE.TURNING;
+		// the strait: the spread's end is a fork of sea stops on the map (strait_draw), then the page turns
+		strait = undefined;
+		world_state = WORLD_STATE.STRAIT;
 	}
 }
 
@@ -1302,5 +1304,226 @@ function spread_end_apply(_id, _heal_amount) {
 		case "gold":
 			gain_coins(display_get_gui_width() / 2, display_get_gui_height() / 2, 50);
 			break;
+	}
+}
+
+// =====================================================================
+// THE STRAIT (F112): the end of a spread is a place on the map, not a panel. After the last island the route forks
+// into two or three sea stops; sail to one and it happens there. You heal as you pass through whichever you take.
+// Between a spread's two pages, a buoy offers the workbench the same way (sail to it, or past it).
+// =====================================================================
+
+/// @func strait_build()
+/// @desc oWorldManager: lays out this spread end's stops (once): the workbench buoy if a tool has work, then two rolled
+///       from the pool (spread_end_roll_options). If none of those can be taken, calm water (the heal alone).
+function strait_build() {
+	var _ids = [];
+	if (oRunManager.can_visit_workbench && workbench_useful()) array_push(_ids, "workbench");
+	var _rolled = spread_end_roll_options();
+	array_push(_ids, _rolled[0], _rolled[1]);
+	var _any = false;
+	for (var i = 0; i < array_length(_ids); i++) if (strait_stop_info(_ids[i], 0).ok) _any = true;
+	if (!_any) array_push(_ids, "calm");
+	oRunManager.can_visit_workbench = false; // the buoy is one of the stops now
+
+	// what passing through heals (keepsakes like Salted Pork add to it), worked out once
+	var _ctx = { rest_amount: rest_amount };
+	runmanager_trigger_keepsakes("on_rest", _ctx);
+	var _scales = [];
+	for (var i = 0; i < array_length(_ids); i++) array_push(_scales, 1);
+	strait = { ids: _ids, scales: _scales, heal: ceil(global.player_max_hp * _ctx.rest_amount), chosen: -1, arrived: false, healed: false, stamp: 0 };
+}
+
+/// @func strait_stop_info(_id, _heal)
+/// @desc What a sea stop is called and does: { name, tip, ok, reason }. The heal is added to the tip by strait_draw.
+function strait_stop_info(_id, _heal) {
+	switch (_id) {
+		case "workbench": return { name: "Shipwright's buoy", tip: "Moor here and open the workbench: take dice from your bag (one per tool you own) and use each tool once.", ok: true, reason: "" };
+		case "calm":      return { name: "Calm water", tip: "Nothing out here but a quiet night.", ok: true, reason: "" };
+	}
+	var _i = spread_end_option_info(_id, _heal, true);
+	var _name = "";
+	switch (_id) {
+		case "core":  _name = "The wreck"; break;
+		case "trim":  _name = "Squall"; break;
+		case "whet":  _name = "Whetstone reef"; break;
+		case "gold":  _name = "Flotsam"; break;
+	}
+	return { name: _name, tip: _i.label + ". " + _i.tip, ok: _i.ok, reason: _i.reason };
+}
+
+/// @func sea_stop_draw(_id, _x, _y, _scale, _alpha, _ok)
+/// @desc A sea stop on the map: a round inked badge with what it offers inside (code-drawn, like the dice), greyed
+///       when it can't be taken.
+function sea_stop_draw(_id, _x, _y, _scale, _alpha, _ok) {
+	var _s = _scale;
+	var _ink = make_color_rgb(42, 29, 18);
+	var _paper = _ok ? make_color_rgb(231, 214, 176) : make_color_rgb(160, 152, 136);
+	var _blend = _ok ? c_white : c_gray;
+	draw_set_alpha(0.3 * _alpha);
+	draw_set_color(c_black);
+	draw_ellipse(_x - 30 * _s, _y + 20 * _s, _x + 30 * _s, _y + 36 * _s, false);
+	draw_set_alpha(_alpha);
+	draw_set_color(_ink);
+	draw_circle(_x, _y, 31 * _s, false);
+	draw_set_color(_paper);
+	draw_circle(_x, _y, 27 * _s, false);
+	// a ring of little waves round the edge
+	draw_set_color(_ink);
+	draw_set_alpha(0.35 * _alpha);
+	draw_circle(_x, _y, 22 * _s, true);
+	draw_set_alpha(_alpha);
+	switch (_id) {
+		case "workbench": draw_sprite_ext(sToolbag, 0, _x, _y + 2 * _s, 0.62 * _s, 0.62 * _s, 0, _blend, _alpha); break;
+		case "core":      draw_sprite_ext(sCores, 0, _x, _y, 0.5 * _s, 0.5 * _s, 0, _blend, _alpha); break;
+		case "trim":      draw_sprite_ext(sToolSilhouettes, 1, _x, _y, 0.46 * _s, 0.46 * _s, 0, _ink, _alpha); break;
+		case "gold":      draw_sprite_ext(sCoin, 0, _x, _y, 0.55 * _s, 0.55 * _s, 0, _blend, _alpha); break;
+		case "whet":
+			draw_die_shape(_x - 4 * _s, _y + 2 * _s, 14 * _s, 6, _ink, 0, _alpha);
+			draw_die_shape(_x - 4 * _s, _y + 2 * _s, 11 * _s, 6, _ok ? make_color_rgb(242, 210, 74) : c_gray, 0, _alpha);
+			draw_set_font(ftDescriptions);
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_outline_text("+1", c_black, c_white, 2, _x + 10 * _s, _y - 10 * _s, _s, _alpha, 0);
+			break;
+		case "calm":
+			draw_set_color(_ink);
+			for (var w = -1; w <= 1; w++) {
+				var _wy = _y + w * 8 * _s;
+				for (var k = 0; k < 3; k++) {
+					var _wx = _x - 12 * _s + k * 8 * _s;
+					draw_line_width(_wx, _wy, _wx + 4 * _s, _wy - 3 * _s, 2 * _s);
+					draw_line_width(_wx + 4 * _s, _wy - 3 * _s, _wx + 8 * _s, _wy, 2 * _s);
+				}
+			}
+			break;
+	}
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
+/// @func sea_route_draw(_x1, _y1, _x2, _y2, _alpha)
+/// @desc A dotted course from the ship to a sea stop, in ink like the routes between islands.
+function sea_route_draw(_x1, _y1, _x2, _y2, _alpha) {
+	var _len = point_distance(_x1, _y1, _x2, _y2);
+	draw_set_color(c_black);
+	draw_set_alpha(0.55 * _alpha);
+	for (var d = 34; d < _len - 34; d += 14) {
+		var _t = d / _len;
+		draw_circle(lerp(_x1, _x2, _t), lerp(_y1, _y2, _t) - sin(_t * pi) * 18, 3, false); // a gentle bow
+	}
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
+/// @func strait_draw(_ax, _ay)
+/// @desc oWorldManager Draw GUI, in WORLD_STATE.STRAIT: the stops stacked round _ax, _ay (the outer side of the right
+///       page), a dotted course to each. Hover: what it is and the heal; click: the ship sails there. On arrival you
+///       heal and the stop happens (trim and whet open the dice picker; the buoy opens the workbench, and the page
+///       turns when you come back); an ink stamp shows what you got, then the page turns.
+function strait_draw(_ax, _ay) {
+	if (!is_struct(strait)) strait_build();
+	var _n = array_length(strait.ids);
+	var _gap = 150;
+	var _ok_input = (global.ui_layer == UI_LAYER.BASE);
+	for (var i = 0; i < _n; i++) {
+		var _id = strait.ids[i];
+		var _sx = _ax + ((i mod 2) ? 26 : -26) * (_n > 2), _sy = _ay + (i - (_n - 1) / 2) * _gap;
+		var _info = strait_stop_info(_id, strait.heal);
+		var _taken = (strait.chosen == i);
+		var _alpha = (strait.chosen == -1 || _taken) ? 1 : 0.35;
+		if (strait.chosen == -1) sea_route_draw(boat_data.x, boat_data.y, _sx, _sy, 1);
+		var _hov = (strait.chosen == -1) && mouse_hovering(_sx, _sy, 64, 64, true, soSlotHover, noone);
+		strait.scales[i] = lerp(strait.scales[i], _hov ? 1.25 : 1, 0.2);
+		sea_stop_draw(_id, _sx, _sy, strait.scales[i], _alpha, _info.ok);
+		draw_set_font(ftDescriptions);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_top);
+		draw_outline_text(_info.name, c_black, _info.ok ? c_white : c_ltgray, 2, _sx, _sy + 36 * strait.scales[i], 1, _alpha, 0);
+		if (_hov) {
+			var _heal_line = (global.player_hp < global.player_max_hp) ? "\nPassing through, you heal " + string(strait.heal) + " HP." : "";
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, (_info.ok ? _info.tip : _info.reason) + _heal_line);
+			if (mouse_check_button_pressed(mb_left) && _ok_input) {
+				if (_info.ok) strait.chosen = i;
+				else throw_error("Not now", _info.reason);
+			}
+		}
+
+		// sailing there
+		if (_taken && !strait.arrived) {
+			boat_data.x = lerp(boat_data.x, _sx - 10, 0.05);
+			boat_data.y = lerp(boat_data.y, _sy + 5, 0.05);
+			if (point_distance(boat_data.x, boat_data.y, _sx - 10, _sy + 5) < 10) {
+				strait.arrived = true;
+				strait.healed = (global.player_hp < global.player_max_hp);
+				if (strait.healed) spread_end_apply("heal", strait.heal);
+				if (_id == "workbench") {
+					// the page turns while you're at the bench, and the draft is waiting when you come back
+					world_state = WORLD_STATE.TURNING;
+					strait = undefined;
+					room_goto(rmWorkbench);
+					return;
+				}
+				if (_id != "calm") spread_end_apply(_id, strait.heal);
+				strait.stamp = 1;
+			}
+		}
+
+		// the ink stamp: what you got, rising off the stop
+		if (_taken && strait.arrived) {
+			var _what = (_id == "calm") ? "Rested" : _info.name;
+			if (strait.healed) _what += "  +" + string(strait.heal) + " HP";
+			draw_set_font(ftBig);
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_outline_text(_what, c_black, make_color_rgb(242, 210, 74), 3, _sx, _sy - 56 - 20 * (1 - strait.stamp), 1, min(1, strait.stamp * 2), 0);
+		}
+	}
+
+	// once the stamp has faded (and any dice picker is closed), turn the page
+	if (strait.arrived) {
+		if (oRunManager.dice_selection == false) strait.stamp = max(0, strait.stamp - 1 / 70);
+		if (strait.stamp <= 0) {
+			strait = undefined;
+			world_state = WORLD_STATE.TURNING;
+		}
+	}
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+}
+
+/// @func sea_buoy_draw()
+/// @desc oWorldManager Draw GUI, mid-spread: when a page's island is done and a tool has work
+///       (oRunManager.can_visit_workbench), a buoy floats between the ship and the next island. Sail to it for the
+///       workbench, or click the next island to sail past (that clears it, oWorldManager Draw GUI).
+function sea_buoy_draw() {
+	if (!(world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench && workbench_useful() && next_node != undefined)) {
+		sea_buoy = undefined;
+		return;
+	}
+	if (!is_struct(sea_buoy)) sea_buoy = { x: lerp(boat_data.x, next_node.x, 0.5), y: min(boat_data.y, next_node.y) - 90, scale: 1, sailing: false };
+	var _b = sea_buoy;
+	if (!_b.sailing && node_to_move_to != undefined) { oRunManager.can_visit_workbench = false; sea_buoy = undefined; return; } // sailed past
+	if (!_b.sailing) sea_route_draw(boat_data.x, boat_data.y, _b.x, _b.y, 0.8);
+	var _hov = !_b.sailing && mouse_hovering(_b.x, _b.y, 64, 64, true, soSlotHover, noone);
+	_b.scale = lerp(_b.scale, _hov ? 1.25 : 1, 0.2);
+	sea_stop_draw("workbench", _b.x, _b.y, _b.scale, 1, true);
+	draw_set_font(ftDescriptions);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_top);
+	draw_outline_text("Shipwright's buoy", c_black, c_white, 2, _b.x, _b.y + 36 * _b.scale, 1, 1, 0);
+	draw_set_halign(fa_left);
+	if (_hov) {
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Shipwright's buoy", "Moor here and open the workbench: take dice from your bag (one per tool you own) and use each tool once.\nOr sail on to the next island.");
+		if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && node_to_move_to == undefined) _b.sailing = true;
+	}
+	if (_b.sailing) {
+		boat_data.x = lerp(boat_data.x, _b.x - 10, 0.05);
+		boat_data.y = lerp(boat_data.y, _b.y + 5, 0.05);
+		if (point_distance(boat_data.x, boat_data.y, _b.x - 10, _b.y + 5) < 10) {
+			oRunManager.can_visit_workbench = false;
+			sea_buoy = undefined;
+			room_goto(rmWorkbench);
+		}
 	}
 }
