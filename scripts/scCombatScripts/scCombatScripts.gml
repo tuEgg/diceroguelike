@@ -2814,6 +2814,7 @@ function combat_reroll_die(_inst) {
 	if (!combat_insight_spend(INSIGHT_COST_REROLL)) return;
 	rerolls_used++;
 	die_roll_faces(_inst.struct);
+	trigger_die_effects_single(_inst.struct, "on_die_inked", { _die_struct: _inst.struct, redrawn: false });
 	_inst.roll_anim = 18; // it tumbles in place, then lands on the new roll
 	particle_emit(_inst.x, _inst.y, "burst", get_dice_color(_inst.struct.possible_type), 20);
 	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
@@ -3036,6 +3037,7 @@ function combat_insight_phase_worth() {
 /// @desc In the insight phase: for 3 ink, a die in hand is discarded and a new one dealt (it rolls as it comes).
 function combat_redraw_die(_inst) {
 	if (!instance_exists(_inst) || !combat_insight_spend(INSIGHT_COST_REDRAW)) return;
+	trigger_die_effects_single(_inst.struct, "on_die_inked", { _die_struct: _inst.struct, redrawn: true });
 	discard_dice(_inst);
 	dice_to_deal += 1;
 	is_dealing_dice = true;

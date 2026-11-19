@@ -134,6 +134,28 @@ function die_roll_faces(_die) {
 		}
 		array_push(_die.faces, _face);
 	}
+	// a forced face (Balancing Compass: "its max next time") lands now, as it's dealt
+	if (variable_struct_exists(_die, "forced_roll") && _die.forced_roll != -1) {
+		for (var f = 0; f < array_length(_die.faces); f++) _die.faces[f] = clamp(_die.forced_roll, _min, _max);
+		_die.forced_roll = -1;
+	}
+	// "when rolled" effects (docs/design-port-dice-keepsakes.md): the die's own (on_die_rolled) and keepsakes'
+	if (room == rmCombat && instance_exists(oCombat)) {
+		combat_trigger_effects("on_die_rolled", { _die_struct: _die, face: die_face_total(_die), min_roll: _min, max_roll: _max });
+	}
+}
+
+/// @func die_effect_popup(_die, _text, _col)
+/// @desc A die's "when rolled" effect firing: a word over it in your hand (or where dice are dealt, as it comes out).
+function die_effect_popup(_die, _text, _col) {
+	var _x = global.gui.bag_x_deal, _y = global.gui.bag_y_deal - 60;
+	with (oDice) if (struct == _die) { _x = x; _y = y - 60; }
+	var _inst = instance_create_layer(_x, _y, "Instances", oDamageText);
+	_inst.txt = _text;
+	_inst.amount = 0;
+	_inst.color_main = _col;
+	_inst.num_sign = 0;
+	_inst.size = 0.6;
 }
 
 /// @func die_has_faces(_die)
@@ -428,11 +450,12 @@ function generate_dice_bag() {
 		50,
 	    [
 	        {
-	            trigger: "after_roll_die",
+	            trigger: "on_die_rolled", // when rolled: the extra die comes as it lands
 	            modify: function(_context) {
-					if (_context._d_amount >= 5 && _context.die.uid == _context._die_struct_source.uid) {
-						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
-						with (oRunManager) deal_single_die(false); // deal a dice that can't be discarded this turn
+					if (_context.face >= 5) {
+						die_effect_popup(_context._die_struct, "Squall!", c_white);
+						oCombat.dice_to_deal += 1;
+						oCombat.is_dealing_dice = true;
 					}
 	            }
 	        }
@@ -487,7 +510,7 @@ function generate_dice_bag() {
 	// Slipstream Die
 	global.die_muzzle = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Muzzle die",
-	    "Followthrough: +1 bonus to this die for every previous slot",
+	    "Followthrough: +1 to this die for each slot before it.",
 		"uncommon",
 		60,
 	    [
@@ -545,7 +568,7 @@ function generate_dice_bag() {
 	// Fogcaller Die
 	global.die_fogcaller = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Fogcaller Die",
-	    "Followthrough: Gain +1 and draw a die if the previous slot contained a coin.",
+	    "Followthrough: +1 if the previous slot has a coin. Played there, draw a die.",
 		"common",
 		40,
 	    [
@@ -564,10 +587,20 @@ function generate_dice_bag() {
 							}
 						}
 							
-						if (!_context.read_only) {
-							if (prev_has_coin) {
-								with (oRunManager) deal_single_die(false);
-							}
+					}
+	            }
+	        },
+			{
+				// the draw: when it's played into a slot after one holding a coin (not at End Turn, where it was wasted)
+	            trigger: "on_dice_played_to_slot",
+	            modify: function(_context) {
+					if (_context._d_struct.uid != _context._die_struct_source.uid || _context._slot_num <= 0) return;
+					var _prev = oCombat.action_queue[| _context._slot_num - 1].dice_list;
+					for (var i = 0; i < ds_list_size(_prev); i++) {
+						if (die_has_keyword(_prev[| i], "Coin")) {
+							oCombat.dice_to_deal += 1;
+							oCombat.is_dealing_dice = true;
+							break;
 						}
 					}
 	            }
@@ -580,21 +613,16 @@ function generate_dice_bag() {
 	// Deepdiver Die
 	global.die_deepdiver = make_die_struct(
 	    1, 6, "None", "None", "", "Deepdiver Die",
-	    "When played: discard all remaining dice in play then draw 2 more.",
+	    "When this die is rerolled or redrawn with ink, draw a die (an extra one, if redrawn).",
 		"uncommon",
 		50,
 	    [
 	        {
-	            trigger: "on_dice_played_to_slot",
+	            trigger: "on_die_inked", // rerolled or redrawn with ink (combat_reroll_die, combat_redraw_die)
 	            modify: function(_context) {
-					// only when this die is the one played, not every die played after it while it's in a slot
-					if (_context._d_struct.uid != _context._die_struct_source.uid) return;
-					with (oCombat) {
-						_context.dice_object.can_discard = false;
-						discard_dice_in_play();
-						oCombat.dice_to_deal += 2;
-						oCombat.is_dealing_dice = true;
-					}
+					die_effect_popup(_context._die_struct, "Deepdiver!", c_white);
+					oCombat.dice_to_deal += 1;
+					oCombat.is_dealing_dice = true;
 	            }
 	        }
 	    ]
@@ -644,7 +672,7 @@ function generate_dice_bag() {
 	
 	global.die_bolster = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Bolster Die",
-	    "When sacrificed: gain {max2} block (double this die's max value).",
+	    "When it builds a slot: gain {max2} block (double this die's max value).",
 		"common",
 		50,
 	    [
@@ -662,7 +690,7 @@ function generate_dice_bag() {
 	
 	global.die_echo = make_die_struct(
 	    1, 4, "None", "None", "", "Echo Die",
-	    "When played: create another copy of this die in the sacrificed slot",
+	    "When played: a copy of this die joins its slot.",
 		"rare",
 		60,
 	    [
@@ -699,7 +727,7 @@ function generate_dice_bag() {
 	
 	global.die_barrel = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Barrel Die",
-	    "When sacrificed: generate a random potion",
+	    "When it builds a slot: gain a random potion.",
 		"rare",
 		70,
 	    [
@@ -725,18 +753,10 @@ function generate_dice_bag() {
 	
 	global.die_harvest = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Harvest Die",
-	    "Gain 1 gold every time this die is either played or ejected",
+	    "Gain 1 gold when this die is played, or when it builds a slot.",
 		"common",
 		50,
 	    [
-	        {
-	            trigger: "on_dice_ejected",
-	            modify: function(_context) {		
-					if (_context._ejected_die.uid == _context._die_struct_source.uid) {
-						gain_coins(_context._ejected_slot_pos_x, _context._ejected_slot_pos_y, 1);
-					}
-	            }
-	        },
 			{
 	            trigger: "on_dice_played_to_slot",
 	            modify: function(_context) {
@@ -816,18 +836,18 @@ function generate_dice_bag() {
 	
 	global.die_guerrilla_coin = make_die_struct(
 	    1, 2, "INTEL", "INTEL", "", "Guerrilla Coin",
-	    "Coin. When sacrificed, deal damage to a random enemy equal to the amount of insight you have.",
+	    "Coin. When it builds a slot, deal damage equal to half your insight to a random enemy.",
 		"common",
 		40,
 	    [
 	        {
 				trigger: "on_sacrifice_die",
 	            modify: function(_context) {
-					var target = irandom(ds_list_size(oCombat.room_enemies) - 1);
-					
-					with (oCombat) {
-						process_action(oCombat.room_enemies[| target], 0, oCombat.player_intel, 0, "player", -1, "ATK");
-					}
+					// half your ink, to a random enemy still standing
+					var _alive = [];
+					with (oCombat) for (var e = 0; e < ds_list_size(room_enemies); e++) if (!room_enemies[| e].dead) array_push(_alive, room_enemies[| e]);
+					var _dmg = floor(max(0, oCombat.player_intel) / 2);
+					if (array_length(_alive) > 0 && _dmg > 0) with (oCombat) process_action(_alive[irandom(array_length(_alive) - 1)], 0, _dmg, 0, "player", -1, "ATK");
 	            }
 	        }
 	    ]
@@ -837,7 +857,7 @@ function generate_dice_bag() {
 	
 	global.die_radar = make_die_struct(
 	    1, 6, "INTEL", "INTEL", "", "Radar die",
-	    "When sacrificed, gain 3 insight for the next 2 turns.",
+	    "When it builds a slot: gain 3 insight next turn and the turn after.",
 		"common",
 		40,
 	    [
@@ -862,10 +882,10 @@ function generate_dice_bag() {
 		30,
 	    [
 	        {
-	            trigger: "after_roll_die",
+	            trigger: "on_die_rolled", // when rolled: the Might counts for this turn's queue
 	            modify: function(_context) {
-					if (_context._d_amount == _context.min_roll && _context.die.uid == _context._die_struct_source.uid) {
-						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
+					if (_context.face == _context.min_roll) {
+						die_effect_popup(_context._die_struct, "Might!", c_white);
 						apply_buff("player", oRunManager.buff_might, 1, 1, false, { source: "player", index: -1 });
 					}
 	            }
@@ -876,16 +896,16 @@ function generate_dice_bag() {
 	
 	global.die_balanced = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Balanced die",
-	    "Gain 1 balance this turn if this die rolls its maximum value ({max}).",
+	    "Gain 1 balance next turn if this die rolls its maximum value ({max}).",
 		"common",
 		30,
 	    [
 	        {
-	            trigger: "after_roll_die",
+	            trigger: "on_die_rolled", // when rolled; the Balance arrives next turn (oCombat balance_next_turn)
 	            modify: function(_context) {
-					if (_context._d_amount == _context.max_roll && _context.die.uid == _context._die_struct_source.uid) {
-						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
-						apply_buff("player", oRunManager.buff_balance, 1, 1, false, { source: "player", index: -1 });
+					if (_context.face == _context.max_roll) {
+						die_effect_popup(_context._die_struct, "Balance next turn", c_white);
+						oCombat.balance_next_turn += 1;
 					}
 	            }
 	        }
@@ -951,11 +971,12 @@ function generate_dice_bag() {
 		30,
 	    [
 	        {
-	            trigger: "after_roll_die",
+	            trigger: "on_die_rolled", // when rolled: the face itself becomes its max, so the slot shows it
 	            modify: function(_context) {
-					if (_context._d_amount <= _context.min_roll && _context.die.uid == _context._die_struct_source.uid) {
-	                    _context._d_amount = _context.max_roll;
-						roll_popup(_context.slot_num, _context.dice_index, "Warrior!", c_orange);
+					if (_context.face <= _context.min_roll) {
+						var _d = _context._die_struct;
+						for (var f = 0; f < array_length(_d.faces); f++) _d.faces[f] = _context.max_roll;
+						die_effect_popup(_d, "Warrior!", c_orange);
 	                }
 	            }
 	        }

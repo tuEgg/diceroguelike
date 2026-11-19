@@ -76,7 +76,7 @@ if (!hovered_local && global.hovered_dice_id == id) {
 // --- Smooth scaling ---
 hover_target = hovered ? hover_scale : 1.0;
 // dragged over the discard pile: it swells and wobbles (oDice Draw GUI) so it's clear letting go discards it
-over_discard = (room == rmCombat && is_dragging && is_mouse_over_discard_button());
+over_discard = false; // no discarding by dragging: a die is discarded only by a redraw with ink (the inkwell)
 if (over_discard) hover_target = 1.7;
 scale = lerp(scale, hover_target, hover_speed);
 
@@ -221,7 +221,7 @@ if (is_dragging && mouse_check_button_released(mb_left)) {
     if (combat != noone) {
         // the guided first fight only lets through what its current step asks for (tutorial_allows)
         if (is_mouse_over_discard_button()) {
-            if (tutorial_allows("discard", struct)) with (combat) discard_dice(other.id); // a plain discard: redraws are bought in the insight phase
+            throw_error("Can't discard", "Redraw a die with your ink instead: click the inkwell."); // only a redraw with ink discards
         } else if (oCombat.last_hover) {
 			if (!die_has_keyword(struct, "exclusive") && tutorial_allows("sacrifice", struct)) {
 				with (combat) sacrifice_die(other.id);

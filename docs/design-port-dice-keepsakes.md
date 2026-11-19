@@ -1,6 +1,6 @@
 # Porting dice and keepsakes to rolled dice
 
-For Jared to review before any code changes (2026-11-19, branch `feature/rolled-dice`). Rules: `docs/design-rolled-dice.md`.
+Reviewed by Jared 2026-11-19 and done (F128): see **Decided** at the end. Branch `feature/rolled-dice`. Rules: `docs/design-rolled-dice.md`.
 
 ## The three moments
 
@@ -180,3 +180,14 @@ Lime Juice, Salted Pork (heals at the strait now), Toolbelt, Rations, Water Barr
 8. The moment rule above ("if it rolls X": outcomes when it acts, hand/buffs when rolled): agree?
 
 Once these are settled the code work is: move 6 effects to when rolled (`after_roll_die` on deal), rework 6 (Fogcaller, Harvest, Starver's, Nav Chart, Topographic Map, Deckhand's), reword about 10 descriptions, retire Loose, fix Guerrilla Coin's dead-target bug.
+
+## Decided (Jared, 2026-11-19) and done
+
+1. Sticky stays one extra turn (and acts again), then leaves.
+2. Muzzle stays +1 per previous slot (reworded).
+3. Assassin stays per 3 insight.
+4. Deepdiver: "When rerolled or redrawn with ink, draw a die (an extra one, if redrawn)."
+5. Lantern of Patience stays; instead, dice can't be discarded at all except by a redraw with ink.
+6. Guerrilla Coin: half your insight, to a living enemy.
+7. Repeater Rail: unchanged.
+8. The moment rule: agreed. Balanced's Balance arrives next turn.

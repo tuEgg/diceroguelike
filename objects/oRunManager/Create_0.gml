@@ -50,7 +50,7 @@ global.keywords = {
 
     "Coin": {
         colour: c_yellow,
-        desc: "Doesn't count towards played dice total, bypasses size requirements for slot checks.",
+        desc: "Doesn't use a play.",
 		index: 2,
 		icon_on: []
     },
@@ -71,21 +71,14 @@ global.keywords = {
 
     "Exclusive": {
         colour: c_teal,
-        desc: "This die ejects all other die when played to a slot, cannot have other dice played into it and cannot be sacrificed.",
+        desc: "Clears its slot when played, and no other dice can join it. It can't build a slot.",
 		index: 5,
 		icon_on: ["hand"]
     },
 
-    "Loose": {
-        colour: c_ltgray,
-        desc: "This die always ejects from its slot, regardless of permanence.",
-		index: 6,
-		icon_on: ["hand", "slot"]
-    },
-
-    "Sticky": {
+"Sticky": {
         colour: c_dkgray,
-        desc: "This die becomes permanent to the slot it is played.",
+        desc: "Stays in its slot for one extra turn, and acts again.",
 		index: 7,
 		icon_on: ["hand", "slot"]
     },

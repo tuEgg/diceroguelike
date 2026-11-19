@@ -105,6 +105,8 @@ switch (state) {
 		};
 		
 		combat_trigger_effects("on_turn_start", turn_start_data);
+		// Balance earned last turn (Balanced die rolled its max)
+		if (balance_next_turn > 0) { apply_buff("player", oRunManager.buff_balance, balance_next_turn, 1, false, { source: "player", index: -1 }); balance_next_turn = 0; }
 		
 		// capped at INSIGHT_MAX (12); it can go below 0 (Overwhelm), which hides enemy intents
 		player_intel = min(player_intel, intel_max());
@@ -398,9 +400,11 @@ switch (state) {
 		        var slot_pos = slot_positions[| i]; // from Draw GUI
 				slot.possible_type = "";
 
-				// rolled dice: everything played leaves at the end of the turn, except sticky dice
+				// rolled dice: everything played leaves at the end of the turn; a Sticky die stays one extra turn (and acts again)
 				for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
-					if (slot.dice_list[| d].permanence != "sticky") slot.dice_list[| d].permanence = "temporary";
+					var _sd = slot.dice_list[| d];
+					if (_sd.permanence == "sticky" && !(variable_struct_exists(_sd, "sticky_held") && _sd.sticky_held)) _sd.sticky_held = true;
+					else _sd.permanence = "temporary";
 				}
 
 				show_debug_message("enemies_to_fade_out: " + string(enemies_to_fade_out));
