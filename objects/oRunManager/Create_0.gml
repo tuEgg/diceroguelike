@@ -22,6 +22,9 @@ keepsakes = ds_list_create();
 keepsake_scale = ds_list_create();
 credits_scale = 1.0;
 credits_heard = credits; // the gold the coin sound last knew of (Step): a change jingles
+coin_tick_cd = 0;       // frames until the next coin clink may play (the trickle)
+coin_streak = 0;        // clinks in this haul: each one a little higher
+coin_streak_idle = 0;   // frames since gold last came in
 voyage = 0; // voyage act I to start with
 depth = -100;
 

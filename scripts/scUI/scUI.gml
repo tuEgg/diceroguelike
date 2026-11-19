@@ -210,19 +210,28 @@ function ui_ticket(_x, _y, _w, _h, _type, _label, _total, _bonus, _seed, _state 
 	draw_set_valign(fa_middle);
 	draw_set_color(_on);
 	draw_set_alpha(_alpha);
-	var _name = _empty ? "Empty" : _label;
+	// one line always (some names carry a line break, "Flurry\nof Blades", from the old slots); too long for 20 px, it
+	// drops to 16 px, and only shrinks past that if it still doesn't fit (B137)
+	var _name = _empty ? "Empty" : string_replace_all(_label, "\n", " ");
 	var _name_x = _empty ? _x + _w / 2 : _x + 36;
-	var _sc = min(1, (_w - (_empty ? 16 : 44)) / max(1, string_width(_name)));
+	var _room = _w - (_empty ? 16 : 44);
+	if (string_width(_name) > _room) draw_set_font(ftDefault);
+	var _sc = min(1, _room / max(1, string_width(_name)));
 	draw_text_transformed(_name_x, _by, _name, _sc, _sc, 0);
 	draw_set_alpha(1);
 	// an empty ticket still shows what its place adds (B138)
-	if (_empty && _bonus != "") ui_numeral(_bonus, _x + _w / 2, _y + _band_h + (_h - _band_h) * 0.5, 30, global.ui_col.bonus_ink, _alpha * 0.85);
-	// the total, huge in ink, and the bonus beside it
-	if (!_empty && string(_total) != "") {
-		var _tx = _bonus != "" ? _x + _w * 0.42 : _x + _w / 2;
-		ui_numeral(_total, _tx, _y + _band_h + (_h - _band_h) * 0.52, 44, global.ui_col.ink, _alpha); // the numeral face at its own size: crisp
-		if (_bonus != "") ui_numeral(_bonus, _x + _w * 0.78, _y + _band_h + (_h - _band_h) * 0.5, min(30, _h * 0.2), global.ui_col.bonus_ink, _alpha);
-	}
+	// the total, huge in ink, and its bonus in green: the pair centred on the ticket ("5 +1"); a bonus with no total
+	// (nothing in the slot yet) sits in the middle by itself
+	var _has_total = !_empty && string(_total) != "";
+	var _ny = _y + _band_h + (_h - _band_h) * 0.52;
+	var _bsize = min(30, _h * 0.2);
+	draw_set_font(ftDamage);
+	var _tw = _has_total ? string_width(string(_total)) : 0; // 44 px draws unscaled (ui_numeral)
+	var _bw = (_bonus != "") ? string_width(_bonus) * ((abs(_bsize - 40) <= 8) ? 1 : _bsize / 40) : 0;
+	var _gap = (_has_total && _bonus != "") ? 10 : 0;
+	var _left = _x + _w / 2 - (_tw + _gap + _bw) / 2;
+	if (_has_total) ui_numeral(_total, _left, _ny, 44, global.ui_col.ink, _alpha, fa_left); // the numeral face at its own size: crisp
+	if (_bonus != "") ui_numeral(_bonus, _left + _tw + _gap, _ny, _bsize, global.ui_col.bonus_ink, _alpha * (_has_total ? 1 : 0.85), fa_left);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 	draw_set_color(c_white);
