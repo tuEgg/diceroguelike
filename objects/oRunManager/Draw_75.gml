@@ -1,3 +1,14 @@
+// the log's ink look (F118): this frame was drawn into ink_scene (Draw GUI Begin); back to the screen first. If the
+// log closed during this frame, show the frame as it was; otherwise combat_insight_view_draw draws it through shInk.
+if (ink_capturing) {
+	surface_reset_target();
+	if (!(instance_exists(oCombat) && oCombat.insight_view) && surface_exists(ink_scene)) {
+		gpu_set_blendenable(false);
+		draw_surface(ink_scene, 0, 0);
+		gpu_set_blendenable(true);
+	}
+}
+
 if (show_dice_list) {
 	
 	// Fill the background of the screen

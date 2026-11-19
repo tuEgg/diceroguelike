@@ -3023,7 +3023,23 @@ function combat_insight_view_draw() {
 		combat_queue_holes_draw();
 		gpu_set_blendmode(bm_normal);
 		surface_reset_target();
-		draw_surface_part(insight_surf, 0, _top, _gw, _gh - _top, 0, _top); // the top bar stays as it is
+		if (oRunManager.ink_capturing && surface_exists(oRunManager.ink_scene)) {
+			// the ink look (F118): the frame (oRunManager Draw GUI Begin) redrawn as ink on parchment by shInk, the holes
+			// above (insight_surf's clear parts) left in colour; the top bar drawn as it is
+			shader_set(shInk);
+			shader_set_uniform_f(shader_get_uniform(shInk, "u_texel"), 1 / surface_get_width(oRunManager.ink_scene), 1 / surface_get_height(oRunManager.ink_scene));
+			shader_set_uniform_f(shader_get_uniform(shInk, "u_time"), (current_time / 1000) mod 100); // kept small: shader floats lose precision
+			shader_set_uniform_f(shader_get_uniform(shInk, "u_mask_a"), 0.72);
+			texture_set_stage(shader_get_sampler_index(shInk, "u_mask"), surface_get_texture(insight_surf));
+			gpu_set_blendenable(false);
+			draw_surface(oRunManager.ink_scene, 0, 0);
+			shader_reset();
+			draw_surface_part(oRunManager.ink_scene, 0, 0, _gw, _top, 0, 0);
+			gpu_set_blendenable(true);
+		} else {
+			// no shader (or the log opened this frame): the dark overlay
+			draw_surface_part(insight_surf, 0, _top, _gw, _gh - _top, 0, _top); // the top bar stays as it is
+		}
 
 		// the inkwell, on top, with your ink beside it: clicking it closes the log (a toggle, like Confirm)
 		var _ex = global.player_x, _ey = global.player_y - 180;

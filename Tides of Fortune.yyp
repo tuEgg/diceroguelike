@@ -102,6 +102,7 @@
     {"id":{"name":"scShop","path":"scripts/scShop/scShop.yy",},},
     {"id":{"name":"scSounds","path":"scripts/scSounds/scSounds.yy",},},
     {"id":{"name":"shErode","path":"shaders/shErode/shErode.yy",},},
+    {"id":{"name":"shInk","path":"shaders/shInk/shInk.yy",},},
     {"id":{"name":"shWhiteFill","path":"shaders/shWhiteFill/shWhiteFill.yy",},},
     {"id":{"name":"sIntro","path":"sounds/sIntro/sIntro.yy",},},
     {"id":{"name":"soClick1","path":"sounds/soClick1/soClick1.yy",},},
