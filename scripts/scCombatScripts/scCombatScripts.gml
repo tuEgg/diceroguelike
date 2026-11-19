@@ -2636,71 +2636,78 @@ function combat_enemies_flee(_leader) {
 	if (_any) add_feed_entry("With their leader down, the rest flee!");
 }
 
-/// @func combat_free_actions_draw(_cx, _y)
-/// @desc Above the plays: the reroll symbol (a circling arrow) and the redraw symbol (a die drawn up from below), each
-///       with a pip per use this turn (filled while there's one left; insight's extra pip in yellow). Hover says how.
-function combat_free_actions_draw(_cx, _y) {
-	var _items = [
-		{ total: combat_rerolls_total(), used: rerolls_used, title: "Reroll",
-		  text: "Right-click a die in your hand to roll it again.", bonus: "Inked insight (6+) gives one more." },
-		{ total: combat_redraws_total(), used: redraws_used, title: "Redraw",
-		  text: "Drop a die on the discard pile and draw a new one.", bonus: "Underlined insight (9+) gives one more." },
+/// @func combat_turn_tokens_draw(_cx, _y)
+/// @desc One row of round brass tokens, centred on _cx: a plain token per play, then (after a divider) a reroll token per
+///       reroll, then a redraw token per redraw. Spent tokens go dark; one given by insight is yellow. No text: hovering a
+///       group says what it is and how many are left. Playing (or failing to) makes the play tokens pulse green (or red).
+function combat_turn_tokens_draw(_cx, _y) {
+	var _plays_total = max(dice_allowed_per_turn, dice_played);
+	var _plays_left = max(0, dice_allowed_per_turn - dice_played);
+	var _groups = [
+		{ kind: 0, total: _plays_total, left: _plays_left, title: "Plays",
+		  text: "Dice you can play this turn: " + string(_plays_left) + " left. Coins are free to play." },
+		{ kind: 1, total: combat_rerolls_total(), left: combat_rerolls_total() - rerolls_used, title: "Reroll",
+		  text: "Right-click a die in your hand to roll it again. Free, " + string(combat_rerolls_total() - rerolls_used) + " left this turn. Inked insight (6+) gives one more." },
+		{ kind: 2, total: combat_redraws_total(), left: combat_redraws_total() - redraws_used, title: "Redraw",
+		  text: "Drop a die on the discard pile and draw a new one. Free, " + string(combat_redraws_total() - redraws_used) + " left this turn. Underlined insight (9+) gives one more." },
 	];
-	var _pip = 14, _gap = 5, _icon_w = 30;
-	// both groups side by side, centred on _cx
-	var _w = [];
-	var _total_w = 0;
-	for (var i = 0; i < 2; i++) {
-		var _n = _items[i].total;
-		_w[i] = _icon_w + 6 + _n * _pip + (_n - 1) * _gap;
-		_total_w += _w[i];
-	}
-	_total_w += 24;
-	var _x = _cx - _total_w / 2;
-	for (var i = 0; i < 2; i++) {
-		var _it = _items[i];
-		var _left = _it.total - _it.used;
-		var _hover = mouse_hovering(_x - 4, _y - 18, _w[i] + 8, 36, false) && state == CombatState.PLAYER_INPUT;
-		free_hover[i] = lerp(free_hover[i], _hover ? 1.15 : 1, 0.25);
-		var _s = free_hover[i];
-		var _ic = (_left > 0) ? c_white : make_color_rgb(110, 110, 120);
-		var _ix = _x + _icon_w / 2, _iy = _y;
+	var _r = 13, _gap = 6, _div = 18; // token radius, space between tokens, space either side of a divider
+	var _dark = make_color_rgb(42, 29, 18);
+	var _brass = make_color_rgb(232, 196, 106);
+	var _spent = make_color_rgb(90, 69, 53);
 
-		if (i == 0) {
-			// reroll: an arrow circling round, its head at the end
-			draw_set_color(c_black);
-			draw_arc_thick_deg(_ix, _iy, 7 * _s, 13 * _s, 40, 330, 24);
-			draw_set_color(_ic);
-			draw_arc_thick_deg(_ix, _iy, 8.5 * _s, 11.5 * _s, 45, 325, 24);
-			var _hx = _ix + lengthdir_x(10 * _s, 40), _hy = _iy + lengthdir_y(10 * _s, 40);
-			draw_set_color(c_black);
-			draw_triangle(_hx - 7 * _s, _hy - 2 * _s, _hx + 6 * _s, _hy - 4 * _s, _hx + 1 * _s, _hy + 8 * _s, false);
-			draw_set_color(_ic);
-			draw_triangle(_hx - 4.5 * _s, _hy - 1 * _s, _hx + 4 * _s, _hy - 2.5 * _s, _hx + 1 * _s, _hy + 5 * _s, false);
-		} else {
-			// redraw: a die coming up out of a pocket, an arrow under it
-			draw_die(_ix, _iy - 4 * _s, 9 * _s, 6, 5, (_left > 0) ? make_color_rgb(225, 225, 230) : make_color_rgb(110, 110, 120), 0, 1);
-			draw_set_color(c_black);
-			draw_line_width(_ix, _iy + 15 * _s, _ix, _iy + 6 * _s, 5 * _s);
-			draw_set_color(_ic);
-			draw_line_width(_ix, _iy + 14 * _s, _ix, _iy + 7 * _s, 2.5 * _s);
-		}
+	var _w = -_div; // the row's width, so it can be centred
+	for (var g = 0; g < 3; g++) _w += _groups[g].total * (_r * 2) + (_groups[g].total - 1) * _gap + _div * 2;
+	var _x = _cx - _w / 2;
 
-		// pips: filled while left; the insight one yellow
-		for (var p = 0; p < _it.total; p++) {
-			var _px = _x + _icon_w + 6 + p * (_pip + _gap);
-			var _on = (p < _left);
-			draw_set_color(c_black);
-			draw_roundrect_ext(_px - 2, _y - _pip / 2 - 2, _px + _pip + 2, _y + _pip / 2 + 2, 6, 6, false);
-			draw_set_color(_on ? ((p >= 1) ? global.color_intel : c_white) : make_color_rgb(60, 60, 70));
-			draw_roundrect_ext(_px, _y - _pip / 2, _px + _pip, _y + _pip / 2, 5, 5, false);
-		}
+	for (var g = 0; g < 3; g++) {
+		var _grp = _groups[g];
+		var _gw = _grp.total * (_r * 2) + (_grp.total - 1) * _gap;
+		var _hover = mouse_hovering(_x - 4, _y - _r - 4, _gw + 8, _r * 2 + 8, false);
+		// the plays pulse when a die is played (green) or can't be (red): dice_played_scale and dice_played_color
+		var _s = (g == 0) ? dice_played_scale : 1;
+		var _ring = (g == 0) ? merge_colour(_dark, dice_played_color, clamp((dice_played_scale - 1) * 2.5, 0, 1)) : _dark;
+		for (var t = 0; t < _grp.total; t++) {
+			var _tx = _x + _r + t * (_r * 2 + _gap);
+			var _on = (t < _grp.left);
+			var _fill = _on ? ((g > 0 && t >= 1) ? global.color_intel : _brass) : _spent; // a second reroll/redraw comes from insight
+			var _rr = _r * _s * (_hover ? 1.1 : 1);
+			draw_set_color(_ring);
+			draw_circle(_tx, _y, _rr + 3, false);
+			draw_set_color(_fill);
+			draw_circle(_tx, _y, _rr, false);
+			// a lighter rim on the top for a coin edge
+			draw_set_color(_on ? merge_colour(_fill, c_white, 0.35) : merge_colour(_fill, c_white, 0.1));
+			draw_circle(_tx, _y - _rr * 0.35, _rr * 0.45, false);
+			draw_set_color(_fill);
+			draw_circle(_tx, _y - _rr * 0.15, _rr * 0.55, false);
 
-		if (_hover) {
-			var _left_text = (_left == 1) ? "1 left this turn." : string(_left) + " left this turn.";
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _it.title, _it.text + " Free, " + _left_text + " " + _it.bonus);
+			// the symbol engraved on reroll and redraw tokens
+			var _ink = _on ? _dark : make_color_rgb(140, 120, 100);
+			draw_set_color(_ink);
+			if (g == 1) {
+				// a circling arrow
+				draw_arc_thick_deg(_tx, _y, _rr * 0.42, _rr * 0.62, 50, 320, 20);
+				var _hx = _tx + lengthdir_x(_rr * 0.52, 50), _hy = _y + lengthdir_y(_rr * 0.52, 50);
+				draw_triangle(_hx - _rr * 0.38, _hy - _rr * 0.05, _hx + _rr * 0.3, _hy - _rr * 0.22, _hx + _rr * 0.02, _hy + _rr * 0.42, false);
+			} else if (g == 2) {
+				// an arrow up out of a line (a die drawn up)
+				draw_line_width(_tx, _y + _rr * 0.35, _tx, _y - _rr * 0.25, max(2, _rr * 0.18));
+				draw_triangle(_tx - _rr * 0.36, _y - _rr * 0.15, _tx + _rr * 0.36, _y - _rr * 0.15, _tx, _y - _rr * 0.6, false);
+				draw_line_width(_tx - _rr * 0.45, _y + _rr * 0.5, _tx + _rr * 0.45, _y + _rr * 0.5, max(2, _rr * 0.16));
+			}
 		}
-		_x += _w[i] + 24;
+		if (_hover && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _grp.title, _grp.text);
+
+		_x += _gw + _div;
+		// a short divider between groups
+		if (g < 2) {
+			draw_set_color(_dark);
+			draw_set_alpha(0.5);
+			draw_line_width(_x, _y - _r, _x, _y + _r, 2);
+			draw_set_alpha(1);
+			_x += _div;
+		}
 	}
 	draw_set_color(c_white);
 	draw_set_alpha(1);

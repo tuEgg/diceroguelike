@@ -24,10 +24,6 @@ if (!variable_instance_exists(id, "slot_positions")) {
 }
 ds_list_clear(slot_positions);
 
-var played_dice_hover = mouse_hovering(aq_start_x - aq_tile_w/2 - aq_tile_padding + 12, aq_start_y + aq_tile_w/2 - 40, 100, 50, true);
-
-if (played_dice_hover && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Played dice", "You can play " + string(dice_allowed_per_turn - dice_played) + " more dice this turn");
-
 // --- Play Button ---
 var btn_x = aq_start_x - 120 - (30 * global.ui_scale); // top left position of the button
 var btn_y = aq_start_y + (70 * global.ui_scale);
@@ -96,25 +92,8 @@ draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
 dice_played_scale = lerp(dice_played_scale, 1.0, 0.05);
 dice_played_color = merge_colour(dice_played_color, c_white, 0.05);
-// plays left this turn, as a row of pips: filled for each play left, hollow for each used (coins don't use one)
-var _plays_total = max(dice_allowed_per_turn, dice_played);
-var _plays_left = max(0, dice_allowed_per_turn - dice_played);
-var _pip = 20 * dice_played_scale, _pip_gap = 7;
-var _pips_w = _plays_total * _pip + (_plays_total - 1) * _pip_gap;
-var _pips_x = end_text_pos + 8 - _pips_w / 2, _pips_y = aq_start_y + aq_tile_w/2 - 40;
-draw_set_font(ftDefault);
-draw_outline_text((_plays_left == 1) ? "1 play left" : string(_plays_left) + " plays left", c_black, dice_played_color, 2, end_text_pos + 8, _pips_y - 30, 1, 1.0, 0);
-for (var _p = 0; _p < _plays_total; _p++) {
-	var _px = _pips_x + _p * (_pip + _pip_gap);
-	draw_set_color(c_black);
-	draw_roundrect_ext(_px - 2, _pips_y - _pip / 2 - 2, _px + _pip + 2, _pips_y + _pip / 2 + 2, 6, 6, false);
-	draw_set_color((_p < _plays_left) ? dice_played_color : make_color_rgb(60, 60, 70));
-	draw_roundrect_ext(_px, _pips_y - _pip / 2, _px + _pip, _pips_y + _pip / 2, 5, 5, false);
-}
-draw_set_color(c_white);
-
-// rolled dice: this turn's free reroll and redraw, as a symbol and pips each above the plays (combat_free_actions_draw)
-if (!show_rewards) combat_free_actions_draw(end_text_pos + 8, _pips_y - 66);
+// this turn's plays, rerolls and redraws: one row of tokens above End Turn (combat_turn_tokens_draw)
+if (!show_rewards) combat_turn_tokens_draw(end_text_pos + 8, aq_start_y + aq_tile_w/2 - 40);
 draw_set_font(ftBig);
 
 // Click handling
