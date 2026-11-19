@@ -1039,32 +1039,20 @@ if (state != CombatState.PLAYER_DEAD) {
 	// Draw intel level
 	draw_intel = lerp(draw_intel, player_intel, 0.1);
 
-	var arc_start = 180;
-	// the ring runs from empty to full: below zero it would wrap round into an almost-full circle, above the max it would overflow
-	var _intel_max = intel_max();
-	var intel_fill = clamp(draw_intel / _intel_max, 0, 1);
-	var arc_end = 181 + (intel_fill * 179);
-	var _intel_ratio = clamp(player_intel / _intel_max, 0, 1);
-	draw_arc_thick_deg_gradient(global.player_x, global.player_y - 175, 50, 60, arc_start, arc_end, 50, global.color_intel, make_color_rgb(210 - (_intel_ratio * 50), 210 - (_intel_ratio * 100), 0), 0.7);
+	// (the old ring gauge: the inkwell's ink level shows it now)
 
-	// the eye (sIntelEye): smudged below 0, open for ranges, wide open once exact intents are bought. Click it to buy them.
-	var _eye_frame = intel_is_blotted() ? global.intel_blotted.index : global.player_intel_data[| intel_level].index;
-	var intel_hover = mouse_hovering(global.player_x, global.player_y - 180, 80, 60, true);
-	// it pulses while you have insight to spend on an enemy (the cheapest buy: a reveal, combat_reveal_cost)
-	var _has_insight = combat_insight_can(combat_reveal_cost());
-	var _eye_pulse = (_has_insight && !insight_view) ? 0.12 * (0.5 + 0.5 * sin(current_time / 180)) : 0;
-	draw_sprite_ext(sIntelEye, _eye_frame, global.player_x, global.player_y - 180, intel_scale * (1 + _eye_pulse), intel_scale * (1 + _eye_pulse), 0, c_white, intel_alpha);
-	draw_outline_text("Insight", c_black, intel_is_blotted() ? c_red : global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
-	intel_scale = intel_hover ? lerp(intel_scale, 1.15, 0.2) : lerp(intel_scale, 1.0, 0.2);
-	if (intel_hover && mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && !intel_is_blotted() && state == CombatState.PLAYER_INPUT) combat_insight_view_set(true);
+	// the inkwell: your insight as ink (draw_inkwell). Spent at the start of a turn, in the insight phase.
+	var intel_hover = mouse_hovering(global.player_x, global.player_y - 180, 70, 70, true);
+	intel_scale = intel_hover ? lerp(intel_scale, 1.1, 0.2) : lerp(intel_scale, 1.0, 0.2);
+	draw_inkwell(global.player_x, global.player_y - 180, intel_scale, player_intel / INSIGHT_MAX, intel_is_blotted());
 	if (intel_hover) {
-		if (intel_is_blotted()) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 insight the page is smudged: enemy intents are hidden, and you can't spend insight.");
-		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Enter insight view", "Manipulate enemy intents");
+		if (intel_is_blotted()) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 insight your ink is spilled: enemy intents are hidden, and you can't write this turn.");
+		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Ink: " + string(player_intel), "Insight fills your inkwell. At the start of each turn, with ink to spend, the log opens and your quill can rewrite it. What you don't spend carries over (up to " + string(INSIGHT_MAX) + ").");
 	}
 
 	// the number shows when it isn't zero, negative intel (from Overwhelm) included
 	if (player_intel != 0) {
-		draw_outline_text(string(player_intel), c_black, player_intel < 0 ? c_red : c_white, 2, global.player_x + 40, global.player_y - 172, intel_scale, 1.0, 0); // beside the eye
+		draw_outline_text(string(player_intel), c_black, player_intel < 0 ? c_red : c_white, 2, global.player_x + 44, global.player_y - 170, intel_scale, 1.0, 0); // beside the inkwell
 	}
 
 }

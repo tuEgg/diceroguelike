@@ -858,7 +858,7 @@ function define_keepsakes() {
 	ks_eye_patch = {
 	    _id: "eye_patch",
 	    name: "Eye patch",
-	    desc: "Gain 1 insight every time you play a die.",
+	    desc: "Gain 1 insight next turn every time you play a die.",
 	    sub_image: 2,
 
 	    trigger: function(event, data) {
@@ -866,7 +866,8 @@ function define_keepsakes() {
 	        switch (event) {
 
 	            case "on_dice_played_to_slot":
-					oCombat.player_intel += 1;
+					// insight gained during your turn arrives next turn, like an insight die's
+					apply_buff("player", oRunManager.buff_intel, 1, 1, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
 					var num = spawn_floating_number("player", 1, -1, global.color_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;

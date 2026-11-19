@@ -94,7 +94,8 @@ switch (state) {
 		redraws_used = 0;
 		take_back_request = undefined;
 
-		player_intel = debug_turn_intel(); // 0 unless set in the F1 debug menu
+		// ink carries over from last turn (never a debt: Blotted doesn't carry), plus the F1 debug amount (0 unless set)
+		player_intel = max(0, player_intel) + debug_turn_intel();
 		
 		// Modify dice allowed this turn
 		var turn_start_data = {
@@ -105,8 +106,9 @@ switch (state) {
 		
 		combat_trigger_effects("on_turn_start", turn_start_data);
 		
-		// capped at the top state; it can go below 0 (Overwhelm), which hides enemy intents
+		// capped at INSIGHT_MAX (12); it can go below 0 (Overwhelm), which hides enemy intents
 		player_intel = min(player_intel, intel_max());
+		insight_phase_done = false; // the log opens once the hand is dealt (oCombat Step, PLAYER_INPUT)
 		intel_level = insight_revealed ? INTEL_LEGIBLE : INTEL_FADED;
 		//show_debug_message("Player intel amount: "+string(player_intel));
 		//show_debug_message("Player intel level: "+string(intel_level));
@@ -387,9 +389,8 @@ switch (state) {
         enemies_turn_done = false;
         actions_submitted = false;
 	
-		// Reset player intel 
-		player_intel = 0;
-		
+		// ink is not reset: what you didn't spend carries into next turn (capped at the start of the turn)
+
 		// Eject temporary dice and remove buffed timers
 		if (!ejected_dice) {
 		    for (var i = 0; i < ds_list_size(action_queue); i++) {
@@ -620,10 +621,13 @@ global.player_x = lerp(global.player_x, global.player_xstart, 0.2);
 
 if (insight_view) insight_view_age++;
 // I opens and closes insight view
-if (keyboard_check_pressed(ord("I")) && state == CombatState.PLAYER_INPUT && !show_rewards && !intel_is_blotted()) {
-	if (insight_view && insight_view_age > 0) combat_insight_view_set(false);
-	else if (!insight_view && global.ui_layer == UI_LAYER.BASE) combat_insight_view_set(true);
+// the insight phase: once the hand is dealt, the log opens if there's ink to write with (combat_insight_phase_worth)
+if (state == CombatState.PLAYER_INPUT && !insight_phase_done && !is_dealing_dice && dice_to_deal <= 0 && !show_rewards && global.ui_layer == UI_LAYER.BASE) {
+	insight_phase_done = true;
+	if (combat_insight_phase_worth()) combat_insight_view_set(true);
 }
+// I closes the log (it can't be reopened until next turn)
+if (keyboard_check_pressed(ord("I")) && insight_view && insight_view_age > 0) combat_insight_view_set(false);
 if (insight_view && (state != CombatState.PLAYER_INPUT || show_rewards || intel_is_blotted())) combat_insight_view_set(false);
 
 if (keyboard_check_pressed(vk_enter) && state == CombatState.PLAYER_INPUT && !is_dealing_dice && !insight_view && tutorial_allows("end_turn")) {

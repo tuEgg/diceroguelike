@@ -101,9 +101,7 @@ if (!is_dragging && hovered && mouse_check_button_pressed(mb_left)) {
 }
 
 // rolled dice: right-click a die in hand to reroll it (once per turn, free)
-if (room == rmCombat && hovered && !is_dragging && mouse_check_button_pressed(mb_right) && instance_exists(oCombat)) {
-	with (oCombat) combat_reroll_die(other.id);
-}
+// (rerolling a die is done in the insight phase now: combat_insight_view_draw)
 
 // --- Dragging movement ---
 if (is_dragging) {
@@ -210,7 +208,7 @@ if (is_dragging && mouse_check_button_released(mb_left)) {
     if (combat != noone) {
         // the guided first fight only lets through what its current step asks for (tutorial_allows)
         if (is_mouse_over_discard_button()) {
-            if (tutorial_allows("discard", struct)) with (combat) combat_discard_and_redraw(other.id); // 3 insight, or it stays in hand
+            if (tutorial_allows("discard", struct)) with (combat) discard_dice(other.id); // a plain discard: redraws are bought in the insight phase
         } else if (oCombat.last_hover) {
 			if (!die_has_keyword(struct, "exclusive") && tutorial_allows("sacrifice", struct)) {
 				with (combat) sacrifice_die(other.id);

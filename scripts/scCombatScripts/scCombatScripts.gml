@@ -1680,7 +1680,7 @@ function tutorial_steps() {
 		// turn 1: a slot, stacking, a slot from a sacrifice, generic dice, how long dice stay
 		{
 			id: "intent", target: "intent", allow: [], button: "Next",
-			text: "Read your enemy first. Its intent shows what it will do this turn, and a range of how much. Insight dice give you insight next turn: click the eye and spend 2 of it to see the exact number.",
+			text: "Read your enemy first. Its intent shows what it will do this turn, and a range of how much. Insight dice give you ink for next turn: at the start of a turn your quill can spend 2 of it to show the exact number.",
 		},
 		{
 			id: "claim", target: "slot0", allow: ["place"], die_types: ["ATK"], slot: 0,
@@ -1718,7 +1718,7 @@ function tutorial_steps() {
 		// turn 2: insight, a slot with two actions, right-click to switch
 		{
 			id: "insight", target: "insight", allow: [], button: "Next",
-			text: "Your insight came in. Spend it this turn or lose it: right-click a die to reroll it (3), discard one to draw another (3), click a yellow pip for an extra play (4). The pulsing eye (or I) lets you see the enemy's exact numbers (2) or make it choose again (6).",
+			text: "Your insight came in as ink, and the log is open. With the quill: reroll or redraw a die (3), see the enemy's exact numbers (2), or make it choose again (6). Close the log to play your dice.",
 		},
 		{
 			id: "two_types", target: "sacrifice", allow: ["sacrifice"], die_types: ["ATK", "BLK"],
@@ -1939,7 +1939,7 @@ function tutorial_draw_note(_text, _r, _button) {
 
 	// a note that waits for the player to read it has a button
 	if (_btn_h > 0) {
-		var _b = draw_gui_button(_nx + _note_w - 160 - _pad, _ny + _note_h - _btn_h - 8, 160, 42, 1, _button, global.ui_primary, ftDefault, true, true, UI_LAYER.BASE);
+		var _b = draw_gui_button(_nx + _note_w - 160 - _pad, _ny + _note_h - _btn_h - 8, 160, 42, 1, _button, global.ui_primary, ftDefault, true, true, (instance_exists(oCombat) && oCombat.insight_view) ? UI_LAYER.POPUP : UI_LAYER.BASE); // clickable in the insight phase too
 		if (_b.click) _clicked = true;
 	}
 
@@ -2063,8 +2063,8 @@ function tips_list() {
 		{
 			// the guided fight is off on this branch, so this teaches insight the first time you have some to spend
 			id: "insight_spend", room: rmCombat, target: "insight",
-			text: "Insight: you have some to spend this turn. Right-click a die to reroll it (" + string(INSIGHT_COST_REROLL) + "), drop one on the discard pile to draw a new one (" + string(INSIGHT_COST_REDRAW) + "), or click a yellow pip by your plays for another play (" + string(INSIGHT_COST_PLAY) + "). Click the pulsing eye (or press I) to see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + ", or 1 each when there are several) or make it choose its move again (" + string(INSIGHT_COST_QUILL) + "). What you don't spend is gone at End Turn.",
-			when: function() { return tips_combat_ready() && oCombat.player_intel >= combat_reveal_cost() && !intel_is_blotted(); },
+			text: "The log is open. Your insight is ink: with the quill, reroll or redraw a die in your hand (" + string(INSIGHT_COST_REROLL) + " each), see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + ", or 1 each when there are several), or make it choose its move again (" + string(INSIGHT_COST_QUILL) + "). Close the log to play. Ink you don't spend carries over.",
+			when: function() { return instance_exists(oCombat) && oCombat.insight_view; },
 		},
 		{
 			id: "blotted", room: rmCombat, target: "insight",
@@ -2800,7 +2800,7 @@ function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
 	var _total = max(dice_allowed_per_turn, dice_played);
 	var _left = max(0, dice_allowed_per_turn - dice_played);
 	var _my_turn = (state == CombatState.PLAYER_INPUT && !show_rewards);
-	var _buyable = _my_turn && !intel_is_blotted() ? floor(max(0, player_intel) / INSIGHT_COST_PLAY) : 0;
+	var _buyable = 0; // plays can't be bought any more (insight rewrites the log, it doesn't add plays)
 	var _r = 11, _gap = 5;
 	var _dark = make_color_rgb(42, 29, 18);
 	var _brass = make_color_rgb(232, 196, 106);
@@ -2888,8 +2888,23 @@ function combat_token_symbol(_group, _x, _y, _r, _col) {
 // INSIGHT VIEW: the eye opens it; everything dims except what insight can buy
 // =====================================================================
 
+/// @func combat_insight_phase_worth()
+/// @desc Is there anything your ink could do right now? (the cheapest: a reveal, or a reroll or redraw at 3)
+function combat_insight_phase_worth() {
+	return combat_insight_can(min(combat_reveal_cost(), INSIGHT_COST_REROLL, INSIGHT_COST_REDRAW));
+}
+
+/// @func combat_redraw_die(_inst)
+/// @desc In the insight phase: for 3 ink, a die in hand is discarded and a new one dealt (it rolls as it comes).
+function combat_redraw_die(_inst) {
+	if (!instance_exists(_inst) || !combat_insight_spend(INSIGHT_COST_REDRAW)) return;
+	discard_dice(_inst);
+	dice_to_deal += 1;
+	is_dealing_dice = true;
+}
+
 /// @func combat_insight_view_set(_open)
-/// @desc Opens or closes insight view. While it's open the rest of the screen ignores the mouse (UI_LAYER.POPUP).
+/// @desc Opens or closes the insight phase. While it's open the rest of the screen ignores the mouse (UI_LAYER.POPUP).
 function combat_insight_view_set(_open) {
 	with (oCombat) {
 		if (insight_view == _open) return;
@@ -2922,18 +2937,20 @@ function combat_insight_part_draw(_x1, _y1, _x2, _y2, _afford, _hover, _pulse, _
 }
 
 /// @func combat_insight_view_draw()
-/// @desc oRunManager Draw GUI End (after every Draw GUI, so the dice in hand dim too): a dark overlay with holes over the
-///       enemy intents, then on top: a heading with your insight, the eye (click to close), and each intent split in
-///       two: its move (left) to reroll for 6, its numbers (right) to see exactly for 2. Right-click or I also close it.
-///       Rerolling and redrawing your dice, and buying plays, are paid where you do them, not here.
+/// @desc The insight phase, drawn first in oRunManager Draw GUI End (so the dice dim too): the screen darkens except
+///       the enemy intents and the dice in your hand, which your quill can rewrite. Each intent is split in two: its
+///       move (left) rerolled for 6, its numbers (right) shown exactly for 2 (1 each with several enemies). Each die
+///       in hand has two coins above it: reroll it (3) and redraw it (3). No tooltips: the quill cursor shows the cost
+///       of what it's over (global.quill_hint, cursor_draw). "Close the log", I or right-click ends the phase.
 function combat_insight_view_draw() {
+	global.quill_hint = undefined;
 	if (!instance_exists(oCombat) || !oCombat.insight_view) return;
 	with (oCombat) {
 		var _gw = display_get_gui_width(), _gh = display_get_gui_height();
 		var _top = ui_top_bar_h();
 		var _pad = 14;
 
-		// the overlay: a surface filled dark, with the intents cut out of it (subtract blend), so they show at full colour
+		// the overlay: dark, with the intents and your hand cut out of it (subtract blend), so they show at full colour
 		if (!surface_exists(insight_surf)) insight_surf = surface_create(_gw, _gh);
 		surface_set_target(insight_surf);
 		draw_clear_alpha(c_black, 0.72);
@@ -2945,64 +2962,86 @@ function combat_insight_view_draw() {
 			var _ir = _en.intent_rect;
 			draw_roundrect_ext(_ir.x - _ir.w / 2 - _pad, _ir.y - _ir.h / 2 - _pad, _ir.x + _ir.w / 2 + _pad, _ir.y + _ir.h / 2 + _pad, 18, 18, false);
 		}
+		with (oDice) if (!still && !in_slot) draw_circle(x, y, 56, false);
 		gpu_set_blendmode(bm_normal);
 		surface_reset_target();
 		draw_surface_part(insight_surf, 0, _top, _gw, _gh - _top, 0, _top); // the top bar stays as it is
 
-		// no heading: the lit intents, their cost coins and hovers say it all (Jared, 2026-11-19)
+		// the inkwell, on top, with your ink beside it
+		var _ex = global.player_x, _ey = global.player_y - 180;
+		draw_inkwell(_ex, _ey, 1.15, player_intel / INSIGHT_MAX, false);
+		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
+		draw_outline_text(string(player_intel), c_black, global.color_intel, 2, _ex + 44, _ey + 10, 1, 1, 0);
 
-		// the eye, on top, with a ring and your insight beside it: click to close
-		var _ex = global.player_x, _ey = global.player_y - 180;
-		draw_set_color(global.color_intel);
-		draw_circle(_ex, _ey, 33, true);
-		draw_circle(_ex, _ey, 34, true);
-		var _eye_frame = global.player_intel_data[| intel_level].index;
-		draw_sprite_ext(sIntelEye, _eye_frame, _ex, _ey, 1, 1, 0, c_white, 1);
-		draw_set_font(ftDefault);
-		draw_outline_text(string(player_intel), c_black, global.color_intel, 2, _ex + 48, _ey + 8, 1, 1, 0);
-		var _eye_hover = mouse_hovering(_ex, _ey, 80, 60, true, noone, soClick4, true, UI_LAYER.POPUP);
-		if (_eye_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Close insight view", "Back to your turn. Unspent insight is lost at End Turn.");
+		// done writing
+		var _cb = ui_button(_ex + 190, _ey, 220, 54, close_btn_scale, "Close the log", global.ui_primary, true, "", UI_LAYER.POPUP, 1, ftDefault);
+		close_btn_scale = _cb.scale;
 
-		// each intent: the move (left, under its icon) can be rerolled for 6; the numbers (right) shown exactly for 2
+		var _pulse = 0.5 + 0.5 * sin(current_time / 200);
+
+		// each intent: the move (left, under its icon) rerolled for 6; the numbers (right) shown exactly
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var _en = room_enemies[| e];
 			if (_en.dead || !variable_struct_exists(_en, "intent_rect")) continue;
 			var _ir = _en.intent_rect;
 			var _x1 = _ir.x - _ir.w / 2 - _pad, _y1 = _ir.y - _ir.h / 2 - _pad, _x2 = _ir.x + _ir.w / 2 + _pad, _y2 = _ir.y + _ir.h / 2 + _pad;
 			var _sx = variable_struct_exists(_ir, "split") ? _ir.split : _ir.x;
-			var _pulse = 0.5 + 0.5 * sin(current_time / 200);
 
-			// left: reroll the move
 			var _ok = enemy_can_rewrite_intent(_en);
 			var _afford = _ok && combat_insight_can(INSIGHT_COST_QUILL);
 			var _lhover = mouse_hovering(_x1, _y1, _sx - _x1, _y2 - _y1, false, noone, soClick4, true, UI_LAYER.POPUP);
-			combat_insight_part_draw(_x1, _y1, _sx - 2, _y2, _afford, _lhover, _pulse, INSIGHT_COST_QUILL, "Reroll", true);
+			combat_insight_part_draw(_x1, _y1, _sx - 2, _y2, _afford, _lhover, _pulse, INSIGHT_COST_QUILL, "", true);
 			if (_lhover) {
-				if (!_ok) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't reroll this move", "It's forced, or the enemy has nothing else to choose.");
-				else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll this move", "Spend " + string(INSIGHT_COST_QUILL) + " insight: " + string(_en.data.name) + " picks a different move, rolled fresh.", undefined, 0, undefined, INSIGHT_COST_QUILL, "insight");
+				global.quill_hint = _ok ? { text: "Reroll move  -" + string(INSIGHT_COST_QUILL), ok: _afford } : { text: "Can't be changed", ok: false };
 				if (mouse_check_button_pressed(mb_left) && _ok && combat_insight_spend(INSIGHT_COST_QUILL) && enemy_rewrite_intent(_en)) {
 					_en.intent.scale = _en.intent.start_scale * 1.4; // pop, so the change is noticed
 					add_feed_entry("You rewrote " + string(_en.data.name) + "'s intent: " + string(_en.intent.move.move_name));
 				}
 			}
 
-			// right: see the exact numbers (every enemy's, for this turn)
 			if (!enemy_intent_revealed(_en) && intent_has_numbers(_en.intent.move)) {
 				var _rcost = combat_reveal_cost();
 				var _rafford = combat_insight_can(_rcost);
 				var _rhover = mouse_hovering(_sx, _y1, _x2 - _sx, _y2 - _y1, false, noone, soClick4, true, UI_LAYER.POPUP);
-				combat_insight_part_draw(_sx + 2, _y1, _x2, _y2, _rafford, _rhover, _pulse, _rcost, "Exact", false);
+				combat_insight_part_draw(_sx + 2, _y1, _x2, _y2, _rafford, _rhover, _pulse, _rcost, "", false);
 				if (_rhover) {
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "See exact values", "Spend " + string(_rcost) + " insight: see exactly what " + string(_en.data.name) + " will do this turn, instead of a range." + ((_rcost == 1) ? " With several enemies, it's 1 each." : ""), undefined, 0, undefined, _rcost, "insight");
+					global.quill_hint = { text: "Exact numbers  -" + string(_rcost), ok: _rafford };
 					if (mouse_check_button_pressed(mb_left)) combat_reveal_enemy(_en);
 				}
 			}
 		}
 
-		// closing: the eye, or a right-click anywhere
-		if (insight_view_age > 0 && ((_eye_hover && mouse_check_button_pressed(mb_left)) || mouse_check_button_pressed(mb_right))) combat_insight_view_set(false); // I: oCombat Step
+		// your dice in hand: a reroll coin and a redraw coin above each (not while it's still rolling in)
+		var _rr_can = combat_insight_can(INSIGHT_COST_REROLL), _rd_can = combat_insight_can(INSIGHT_COST_REDRAW);
+		var _clicked = noone, _clicked_what = "";
+		with (oDice) {
+			if (still || in_slot || is_dragging || tumbling || !die_has_faces(struct)) continue;
+			for (var k = 0; k < 2; k++) {
+				var _cx = x + (k == 0 ? -22 : 22), _cy = y - 66;
+				var _can = (k == 0) ? _rr_can : _rd_can;
+				var _hov = mouse_hovering(_cx, _cy, 36, 36, true, noone, soClick4, true, UI_LAYER.POPUP);
+				var _r = _hov && _can ? 17 : 15;
+				var _col = _can ? global.color_intel : make_color_rgb(120, 110, 80);
+				draw_set_color(c_black);
+				draw_circle(_cx, _cy, _r + 3, false);
+				draw_set_color(_col);
+				draw_circle(_cx, _cy, _r, false);
+				combat_token_symbol(k + 1, _cx, _cy, _r, make_color_rgb(42, 29, 18)); // 1: a circling arrow, 2: an arrow up
+				if (_hov) {
+					global.quill_hint = { text: ((k == 0) ? "Reroll die  -" : "Redraw die  -") + string((k == 0) ? INSIGHT_COST_REROLL : INSIGHT_COST_REDRAW), ok: _can };
+					if (mouse_check_button_pressed(mb_left) && _can) { _clicked = id; _clicked_what = (k == 0) ? "reroll" : "redraw"; }
+				}
+			}
+		}
+		if (_clicked != noone) {
+			if (_clicked_what == "reroll") combat_reroll_die(_clicked);
+			else combat_redraw_die(_clicked);
+		}
+
+		// closing: the button, I (oCombat Step), or a right-click anywhere
+		if (insight_view_age > 0 && (_cb.click || mouse_check_button_pressed(mb_right))) combat_insight_view_set(false);
 
 		draw_set_color(c_white);
 		draw_set_alpha(1);

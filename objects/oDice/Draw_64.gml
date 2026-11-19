@@ -10,16 +10,16 @@ if (_coded) {
 	var _face = tumbling ? flick_face : (die_has_faces(struct) ? die_face_total(struct) : -1);
 	var _wobble = over_discard ? sin(current_time / 70) * 9 : 0;
 	draw_die(x, y, _die_r, dice_value, _face, over_discard ? merge_colour(image_blend, c_black, 0.25) : image_blend, tumble_angle + _wobble, image_alpha);
-	// over the discard pile: what letting go does and costs (3 insight to discard and draw a new one), greyed if you can't
+	// over the discard pile: letting go discards it (redraws are bought in the insight phase)
 	if (over_discard && instance_exists(oCombat)) {
-		var _can = combat_insight_can(INSIGHT_COST_REDRAW);
+		var _can = true;
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_bottom); // wraps upwards from just above the keyword icons
 		// short, wrapped to 220px, and kept on screen (the discard pile is at the right edge)
-		var _msg = _can ? "Discard and draw  -" + string(INSIGHT_COST_REDRAW) : "Needs " + string(INSIGHT_COST_REDRAW) + " insight to discard (you have " + string(max(0, oCombat.player_intel)) + ")";
+		var _msg = "Discard";
 		var _mx = clamp(x, 120, display_get_gui_width() - 120);
-		draw_outline_text(_msg, c_black, _can ? global.color_intel : make_color_rgb(150, 150, 160), 2, _mx, y - _die_r - 24, 1, 1, 0, 220);
+		draw_outline_text(_msg, c_black, c_white, 2, _mx, y - _die_r - 24, 1, 1, 0, 220);
 		draw_set_valign(fa_middle);
 	}
 } else {
@@ -60,7 +60,7 @@ if mouse_hovering(x, y, sprite_width, sprite_height, true) {
 	var _title = string(struct.name) + (_rolled ? ": rolled " + string(die_face_total(struct)) : "") + " (" + string(dice_output.min_roll) + "-" + string(dice_output.max_roll) + ")";
 	// with 3+ insight to spend, the tooltip carries a right-mouse hint above its top right: reroll for 3
 	var _reroll_hint = undefined;
-	if (_rolled && instance_exists(oCombat) && !is_dragging && combat_insight_can(INSIGHT_COST_REROLL)) _reroll_hint = { button: "right", text: "Reroll  -" + string(INSIGHT_COST_REROLL), col: global.color_intel };
+	// (no reroll hint: rerolling happens in the insight phase)
 	queue_tooltip(x - sprite_width/2, y + sprite_height/2, _title, die_description(struct), undefined, 0, struct, 0, "insight", _reroll_hint);
 	
 	var off_x = 0;

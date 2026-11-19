@@ -1705,13 +1705,28 @@ function draw_mouse_hint(_x, _y, _button, _text, _scale = 1, _lit = c_red, _text
 ///       hover or click, and dips while the button is held. The system cursor is hidden while it's on.
 function cursor_draw() {
 	var _on = global.custom_cursor;
-	if (_on != global.cursor_hidden) {
-		window_set_cursor(_on ? cr_none : cr_default);
-		global.cursor_hidden = _on;
+	// the insight phase: the cursor is a quill, its nib at the mouse, with the cost of what it's over (global.quill_hint)
+	var _quill = instance_exists(oCombat) && oCombat.insight_view;
+	var _hide = _on || _quill;
+	if (_hide != global.cursor_hidden) {
+		window_set_cursor(_hide ? cr_none : cr_default);
+		global.cursor_hidden = _hide;
+	}
+	var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
+	if (_quill) {
+		var _qs = 1.1 * global.ui_scale;
+		draw_insight_icon("quill", _mx + 12 * _qs, _my - 15 * _qs, _qs, 1); // the icon's nib is 12 left and 15 below its centre
+		if (variable_global_exists("quill_hint") && is_struct(global.quill_hint)) {
+			draw_set_font(ftDefault);
+			draw_set_halign(fa_left);
+			draw_set_valign(fa_middle);
+			draw_outline_text(global.quill_hint.text, c_black, global.quill_hint.ok ? global.color_intel : make_color_rgb(150, 150, 160), 2, _mx + 22, _my + 14, 1, 1, 0);
+		}
+		draw_set_color(c_white);
+		return;
 	}
 	if (!_on) return;
 
-	var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
 	var _hot = (current_time - global.cursor_hover_time) < 60;
 	var _down = mouse_check_button(mb_left);
 	// tips forward over anything interactive, and further while the button is held (a tap), never shrinking
@@ -2351,5 +2366,47 @@ function draw_padlock(_x, _y, _scale, _col) {
 	draw_set_color(c_black);
 	draw_circle(_x, _y + 3 * _s, 2.5 * _s, false);
 	draw_line_width(_x, _y + 3 * _s, _x, _y + 8 * _s, 2 * _s);
+	draw_set_color(c_white);
+}
+
+/// @func draw_inkwell(_x, _y, _scale, _fill, _blotted)
+/// @desc Your insight as an inkwell (about 50 x 46 at scale 1, centred on _x, _y): a squat dark glass pot, golden ink
+///       inside filled to _fill (0-1), a quill standing in it while there's ink. Blotted: the pot tipped over, spilled.
+function draw_inkwell(_x, _y, _scale, _fill, _blotted) {
+	var _s = _scale;
+	var _ink = global.color_intel;
+	var _glass = make_color_rgb(32, 36, 52);
+	var _rim = make_color_rgb(70, 76, 100);
+	if (_blotted) {
+		draw_insight_icon("blotted", _x + 6 * _s, _y + 14 * _s, 1.1 * _s, 1); // the spill
+		draw_set_color(c_black);
+		draw_roundrect_ext(_x - 22 * _s, _y - 14 * _s, _x + 8 * _s, _y + 10 * _s, 10 * _s, 10 * _s, false); // the pot on its side
+		draw_set_color(_glass);
+		draw_roundrect_ext(_x - 20 * _s, _y - 12 * _s, _x + 6 * _s, _y + 8 * _s, 9 * _s, 9 * _s, false);
+		draw_set_color(c_white);
+		return;
+	}
+	// the quill behind the pot, leaning right, while there's ink to write with
+	if (_fill > 0) draw_insight_icon("quill", _x + 12 * _s, _y - 20 * _s, 0.85 * _s, 1);
+	// the pot: outline, glass, then the ink, then a shine
+	draw_set_color(c_black);
+	draw_roundrect_ext(_x - 25 * _s, _y - 8 * _s, _x + 25 * _s, _y + 24 * _s, 14 * _s, 14 * _s, false);
+	draw_roundrect_ext(_x - 12 * _s, _y - 20 * _s, _x + 12 * _s, _y - 4 * _s, 5 * _s, 5 * _s, false);
+	draw_set_color(_glass);
+	draw_roundrect_ext(_x - 22 * _s, _y - 5 * _s, _x + 22 * _s, _y + 21 * _s, 12 * _s, 12 * _s, false);
+	draw_set_color(_rim);
+	draw_roundrect_ext(_x - 9 * _s, _y - 17 * _s, _x + 9 * _s, _y - 6 * _s, 4 * _s, 4 * _s, false);
+	var _f = clamp(_fill, 0, 1);
+	if (_f > 0) {
+		var _top = _y + 19 * _s - 22 * _s * _f; // the ink's surface rises with your insight
+		draw_set_color(_ink);
+		draw_roundrect_ext(_x - 20 * _s, _top, _x + 20 * _s, _y + 19 * _s, 10 * _s, 10 * _s, false);
+		draw_set_color(merge_colour(_ink, c_white, 0.45));
+		draw_line_width(_x - 16 * _s, _top + 2 * _s, _x + 16 * _s, _top + 2 * _s, 2 * _s);
+	}
+	draw_set_alpha(0.35);
+	draw_set_color(c_white);
+	draw_roundrect_ext(_x - 18 * _s, _y - 2 * _s, _x - 12 * _s, _y + 12 * _s, 3 * _s, 3 * _s, false);
+	draw_set_alpha(1);
 	draw_set_color(c_white);
 }
