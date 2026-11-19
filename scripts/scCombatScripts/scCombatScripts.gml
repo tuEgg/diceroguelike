@@ -2268,6 +2268,8 @@ function weighted_to_face(_distribution, _weighted, _min_roll) {
 /// @desc A short word over a rolling die when an effect changes its result ("Warrior!", "Rolled 2 and 5, kept 5").
 function roll_popup(_slot_number, _dice_index, _text, _color) {
 	if (!instance_exists(oCombat)) return;
+	if (!is_real(_dice_index)) _dice_index = 0;
+	if (!is_real(_slot_number)) _slot_number = -1;
 	var _x = global.player_x, _y = global.player_y - 200;
 	with (oCombat) {
 		if (_slot_number != undefined && _slot_number >= 0 && ds_safe_exists(slot_positions, ds_type_list) && _slot_number < ds_list_size(slot_positions)) {

@@ -310,6 +310,7 @@ function generate_dice_bag() {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._d_amount == 4 && _context.die.uid == _context._die_struct_source.uid) {
+						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
 						_context._d_amount = 5;
 					}
 	            }
@@ -330,6 +331,7 @@ function generate_dice_bag() {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._p_slot_type == "BLK" && _context.die.uid == _context._die_struct_source.uid) {
+						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
 	                    with (oCombat) {
 							// Deal flat damage to all enemies, we have to run this backwards in case any enemies die during this roll
 							for (var i = ds_list_size(oCombat.room_enemies)-1; i >= 0 ; i--) {
@@ -375,6 +377,7 @@ function generate_dice_bag() {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._d_amount >= 5 && _context.die.uid == _context._die_struct_source.uid) {
+						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
 						with (oRunManager) deal_single_die(false); // deal a dice that can't be discarded this turn
 					}
 	            }
@@ -394,6 +397,7 @@ function generate_dice_bag() {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._d_amount >= 4 && _context.die.uid == _context._die_struct_source.uid) {
+						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
 						with (oCombat) {
 							process_action("player", 0, 2, 0, "player", undefined, "BLK");
 						}
@@ -459,6 +463,7 @@ function generate_dice_bag() {
 					// the total the player sees on the die: the roll plus the slot's and keepsakes' bonuses
 					var _total = _context._d_amount + _context.slot_bonus + _context.keepsake_bonus + _context.first_bonus;
 					if (_total mod 2 == 0 && _context.die.uid == _context._die_struct_source.uid) {
+						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
 						global.player_hp = min(global.player_max_hp, global.player_hp + 2);
 						particle_emit(global.player_x, global.player_y, "burst", c_lime);
 						var num = spawn_floating_number("player", 2, -1, c_lime, 1, -1, 0);
@@ -805,6 +810,7 @@ function generate_dice_bag() {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._d_amount == _context.min_roll && _context.die.uid == _context._die_struct_source.uid) {
+						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
 						apply_buff("player", oRunManager.buff_might, 1, 1, false, { source: "player", index: -1 });
 					}
 	            }
@@ -823,6 +829,7 @@ function generate_dice_bag() {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._d_amount == _context.max_roll && _context.die.uid == _context._die_struct_source.uid) {
+						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
 						apply_buff("player", oRunManager.buff_balance, 1, 1, false, { source: "player", index: -1 });
 					}
 	            }
