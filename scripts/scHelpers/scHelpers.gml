@@ -485,6 +485,11 @@ function draw_all_tooltips() {
 		// stack kept on screen
 		var tt = global.tooltip_main;
 		var _gap = 4;
+		if (is_struct(tt) && variable_struct_exists(tt, "die_tip")) { draw_die_tip(tt); tt = undefined; } // a die's compact tip (queue_die_tip)
+	}
+	if (global.tooltip_active && !_over_discard && is_struct(global.tooltip_main) && !variable_struct_exists(global.tooltip_main, "die_tip")) {
+		var tt = global.tooltip_main;
+		var _gap = 4;
 		var _main = draw_tooltip_box(0, 0, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, true);
 		var _total_h = _main.h;
 		var _max_w = _main.w;
@@ -525,6 +530,92 @@ function draw_all_tooltips() {
     global.tooltip_active = false;
     global.tooltip_main = undefined;
     global.tooltip_keywords = [];
+}
+
+/// @func queue_die_tip(_die, _cx, _bottom, _sub)
+/// @desc A die's compact tip (the hovered die in hand): drawn by draw_all_tooltips centred on _cx with its pointer at
+///       _bottom (just above the die), never below it, so it never covers the hand. Name, _sub ("rolled 4" or "1-6"), a
+///       mini chart of a fitted core (draw_dist_mini), and the effect. No keyword boxes: those are on the die's icons.
+///       Takes the tooltip slot like queue_tooltip (the first asked for in a frame wins).
+function queue_die_tip(_die, _cx, _bottom, _sub) {
+	if (global.tooltip_active) return;
+	global.tooltip_active = true;
+	global.tooltip_main = { die_tip: true, dice: _die, cx: _cx, bottom: _bottom, sub: _sub };
+	global.tooltip_keywords = [];
+}
+
+/// @func draw_dist_mini(_die, _x, _bottom, _h)
+/// @desc A tiny bar chart of a die's distribution (its core): 5px bars, the tallest _h high, standing on _bottom from
+///       _x. Returns its width. Nothing (0) for a die with no core.
+function draw_dist_mini(_die, _x, _bottom, _h) {
+	if (!is_struct(_die) || _die.distribution == "") return 0;
+	var _out = get_dice_output(_die, undefined, -1, true, "player");
+	var _dist = [];
+	define_dice_distributions(_die.distribution, _out.min_roll, _out.max_roll, _dist);
+	var _n = array_length(_dist);
+	if (_n == 0) return 0;
+	var _top = 0;
+	for (var i = 0; i < _n; i++) _top = max(_top, _dist[i]);
+	if (_top <= 0) _top = 1;
+	for (var i = 0; i < _n; i++) {
+		var _bh = (_dist[i] > 0) ? max(2, _h * _dist[i] / _top) : 1;
+		draw_set_color((_dist[i] > 0) ? make_color_rgb(242, 210, 74) : make_color_rgb(90, 90, 100));
+		draw_rectangle(_x + i * 7, _bottom - _bh, _x + i * 7 + 4, _bottom, false);
+	}
+	draw_set_color(c_white);
+	return _n * 7 - 2;
+}
+
+/// @func draw_die_tip(_tt)
+/// @desc Draws a compact die tip (queue_die_tip): the logbook tooltip box above the die with a pointer down to it,
+///       kept on screen sideways.
+function draw_die_tip(_tt) {
+	var _d = _tt.dice;
+	var _pad = 14, _max_w = 260;
+	draw_set_font(ftDefault);
+	var _name_w = string_width(_d.name);
+	var _name_h = string_height(_d.name);
+	draw_set_font(ftDescriptions);
+	var _sub_w = string_width(_tt.sub);
+	var _desc = die_description(_d);
+	var _line = font_get_size(ftDescriptions) * 1.5;
+	var _desc_w = min(_max_w, string_width(_desc));
+	var _desc_h = string_height_ext(_desc, _line, _max_w);
+	var _mini_w = (_d.distribution != "") ? _d.dice_value * 7 : 0; // about draw_dist_mini's width
+	var _w = _pad * 2 + max(_name_w + 8 + _sub_w + (_mini_w > 0 ? 10 + _mini_w : 0), _desc_w);
+	var _h = _pad * 2 + _name_h + 4 + _desc_h;
+	var _x1 = clamp(_tt.cx - _w / 2, 10, display_get_gui_width() - _w - 10);
+	var _y2 = _tt.bottom - 10; // room for the pointer
+	var _y1 = max(ui_top_bar_h() + 6, _y2 - _h);
+	_y2 = _y1 + _h;
+
+	// the box, like the tooltips: dark ink, a cream rule; a pointer down to the die
+	var _bg = (oRunManager.error_timer == 0) ? make_color_rgb(26, 30, 40) : global.color_error;
+	var _rule = make_color_rgb(226, 212, 176);
+	var _px = clamp(_tt.cx, _x1 + 16, _x1 + _w - 16);
+	draw_set_alpha(0.92);
+	draw_set_color(c_black);
+	draw_roundrect(_x1 - 2, _y1 - 2, _x1 + _w + 2, _y2 + 2, false);
+	draw_triangle(_px - 10, _y2, _px + 10, _y2, _px, _y2 + 12, false);
+	draw_set_color(_bg);
+	draw_roundrect(_x1, _y1, _x1 + _w, _y2, false);
+	draw_triangle(_px - 8, _y2 - 1, _px + 8, _y2 - 1, _px, _y2 + 9, false);
+	draw_set_alpha(0.6);
+	draw_set_color(_rule);
+	draw_roundrect(_x1 + 4, _y1 + 4, _x1 + _w - 4, _y2 - 4, true);
+	draw_set_alpha(1);
+
+	// the name, what it rolled, the mini chart; then the effect
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	draw_set_font(ftDefault);
+	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + _pad, _y1 + _pad, 1, 1, 0);
+	draw_set_font(ftDescriptions);
+	var _sx = _x1 + _pad + _name_w + 8;
+	draw_outline_text(_tt.sub, c_black, make_color_rgb(185, 169, 136), 1, _sx, _y1 + _pad + 3, 1, 1, 0);
+	if (_mini_w > 0) draw_dist_mini(_d, _sx + _sub_w + 10, _y1 + _pad + _name_h - 3, 16);
+	draw_outline_text(colorcode_text(_desc), c_black, c_white, 1, _x1 + _pad, _y1 + _pad + _name_h + 4, 1, 1, 0, _max_w);
+	draw_set_color(c_white);
 }
 
 /// @func tooltip_cost_badge(_x, _y, _amount, _kind)

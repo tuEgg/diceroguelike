@@ -1389,7 +1389,8 @@ function die_bottom_edge(_sides, _r) {
 
 /// @func draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha, _where)
 /// @desc A die's keyword icons (draw_keyword_icon), centred in a row on _x, _y: callers put _y on the die's bottom edge
-///       (die_bottom_edge) so the roundels overlap it by half. Only keywords whose icon_on includes _where.
+///       (die_bottom_edge) so the roundels overlap it by half. Only keywords whose icon_on includes _where. Returns
+///       where each was drawn: [{ key, x, y, r }].
 function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0, _where = "hand") {
     // icons come from the die's keywords list, only those worth an icon _where the die is (the keyword's icon_on)
     var found = [];
@@ -1401,7 +1402,8 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0, _where = 
         if (die_has_keyword(_die_struct, key)) array_push(found, key);
     }
 
-    if (array_length(found) == 0) return;
+    var _drawn = [];
+    if (array_length(found) == 0) return _drawn;
 
     var icon_x = _x;
     var icon_y = _y;
@@ -1414,9 +1416,11 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0, _where = 
         var data = global.keywords[$ key];
 
         draw_keyword_icon(key, icon_x, icon_y, _scale, _alpha);
+        array_push(_drawn, { key: key, x: icon_x, y: icon_y, r: 15 * _scale });
 
         icon_x += icon_spacing;
     }
+    return _drawn;
 }
 
 /// @func draw_dice_distribution(_die, _x, _y, [_centered], [_scale])
