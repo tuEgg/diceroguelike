@@ -2029,24 +2029,85 @@ function bag_type_label(_possible_type) {
 	return _out;
 }
 
+/// @func rarity_colour(_rarity)
+/// @desc A rarity's gem colour: grey common, teal uncommon, violet rare (starters have no gem).
+function rarity_colour(_rarity) {
+	switch (_rarity) {
+		case "uncommon": return make_color_rgb(90, 200, 175);
+		case "rare":     return make_color_rgb(200, 120, 225);
+	}
+	return make_color_rgb(170, 170, 185);
+}
+
+/// @func draw_rarity_gem(_x, _y, _rarity, _scale, _alpha)
+/// @desc A die's rarity as a small diamond gem centred on _x, _y (about 16 x 20 at scale 1). Nothing for starters.
+///       Rarity is always shown as a gem, never as a word.
+function draw_rarity_gem(_x, _y, _rarity, _scale = 1, _alpha = 1) {
+	if (_rarity == "starter") return;
+	var _s = _scale;
+	draw_set_alpha(_alpha);
+	draw_set_color(c_black);
+	draw_primitive_begin(pr_trianglefan);
+	draw_vertex(_x, _y - 10 * _s); draw_vertex(_x + 8 * _s, _y); draw_vertex(_x, _y + 10 * _s); draw_vertex(_x - 8 * _s, _y);
+	draw_primitive_end();
+	draw_set_color(rarity_colour(_rarity));
+	draw_primitive_begin(pr_trianglefan);
+	draw_vertex(_x, _y - 7 * _s); draw_vertex(_x + 5.5 * _s, _y); draw_vertex(_x, _y + 7 * _s); draw_vertex(_x - 5.5 * _s, _y);
+	draw_primitive_end();
+	// a glint on the upper left facet
+	draw_set_color(c_white);
+	draw_set_alpha(0.55 * _alpha);
+	draw_primitive_begin(pr_trianglelist);
+	draw_vertex(_x, _y - 5 * _s); draw_vertex(_x - 3.5 * _s, _y); draw_vertex(_x - 0.5 * _s, _y - 0.5 * _s);
+	draw_primitive_end();
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
+/// @func die_keyword_icons(_d)
+/// @desc The keywords a die shows as icons (Coin and Multitype have none: they show in its shape and colour). An array of names.
+function die_keyword_icons(_d) {
+	var _found = [];
+	var _keys = variable_struct_get_names(global.keywords);
+	for (var k = 0; k < array_length(_keys); k++) {
+		var _key = _keys[k];
+		if (_key == "Coin" || _key == "Multitype") continue;
+		if (die_has_keyword(_d, _key) && !is_undefined(global.keywords[$ _key].index)) array_push(_found, _key);
+	}
+	return _found;
+}
+
+/// @func bag_card_layout(_d, _w)
+/// @desc Where things go on a bag card, measured from its text (like offering_card_layout): the stats line and the
+///       description beside the die, then a fitted core's distribution under whichever is lower. h is the height it needs.
+function bag_card_layout(_d, _w) {
+	var _head_h = 42;
+	var _text_x = 88;                 // from the card's left edge
+	var _text_w = _w - _text_x - 14;
+	draw_set_font(ftDescriptions);
+	var _line = font_get_size(ftDescriptions) * 1.2;
+	var _desc_h = string_height_ext(die_description(_d), _line, _text_w);
+	var _die_bottom = _head_h + 40 + 36;           // the die (radius 30, a triangle reaching a bit lower)
+	var _text_bottom = _head_h + 40 + _desc_h;
+	var _info_bottom = max(_die_bottom, _text_bottom) + 12;
+	var _bars_h = (_d.distribution != "") ? (5 + 30 + 5 + 15) + 12 : 0; // draw_dice_distribution at scale 1, and a gap
+	return { head_h: _head_h, text_x: _text_x, text_w: _text_w, bars_bottom: _info_bottom + _bars_h, h: _info_bottom + _bars_h };
+}
+
 /// @func draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected)
-/// @desc A die's card in the bag view (and the dice picker), centred on _cx, _cy:
-///       - a header band in its type colour with its name, and a gem in its rarity colour (none for starters)
-///       - on the left, the die drawn in code (its size on the face), its range, its types and keyword icons
-///       - on the right, its description; a core's icon in the bottom-right corner
-///       Edged in its rarity colour; lifts with a white edge when hovered; a green edge and tick when picked.
+/// @desc A die's card in the bag view (and the dice picker), centred on _cx, _cy, laid out like the quartermaster's
+///       cards (bag_card_layout):
+///       - a header band in its type colour: its name, its keyword icons just after it, its rarity gem on the right
+///       - the die drawn in code on the left; beside it "d6 Block, 1-6" in its type colour, and what it does
+///       - a fitted core: its distribution under all that (the core isn't described)
+///       Dark edge; lifts with a white edge when hovered; a green edge and tick when picked.
 function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
+	var _lay = bag_card_layout(_d, _w);
 	var _x1 = _cx - _w / 2, _y1 = _cy - _h / 2 - (_hover ? 4 : 0);
 	var _x2 = _x1 + _w, _y2 = _y1 + _h;
 	var _type_col = get_dice_color(_d.possible_type);
-	var _rar_col = make_color_rgb(120, 112, 100); // starter
-	switch (_d.rarity) {
-		case "common":   _rar_col = make_color_rgb(170, 170, 185); break;
-		case "uncommon": _rar_col = make_color_rgb(90, 200, 175); break;
-		case "rare":     _rar_col = make_color_rgb(200, 120, 225); break;
-	}
-	var _edge = _selected ? make_color_rgb(90, 220, 110) : (_hover ? c_white : _rar_col);
-	var _header_h = 40;
+	var _edge = _selected ? make_color_rgb(90, 220, 110) : (_hover ? c_white : make_color_rgb(14, 15, 22));
+	var _head_h = _lay.head_h;
 
 	// shadow, edge, body
 	draw_set_alpha(0.35 * _alpha);
@@ -2060,47 +2121,40 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 
 	// header band in its type colour (darkened so white text reads), square along its bottom
 	draw_set_color(merge_colour(_type_col, c_black, 0.5));
-	draw_roundrect_ext(_x1, _y1, _x2, _y1 + _header_h, 14, 14, false);
-	draw_rectangle(_x1, _y1 + _header_h - 14, _x2, _y1 + _header_h, false);
+	draw_roundrect_ext(_x1, _y1, _x2, _y1 + _head_h, 14, 14, false);
+	draw_rectangle(_x1, _y1 + _head_h - 14, _x2, _y1 + _head_h, false);
+	// the name, then its keyword icons right after it, then the gem on the right
+	var _icons = die_keyword_icons(_d);
+	var _icon_s = 0.7, _icon_step = 27;
+	var _name_max = _w - 14 - 34 - array_length(_icons) * _icon_step;
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
-	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + 14, _y1 + _header_h / 2, 1, _alpha, 0, _w - 50);
-	// rarity gem
-	if (_d.rarity != "starter") {
-		var _gx = _x2 - 20, _gy = _y1 + _header_h / 2;
-		draw_set_color(c_black);
-		draw_primitive_begin(pr_trianglefan);
-		draw_vertex(_gx, _gy - 10); draw_vertex(_gx + 8, _gy); draw_vertex(_gx, _gy + 10); draw_vertex(_gx - 8, _gy);
-		draw_primitive_end();
-		draw_set_color(_rar_col);
-		draw_primitive_begin(pr_trianglefan);
-		draw_vertex(_gx, _gy - 7); draw_vertex(_gx + 5.5, _gy); draw_vertex(_gx, _gy + 7); draw_vertex(_gx - 5.5, _gy);
-		draw_primitive_end();
+	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + 14, _y1 + _head_h / 2, 1, _alpha, 0, _name_max);
+	var _ix = _x1 + 14 + min(string_width(_d.name), _name_max) + 8 + 13;
+	for (var k = 0; k < array_length(_icons); k++) {
+		draw_sprite_ext(sKeywordIcons, global.keywords[$ _icons[k]].index, _ix, _y1 + _head_h / 2, _icon_s, _icon_s, 0, c_white, _alpha);
+		_ix += _icon_step;
 	}
+	draw_rarity_gem(_x2 - 20, _y1 + _head_h / 2, _d.rarity, 1, _alpha);
 
-	// left column: the die, its range, its types, its keywords
-	var _lx = _x1 + 52;
-	var _dy = _y1 + _header_h + 42;
-	draw_die(_lx, _dy, 28, _d.dice_value, -1, _type_col, 0, _alpha);
+	// the die, and beside it what it is and what it does
+	var _dx = _x1 + 46, _dy = _y1 + _head_h + 46;
+	draw_die(_dx, _dy, 30, _d.dice_value, -1, _type_col, 0, _alpha);
 	var _out = get_dice_output(_d, -1, -1, true, "player"); // read only: viewing the bag must never trigger keepsakes
+	var _tx = _x1 + _lay.text_x;
 	draw_set_font(ftDefault);
-	draw_set_halign(fa_center);
-	draw_set_valign(fa_middle);
-	draw_outline_text(string(_out.min_roll) + "-" + string(_out.max_roll), c_black, c_white, 2, _lx, _dy + 46, 1, _alpha, 0);
-	draw_set_font(ftSmall);
-	draw_outline_text(bag_type_label(_d.possible_type), c_black, merge_colour(_type_col, c_white, 0.35), 2, _lx, _dy + 68, 1, _alpha, 0, 92);
-	draw_dice_keywords(_d, _lx, _dy + 90, 0.6, _alpha);
-
-	// right column: what it does
-	var _tx = _x1 + 104;
-	draw_set_font(ftDescriptions);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
-	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _header_h + 12, 1, _alpha, 0, _x2 - _tx - 12);
+	draw_outline_text("d" + string(_d.dice_value) + " " + bag_type_label(_d.possible_type) + ", " + string(_out.min_roll) + "-" + string(_out.max_roll), c_black, merge_colour(_type_col, c_white, 0.4), 2, _tx, _y1 + _head_h + 10, 1, _alpha, 0, _lay.text_w);
+	draw_set_font(ftDescriptions);
+	draw_outline_text(colorcode_text(die_description(_d)), c_black, c_white, 2, _tx, _y1 + _head_h + 40, 1, _alpha, 0, _lay.text_w);
 
-	// a core in it
-	if (_d.distribution != "") draw_sprite_ext(sCores, get_core_index(_d), _x2 - 26, _y2 - 26, 0.6, 0.6, 0, c_white, _alpha);
+	// a fitted core: how it shapes this die's faces, under the die and its words
+	if (_d.distribution != "") {
+		draw_set_alpha(_alpha);
+		draw_dice_distribution(_d, _cx, _y1 + _lay.bars_bottom - 12, true, 1);
+	}
 
 	// picked (dice picker): a tick in the corner
 	if (_selected) {
@@ -2119,9 +2173,7 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 }
-
-// =====================================================================
-// THE QUARTERMASTER'S OFFER (the start of a run: one die, fitted with a core)
+'S OFFER (the start of a run: one die, fitted with a core)
 // =====================================================================
 
 /// @func offering_draw()
@@ -2252,7 +2304,7 @@ function offering_card_layout(_off, _w) {
 }
 
 /// @func offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen)
-/// @desc One offer: a header in the die's type colour with its name and rarity; the die drawn big beside its size, type,
+/// @desc One offer: a header in the die's type colour with its name and rarity gem; the die drawn big beside its size, type,
 ///       range and effect (its keywords are named, coloured, in the effect); then its core: icon, name, what it does,
 ///       and how it shapes this die's faces (the bars). Laid out by offering_card_layout; _h is the shared height.
 function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
@@ -2281,9 +2333,7 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
 	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + 18, _y1 + _head_h / 2, 1, 1, 0);
-	draw_set_font(ftDescriptions);
-	draw_set_halign(fa_right);
-	draw_outline_text(_d.rarity, c_black, make_color_rgb(200, 200, 215), 2, _x2 - 18, _y1 + _head_h / 2, 1, 1, 0);
+	draw_rarity_gem(_x2 - 24, _y1 + _head_h / 2, _d.rarity, 1.2, 1);
 
 	// the die, and what it is
 	var _dx = _x1 + 64, _dy = _y1 + _head_h + 62;

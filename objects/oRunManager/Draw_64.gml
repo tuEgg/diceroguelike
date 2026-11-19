@@ -268,64 +268,7 @@ draw_outline_text(num_tools, c_black, c_white, 2, tools_x, bar_half - 20, toolba
 
 draw_sprite_ext(sToolbag, 0, tools_x, bar_half + 10, toolbag_scale, toolbag_scale, 0, c_white, 1.0);
 
-if (show_tools) {
-	for (var i = 0; i < ds_list_size(tools); i++) {
-		var tool = tools[| i];
-		var tile_width = sprite_get_width(sToolButton) + 10;
-		var starting_offset = (ds_list_size(tools)-1)/2 * tile_width; // 1 tool, offset by 0, 2 tools, offset by 0.5, 3 tools offset by 1,
-		var tool_x = tools_x - starting_offset + (tile_width*i);
-		
-		var tool_hover = mouse_hovering(tool_x, 130, tile_width - 10, tile_width - 10, true);
-		
-		tools_scale[| i] = lerp(tools_scale[| i], tool_hover ? 1.2 : 1.0, 0.2);
-		
-		draw_sprite_ext(sToolButton, 0, tool_x, 130, tools_scale[| i], tools_scale[| i], 0, c_gray, 1.0);
-		draw_sprite_ext(sToolSilhouettes, tool.index, tool_x, 130, tools_scale[| i], tools_scale[| i], 0, c_gray, 1.0);
-		
-		if (tool_hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc);
-
-			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
-				if (room == rmWorkbench) {
-					if (instance_exists(oWorkbenchManager) && array_contains(oWorkbenchManager.tools_used, tool.object)) {
-						throw_error("Used this visit", "Each tool works once per visit to the workbench.");
-					} else if (!instance_exists(tool.object)) {
-						var pos_x;
-						var pos_y;
-				
-						switch(i) {
-							case 0:
-							pos_x = gui_w - 150;
-							pos_y = gui_h/2 + 50;
-							break;
-					
-							case 1:
-							pos_x = 150;
-							pos_y = gui_h/2 + 50;
-							break;
-					
-							case 2:
-							pos_x = gui_w - 300;
-							pos_y = gui_h - 200;
-							break;
-						}
-						instance_create_layer(pos_x, pos_y, "Instances", tool.object);
-					} else {
-						throw_error("Tool already exists", "This tool is already on the workbench");
-					}
-				} else {
-					throw_error("Open at the workbench", "You can't open the toolbag outside of the workbench");
-				}
-			}
-		}
-	}
-} else {
-	if (tools_scale[| 0] > 0.5) {
-		for (var i = 0; i < ds_list_size(tools); i++) {
-			tools_scale[| i] = 0.5;
-		}
-	}
-}
+// the tools themselves drop down in Draw GUI End (Draw_75), so event, shop and workbench windows can't cover them
 
 // Draw alignment
 var alignment_color = make_color_rgb(250, 166, 20);

@@ -19,9 +19,10 @@
 - Tooltips that cost something: `queue_tooltip(..., _cost, _cost_kind)` ("insight" or "gold") adds a "-N" tag on the box's top right corner (`tooltip_cost_badge`). The shop and insight purchases use it.
 - `draw_quill(nib_x, nib_y, length, dir)` (scHelpers): the feather quill, used as the insight-phase cursor and standing in the inkwell (`draw_inkwell`).
 - `draw_padlock(x, y, scale, col)` (scHelpers): the new-slot tile while a slot is empty.
-- Bag view cards: `draw_bag_card(die, cx, cy, w, h, alpha, hover, selected)` (scHelpers), with `bag_type_label` for the types in words.
+- Bag view cards: `draw_bag_card(die, cx, cy, w, h, alpha, hover, selected)` (scHelpers), laid out like the quartermaster's cards by `bag_card_layout(die, w)` (its `h` is the height the card needs; the view makes every row as tall as the tallest card in it, four cards a row). Header: name, keyword icons right after it (`die_keyword_icons`), rarity gem. Body: the die, "d6 Block, 1-6" (`bag_type_label`), the description, and a fitted core's distribution underneath (the core isn't described).
+- Rarity is always a gem, never a word: `draw_rarity_gem(x, y, rarity, scale, alpha)` and `rarity_colour(rarity)` (scHelpers); starters have none.
 - Bag view sort and filter: `bag_controls_draw` (title row, right) sets `oRunManager.bag_filter` / `bag_sort`; `bag_view_list` builds the filtered, sorted array the view draws.
-- Bag view and the dice picker (`dice_selection`) are drawn in `oRunManager/Draw_75` (Draw GUI End), above every room's windows; the bag icon itself stays in Draw_64. Bag view and the debug dice list (`oRunManager/Draw_75`): each die box is edged in its rarity colour; scrollbars drag while `scroll_dragging` is true, which clears whenever the mouse button is up. Use GUI-space mouse positions (`device_mouse_y_to_gui`), never `mouse_y`, for anything drawn in Draw GUI.
+- Bag view and the dice picker (`dice_selection`) are drawn in `oRunManager/Draw_75` (Draw GUI End), above every room's windows; the bag icon itself stays in Draw_64. The toolbag's dropped-down tools are drawn there too (Draw_75, before the insight overlay), so event and shop windows can't cover them; the toolbag icon stays in Draw_64. Bag view cards have a dark edge (white when hovered, green when picked); scrollbars drag while `scroll_dragging` is true, which clears whenever the mouse button is up. Use GUI-space mouse positions (`device_mouse_y_to_gui`), never `mouse_y`, for anything drawn in Draw GUI.
 
 ## Display: scDisplay, scSettings
 

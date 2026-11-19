@@ -103,6 +103,19 @@ if (!is_dragging && hovered && mouse_check_button_pressed(mb_left)) {
 // rolled dice: right-click a die in hand to reroll it (once per turn, free)
 // (rerolling a die is done in the insight phase now: combat_insight_view_draw)
 
+// a shortcut: hover a die in hand and press 1-9 to put it in that slot, the same as dragging it there
+if (room == rmCombat && hovered && !is_dragging && !in_slot && !still && has_rolled && !tumbling && oCombat.state == CombatState.PLAYER_INPUT && !oCombat.insight_view) {
+	for (var _k = 1; _k <= 9; _k++) {
+		if (!keyboard_check_pressed(ord(string(_k))) && !keyboard_check_pressed(vk_numpad0 + _k)) continue;
+		var _slot_i = _k - 1;
+		if (_slot_i < ds_list_size(oCombat.action_queue) && tutorial_allows("place", struct, _slot_i)) {
+			var _die_id = id;
+			with (oCombat) apply_dice_to_slot(_die_id, _slot_i);
+		}
+		break;
+	}
+}
+
 // --- Dragging movement ---
 if (is_dragging) {
     x = mx - drag_offset_x;

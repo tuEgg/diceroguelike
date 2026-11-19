@@ -190,6 +190,69 @@ var gui_h = display_get_gui_height();
 var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
 
+// the toolbag's tools, dropped down under the top bar (moved from Draw GUI: random events and shops drew over them)
+var tools_x = gui_w - 940; // under the toolbag icon (oRunManager Draw GUI)
+if (show_tools) {
+	for (var i = 0; i < ds_list_size(tools); i++) {
+		var tool = tools[| i];
+		var tile_width = sprite_get_width(sToolButton) + 10;
+		var starting_offset = (ds_list_size(tools)-1)/2 * tile_width; // 1 tool, offset by 0, 2 tools, offset by 0.5, 3 tools offset by 1,
+		var tool_x = tools_x - starting_offset + (tile_width*i);
+		
+		var tool_hover = mouse_hovering(tool_x, 130, tile_width - 10, tile_width - 10, true);
+		
+		tools_scale[| i] = lerp(tools_scale[| i], tool_hover ? 1.2 : 1.0, 0.2);
+		
+		draw_sprite_ext(sToolButton, 0, tool_x, 130, tools_scale[| i], tools_scale[| i], 0, c_gray, 1.0);
+		draw_sprite_ext(sToolSilhouettes, tool.index, tool_x, 130, tools_scale[| i], tools_scale[| i], 0, c_gray, 1.0);
+		
+		if (tool_hover) {
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc);
+
+			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
+				if (room == rmWorkbench) {
+					if (instance_exists(oWorkbenchManager) && array_contains(oWorkbenchManager.tools_used, tool.object)) {
+						throw_error("Used this visit", "Each tool works once per visit to the workbench.");
+					} else if (!instance_exists(tool.object)) {
+						var pos_x;
+						var pos_y;
+				
+						switch(i) {
+							case 0:
+							pos_x = gui_w - 150;
+							pos_y = gui_h/2 + 50;
+							break;
+					
+							case 1:
+							pos_x = 150;
+							pos_y = gui_h/2 + 50;
+							break;
+					
+							case 2:
+							pos_x = gui_w - 300;
+							pos_y = gui_h - 200;
+							break;
+						}
+						instance_create_layer(pos_x, pos_y, "Instances", tool.object);
+					} else {
+						throw_error("Tool already exists", "This tool is already on the workbench");
+					}
+				} else {
+					throw_error("Open at the workbench", "You can't open the toolbag outside of the workbench");
+				}
+			}
+		}
+	}
+} else {
+	if (tools_scale[| 0] > 0.5) {
+		for (var i = 0; i < ds_list_size(tools); i++) {
+			tools_scale[| i] = 0.5;
+		}
+	}
+}
+
+
+
 // insight view (the eye in a fight): darkens everything but what insight can buy, drawn over the whole Draw GUI
 combat_insight_view_draw();
 
@@ -286,22 +349,25 @@ if (show_bag_contents) {
 	// Set draw sizes
 	var scrollbar_w = 30;
 	
-	var col_spacing = (bag_width - (scrollbar_w * 4)) / 5;
-	var box_width = col_spacing - 20;
-	
-	var row_spacing = bag_height / 3;
-	var box_height = row_spacing - 20;
+	// four cards a row; every row as tall as the tallest card in view needs (bag_card_layout), so nothing overflows
+	var bag_cols = 4;
+	var col_spacing = (bag_width - (scrollbar_w * 4)) / bag_cols;
+	var box_width = col_spacing - 24;
+
+	var _view = bag_view_list(bag_to_show);
+	var box_height = 150;
+	for (var _c = 0; _c < array_length(_view); _c++) box_height = max(box_height, bag_card_layout(_view[_c], box_width).h);
+	var row_spacing = box_height + 24;
 	
 	var inner_padding_w = box_width/2
 	var inner_padding_h = box_height/2;
 	
 	// what's shown: the bag filtered by type and sorted (bag_view_list, the controls above the panel)
-	var _view = bag_view_list(bag_to_show);
 	for (var i = 0; i < array_length(_view); i++) {
 		
 		// Increase spacing for next dice
-		var dice_x = (bag_inner_padding + inner_padding_w + scrollbar_w*2) +		i mod 5 * col_spacing;
-		var dice_y = (scroll_y + bag_inner_padding + inner_padding_h) +			i div 5 * row_spacing;
+		var dice_x = (bag_inner_padding + inner_padding_w + scrollbar_w*2) +		i mod bag_cols * col_spacing;
+		var dice_y = (scroll_y + bag_inner_padding + inner_padding_h) +			i div bag_cols * row_spacing;
 			
 		var top_of_box = dice_y - box_height/2;
 		var bottom_of_box = dice_y + box_height/2
@@ -359,9 +425,7 @@ if (show_bag_contents) {
 			// the card (draw_bag_card): header with its name, the die and its range and types, the description
 			draw_bag_card(dice, dice_x, dice_y, box_width, box_height, dice_alpha, info_hover, dice.selected);
 
-			// a core's distribution, while hovered
-			if (dice.distribution != "" && info_hover) draw_dice_distribution(dice, dice_x, dice_y - 100, true);
-			
+
 			
 		}
 	}
@@ -392,7 +456,7 @@ if (show_bag_contents) {
 	if (mouse_wheel_up()) scroll_y += 100;
 	
 	// Total pixel height of the bag height, its never less than 3 rows high (hence 15)
-	var minimum_size = min(3 * -row_spacing, (array_length(_view) div 5 + ceil((array_length(_view) mod 5)/5)) * -row_spacing);
+	var minimum_size = min(floor(bag_height / row_spacing) * -row_spacing, ceil(array_length(_view) / bag_cols) * -row_spacing);
 	
 	// The adaptive height of the scrollable area
 	var scroll_height = minimum_size + bag_height;
