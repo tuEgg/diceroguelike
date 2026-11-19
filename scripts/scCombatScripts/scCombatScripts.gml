@@ -850,9 +850,9 @@ function new_slot_total() {
 }
 
 /// @func combat_try_build_slot()
-/// @desc Builds a new slot once 2 or more dice on the tile reach the threshold. It keeps their types (all generic: an
-///       untyped slot, like the starting ones). Their "when sacrificed" effects fire now, and they become the slot's
-///       first dice for this turn (locked in).
+/// @desc Builds a new slot once 2 or more dice on the tile reach the threshold. Their "when sacrificed" effects fire now,
+///       and they become the slot's first dice for this turn (locked in), so this turn it has their types. Like every
+///       slot it's empty and untyped again after End Turn; what it keeps is its place, worth a bonus (slot_set_position_bonus).
 function combat_try_build_slot() {
 	if (ds_list_size(global.sacrifice_list) < 2 || new_slot_total() < new_slot_threshold()) return;
 
@@ -862,7 +862,6 @@ function combat_try_build_slot() {
 	var _tx = is_struct(new_tile_pos) ? new_tile_pos.x + new_tile_pos.w / 2 : gui_w / 2;
 	var _ty = is_struct(new_tile_pos) ? new_tile_pos.y : gui_h / 2;
 	var sacrifice_data = {};
-	var _types = [];
 	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
 		var _d = global.sacrifice_list[| j];
 		sacrifice_data = {
@@ -872,17 +871,11 @@ function combat_try_build_slot() {
 		};
 		trigger_die_effects_single(_d, "on_sacrifice_die", sacrifice_data);
 		runmanager_trigger_keepsakes("on_sacrifice_die", sacrifice_data);
-
-		var _parts = string_split(_d.possible_type, " ");
-		for (var p = 0; p < array_length(_parts); p++) {
-			if (_parts[p] != "None" && _parts[p] != "" && !array_contains(_types, _parts[p])) array_push(_types, _parts[p]);
-		}
 	}
 
-	var _type_str = "";
-	for (var t = 0; t < array_length(_types); t++) _type_str += ((_type_str == "") ? "" : " ") + _types[t];
-	if (_type_str == "") _type_str = "None";
-	var _new_slot = combat_new_slot(_type_str);
+	// untyped like every slot (it resets each turn); this turn its types come from the dice in it (slot_recompute_types)
+	var _new_slot = combat_new_slot("None");
+	slot_set_position_bonus(_new_slot, ds_list_size(action_queue));
 	var _first_type = "";
 
 	// the dice that built it become its first dice and act this turn (discarded at End Turn like the rest). They're
@@ -896,6 +889,7 @@ function combat_try_build_slot() {
 		ds_list_add(_new_slot.dice_list, _in);
 		if (_first_type == "" && _src.action_type != "None") _first_type = _src.action_type;
 	}
+	slot_recompute_types(_new_slot);
 	if (_first_type != "" && string_pos(_first_type, _new_slot.possible_type) > 0) _new_slot.current_action_type = _first_type;
 	ds_list_clear(global.sacrifice_list);
 	update_sacrificed_type_array();
@@ -1617,7 +1611,8 @@ function slot_bonus_breakdown(_slot) {
 	for (var i = 0; i < array_length(_slot.bonuses); i++) {
 		var _bonus = _slot.bonuses[i];
 		var _sign = _bonus.amount >= 0 ? "+" : "";
-		var _line = _bonus.source + ": " + _sign + string(_bonus.amount) + (_bonus.scope == "first" ? " to the first die" : " to each die");
+		var _is_position = (string_copy(_bonus.source, 1, 5) == "Slot "); // slot_set_position_bonus: once, on the slot's total
+		var _line = _bonus.source + ": " + _sign + string(_bonus.amount) + (_is_position ? " to its total" : (_bonus.scope == "first" ? " to the first die" : " to each die"));
 		if (_bonus.turns > 0) _line += ", this round";
 		_text += (_text == "" ? "" : "\n") + _line;
 	}
@@ -2435,6 +2430,15 @@ function workbench_open_picker() {
 // =====================================================================
 // ROLLED DICE (prototype, docs/design-rolled-dice.md)
 // =====================================================================
+
+/// @func slot_set_position_bonus(_slot, _index)
+/// @desc A slot's place in the queue is worth a flat bonus to its total, once (not per die): slot 1 +0, slot 2 +1,
+///       slot 3 +2... So more slots are worth building, and which die goes where is a choice. Shown with its other
+///       bonuses (the badge on its first die, the hover breakdown) and as "+N" on the slot.
+function slot_set_position_bonus(_slot, _index) {
+	slot_set_bonus(_slot, "Slot " + string(_index + 1), _index, "first");
+	_slot.position_bonus = _index;
+}
 
 /// @func combat_new_slot(_types)
 /// @desc A new, empty action slot. _types is what it was built with: "None" (a starting slot, typed by the first

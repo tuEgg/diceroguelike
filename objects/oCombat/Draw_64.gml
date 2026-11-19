@@ -243,6 +243,16 @@ for (var i = 0; i < aq_list_size; i++) {
     draw_set_valign(fa_middle);
 	draw_set_font(ftDefault);
     draw_outline_text(label, c_black, c_white, 2, draw_x + draw_w / 2, draw_y + draw_h / 2 - (draw_h/10), 1, 1, 0);
+
+	// what this slot's place adds to its total (slot_set_position_bonus), in its top-right corner
+	var _pos_bonus = variable_struct_exists(action_queue[| i], "position_bonus") ? action_queue[| i].position_bonus : 0;
+	if (_pos_bonus > 0) {
+		draw_set_halign(fa_right);
+		draw_set_valign(fa_top);
+		draw_outline_text("+" + string(_pos_bonus), c_black, c_lime, 2, draw_x + draw_w - 10, draw_y + 8, 1, 1, 0);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+	}
 	
 	// Draw dice outcome (an empty slot has none to show)
 	if (label != "" && !(_low_roll == 0 && _high_roll == 0)) {

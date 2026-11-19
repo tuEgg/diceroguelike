@@ -32,6 +32,9 @@ hovered_slot = -1;
 // (combat_new_slot has the slot's fields). docs/design-rolled-dice.md
 ds_list_add(action_queue, combat_new_slot("None"));
 ds_list_add(action_queue, combat_new_slot("None"));
+// each slot's place is worth a bonus to its total: +0, +1, then +2, +3... for the ones you build (slot_set_position_bonus)
+slot_set_position_bonus(action_queue[| 0], 0);
+slot_set_position_bonus(action_queue[| 1], 1);
 
 played_uids = [];              // dice played this turn (uid): "when played" effects fire once per die per turn, even if it's taken back and played again
 rerolls_used = 0;              // free rerolls used this turn (right-click a die in hand); combat_rerolls_total() allowed
