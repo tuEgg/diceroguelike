@@ -1320,7 +1320,7 @@ function spread_end_apply(_id, _heal_amount) {
 function strait_build() {
 	var _rolled = spread_end_roll_options();
 	var _ids = ["workbench", _rolled[0], _rolled[1]];
-	strait = { ids: _ids, scales: [1, 1, 1, 1], heal: 0, chosen: -1, arrived: false, healed: false, stamp: 0, active: false };
+	strait = { ids: _ids, scales: [1, 1, 1, 1], heal: 0, chosen: -1, arrived: false, healed: false, stamp: 0, active: false, leaving: false };
 }
 
 /// @func strait_activate()
@@ -1498,12 +1498,17 @@ function strait_draw(_ax, _ay) {
 		}
 	}
 
-	// once the stamp has faded (and any dice picker is closed), turn the page
+	// once the stamp has faded (and any dice picker is closed), the ship sails out to the book's edge; then the page turns
 	if (strait.arrived) {
 		if (oRunManager.dice_selection == false) strait.stamp = max(0, strait.stamp - 1 / 70);
 		if (strait.stamp <= 0) {
-			strait = undefined;
-			world_state = WORLD_STATE.TURNING;
+			strait.leaving = true;
+			boat_data.x = lerp(boat_data.x, book_right_x - 10, 0.05);
+			boat_data.y = lerp(boat_data.y, _ay, 0.05);
+			if (abs(boat_data.x - (book_right_x - 10)) < 12) {
+				strait = undefined;
+				world_state = WORLD_STATE.TURNING;
+			}
 		}
 	}
 	draw_set_halign(fa_left);
@@ -1582,13 +1587,16 @@ function route_draw(_x1, _y1, _x2, _y2, _alpha) {
 /// @func spread_routes_draw(_spots)
 /// @desc The courses between this spread's stops, like a chart (oWorldManager Draw GUI, over the islands, under the
 ///       stops and ship): each island's nodes in order; the left island's last to the buoy and to the right island's
-///       first (sail past); the buoy on to it; the right island's last to each strait stop. Taken courses are inked
+///       first (sail past); the buoy on to it; the right island's last to each strait stop; in from the book's left
+///       edge and out from each strait stop to its right edge (book_left_x, book_right_x). Taken courses are inked
 ///       strong, possible ones faint, ones you passed by fainter still.
 function spread_routes_draw(_spots) {
 	if (_spots.left == undefined) return;
 	var _taken = 0.85, _poss = 0.38, _gone = 0.12;
 	var _L = _spots.left.nodes, _R = _spots.right.nodes;
 	var _ln = ds_list_size(_L), _rn = ds_list_size(_R);
+	// in from the book's left edge to the first island
+	if (_ln > 0) route_draw(book_left_x, display_get_gui_height() / 2, _L[| 0].x, _L[| 0].y, _L[| 0].cleared ? _taken : _poss);
 	for (var i = 0; i < _ln - 1; i++) route_draw(_L[| i].x, _L[| i].y, _L[| i + 1].x, _L[| i + 1].y, _L[| i + 1].cleared ? _taken : _poss);
 	for (var i = 0; i < _rn - 1; i++) route_draw(_R[| i].x, _R[| i].y, _R[| i + 1].x, _R[| i + 1].y, _R[| i + 1].cleared ? _taken : _poss);
 	if (_ln > 0 && _rn > 0) {
@@ -1606,6 +1614,8 @@ function spread_routes_draw(_spots) {
 		for (var s = 0; s < _n; s++) {
 			var _sp = strait_stop_spot(s, _n, _spots.strait.x, _spots.strait.y);
 			route_draw(_z.x, _z.y, _sp.x, _sp.y, (strait.chosen == s) ? _taken : (strait.chosen == -1 ? _poss : _gone));
+			// and out of the spread from each, to the book's right edge
+			route_draw(_sp.x, _sp.y, book_right_x, _spots.strait.y, (strait.chosen == s && strait.leaving) ? _taken : (strait.chosen == -1 || strait.chosen == s ? _poss : _gone));
 		}
 	}
 }

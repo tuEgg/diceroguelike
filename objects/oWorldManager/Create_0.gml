@@ -165,8 +165,11 @@ boat_data = {
 	y: display_get_gui_height()/2,
 	angle: 0,
 	base_y: display_get_gui_height()/2,
-	spd: 0
+	spd: 0,
+	entering: false, // sailing in from the book's left edge after Embark (oWorldManager Draw GUI)
 }
+book_left_x = 262;  // the open book's water pages' outer edges this frame (oWorldManager Draw GUI): the courses into
+book_right_x = 1658; // and out of a spread start and end there, and the ship sails in and out across them
 
 circle_list = ds_list_create();
 node_x[0] = 0;

@@ -15,6 +15,8 @@ if (room == rmMap) {
 	var page_y = gui_h * 0.52;
 	var page_pos_offset = -(page_w*page_xscale)/16;
 	var cover_offset = 40;
+	book_left_x = gui_w/2 - page_pos_offset - page_w * page_xscale; // the water pages' outer edges
+	book_right_x = gui_w/2 + page_pos_offset + page_w * page_xscale;
 			
 	draw_sprite_ext(sWorldBook, 0, gui_w/2 - page_pos_offset - cover_offset, page_y, -page_xscale * book_open_scale, page_yscale, 0, c_white, 1.0);
 	draw_sprite_ext(sWorldBook, 1, gui_w/2 + page_pos_offset + cover_offset, page_y, page_xscale * book_open_scale, page_yscale, 0, c_white, 1.0);
@@ -146,6 +148,12 @@ if (room == rmMap) {
 	if (choices_locked) {
 		pages_alpha = lerp(pages_alpha, 0, 0.2);
 		if (pages_alpha < 0.05)	{
+			if (world_state != WORLD_STATE.EXPLORING) {
+				// the ship sails onto the new spread from the book's left edge (to the start of its course)
+				boat_data.x = book_left_x - 90;
+				boat_data.y = gui_h / 2;
+				boat_data.entering = true;
+			}
 			world_state = WORLD_STATE.EXPLORING;
 			pages_alpha = 0;
 		}
@@ -220,9 +228,9 @@ if (room == rmMap) {
 		// If we are healing or workbench
 		if (world_state == WORLD_STATE.TURNING) {
 			
-			// reset boat position
-			boat_data.x = lerp(boat_data.x, 300, 0.06);
-			boat_data.y = lerp(boat_data.y, display_get_gui_height()/2, 0.06);
+			// the ship sails off the right edge of the book while the page turns (it sails in again after Embark)
+			boat_data.x = lerp(boat_data.x, book_right_x + 140, 0.04);
+			boat_data.y = lerp(boat_data.y, page_y, 0.05);
 			
 			// the choice was made at sea (strait_draw): once the page has turned, choose the next pages
 			if (current_page_turn < -0.9) start_drafting();
@@ -397,17 +405,33 @@ if (room == rmMap) {
 	// the spread as a chart (F125): dotted courses between its stops, the Shipwright's buoy between the pages and the
 	// strait's stops past the right page, on the map the whole spread (sailable when you get there), under the ship
 	var _spots = spread_sea_spots();
+	// the boss spread (one page): just the course in from the book's edge
+	if (_spots.left == undefined && world_state == WORLD_STATE.EXPLORING && ds_list_size(chosen_pages) > 0 && page_is_boss(chosen_pages[| ds_list_size(chosen_pages) - 1])) {
+		var _bp = chosen_pages[| ds_list_size(chosen_pages) - 1];
+		if (ds_list_size(_bp.nodes) > 0) { var _bn = _bp.nodes[| 0]; route_draw(book_left_x, gui_h / 2, _bn.x, _bn.y, _bn.cleared ? 0.85 : 0.38); }
+	}
 	if (_spots.left != undefined && (world_state == WORLD_STATE.EXPLORING || world_state == WORLD_STATE.STRAIT)) {
 		spread_routes_draw(_spots);
 		sea_buoy_draw(_spots.buoy.x, _spots.buoy.y);
 		strait_draw(_spots.strait.x, _spots.strait.y);
 	}
 
+	// sailing in from the book's edge to the start of the course (after Embark); clicking an island takes over
+	if (boat_data.entering) {
+		if (node_to_move_to != undefined || world_state != WORLD_STATE.EXPLORING) boat_data.entering = false;
+		else {
+			boat_data.x = lerp(boat_data.x, book_left_x + 40, 0.05);
+			boat_data.y = lerp(boat_data.y, gui_h / 2, 0.05);
+			if (abs(boat_data.x - (book_left_x + 40)) < 2) boat_data.entering = false;
+		}
+	}
+
 	// Draw the boat (clicking it to visit the workbench was tried and taken out: see KANBAN F02)
 	var boat_hover = mouse_hovering(boat_data.x, boat_data.y - sprite_get_height(sMapShip)/2, sprite_get_width(sMapShip), sprite_get_height(sMapShip), true);
 	if (boat_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your ship", "Where to captain?", undefined, 0, undefined);
 	
-	draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 1, 1, boat_data.angle, c_white, 1.0);
+	var _boat_a = 1 - clamp((boat_data.x - book_right_x) / 90, 0, 1) - clamp((book_left_x - boat_data.x) / 90, 0, 1); // off the book: gone
+	if (_boat_a > 0) draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 1, 1, boat_data.angle, c_white, _boat_a);
 	
 	// Chapter complete: shown once the boss is beaten, until the player turns to the next chapter
 	if (world_state == WORLD_STATE.CHAPTER_END) {
