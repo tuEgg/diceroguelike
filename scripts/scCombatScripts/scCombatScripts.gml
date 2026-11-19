@@ -1718,7 +1718,7 @@ function tutorial_steps() {
 		// turn 2: insight, a slot with two actions, right-click to switch
 		{
 			id: "insight", target: "insight", allow: [], button: "Next",
-			text: "Your insight came in as ink, and the log is open. With the quill: reroll or redraw a die (3), see the enemy's exact numbers (2), or make it choose again (6). Confirm to play your dice.",
+			text: "Your insight came in as ink, and the log is open. With the quill: reroll or redraw a die (3), see the enemy's exact numbers (2), or make it choose again (6). Confirm to play your dice. The inkwell opens and closes the log any time on your turn.",
 		},
 		{
 			id: "two_types", target: "sacrifice", allow: ["sacrifice"], die_types: ["ATK", "BLK"],
@@ -2063,7 +2063,7 @@ function tips_list() {
 		{
 			// the guided fight is off on this branch, so this teaches insight the first time you have some to spend
 			id: "insight_spend", room: rmCombat, target: "insight",
-			text: "The log is open. Your insight is ink: with the quill, reroll or redraw a die in your hand (" + string(INSIGHT_COST_REROLL) + " each), see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + ", or 1 each when there are several), or make it choose its move again (" + string(INSIGHT_COST_QUILL) + "). Click Confirm (where End Turn is) to play. Ink you don't spend carries over.",
+			text: "The log is open. Your insight is ink: with the quill, reroll or redraw a die in your hand (" + string(INSIGHT_COST_REROLL) + " each), see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + ", or 1 each when there are several), or make it choose its move again (" + string(INSIGHT_COST_QUILL) + "). Click Confirm (where End Turn is) to play; the inkwell opens and closes the log any time on your turn. Ink you don't spend carries over.",
 			when: function() { return instance_exists(oCombat) && oCombat.insight_view; },
 		},
 		{
@@ -2960,8 +2960,8 @@ function combat_insight_part_draw(_x1, _y1, _x2, _y2, _afford, _hover, _pulse, _
 ///       the enemy intents and the dice in your hand, which your quill can rewrite. Each intent is split in two: its
 ///       move (left) rerolled for 6, its numbers (right) shown exactly for 2 (1 each with several enemies). Each die
 ///       in hand is drawn again on top, edged in yellow: left-click rerolls it (3), right-click redraws it (3). Every
-///       one has a tooltip with its cost tag; the cursor is a quill (cursor_draw). End Turn becomes "Confirm",
-///       the only way to end the phase (or Enter).
+///       one has a tooltip with its cost tag; the cursor is a quill (cursor_draw). End Turn becomes "Confirm"; it
+///       or the inkwell closes it (or Enter), and the inkwell reopens it any time on your turn.
 function combat_insight_view_draw() {
 	if (!instance_exists(oCombat) || !oCombat.insight_view) return;
 	with (oCombat) {
@@ -2985,9 +2985,12 @@ gpu_set_blendmode(bm_normal);
 		surface_reset_target();
 		draw_surface_part(insight_surf, 0, _top, _gw, _gh - _top, 0, _top); // the top bar stays as it is
 
-		// the inkwell, on top, with your ink beside it
+		// the inkwell, on top, with your ink beside it: clicking it closes the log (a toggle, like Confirm)
 		var _ex = global.player_x, _ey = global.player_y - 180;
-		draw_inkwell(_ex, _ey, 1.15, player_intel / INSIGHT_MAX, false);
+		var _ink_hov = mouse_hovering(_ex, _ey, 70, 70, true, noone, noone, true, UI_LAYER.POPUP);
+		draw_inkwell(_ex, _ey, _ink_hov ? 1.25 : 1.15, player_intel / INSIGHT_MAX, false);
+		if (_ink_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Close the log", "Back to your dice. Click the inkwell again any time this turn to reopen it.", undefined, 0, undefined, 0, "insight", { button: "left", text: "Close", col: global.color_intel });
+		var _ink_click = _ink_hov && mouse_check_button_pressed(mb_left);
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
@@ -3076,8 +3079,8 @@ gpu_set_blendmode(bm_normal);
 			else combat_redraw_die(_clicked);
 		}
 
-		// closing: only "Confirm" (or Enter, End Turn's key: oCombat Step)
-		if (insight_view_age > 0 && _seal_click) combat_insight_view_set(false);
+		// closing: "Confirm", the inkwell (a toggle), or Enter (End Turn's key: oCombat Step). Right-click doesn't.
+		if (insight_view_age > 0 && (_seal_click || _ink_click)) combat_insight_view_set(false);
 
 		draw_set_color(c_white);
 		draw_set_alpha(1);
