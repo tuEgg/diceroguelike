@@ -175,7 +175,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 ## ❓ OPEN QUESTIONS (design decisions blocking work)
 
-- Q15 Topographic Map rework (more thematic); Repeater Rail too weak now slots are scarce.
+- Q15 Topographic Map rework (more thematic); Repeater Rail too weak now slots are scarce. Proposed 2026-11-19: Topographic Map "Peaks and valleys": a die that rolls its max gives its slot +2 this turn (as now); a die that rolls its lowest face draws you a die. Repeater Rail "Rapid fire": in a slot, each die after the first gets +1 for every die before it there (2nd +1, 3rd +2...). Waiting on Jared.
 
 - Q10 UI rework direction (branch `feature/ui-rework`): `docs/design-ui-rework.md` and the mockup `docs/mockups/ui-style-tile.html` (combat before/after, palette, type, components). Waiting for Jared's approval before any screen changes.
 - Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
