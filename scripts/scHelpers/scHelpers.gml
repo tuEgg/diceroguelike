@@ -1517,6 +1517,8 @@ function lose_run() {
 	var _cause = "Your hull gave out on the voyage";
 	if (instance_exists(oCombat)) {
 		oCombat.state = CombatState.PLAYER_DEAD;
+		oCombat.player_death_t = current_time; // the ship keels over and sinks (oCombat Draw GUI)
+		screen_shake(16);
 		var _names = [];
 		var _list = oCombat.room_enemies;
 		if (ds_safe_exists(_list, ds_type_list)) {

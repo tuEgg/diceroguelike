@@ -1,3 +1,7 @@
+// juice: queued particle bursts are made here (not in Draw GUI); the screen shake eases off
+particles_flush();
+if (variable_global_exists("shake")) global.shake = (global.shake < 0.4) ? 0 : global.shake * 0.82;
+
 // coins: spending jingles once; gold coming in is a trickle, a quiet clink for each coin as it lands, at most one every
 // 4 frames (so about six overlap at most), each a little higher than the last, so a big haul sounds like a pile filling up
 if (coin_tick_cd > 0) coin_tick_cd--;

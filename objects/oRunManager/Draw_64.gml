@@ -206,7 +206,10 @@ for (var i = 0; i < array_length(items); i++) {
 						items[i].dragging = false;
 						holding_item = false;
 						// a potion that goes on a slot: used if it was let go over one
-						if (combat_item_drop(items[i])) items[i] = undefined;
+						if (combat_item_drop(items[i])) {
+							items[i] = undefined;
+							potion_burst(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0)); // the bottle breaks over the slot
+						}
 					}
 			
 					// (the potion may have just been used on a slot above, leaving the item slot empty)
@@ -222,6 +225,7 @@ for (var i = 0; i < array_length(items); i++) {
 							if (ctx.use_potion) {
 								items[i] = undefined;
 								holding_item = false;
+								potion_burst(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0)); // drunk: glass and a puff
 							}
 						}
 					}

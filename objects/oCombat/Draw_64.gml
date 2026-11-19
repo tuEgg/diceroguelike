@@ -456,7 +456,8 @@ for (var i = 0; i < aq_list_size; i++) {
 			if (die_struct.rolled_value != -1) _shown_face = die_struct.rolled_value;
 			else if (die_struct.forced_roll != -1) _shown_face = clamp(die_struct.forced_roll, _out.min_roll, _out.max_roll);
 			else if (die_has_faces(die_struct)) _shown_face = die_face_total(die_struct, _out.min_roll, _out.max_roll);
-			draw_die(xx_top, yy_top, 17 * this_dice_scale, die_struct.dice_value, _shown_face, _col, 0, _acted ? 0.5 : 1);
+			var _jig = die_jiggle_pose(die_struct); // its effect firing: a punch and a wobble (F40)
+			draw_die(xx_top, yy_top, 17 * this_dice_scale * _jig.scale, die_struct.dice_value, _shown_face, _col, _jig.angle, _acted ? 0.5 : 1);
 			
 			// Draw keyword icons above
 			draw_dice_keywords(die_struct, xx_top, yy_top + die_bottom_edge(die_struct.dice_value, 17 * this_dice_scale), 0.65, 1, "slot"); // only what matters in a slot (Sticky), on its bottom edge
@@ -546,7 +547,19 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	draw_set_alpha(0.5 * enemy.alpha);
 	draw_set_color(c_black);
 	draw_ellipse(enemy.pos_x - 100 * enemy.data.shadow_scale, enemy.pos_y + 50, enemy.pos_x + 100 * enemy.data.shadow_scale, enemy.pos_y + 70, false);
-	draw_sprite_ext(sEnemies, enemy.data.index, enemy.pos_x, enemy.pos_y + 60, enemy.scale, enemy.scale, 0, c_white, enemy.alpha);
+	// hit: a white flash for a moment; dead: it tilts back and sinks as it fades (F41)
+	var _e_ang = 0, _e_sink = 0, _e_flash = false;
+	if (variable_struct_exists(enemy, "hit_t") && current_time - enemy.hit_t < 90) _e_flash = true;
+	if (variable_struct_exists(enemy, "death_t")) {
+		var _dk = clamp((current_time - enemy.death_t) / 650, 0, 1);
+		var _de = 1 - power(1 - _dk, 3);
+		_e_ang = -24 * _de;
+		_e_sink = 50 * _de;
+		if (current_time - enemy.death_t < 130) _e_flash = true;
+	}
+	if (_e_flash) hit_flash_set(true);
+	draw_sprite_ext(sEnemies, enemy.data.index, enemy.pos_x, enemy.pos_y + 60 + _e_sink, enemy.scale, enemy.scale, _e_ang, c_white, enemy.alpha);
+	if (_e_flash) hit_flash_set(false);
 	
 	// X and Y coordinates for testing: turned off (flip to true when placing enemies)
 	if (false) {
@@ -870,7 +883,18 @@ draw_set_alpha(0.5);
 draw_set_color(c_black);
 draw_ellipse( global.player_x - 100,  global.player_y + 50, global.player_x + 100,  global.player_y + 70, false);
 	
-draw_sprite_ext(sEnemies, 0, global.player_x, global.player_y + 60, -1, 1, 0, c_white, 1.0);
+// hit: a white flash; sunk (lose_run): it keels over and goes down (F41)
+var _p_ang = 0, _p_sink = 0, _p_alpha = 1;
+if (player_death_t >= 0) {
+	var _pk = clamp((current_time - player_death_t) / 1100, 0, 1);
+	_p_ang = 35 * (1 - power(1 - _pk, 2));
+	_p_sink = 90 * _pk * _pk;
+	_p_alpha = 1 - 0.7 * _pk;
+}
+var _p_flash = (current_time - player_hit_t < 90) || (player_death_t >= 0 && current_time - player_death_t < 150);
+if (_p_flash) hit_flash_set(true);
+draw_sprite_ext(sEnemies, 0, global.player_x, global.player_y + 60 + _p_sink, -1, 1, _p_ang, c_white, _p_alpha);
+if (_p_flash) hit_flash_set(false);
 
 // =========================================================
 // PLAYER HEALTH BAR (left side)

@@ -376,3 +376,35 @@ function ui_label(_cx, _cy, _text, _font, _seed, _alpha = 1, _pad = 28) {
 	draw_set_alpha(1);
 	draw_set_color(c_white);
 }
+
+/// @func screen_shake(_amount)
+/// @desc Shakes the whole Draw GUI layer by up to _amount px, easing off over a few frames (F150 juice): big hits,
+///       deaths. The shake is a world-matrix offset set in oRunManager Draw GUI Begin and cleared in Draw GUI End, so
+///       the mouse and clicks are untouched. Settings > Gameplay > Screen shake can turn it off (global.shake_on).
+function screen_shake(_amount) {
+	if (variable_global_exists("shake_on") && !global.shake_on) return;
+	if (!variable_global_exists("shake")) global.shake = 0;
+	global.shake = clamp(max(global.shake, _amount), 0, 18);
+}
+
+/// @func die_jiggle(_die)
+/// @desc A die's effect just fired (F40): it punches up and wobbles for under half a second wherever it's drawn (in hand
+///       or in a slot). Timed from now, so nothing has to count it down.
+function die_jiggle(_die) {
+	if (is_struct(_die)) _die.jiggle_t = current_time;
+}
+
+/// @func die_jiggle_pose(_die)
+/// @desc { scale, angle } for a die's wobble (die_jiggle): scale 1 and angle 0 when it isn't wobbling.
+function die_jiggle_pose(_die) {
+	if (!is_struct(_die) || !variable_struct_exists(_die, "jiggle_t")) return { scale: 1, angle: 0 };
+	var _k = 1 - (current_time - _die.jiggle_t) / 450;
+	if (_k <= 0) return { scale: 1, angle: 0 };
+	return { scale: 1 + 0.4 * _k * _k, angle: sin((1 - _k) * pi * 5) * 22 * _k };
+}
+
+/// @func hit_flash_set(_on)
+/// @desc Draws everything after it solid white while _on (a hit or death flash), via fog. Call hit_flash_set(false) after.
+function hit_flash_set(_on) {
+	gpu_set_fog(_on, c_white, 0, 0);
+}

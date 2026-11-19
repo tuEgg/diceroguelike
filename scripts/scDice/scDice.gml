@@ -150,6 +150,7 @@ function die_roll_faces(_die) {
 /// @func die_effect_popup(_die, _text, _col)
 /// @desc A die's "when rolled" effect firing: a word over it in your hand (or where dice are dealt, as it comes out).
 function die_effect_popup(_die, _text, _col) {
+	die_jiggle(_die); // and the die wobbles (F40)
 	var _x = global.gui.bag_x_deal, _y = global.gui.bag_y_deal - 60;
 	with (oDice) if (struct == _die) { _x = x; _y = y - 60; }
 	var _inst = instance_create_layer(_x, _y, "Instances", oDamageText);

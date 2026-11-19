@@ -1,3 +1,5 @@
+// the screen shake ends here: windows, tooltips and the cursor stay still
+matrix_set(matrix_world, matrix_build_identity());
 // the log's ink look (F118): this frame was drawn into ink_scene (Draw GUI Begin); back to the screen first. If the
 // log closed during this frame, show the frame as it was; otherwise combat_insight_view_draw draws it through shInk.
 if (ink_capturing) {

@@ -9,6 +9,7 @@ global.action_icons = true; // on by default (UI rework): every action colour al
 global.cursor_hidden = false;
 global.cursor_hover_time = 0;
 global.cursor_tilt = 0;
+global.shake_on = true; // Settings > Gameplay > Screen shake (screen_shake)
 global.combat_speed_index = 1; // Settings > Gameplay > Combat speed: Slow, Normal, Fast, Fastest (F13)
 
 global.resolution_options = [
@@ -135,6 +136,12 @@ categories = [
                 set_value: function(_val) { global.combat_speed_index = _val; },
 				options: ["Slow", "Normal", "Fast", "Fastest"],
 				show_options: false
+            },
+            {
+                name: "Screen shake",
+                type: "toggle",
+                get_value: function() { return global.shake_on; },
+                set_value: function(_val) { global.shake_on = _val; if (!_val) global.shake = 0; },
             },
         ]
     },

@@ -135,3 +135,30 @@ function gain_alignment(_amount, _x = device_mouse_x_to_gui(0), _y = device_mous
 		alignment_popup_t = 0;
 	}
 }
+
+/// @func particle_emit_later(_x, _y, _type, _col, [_amount])
+/// @desc particle_emit, but made in oRunManager's Step (particles_flush): safe to call from Draw GUI, where making
+///       instances made the web build skip a frame (B108). For juice fired from drawing code (potions, sacrifices).
+function particle_emit_later(_x, _y, _type, _col, _amount = 30) {
+	if (!variable_global_exists("particles_pending")) global.particles_pending = [];
+	array_push(global.particles_pending, { x: _x, y: _y, type: _type, col: _col, amount: _amount });
+}
+
+/// @func particles_flush()
+/// @desc oRunManager Step: makes the particles queued by particle_emit_later.
+function particles_flush() {
+	if (!variable_global_exists("particles_pending")) return;
+	for (var i = 0; i < array_length(global.particles_pending); i++) {
+		var _p = global.particles_pending[i];
+		particle_emit(_p.x, _p.y, _p.type, _p.col, _p.amount);
+	}
+	global.particles_pending = [];
+}
+
+/// @func potion_burst(_x, _y)
+/// @desc A potion used (F41): glass glints out, a coloured puff rises. Queued (it's called from Draw GUI).
+function potion_burst(_x, _y) {
+	particle_emit_later(_x, _y, "burst", make_color_rgb(226, 236, 240), 14);
+	particle_emit_later(_x, _y, "rise", global.color_heal, 16);
+	sfx_play(soSlotPlace, AUDIO_GROUP.SFX, 0.1, 0.8);
+}

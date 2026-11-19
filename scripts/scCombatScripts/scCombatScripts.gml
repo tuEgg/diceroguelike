@@ -305,6 +305,8 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					
 	                _target.hp = max(0, _target.hp - final_damage);
 	                spawn_floating_number(_target, final_damage, -1, c_red, -1, -1, _dice_list_index);
+					_target.hit_t = current_time; // a white flash (oCombat Draw GUI)
+					if (final_damage >= 8) screen_shake(min(10, 2 + final_damage * 0.4)); // a big hit lands
 					run_stat_add("damage_dealt", final_damage);
 					run_stat_max("biggest_hit", final_damage);
 	            }
@@ -327,6 +329,11 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					
 					enemies_to_fade_out += 1;
 					_target.alpha = 0.5;
+					// it goes down: a flash, a tilt and a sink (oCombat Draw GUI), a shake and a splash of ink
+					_target.death_t = current_time;
+					screen_shake(7);
+					particle_emit_later(_target.pos_x, _target.pos_y, "burst", global.ui_col.ink, 26);
+					particle_emit_later(_target.pos_x, _target.pos_y, "rise", global.color_attack, 12);
 					
 					var possible_new_targets = ds_list_create();
 					var new_target = undefined;
@@ -372,6 +379,8 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	            if (final_damage > 0) {
 	                global.player_hp = max(0, global.player_hp - final_damage);
 	                spawn_floating_number("player", final_damage, -1, c_red, -1, -1, _dice_list_index);
+					player_hit_t = current_time; // a white flash on your ship
+					screen_shake(clamp(2 + final_damage * 0.5, 3, 12)); // you feel every hit, more the bigger it is
 					run_stat_add("damage_taken", final_damage);
 				
 	            }
@@ -939,8 +948,12 @@ function combat_try_build_slot() {
 		};
 		trigger_die_effects_single(_d, "on_sacrifice_die", sacrifice_data);
 		runmanager_trigger_keepsakes("on_sacrifice_die", sacrifice_data);
+		// given up to build the slot (F41): it bursts in its colour and embers rise off the new tile
+		particle_emit_later(_tx, _ty + 60, "burst", get_dice_color(_d.possible_type), 14);
+		particle_emit_later(_tx, _ty + 60, "rise", global.color_intel, 8);
 	}
 
+	screen_shake(3); // the new slot thuds into place
 	// untyped like every slot (it resets each turn); this turn its types come from the dice in it (slot_recompute_types)
 	var _new_slot = combat_new_slot("None");
 	slot_set_position_bonus(_new_slot, ds_list_size(action_queue));
@@ -2326,6 +2339,13 @@ function roll_popup(_slot_number, _dice_index, _text, _color) {
 		if (_slot_number != undefined && _slot_number >= 0 && ds_safe_exists(slot_positions, ds_type_list) && _slot_number < ds_list_size(slot_positions)) {
 			_x = slot_positions[| _slot_number].x + global.gui.action_tile_w / 2;
 			_y = slot_positions[| _slot_number].y - 60 - _dice_index * 26;
+		}
+	}
+	// the die itself wobbles as its effect fires (F40)
+	with (oCombat) {
+		if (_slot_number >= 0 && _slot_number < ds_list_size(action_queue)) {
+			var _dl = action_queue[| _slot_number].dice_list;
+			if (_dice_index >= 0 && _dice_index < ds_list_size(_dl)) die_jiggle(_dl[| _dice_index]);
 		}
 	}
 	var _inst = instance_create_layer(_x, _y, "Instances", oDamageText);
