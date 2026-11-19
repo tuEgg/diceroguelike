@@ -26,7 +26,6 @@ switch (state) {
 		
 		if (turn_count == 1) {
 			combat_trigger_effects("on_combat_started", {});
-			sacrificies_til_new_action_tile = ds_list_size(action_queue) + slot_cost_modifier;
 		}
 		
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
@@ -85,7 +84,11 @@ switch (state) {
 		player_block_amount = 0;
 		dice_allowed_this_turn_bonus = 0;
 		ejected_dice = false;
-		
+		played_uids = [];
+		reroll_used = false;
+		redraw_used = false;
+		take_back_request = undefined;
+
 		player_intel = debug_turn_intel(); // 0 unless set in the F1 debug menu
 		
 		// Modify dice allowed this turn
@@ -144,7 +147,12 @@ switch (state) {
         break;
 
     case CombatState.PLAYER_INPUT:
-		
+		// a played die was clicked (oCombat Draw GUI): back to the hand
+		if (take_back_request != undefined) {
+			combat_take_back(take_back_request.slot, take_back_request.index);
+			take_back_request = undefined;
+		}
+
 		// (the Space and Backspace testing keys now live in scDebug, debug_hotkeys)
 
 
@@ -381,7 +389,12 @@ switch (state) {
 		        var slot = action_queue[| i];
 		        var slot_pos = slot_positions[| i]; // from Draw GUI
 				slot.possible_type = "";
-				
+
+				// rolled dice: everything played leaves at the end of the turn, except sticky dice
+				for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
+					if (slot.dice_list[| d].permanence != "sticky") slot.dice_list[| d].permanence = "temporary";
+				}
+
 				show_debug_message("enemies_to_fade_out: " + string(enemies_to_fade_out));
 				show_debug_message("enemies_left_this_combat: " + string(enemies_left_this_combat));
 
@@ -396,7 +409,10 @@ switch (state) {
 				
 				// Count down timed slot bonuses (Rigger's Tonic and the like)
 				slot_tick_bonuses(slot);
-			
+
+				// back to the types it was built with (an empty starting slot is untyped again)
+				slot_recompute_types(slot);
+
 				// set all dice in this slot to temporary
 				for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
 					// turn every "base" dice into a temporary one at the end of the turn, note: sticky dice are "sticky" and are not affected by this
@@ -407,6 +423,9 @@ switch (state) {
 				}
 		    }
 			
+			// dice left on the new-slot tile (not enough to build it) go to the discard pile too
+			combat_discard_slot_building();
+
 			ejected_dice = true;
 		}
 
@@ -418,6 +437,19 @@ switch (state) {
 					var enemy = room_enemies[| e];
 				
 					if (enemy.dead) {
+						// fled when their leader fell (combat_enemies_flee): they just fade away, no gold and no kill/spare choice
+						if (variable_struct_exists(enemy, "fled") && enemy.fled) {
+							enemy.alpha = lerp(enemy.alpha, 0.0, 0.1);
+							enemy.intent.alpha = lerp(enemy.intent.alpha, 0, 0.1);
+							if (enemy.alpha <= 0.05) {
+								enemies_to_fade_out--;
+								enemy.alpha = 0;
+								ds_list_delete(room_enemies, e);
+								if (enemy_target_index > e) enemy_target_index--;
+							}
+							continue;
+						}
+
 						if (oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT || oWorldManager.current_node_type == NODE_TYPE.ELITE) {
 							if (!enemy.alignment_choices_shown && !enemy.spared && !enemy.killed) {
 								enemy.alignment_choices_shown = true;

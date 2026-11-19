@@ -28,21 +28,19 @@ locked_slot = -1;
 bound_slot = -1;
 hovered_slot = -1;
 
-var new_slot1 = {
-    dice_list: ds_list_create(),			// all dice currently in the slot
-    current_action_type: "None",			// the slot's selected type
-    possible_type: "None",					// allowed types,
-	bonus_amount: 0,						// total of the bonuses below, the "+2" in "1d4+2" (read only, see slot_add_bonus)
-	bonuses: [],							// { source, amount, turns, scope } from keepsakes and items
-	first_die_bonus: 0,						// total of the bonuses that only apply to the first die (read only)
-};
+// rolled dice: a fight starts with two empty slots. The first coloured die played into one picks its type for the turn
+// (combat_new_slot has the slot's fields). docs/design-rolled-dice.md
+ds_list_add(action_queue, combat_new_slot("None"));
+ds_list_add(action_queue, combat_new_slot("None"));
 
-//ds_list_add(new_slot1.dice_list, clone_die(global.dice_d4_none, "base"));
-ds_list_add(action_queue, new_slot1);
+played_uids = [];              // dice played this turn (uid): "when played" effects fire once per die per turn, even if it's taken back and played again
+reroll_used = false;           // the free reroll (right-click a die in hand), once per turn
+redraw_used = false;           // the free redraw (the first die dropped on the discard pile draws a new one), once per turn
+take_back_request = undefined; // a played die clicked in Draw GUI, taken back in Step: { slot, index } (slot -1 = the new-slot tile)
+new_tile_pos = undefined;      // where the new-slot tile is drawn (Draw GUI), for dice taken back from it
 
 // Use fibonacci for determining new slot creation
 global.fib_lookup = [0, 1, 1, 2, 3, 5, 8, 13, 21];
-sacrificies_til_new_action_tile = ds_list_size(action_queue);
 slot_cost_modifier = 0;
 
 // For drawing buttons

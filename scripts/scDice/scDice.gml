@@ -88,6 +88,9 @@ function deal_single_die( _can_discard_this_turn = true) {
 	// Trigger on dice dealt effects
 	trigger_die_effects_single(die_struct, "on_dice_dealt", trigger_data);
 
+	// rolled dice: a die rolls as it's dealt, and shows its number in hand (docs/design-rolled-dice.md)
+	if (room == rmCombat) die_roll_faces(die_struct);
+
     // Spawn instance
     var die_inst = instance_create_layer(global.gui.bag_x_deal, global.gui.bag_y_deal, "Instances", oDice);
     die_inst.struct = die_struct;
@@ -105,6 +108,54 @@ function deal_single_die( _can_discard_this_turn = true) {
     if (index != -1) ds_list_delete(global.dice_bag, index);
 	
 	return die_inst;
+}
+
+/// @func die_roll_faces(_die)
+/// @desc Rolled dice: rolls a die when it's dealt and keeps the result on it (faces, one per die in a "2d4").
+///       Uses its range and weighting as it is in hand. A die that rolls twice (Accurate) does it now and keeps the
+///       higher (faces_twice). process_action resolves these faces instead of rolling again.
+function die_roll_faces(_die) {
+	var _out = get_dice_output(_die, -1, -1, true, "player", true);
+	var _min = _out.min_roll, _max = _out.max_roll;
+	var _dist = [];
+	define_dice_distributions((_out.weighting != "") ? _out.weighting : _die.distribution, _min, _max, _dist);
+	var _weight = 0;
+	for (var d = 0; d < array_length(_dist); d++) _weight += _dist[d];
+	_die.faces = [];
+	_die.faces_twice = _out.roll_twice;
+	repeat (max(1, _die.dice_amount)) {
+		var _face = (_weight > 0) ? weighted_to_face(_dist, irandom_range(1, _weight), _min) : irandom_range(_min, _max);
+		if (_out.roll_twice) {
+			var _second = (_weight > 0) ? weighted_to_face(_dist, irandom_range(1, _weight), _min) : irandom_range(_min, _max);
+			_face = max(_face, _second);
+		}
+		array_push(_die.faces, _face);
+	}
+}
+
+/// @func die_has_faces(_die)
+/// @desc Whether a die has been rolled (die_roll_faces) and is waiting to be used.
+function die_has_faces(_die) {
+	return is_struct(_die) && variable_struct_exists(_die, "faces") && is_array(_die.faces) && array_length(_die.faces) > 0;
+}
+
+/// @func die_face_total(_die, [_min], [_max])
+/// @desc The die's rolled number (all its faces added up), each kept within _min.._max if given. -1 if not rolled.
+function die_face_total(_die, _min = -1, _max = -1) {
+	if (!die_has_faces(_die)) return -1;
+	var _t = 0;
+	for (var i = 0; i < array_length(_die.faces); i++) {
+		var _f = _die.faces[i];
+		if (_min != -1) _f = clamp(_f, min(_min, _max), _max);
+		_t += _f;
+	}
+	return _t;
+}
+
+/// @func die_clear_faces(_die)
+/// @desc A used or discarded die forgets its roll, so it rolls fresh next time it's dealt.
+function die_clear_faces(_die) {
+	if (is_struct(_die)) { _die.faces = undefined; _die.faces_twice = false; }
 }
 
 function generate_dice_bag() {
@@ -633,7 +684,8 @@ function generate_dice_bag() {
 	        {
 				trigger: "on_roll_die",
 	            modify: function(_context) {
-					if (!_context.read_only) {
+					// it rolls twice as it's dealt (rolled dice), or when it resolves if it wasn't dealt
+					if (!_context.read_only || (variable_struct_exists(_context, "on_deal") && _context.on_deal)) {
 						_context.roll_twice = true;
 					}
 	            }
@@ -1213,7 +1265,7 @@ function get_dice_name_and_bonus(_die, _bonus_amount) {
 /// @param _die_index	The dice_list index this dice is
 /// @param _read_only	Determine whether we are just reading to generate numbers, or actually running the code
 /// @param _owner		Whether its player owned or owned by the enemy
-function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
+function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner, _on_deal = false) {
 	// "not in a slot" is always -1 from here on, so dice effects can compare slot_num safely
 	if (_slot_num == undefined) _slot_num = -1;
 	
@@ -1245,6 +1297,7 @@ function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
 		die_index: _die_index,
 		die: _die,
 		read_only: _read_only,
+		on_deal: _on_deal, // rolled dice: being rolled as it's dealt (read only, but Accurate still rolls twice)
 		roll_twice: false,
 		repeat_followthrough: false,
 		target: _owner,

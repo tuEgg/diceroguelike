@@ -78,6 +78,11 @@ if (!is_dragging && hovered && mouse_check_button_pressed(mb_left)) {
 	}
 }
 
+// rolled dice: right-click a die in hand to reroll it (once per turn, free)
+if (room == rmCombat && hovered && !is_dragging && mouse_check_button_pressed(mb_right) && instance_exists(oCombat)) {
+	with (oCombat) combat_reroll_die(other.id);
+}
+
 // --- Dragging movement ---
 if (is_dragging) {
     x = mx - drag_offset_x;
@@ -183,7 +188,10 @@ if (is_dragging && mouse_check_button_released(mb_left)) {
     if (combat != noone) {
         // the guided first fight only lets through what its current step asks for (tutorial_allows)
         if (is_mouse_over_discard_button()) {
-            if (tutorial_allows("discard", struct)) with (combat) discard_dice(other.id);
+            if (tutorial_allows("discard", struct)) with (combat) {
+				discard_dice(other.id);
+				combat_redraw_after_discard(); // rolled dice: the first discard each turn draws a new die
+			}
         } else if (oCombat.last_hover) {
 			if (!die_has_keyword(struct, "exclusive") && tutorial_allows("sacrifice", struct)) {
 				with (combat) sacrifice_die(other.id);

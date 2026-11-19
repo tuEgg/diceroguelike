@@ -25,8 +25,27 @@ if (struct.rarity != "starter") {
 	if (!mouse_hovering(x, y, sprite_width, sprite_height, true)) draw_outline_text(struct.name, c_black, c_white, 2, x, _name_y, scale, image_alpha, 0);
 }
 
+// rolled dice: the number it rolled when dealt, in the middle of the die (bonuses show once it's in a slot)
+if (room == rmCombat && die_has_faces(struct)) {
+	// the die art's face sits a little off centre depending on its shape (the same nudges the slot icons use, at this size)
+	var _fx = 0, _fy = 0;
+	switch (image_index) {
+		case 1: _fx = -3; _fy = 5; break;
+		case 2: _fx = -3; _fy = 2; break;
+		case 3: case 4: case 5: _fy = -2; break;
+	}
+	draw_set_font(ftBig);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_outline_text(string(die_face_total(struct)), c_black, c_white, 3, x + _fx * scale, y + _fy * scale, scale, image_alpha, 0);
+	draw_set_font(ftDefault);
+	draw_set_valign(fa_top);
+}
+
 // --- Draw effect keyword icons ---
-draw_dice_keywords(struct, x, y, 1);
+// a rolled die has its number in the middle, so its keyword icons go smaller along the bottom edge
+if (room == rmCombat && die_has_faces(struct)) draw_dice_keywords(struct, x, y + sprite_height * 0.3, 0.6);
+else draw_dice_keywords(struct, x, y, 1);
 // Settings > Display > Action icons on dice: a small symbol so types don't rely on colour alone
 if (global.action_icons) draw_action_type_icon(struct.action_type, x - sprite_width * 0.32, y + sprite_height * 0.32, scale);
 
@@ -41,7 +60,11 @@ if (debug_mode) {
 if mouse_hovering(x, y, sprite_width, sprite_height, true) {
 	var dice_output = get_dice_output(struct, -1, -1, true, "player"); // read only: hovering must never trigger keepsakes
 	// the range sits in the tooltip's title ("Inkwell Die (1-4)"), not on the die where it could cover a keyword icon
-	queue_tooltip(x - sprite_width/2, y + sprite_height/2, string(struct.name) + " (" + string(dice_output.min_roll) + "-" + string(dice_output.max_roll) + ")", die_description(struct), undefined, 0, struct);
+	// rolled dice: the title says what it rolled, and the body how to reroll it
+	var _rolled = (room == rmCombat && die_has_faces(struct));
+	var _title = string(struct.name) + (_rolled ? ": rolled " + string(die_face_total(struct)) : "") + " (" + string(dice_output.min_roll) + "-" + string(dice_output.max_roll) + ")";
+	var _reroll_hint = (_rolled && instance_exists(oCombat) && !oCombat.reroll_used) ? "\n\nRight-click to reroll it (once per turn)." : "";
+	queue_tooltip(x - sprite_width/2, y + sprite_height/2, _title, die_description(struct) + _reroll_hint, undefined, 0, struct);
 	
 	var off_x = 0;
 	var off_y = 0;

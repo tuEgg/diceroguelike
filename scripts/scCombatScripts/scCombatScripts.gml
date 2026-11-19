@@ -19,6 +19,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	var enemy_bonus_used_once = false;
 	var first_die_bonus_used = false;
 	var _enemy_roll_index = 0; // which of the enemy's pre-rolled dice is next
+	var _face_index = 0; // rolled dice: which of the die's faces (rolled when dealt) is next
 	
 	repeat (_dice_amount) {
 		// Roll starts at default range
@@ -62,21 +63,32 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 				weight_max += distribution_array[d];
 			}
 		
+			// rolled dice: the number it rolled when dealt (die_roll_faces), kept within today's range
+			var _face = -1;
+			if (die_has_faces(_slot_die) && _face_index < array_length(_slot_die.faces)) _face = clamp(_slot_die.faces[_face_index], _min_roll, _max_roll);
+			_face_index++;
+
 			// Roll between all the values in the array
 			var weighted_roll = irandom_range(weight_min, weight_max);
 			var _rolled_twice = undefined; // both faces, when the die rolls twice and keeps the higher
-			if (dice_output.roll_twice || _slot_die.roll_twice) { // roll advantage
+			// roll advantage. A die that already rolled twice when dealt (Accurate) doesn't again; a keepsake's
+			// "roll twice" (Navigation Chart, Starver's Efficiency) rolls once more and keeps the higher.
+			if (_slot_die.roll_twice || (dice_output.roll_twice && !(_face != -1 && variable_struct_exists(_slot_die, "faces_twice") && _slot_die.faces_twice))) {
 				var second_roll = irandom_range(weight_min, weight_max);
-				_rolled_twice = [weighted_to_face(distribution_array, weighted_roll, _min_roll), weighted_to_face(distribution_array, second_roll, _min_roll)];
+				var _first_face = (_face != -1) ? _face : weighted_to_face(distribution_array, weighted_roll, _min_roll);
+				var _second_face = weighted_to_face(distribution_array, second_roll, _min_roll);
+				_rolled_twice = [_first_face, _second_face];
 
-				if (second_roll > weighted_roll) weighted_roll = second_roll;
+				if (_face != -1) _face = max(_face, _second_face);
+				else if (second_roll > weighted_roll) weighted_roll = second_roll;
 
 				_slot_die.roll_twice = false; // reset after we roll twice
 			}
 			
-			// Get roll amount if we are forcing
-			if (_slot_die.forced_roll != -1) {
-			    var _clamped_forced = clamp(_slot_die.forced_roll, _min_roll, _max_roll);
+			// Get roll amount if we are forcing (an effect's forced roll wins over the rolled face)
+			var _force = (_slot_die.forced_roll != -1) ? _slot_die.forced_roll : _face;
+			if (_force != -1) {
+			    var _clamped_forced = clamp(_force, _min_roll, _max_roll);
 			    weighted_roll = 0;
     
 			    for (var d = 0; d < (_clamped_forced - _min_roll + 1); d++) {
@@ -325,7 +337,10 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					};
 					
 					combat_trigger_effects("on_enemy_death", context);
-					
+
+					// when an elite or the boss falls, the rest of its crew flee: no gold, and the fight is won
+					if (enemy_is_leader(_target)) combat_enemies_flee(_target);
+
 					//show_debug_message("Enemies left this combat: " + string(enemies_left_this_combat));
 					//show_debug_message("NEW Enemy target index: " + string(enemy_target_index));
 				}
@@ -627,6 +642,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 
 	if (check.ok) {
 		var sticky = die_has_keyword(die.struct, "sticky");
+		var _was_empty = (ds_list_size(slot.dice_list) == 0);
 
 		switch (check.action) {
 			case "replace":
@@ -655,8 +671,18 @@ function apply_dice_to_slot(_die, _slot_i) {
 						}
 					}
 				}
+
+				// rolled dice: the first die in an empty built slot (Attack/Block...) picks its type for the turn
+				if (_was_empty && die.struct.action_type != "None" && string_pos(die.struct.action_type, slot.possible_type) > 0) {
+					slot.current_action_type = die.struct.action_type;
+				}
 			break;
 		}
+
+		// rolled dice: it can be taken back this turn (combat_take_back), unless it has a "when played" effect of its own
+		var _added = slot.dice_list[| ds_list_size(slot.dice_list) - 1];
+		_added.played_turn = turn_count;
+		_added.play_locked = die_has_effect_trigger(die.struct, "on_dice_played_to_slot");
 	}
 
     //-----------------------------------------
@@ -673,9 +699,18 @@ function apply_dice_to_slot(_die, _slot_i) {
 		};
 		
 		particle_emit(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", get_dice_color(die.struct.possible_type), 30);
-	
-		combat_trigger_effects("on_dice_played_to_slot", played_data);
-		run_stat_add("dice_played", 1);
+
+		// "when played" effects fire once per die per turn: a die taken back and played again doesn't fire them twice
+		var _first_play = !array_contains(played_uids, die.struct.uid);
+		if (_first_play) {
+			array_push(played_uids, die.struct.uid);
+			combat_trigger_effects("on_dice_played_to_slot", played_data);
+			run_stat_add("dice_played", 1);
+			die.struct.statistics.times_played_this_combat++;
+		} else {
+			// keepsakes that read the queue (Single Focus, Repeater Rail) still work it out again
+			runmanager_trigger_keepsakes("after_change_current_action", {});
+		}
 
 		if (played_data.duplicate_die) {
 			var die_copy2 = clone_die(die.struct, "temporary");
@@ -690,9 +725,6 @@ function apply_dice_to_slot(_die, _slot_i) {
 		if (!die_has_keyword(die.struct, "coin")) dice_played += 1;
 		dice_played_scale = 1.2;
 		dice_played_color = c_green;
-		
-		// die statistics
-		die.struct.statistics.times_played_this_combat++;
 
 		var place_sound = choose(soRubble1, soRubble2, soRubble3, soRubble4);
 
@@ -729,6 +761,7 @@ function discard_dice(_die) {
 
     // --- 2. Clone the struct before adding to discard pile
     var die_copy = clone_die(die_struct, "");
+    die_clear_faces(die_copy); // rolled dice: it rolls fresh next time it's dealt
 
     // --- 3. Add to discard pile
     ds_list_add(global.discard_pile, die_copy);
@@ -754,6 +787,7 @@ function add_dice_to_bag(_die) {
 
     // --- 2. Clone the struct before adding to discard pile
     var die_copy = clone_die(die_struct, "");
+    die_clear_faces(die_copy); // rolled dice: it rolls fresh next time it's dealt
 
     // --- 3. Add to discard pile
     ds_list_add(global.dice_bag, die_copy);
@@ -764,165 +798,92 @@ function add_dice_to_bag(_die) {
 
 
 
+/// @func sacrifice_die(_die)
+/// @desc Rolled dice: a die dropped on the new-slot tile waits there (it uses a play, coins are free, and it can be taken
+///       back) until 2 or more dice on it add up to new_slot_threshold. Then the slot is built (combat_try_build_slot).
 function sacrifice_die(_die) {
-	if (dice_played + 1 > dice_allowed_per_turn) {
-		if (!die_has_keyword(_die.struct, "coin")) {
-			dice_played_scale = 1.4;
-			dice_played_color = c_red;
-			return;
-		}
-	} 
-	
+	if (dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(_die.struct, "coin")) {
+		dice_played_scale = 1.4;
+		dice_played_color = c_red;
+		throw_error("No plays left", "No plays left this turn. Coins are still free to play.");
+		return;
+	}
 	if (!die_has_keyword(_die.struct, "coin")) dice_played += 1;
 	dice_played_scale = 1.2;
 	dice_played_color = c_green;
-	
-    var die = _die;
-    var die_struct = die.struct;
-	
-	var sacrifice_data = {
-		die: die,
-		_d_struct: die_struct,
-		slot_index: ds_list_size(oCombat.action_queue) // 1 more than the highest index currently of the action queue
-	};
-	
-	trigger_die_effects_single(die.struct, "on_sacrifice_die", sacrifice_data);
-	runmanager_trigger_keepsakes("on_sacrifice_die", sacrifice_data);
 
-    // Clone before adding
-	var _perm = "temporary";
-	if (die_struct.action_type == "None") {
-		_perm = "temporary none"; // used for tracking sacrificed history of dice used to create slots that become temporary
-		//show_debug_message("Added TEMPORARY NONE to sack history");
-	}
-	var die_copy = clone_die(die_struct, _perm);
-    ds_list_add(global.sacrifice_list, die_copy);
-	
-	//show_debug_message("Added dice to list, new length is: "+string(ds_list_size(global.sacrifice_list)));
-	
-    //var history_copy  = clone_die(die_struct, _perm);
-	//ds_list_add(global.sacrifice_history, history_copy ); // persistent record
+	var _copy = clone_die(_die.struct, "temporary");
+	_copy.played_turn = turn_count; // it can be taken back until the slot is built (combat_take_back, slot -1)
+	_copy.play_locked = false;
+	ds_list_add(global.sacrifice_list, _copy);
 
-	particle_emit( die.x, die.y, "burst", die.struct.color);
-	
-    instance_destroy(die);
+	particle_emit(_die.x, _die.y, "burst", _die.struct.color);
+	instance_destroy(_die);
+	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
 
-	var place_sound = choose(soRubble1, soRubble2, soRubble3, soRubble4);
-
-	sfx_play(place_sound, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
-
-    sacrificies_til_new_action_tile--;
-	
 	update_sacrificed_type_array();
+	combat_try_build_slot();
+}
 
-    if (sacrificies_til_new_action_tile > 0) return;
-	
-	var sacrifice_new_slot_data = {
-		slot_index: ds_list_size(oCombat.action_queue) + 1,
-	};
-	
-	combat_trigger_effects("on_new_slot_created", sacrifice_new_slot_data);
+/// @func new_slot_threshold()
+/// @desc What the dice on the new-slot tile must add up to: slot 3 needs 6, then 3 more per slot (Cursed Heart: +3).
+function new_slot_threshold() {
+	var _slot_number = ds_list_size(oCombat.action_queue) + 1;
+	return max(4, 3 * (_slot_number - 1) + 3 * oCombat.slot_cost_modifier);
+}
 
-    // === Time to create new slot ===
-	var type_list = ds_list_create();
-	var highest_val = 4;
-	var all_generic = true;
-
-	// Analyse all sacrificed dice
+/// @func new_slot_total()
+/// @desc What the dice on the new-slot tile add up to (their rolled numbers).
+function new_slot_total() {
+	var _t = 0;
+	if (!ds_safe_exists(global.sacrifice_list, ds_type_list)) return 0;
 	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
-	    var listed_die = global.sacrifice_list[| j];
-
-	    if (listed_die.action_type != "None") {
-	        all_generic = false;
-	    }
-
-	    // Only add unique types
-	    if (ds_list_find_index(type_list, listed_die.possible_type) < 0) {
-			if (string_pos(" ", listed_die.possible_type)) {
-				var parts = string_split(listed_die.possible_type, " ");
-				var total = array_length(parts);
-
-				for (var i = 0; i < total; i++) {
-				    if (ds_list_find_index(type_list, string(parts[i])) < 0) {
-						ds_list_add(type_list, string(parts[i]));
-					}
-				}
-			} else {
-				ds_list_add(type_list, listed_die.possible_type);
-			}
-	    }
-
-	    highest_val = max(highest_val, listed_die.dice_value);
+		var _d = global.sacrifice_list[| j];
+		var _f = die_face_total(_d);
+		_t += (_f != -1) ? _f : ceil(_d.dice_value / 2); // a die that wasn't dealt (and so never rolled) counts half its size
 	}
+	return _t;
+}
 
-	// --- Now build possible_type string ---
-	var possible_type_str = "";
+/// @func combat_try_build_slot()
+/// @desc Builds a new slot once 2 or more dice on the tile reach the threshold. It keeps their types (all generic: an
+///       untyped slot, like the starting ones). Their "when sacrificed" effects fire now, and they go to the discard pile.
+function combat_try_build_slot() {
+	if (ds_list_size(global.sacrifice_list) < 2 || new_slot_total() < new_slot_threshold()) return;
 
-	// If all sacrificed dice were generic
-	if (all_generic) {
-	    possible_type_str = "None"; // or "All" if you want full flexibility
-	} else {
-	    // Remove "None" from type_list if there are colored dice
-	    for (var i = ds_list_size(type_list) - 1; i >= 0; i--) {
-	        if (type_list[| i] == "None") {
-	            ds_list_delete(type_list, i);
-	        }
-	    }
+	combat_trigger_effects("on_new_slot_created", { slot_index: ds_list_size(action_queue) + 1 });
 
-	    // Combine remaining types into a string
-	    for (var t = 0; t < ds_list_size(type_list); t++) {
-	        if (possible_type_str != "") possible_type_str += " ";
-	        possible_type_str += type_list[| t];
-	    }
-	}
-
-    // --- Determine the slot's starting action type ---
-	// Find the first non-generic (non-"None") die in the sacrifice list
-	var starting_action_type = "None";
+	// "when sacrificed" effects. They expect the die in hand (data.die.struct), so each gets a stand-in at the tile.
+	var _tx = is_struct(new_tile_pos) ? new_tile_pos.x + new_tile_pos.w / 2 : gui_w / 2;
+	var _ty = is_struct(new_tile_pos) ? new_tile_pos.y : gui_h / 2;
+	var sacrifice_data = {};
+	var _types = [];
 	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
-	    var listed_die = global.sacrifice_list[| j];
-	    if (listed_die.action_type != "None") {
-	        starting_action_type = listed_die.action_type;
-	        break; // stop at the first non-"None"
-	    }
+		var _d = global.sacrifice_list[| j];
+		sacrifice_data = {
+			die: { struct: _d, x: _tx, y: _ty, can_discard: false },
+			_d_struct: _d,
+			slot_index: ds_list_size(action_queue),
+		};
+		trigger_die_effects_single(_d, "on_sacrifice_die", sacrifice_data);
+		runmanager_trigger_keepsakes("on_sacrifice_die", sacrifice_data);
+
+		var _parts = string_split(_d.possible_type, " ");
+		for (var p = 0; p < array_length(_parts); p++) {
+			if (_parts[p] != "None" && _parts[p] != "" && !array_contains(_types, _parts[p])) array_push(_types, _parts[p]);
+		}
 	}
 
-	// --- Create the new slot ---
-	var new_slot = {
-	    dice_list: ds_list_create(),
-	    current_action_type: starting_action_type,
-	    possible_type: possible_type_str,
-		bonus_amount: 0,						// total of the bonuses below, the "+2" in "1d4+2" (read only, see slot_add_bonus)
-		bonuses: [],							// { source, amount, turns, scope } from keepsakes and items
-		first_die_bonus: 0,						// total of the bonuses that only apply to the first die (read only)
-	};
+	var _type_str = "";
+	for (var t = 0; t < array_length(_types); t++) _type_str += ((_type_str == "") ? "" : " ") + _types[t];
+	if (_type_str == "") _type_str = "None";
+	ds_list_add(action_queue, combat_new_slot(_type_str));
 
-
-    // Add sacrificed dice as base copies
-    for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
-        var src = global.sacrifice_list[| j];
-		var _perma = "base";
-		
-		// "none" dice cannot be permanent
-		if (global.sacrifice_list[| j].action_type == "None") _perma = "temporary";
-		
-        var base_copy = clone_die(src, _perma);
-        ds_list_add(new_slot.dice_list, base_copy);
-    }
-
-    ds_list_add(action_queue, new_slot);
-	
 	combat_trigger_effects("after_new_slot_created", sacrifice_data);
-	
-    var slot = ds_list_size(action_queue) + 1;
-	//sacrificies_til_new_action_tile = global.fib_lookup[slot];
-	sacrificies_til_new_action_tile = max(1, ((slot + 1) div 2) + oCombat.slot_cost_modifier); // 1, 1, 2, 2, 3, 3 etc.
-	
-	// clear sacrifice list
-    ds_list_destroy(type_list);
-    ds_list_clear(global.sacrifice_list);
-	//show_debug_message("New slot created");
-	type_array = [];
+
+	// the dice that built it are used: off to the discard pile
+	combat_discard_slot_building();
+	particle_emit(_tx, _ty + 60, "burst", c_white, 30);
 }
 
 function update_sacrificed_type_array() {
@@ -961,8 +922,10 @@ function get_slot_stats(_slot, _num) {
 		
 		var dice_values = get_dice_output(die_struct, _num, -1, true, "player");
 		
-		low += dice_values.min_roll + dice_values.keepsake_dice_bonus_amount;
-		high += dice_values.max_roll + dice_values.keepsake_dice_bonus_amount;
+		// rolled dice: a die that has rolled counts its number, so the slot shows an exact total
+		var _face = die_face_total(die_struct, dice_values.min_roll, dice_values.max_roll);
+		low += ((_face != -1) ? _face : dice_values.min_roll) + dice_values.keepsake_dice_bonus_amount;
+		high += ((_face != -1) ? _face : dice_values.max_roll) + dice_values.keepsake_dice_bonus_amount;
 		
 		if (die_struct.action_type != "None!") { 
 			total_amount += die_struct.dice_amount;
@@ -1414,9 +1377,6 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 
 		if (string_pos("temporary", die.permanence) > 0 || (die_has_keyword(die, "Loose")) || _all == true) {
 				
-			// Skip slots that don't have an action, keeping neutral dice in empty slots.
-			if (_slot.current_action_type == "None") break;
-			
 			// Clean up sacrifice history
 			if (ds_safe_exists(global.sacrifice_history, ds_type_list)) {
 				for (var s = ds_list_size(global.sacrifice_history) - 1; s >= 0; s--) {
@@ -1663,6 +1623,7 @@ function slot_total_bonus(_slot, _dice_count) {
 /// @func tutorial_wanted()
 /// @desc Should fights be guided? Until the tutorial has been finished or skipped once.
 function tutorial_wanted() {
+	return false; // rolled dice prototype: the guided fight teaches the old rules, so it's off until it's rewritten
 	return !progress_get("tutorial_done");
 }
 
@@ -2076,6 +2037,12 @@ function tips_list() {
 			when: function() { return tips_combat_ready() && intel_is_blotted(); },
 		},
 		{
+			// rolled dice prototype: the guided fight is off, so this explains the new rules once
+			id: "rolled_dice", room: rmCombat, target: "",
+			text: "Rolled dice: your dice show what they rolled. Drag them into the two empty slots (the first coloured die picks a slot's type) and watch the totals. Click a die in a slot to take it back. Once a turn, right-click a die to reroll it, and the first die you discard draws a new one. Dice on the new-slot tile build a slot when 2 or more add up to its number. End Turn discards everything.",
+			when: function() { return tips_combat_ready() && oCombat.turn_count == 1; },
+		},
+		{
 			id: "multi_enemy", room: rmCombat, target: "target_enemy",
 			text: "More than one enemy. Your attacks all go to your target, marked under its health bar. Click another enemy to change target any time before you end your turn.",
 			when: function() { return tips_combat_ready() && !tutorial_active() && combat_living_enemies() >= 2; },
@@ -2434,4 +2401,204 @@ function workbench_open_picker() {
 		bag_to_show = global.dice_bag;
 		show_bag_contents = true;
 	}
+}
+
+// =====================================================================
+// ROLLED DICE (prototype, docs/design-rolled-dice.md)
+// =====================================================================
+
+/// @func combat_new_slot(_types)
+/// @desc A new, empty action slot. _types is what it was built with: "None" (a starting slot, typed by the first
+///       coloured die played into it each turn) or the types of the dice that built it ("ATK BLK").
+function combat_new_slot(_types) {
+	return {
+		dice_list: ds_list_create(),			// all dice currently in the slot
+		current_action_type: (_types == "None") ? "None" : string_split(_types, " ")[0], // the slot's selected type
+		possible_type: _types,					// allowed types
+		defined_type: _types,					// the types it was built with, what it goes back to when empty (slot_recompute_types)
+		bonus_amount: 0,						// total of the bonuses below, the "+2" in "1d4+2" (read only, see slot_add_bonus)
+		bonuses: [],							// { source, amount, turns, scope } from keepsakes and items
+		first_die_bonus: 0,						// total of the bonuses that only apply to the first die (read only)
+	};
+}
+
+/// @func slot_recompute_types(_slot)
+/// @desc A slot's types are the ones it was built with plus those of the dice in it. Empty, a starting slot is
+///       untyped again. Keeps the selected type if it's still allowed.
+function slot_recompute_types(_slot) {
+	var _def = variable_struct_exists(_slot, "defined_type") ? _slot.defined_type : "None";
+	var _types = [];
+	if (_def != "None" && _def != "") _types = string_split(_def, " ");
+	for (var d = 0; d < ds_list_size(_slot.dice_list); d++) {
+		var _parts = string_split(_slot.dice_list[| d].possible_type, " ");
+		for (var p = 0; p < array_length(_parts); p++) {
+			if (_parts[p] != "None" && _parts[p] != "" && !array_contains(_types, _parts[p])) array_push(_types, _parts[p]);
+		}
+	}
+	if (array_length(_types) == 0) {
+		_slot.possible_type = "None";
+		_slot.current_action_type = "None";
+		return;
+	}
+	if (array_contains(_types, "All")) {
+		_slot.possible_type = "All"; // a Multicolor die: any type, right-click picks
+		return;
+	}
+	var _s = "";
+	for (var t = 0; t < array_length(_types); t++) _s += ((_s == "") ? "" : " ") + _types[t];
+	_slot.possible_type = _s;
+	if (!array_contains(_types, _slot.current_action_type)) _slot.current_action_type = _types[0];
+}
+
+/// @func die_has_effect_trigger(_die, _trigger)
+/// @desc Whether one of the die's own effects fires on _trigger.
+function die_has_effect_trigger(_die, _trigger) {
+	if (!is_struct(_die) || !variable_struct_exists(_die, "effects") || is_undefined(_die.effects)) return false;
+	var _effs = is_array(_die.effects) ? _die.effects : [_die.effects];
+	for (var e = 0; e < array_length(_effs); e++) {
+		if (is_struct(_effs[e]) && variable_struct_exists(_effs[e], "trigger") && _effs[e].trigger == _trigger) return true;
+	}
+	return false;
+}
+
+/// @func die_can_take_back(_die)
+/// @desc A die in a slot (or on the new-slot tile) that was played this turn and has no "when played" effect of its own.
+function die_can_take_back(_die) {
+	if (!is_struct(_die) || !instance_exists(oCombat)) return false;
+	if (!variable_struct_exists(_die, "played_turn") || _die.played_turn != oCombat.turn_count) return false;
+	return !(variable_struct_exists(_die, "play_locked") && _die.play_locked);
+}
+
+/// @func combat_no_die_dragged()
+function combat_no_die_dragged() {
+	var _none = true;
+	with (oDice) if (is_dragging) _none = false;
+	return _none;
+}
+
+/// @func combat_take_back(_slot_i, _index)
+/// @desc Takes a die played this turn out of a slot (or off the new-slot tile, _slot_i -1) and back to the hand with the
+///       same roll, giving its play back. Its "when played" effects don't fire again if it's replayed (played_uids).
+function combat_take_back(_slot_i, _index) {
+	var _slot = undefined;
+	var _list = global.sacrifice_list;
+	var _pos = new_tile_pos;
+	if (_slot_i >= 0) {
+		if (_slot_i >= ds_list_size(action_queue)) return;
+		_slot = action_queue[| _slot_i];
+		_list = _slot.dice_list;
+		_pos = (_slot_i < ds_list_size(slot_positions)) ? slot_positions[| _slot_i] : undefined;
+	}
+	if (!ds_safe_exists(_list, ds_type_list) || _index < 0 || _index >= ds_list_size(_list)) return;
+	var _die = _list[| _index];
+	if (!die_can_take_back(_die)) return;
+	ds_list_delete(_list, _index);
+
+	// back in hand, flying from where it was
+	var _sx = is_struct(_pos) ? _pos.x + _pos.w / 2 : display_get_gui_width() / 2;
+	var _sy = is_struct(_pos) ? _pos.y : display_get_gui_height() / 2;
+	var _inst = instance_create_layer(_sx, _sy, "Instances", oDice);
+	_inst.struct = clone_die(_die, "");
+	_inst.struct.played_turn = -1;
+	_inst.action_type = _inst.struct.action_type;
+	_inst.dice_amount = _inst.struct.dice_amount;
+	_inst.dice_value = _inst.struct.dice_value;
+	_inst.possible_type = _inst.struct.possible_type;
+	_inst.can_discard = true;
+	var _target = generate_valid_targets(1, 100)[0];
+	_inst.target_x = _target[0];
+	_inst.target_y = _target[1];
+
+	if (!die_has_keyword(_die, "coin")) dice_played = max(0, dice_played - 1);
+	dice_played_scale = 1.2;
+	dice_played_color = c_green;
+	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
+
+	if (_slot != undefined) {
+		slot_recompute_types(_slot);
+		// a starting slot left with only neutral dice has no type: they come back too
+		if (_slot.possible_type == "None") {
+			for (var d = ds_list_size(_slot.dice_list) - 1; d >= 0; d--) {
+				if (d < ds_list_size(_slot.dice_list) && die_can_take_back(_slot.dice_list[| d])) combat_take_back(_slot_i, d);
+			}
+		}
+	} else {
+		update_sacrificed_type_array();
+	}
+
+	// keepsakes that read the queue (Single Focus, Repeater Rail) work it out again
+	runmanager_trigger_keepsakes("after_change_current_action", {});
+}
+
+/// @func combat_reroll_die(_inst)
+/// @desc The free reroll: once per turn, a die in hand rolls again.
+function combat_reroll_die(_inst) {
+	if (state != CombatState.PLAYER_INPUT || show_rewards || !instance_exists(_inst) || !die_has_faces(_inst.struct)) return;
+	if (reroll_used) {
+		throw_error("Reroll used", "You can reroll one die per turn.");
+		return;
+	}
+	reroll_used = true;
+	die_roll_faces(_inst.struct);
+	_inst.scale = 1.6;
+	particle_emit(_inst.x, _inst.y, "burst", get_dice_color(_inst.struct.possible_type), 20);
+	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
+}
+
+/// @func combat_redraw_after_discard()
+/// @desc The free redraw: the first die discarded each turn draws a new one.
+function combat_redraw_after_discard() {
+	if (redraw_used || state != CombatState.PLAYER_INPUT) return;
+	redraw_used = true;
+	dice_to_deal += 1;
+	is_dealing_dice = true;
+}
+
+/// @func combat_discard_slot_building()
+/// @desc End of turn: dice left on the new-slot tile (the slot wasn't built) go to the discard pile.
+function combat_discard_slot_building() {
+	if (!ds_safe_exists(global.sacrifice_list, ds_type_list)) return;
+	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
+		var _p = instance_create_layer(is_struct(new_tile_pos) ? new_tile_pos.x + new_tile_pos.w / 2 : gui_w / 2, is_struct(new_tile_pos) ? new_tile_pos.y : gui_h / 2, "Instances", oDiceParticle);
+		_p.die_struct = clone_die(global.sacrifice_list[| j], "");
+		_p.color_main = get_dice_color(_p.die_struct.possible_type);
+		_p.target_x = gui_w - 150;
+		_p.target_y = gui_h - 130;
+	}
+	ds_list_clear(global.sacrifice_list);
+	update_sacrificed_type_array();
+}
+
+/// @func enemy_is_leader(_enemy)
+/// @desc An elite, or the boss in a boss fight (its biggest enemy). When one falls the others flee (combat_enemies_flee).
+function enemy_is_leader(_enemy) {
+	if (!is_struct(_enemy) || !variable_struct_exists(_enemy, "data")) return false;
+	if (variable_struct_exists(_enemy.data, "elite") && _enemy.data.elite) return true;
+	if (instance_exists(oWorldManager) && oWorldManager.current_node_type == NODE_TYPE.BOSS) {
+		for (var e = 0; e < ds_list_size(oCombat.room_enemies); e++) {
+			if (oCombat.room_enemies[| e].max_hp > _enemy.max_hp) return false;
+		}
+		return true;
+	}
+	return false;
+}
+
+/// @func combat_enemies_flee(_leader)
+/// @desc Every other enemy still standing flees: it counts as gone (the fight can be won), fades out, and gives no gold.
+function combat_enemies_flee(_leader) {
+	var _any = false;
+	for (var e = 0; e < ds_list_size(room_enemies); e++) {
+		var _en = room_enemies[| e];
+		if (_en == _leader || _en.dead) continue;
+		_en.dead = true;
+		_en.fled = true;
+		_en.looted = true; // no bounty
+		enemy_turns_remaining--;
+		enemies_left_this_combat--;
+		enemies_to_fade_out += 1;
+		ds_list_clear(_en.debuffs);
+		particle_emit(_en.pos_x, _en.pos_y, "rise", c_white);
+		_any = true;
+	}
+	if (_any) add_feed_entry("With their leader down, the rest flee!");
 }

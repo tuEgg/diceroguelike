@@ -6,10 +6,12 @@ Room `rmCombat`, object `oCombat` (not persistent). Created with the enemies `oW
 
 `state` (enum `CombatState`): `START_TURN` → `PLAYER_INPUT` → `RESOLVE_ROUND` → `END_OF_ROUND` → back to `START_TURN`; `PLAYER_DEAD` on death.
 
+**Rolled dice prototype (branch `feature/rolled-dice`, rules in `docs/design-rolled-dice.md`).** Dice roll when dealt (`die_roll_faces` in scDice, called by `deal_single_die`; the result is `faces` on the die struct, cleared by `die_clear_faces` when it's discarded). `process_action` resolves those faces instead of rolling (a forced roll still wins; a keepsake's roll-twice rolls once more and keeps the higher). Per turn on oCombat: `played_uids` (when-played effects fire once per die per turn), `reroll_used` (`combat_reroll_die`, right-click in oDice Step), `redraw_used` (`combat_redraw_after_discard`). Played dice carry `played_turn` and `play_locked`; Draw GUI sets `take_back_request` when one is clicked and Step runs `combat_take_back`. The guided tutorial is off (`tutorial_wanted`); the `rolled_dice` tip explains the rules.
+
 - **START_TURN**: picks each enemy's move with `enemy_pick_move_index` (scEnemies; `move_order`: `true_random`, `ordered`, `weighted` via `choose_weighting_list`, `pseudo_random` = no 4 in a row). `use_trigger` on a move overrides: `FIRST` (turn 1), `HEALTH 50` (once, flagged `trigger_used` on the per-fight move copy), `PRIORITY`. Fires `on_turn_start`, sets intel (`debug_turn_intel()` + buffs), works out `intel_level`, deals dice (`dice_to_deal`).
 - **PLAYER_INPUT**: waits for `actions_submitted` (Enter or the End Turn button in Draw GUI).
 - **RESOLVE_ROUND**: discards dice still in hand, then each slot's dice roll one by one through `process_action`, then each enemy acts once, with delays between.
-- **END_OF_ROUND**: ejects temporary/Loose dice (`eject_dice_in_slot`), `slot_tick_bonuses`, turns "base" dice into temporary (permanent dice leave on their second turn), fades out dead enemies, then `win_fight()` or `on_round_end` and the next turn.
+- **END_OF_ROUND**: turns every non-sticky die temporary and ejects it (`eject_dice_in_slot`), `slot_tick_bonuses`, `slot_recompute_types` (back to the types the slot was built with), discards dice left on the new-slot tile (`combat_discard_slot_building`), fades out dead enemies (and ones that fled), then `win_fight()` or `on_round_end` and the next turn.
 
 `oCombat/Draw_64.gml` (~1500 lines) draws everything and handles most clicks: slots, dice in slots (with slot-bonus badges), enemies, intents, buffs, rewards screen.
 - Intel: `player_intel` can go negative (Overwhelm). The intel ring above the player is clamped between empty and full; the number shows whenever intel isn't zero, red when negative.
@@ -25,11 +27,12 @@ Room `rmCombat`, object `oCombat` (not persistent). Created with the enemies `oW
 
 ## Slots (the action queue)
 
-`action_queue` is a ds_list of slot structs: `dice_list`, `current_action_type`, `possible_type` (space-separated types string), `bonus_amount`, `first_die_bonus`, `bonuses`.
+`action_queue` is a ds_list of slot structs made by `combat_new_slot(types)`: `dice_list`, `current_action_type`, `possible_type` (space-separated types string), `defined_type` (what it was built with; "None" for the two starting slots), `bonus_amount`, `first_die_bonus`, `bonuses`.
 
 - Placing: `slot_placement_check(die_struct, slot, slot_i)` is the one rule. It returns `{ ok, action, reason }`: action "claim" (empty slot takes the die's type), "replace" (an Exclusive die clears a slot of another type) or "add"; `reason` is player-facing text for why not. `apply_dice_to_slot` acts on it. The slot highlight asks the same rule through `can_place_dice_in_slot`, so what lights up is exactly what accepts the die. The hover hint while dragging uses it too: a "Can't place here" tooltip with the reason, or what placing will do; a rejected drop shows the reason with `throw_error`. Write new rules into `slot_placement_check` with a reason the player can read.
 - Keyword rules in combat (Exclusive, Sticky, Loose ejection, Coin not counting as a played die) read the die's `keywords` via `die_has_keyword`, never its description.
-- Sacrificing dice builds new slots: `sacrifice_die`.
+- New slots: `sacrifice_die` puts a die on the new-slot tile (`global.sacrifice_list`, uses a play); `combat_try_build_slot` builds the slot once 2+ dice reach `new_slot_threshold()` (`new_slot_total()` adds their rolled numbers). The slot gets the union of their types; "when sacrificed" effects fire then, with a stand-in `{ struct, x, y }` as `data.die`.
+- Elites and bosses: when one dies (`enemy_is_leader`), `combat_enemies_flee` marks the rest `dead`, `fled` and `looted` (no gold); END_OF_ROUND fades fled enemies out before the kill/spare handling.
 - **Slot bonuses**: list of `{ source, amount, turns, scope }`. `scope` "each" (every die, the default) or "first" (first die only). Use `slot_add_bonus` / `slot_set_bonus` / `slot_remove_bonus`; `slot_tick_bonuses` at end of round; `slot_total_bonus(slot, dice)` for display; `slot_bonus_breakdown` for the hover box. `source` is shown to the player, so use the keepsake/item name.
 
 ## Buffs and debuffs: scDebuffs

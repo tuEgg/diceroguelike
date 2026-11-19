@@ -260,7 +260,9 @@ for (var i = 0; i < aq_list_size; i++) {
 	// Draw dice outcome (an empty slot has none to show)
 	if (label != "" && !(_low_roll == 0 && _high_roll == 0)) {
 		draw_set_font(ftDefault);
-	    draw_outline_text( "(" + string(_low_roll) + "-" + string(_high_roll) + ")", c_black, c_white, 2, draw_x + draw_w / 2, draw_y + draw_h - 35, 1, 1, 0);
+	    // rolled dice: every die in it has rolled, so the slot's total is known
+	    var _range_text = (_low_roll == _high_roll) ? string(max(0, _low_roll)) : "(" + string(_low_roll) + "-" + string(_high_roll) + ")";
+	    draw_outline_text(_range_text, c_black, c_white, 2, draw_x + draw_w / 2, draw_y + draw_h - 35, 1, 1, 0);
 	}
 
 	// where the slot's bonuses come from
@@ -417,8 +419,36 @@ for (var i = 0; i < aq_list_size; i++) {
 	    draw_set_halign(fa_center);
 	    draw_set_valign(fa_middle);
 		draw_set_font(ftDefault);
-		draw_outline_text("Sacrifice\n" + string(sacrificies_til_new_action_tile) + ((sacrificies_til_new_action_tile == 1) ? " die" : " dice"), c_black, c_white, 2, last_x + last_w / 2, last_y + last_h / 2, 1, 1, 0);
-		
+		// rolled dice: 2 or more dice adding up to the threshold build a slot (combat_try_build_slot)
+		new_tile_pos = { x: last_x, y: last_y, w: last_w, h: last_h };
+		var _need = new_slot_threshold();
+		var _have = new_slot_total();
+		draw_outline_text("New slot\n" + string(_have) + " / " + string(_need), c_black, c_white, 2, last_x + last_w / 2, last_y + last_h / 2 - (last_h / 10), 1, 1, 0);
+		draw_outline_text("2+ dice", c_black, make_color_rgb(190, 190, 200), 2, last_x + last_w / 2, last_y + last_h - 35, 1, 1, 0);
+		if (last_hover && !is_placing && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", "Drop dice here. When 2 or more of them add up to " + string(_need) + ", they build a new slot with their types. Each die uses a play (coins are free). Click a die here to take it back. Dice left here at End Turn are discarded.");
+
+		// the dice waiting on it, above it like a slot's
+		var _wait = ds_list_size(global.sacrifice_list);
+		for (var w = 0; w < _wait; w++) {
+			var _wd = global.sacrifice_list[| w];
+			var _wx = last_x + last_w / 2 - ((_wait - 1) * 32 / 2) + w * 32;
+			var _wy = last_y - 20;
+			var _wi = get_dice_index(_wd.dice_value);
+			draw_sprite_ext(sDiceIcon, _wi, _wx, _wy, 1, 1, 0, get_dice_color(_wd.possible_type), 1);
+			var _wf = die_face_total(_wd);
+			if (_wf != -1) {
+				draw_set_font(ftSmall);
+				draw_outline_text(string(_wf), c_black, c_white, 2, _wx, _wy, 1, 1, 0);
+				draw_set_font(ftDefault);
+			}
+			if (mouse_hovering(_wx, _wy, sprite_get_width(sDiceIcon), sprite_get_height(sDiceIcon), true) && !show_rewards) {
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _wd.name, die_description(_wd) + "\n\nClick to take it back to your hand.", undefined, 0, _wd);
+				if (mouse_check_button_pressed(mb_left) && state == CombatState.PLAYER_INPUT && global.ui_layer == UI_LAYER.BASE && !oRunManager.holding_item && combat_no_die_dragged()) {
+					take_back_request = { slot: -1, index: w };
+				}
+			}
+		}
+
 		draw_action_type_bars(last_x, last_y + last_h + 30, last_w, type_array, "None");
 	}
 	
@@ -474,7 +504,16 @@ for (var i = 0; i < aq_list_size; i++) {
 			var dice_hovered = mouse_hovering(xx_top, yy_top, sprite_get_width(sDiceIcon), sprite_get_height(sDiceIcon), true);
 			
 			if (dice_hovered && !show_rewards) {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die_struct.name, die_description(die_struct), undefined, 0, die_struct);
+				// rolled dice: a die played this turn can be clicked back to the hand (combat_take_back, from Step)
+				var _back_hint = "";
+				if (state == CombatState.PLAYER_INPUT) {
+					if (die_can_take_back(die_struct)) _back_hint = "\n\nClick to take it back to your hand.";
+					else if (variable_struct_exists(die_struct, "play_locked") && die_struct.play_locked && variable_struct_exists(die_struct, "played_turn") && die_struct.played_turn == turn_count) _back_hint = "\n\nIts 'when played' effect has happened, so it stays.";
+				}
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die_struct.name, die_description(die_struct) + _back_hint, undefined, 0, die_struct);
+				if (mouse_check_button_pressed(mb_left) && die_can_take_back(die_struct) && state == CombatState.PLAYER_INPUT && global.ui_layer == UI_LAYER.BASE && !oRunManager.holding_item && combat_no_die_dragged()) {
+					take_back_request = { slot: i, index: d };
+				}
 			}
 
 	        // Draw sprite
@@ -531,6 +570,10 @@ for (var i = 0; i < aq_list_size; i++) {
 				var _bonus = get_dice_output(die_struct, i, -1, true, "player").keepsake_dice_bonus_amount;
 					
 				draw_outline_text(string(die_struct.forced_roll + _bonus), c_black, c_white, 2, xx_top + off_x, yy_top + off_y, 1, 1, 0);
+			} else if (die_has_faces(die_struct)) {
+				// rolled dice: the number it rolled, plus what keepsakes and its own effects add here
+				var _out = get_dice_output(die_struct, i, d, true, "player");
+				draw_outline_text(string(max(0, die_face_total(die_struct, _out.min_roll, _out.max_roll) + _out.keepsake_dice_bonus_amount)), c_black, c_white, 2, xx_top + off_x, yy_top + off_y, 1, 1, 0);
 			}
 			
 			//if (die_struct.min_roll_bonus > 0) {
@@ -570,6 +613,17 @@ var disc_btn = draw_gui_button(
 
 // Update animation
 disc_btn_scale = disc_btn.scale;
+
+// rolled dice: this turn's free reroll and redraw, above the discard pile (grey once used)
+if (!show_rewards) {
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_right);
+	draw_set_valign(fa_middle);
+	var _free_col = make_color_rgb(140, 140, 150);
+	draw_outline_text("Reroll: right-click a die" + (reroll_used ? " (used)" : ""), c_black, reroll_used ? _free_col : c_white, 2, disc_x + disc_w, disc_y - 50, 1, 1, 0);
+	draw_outline_text("Redraw: discard a die" + (redraw_used ? " (used)" : ""), c_black, redraw_used ? _free_col : c_white, 2, disc_x + disc_w, disc_y - 24, 1, 1, 0);
+	draw_set_halign(fa_center);
+}
 
 // ---------------
 // Draw enemy data
