@@ -746,16 +746,18 @@ function apply_dice_to_slot(_die, _slot_i) {
 
 /// is_mouse_over_discard_button()
 function is_mouse_over_discard_button() {
-    var mx = device_mouse_x_to_gui(0);
-    var my = device_mouse_y_to_gui(0);
+	// the discard pile, beside the draw bag bottom left (combat_discard_spot)
+	var _s = combat_discard_spot();
+	var _x1 = _s.x - sprite_get_xoffset(sDiceBag) - 10, _y1 = _s.y - sprite_get_yoffset(sDiceBag) - 10;
+	var mx = device_mouse_x_to_gui(0), my = device_mouse_y_to_gui(0);
+	return (mx > _x1 && mx < _x1 + sprite_get_width(sDiceBag) + 20 && my > _y1 && my < _y1 + sprite_get_height(sDiceBag) + 20);
+}
 
-    // Bottom-right button area (adjust as needed)
-    var btn_w = global.gui.discard_w;
-    var btn_h = global.gui.discard_h;
-    var btn_x = display_get_gui_width() - btn_w - 40;
-    var btn_y = display_get_gui_height() - btn_h - 40;
-
-    return (mx > btn_x && mx < btn_x + btn_w && my > btn_y && my < btn_y + btn_h);
+/// @func combat_discard_spot()
+/// @desc Where the discard pile sits in a fight (its sprite's draw position): bottom left, beside the draw bag, so End
+///       Turn has the bottom right to itself (UI rework). Spent dice fly here.
+function combat_discard_spot() {
+	return { x: 330, y: display_get_gui_height() - 40 };
 }
 
 function discard_dice(_die) {
@@ -1333,8 +1335,8 @@ function discard_dice_in_play(_all = false) {
 		    p.die_struct = clone_die(d_struct, d_struct.permanence);
 		    p.color_main = col;
 			if (room == rmCombat) {
-			    p.target_x = oCombat.gui_w - 150;  // discard button position
-			    p.target_y = oCombat.gui_h - 130;
+			    p.target_x = combat_discard_spot().x;  // the discard pile
+			    p.target_y = combat_discard_spot().y - 40;
 			} else {
 				p.target_x = 60;
 				p.target_y = 1040;
@@ -1445,8 +1447,8 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 
 			// Spawn particle
 			var p = instance_create_layer(start_x, start_y, "Instances", oDiceParticle);
-			p.target_x = oCombat.gui_w - 150;  // discard button target
-			p.target_y = oCombat.gui_h - 130;
+			p.target_x = combat_discard_spot().x;  // the discard pile
+			p.target_y = combat_discard_spot().y - 40;
 			p.color_main = die.color;
 
 			// Clone the die struct so the particle has its own independent copy
@@ -2843,8 +2845,8 @@ function combat_discard_slot_building() {
 		var _p = instance_create_layer(is_struct(new_tile_pos) ? new_tile_pos.x + new_tile_pos.w / 2 : gui_w / 2, is_struct(new_tile_pos) ? new_tile_pos.y : gui_h / 2, "Instances", oDiceParticle);
 		_p.die_struct = clone_die(global.sacrifice_list[| j], "");
 		_p.color_main = get_dice_color(_p.die_struct.possible_type);
-		_p.target_x = gui_w - 150;
-		_p.target_y = gui_h - 130;
+		_p.target_x = combat_discard_spot().x;
+		_p.target_y = combat_discard_spot().y - 40;
 	}
 	ds_list_clear(global.sacrifice_list);
 	update_sacrificed_type_array();
@@ -3012,17 +3014,17 @@ function combat_queue_holes_draw() {
 			var _p = slot_positions[| q];
 			var _has_dice = (q < ds_list_size(action_queue)) && ds_list_size(action_queue[| q].dice_list) > 0;
 			// the slot's own sprite (it includes the dot under it), so the hole is its outline; the dice above it as a strip
-			draw_sprite_ext(sActionSlot, 0, _p.x, _p.y, _p.w / 140, _p.h / 140, 0, c_white, 1);
+			draw_roundrect_ext(_p.x - 8, _p.y - 8, _p.x + _p.w + 8, _p.y + _p.h + 44, 12, 12, false); // the ticket and its type marks below
 			if (_has_dice) draw_roundrect_ext(_p.x - 5, _p.y - 44, _p.x + _p.w + 5, _p.y + 6, 10, 10, false);
 		}
 		if (is_struct(new_tile_pos)) {
 			var _hd = ds_list_size(global.sacrifice_list) > 0;
-			draw_sprite_ext(sActionSlot, 2, new_tile_pos.x, new_tile_pos.y, new_tile_pos.w / 140, new_tile_pos.h / 140, 0, c_white, 1);
+			draw_roundrect_ext(new_tile_pos.x - 8, new_tile_pos.y - 8, new_tile_pos.x + new_tile_pos.w + 8, new_tile_pos.y + new_tile_pos.h + 44, 12, 12, false);
 			if (_hd) draw_roundrect_ext(new_tile_pos.x - 5, new_tile_pos.y - 44, new_tile_pos.x + new_tile_pos.w + 5, new_tile_pos.y + 6, 10, 10, false);
 		}
 		if (variable_instance_exists(id, "end_turn_draw")) {
 			var _et = end_turn_draw;
-			draw_sprite_ext(sEndTurn, 0, _et.x, _et.y, _et.s * 1.04, _et.s * 1.08, 0, c_white, 1);
+			draw_roundrect_ext(_et.x1 - 10, _et.y1 - 10, _et.x2 + 10, _et.y2 + 10, 20, 20, false); // End Turn (reading Confirm)
 		}
 	}
 }
@@ -3137,17 +3139,13 @@ function combat_insight_view_draw() {
 		draw_outline_text(string(player_intel), c_black, global.color_intel, 2, _ex + 44, _ey + 10, 1, 1, 0);
 
 		// done writing: End Turn reads "Confirm" while the log is open (oCombat Draw GUI draws it in its place, under the
-		// slots, in full colour); the click is taken here, on the log's layer. Not over a slot, which sits on top of it.
+		// bottom right, in full colour); the click is taken here, on the log's layer.
 		var _seal_click = false;
 		quill_over = false; // set below when the mouse is over something the quill can change (cursor_draw)
 		if (variable_instance_exists(id, "end_turn_draw")) {
 			var _et = end_turn_draw;
-			var _sw = sprite_get_width(sEndTurn) * _et.s, _sh = sprite_get_height(sEndTurn) * _et.s;
-			var _sx = _et.x - sprite_get_xoffset(sEndTurn) * _et.s, _sy = _et.y - sprite_get_yoffset(sEndTurn) * _et.s;
-			var _over_slot = false;
-			var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
-			for (var q = 0; q < ds_list_size(slot_positions); q++) { var _p = slot_positions[| q]; if (_mx >= _p.x && _mx <= _p.x + _p.w && _my >= _p.y && _my <= _p.y + _p.h) _over_slot = true; }
-			var _seal_hov = !_over_slot && mouse_hovering(_sx, _sy, _sw, _sh, false, soSlotHover, noone, true, UI_LAYER.POPUP);
+			// End Turn's rectangle (bottom right, oCombat Draw GUI)
+			var _seal_hov = mouse_hovering(_et.x1, _et.y1, _et.x2 - _et.x1, _et.y2 - _et.y1, false, soSlotHover, noone, true, UI_LAYER.POPUP);
 			if (_seal_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Confirm", "Done with your ink: put it away and play your dice. The inkwell brings it back; ink you don't spend carries over.");
 			_seal_click = _seal_hov && mouse_check_button_pressed(mb_left);
 		}

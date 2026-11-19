@@ -28,7 +28,12 @@
 
 ## 🧪 IN TESTING: waiting for Jared's playtest
 
-Nothing waiting: batches 17, 18 and 19 were play-tested and approved by Jared on 2026-11-19 and merged to `dev` (see DONE).
+| Batch | Cards | Branch / commit | Status |
+|---|---|---|---|
+| 20: UI rework, combat | F130 | `feature/ui-rework` (off dev) | **Ready to test.** The logbook look on the combat screen (docs/design-ui-rework.md). |
+
+**Batch 20 test list (`feature/ui-rework`)**
+- F130 Combat in the logbook look. The backdrop is dimmed toward dusk and your hand sits on a dark felt tray; you, the enemies, dice and paper keep full colour. Slots are paper tickets: a band in the action's colour with its glyph and name, the total huge in ink, the slot's place bonus inked beside it, a brass glow on the one acting. The new-slot tile is a dashed outline with "0 / 6" in big numbers and "New slot" (a padlock while a slot is empty). Intents hang on paper tags. HP bars are thicker with the number under them. End Turn is now the big paper button bottom right (it reads Confirm in the ink view, framed in gold), with the plays row above it; the discard pile moved bottom left beside the draw bag. New colours: attack is a deep red, block a lighter blue, heal green, insight gold, neutral dice bone; every action also has a glyph (sword, shield, heart, eye) on dice, slots and tags (Settings > Display > Action icons, now on by default). Check: nothing overlaps, everything still clicks (slots, take-backs, End Turn, Confirm, the discard pile opens), the ink view's lit areas line up, and text is readable at your window size.
 
 ---
 

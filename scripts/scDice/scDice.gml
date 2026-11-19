@@ -1697,7 +1697,7 @@ function get_dice_color(_action) {
 			case "HEAL": _col = global.color_heal; break;
 			case "INTEL": _col = global.color_intel; break;
 		
-			default: _col = c_ltgray;
+			default: _col = variable_global_exists("ui_col") ? global.ui_col.bone : c_ltgray; // neutral dice: bone
 		}
 		return _col;
 	}

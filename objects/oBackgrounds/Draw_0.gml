@@ -28,3 +28,22 @@ for (var i = 0; i < array_length(backgrounds); i++) {
 	}
 
 }
+
+// the UI rework (docs/design-ui-rework.md): in a fight only the backdrop recedes, toward dusk, so the actors, dice and
+// paper on top (all drawn in Draw GUI) keep their full colour; and your hand gets a felt tray along the bottom
+if (room == rmCombat && variable_global_exists("ui_col")) {
+	var _vw = camera_get_view_width(view_camera[0]), _vh = camera_get_view_height(view_camera[0]);
+	draw_set_color(global.ui_col.table_dim);
+	draw_set_alpha(0.42);
+	draw_rectangle(0, 0, _vw, _vh, false);
+	// the tray: from just above where dealt dice land, to the bottom
+	var _ty = (global.dice_safe_area_y1 - 40) * _vh / display_get_gui_height();
+	draw_set_color(global.ui_col.felt);
+	draw_set_alpha(0.72);
+	draw_rectangle(0, _ty, _vw, _vh, false);
+	draw_set_alpha(0.22);
+	draw_set_color(global.ui_col.rule);
+	draw_line_width(0, _ty, _vw, _ty, 3);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}

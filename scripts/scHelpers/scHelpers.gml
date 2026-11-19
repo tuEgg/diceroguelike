@@ -287,9 +287,9 @@ function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x,
 					case "sticky":												col = c_ltgray;					break;
 					case "multitype":											col = c_silver;					break;
 					case "alignment":											col = make_colour_rgb(230, 50, 230)	break;
-					case "block":												col = global.color_block;		break;
-					case "heal":												col = global.color_heal;		break;
-					case "attack":												col = global.color_attack;		break;
+					case "block":												col = global.text_block;		break; // readable on dark surfaces
+					case "heal":												col = global.text_heal;			break;
+					case "attack":												col = global.text_attack;		break;
 					case "intel":												col = global.color_intel;		break;
 					case "subtext":												col = c_gray;					break;
 					default:													col = _fill_col;
@@ -1966,12 +1966,7 @@ function draw_action_type_icon(_type, _x, _y, _scale) {
 	draw_circle(_x, _y, _r + 2, false);
 	draw_set_color(make_color_rgb(240, 228, 196));
 	draw_circle(_x, _y, _r, false);
-	switch (_type) {
-		case "ATK": draw_sprite_ext(sIntentIcons, 0, _x, _y, 0.5 * _scale, 0.5 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
-		case "BLK": draw_sprite_ext(sIntentIcons, 1, _x, _y, 0.5 * _scale, 0.5 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
-		case "HEAL": draw_sprite_ext(sIntentIcons, 2, _x, _y, 0.5 * _scale, 0.5 * _scale, 0, make_color_rgb(40, 32, 24), 1); break;
-		case "INTEL": draw_insight_icon("legible", _x, _y, 0.85 * _scale, 1); break;
-	}
+	ui_glyph(_type, _x, _y, _r * 1.35, global.ui_col.ink); // the logbook glyphs (scUI)
 	draw_set_color(c_white);
 }
 
