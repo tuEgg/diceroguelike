@@ -88,6 +88,8 @@ if (chosen_event != undefined) {
 			if (variable_struct_exists(option, "hover")) {
 				option.hover();
 			}
+			// and the keywords, buffs and debuffs it names (F137), unless the choice showed its own tooltip
+			if (!event_selected) queue_glossary_tooltip(option.title + " " + _option_desc);
 		}
 		
 		yy -= _h + padding/4;

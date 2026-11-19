@@ -483,6 +483,9 @@ function define_buffs_and_debuffs() {
 	        }
 	    ]
 	};
+
+	// the ones a player meets by name, explained wherever their name is written (glossary_terms, F137)
+	global.status_glossary = [debuff_mock, debuff_barnacle_bind, debuff_bind, debuff_stunned, debuff_rot, debuff_overwhelm, buff_reserve, buff_might, buff_balance];
 }
 
 /// @func buff_tooltip_text(_inst)

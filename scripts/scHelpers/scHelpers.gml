@@ -540,6 +540,86 @@ function draw_all_tooltips() {
     global.tooltip_keywords = [];
 }
 
+/// @func glossary_terms(_text)
+/// @desc The keywords, buffs and debuffs a piece of text names (whole words, any case), each once: an array of
+///       { name, desc, key } (key is the keyword for draw_keyword_icon, "" for a buff or debuff). A name inside a
+///       longer one also found ("Bind" in "Barnacle Bind") is left out. F137: explain them wherever they're seen.
+function glossary_terms(_text) {
+	var _out = [];
+	if (!is_string(_text) || _text == "") return _out;
+	// letters only, so "[sticky]", "Sticky." and "Sticky:" all read as the word
+	var _up = string_upper(_text), _clean = " ";
+	for (var i = 1; i <= string_length(_up); i++) {
+		var _c = string_char_at(_up, i);
+		_clean += (_c >= "A" && _c <= "Z") ? _c : " ";
+	}
+	_clean += " ";
+	var _found = [];
+	var _keys = variable_struct_get_names(global.keywords);
+	for (var k = 0; k < array_length(_keys); k++) {
+		if (_keys[k] == "Loose") continue; // retired
+		array_push(_found, { name: _keys[k], desc: global.keywords[$ _keys[k]].desc, key: _keys[k] });
+	}
+	if (variable_global_exists("status_glossary")) {
+		for (var s = 0; s < array_length(global.status_glossary); s++) {
+			var _b = global.status_glossary[s];
+			array_push(_found, { name: _b.name, desc: _b.desc, key: "" });
+		}
+	}
+	for (var f = 0; f < array_length(_found); f++) {
+		var _t = _found[f];
+		if (string_pos(" " + string_upper(_t.name) + " ", _clean) == 0) continue;
+		var _dupe = false;
+		for (var o = 0; o < array_length(_out); o++) if (string_pos(string_upper(_t.name), string_upper(_out[o].name)) > 0) _dupe = true;
+		if (!_dupe) array_push(_out, _t);
+	}
+	// drop any already kept that sit inside a longer one found after them
+	var _kept = [];
+	for (var o = 0; o < array_length(_out); o++) {
+		var _inside = false;
+		for (var p = 0; p < array_length(_out); p++) if (p != o && string_length(_out[p].name) > string_length(_out[o].name) && string_pos(string_upper(_out[o].name), string_upper(_out[p].name)) > 0) _inside = true;
+		if (!_inside) array_push(_kept, _out[o]);
+	}
+	return _kept;
+}
+
+/// @func die_glossary(_die)
+/// @desc The terms a die tip explains: its own keywords first, then anything else its effect names (Might, Mock...).
+function die_glossary(_die) {
+	var _out = [];
+	if (variable_struct_exists(_die, "keywords")) {
+		for (var i = 0; i < array_length(_die.keywords); i++) {
+			var _k = _die.keywords[i];
+			if (_k == "Loose" || !variable_struct_exists(global.keywords, _k)) continue;
+			array_push(_out, { name: _k, desc: global.keywords[$ _k].desc, key: _k });
+		}
+	}
+	var _more = glossary_terms(die_description(_die));
+	for (var m = 0; m < array_length(_more); m++) {
+		var _have = false;
+		for (var o = 0; o < array_length(_out); o++) if (_out[o].name == _more[m].name) _have = true;
+		if (!_have) array_push(_out, _more[m]);
+	}
+	return _out;
+}
+
+/// @func queue_glossary_tooltip(_text)
+/// @desc Explains the keywords, buffs and debuffs a hovered piece of text names (an event's choice): the first as the
+///       tooltip, the rest as keyword boxes under it. Nothing when it names none, or something else took the tooltip.
+function queue_glossary_tooltip(_text) {
+	if (global.tooltip_active) return;
+	var _terms = glossary_terms(_text);
+	if (array_length(_terms) == 0) return;
+	var _k0 = _terms[0].key;
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _terms[0].name, _terms[0].desc, (_k0 != "") ? sKeywordIcons : undefined, (_k0 != "") ? global.keywords[$ _k0].index : 0);
+	global.tooltip_keywords = [];
+	for (var i = 1; i < array_length(_terms); i++) {
+		var _icon = (_terms[i].key != "") ? sKeywordIcons : undefined;
+		var _index = (_terms[i].key != "") ? global.keywords[$ _terms[i].key].index : 0;
+		array_push(global.tooltip_keywords, { name: _terms[i].name, desc: _terms[i].desc, icon: _icon, index: _index });
+	}
+}
+
 /// @func die_tip_sub(_die)
 /// @desc What a die tip says beside the name: "rolled 4" once it has rolled this turn, otherwise its range ("1-6").
 function die_tip_sub(_die) {
@@ -601,10 +681,22 @@ function draw_die_tip(_tt) {
 	var _desc_h = string_height_ext(_desc, _line, _max_w);
 	var _extra = variable_struct_exists(_tt, "extra") ? _tt.extra : "";
 	var _extra_h = (_extra != "") ? 6 + string_height_ext(_extra, _line, _max_w) : 0;
+	// its keywords, buffs and debuffs, a line each under the effect (F137): "Sticky: stays in its slot..."
+	var _terms = die_glossary(_d);
+	var _term_txt = [], _term_h = [], _terms_h = 0;
+	for (var i = 0; i < array_length(_terms); i++) {
+		var _tx = _terms[i].name + ": " + _terms[i].desc;
+		array_push(_term_txt, _tx);
+		var _th = max(24, string_height_ext(_tx, _line, _max_w - 26));
+		array_push(_term_h, _th);
+		_terms_h += 6 + _th;
+		_desc_w = max(_desc_w, min(_max_w, 26 + string_width(_tx)));
+	}
+	if (_terms_h > 0) _terms_h += 4; // and a rule above them
 	if (_extra != "") _desc_w = max(_desc_w, min(_max_w, string_width(_extra)));
 	var _mini_w = (_d.distribution != "") ? _d.dice_value * 7 : 0; // about draw_dist_mini's width
 	var _w = _pad * 2 + max(_name_w + 8 + _sub_w + (_mini_w > 0 ? 10 + _mini_w : 0), _desc_w);
-	var _h = _pad * 2 + _name_h + 4 + _desc_h + _extra_h;
+	var _h = _pad * 2 + _name_h + 4 + _desc_h + _terms_h + _extra_h;
 	var _x1 = clamp(_tt.cx - _w / 2, 10, display_get_gui_width() - _w - 10);
 	var _y2 = _tt.bottom - 10; // room for the pointer
 	var _y1 = max(ui_top_bar_h() + 6, _y2 - _h);
@@ -636,7 +728,22 @@ function draw_die_tip(_tt) {
 	draw_outline_text(_tt.sub, c_black, make_color_rgb(185, 169, 136), 1, _sx, _y1 + _pad + 3, 1, 1, 0);
 	if (_mini_w > 0) draw_dist_mini(_d, _sx + _sub_w + 10, _y1 + _pad + _name_h - 3, 16);
 	draw_outline_text(colorcode_text(_desc), c_black, c_white, 1, _x1 + _pad, _y1 + _pad + _name_h + 4, 1, 1, 0, _max_w);
-	if (_extra != "") draw_outline_text(_extra, c_black, make_color_rgb(185, 169, 136), 1, _x1 + _pad, _y1 + _pad + _name_h + 4 + _desc_h + 6, 1, 1, 0, _max_w);
+	var _ty = _y1 + _pad + _name_h + 4 + _desc_h;
+	if (_terms_h > 0) {
+		draw_set_alpha(0.35);
+		draw_set_color(_rule);
+		draw_line(_x1 + _pad, _ty + 5, _x1 + _w - _pad, _ty + 5);
+		draw_set_alpha(1);
+		_ty += 4;
+		for (var i = 0; i < array_length(_terms); i++) {
+			_ty += 6;
+			if (_terms[i].key != "") draw_keyword_icon(_terms[i].key, _x1 + _pad + 10, _ty + 11, 0.7);
+			else { draw_set_color(_rule); draw_circle(_x1 + _pad + 10, _ty + 11, 4, false); } // a buff or debuff: a plain bullet
+			draw_outline_text(_term_txt[i], c_black, make_color_rgb(205, 192, 160), 1, _x1 + _pad + 26, _ty, 1, 1, 0, _max_w - 26);
+			_ty += _term_h[i];
+		}
+	}
+	if (_extra != "") draw_outline_text(_extra, c_black, make_color_rgb(185, 169, 136), 1, _x1 + _pad, _ty + 6, 1, 1, 0, _max_w);
 	if (variable_struct_exists(_tt, "cost") && _tt.cost > 0) tooltip_cost_badge(_x1 + _w, _y1, _tt.cost, _tt.cost_kind);
 	draw_set_color(c_white);
 }
@@ -2334,6 +2441,18 @@ function die_stats_line(_d, _out) {
 	return "d" + string(_d.dice_value) + " " + bag_type_label(_d.possible_type) + ", " + string(_out.min_roll) + "-" + string(_out.max_roll);
 }
 
+/// @func card_keywords(_die)
+/// @desc The keywords a card shows as icons under its die (F137): the die's own, but not retired Loose.
+function card_keywords(_die) {
+	var _out = [];
+	if (!variable_struct_exists(_die, "keywords")) return _out;
+	for (var i = 0; i < array_length(_die.keywords); i++) {
+		var _k = _die.keywords[i];
+		if (_k != "Loose" && variable_struct_exists(global.keywords, _k)) array_push(_out, _k);
+	}
+	return _out;
+}
+
 /// @func bag_card_layout(_d, _w)
 /// @desc Where things go on a bag card, measured from its text (like offering_card_layout): the stats line and the
 ///       description beside the die, then a fitted core's distribution under whichever is lower. h is the height it needs.
@@ -2345,6 +2464,7 @@ function bag_card_layout(_d, _w) {
 	var _line = font_get_size(ftDefault) * 1.5; // the line height coloured text wraps at (draw_outline_text)
 	var _desc_h = string_height_ext(die_description(_d), _line, _text_w);
 	var _die_bottom = _head_h + 40 + 36;           // the die (radius 30, a triangle reaching a bit lower)
+	if (array_length(card_keywords(_d)) > 0) _die_bottom += 30; // its keyword icons under it
 	var _text_bottom = _head_h + 14 + _desc_h;
 	var _info_bottom = max(_die_bottom, _text_bottom) + 12;
 	var _bars_h = (_d.distribution != "") ? (5 + 30 + 5 + 15) + 12 : 0; // draw_dice_distribution at scale 1, and a gap
@@ -2355,7 +2475,7 @@ function bag_card_layout(_d, _w) {
 /// @desc A die's card in the bag view (and the dice picker), centred on _cx, _cy, laid out like the quartermaster's
 ///       cards (bag_card_layout):
 ///       - a header band in its type colour: its name, its rarity gem on the right
-///       - the die drawn in code on the left; beside it what it does, big ("d6 Block, 1-6" only on hovering the die)
+///       - the die drawn in code on the left, its keyword icons under it (hover one to read it); beside it what it does, big ("d6 Block, 1-6" only on hovering the die)
 ///       - a fitted core: its distribution under all that (the core isn't described)
 ///       Dark edge; lifts with a white edge when hovered; a green edge and tick when picked.
 function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
@@ -2398,6 +2518,16 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 	ui_paper_text(colorcode_text(die_description(_d)), _tx, _y1 + _head_h + 14, _lay.text_w, _alpha);
+	// its keywords as icons under the die, each explained on hover (F137); asked for before the die's tip so they win
+	var _kws = card_keywords(_d);
+	var _kn = array_length(_kws);
+	for (var k = 0; k < _kn; k++) {
+		var _kx = _dx + (k - (_kn - 1) / 2) * 26, _ky = _dy + 46;
+		draw_keyword_icon(_kws[k], _kx, _ky, 0.8, _alpha);
+		if (_hover && _alpha > 0.5 && mouse_hovering(_kx, _ky, 24, 24, true, noone, noone, true, UI_LAYER.BAG)) {
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _kws[k], global.keywords[$ _kws[k]].desc, sKeywordIcons, global.keywords[$ _kws[k]].index);
+		}
+	}
 	// its size, type and range on hovering the die
 	if (_hover && mouse_hovering(_dx, _dy, 70, 70, true, noone, noone, true, UI_LAYER.BAG)) queue_die_tip(_d, _dx, _dy - 34, die_stats_line(_d, _out));
 
