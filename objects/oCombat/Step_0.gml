@@ -626,11 +626,12 @@ if (state == CombatState.PLAYER_INPUT && !insight_phase_done && !is_dealing_dice
 	insight_phase_done = true;
 	if (combat_insight_phase_worth()) combat_insight_view_set(true);
 }
-// I closes the log (it can't be reopened until next turn)
-if (keyboard_check_pressed(ord("I")) && insight_view && insight_view_age > 0) combat_insight_view_set(false);
+// Enter seals the log, like the button that stands in for End Turn (it can't be reopened until next turn)
+var _sealed_now = false;
+if (keyboard_check_pressed(vk_enter) && insight_view && insight_view_age > 0) { combat_insight_view_set(false); _sealed_now = true; }
 if (insight_view && (state != CombatState.PLAYER_INPUT || show_rewards || intel_is_blotted())) combat_insight_view_set(false);
 
-if (keyboard_check_pressed(vk_enter) && state == CombatState.PLAYER_INPUT && !is_dealing_dice && !insight_view && tutorial_allows("end_turn")) {
+if (keyboard_check_pressed(vk_enter) && !_sealed_now && state == CombatState.PLAYER_INPUT && !is_dealing_dice && !insight_view && tutorial_allows("end_turn")) {
     actions_submitted = true;
 }
 

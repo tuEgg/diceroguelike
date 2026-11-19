@@ -2173,7 +2173,9 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 }
-'S OFFER (the start of a run: one die, fitted with a core)
+
+// =====================================================================
+// THE QUARTERMASTER'S OFFER (the start of a run: one die, fitted with a core)
 // =====================================================================
 
 /// @func offering_draw()
