@@ -1163,6 +1163,17 @@ function generate_target_clearance(_x, _y, _a, _b) {
 	return nearest;
 }
 
+/// @func die_has_trigger(_die, _trigger)
+/// @desc Does this die have an effect of its own on this event? (e.g. "on_die_inked": Deepdiver, lit up in the ink view)
+function die_has_trigger(_die, _trigger) {
+	if (!is_struct(_die) || !variable_struct_exists(_die, "effects") || !is_array(_die.effects)) return false;
+	for (var i = 0; i < array_length(_die.effects); i++) {
+		var _e = _die.effects[i];
+		if (is_struct(_e) && variable_struct_exists(_e, "trigger") && _e.trigger == _trigger) return true;
+	}
+	return false;
+}
+
 /// @func make_die_struct(_amount, _value, _action, _poss, _perm, _name, _desc, _rarity, [_price], [_effects], [_distribution])
 /// @desc Always returns a new independent dice struct.
 function make_die_struct(_amount, _value, _action, _poss, _perm, _name, _desc, _rarity, _price = 0, _effects = undefined, _distribution = "") {

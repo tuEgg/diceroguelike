@@ -379,6 +379,15 @@ for (var k = 0; k < ds_list_size(keepsakes); k++) {
 	var ks_y = bar_height + 10 + ((k div 31) * 60);
 	var _keepsake = keepsakes[| k];
 	var btn_size = 64;
+	// armed (Balancing Compass, Navigation Chart waiting on the next die): a pulsing gold ring behind it, so you know
+	// the next die dealt is taken care of
+	if (variable_struct_exists(_keepsake, "is_armed") && _keepsake.is_armed()) {
+		var _ap = 0.5 + 0.5 * sin(current_time / 160);
+		draw_set_alpha(0.35 + 0.45 * _ap);
+		draw_set_color(global.color_intel);
+		draw_circle(ks_x + xx + btn_size / 2, ks_y + btn_size / 2, btn_size / 2 + 4 + 3 * _ap, false);
+		draw_set_alpha(1);
+	}
 	var btn = draw_gui_button(ks_x + xx, ks_y, btn_size, btn_size, keepsake_scale[| k], "", c_white, ftSmall, 1, false);
 	keepsake_scale[| k] = btn.scale;
 	draw_sprite_ext(sKeepsake, _keepsake.sub_image, ks_x + xx + btn_size/2, ks_y + btn_size/2, keepsake_scale[| k] * 0.8, keepsake_scale[| k] * 0.8, 0, c_white, 1);

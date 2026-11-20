@@ -32,6 +32,12 @@
 |---|---|---|---|
 | 20: UI rework (combat, cards, map, rooms, menus) | F130, F131, F132, F133, F134, F135, F136, B138, B141, F142, F143, F144, F147, B134, B136, B137, B139, F140, F141, F137, F148, B135, B140, F150, B133, F138, F139, F146, F149, F145, Q15, B132, F151, F40, F41, H13, fonts | merged into `dev` (2026-11-19, Jared's go-ahead) | **On dev, still to playtest.** The logbook look everywhere (docs/design-ui-rework.md), plus the 2026-11-19 playtest fixes, balance, juice and fonts. |
 
+| 21: playtest notes 2026-11-20 | F154, F155 | `feature/playtest-11-20` (off `dev`) | **Not yet play-tested.** Balancing Compass reworked for rolled dice; Deepdiver lit up in the ink view. |
+
+**Batch 21 test list (`feature/playtest-11-20`)**
+- F154 Balancing Compass now reads "When a die rolls its minimum, the next die you're dealt rolls its maximum." Get it from the F1 debug menu. In a fight, when a die lands on its lowest face, "Compass: next die max" pops over it, the keepsake bounces, and its icon gets a pulsing gold ring while it waits. The next die dealt (or rerolled with ink) shows its top face, with "Balanced: max!" over it, and the ring goes out. Check: a die whose lowest and highest faces are the same never triggers it; a min on the last die of a turn carries into next turn's hand; a new fight starts with it unarmed. Navigation Chart gets the same gold ring while it's waiting.
+- F155 Open the ink view with a Deepdiver Die in hand: it has a wide white halo that pulses faster than the others' gold edge, and an ink drop on its top-right corner. Its reroll/redraw tooltip ends with what Deepdiver does. Other dice look as before.
+
 **Batch 20 test list (`feature/ui-rework`)**
 - Top bar sized down (Jared: too big next to Slay the Spire at the same resolution): health and gold numbers smaller (26 px, the max 18), the heart and coin smaller, gold and the item wells moved left to match; the alignment % much smaller (18 px) beside the compass. Reward cards play soCard as each turns over (a rare one also jingles).
 - Fonts (Jared made them in the IDE): numbers everywhere (slot totals, HP, gold, bonuses, intents) now come from the Lato Black SDF fonts at 20, 32 and 48, so they're crisp at every size and window; descriptions are 14 px; the Charter fonts are SDF. Check totals, HP and the "5 +1" pairs line up, and that a small window still looks sharp.
@@ -123,6 +129,12 @@ All known P0 bugs are fixed, see DONE.
 
 Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
 
+**Playtest 2026-11-20 (Jared's notes)**
+- F153 **Rewrite the guided first fight for rolled dice and ink.** It's been switched off since the rolled-dice change (`tutorial_wanted` returns false; its steps still teach "dice in one slot roll together", sacrificing to build slots, 2-turn dice). New players get only the one-time tips (`rolled_dice`, `new_slot`, `insight_spend`...), which are up to date. The map notes are off with it, and the last one still says "your first fight will walk you through the dice". Needs: steps for reading rolled dice, filling slots left to right, building a slot from pips, taking a die back, and the inkwell (reroll, redraw, exact numbers).
+- F154 Balancing Compass for rolled dice: a die that rolls its minimum makes the next die dealt roll its maximum, with a popup on both dice and a gold ring on the keepsake while it waits. (Built, batch 21. Close to Navigation Chart, which rolls the next die twice; if they feel too alike, Nav Chart could change.)
+- F155 Dice with an ink effect (Deepdiver) stand out in the ink view: a white halo and an ink-drop badge. (Built, batch 21.)
+- F156 **Bag view card layout (mockups: `docs/mockups/dice-card-layout.html`).** Die centred at the top on a thin line across the card in its action colour, name under it, then description and distribution; the distribution at full width. Waiting for Jared to pick a layout.
+
 **Playtest 2026-11-19 (Molly, and Jared's notes): to do**
 - F137 Keywords, buffs and debuffs explained wherever they're first seen: in the die tip in fights (a line per keyword), on event options (keyword tooltips on hover), and keyword icons drawn everywhere a die is (cards, rewards, shop, slots) and hoverable.
 - F138 Enemy debuff/buff intents say what they do and to whom: "Mocks you for 2 turns: your attacks can't roll above 1"; a self-buff says it's on itself.
@@ -172,7 +184,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 **Juice**
 - F40 Individual Balatro-style trigger animations per die
 - F41 Room transitions, death animation, enemy sprites, particles for coins/potions/sacrifice
-- F42 **Unique sprite per die** (Jared, 2026-11-19): every die gets its own sprite, keeping roughly the same silhouette per size with different textures and details. Part of the art pass (F50).
+- F42 **Unique sprite per die** (Jared, 2026-11-19): every die gets its own sprite, keeping roughly the same silhouette per size with different textures and details. Part of the art pass (F50). **Until then (Jared, 2026-11-20: Invisible and Generic look the same in hand):** dice are drawn in code by `draw_die` (scDice) in hand, slots, cards and the bag, so a per-die `look` field read there could give each die a cheap tell: opacity (Invisible at 50%), a dashed or double edge, a texture tint, numerals instead of pips, or a small corner glyph. Worth doing for the handful that get confused first (Invisible, Surge, Deepdiver), not all 37.
 
 **Art direction (parked, Jared wants to discuss later)**
 - F50 Decide an art style for the game. Jared isn't an artist and wants to explore AI-assisted art workflows (he's been following r/aigamedev). Covers dice, enemies, map/book, UI and backgrounds. Don't start until he raises it. Includes real sprites for the insight states (placeholders drawn by `draw_insight_icon` in scHelpers, F51).
