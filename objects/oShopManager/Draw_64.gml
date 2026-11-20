@@ -82,7 +82,7 @@ for (var d = 0; d < ds_list_size(shop_dice_options); d++) {
 		draw_set_alpha(0.4);
 		draw_set_color(c_black);
 		draw_ellipse(dx - sprite_get_width(sDice)/2, dy + sprite_get_height(sDice)/2 - 15, dx + sprite_get_width(sDice)/2, dy + sprite_get_height(sDice)/2 - 3, false);
-		draw_die(dx, dy, 36 * shop_dice_scale[| d], dice.dice_value, -1, die_colours(dice.possible_type), 0, 1); // drawn in code: split if multitype
+		draw_die(dx, dy, 36 * shop_dice_scale[| d], dice.dice_value, -1, die_colours(dice.possible_type), 0, 1, dice); // drawn in code: split if multitype
 
 		// Draw cost
 		draw_sprite_ext(sCoin, 0, dx + coin_offset_x, dy + coin_offset_y, shop_dice_scale[| d] * coin_scale, shop_dice_scale[| d] * coin_scale, 0, c_white, 1.0);

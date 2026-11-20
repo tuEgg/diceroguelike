@@ -363,7 +363,7 @@ for (var i = 0; i < aq_list_size; i++) {
 			var _wd = global.sacrifice_list[| w];
 			var _wx = last_x + last_w / 2 - ((_wait - 1) * 40 / 2) + w * 40;
 			var _wy = last_y - 20;
-			draw_die(_wx, _wy, 17, _wd.dice_value, die_face_total(_wd), die_colours(_wd.possible_type), 0, 1); // its roll as pips
+			draw_die(_wx, _wy, 17, _wd.dice_value, die_face_total(_wd), die_colours(_wd.possible_type), 0, 1, _wd); // its roll as pips
 			draw_set_font(ftDefault);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
@@ -457,7 +457,7 @@ for (var i = 0; i < aq_list_size; i++) {
 			else if (die_struct.forced_roll != -1) _shown_face = clamp(die_struct.forced_roll, _out.min_roll, _out.max_roll);
 			else if (die_has_faces(die_struct)) _shown_face = die_face_total(die_struct, _out.min_roll, _out.max_roll);
 			var _jig = die_jiggle_pose(die_struct); // its effect firing: a punch and a wobble (F40)
-			draw_die(xx_top, yy_top, 17 * this_dice_scale * _jig.scale, die_struct.dice_value, _shown_face, _col, _jig.angle, _acted ? 0.5 : 1);
+			draw_die(xx_top, yy_top, 17 * this_dice_scale * _jig.scale, die_struct.dice_value, _shown_face, _col, _jig.angle, _acted ? 0.5 : 1, die_struct);
 			
 			// Draw keyword icons above
 			draw_dice_keywords(die_struct, xx_top, yy_top + die_bottom_edge(die_struct.dice_value, 17 * this_dice_scale), 0.65, 1, "slot"); // only what matters in a slot (Sticky), on its bottom edge

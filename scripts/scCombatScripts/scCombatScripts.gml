@@ -3294,14 +3294,15 @@ function combat_insight_view_draw() {
 			// a die made for ink (Deepdiver: does something when rerolled or redrawn) gets a wide white halo that breathes
 			// faster, and an ink drop on its corner, so it stands out from the rest of the hand here (Jared, 2026-11-20)
 			var _inky = !tumbling && die_has_trigger(struct, "on_die_inked");
+			var _ring_k = die_is_special(struct) ? 1.2 : 1; // edges sit outside its rarity ring
 			if (_inky) {
 				var _ip = 0.5 + 0.5 * sin(current_time / 110);
-				draw_die_shape(x, y, _r * (1.36 + 0.08 * _ip), dice_value, c_white, tumble_angle, 0.3 + 0.4 * _ip);
+				draw_die_shape(x, y, _r * _ring_k * (1.36 + 0.08 * _ip), dice_value, c_white, tumble_angle, 0.3 + 0.4 * _ip);
 			}
 			// a yellow edge (brighter when hovered), then the die itself, on top of the dark
 			var _glow = (_rr_can || _rd_can) ? (_hov ? 1 : 0.55 + 0.25 * sin(current_time / 200)) : 0.25;
-			draw_die_shape(x, y, _r * (_hov ? 1.22 : 1.16), dice_value, global.color_intel, tumble_angle, _glow);
-			draw_die(x, y, _r * (_hov ? 1.08 : 1), dice_value, _face, die_colours(struct.possible_type), tumble_angle, 1);
+			draw_die_shape(x, y, _r * _ring_k * (_hov ? 1.22 : 1.16), dice_value, global.color_intel, tumble_angle, _glow);
+			draw_die(x, y, _r * (_hov ? 1.08 : 1), dice_value, _face, die_colours(struct.possible_type), tumble_angle, 1, struct);
 			if (_inky) draw_ink_drop(x + _r * 0.85, y - _r * 0.85, 14 * scale);
 			if (!tumbling && die_is_mocked(struct)) draw_mock_mark(x, y - _r - 6, scale); // lit with it, so you see it before rerolling (B133)
 			if (_hov) {

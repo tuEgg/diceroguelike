@@ -56,7 +56,7 @@ if (show_dice_list) {
 		}
 		
 		// Draw dice sprite
-		draw_die(dice_x, dice_y, row_spacing * 0.4, dice.dice_value, -1, die_colours(dice.possible_type), 0, 1);
+		draw_die(dice_x, dice_y, row_spacing * 0.4, dice.dice_value, -1, die_colours(dice.possible_type), 0, 1, dice);
 		
 
 		// Draw dice name

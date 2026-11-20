@@ -2507,7 +2507,7 @@ function card_hero_draw(_d, _out, _x1, _x2, _y1, _dy, _r, _alpha, _interactive, 
 	}
 	draw_rarity_gem(_x2 - 20, _y1 + 20, _d.rarity, 1, _alpha);
 
-	draw_die(_cx, _dy, _r, _d.dice_value, -1, _cols, 0, _alpha);
+	draw_die(_cx, _dy, _r, _d.dice_value, -1, _cols, 0, _alpha, _d);
 	var _k = _r / 36;
 	if (global.action_icons) draw_action_type_icon(_d.action_type, _cx - 31 * _k, _dy + 31 * _k, 0.75 * _k, _alpha);
 
