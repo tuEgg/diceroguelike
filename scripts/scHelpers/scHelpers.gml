@@ -306,53 +306,73 @@ function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x,
 			}
 		}
 		
-		var line_h = font_get_size(draw_get_font()) * 1.5;
-		var x0 = _x;
-		var x1 = _x + _max_length;
-
+		// B82: lay the words out into lines first (wrapping at _max_length, breaking at "\n"; no limit when it's -1), then
+		// draw each line where the caller's halign and valign put it. It used to draw word by word at the caller's halign
+		// (centred text came out scrambled) and, with no _max_length, put every word on its own line.
+		var line_h = font_get_size(draw_get_font()) * 1.5 * _scale;
+		var _limit = (_max_length > 0) ? _max_length : infinity;
+		var _space_w = string_width(" ") * _scale;
+		var _lines = [[]];      // each line: an array of { t, c, w }, words without their spaces
+		var _line_w = [0];      // each line's width, spaces between its words included
+		var _li = 0;
+		var _glue = false;      // the next word joins the last one with no space (the colour changed mid-word)
 		for (var i = 0; i < array_length(output_string_array); i++) {
-		    var col = colors_array[i];
-		    var chunk = output_string_array[i];
-
-		    // Split chunk into words
-		    var words = string_split(chunk, " ");
-		    var wc = array_length(words);
-
-		    for (var w = 0; w < wc; w++) {
-		        var word = words[w];
-
-		        // Re-add the space after each word except the last
-		        var piece = (w < wc - 1) ? (word + " ") : word;
-
-		        // Width of this piece
-		        var pw = string_width(piece) * _scale;
-
-		        // If this piece doesn't fit and we're not at line start, wrap
-		        if (xx + pw > x1 && xx > x0) {
-		            xx = x0;
-		            yy += line_h;
-		        }
-
-		        // Draw outline
-		        draw_set_alpha(_alpha * 0.6);
-		        draw_set_color(_outline_col);
-		        for (var ox = -_outline_width; ox <= _outline_width; ox++) {
-		            for (var oy = -_outline_width; oy <= _outline_width; oy++) {
-		                if (ox != 0 || oy != 0) {
-		                    draw_text_transformed(xx + ox, yy + oy, piece, _scale, _scale, _angle);
-		                }
-		            }
-		        }
-
-		        // Draw main
-		        draw_set_alpha(_alpha);
-		        draw_set_color(col);
-		        draw_text_transformed(xx, yy, piece, _scale, _scale, _angle);
-
-		        // Advance cursor
-		        xx += pw;
-		    }
+			var col = colors_array[i];
+			var chunk = output_string_array[i];
+			var _paras = string_split(chunk, "\n");
+			for (var pa = 0; pa < array_length(_paras); pa++) {
+				if (pa > 0) { array_push(_lines, []); array_push(_line_w, 0); _li++; _glue = false; } // a forced break
+				var words = string_split(_paras[pa], " ");
+				var wc = array_length(words);
+				for (var w = 0; w < wc; w++) {
+					var word = words[w];
+					if (word == "") { _glue = false; continue; } // a space (at either end of the chunk, or doubled)
+					var pw = string_width(word) * _scale;
+					var _n_on = array_length(_lines[_li]);
+					var _add = (_n_on > 0 && !_glue) ? _space_w : 0;
+					// doesn't fit: a new line (never for the first word on a line)
+					if (_n_on > 0 && _line_w[_li] + _add + pw > _limit) {
+						array_push(_lines, []); array_push(_line_w, 0); _li++;
+						_add = 0;
+					}
+					array_push(_lines[_li], { t: word, c: col, w: pw, gap: _add });
+					_line_w[_li] += _add + pw;
+					_glue = (w == wc - 1); // a chunk's last word touches the next chunk unless a space follows
+				}
+			}
 		}
+
+		// where the block goes: halign by each line's own width (centred on _x, or ending at it); valign by its height
+		var _ha = draw_get_halign(), _va = draw_get_valign();
+		var _nl = array_length(_lines);
+		var _block_h = (_nl - 1) * line_h + string_height("M") * _scale;
+		var _top = (_va == fa_middle) ? _y - _block_h / 2 : ((_va == fa_bottom) ? _y - _block_h : _y);
+		draw_set_halign(fa_left);
+		draw_set_valign(fa_top);
+		for (var l = 0; l < _nl; l++) {
+			var _lx = (_ha == fa_center) ? _x - _line_w[l] / 2 : ((_ha == fa_right) ? _x - _line_w[l] : _x);
+			var _ly = _top + l * line_h;
+			var _words = _lines[l];
+			for (var w = 0; w < array_length(_words); w++) {
+				var _wd = _words[w];
+				_lx += _wd.gap;
+				// outline, then the word in its colour
+				draw_set_alpha(_alpha * 0.6);
+				draw_set_color(_outline_col);
+				for (var ox = -_outline_width; ox <= _outline_width; ox++) {
+					for (var oy = -_outline_width; oy <= _outline_width; oy++) {
+						if (ox != 0 || oy != 0) draw_text_transformed(_lx + ox, _ly + oy, _wd.t, _scale, _scale, _angle);
+					}
+				}
+				draw_set_alpha(_alpha);
+				draw_set_color(_wd.c);
+				draw_text_transformed(_lx, _ly, _wd.t, _scale, _scale, _angle);
+				_lx += _wd.w;
+			}
+		}
+		draw_set_halign(_ha); // the caller's alignment back
+		draw_set_valign(_va);
+		draw_set_alpha(1);
 
 	} else {
 		// Outline
@@ -411,6 +431,7 @@ function trigger_bounty(_event, _data) {
 function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dice = undefined, _cost = 0, _cost_kind = "insight", _hint = undefined) {
     if (!global.tooltip_active) {
         global.tooltip_active = true;
+        var _caller_font = draw_get_font(); // measuring below sets fonts; the caller gets theirs back (B82)
 
 		// a tooltip asked for at the mouse sits at a fixed place beside the thing being hovered (its right edge, top
 		// aligned; draw_all_tooltips flips it to the left near the screen edge), like Slay the Spire, so it never covers
@@ -480,6 +501,7 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
                 current_ky += (_kw_name_h + _kw_desc_h + 25); // 25 is the gap between tooltips
             }
         }
+        draw_set_font(_caller_font);
     }
 }
 function draw_all_tooltips() {
@@ -622,10 +644,12 @@ function queue_glossary_tooltip(_text) {
 
 /// @func die_tip_sub(_die)
 /// @desc What a die tip says beside the name: "rolled 4" once it has rolled this turn, otherwise its range ("1-6").
+///       A rolled die whose range isn't 1 to its size adds it: "rolled 4 (2-6)" (Jared, 2026-11-20; cards show it on a tag).
 function die_tip_sub(_die) {
-	if (room == rmCombat && die_has_faces(_die)) return "rolled " + string(die_face_total(_die));
 	var _out = get_dice_output(_die, -1, -1, true, "player"); // read only
-	return string(_out.min_roll) + "-" + string(_out.max_roll);
+	var _range = string(_out.min_roll) + "-" + string(_out.max_roll);
+	if (room == rmCombat && die_has_faces(_die)) return "rolled " + string(die_face_total(_die)) + (die_range_changed(_die, _out) ? " (" + _range + ")" : "");
+	return _range;
 }
 
 /// @func queue_die_tip(_die, _cx, _bottom, [_sub], [_extra], [_cost], [_cost_kind])
@@ -2575,8 +2599,9 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 	draw_set_color(global.ui_col.ink);
 	draw_text_ext(_cx, _y1 + _lay.name_y, _d.name, -1, _w - 28);
 	draw_set_font(ftDefault);
-	draw_set_halign(fa_left); // coloured text is drawn left-aligned (draw_outline_text ignores halign, B82)
-	ui_paper_text(colorcode_text(die_description(_d)), _x1 + _lay.text_x, _y1 + _lay.text_y, _lay.text_w, _alpha);
+	draw_set_halign(fa_center); // centred under the name (coloured text follows halign since B82)
+	ui_paper_text(colorcode_text(die_description(_d)), _cx, _y1 + _lay.text_y, _lay.text_w, _alpha);
+	draw_set_halign(fa_left);
 
 
 	// its size, type and range on hovering the die
@@ -2836,8 +2861,9 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	draw_set_color(global.ui_col.ink);
 	draw_text_ext(_cx, _y1 + _lay.name_y, _d.name, -1, _w - 36);
 	draw_set_font(ftDefault);
-	draw_set_halign(fa_left); // coloured text is drawn left-aligned (draw_outline_text ignores halign, B82)
-	ui_paper_text(colorcode_text(die_description(_d)), _x1 + 22, _y1 + _lay.text_y, _lay.text_w);
+	draw_set_halign(fa_center); // centred under the name (coloured text follows halign since B82)
+	ui_paper_text(colorcode_text(die_description(_d)), _cx, _y1 + _lay.text_y, _lay.text_w);
+	draw_set_halign(fa_left);
 	if (mouse_hovering(_cx, _dy, 90, 90, true, noone, noone, true, UI_LAYER.POPUP)) queue_die_tip(_d, _cx, _dy - 46, die_stats_line(_d, _out));
 
 	// the core, just under the die's words
