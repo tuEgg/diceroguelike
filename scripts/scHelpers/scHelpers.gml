@@ -2458,38 +2458,39 @@ function card_keywords(_die) {
 }
 
 /// @func bag_card_layout(_d, _w)
-/// @desc Where things go on a bag card, measured from its text (like offering_card_layout): the stats line and the
-///       description beside the die, then a fitted core's distribution under whichever is lower. h is the height it needs.
+/// @desc Where things go on a bag card (layout C, Jared 2026-11-20), measured from its text: the die centred at the top
+///       on a rule across the card, its name under it, then the description, then a fitted core's distribution across the
+///       full width. h is the height it needs.
 function bag_card_layout(_d, _w) {
-	var _head_h = 48;
-	var _text_x = 88;                 // from the card's left edge
-	var _text_w = _w - _text_x - 14;
+	var _die_y = 54;                  // the die's centre, from the card's top
+	var _name_y = _die_y + 52;        // the name's top
+	draw_set_font(ftBig);
+	var _name_h = string_height_ext(_d.name, -1, _w - 28);
+	var _text_x = 16;
+	var _text_w = _w - _text_x * 2;
+	var _text_y = _name_y + _name_h + 8;
 	draw_set_font(ftDefault); // the effect at 16 px: more words a line (Molly)
 	var _line = font_get_size(ftDefault) * 1.5; // the line height coloured text wraps at (draw_outline_text)
 	var _desc_h = string_height_ext(die_description(_d), _line, _text_w);
-	var _die_bottom = _head_h + 40 + 36;           // the die (radius 30, a triangle reaching a bit lower)
-	if (array_length(card_keywords(_d)) > 0) _die_bottom += 30; // its keyword icons under it
-	var _text_bottom = _head_h + 14 + _desc_h;
-	var _info_bottom = max(_die_bottom, _text_bottom) + 12;
+	var _info_bottom = _text_y + _desc_h + 14;
 	var _bars_h = (_d.distribution != "") ? (5 + 30 + 5 + 15) + 12 : 0; // draw_dice_distribution at scale 1, and a gap
-	return { head_h: _head_h, text_x: _text_x, text_w: _text_w, bars_bottom: _info_bottom + _bars_h, h: _info_bottom + _bars_h };
+	return { die_y: _die_y, name_y: _name_y, text_x: _text_x, text_w: _text_w, text_y: _text_y, bars_bottom: _info_bottom + _bars_h, h: _info_bottom + _bars_h };
 }
 
 /// @func draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected)
-/// @desc A die's card in the bag view (and the dice picker), centred on _cx, _cy, laid out like the quartermaster's
-///       cards (bag_card_layout):
-///       - a header band in its type colour: its name, its rarity gem on the right
-///       - the die drawn in code on the left, its keyword icons under it (hover one to read it); beside it what it does, big ("d6 Block, 1-6" only on hovering the die)
-///       - a fitted core: its distribution under all that (the core isn't described)
-///       Dark edge; lifts with a white edge when hovered; a green edge and tick when picked.
+/// @desc A die's card in the bag view, the dice picker and fight rewards, centred on _cx, _cy (bag_card_layout), layout C
+///       of docs/mockups/dice-card-layout.html (F156):
+///       - the die drawn in code, centred at the top, on a thin rule across the card in its colour (split for
+///         multitype); its keyword icons sit on the rule either side of it (hover one to read it); its rarity gem top right
+///       - its name under the die, centred
+///       - what it does, in ink ("d6 Block, 1-6" only on hovering the die)
+///       - a fitted core: its distribution across the card's full width (the core isn't described)
+///       Lifts with a brass edge when hovered; a green edge and tick when picked.
 function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
-	// a paper card (UI rework): a band in the die's pigment (split for multitype), its name and rarity gem; the die and
-	// what it does in ink; a fitted core's faces inked under it. Hover: it lifts with a brass edge; picked: a green stamp.
 	var _lay = bag_card_layout(_d, _w);
 	var _x1 = _cx - _w / 2, _y1 = _cy - _h / 2 - (_hover ? 5 : 0);
 	var _x2 = _x1 + _w, _y2 = _y1 + _h;
 	var _cols = die_colours(_d.possible_type);
-	var _head_h = _lay.head_h;
 	if (_hover || _selected) {
 		draw_set_alpha(_alpha);
 		draw_set_color(_selected ? global.color_heal : global.ui_col.brass);
@@ -2498,47 +2499,54 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected) {
 	}
 	ui_paper(_x1, _y1, _x2, _y2, (variable_struct_exists(_d, "uid") ? _d.uid : 1) * 3 + 1, global.ui_col.paper, _alpha);
 
-	// the band, inside the paper, in full pigment; the name light or dark to suit it
-	draw_set_alpha(_alpha);
-	draw_header_band(_x1 + 5, _y1 + 5, _x2 - 5, _head_h - 5, 6, _cols, 0);
+	// the rule behind the die: ink edged, in the die's pigment (two halves for a multitype die)
+	var _dx = _cx, _dy = _y1 + _lay.die_y;
 	draw_set_alpha(_alpha);
 	draw_set_color(global.ui_col.ink);
-	draw_line_width(_x1 + 5, _y1 + _head_h, _x2 - 5, _y1 + _head_h, 2);
-	var _lum = 0.299 * colour_get_red(_cols[0]) + 0.587 * colour_get_green(_cols[0]) + 0.114 * colour_get_blue(_cols[0]);
-	var _on = (_lum < 150) ? global.ui_col.paper_hi : global.ui_col.ink;
-	draw_set_font(ftBig);
-	draw_set_halign(fa_left);
-	draw_set_valign(fa_middle);
-	draw_outline_text(_d.name, (_lum < 150) ? global.ui_col.ink : global.ui_col.paper_hi, _on, 1, _x1 + 16, _y1 + 4 + _head_h / 2, 1, _alpha, 0, _w - 16 - 36);
-	draw_rarity_gem(_x2 - 22, _y1 + 4 + _head_h / 2, _d.rarity, 1, _alpha);
+	draw_line_width(_x1 + 4, _dy, _x2 - 4, _dy, 5);
+	draw_set_color(_cols[0]);
+	draw_line_width(_x1 + 5, _dy, (array_length(_cols) > 1) ? _cx : _x2 - 5, _dy, 3);
+	if (array_length(_cols) > 1) {
+		draw_set_color(_cols[1]);
+		draw_line_width(_cx, _dy, _x2 - 5, _dy, 3);
+	}
+	draw_rarity_gem(_x2 - 20, _y1 + 20, _d.rarity, 1, _alpha);
 
-	// the die, and beside it what it does, in ink
-	var _dx = _x1 + 46, _dy = _y1 + _head_h + 46;
-	draw_die(_dx, _dy, 30, _d.dice_value, -1, _cols, 0, _alpha);
-	if (global.action_icons) draw_action_type_icon(_d.action_type, _dx - 26, _dy + 26, 0.7, _alpha);
+	// the die on the rule
+	draw_die(_dx, _dy, 36, _d.dice_value, -1, _cols, 0, _alpha);
+	if (global.action_icons) draw_action_type_icon(_d.action_type, _dx - 31, _dy + 31, 0.75, _alpha);
 	var _out = get_dice_output(_d, -1, -1, true, "player"); // read only: viewing the bag must never trigger keepsakes
-	var _tx = _x1 + _lay.text_x;
-	draw_set_font(ftDefault);
-	draw_set_halign(fa_left);
+
+	// its name under it, then what it does, in ink
+	draw_set_alpha(_alpha);
+	draw_set_font(ftBig);
+	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
-	ui_paper_text(colorcode_text(die_description(_d)), _tx, _y1 + _head_h + 14, _lay.text_w, _alpha);
-	// its keywords as icons under the die, each explained on hover (F137); asked for before the die's tip so they win
+	draw_set_color(global.ui_col.ink);
+	draw_text_ext(_cx, _y1 + _lay.name_y, _d.name, -1, _w - 28);
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_left); // coloured text is drawn left-aligned (draw_outline_text ignores halign, B82)
+	ui_paper_text(colorcode_text(die_description(_d)), _x1 + _lay.text_x, _y1 + _lay.text_y, _lay.text_w, _alpha);
+
+	// its keywords as icons on the rule, alternately left and right of the die, each explained on hover (F137); asked
+	// for before the die's tip so they win
 	var _kws = card_keywords(_d);
-	var _kn = array_length(_kws);
-	for (var k = 0; k < _kn; k++) {
-		var _kx = _dx + (k - (_kn - 1) / 2) * 26, _ky = _dy + 46;
-		draw_keyword_icon(_kws[k], _kx, _ky, 0.8, _alpha);
-		if (_hover && _alpha > 0.5 && mouse_hovering(_kx, _ky, 24, 24, true, noone, noone, true, UI_LAYER.BAG)) {
+	for (var k = 0; k < array_length(_kws); k++) {
+		var _side = (k mod 2 == 0) ? -1 : 1;
+		var _kx = _dx + _side * (36 + 26 + (k div 2) * 30), _ky = _dy;
+		draw_keyword_icon(_kws[k], _kx, _ky, 0.9, _alpha);
+		if (_hover && _alpha > 0.5 && mouse_hovering(_kx, _ky, 26, 26, true, noone, noone, true, UI_LAYER.BAG)) {
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _kws[k], global.keywords[$ _kws[k]].desc, sKeywordIcons, global.keywords[$ _kws[k]].index);
 		}
 	}
-	// its size, type and range on hovering the die
-	if (_hover && mouse_hovering(_dx, _dy, 70, 70, true, noone, noone, true, UI_LAYER.BAG)) queue_die_tip(_d, _dx, _dy - 34, die_stats_line(_d, _out));
 
-	// a fitted core: how it shapes this die's faces, inked under the die and its words
+	// its size, type and range on hovering the die
+	if (_hover && mouse_hovering(_dx, _dy, 80, 80, true, noone, noone, true, UI_LAYER.BAG)) queue_die_tip(_d, _dx, _dy - 40, die_stats_line(_d, _out));
+
+	// a fitted core: how it shapes this die's faces, across the card's full width under its words
 	if (_d.distribution != "") {
 		draw_set_alpha(_alpha);
-		draw_dice_distribution(_d, _cx, _y1 + _lay.bars_bottom - 12, true, 1, true);
+		draw_dice_distribution(_d, _cx, _y1 + _lay.bars_bottom - 12, true, 1, true, _w - 28);
 	}
 
 	// picked (dice picker): a green tick stamped on the corner

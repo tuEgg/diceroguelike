@@ -600,11 +600,16 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 
 		// Set index and text width
 		draw_set_font(ftTopBar);
-		var text_w = string_width(text) + 10 + (sprite_get_width(sIntentIcons) * enemy.intent.scale);
+		// measured at the size it's drawn (the number is drawn at intent.scale too), so the tag hugs icon and number
+		var _is = enemy.intent.scale;
+		var _icon_w = sprite_get_width(sIntentIcons) * _is;
+		var _gap = (text != "") ? 12 * _is : 0;
+		var text_w = _icon_w + _gap + string_width(text) * _is;
+		var tag_w = text_w + 28 * _is, tag_h = 92 * _is; // even padding: about 10 px a side, 8 above and below the icon
 		
 		var sprite = sIntentIcons;
-		var icon_x = xx - text_w/2 + 5 + ((sprite_get_width(sprite) / 2) * enemy.intent.scale);
-		var text_x = icon_x + ((sprite_get_width(sprite) / 2) * enemy.intent.scale) + 10;
+		var icon_x = xx - text_w / 2 + _icon_w / 2;
+		var text_x = icon_x + _icon_w / 2 + _gap;
 		var bonus_scale = 1;
 
 		var index = 4;
@@ -622,7 +627,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		}
 
 		// the intent on a paper tag hung over the enemy (ui_tag, scUI): its icons in their pigment and the number in ink
-		ui_tag(xx, yy, text_w + 40, 72 * enemy.intent.scale, e * 11 + 5, enemy.intent.alpha);
+		ui_tag(xx, yy, tag_w, tag_h, e * 11 + 5, enemy.intent.alpha);
 
 		// Draw enemy intent
 		for (var i = 0; i < array_length(intent_array); i++) {
@@ -661,8 +666,8 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		draw_outline_text(text, global.ui_col.paper_hi, global.ui_col.ink, 1, text_x, yy, enemy.intent.scale, enemy.intent.alpha); // ink on the tag
 
 		// Quill: click an intent, then choose Reroll (the enemy picks a different move) or Halve (its numbers this turn)
-		var _intent_hover = mouse_hovering(xx, yy, text_w + 20, 50, true);
-		enemy.intent_rect = { x: xx, y: yy, w: text_w + 20, h: 50, split: text_x - 6 }; // centred; split: icon | number (insight view)
+		var _intent_hover = mouse_hovering(xx, yy, tag_w, tag_h, true);
+		enemy.intent_rect = { x: xx, y: yy, w: tag_w, h: tag_h, split: text_x - 6 }; // centred; split: icon | number (insight view)
 		var _can_rewrite = false; // the old Quill menu: insight view rerolls intents now
 		if (!_can_rewrite && quill_menu_enemy == enemy) quill_menu_enemy = undefined;
 		if (_can_rewrite && _intent_hover && quill_menu_enemy != enemy) {

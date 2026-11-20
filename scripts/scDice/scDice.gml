@@ -1514,13 +1514,14 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0, _where = 
     return _drawn;
 }
 
-/// @func draw_dice_distribution(_die, _x, _y, [_centered], [_scale])
+/// @func draw_dice_distribution(_die, _x, _y, [_centered], [_scale], [_paper], [_fit_w])
 /// @desc How likely each face of a die is (its core): a bar per face rising from one baseline, the tallest face full
 ///       height, its number under the line, all on a dark plate so it reads over anything. A face it can't roll is a
 ///       flat stub with a dimmed number. _y is the bottom of the whole graphic (numbers included), so it sits on top of
 ///       whatever is below it; _x its left edge, or its centre with _centered. _scale makes it bigger (1: 14px bars).
 ///       A core's preview (core_preview) shows the core's own shape on a plain d6: keepsakes don't touch it.
-function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _paper = false) {
+///       _fit_w > 0: the bars widen to fill that width (bag cards, F156), whatever the die's size.
+function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _paper = false, _fit_w = -1) {
 	var _min_roll = 1;
 	var _max_roll = _die.dice_value;
 	if (!variable_struct_exists(_die, "core_preview")) {
@@ -1537,6 +1538,7 @@ function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _pa
 	if (_top <= 0) _top = 1; // all zero (a squeezed range, B125): flat stubs, not 0/0
 
 	var _bw = 14 * _scale, _gap = 3 * _scale, _bh = 30 * _scale, _num_h = 15 * _scale, _pad = 5 * _scale;
+	if (_fit_w > 0) { _gap = 4 * _scale; _bw = (_fit_w - (_n - 1) * _gap) / _n; }
 	var _w = _n * _bw + (_n - 1) * _gap;
 	var _x0 = _centered ? _x - _w / 2 : _x;
 	var _base = _y - _pad - _num_h; // the line the bars stand on
