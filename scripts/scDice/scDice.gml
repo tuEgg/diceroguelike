@@ -2026,14 +2026,13 @@ function die_is_special(_d) {
 
 /// @func die_look(_d)
 /// @desc A die's signature look until it has its own art (F42; Jared picked B+D, 2026-11-20): "ghost" (Invisible:
-///       see-through, dashed edge), "echo" (a faint copy behind it), "drip" (Sticky), "ink" (Deepdiver: an ink blot),
-///       "waves" (Surge), or "". By name, so saved dice get it too. Add one here for a die people mix up.
+///       see-through, dashed edge), "echo" (a faint copy behind it), "ink" (Deepdiver: an ink blot), "waves" (Surge),
+///       or "". By name, so saved dice get it too. Add one here for a die people mix up.
 function die_look(_d) {
 	if (!is_struct(_d) || !variable_struct_exists(_d, "name")) return "";
 	switch (_d.name) {
 		case "Invisible die": return "ghost";
 		case "Echo Die": return "echo";
-		case "Sticky die": return "drip";
 		case "Deepdiver Die": return "ink";
 		case "Surge die": return "waves";
 	}
@@ -2160,20 +2159,6 @@ function die_look_draw(_look, _x, _y, _r, _sides, _col, _angle, _alpha) {
 			draw_circle(die_rot_x(_x, _bx, _by, _angle), die_rot_y(_y, _bx, _by, _angle), _in * 0.5, false);
 			draw_circle(die_rot_x(_x, _bx - _in * 0.55, _by + _in * 0.1, _angle), die_rot_y(_y, _bx - _in * 0.55, _by + _in * 0.1, _angle), _in * 0.14, false);
 			draw_circle(die_rot_x(_x, _bx + _in * 0.05, _by - _in * 0.6, _angle), die_rot_y(_y, _bx + _in * 0.05, _by - _in * 0.6, _angle), _in * 0.1, false);
-			break;
-		case "drip":
-			// a drip of glue hanging from its bottom edge
-			var _edge = (_sides == 4) ? _r * 0.5 : ((_sides == 8 || _sides == 10) ? _r * 0.85 : _r * 0.72);
-			var _dx = -_r * 0.18, _len2 = _r * 0.42, _w = max(2, _r * 0.13);
-			var _x0 = die_rot_x(_x, _dx, _edge - _r * 0.05, _angle), _y0 = die_rot_y(_y, _dx, _edge - _r * 0.05, _angle);
-			var _x1 = die_rot_x(_x, _dx, _edge + _len2, _angle), _y1 = die_rot_y(_y, _dx, _edge + _len2, _angle);
-			draw_set_alpha(_alpha);
-			draw_set_color(make_color_rgb(20, 20, 26));
-			draw_line_width(_x0, _y0, _x1, _y1, _w * 2 + 3);
-			draw_circle(_x1, _y1, _w * 1.35 + 1.5, false);
-			draw_set_color(make_color_rgb(214, 206, 180));
-			draw_line_width(_x0, _y0, _x1, _y1, _w * 2);
-			draw_circle(_x1, _y1, _w * 1.35, false);
 			break;
 	}
 	draw_set_alpha(1);
