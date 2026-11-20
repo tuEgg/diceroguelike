@@ -868,7 +868,7 @@ function generate_dice_bag() {
 	            trigger: "on_sacrifice_die",
 	            modify: function(_context) {
 					var amount = 3;
-	                apply_buff("player", oRunManager.buff_intel, 2, amount, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
+	                apply_buff("player", oRunManager.buff_intel_lasting, 2, amount, oRunManager.buff_intel_lasting.remove_next_turn, { source: "player", index: -1 });
 					var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
@@ -2153,9 +2153,9 @@ function die_look_draw(_look, _x, _y, _r, _sides, _col, _angle, _alpha) {
 			}
 			break;
 		case "ink":
-			// an ink blot in the lower right of its face, with a splash beside it
-			draw_set_alpha(_alpha * 0.8);
-			draw_set_color(make_color_rgb(26, 30, 48));
+			// an ink blot in the lower right of its face, with a splash beside it: a wash, not a hole (Jared: too dark)
+			draw_set_alpha(_alpha * 0.35);
+			draw_set_color(make_color_rgb(40, 52, 96));
 			var _bx = _in * 0.45, _by = _in * 0.45 + _cy;
 			draw_circle(die_rot_x(_x, _bx, _by, _angle), die_rot_y(_y, _bx, _by, _angle), _in * 0.5, false);
 			draw_circle(die_rot_x(_x, _bx - _in * 0.55, _by + _in * 0.1, _angle), die_rot_y(_y, _bx - _in * 0.55, _by + _in * 0.1, _angle), _in * 0.14, false);

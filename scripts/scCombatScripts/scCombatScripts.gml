@@ -227,6 +227,15 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		//}
 	}
 	
+	// Rot: the rotten slot (oCombat.bound_slot) comes to half its total. Its dice resolve one at a time, so the odd point
+	// carries to the next die (rot_spare) and the slot's dice add up to exactly half, rounded down
+	if (_source == "player" && _slot_number != undefined && _slot_number >= 0 && instance_exists(oCombat) && _slot_number == oCombat.bound_slot) {
+		if (_dice_list_index == 0) oCombat.rot_spare = 0;
+		var _rot_sum = amount + oCombat.rot_spare;
+		amount = floor(_rot_sum / 2);
+		oCombat.rot_spare = _rot_sum mod 2;
+	}
+
 	// used for flat damage
 	if (_dice_amount == 0) {
 		amount = _dice_value;
@@ -1036,9 +1045,13 @@ function get_slot_stats(_slot, _num) {
 		}
     }
 
+    var _low = low + slot_total_bonus(_slot, total_amount), _high = high + slot_total_bonus(_slot, total_amount);
+    // a rotten slot (Rot) shows half its total, as it will deal
+    if (instance_exists(oCombat) && _num == oCombat.bound_slot) { _low = floor(_low / 2); _high = floor(_high / 2); }
+
     return {
-        low_roll: low + slot_total_bonus(_slot, total_amount), // used for displaying the minimum roll of this slot
-        high_roll: high + slot_total_bonus(_slot, total_amount), // used for displaying the maximum roll of this slot
+        low_roll: _low, // used for displaying the minimum roll of this slot
+        high_roll: _high, // used for displaying the maximum roll of this slot
         amount: total_amount, // used for displaying the number of dice in this slot
         highest_value: _highest_value, // used for displaying the highest value dice in this slot -- we need to fix for 1d6 + 1d4, right now it shows as 2d6
 		highest_value_base: _highest_value_base,
@@ -1183,7 +1196,9 @@ function win_fight() {
 		reward_consumable_options = ds_list_create();
 		reward_keepsake_options = ds_list_create();
 		
-		if (oWorldManager.current_node_type != NODE_TYPE.ALIGNMENT) {
+		if (oWorldManager.current_node_type == NODE_TYPE.BOSS) {
+			generate_dice_rewards(reward_dice_options, global.master_dice_list, 3, "rare"); // a boss always pays in rare dice (Jared, 2026-11-20)
+		} else if (oWorldManager.current_node_type != NODE_TYPE.ALIGNMENT) {
 			generate_dice_rewards(reward_dice_options, global.master_dice_list, 3 );
 		} else {
 			generate_dice_rewards(reward_dice_options, global.alignment_dice_list, 2 );
@@ -1197,7 +1212,9 @@ function win_fight() {
 			generate_keepsake_rewards(reward_keepsake_options, _keepsake_pool, 3);
 			ds_list_add(reward_list, "keepsakes");
 			ds_list_add(reward_list, "dice");
-			generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
+			// a boss's items are rare cores; an elite's, any items
+			if (oWorldManager.current_node_type == NODE_TYPE.BOSS) generate_item_rewards(reward_consumable_options, global.master_item_list, 3, "core", "rare");
+			else generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
 			ds_list_add(reward_list, "consumables");
 		} else {
 			// Show dice every combat, show consumables at a 40% chance, gaining 10% chance every time they don't appear, losing 10% when they do.

@@ -35,6 +35,8 @@ exit_scale = 1.0;
 exiting = false;
 
 button_text = "Craft";
+wb_preview_key = ""; // what workbench_preview last worked out, and from what (so it isn't recloned every frame)
+wb_preview = { out: undefined, coin: undefined, tool: "" };
 button_hovered = false;
 button_scale = 1.0;
 

@@ -189,7 +189,7 @@ function define_buffs_and_debuffs() {
 		name: "Rot",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Eject all base dice from this slot this turn",
+	    desc: "One of your slots is rotten this turn: its total is halved.",
 	    icon_index: 5,
 		debuff: true,
 		color: c_green,
@@ -344,6 +344,30 @@ function define_buffs_and_debuffs() {
 	    ]
 	};
 	
+	// insight for each of the next 2 turns (Radar die). Its own buff so it stacks only with more of the same: merged into
+	// "Queued insight" it would either cut the 2 turns to 1 or make the whole queue last 2 (Jared, 2026-11-20)
+	buff_intel_lasting = {
+	    _id: "intel_lasting",
+		name: "Lasting insight",
+	    duration: 2,
+		amount: 1,
+	    desc: "Insight at the start of each of your next turns, while it lasts.",
+	    icon_index: 2,
+		debuff: false,
+		color: make_color_rgb(230, 190, 40),
+		stackable: true, // more of it adds to the amount (it all runs out together)
+		remove_next_turn: false,
+		removal_event: "on_turn_start",
+	    effects: [
+	        {
+	            trigger: "on_turn_start",
+	            modify: function(_ctx) {
+					oCombat.player_intel += _ctx.debuff.amount;
+				}
+	        }
+	    ]
+	};
+
 	buff_might = {
 	    _id: "might",
 		name: "Might",

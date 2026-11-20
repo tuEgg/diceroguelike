@@ -129,8 +129,31 @@ for (var i = 0; i < wb_list_size; i++) {
 		draw_outline_text(string(d.distribution), c_black, c_white, 2, slot_x, _bar_y - 64, 1, 1, 0);
 	}
 	
-	// Draw output preview
-	// NEED TO ADD THIS
+	// what the tool will make, ghosted in its slot until you craft (workbench_preview; Jared, 2026-11-20): the output in
+	// the last slot (with its distribution above), and with the Cutters the coin in the middle one. Hover it for its tip.
+	if (crafting_state == "waiting" && (i == 1 || i == 2)) {
+		var _pv = workbench_preview();
+		var _pd = (i == 2) ? _pv.out : _pv.coin;
+		var _free = (i == 2) ? (workbench_slot[2].dice == undefined) : (workbench_slot[1].dice == undefined && workbench_slot[1].core == undefined);
+		if (is_struct(_pd) && _free) {
+			var _pa = 0.5 + 0.15 * sin(current_time / 300);
+			draw_die(slot_x, slot_y, 36, _pd.dice_value, -1, die_colours(_pd.possible_type), 0, _pa, _pd);
+			if (i == 2 && _pd.dice_value > 2) {
+				draw_dice_distribution(_pd, slot_x, _bar_y, true);
+				if (_pd.distribution != "") {
+					draw_set_font(ftDefault);
+					draw_set_halign(fa_center);
+					draw_set_valign(fa_middle);
+					draw_outline_text(string(_pd.distribution), c_black, c_white, 2, slot_x, _bar_y - 64, 1, 1, 0);
+				}
+			}
+			draw_set_font(ftDefault);
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_outline_text("Preview: " + _pv.tool, c_black, c_ltgray, 2, slot_x, slot_y - wb_tile_size / 2 + 18, 1, 0.9, 0);
+			if (mouse_hovering(slot_x, slot_y, wb_tile_size, wb_tile_size, true)) queue_die_tip(_pd, slot_x, slot_y - 44, "after the " + _pv.tool + ": " + die_tip_sub(_pd));
+		}
+	}
 }
 
 var button_text_w = 100;

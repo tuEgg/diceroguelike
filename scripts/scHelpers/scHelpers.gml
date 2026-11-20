@@ -3039,3 +3039,72 @@ function draw_quill(_nx, _ny, _len, _dir) {
 	draw_line_width(_b[0] + lengthdir_x(_len * 0.055, _nd + 90), _b[1] + lengthdir_y(_len * 0.055, _nd + 90), _b[0] + lengthdir_x(_len * 0.055, _nd - 90), _b[1] + lengthdir_y(_len * 0.055, _nd - 90), max(2, _len * 0.04));
 	draw_set_color(c_white);
 }
+
+/// @func workbench_preview()
+/// @desc What the workbench would make right now (Jared, 2026-11-20), worked out the same way each tool's craft does
+///       (oWorkbenchManager Draw GUI, "drilled", "hammered", "cut"): { out, coin, tool }, out/coin undefined when
+///       there's nothing to show. The tool in your hand decides; with none, a core on the bench means the Drill and two
+///       dice the Hammer (if you own it). Cached on the manager until the bench or the tool changes.
+function workbench_preview() {
+	with (oWorkbenchManager) {
+		var _d0 = workbench_slot[0].dice, _d1 = workbench_slot[1].dice, _core = workbench_slot[1].core;
+		var _tool = button_text;
+		if (_tool == "Craft") {
+			if (_d0 != undefined && _core != undefined) _tool = "Drill";
+			else if (_d0 != undefined && _d1 != undefined && workbench_owns_tool("The Hammer")) _tool = "Combine";
+		}
+		var _key = _tool + "|" + (is_struct(_d0) ? string(variable_struct_exists(_d0, "uid") ? _d0.uid : _d0.name) + string(_d0.dice_value) + _d0.distribution : "-")
+			+ "|" + (is_struct(_d1) ? string(variable_struct_exists(_d1, "uid") ? _d1.uid : _d1.name) + string(_d1.dice_value) : "-") + "|" + (is_struct(_core) ? _core.name : "-");
+		if (_key == wb_preview_key) return wb_preview;
+		wb_preview_key = _key;
+		wb_preview = { out: undefined, coin: undefined, tool: "" };
+		switch (_tool) {
+			case "Drill":
+				if (_d0 != undefined && _core != undefined) {
+					var _o = clone_die(_d0, "");
+					_o.distribution = _core.distribution;
+					wb_preview = { out: _o, coin: undefined, tool: "Drill" };
+				}
+				break;
+			case "Combine":
+				if (_d0 != undefined && _d1 != undefined) {
+					var _o = clone_die(_d0, "");
+					_o.dice_value += _d1.dice_value;
+					die_size_changed(_o);
+					wb_preview = { out: _o, coin: undefined, tool: "Hammer" };
+				}
+				break;
+			case "Cut":
+				if (_d0 != undefined && _d0.dice_value > 2) {
+					var _o = clone_die(_d0, "");
+					_o.dice_value = _d0.dice_value - 2;
+					die_size_changed(_o);
+					if (_o.dice_value == 2) _o.distribution = "";
+					var _base = global.dice_d2_none;
+					switch (_d0.action_type) {
+						case "ATK": _base = global.dice_d2_atk; break;
+						case "BLK": _base = global.dice_d2_blk; break;
+						case "INTEL": _base = global.dice_d2_intel; break;
+						case "HEAL": _base = global.dice_d2_heal; break;
+					}
+					var _c = clone_die(_base, "");
+					_c.dice_value = 2;
+					wb_preview = { out: _o, coin: _c, tool: "Cutters" };
+				}
+				break;
+		}
+		return wb_preview;
+	}
+	return { out: undefined, coin: undefined, tool: "" };
+}
+
+/// @func workbench_owns_tool(_name)
+/// @desc Does the player have this tool (by name, e.g. "The Hammer")?
+function workbench_owns_tool(_name) {
+	if (!instance_exists(oRunManager) || !ds_safe_exists(oRunManager.tools, ds_type_list)) return false;
+	for (var i = 0; i < ds_list_size(oRunManager.tools); i++) {
+		var _t = oRunManager.tools[| i];
+		if (is_struct(_t) && variable_struct_exists(_t, "name") && _t.name == _name) return true;
+	}
+	return false;
+}
