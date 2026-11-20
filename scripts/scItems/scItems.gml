@@ -425,7 +425,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 6,
 		name: "Grog of Grit",
-		description: "Gain +3 might for the rest of combat.",
+		description: "Gain +3 might this turn.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -446,7 +446,7 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
-				apply_buff("player", oRunManager.buff_might, -1, 3, oRunManager.buff_might.remove_next_turn, { source: "player", index: -1 }, true); // F24: was 2
+				apply_buff("player", oRunManager.buff_might, 1, 3, false, { source: "player", index: -1 }); // this turn only (2026-11-20; was +3 all fight)
 				particle_emit( global.player_x, global.player_y, "rise", c_orange);
 			}
 		},

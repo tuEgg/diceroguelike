@@ -868,7 +868,7 @@ function generate_dice_bag() {
 	            trigger: "on_sacrifice_die",
 	            modify: function(_context) {
 					var amount = 3;
-	                apply_buff("player", oRunManager.buff_intel, 2, amount, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
+	                apply_buff("player", oRunManager.buff_intel_lasting, 2, amount, oRunManager.buff_intel_lasting.remove_next_turn, { source: "player", index: -1 });
 					var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
@@ -1161,6 +1161,17 @@ function generate_target_clearance(_x, _y, _a, _b) {
 	for (var j = 0; j < array_length(_a); j++) nearest = min(nearest, point_distance(_a[j][0], _a[j][1], _x, _y));
 	for (var j = 0; j < array_length(_b); j++) nearest = min(nearest, point_distance(_b[j][0], _b[j][1], _x, _y));
 	return nearest;
+}
+
+/// @func die_has_trigger(_die, _trigger)
+/// @desc Does this die have an effect of its own on this event? (e.g. "on_die_inked": Deepdiver, lit up in the ink view)
+function die_has_trigger(_die, _trigger) {
+	if (!is_struct(_die) || !variable_struct_exists(_die, "effects") || !is_array(_die.effects)) return false;
+	for (var i = 0; i < array_length(_die.effects); i++) {
+		var _e = _die.effects[i];
+		if (is_struct(_e) && variable_struct_exists(_e, "trigger") && _e.trigger == _trigger) return true;
+	}
+	return false;
 }
 
 /// @func make_die_struct(_amount, _value, _action, _poss, _perm, _name, _desc, _rarity, [_price], [_effects], [_distribution])
@@ -1503,13 +1514,14 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0, _where = 
     return _drawn;
 }
 
-/// @func draw_dice_distribution(_die, _x, _y, [_centered], [_scale])
+/// @func draw_dice_distribution(_die, _x, _y, [_centered], [_scale], [_paper], [_fit_w])
 /// @desc How likely each face of a die is (its core): a bar per face rising from one baseline, the tallest face full
 ///       height, its number under the line, all on a dark plate so it reads over anything. A face it can't roll is a
 ///       flat stub with a dimmed number. _y is the bottom of the whole graphic (numbers included), so it sits on top of
 ///       whatever is below it; _x its left edge, or its centre with _centered. _scale makes it bigger (1: 14px bars).
 ///       A core's preview (core_preview) shows the core's own shape on a plain d6: keepsakes don't touch it.
-function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _paper = false) {
+///       _fit_w > 0: the bars widen to fill that width (bag cards, F156), whatever the die's size.
+function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _paper = false, _fit_w = -1) {
 	var _min_roll = 1;
 	var _max_roll = _die.dice_value;
 	if (!variable_struct_exists(_die, "core_preview")) {
@@ -1526,6 +1538,7 @@ function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _pa
 	if (_top <= 0) _top = 1; // all zero (a squeezed range, B125): flat stubs, not 0/0
 
 	var _bw = 14 * _scale, _gap = 3 * _scale, _bh = 30 * _scale, _num_h = 15 * _scale, _pad = 5 * _scale;
+	if (_fit_w > 0) { _gap = 4 * _scale; _bw = (_fit_w - (_n - 1) * _gap) / _n; }
 	var _w = _n * _bw + (_n - 1) * _gap;
 	var _x0 = _centered ? _x - _w / 2 : _x;
 	var _base = _y - _pad - _num_h; // the line the bars stand on
@@ -2005,15 +2018,59 @@ function die_pip_layout(_face) {
 	return [];
 }
 
-/// @func draw_die(_x, _y, _r, _sides, _face, _col, [_angle], [_alpha])
+/// @func die_is_special(_d)
+/// @desc Any die that isn't a starter (common, uncommon or rare): it wears a ring in its rarity colour (draw_die).
+function die_is_special(_d) {
+	return is_struct(_d) && variable_struct_exists(_d, "rarity") && (_d.rarity == "common" || _d.rarity == "uncommon" || _d.rarity == "rare");
+}
+
+/// @func die_look(_d)
+/// @desc A die's signature look until it has its own art (F42; Jared picked B+D, 2026-11-20): "ghost" (Invisible:
+///       see-through, dashed edge), "echo" (a faint copy behind it), "ink" (Deepdiver: an ink blot), "waves" (Surge),
+///       or "". By name, so saved dice get it too. Add one here for a die people mix up.
+function die_look(_d) {
+	if (!is_struct(_d) || !variable_struct_exists(_d, "name")) return "";
+	switch (_d.name) {
+		case "Invisible die": return "ghost";
+		case "Echo Die": return "echo";
+		case "Deepdiver Die": return "ink";
+		case "Surge die": return "waves";
+	}
+	return "";
+}
+
+/// @func die_rot_x(_x, _px, _py, _angle) / die_rot_y
+/// @desc A point on a die (offset _px, _py from its centre) turned by its angle, as draw_die turns its pips.
+function die_rot_x(_x, _px, _py, _angle) { return _x + _px * dcos(_angle) + _py * dsin(_angle); }
+function die_rot_y(_y, _px, _py, _angle) { return _y - _px * dsin(_angle) + _py * dcos(_angle); }
+
+/// @func draw_die(_x, _y, _r, _sides, _face, _col, [_angle], [_alpha], [_die])
 /// @desc A die drawn in code: its shape by size, filled with its type colour (or die_colours, split), a shadow and outline, and _face as pips
 ///       (1-9; a numeral from 10, or 0). _face -1: not rolled, shows its size ("d6"). _r is about half its width.
-function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1) {
-	// shadow, outline, body, and a lighter inner face for a little depth
+///       _die (its struct, optional): a non-starter gets a ring in its rarity colour, and a few dice their signature
+///       look (die_look). Pass it wherever a real die is drawn.
+function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1, _die = undefined) {
+	var _look = die_look(_die);
+	var _a0 = _alpha; // the ring and outline stay solid on a see-through die
+	if (_look == "ghost") _alpha *= 0.5;
+
+	// echo: a faint copy of itself just behind, up and to the right
+	if (_look == "echo") {
+		var _ex = die_rot_x(_x, _r * 0.2, -_r * 0.16, _angle), _ey = die_rot_y(_y, _r * 0.2, -_r * 0.16, _angle);
+		draw_die_shape(_ex, _ey, _r * 1.07, _sides, make_color_rgb(20, 20, 26), _angle, _alpha * 0.4);
+		draw_die_shape(_ex, _ey, _r * 0.95, _sides, _col, _angle, _alpha * 0.4);
+	}
+
+	// shadow, (a rarity ring,) outline, body, and a lighter inner face for a little depth
 	draw_die_shape(_x + _r * 0.08, _y + _r * 0.12, _r * 1.06, _sides, c_black, _angle, _alpha * 0.35);
-	draw_die_shape(_x, _y, _r * 1.07, _sides, make_color_rgb(20, 20, 26), _angle, _alpha);
+	if (die_is_special(_die)) {
+		draw_die_shape(_x, _y, _r * 1.3, _sides, make_color_rgb(20, 20, 26), _angle, _a0);
+		draw_die_shape(_x, _y, _r * 1.22, _sides, rarity_colour(_die.rarity), _angle, _a0);
+	}
+	draw_die_shape(_x, _y, _r * 1.07, _sides, make_color_rgb(20, 20, 26), _angle, (_look == "ghost") ? _a0 * 0.35 : _alpha);
 	draw_die_shape(_x, _y, _r, _sides, colours_merge(_col, c_black, 0.18), _angle, _alpha);
 	draw_die_shape(_x, _y - _r * 0.04, _r * 0.86, _sides, _col, _angle, _alpha);
+	if (_look != "") die_look_draw(_look, _x, _y, _r, _sides, _col, _angle, _a0);
 
 	// pips (or a number) on the face: light pips on dark colours, dark on light (a split die: by its colours' average)
 	var _cols = is_array(_col) ? _col : [_col];
@@ -2054,11 +2111,65 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1) {
 	draw_set_color(c_white);
 }
 
+/// @func die_look_draw(_look, _x, _y, _r, _sides, _col, _angle, _alpha)
+/// @desc draw_die's signature looks (die_look), over the body and under the pips. Kept inside the shape's inscribed
+///       circle (half the radius for a d4's triangle) so they fit every size.
+function die_look_draw(_look, _x, _y, _r, _sides, _col, _angle, _alpha) {
+	var _in = (_sides == 4) ? _r * 0.48 : _r * 0.72; // the room inside the shape
+	var _cy = (_sides == 4) ? _r * 0.02 : 0;
+	switch (_look) {
+		case "ghost":
+			// a dashed pale edge round it
+			var _pts = (_sides <= 2) ? [] : die_shape_points(_sides, _r * 1.07);
+			if (_sides <= 2) for (var i = 0; i < 28; i++) array_push(_pts, [lengthdir_x(_r * 1.07, i * 360 / 28), lengthdir_y(_r * 1.07, i * 360 / 28)]);
+			draw_set_alpha(_alpha * 0.9);
+			draw_set_color(make_color_rgb(235, 232, 220));
+			var _n = array_length(_pts), _dash = max(3, _r * 0.22);
+			for (var i = 0; i < _n; i++) {
+				var _p = _pts[i], _q = _pts[(i + 1) mod _n];
+				var _len = point_distance(_p[0], _p[1], _q[0], _q[1]);
+				for (var d = 0; d < _len; d += _dash * 1.8) {
+					var _t0 = d / _len, _t1 = min(1, (d + _dash) / _len);
+					var _ax = lerp(_p[0], _q[0], _t0), _ay = lerp(_p[1], _q[1], _t0), _bx = lerp(_p[0], _q[0], _t1), _by = lerp(_p[1], _q[1], _t1);
+					draw_line_width(die_rot_x(_x, _ax, _ay, _angle), die_rot_y(_y, _ax, _ay, _angle), die_rot_x(_x, _bx, _by, _angle), die_rot_y(_y, _bx, _by, _angle), max(1.5, _r * 0.07));
+				}
+			}
+			break;
+		case "waves":
+			// three white swells across its face
+			draw_set_alpha(_alpha * 0.4);
+			draw_set_color(c_white);
+			for (var row = -1; row <= 1; row++) {
+				var _wy = row * _in * 0.5;
+				var _half = sqrt(max(0, _in * _in - _wy * _wy));
+				var _steps = 10, _px = -_half, _py = _wy + _cy;
+				for (var k = 1; k <= _steps; k++) {
+					var _nx = -_half + 2 * _half * k / _steps;
+					var _ny = _wy + _cy + sin(k / _steps * pi * 3) * _r * 0.07;
+					draw_line_width(die_rot_x(_x, _px, _py, _angle), die_rot_y(_y, _px, _py, _angle), die_rot_x(_x, _nx, _ny, _angle), die_rot_y(_y, _nx, _ny, _angle), max(1.5, _r * 0.07));
+					_px = _nx; _py = _ny;
+				}
+			}
+			break;
+		case "ink":
+			// an ink blot in the lower right of its face, with a splash beside it: a wash, not a hole (Jared: too dark)
+			draw_set_alpha(_alpha * 0.35);
+			draw_set_color(make_color_rgb(40, 52, 96));
+			var _bx = _in * 0.45, _by = _in * 0.45 + _cy;
+			draw_circle(die_rot_x(_x, _bx, _by, _angle), die_rot_y(_y, _bx, _by, _angle), _in * 0.5, false);
+			draw_circle(die_rot_x(_x, _bx - _in * 0.55, _by + _in * 0.1, _angle), die_rot_y(_y, _bx - _in * 0.55, _by + _in * 0.1, _angle), _in * 0.14, false);
+			draw_circle(die_rot_x(_x, _bx + _in * 0.05, _by - _in * 0.6, _angle), die_rot_y(_y, _bx + _in * 0.05, _by - _in * 0.6, _angle), _in * 0.1, false);
+			break;
+	}
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
 /// @func dice_particle_draw()
 /// @desc oDiceParticle Draw: the die flying to the bag (or from a reward), drawn in code like every die (split if
 ///       multitype; its sprite's scale as the radius).
 function dice_particle_draw() {
 	if (!variable_instance_exists(id, "die_struct") || !is_struct(die_struct)) { draw_sprite_ext(sprite_index, image_index, x, y, image_xscale, image_yscale, image_angle, image_blend, 1.0); return; }
 	var _r = 36 * image_xscale;
-	draw_die(x, y, _r, die_struct.dice_value, -1, die_colours(die_struct.possible_type), image_angle, 1);
+	draw_die(x, y, _r, die_struct.dice_value, -1, die_colours(die_struct.possible_type), image_angle, 1, die_struct);
 }

@@ -56,7 +56,7 @@ if (show_dice_list) {
 		}
 		
 		// Draw dice sprite
-		draw_die(dice_x, dice_y, row_spacing * 0.4, dice.dice_value, -1, die_colours(dice.possible_type), 0, 1);
+		draw_die(dice_x, dice_y, row_spacing * 0.4, dice.dice_value, -1, die_colours(dice.possible_type), 0, 1, dice);
 		
 
 		// Draw dice name
@@ -373,6 +373,23 @@ if (show_bag_contents) {
 	var inner_padding_w = box_width/2
 	var inner_padding_h = box_height/2;
 	
+	// the cards are drawn into a surface the size of the panel's inside and cut off at its edges, so a row half out of
+	// view is drawn half, and you can see there's more (F157; they used to fade). The surface is at window resolution
+	// (_bk) so text stays crisp; drawn with premultiplied alpha so soft edges don't darken.
+	var _clip_x1 = bag_outer_padding + 4, _clip_y1 = bag_outer_padding + 4;
+	var _clip_x2 = display_get_gui_width() - bag_outer_padding - 4, _clip_y2 = display_get_gui_height() - bag_outer_padding - 4;
+	var _bk = max(0.5, window_get_width() / display_get_gui_width());
+	var _bsw = max(1, ceil((_clip_x2 - _clip_x1) * _bk)), _bsh = max(1, ceil((_clip_y2 - _clip_y1) * _bk));
+	if (surface_exists(bag_clip_surf) && (surface_get_width(bag_clip_surf) != _bsw || surface_get_height(bag_clip_surf) != _bsh)) surface_free(bag_clip_surf);
+	if (!surface_exists(bag_clip_surf)) bag_clip_surf = surface_create(_bsw, _bsh);
+	var _bmx = device_mouse_x_to_gui(0), _bmy = device_mouse_y_to_gui(0);
+	var _mouse_in_clip = point_in_rectangle(_bmx, _bmy, _clip_x1, _clip_y1, _clip_x2, _clip_y2);
+	var _bag_old_world = matrix_get(matrix_world);
+	surface_set_target(bag_clip_surf);
+	draw_clear_alpha(c_black, 0);
+	matrix_set(matrix_world, matrix_build(-_clip_x1 * _bk, -_clip_y1 * _bk, 0, 0, 0, 0, _bk, _bk, 1));
+	gpu_set_blendmode_ext_sepalpha(bm_src_alpha, bm_inv_src_alpha, bm_one, bm_inv_src_alpha);
+
 	// what's shown: the bag filtered by type and sorted (bag_view_list, the controls above the panel)
 	for (var i = 0; i < array_length(_view); i++) {
 		
@@ -383,16 +400,13 @@ if (show_bag_contents) {
 		var top_of_box = dice_y - box_height/2;
 		var bottom_of_box = dice_y + box_height/2
 		
-		if (top_of_box < display_get_gui_height() - bag_inner_padding && bottom_of_box > bag_inner_padding) {
-		
+		if (top_of_box - 12 < _clip_y2 && bottom_of_box + 12 > _clip_y1) {
+
 			var dice = _view[i];
-			
-			var top_edge_overlap = bag_inner_padding - top_of_box;
-			var bottom_edge_overlap = (bottom_of_box - (display_get_gui_height() - bag_inner_padding));
-			edge_overlap = max(top_edge_overlap, bottom_edge_overlap);
-			var dice_alpha = clamp(1 - edge_overlap / 50, 0, 1); // only fades as it crosses the panel's edge (it used to dim whole rows)
-		
-			var info_hover = mouse_hovering(dice_x - box_width/2, dice_y - box_height/2, box_width, box_height, false, noone, soClick4, true, UI_LAYER.BAG);
+			var dice_alpha = 1; // cut off at the panel's edge by the surface, never faded
+
+			// only the part you can see can be hovered or clicked
+			var info_hover = _mouse_in_clip && mouse_hovering(dice_x - box_width/2, dice_y - box_height/2, box_width, box_height, false, noone, soClick4, true, UI_LAYER.BAG);
 		
 			if (info_hover) dice_hover = dice;
 			
@@ -447,6 +461,14 @@ if (show_bag_contents) {
 		}
 	}
 	
+	// the cards, cut to the panel
+	gpu_set_blendmode(bm_normal);
+	matrix_set(matrix_world, _bag_old_world);
+	surface_reset_target();
+	gpu_set_blendmode_ext(bm_one, bm_inv_src_alpha);
+	draw_surface_ext(bag_clip_surf, _clip_x1, _clip_y1, 1 / _bk, 1 / _bk, 0, c_white, 1);
+	gpu_set_blendmode(bm_normal);
+
 	if (show_bag_dice_info && dice_hover != undefined) {
 		//var info_x = bag_inner_padding + inner_padding + 30 + col_spacing * 12 + 20;
 		//var info_y = bag_inner_padding + inner_padding/2;
@@ -491,15 +513,41 @@ if (show_bag_contents) {
 	var scrollbar_y = (_max_scroll > 0) ? (-scroll_y / _max_scroll) * (bag_height - scrollbar_h) : 0;
 	if (_max_scroll > 0) {
 	
-	draw_set_color(c_black);
-	draw_set_alpha(0.4);
-	draw_rectangle(bag_inner_padding, bag_inner_padding, bag_inner_padding + scrollbar_w, bag_inner_padding + bag_height, false);
-	
-	draw_set_color(c_white);
-	draw_set_alpha(0.4);
-	draw_rectangle(bag_inner_padding, bag_inner_padding + scrollbar_y, bag_inner_padding + scrollbar_w, bag_inner_padding + scrollbar_y + scrollbar_h, false);
-	
+	// the logbook look (F158): a slate groove with an inked edge, and a brass thumb with an ink outline and grip lines,
+	// a little wider and brighter under the mouse or while dragged. Clicking the groove jumps there and keeps dragging.
 	var scroll_bar_hover = mouse_hovering(bag_inner_padding, bag_inner_padding + scrollbar_y, scrollbar_w, scrollbar_h, false, noone, soClick4, true, UI_LAYER.BAG);
+	var _sb_cx = bag_inner_padding + scrollbar_w / 2;
+	var _sb_y1 = bag_inner_padding, _sb_y2 = bag_inner_padding + bag_height;
+	draw_set_alpha(1);
+	draw_set_color(global.ui_col.ink);
+	draw_roundrect_ext(_sb_cx - 8, _sb_y1 - 2, _sb_cx + 8, _sb_y2 + 2, 14, 14, false);
+	draw_set_color(global.ui_col.slate);
+	draw_roundrect_ext(_sb_cx - 6, _sb_y1, _sb_cx + 6, _sb_y2, 12, 12, false);
+	var _sb_lit = scroll_bar_hover || scroll_dragging;
+	var _sb_hw = _sb_lit ? 12 : 10;
+	var _sb_t1 = _sb_y1 + scrollbar_y, _sb_t2 = _sb_t1 + scrollbar_h;
+	draw_set_color(global.ui_col.ink);
+	draw_roundrect_ext(_sb_cx - _sb_hw - 2, _sb_t1 - 2, _sb_cx + _sb_hw + 2, _sb_t2 + 2, 16, 16, false);
+	draw_set_color(_sb_lit ? merge_colour(global.ui_col.brass, global.ui_col.paper_hi, 0.35) : global.ui_col.brass);
+	draw_roundrect_ext(_sb_cx - _sb_hw, _sb_t1, _sb_cx + _sb_hw, _sb_t2, 14, 14, false);
+	// a paper glint down its left side, and three grip lines in the middle
+	draw_set_alpha(0.45);
+	draw_set_color(global.ui_col.paper_hi);
+	draw_line_width(_sb_cx - _sb_hw + 4, _sb_t1 + 8, _sb_cx - _sb_hw + 4, _sb_t2 - 8, 2);
+	draw_set_alpha(1);
+	if (scrollbar_h > 44) {
+		var _sb_mid = (_sb_t1 + _sb_t2) / 2;
+		draw_set_color(global.ui_col.ink);
+		for (var _g = -1; _g <= 1; _g++) draw_line_width(_sb_cx - 5, _sb_mid + _g * 7, _sb_cx + 5, _sb_mid + _g * 7, 2);
+	}
+	var _groove_hover = mouse_hovering(bag_inner_padding, _sb_y1, scrollbar_w, bag_height, false, noone, noone, true, UI_LAYER.BAG);
+	if (_groove_hover && !scroll_bar_hover && mouse_check_button_pressed(mb_left)) {
+		var _sb_frac = clamp((device_mouse_y_to_gui(0) - _sb_y1 - scrollbar_h / 2) / max(1, bag_height - scrollbar_h), 0, 1);
+		scroll_y = -_sb_frac * _max_scroll;
+		scroll_dragging = true;
+		m_grab_y = device_mouse_y_to_gui(0);
+		s_grab_y = scroll_y;
+	}
 	
 	if (scroll_bar_hover) {
 		

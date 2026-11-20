@@ -227,6 +227,15 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		//}
 	}
 	
+	// Rot: the rotten slot (oCombat.bound_slot) comes to half its total. Its dice resolve one at a time, so the odd point
+	// carries to the next die (rot_spare) and the slot's dice add up to exactly half, rounded down
+	if (_source == "player" && _slot_number != undefined && _slot_number >= 0 && instance_exists(oCombat) && _slot_number == oCombat.bound_slot) {
+		if (_dice_list_index == 0) oCombat.rot_spare = 0;
+		var _rot_sum = amount + oCombat.rot_spare;
+		amount = floor(_rot_sum / 2);
+		oCombat.rot_spare = _rot_sum mod 2;
+	}
+
 	// used for flat damage
 	if (_dice_amount == 0) {
 		amount = _dice_value;
@@ -1036,9 +1045,13 @@ function get_slot_stats(_slot, _num) {
 		}
     }
 
+    var _low = low + slot_total_bonus(_slot, total_amount), _high = high + slot_total_bonus(_slot, total_amount);
+    // a rotten slot (Rot) shows half its total, as it will deal
+    if (instance_exists(oCombat) && _num == oCombat.bound_slot) { _low = floor(_low / 2); _high = floor(_high / 2); }
+
     return {
-        low_roll: low + slot_total_bonus(_slot, total_amount), // used for displaying the minimum roll of this slot
-        high_roll: high + slot_total_bonus(_slot, total_amount), // used for displaying the maximum roll of this slot
+        low_roll: _low, // used for displaying the minimum roll of this slot
+        high_roll: _high, // used for displaying the maximum roll of this slot
         amount: total_amount, // used for displaying the number of dice in this slot
         highest_value: _highest_value, // used for displaying the highest value dice in this slot -- we need to fix for 1d6 + 1d4, right now it shows as 2d6
 		highest_value_base: _highest_value_base,
@@ -1183,7 +1196,9 @@ function win_fight() {
 		reward_consumable_options = ds_list_create();
 		reward_keepsake_options = ds_list_create();
 		
-		if (oWorldManager.current_node_type != NODE_TYPE.ALIGNMENT) {
+		if (oWorldManager.current_node_type == NODE_TYPE.BOSS) {
+			generate_dice_rewards(reward_dice_options, global.master_dice_list, 3, "rare"); // a boss always pays in rare dice (Jared, 2026-11-20)
+		} else if (oWorldManager.current_node_type != NODE_TYPE.ALIGNMENT) {
 			generate_dice_rewards(reward_dice_options, global.master_dice_list, 3 );
 		} else {
 			generate_dice_rewards(reward_dice_options, global.alignment_dice_list, 2 );
@@ -1197,7 +1212,9 @@ function win_fight() {
 			generate_keepsake_rewards(reward_keepsake_options, _keepsake_pool, 3);
 			ds_list_add(reward_list, "keepsakes");
 			ds_list_add(reward_list, "dice");
-			generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
+			// a boss's items are rare cores; an elite's, any items
+			if (oWorldManager.current_node_type == NODE_TYPE.BOSS) generate_item_rewards(reward_consumable_options, global.master_item_list, 3, "core", "rare");
+			else generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
 			ds_list_add(reward_list, "consumables");
 		} else {
 			// Show dice every combat, show consumables at a 40% chance, gaining 10% chance every time they don't appear, losing 10% when they do.
@@ -3153,6 +3170,23 @@ function combat_insight_part_draw(_x1, _y1, _x2, _y2, _afford, _hover, _pulse, _
 	// (no "Reroll" / "Exact" labels: the coins and the hovers say it)
 }
 
+/// @func draw_ink_drop(_x, _y, _size)
+/// @desc A drop of ink (gold-edged, dark blue-black) centred on _x, _y: marks a die that does something when inked.
+function draw_ink_drop(_x, _y, _size) {
+	var _tip = _y - _size * 1.5;
+	// gold edge, then the ink inside it
+	draw_set_color(global.color_intel);
+	draw_circle(_x, _y, _size + 3, false);
+	draw_triangle(_x - (_size + 3) * 0.75, _y - _size * 0.55, _x + (_size + 3) * 0.75, _y - _size * 0.55, _x, _tip - 5, false);
+	draw_set_color(make_color_rgb(22, 26, 48));
+	draw_circle(_x, _y, _size, false);
+	draw_triangle(_x - _size * 0.72, _y - _size * 0.6, _x + _size * 0.72, _y - _size * 0.6, _x, _tip, false);
+	// a glint
+	draw_set_color(make_color_rgb(120, 140, 200));
+	draw_circle(_x - _size * 0.35, _y - _size * 0.1, max(2, _size * 0.22), false);
+	draw_set_color(c_white);
+}
+
 /// @func combat_insight_view_draw()
 /// @desc The insight phase, drawn first in oRunManager Draw GUI End (so the dice dim too): the screen darkens except
 ///       the enemy intents and the dice in your hand, which your quill can rewrite. Each intent is split in two: its
@@ -3274,16 +3308,25 @@ function combat_insight_view_draw() {
 			var _face = tumbling ? flick_face : (die_has_faces(struct) ? die_face_total(struct) : -1);
 			var _ready = !is_dragging && !tumbling && die_has_faces(struct);
 			var _hov = _ready && mouse_hovering(x, y, 84, 84, true, noone, noone, true, UI_LAYER.POPUP);
+			// a die made for ink (Deepdiver: does something when rerolled or redrawn) gets a wide white halo that breathes
+			// faster, and an ink drop on its corner, so it stands out from the rest of the hand here (Jared, 2026-11-20)
+			var _inky = !tumbling && die_has_trigger(struct, "on_die_inked");
+			var _ring_k = die_is_special(struct) ? 1.2 : 1; // edges sit outside its rarity ring
+			if (_inky) {
+				var _ip = 0.5 + 0.5 * sin(current_time / 110);
+				draw_die_shape(x, y, _r * _ring_k * (1.36 + 0.08 * _ip), dice_value, c_white, tumble_angle, 0.3 + 0.4 * _ip);
+			}
 			// a yellow edge (brighter when hovered), then the die itself, on top of the dark
 			var _glow = (_rr_can || _rd_can) ? (_hov ? 1 : 0.55 + 0.25 * sin(current_time / 200)) : 0.25;
-			draw_die_shape(x, y, _r * (_hov ? 1.22 : 1.16), dice_value, global.color_intel, tumble_angle, _glow);
-			draw_die(x, y, _r * (_hov ? 1.08 : 1), dice_value, _face, die_colours(struct.possible_type), tumble_angle, 1);
+			draw_die_shape(x, y, _r * _ring_k * (_hov ? 1.22 : 1.16), dice_value, global.color_intel, tumble_angle, _glow);
+			draw_die(x, y, _r * (_hov ? 1.08 : 1), dice_value, _face, die_colours(struct.possible_type), tumble_angle, 1, struct);
+			if (_inky) draw_ink_drop(x + _r * 0.85, y - _r * 0.85, 14 * scale);
 			if (!tumbling && die_is_mocked(struct)) draw_mock_mark(x, y - _r - 6, scale); // lit with it, so you see it before rerolling (B133)
 			if (_hov) {
 				_over_die = true;
 				other.quill_over = true;
 				_hint_at = { x: x, y: y - _r - 46 }; // its mouse hints go on top of every die, after this loop
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll or redraw", "Left-click: spend " + string(INSIGHT_COST_REROLL) + " insight to roll this die again.\nRight-click: spend " + string(INSIGHT_COST_REDRAW) + " insight to discard it and draw a new die." + (die_is_mocked(struct) ? "\nMocked: rerolling it will still roll 1. Redrawing might bring a die that isn't." : ""), undefined, 0, undefined, INSIGHT_COST_REROLL, "insight");
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll or redraw", "Left-click: spend " + string(INSIGHT_COST_REROLL) + " insight to roll this die again.\nRight-click: spend " + string(INSIGHT_COST_REDRAW) + " insight to discard it and draw a new die." + (die_is_mocked(struct) ? "\nMocked: rerolling it will still roll 1. Redrawing might bring a die that isn't." : "") + (_inky ? "\n" + struct.name + ": " + struct.description : ""), undefined, 0, undefined, INSIGHT_COST_REROLL, "insight");
 				if (mouse_check_button_pressed(mb_left) && _rr_can) { _clicked = id; _clicked_what = "reroll"; }
 				if (mouse_check_button_pressed(mb_right) && _rd_can) { _clicked = id; _clicked_what = "redraw"; }
 			}

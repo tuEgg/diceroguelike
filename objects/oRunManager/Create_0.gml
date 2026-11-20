@@ -269,6 +269,7 @@ global.master_tool_list = ds_list_create();
 ds_list_add(global.master_tool_list, tool_hammer);
 ds_list_add(global.master_tool_list, tool_scissors);
 
+bag_clip_surf = -1;    // the bag view's cards, cut to its panel (Draw GUI End, F157)
 ink_scene = -1;        // the log's ink look (F118): the frame drawn into a surface while the log is open (Draw GUI Begin)
 ink_capturing = false; // this frame is going into ink_scene (set in Draw GUI Begin, reset first thing in Draw GUI End)
 can_visit_workbench = false; // "At sea": set when a page's island is done; the map offers the workbench once (F02)

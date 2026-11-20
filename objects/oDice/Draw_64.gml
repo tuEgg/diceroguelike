@@ -12,7 +12,7 @@ if (_coded) {
 	var _wobble = over_discard ? sin(current_time / 70) * 9 : 0;
 	var _cols = die_colours(struct.possible_type); // a multitype die is split diagonally in its colours
 	var _jig = die_jiggle_pose(struct); // its effect firing: a punch and a wobble (F40)
-	draw_die(x, y, _die_r * _jig.scale, dice_value, _face, over_discard ? colours_merge(_cols, c_black, 0.25) : _cols, tumble_angle + _wobble + _jig.angle, image_alpha);
+	draw_die(x, y, _die_r * _jig.scale, dice_value, _face, over_discard ? colours_merge(_cols, c_black, 0.25) : _cols, tumble_angle + _wobble + _jig.angle, image_alpha, struct);
 	// over the discard pile: letting go discards it (redraws are bought in the insight phase)
 	if (over_discard && instance_exists(oCombat)) {
 		var _can = true;

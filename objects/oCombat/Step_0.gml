@@ -134,18 +134,7 @@ switch (state) {
 		    enemy.intent.scale = lerp(enemy.intent.scale, enemy.intent.start_scale, 0.3);
 		}
 		
-		// Make any bound slots dice all temporary
-		for (var i = 0; i < ds_list_size(action_queue); i++) {
-			if (i == bound_slot) {
-				var slot = action_queue[| i];
-				
-				for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
-					if (slot.dice_list[| d].permanence != "sticky") {
-						slot.dice_list[| d].permanence = "temporary";
-					}
-				}
-			}
-		}
+		// (Rot used to make the rotten slot's dice temporary here; it halves the slot's total now: process_action)
 		
 		// Failsafe for targeting in case enemy_target_index is outside of the room_enemies size.
 		if (enemy_target_index < 0 || enemy_target_index >= ds_list_size(room_enemies)) {

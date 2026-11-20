@@ -547,6 +547,7 @@ function define_keepsakes() {
 	    desc: "When a die rolls its minimum, the next die you're dealt rolls twice and keeps the higher.",
 	    sub_image: 19,
 		state: { next_twice: false },
+		is_armed: function() { return self.state.next_twice; }, // lit in the keepsake bar while waiting
 	    trigger: function(event, data) {
 			// rolled dice: a die rolls as it's dealt, so the minimum marks the next one dealt
 			if (event == "on_die_rolled" && data.face <= data.min_roll) {
@@ -566,22 +567,32 @@ function define_keepsakes() {
 	ks_balancing_compass = {
 	    _id: "balancing_compass",
 	    name: "Balancing Compass",
-	    desc: "After a die rolls its minimum, guarantee it rolls its maximum next turn.",
+	    desc: "When a die rolls its minimum, the next die you're dealt rolls its maximum.",
 	    sub_image: 18,
-		state: { },
-	    trigger: function(event, data) {			
-			if (event == "after_roll_die") {
-				if (data._d_amount == data.min_roll) {
-					data.die.reset_after_next_roll = function(_dice) {
-						_dice.forced_roll = -1;
-					}
-					data.die.forced_roll = data.max_roll;
-					data.die.reset_this_turn = false;
-					show_debug_message("this die's forced roll is set to: " + string(data.die.forced_roll));
-				
+		state: { next_max: false, landing: false },
+		// lit in the keepsake bar while it's waiting for the next die (oRunManager Draw GUI)
+		is_armed: function() { return self.state.next_max; },
+	    trigger: function(event, data) {
+			// rolled dice (Jared, 2026-11-20): dice roll as they're dealt, so a minimum now pays off on the next die dealt
+			// (or rerolled with ink), not on the same die whenever it comes round again
+			if (event == "on_combat_started") { self.state.next_max = false; self.state.landing = false; }
+			if (event == "on_roll_die" && self.state.next_max && data.on_deal) {
+				data.min_roll = data.max_roll; // it can only roll its max
+				self.state.next_max = false;
+				self.state.landing = true;
+			}
+			if (event == "on_die_rolled" && room == rmCombat && instance_exists(oCombat)) {
+				// the max landing: say so over that die. (its min equals its max now, so it can't arm the compass again)
+				if (self.state.landing) {
+					self.state.landing = false;
+					die_effect_popup(data._die_struct, "Balanced: max!", global.color_intel);
+					trigger_keepsake_visual();
+				} else if (data.min_roll < data.max_roll && data.face <= data.min_roll && !self.state.next_max) {
+					self.state.next_max = true;
+					die_effect_popup(data._die_struct, "Compass: next die max", global.color_intel);
 					trigger_keepsake_visual();
 				}
-	        }
+			}
 	    }
 	};
 	ds_list_add(global.master_keepsake_list, ks_balancing_compass);
