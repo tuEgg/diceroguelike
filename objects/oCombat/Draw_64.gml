@@ -355,6 +355,12 @@ for (var i = 0; i < aq_list_size; i++) {
 		draw_outline_text("pips", global.ui_col.ink, make_color_rgb(201, 187, 156), 2, _nc, last_y + last_h * 0.62, 1, 1, 0);
 		if (!_filled) draw_padlock(_nc, last_y + last_h * 0.84, 0.9, make_color_rgb(190, 180, 160));
 		else { draw_set_font(ftDefault); draw_outline_text("New slot", global.ui_col.ink, make_color_rgb(170, 158, 132), 2, _nc, last_y + last_h * 0.84, 1, 1, 0); }
+		// a generic die dragged over the tile: it can't build a slot (B36), so say why before it's dropped
+		if (last_hover && is_placing && !show_rewards) {
+			var _tile_drag = noone;
+			with (oDice) if (is_dragging) _tile_drag = id;
+			if (_tile_drag != noone && die_cant_build_slot_reason(_tile_drag.struct) != "") queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't build a slot", die_cant_build_slot_reason(_tile_drag.struct));
+		}
 		if (last_hover && !is_placing && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", (!_filled ? "Fill every slot first.\n" : "") + "Drop " + ((new_slot_min_dice() == 1) ? "a die" : string(new_slot_min_dice()) + "+ dice") + " adding up to " + string(_need) + " to build a slot. They act in it this turn."); // short: the rest (plays, taking back, End Turn) works as everywhere else
 
 		// the dice waiting on it, above it like a slot's

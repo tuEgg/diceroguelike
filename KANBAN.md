@@ -30,8 +30,13 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 22: guided first fight, generic dice | F153, B36 | `feature/tutorial-rewrite` (off `dev`) | **Not yet play-tested.** The guided first fight is back, rewritten for rolled dice and ink; generic dice can't build slots. |
 
-Nothing waiting: batches 20 and 21 were approved on 2026-11-20 (see DONE).
+**Batch 22 test list (`feature/tutorial-rewrite`)** To see the guided fight: Settings > Gameplay > Tutorial next run, then start a run (the map notes come back too).
+- F153 Turn 1, a lone Pirate Ruffian and a set hand that rolls the same every time: Attack 3, Attack 2, generic 2, Block 4, insight 2, Block 1. The notes, one at a time: read the intent (points at its tag), your dice have rolled (circles your hand), drag an Attack die into the slot, add the other Attack die, add the generic die, take a die back by clicking it (then you can put it back), build slot 2 by dropping the Block 4 on the new-slot tile (the insight 2 or Block 1 should be refused as too low), its +1 place bonus, end turn. Moves the step isn't asking for are refused with "Follow the logbook".
+- F153 Turn 2: click the inkwell (you'll have at least 6 ink), then reroll (left-click) or redraw (right-click) a die; the note should stay readable on top of the ink view. Then the enemy side of ink, Confirm to close, and "The rest is yours". Skip tutorial works at every step, the ink view included.
+- F153 After the guided fight, the next fights don't repeat its tips (rolled dice, new slot, insight); a tip it didn't reach (if the fight ends early) still shows later. Kill the Ruffian on turn 1 with the debug menu to check.
+- B36 Generic (bone-white) dice: dragging one over an empty slot says it can't start a slot; over the new-slot tile, "Can't build a slot" with the reason; dropping it there is refused. Into a slot with an action it adds as before.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -45,7 +50,7 @@ All known P0 bugs are fixed, see DONE.
 **Combat core**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B36 | `"None!"` in `get_slot_stats` makes its condition always true. Left alone on purpose: it looks like a deliberate switch-off, and removing it would change how neutral dice count in a slot. Needs Jared's call. (The doubled `is_slot_exclusive` check was fixed in batch 2.) | `scCombatScripts.gml` | S [C] |
+| ~~B36~~ | **Decided by Jared (2026-11-20), fixed in batch 22:** generic dice can't make slots (start or build), only add to a slot with an action. Was: `"None!"` in `get_slot_stats` makes its condition always true. Left alone on purpose: it looks like a deliberate switch-off, and removing it would change how neutral dice count in a slot. Needs Jared's call. (The doubled `is_slot_exclusive` check was fixed in batch 2.) | `scCombatScripts.gml` | S [C] |
 
 **Dice / keepsakes / items**
 | ID | Bug | Where | Size |
@@ -89,7 +94,7 @@ All known P0 bugs are fixed, see DONE.
 Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
 
 **Open from the playtests (2026-11-19 and 2026-11-20)**
-- F153 **Rewrite the guided first fight for rolled dice and ink.** It's been switched off since the rolled-dice change (`tutorial_wanted` returns false; its steps still teach "dice in one slot roll together", sacrificing to build slots, 2-turn dice). New players get only the one-time tips (`rolled_dice`, `new_slot`, `insight_spend`...), which are up to date. The map notes are off with it, and the last one still says "your first fight will walk you through the dice". Needs: steps for reading rolled dice, filling slots left to right, building a slot from pips, taking a die back, and the inkwell (reroll, redraw, exact numbers).
+- F153 (built, batch 22) **Rewrite the guided first fight for rolled dice and ink.** It's been switched off since the rolled-dice change (`tutorial_wanted` returns false; its steps still teach "dice in one slot roll together", sacrificing to build slots, 2-turn dice). New players get only the one-time tips (`rolled_dice`, `new_slot`, `insight_spend`...), which are up to date. The map notes are off with it, and the last one still says "your first fight will walk you through the dice". Needs: steps for reading rolled dice, filling slots left to right, building a slot from pips, taking a die back, and the inkwell (reroll, redraw, exact numbers).
 - F139 Giant Conch (parked by Jared, 2026-11-19; the summon intent icon is done): its echo attack uses the normal attack icon, no separate normal attack, less damage reduction (discuss numbers).
 - F151 (alignment cores done, batch 20) Cores beyond weighted/loaded: every core should be worth taking (no reason to take weighted or loaded otherwise). Alignment cores (chaotic rolls the lower your alignment, central rolls the higher).
 - F152 Alignment in combat: e.g. start with a d4 shaped by alignment.
@@ -102,7 +107,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
 
 **Combat clarity** (the most common playtest feedback)
-- F14 Colour-blind-safe palette (Jack can't tell the blues apart). Action icons on dice are done (batch 12, Settings > Display); a palette change is still open
+- F14 Colour-blind-safe palette: **addressed for the UI (Jared, 2026-11-20).** Every action has a glyph (sword, shield, heart, eye) on dice, slots and intent tags, on by default (batch 20), and the batch 20 palette split the blues (block is light blue, insight gold). Reopen if a tester still mixes colours up.
 - F15 Summon intent icon, buff animation, clearer "Nav Chart fired" feedback
 
 **Content**

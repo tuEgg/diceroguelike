@@ -62,12 +62,14 @@ function deal_single_die( _can_discard_this_turn = true) {
 	}
 	
 	// the guided first fight deals a set hand, taken from the bag so the bag stays right
-	var _tut_type = (room == rmCombat) ? tutorial_next_hand_type() : "";
-	if (_tut_type != "" && _debug_die == undefined) {
+	var _tut = (room == rmCombat) ? tutorial_next_hand_type() : undefined;
+	if (is_struct(_tut) && _debug_die == undefined) {
 		for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
-			if (global.dice_bag[| d].action_type == _tut_type) {
+			if (global.dice_bag[| d].action_type == _tut.type) {
 				die_struct = clone_die(global.dice_bag[| d], "");
 				index = d;
+				// it lands on the face the step needs (die_roll_faces uses forced_roll once, then clears it)
+				if (_tut.face > 0) die_struct.forced_roll = _tut.face;
 				break;
 			}
 		}
