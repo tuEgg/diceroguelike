@@ -547,7 +547,8 @@ function define_items() {
 			modify: function(_context) {
 				var heal_amount = ceil(global.player_max_hp * 0.4); // F24: was 30%
 				global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
-				particle_emit(650, 25, "burst", c_lime);
+				var _hs = ui_health_spot();
+				particle_emit(_hs.x, _hs.y, "burst", c_lime); // where your health is in the top bar
 			}
 		},
 		price: 40

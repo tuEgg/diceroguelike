@@ -159,6 +159,9 @@ if (room == rmMap) {
 		}
 	}
 	
+	// now and then a small wave on the open water pages, under the islands (map_waves_draw)
+	if (world_state != WORLD_STATE.TURNING && world_state != WORLD_STATE.OPENING) map_waves_draw(book_left_x, page_y - sprite_get_height(sWorldBookWater) * page_yscale / 2, book_right_x, page_y + sprite_get_height(sWorldBookWater) * page_yscale / 2);
+
 	// Draw chosen pages
 	// the boss spread is a single page, so don't show the previous spread's island beside it
 	var _pages_on_spread = 2;
@@ -427,12 +430,12 @@ if (room == rmMap) {
 	}
 
 	// Draw the boat (clicking it to visit the workbench was tried and taken out: see KANBAN F02)
-	var boat_hover = mouse_hovering(boat_data.x, boat_data.y - sprite_get_height(sMapShip)/2, sprite_get_width(sMapShip), sprite_get_height(sMapShip), true);
+	var boat_hover = mouse_hovering(boat_data.x, boat_data.y - sprite_get_height(sMapShip) * 0.4, sprite_get_width(sMapShip) * 0.8, sprite_get_height(sMapShip) * 0.8, true);
 	if (boat_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your ship", "Where to captain?", undefined, 0, undefined);
 	
 	var _boat_a = 1 - clamp((boat_data.x - book_right_x) / 90, 0, 1) - clamp((book_left_x - boat_data.x) / 90, 0, 1); // off the book: gone
 	if (!is_struct(boat_data.voyage)) boat_data.tilt = lerp(boat_data.tilt, 0, 0.1); // settles once it's there
-	if (_boat_a > 0) draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 1, 1, boat_data.angle + boat_data.tilt, c_white, _boat_a);
+	if (_boat_a > 0) draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 0.8, 0.8, boat_data.angle + boat_data.tilt, c_white, _boat_a); // a fifth smaller: the sea feels bigger (Jared, 2026-11-21)
 	
 	// Chapter complete: shown once the boss is beaten, until the player turns to the next chapter
 	if (world_state == WORLD_STATE.CHAPTER_END) {

@@ -31,7 +31,7 @@
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
 | 22: guided first fight, generic dice | F153, B36 | `feature/tutorial-rewrite` (off `dev`) | **Not yet play-tested.** The guided first fight is back, rewritten for rolled dice and ink; generic dice can't build slots. |
-| 23: map layout B+, new-slot tile, quartermaster | F166, B36 (change), F167, F168 | `feature/map-passages` (off batch 22's branch, so it includes batch 22) | **Not yet play-tested.** Every page brings its own sea stop; the buoy and the four-way strait are gone; a harbour before the boss. Generic dice help build a slot once a coloured die is on the tile; the tile shows how many dice it needs; the quartermaster's offer is a dark window. |
+| 23: map layout B+, new-slot tile, quartermaster, map and reward polish | F166, B36 (change), F167, F168, F169, F170, F171, F172, F173, F174 | `feature/map-passages` (off batch 22's branch, so it includes batch 22) | **Not yet play-tested.** Every page brings its own sea stop; the buoy and the four-way strait are gone; a harbour before the boss. Generic dice help build a slot once a coloured die is on the tile; the tile shows how many dice it needs; the quartermaster's offer is a dark window. Map polish (icons, labels, waves, smaller ship) and reward cards (die over the edge, items as cards). |
 
 **Batch 23 test list (`feature/map-passages`)** Layout B+ of docs/mockups/map-layouts.html. Start a new run (a save from before still loads: its current spread has no sea stops and ends at calm water).
 - Drafting: each of the 3 page cards shows its sea stop on its bottom right corner, with its name; hover for what it does. The three are always different, and at least one is Calm water or the Shipwright (the Shipwright only while a tool has work). A locked page's stop fades with it. Once you've picked a page, its stop shows on the book where it will be, past the island.
@@ -42,6 +42,12 @@
 - Tips: the first-voyage drafting note and the at-sea and spread-end tips describe the new layout; the toolbag's tip mentions the Shipwright and the harbour.
 - B36 (change, Jared 2026-11-21) A generic die can go on the new-slot tile once a coloured die is there (before that it's refused with the reason, and the tile says so while you drag one over it). Take the coloured die back and the slot won't build from generic dice alone: it waits for a coloured one.
 - F167 The new-slot tile says how many dice it needs: "6+ pips" inside as before, and above it a faded d6 outline for each die it needs (one for slot 2, two for slot 3, three for slot 4), gently pulsing (dimmer while a slot is still empty). Dropped dice take the outlines' places; hover the outlines for a reminder. Check the outlines and the waiting dice line up, and that more dice than it needs still all show.
+- F169 Fight reward cards: no dividing line; the paper starts where it was, so the die sits over the card's top edge, with its keyword icons a little bigger on the same line, and the gem inside the paper's top right. Face-down cards cover just the paper part. Bag view and picker cards are unchanged.
+- F170 Item rewards (potions, cores, coins) are cards in the same design: face down, flipped in turn with the rarity flash; the icon on a paper disc over the card's top edge, name, what it does (centred), a core's distribution across the bottom, "x2" for a stack. Take two as before: after the first, one of the others is locked (darkened, chained, "Locked" on hover). Taken cards fade. (Keepsake rewards keep their old look for now.)
+- F171 Map stops: sea stops lose their three rings, just a soft blue disc behind the icon so the dotted courses stop short of it. Island stops have their name underneath like the sea stops. Every stop grows under the mouse (sea stops too, even when not yet reachable). Done stops, island and sea, are half opacity with the tick; island stops are only half green now.
+- F172 The ship is a fifth smaller on the map, and moors beside a sea stop (down and left of it) rather than on it, so the tick shows.
+- F173 Now and then a small white wave rises, drifts and fades on the water pages, under the islands (a few at a time, rare).
+- F174 Flotsam's 50 gold flies from the stop itself; healing (Calm water, the harbour, a healing potion) sparkles at your health in the top bar. Drafting: each page card shows its dotted course between its stops (fainter on a locked page).
 - F168 The quartermaster's offer (start of a run) is a dark slate window like the bag view, with the paper cards on it; heading and words in light ink, the bag strip's dice outlined light. The first-voyage note (paper) should now stand out against it.
 
 **Batch 22 test list (`feature/tutorial-rewrite`)** To see the guided fight: Settings > Gameplay > Tutorial next run, then start a run (the map notes come back too).
@@ -113,6 +119,12 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - H12 Reminder for Jared: more enemy art. (Pen and coin sounds added by Jared: soQuill, soCoins.)
 
 **Core loop**
+- F169 Reward cards: the die over the card's top edge instead of a dividing line, keywords bigger on that line (Jared, 2026-11-21). (Built, batch 23.)
+- F170 Item rewards get the dice rewards' card design. (Built, batch 23.)
+- F171 Map icons: island stops named like sea stops; sea stops lose their rings (one blue disc); hover grows every stop; done stops half opacity with the tick, island stops half green. Jared may draw new sea-stop icons. (Built, batch 23.)
+- F172 Map ship 20% smaller; moors clear of the tick. (Built, batch 23.)
+- F173 Subtle, infrequent waves on the map's water. (Built, batch 23.)
+- F174 Flotsam gold from the stop, heal sparkles at the top bar's health, drafting previews show their courses. (Built, batch 23.)
 - F167 New-slot tile: show how many dice are needed, as faded d6 outlines above it beside the pips number (Jared, 2026-11-21). (Built, batch 23.)
 - F168 The quartermaster's offer gets the dark window treatment, so the paper tutorial note stands out (consistent with every other window). (Built, batch 23.)
 - F166 **Map layout B+ (Jared, 2026-11-21):** each drafted page brings its own sea stop, sailed island → stop → island → stop; the Shipwright's buoy and the four-way strait are gone (their stops became page stops); one of each three offered pages always has Calm water or the Shipwright; a harbour (rest or refit) before the boss. Mockups: docs/mockups/map-layouts.html. (Built, batch 23.) Next: map polish and ship movement (Jared's notes to come).

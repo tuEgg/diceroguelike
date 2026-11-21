@@ -665,6 +665,11 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 		}
 	}
 		
+	// while drafting, each page's course between its stops (once sailing, spread_routes_draw inks them)
+	if (!choices_locked) {
+		for (var n = 1; n < ds_list_size(page.nodes); n++) route_draw(node_x[n], node_y[n], node_x[n + 1], node_y[n + 1], 0.55 * (_locked ? 0.4 : 1) * ((_index == -1) ? 1 : pages_alpha));
+	}
+
 	// Draw icons on top
 	for (var n = 0; n < ds_list_size(page.nodes); n++) {
 		var node = page.nodes[| n];
@@ -686,6 +691,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 			else if (node.cleared) {
 			    _alph = 1.0;
 			}
+			if (node.cleared) _alph *= 0.5; // done: half opacity, with the tick (Jared, 2026-11-21)
 			// or if the choices are locked and the page is chosen
 			else if (choices_locked && page.chosen) {
 			    _alph = pages_alpha;
@@ -751,11 +757,18 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 				}
 			}
 		
-			// show completed nodes as green, with a faded ink tick on them (F148)
+			// a done stop: half green over the icon (not all green), and the ink tick (F148; Jared, 2026-11-21). The icon
+			// itself was drawn at half opacity above.
 			if (node.cleared) {
-				draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale*1.2, node.scale*1.2, 0, make_color_rgb(126, 183, 131), _alph);
-				map_visited_tick(node.x + 14, node.y - 12, 1, _alph);
+				draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale, node.scale, 0, make_color_rgb(126, 183, 131), _alph * 0.5);
+				map_visited_tick(node.x + 14, node.y - 12, 1, 1);
 			}
+			// its name underneath, like the sea stops (in ink with a paper halo)
+			draw_set_font(ftDescriptions);
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_top);
+			draw_outline_text(node.name, global.ui_col.paper_hi, global.ui_col.ink, 2, node.x, node.y + 24 + 6 * node.scale, 1, _alph * (node.cleared ? 0.5 : 1) * ((_icon_blend == c_grey) ? 0.6 : 1), 0);
+			draw_set_halign(fa_left);
 		}
 	}
 	
@@ -1295,11 +1308,12 @@ function spread_end_option_info(_id, _heal_amount, _can_heal) {
 
 /// @func spread_end_apply(_id, _heal_amount)
 /// @desc Do the chosen spread-end choice. Removing or sharpening opens the bag's dice picker.
-function spread_end_apply(_id, _heal_amount) {
+function spread_end_apply(_id, _heal_amount, _x = -1, _y = -1) {
 	switch (_id) {
 		case "heal":
 			global.player_hp = min(global.player_max_hp, global.player_hp + _heal_amount);
-			particle_emit(650, 25, "burst", c_lime);
+			var _hs = ui_health_spot();
+			particle_emit(_hs.x, _hs.y, "burst", c_lime); // where your health is in the top bar
 			break;
 		case "core":
 			var _opts = ds_list_create();
@@ -1332,7 +1346,8 @@ function spread_end_apply(_id, _heal_amount) {
 			}
 			break;
 		case "gold":
-			gain_coins(display_get_gui_width() / 2, display_get_gui_height() / 2, 50);
+			// off the stop itself when we know where it is (flotsam), else the middle of the screen
+			gain_coins((_x >= 0) ? _x : display_get_gui_width() / 2, (_y >= 0) ? _y : display_get_gui_height() / 2, 50);
 			break;
 	}
 }
@@ -1425,20 +1440,12 @@ function map_visited_tick(_x, _y, _scale = 1, _alpha = 1) {
 function sea_stop_draw(_id, _x, _y, _scale, _alpha, _ok) {
 	var _s = _scale;
 	var _ink = make_color_rgb(42, 29, 18);
-	var _paper = _ok ? make_color_rgb(231, 214, 176) : make_color_rgb(160, 152, 136);
 	var _blend = _ok ? c_white : c_gray;
-	draw_set_alpha(0.3 * _alpha);
-	draw_set_color(c_black);
-	draw_ellipse(_x - 30 * _s, _y + 20 * _s, _x + 30 * _s, _y + 36 * _s, false);
-	draw_set_alpha(_alpha);
-	draw_set_color(_ink);
-	draw_circle(_x, _y, 31 * _s, false);
-	draw_set_color(_paper);
-	draw_circle(_x, _y, 27 * _s, false);
-	// a ring of little waves round the edge
-	draw_set_color(_ink);
-	draw_set_alpha(0.35 * _alpha);
-	draw_circle(_x, _y, 22 * _s, true);
+	// one soft sea-blue disc (Jared, 2026-11-21: the three rings went), so the dotted courses stop short of the icon
+	// the way they do round the island stops. Jared may draw new icons for these.
+	draw_set_alpha(_alpha * 0.85);
+	draw_set_color(_ok ? make_color_rgb(150, 186, 190) : make_color_rgb(150, 150, 150));
+	draw_circle(_x, _y, 26 * _s, false);
 	draw_set_alpha(_alpha);
 	switch (_id) {
 		case "workbench": draw_sprite_ext(sToolbag, 0, _x, _y + 2 * _s, 0.62 * _s, 0.62 * _s, 0, _blend, _alpha); break;
@@ -1493,14 +1500,15 @@ function strait_draw(_ax, _ay) {
 		var _info = strait_stop_info(_id, strait.heal);
 		var _taken = (strait.chosen == i);
 		var _alpha = (strait.chosen == -1 || _taken) ? (strait.active ? 1 : 0.85) : 0.35;
-		var _hov = (strait.chosen == -1) && mouse_hovering(_sx, _sy, 64, 64, true, soSlotHover, noone);
+		if (_taken && strait.arrived) _alpha = 0.5; // done (with its tick)
+		var _hov = mouse_hovering(_sx, _sy, 64, 64, true, soSlotHover, noone); // it grows under the mouse, like the island stops
 		strait.scales[i] = lerp(strait.scales[i], _hov ? 1.25 : 1, 0.2);
 		sea_stop_draw(_id, _sx, _sy, strait.scales[i], _alpha, _info.ok || !strait.active);
 		draw_set_font(ftDescriptions);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_top);
 		draw_outline_text(_info.name, global.ui_col.paper_hi, (_info.ok || !strait.active) ? global.ui_col.ink : global.ui_col.ink_soft, 2, _sx, _sy + 36 * strait.scales[i], 1, _alpha, 0); // ink, like the chart
-		if (_hov) {
+		if (_hov && strait.chosen == -1) {
 			// ahead (the islands aren't done yet): what it is, and that it's at the end of the spread
 			if (!strait.active) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, _info.tip + "\nThis page's sea stop: you sail through it after its island, then the page turns.");
 			else {
@@ -1514,7 +1522,7 @@ function strait_draw(_ax, _ay) {
 
 		// sailing there
 		if (_taken && !strait.arrived) {
-			if (boat_sail_toward(_sx - 10, _sy + 5)) {
+			if (boat_sail_toward(_sx - 48, _sy + 24)) { // moored beside it, so the tick shows
 				strait.arrived = true;
 				// only Calm water heals (Q14)
 				strait.healed = (_id == "calm") && (global.player_hp < global.player_max_hp);
@@ -1526,7 +1534,7 @@ function strait_draw(_ax, _ay) {
 					room_goto(rmWorkbench);
 					return;
 				}
-				if (_id != "calm") spread_end_apply(_id, strait.heal);
+				if (_id != "calm") spread_end_apply(_id, strait.heal, _sx, _sy);
 				strait.stamp = 1;
 			}
 		}
@@ -1580,12 +1588,13 @@ function passage_left_draw(_bx, _by) {
 	var _info = strait_stop_info(_shown, passage_heal_amount());
 	var _hov = !_b.sailing && mouse_hovering(_bx, _by, 64, 64, true, soSlotHover, noone);
 	var _breathe = _b.active ? 0.08 * (0.5 + 0.5 * sin(current_time / 220)) : 0; // it's your next stop: it breathes
-	_b.scale = lerp(_b.scale, (_hov && _b.active) ? 1.25 : 1 + _breathe, 0.2);
-	sea_stop_draw(_shown, _bx, _by, _b.scale, (_b.active || _done || _b.sailing) ? 1 : 0.85, true);
+	_b.scale = lerp(_b.scale, _hov ? 1.25 : 1 + _breathe, 0.2); // grows under the mouse, like the island stops
+	var _salpha = (_done && !_b.sailing) ? 0.5 : ((_b.active || _b.sailing) ? 1 : 0.85); // done: half opacity, with its tick
+	sea_stop_draw(_shown, _bx, _by, _b.scale, _salpha, true);
 	draw_set_font(ftDescriptions);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
-	draw_outline_text(_info.name, global.ui_col.paper_hi, global.ui_col.ink, 2, _bx, _by + 36 * _b.scale, 1, 1, 0); // ink, like the chart
+	draw_outline_text(_info.name, global.ui_col.paper_hi, global.ui_col.ink, 2, _bx, _by + 36 * _b.scale, 1, max(_salpha, 0.6), 0); // ink, like the chart
 	if (_done && !_b.sailing) map_visited_tick(_bx + 18, _by - 14, 1, 1); // been there (F148)
 	draw_set_halign(fa_left);
 	if (_hov) {
@@ -1600,11 +1609,11 @@ function passage_left_draw(_bx, _by) {
 		}
 	}
 	if (_b.sailing) {
-		if (boat_sail_toward(_bx - 10, _by + 5)) {
+		if (boat_sail_toward(_bx - 48, _by + 24)) { // moored beside it, so the tick shows
 			_b.sailing = false;
 			_l.passage_done = true;
 			oRunManager.can_visit_workbench = false;
-			if (passage_arrive(_b.id, _b)) return; // gone to the workbench
+			if (passage_arrive(_b.id, _b, _bx, _by)) return; // gone to the workbench
 		}
 	}
 	// the ink stamp: what you got, rising off the stop
@@ -1625,7 +1634,7 @@ function passage_left_draw(_bx, _by) {
 /// @desc A sea stop reached (the left page's, or the harbour's): it happens. Calm water heals (if hurt); the Shipwright
 ///       saves and opens the workbench (returns true: the room is changing); the rest apply (spread_end_apply: trim
 ///       and whet open the dice picker). _b gets heal, healed and stamp for the ink stamp.
-function passage_arrive(_id, _b) {
+function passage_arrive(_id, _b, _x = -1, _y = -1) {
 	_b.heal = passage_heal_amount();
 	_b.healed = false;
 	if (_id == "calm") {
@@ -1635,7 +1644,7 @@ function passage_arrive(_id, _b) {
 		room_goto(rmWorkbench);
 		return true;
 	} else {
-		spread_end_apply(_id, _b.heal);
+		spread_end_apply(_id, _b.heal, _x, _y);
 	}
 	_b.stamp = 1;
 	return false;
@@ -1771,8 +1780,8 @@ function harbour_draw(_bp) {
 		var _info = strait_stop_info(_id, _heal);
 		var _can = !_done && _h.chosen == -1 && world_state == WORLD_STATE.EXPLORING && node_to_move_to == undefined && !boat_data.entering;
 		var _hov = mouse_hovering(_sx, _sy, 64, 64, true, soSlotHover, noone);
-		var _alpha = (_h.chosen == -1 && !_done) ? 1 : ((_h.chosen == i) ? 1 : 0.35);
-		_h.scales[i] = lerp(_h.scales[i], (_hov && _can && _info.ok) ? 1.25 : 1, 0.2);
+		var _alpha = (_h.chosen == -1 && !_done) ? 1 : ((_h.chosen == i) ? (_h.arrived ? 0.5 : 1) : 0.35);
+		_h.scales[i] = lerp(_h.scales[i], _hov ? 1.25 : 1, 0.2);
 		sea_stop_draw(_id, _sx, _sy, _h.scales[i], _alpha, _info.ok || _done);
 		draw_set_font(ftDescriptions);
 		draw_set_halign(fa_center);
@@ -1790,10 +1799,10 @@ function harbour_draw(_bp) {
 			}
 		}
 		if (_h.chosen == i && !_h.arrived) {
-			if (boat_sail_toward(_sx - 10, _sy + 5)) {
+			if (boat_sail_toward(_sx - 48, _sy + 24)) { // moored beside it, so the tick shows
 				_h.arrived = true;
 				_bp.harbour_done = true;
-				if (passage_arrive(_id, _h)) return; // gone to the workbench
+				if (passage_arrive(_id, _h, _sx, _sy)) return; // gone to the workbench
 			}
 		}
 		if (_h.chosen == i && _h.stamp > 0) {
@@ -1905,4 +1914,38 @@ function boat_sail_toward(_tx, _ty) {
 		return true;
 	}
 	return false;
+}
+
+/// @func map_waves_draw(_x1, _y1, _x2, _y2)
+/// @desc oWorldManager Draw GUI, over the book's water pages and under the islands: now and then a small wave rises,
+///       drifts a little and fades, somewhere on the sea (Jared, 2026-11-21: subtle and infrequent, like the clouds in
+///       a fight). A few at a time; the islands drawn after cover any that land on them.
+function map_waves_draw(_x1, _y1, _x2, _y2) {
+	if (!variable_instance_exists(id, "map_waves")) map_waves = [];
+	if (random(1) < 1 / 50 && array_length(map_waves) < 6) {
+		array_push(map_waves, { x: random_range(_x1 + 30, _x2 - 30), y: random_range(_y1 + 30, _y2 - 30), t: 0, life: irandom_range(150, 230), w: random_range(14, 24) });
+	}
+	for (var i = array_length(map_waves) - 1; i >= 0; i--) {
+		var _w = map_waves[i];
+		_w.t++;
+		if (_w.t >= _w.life) { array_delete(map_waves, i, 1); continue; }
+		var _f = _w.t / _w.life;
+		var _a = 0.32 * sin(_f * pi); // fades in, then out
+		var _x = _w.x + _f * 10, _y = _w.y - _f * 3; // drifts with the wind
+		draw_set_alpha(_a);
+		draw_set_color(make_color_rgb(240, 246, 244));
+		// two little crests, like an inked "~"
+		for (var c = 0; c < 2; c++) {
+			var _cx = _x + c * _w.w * 0.9, _cy = _y + c * 4;
+			var _steps = 8, _px = _cx - _w.w / 2, _py = _cy;
+			for (var k = 1; k <= _steps; k++) {
+				var _nx = _cx - _w.w / 2 + _w.w * k / _steps;
+				var _ny = _cy - sin(k / _steps * pi) * 4;
+				draw_line_width(_px, _py, _nx, _ny, 2);
+				_px = _nx; _py = _ny;
+			}
+		}
+	}
+	draw_set_alpha(1);
+	draw_set_color(c_white);
 }

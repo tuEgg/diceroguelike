@@ -1162,12 +1162,12 @@ if (show_rewards) {
 					if (die.rarity == "rare") sfx_play(soCoins, AUDIO_GROUP.SFX, 0.05, 0.9); // and a rare one jingles
 				}
 				if (!_flip.face_up) {
-					reward_card_back(_rc_cx, _rc_cy, _rc_w * _flip.squash, _rc_h, r);
+					reward_card_back(_rc_cx, _rc_cy + 27, _rc_w * _flip.squash, _rc_h - 54, r); // the paper's part (the die sits above it)
 					continue;
 				}
 				var _rc_hover = !rewards_dice_taken && mouse_hovering(_rc_cx - _rc_w / 2, _rc_cy - _rc_h / 2, _rc_w, _rc_h, false, soSlotHover, noone, true, UI_LAYER.POPUP);
 				var alpha = rewards_dice_taken ? 0.35 : 1.0;
-				draw_bag_card(die, _rc_cx, _rc_cy - 14 * _flip.pop, _rc_w, _rc_h, alpha * _flip.fade_in, _rc_hover, false);
+				draw_bag_card(die, _rc_cx, _rc_cy - 14 * _flip.pop, _rc_w, _rc_h, alpha * _flip.fade_in, _rc_hover, false, "reward");
 				reward_rarity_flash(die.rarity, _rc_cx, _rc_cy, _rc_w, _rc_h, _flip.since, alpha);
 				var btn = { x: _rc_cx - _rc_w / 2, y: _rc_cy - _rc_h / 2, w: _rc_w, h: _rc_h, hover: _rc_hover, click: _rc_hover && mouse_check_button_pressed(mb_left) };
 				if (btn.click) sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
@@ -1185,115 +1185,41 @@ if (show_rewards) {
 		break;
 		
 		case "consumables":
+			// the items on offer as paper cards in the dice rewards' design (draw_item_card, Jared 2026-11-21): dealt face
+			// down, then flipped in turn; take two (the first pick locks one of the others away)
+			var _ic_w = 280, _ic_gap = 40;
+			var _ic_n = ds_list_size(reward_consumable_options);
+			var _ic_h = 150;
+			for (var r = 0; r < _ic_n; r++) _ic_h = max(_ic_h, item_card_layout(reward_consumable_options[| r], _ic_w).h);
+			var _ic_cy = gui_h / 2 + 40;
 			draw_set_font(ftDefault);
-			draw_outline_text("Choose two items", c_black, c_white, 2, gui_w/2, gui_h/2 - 100, 1, 1, 0);
-	
-			for (var r = 0; r < ds_list_size(reward_consumable_options); r++) {
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_outline_text("Choose two items", c_black, c_white, 2, gui_w/2, _ic_cy - _ic_h / 2 - 40, 1, 1, 0);
+			reward_item_reveal_t++;
+
+			for (var r = 0; r < _ic_n; r++) {
 			    var consumable = reward_consumable_options[| r];
-
-			    // --- Layout ---
-			    var reward_w = 120;
-			    var reward_h = 70;
-			    var reward_padding = 120;
-			    var reward_total_w = (ds_list_size(reward_consumable_options) * reward_w) + ((ds_list_size(reward_consumable_options) - 1) * reward_padding);
-			    var reward_x = gui_w / 2 - (reward_total_w / 2);
-			    var base_x = reward_x + (r * (reward_w + reward_padding));
-			    var base_y = gui_h/2;
-			    var base_w = reward_w;
-			    var base_h = reward_h;
-				
-				// Draw background sprite
-				
-				// Draw background sprite
-				var btn_col = global.color_common;
-				switch (consumable.rarity) {
-					case "uncommon":
-					btn_col = global.color_uncommon;
-					break;
-					
-					case "rare":
-					btn_col = global.color_rare;
-					break;
+				var _ic_cx = gui_w / 2 - ((_ic_n - 1) * (_ic_w + _ic_gap)) / 2 + r * (_ic_w + _ic_gap);
+				var _flip = reward_flip_state(reward_item_reveal_t, r);
+				if (_flip.turned_now) {
+					sfx_play_layered(soCard, AUDIO_GROUP.SFX, 1 + random_range(-0.06, 0.06) + r * 0.04, 1);
+					if (variable_struct_exists(consumable, "rarity") && consumable.rarity == "rare") sfx_play(soCoins, AUDIO_GROUP.SFX, 0.05, 0.9);
 				}
-				
-				var wobble = sin(((current_time / 1000) + r) * 3) * 3;
-				draw_sprite_ext(sRewardFrame, 0, base_x + base_w/2, base_y + base_w/2 - 10, reward_scale[| r] * 0.95, reward_scale[| r] * 0.95, wobble, btn_col, 1.0);
-
-			    // --- Draw dice sprite using hoverable scaling ---
-			    var btn = draw_gui_button(
-			        base_x, base_y,
-			        base_w, base_h,
-			        reward_scale[| r],
-			        "", // no text (we’ll draw sprite manually)
-			        c_white,
-			        ftDefault,
-			        !consumable.taken,         // active
-					false,
-					UI_LAYER.POPUP
-			    );
-
-			    // Update scale for animation
-			    reward_scale[| r] = btn.scale;
-
-			    // --- Draw the dice sprite ---
-			    var alpha = 1.0
-				if (consumable.taken) alpha = 0.2;
-				
-				var col = c_white;
-				if (rewards_consumables_locked == r) col = c_black;
-				
-				// Draw consumable sprite
-				
-			    draw_sprite_ext(
-			        consumable.sprite,
-			        consumable.index,
-			        btn.x + btn.w / 2,
-			        btn.y + btn.h / 2,
-			        btn.scale,
-			        btn.scale,
-			        0,
-			        col,
-			        alpha
-			    );
-
-			    // --- Draw name ---
-			    var label = string(consumable.name);
-			    draw_set_halign(fa_center);
-			    draw_set_valign(fa_middle);
-			    draw_set_font(ftDefault);
-			    draw_outline_text(label, c_black, col, 2, btn.x + btn.w / 2, btn.y + btn.h + 20 - 12 * (string_height_ext(label, -1, sprite_get_width(sRewardFrame) * 0.85) > string_height("A") * 1.5), 1, alpha, 0, sprite_get_width(sRewardFrame) * 0.85); // long names wrap inside the frame
-				
-				// Draw chains over locked item
-				
-				if (rewards_consumables_locked == r) {
-					draw_sprite_ext(
-				        sRewardChain,
-				        consumable.index,
-				        btn.x + btn.w / 2,
-				        btn.y + btn.h / 2 + 10,
-				        btn.scale,
-				        btn.scale,
-				        wobble,
-				        c_white,
-				        1.0
-				    );
+				if (!_flip.face_up) {
+					reward_card_back(_ic_cx, _ic_cy + 23, _ic_w * _flip.squash, _ic_h - 46, r + 3);
+					continue;
 				}
-				
-				// Draw quantity
-				if (consumable.amount > 1) {
-					draw_set_font(ftBig);
-					draw_outline_text(consumable.amount, c_black, col, 2, btn.x + btn.w - 20, btn.y + btn.h - 20, 1, alpha, 0);
-				}
-		
-				if (btn.hover) {
-					var die = undefined;
-					if (string_pos("Core", consumable.name) > 0) {
-						die = core_preview_die();
-						die.distribution = consumable.distribution;
-					}
-					queue_tooltip( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), consumable.name, consumable.description, undefined, 0, die);
-				}
-				
+				var _ic_locked = (rewards_consumables_locked == r);
+				var _ic_open = !consumable.taken && !_ic_locked && !rewards_consumables_second_taken;
+				var _ic_hover = mouse_hovering(_ic_cx - _ic_w / 2, _ic_cy - _ic_h / 2, _ic_w, _ic_h, false, _ic_open ? soSlotHover : noone, noone, true, UI_LAYER.POPUP);
+				var alpha = consumable.taken ? 0.35 : 1.0;
+				draw_item_card(consumable, _ic_cx, _ic_cy - 14 * _flip.pop, _ic_w, _ic_h, alpha * _flip.fade_in, _ic_hover && _ic_open, _ic_locked);
+				reward_rarity_flash(variable_struct_exists(consumable, "rarity") ? consumable.rarity : "common", _ic_cx, _ic_cy, _ic_w, _ic_h, _flip.since, alpha);
+				var btn = { x: _ic_cx - _ic_w / 2, y: _ic_cy - _ic_h / 2, w: _ic_w, h: _ic_h, hover: _ic_hover, click: _ic_hover && _ic_open && mouse_check_button_pressed(mb_left), scale: 1 };
+				if (btn.click) sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
+				if (_ic_hover && _ic_locked) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Locked", "Your first pick locked this one away.");
+
 				// check for item free
 
 			    // Take first reward
