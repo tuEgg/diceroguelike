@@ -291,7 +291,7 @@ if (room == rmMap) {
 			// and take it when the burn has had its moment (auto_take_t frames)
 			if (pages_drafted == 1) {
 				if (auto_take_page == undefined) {
-					for (var ap = 0; ap < page_count; ap++) if (!pages_shown[| ap].chosen) { auto_take_page = pages_shown[| ap]; auto_take_t = 75; }
+					for (var ap = 0; ap < page_count; ap++) if (!pages_shown[| ap].chosen) { auto_take_page = pages_shown[| ap]; auto_take_t = 60; }
 				} else auto_take_t--;
 			} else auto_take_page = undefined;
 

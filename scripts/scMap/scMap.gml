@@ -2004,14 +2004,15 @@ function page_passage_preview(_page, _px, _py, _scale, _alpha, _inside = false) 
 /// @func page_burn_draw(_page, _x, _y, _index)
 /// @desc The draft page the first pick lost (Jared, 2026-11-21: not chains, it burns away): drawn as usual into burn_surf,
 ///       then through shBurn, whose flame front scorches it brown, glows ember orange at its edge and leaves nothing
-///       behind, over about 80 frames (page.burn_t 0 to 1). Embers and a little smoke rise off it as it goes.
+///       behind, over about 62 frames (page.burn_t 0 to 1). A few embers and wisps of smoke rise off it (kept sparse so the
+///       shader shows).
 function page_burn_draw(_page, _x, _y, _index) {
 	if (!variable_struct_exists(_page, "burn_t")) {
 		_page.burn_t = 0;
-		particle_emit_later(_x, _y, "burst", make_color_rgb(255, 150, 50), 18); // it catches
+		particle_emit_later(_x, _y, "burst", make_color_rgb(255, 150, 50), 8); // it catches
 	}
 	if (_page.burn_t >= 1) return;
-	_page.burn_t = min(1, _page.burn_t + 1 / 80);
+	_page.burn_t = min(1, _page.burn_t + 1 / 62); // about a second (Jared: a little quicker)
 	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
 	if (!surface_exists(burn_surf)) burn_surf = surface_create(_gw, _gh);
 	surface_set_target(burn_surf);
@@ -2033,7 +2034,7 @@ function page_burn_draw(_page, _x, _y, _index) {
 	// embers (and a little smoke) rising off the card while it burns
 	var _hw = DRAFT_CARD_W / 2, _hh = DRAFT_CARD_H / 2;
 	if (_f < 0.9) {
-		repeat (3) particle_emit_later(_x + random_range(-_hw, _hw), _y + random_range(-_hh, _hh), "rise", choose(make_color_rgb(255, 170, 60), make_color_rgb(255, 110, 30), make_color_rgb(255, 220, 120)), 1);
-		if (random(1) < 0.4) particle_emit_later(_x + random_range(-_hw, _hw), _y + random_range(-_hh, _hh), "rise", make_color_rgb(70, 64, 58), 1);
+		if (random(1) < 0.5) particle_emit_later(_x + random_range(-_hw, _hw), _y + random_range(-_hh, _hh), "rise", choose(make_color_rgb(255, 170, 60), make_color_rgb(255, 110, 30), make_color_rgb(255, 220, 120)), 1);
+		if (random(1) < 0.12) particle_emit_later(_x + random_range(-_hw, _hw), _y + random_range(-_hh, _hh), "rise", make_color_rgb(70, 64, 58), 1);
 	}
 }
