@@ -1,6 +1,6 @@
 # Tides of Fortune: KANBAN
 
-> Repo: `C:\Users\Jared\Projects\TidesOfFortune`, pushed to GitHub. **Branches:** `main` = live on itch.io (tag `v0.1.1`; hotfixes become v0.1.2...), `dev` = v0.2 in progress (see CLAUDE.md). `file:line` references on open cards come from the 2026-11-15 audit and may have drifted by a few lines.
+> Repo: `C:\Users\Jared\Projects\TidesOfFortune`, pushed to GitHub. **Branches:** `main` = live on itch.io (tag `v0.2.0`, 2026-11-21; hotfixes become v0.2.1...), `dev` = v0.3 in progress (see CLAUDE.md). `file:line` references on open cards come from the 2026-11-15 audit and may have drifted by a few lines.
 > **Work order (agreed):** 1. bug-fix batches → 2. debug menu (done) → 3. finish the world-map rework → 4. revisit intel.
 > **Workflow:** Claude batches fixes into commits with a test checklist. Jared play-tests, gives feedback and approves. Nothing is merged or pushed without approval.
 > **Keeping this board current:** it is updated in the same commit as the work. A card stays in its bug or debt section while open, is listed in the IN TESTING table while its batch waits for a playtest, and moves to the DONE table once Jared approves the merge.
@@ -16,7 +16,7 @@
 | ID | Task | Notes |
 |---|---|---|
 | H11 | **Reminder for Jared:** the shop's exit door is drawn twice (it's in the room background and is also the exit object's sprite). Remove it from the background. | Jared, art |
-| H09 | **itch.io playtest build** live at https://tuegg.itch.io/tides-of-fortune (v0.1.1, tagged on main). Collecting feedback; fixes go out as hotfixes (v0.1.2...). | Jared, ongoing |
+| H09 | **itch.io playtest build** live at https://tuegg.itch.io/tides-of-fortune (v0.2.0 tagged on main 2026-11-21; Jared exports and uploads the web build). Collecting feedback; fixes go out as hotfixes (v0.1.2...). | Jared, ongoing |
 
 **Waiting for playtest feedback** (agreed 2026-11-17; on 2026-11-19 Jared started v0.2 on `dev` with items 1-4 below, now batch 17)
 1. Game feel: room transitions (F65) and trigger animations (F40).
@@ -151,7 +151,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 ## ✅ DONE
 
-**Play-tested and approved by Jared (2026-11-21), merged to `dev` (v0.2, not released yet)**
+**Play-tested and approved by Jared (2026-11-21), merged to `dev` (released as v0.2.0, 2026-11-21)**
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
@@ -190,7 +190,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F153 After the guided fight, the next fights don't repeat its tips (rolled dice, new slot, insight); a tip it didn't reach (if the fight ends early) still shows later. Kill the Ruffian on turn 1 with the debug menu to check.
 - B36 Generic (bone-white) dice: dragging one over an empty slot says it can't start a slot; over the new-slot tile, "Can't build a slot" with the reason; dropping it there is refused. Into a slot with an action it adds as before.
 
-**Play-tested and approved by Jared (2026-11-20), merged to `dev` (v0.2, not released yet)**
+**Play-tested and approved by Jared (2026-11-20), merged to `dev` (released as v0.2.0, 2026-11-21)**
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
@@ -240,7 +240,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 ---
 
-**Play-tested and approved by Jared (2026-11-19), merged to `dev` (v0.2, not released yet)**
+**Play-tested and approved by Jared (2026-11-19), merged to `dev` (released as v0.2.0, 2026-11-21)**
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
