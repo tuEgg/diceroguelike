@@ -49,7 +49,7 @@ draw_circle(nodes_x, bar_half, _coin_r * 0.55, true);
 draw_set_color(c_white);
 ui_numeral(string(credits), nodes_x + 22, bar_half, 26, global.ui_col.paper_hi, 1, fa_left);
 var credits_hover = mouse_hovering(nodes_x - 20, bar_half - 25, 130, 50, false);
-if (credits_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Gold", "You have " + string(credits) + " gold doubloons.");
+if (credits_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Gold", "You have " + string(credits) + " gold.");
 var pages_x = nodes_x; // (kept for anything below that measured from it)
 
 // Draw cores and consumables
@@ -107,8 +107,8 @@ for (var i = 0; i < array_length(items); i++) {
 			// a potion says how it's used (F24: testers didn't know)
 			var _how = "";
 			if (items[i].type == "consumable" && is_struct(items[i].effects) && variable_struct_exists(items[i].effects, "trigger")) {
-				if (items[i].effects.trigger == "on_item_played_to_slot") _how = " [subtext]Drag it onto a slot in a fight to use it.";
-				else if (items[i].effects.trigger == "on_clicked") _how = " [subtext]Click it to use it.";
+				if (items[i].effects.trigger == "on_item_played_to_slot") _how = " [subtext]Drag onto a slot in a fight to use.";
+				else if (items[i].effects.trigger == "on_clicked") _how = " [subtext]Click to use.";
 			}
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), items[i].name, items[i].description + _how, undefined, 0, die);
 		}
@@ -248,12 +248,12 @@ if (toolbar_hover) {
 if (toolbar_hover && !show_tools) { // (its tip would cover the tools once they're out)
 	if (room == rmMap) {
 		if (can_visit_workbench) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools used to manipulate your dice at the workbench.");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools for changing dice at the workbench.");
 		} else {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools for the workbench: at the Shipwright, a sea stop some pages end in, and at the harbour before each boss.");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools for changing dice. Use them at the Shipwright or the harbour before each boss.");
 		}
 	} else {
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools used to manipulate your dice at the workbench.");
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools for changing dice at the workbench.");
 	}
 }
 
@@ -298,7 +298,7 @@ if (alignment_popup_t >= 0) {
 }
 
 var alignment_text = "Neutral";
-var alignment_description = "Actions have consequences, make decisions that change how the sea interacts with you.";
+var alignment_description = "Your choices move the compass and change how the sea treats you.";
 
 if (global.player_alignment >= 0 && global.player_alignment < 10) {
 	alignment_text = "Eldritch Horror";
@@ -332,7 +332,7 @@ draw_sprite_ext(sMapIcon, 5, gui_w - 330, 45, 1, 1, 0, c_white, 1.0); // (moved 
 
 draw_set_font(ftBig);
 var bounty_name = "-";
-var bounty_description = "You aren't hunting any bounties";
+var bounty_description = "No bounty taken.";
 var bounty_col = c_dkgray;
 if (active_bounty != undefined) {
 	bounty_name = active_bounty.enemy_name;
@@ -354,7 +354,7 @@ draw_outline_text(bounty_name, c_black, bounty_col, 2, gui_w - 330 + 30, 44, 1, 
 
 var bounty_hover = mouse_hovering(gui_w - 360, 20, 270, 50, false, noone, noone); 
 if (bounty_hover) {
-	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Active Bounty: " + bounty_name, bounty_description);
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Bounty: " + bounty_name, bounty_description);
 }
 
 // Keep scale list synced with keepsake size
@@ -418,7 +418,7 @@ cog_scale = lerp(cog_scale, cog_hover ? 1.15 : 1.0, 0.25);
 cog_turn += cog_hover ? 2 : 0;
 draw_cog_icon(cog_x, cog_y, 18 * cog_scale, cog_turn);
 if (cog_hover) {
-	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Menu", "Pause, settings, or save and quit. Escape or Tab opens it too.");
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Menu", "Pause, settings, save and quit. Also on Escape or Tab.");
 	if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && run_over == undefined && oCutsceneManager.cutscene_state == CUTSCENE_STATE.FINISHED) pause_open();
 }
 

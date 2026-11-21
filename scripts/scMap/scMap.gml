@@ -770,7 +770,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 							node_to_move_to = node;
 							node_to_move_to.y += 10;
 						} else {
-							throw_error("You can't reach that yet!", "Complete the next room before continuing.");
+							throw_error("Not yet", "Clear the next stop first.");
 						}
 					}
 				}
@@ -1307,15 +1307,15 @@ function spread_end_roll_options() {
 function spread_end_option_info(_id, _heal_amount, _can_heal) {
 	switch (_id) {
 		case "heal":
-			return { flavour: "Recover below deck", label: "Heal " + string(_heal_amount) + " HP", tip: "Heal before you choose your next pages.", ok: _can_heal, reason: "You're already at full health." };
+			return { flavour: "Recover below deck", label: "Heal " + string(_heal_amount) + " HP", tip: "Heal " + string(_heal_amount) + " HP.", ok: _can_heal, reason: "You're at full health." };
 		case "core":
-			return { flavour: "Search the hold", label: "Gain a core", tip: "A random core for your item bar. Drill it into a die at the workbench.", ok: get_first_free_item_slot() != -1, reason: "Your item slots are full. Use an item, or right click one to drop it." };
+			return { flavour: "Search the hold", label: "Gain a core", tip: "Gain a random core.", ok: get_first_free_item_slot() != -1, reason: "Your item slots are full." };
 		case "trim":
-			return { flavour: "Lighten the hold", label: "Remove a die", tip: "Choose a die to throw overboard, so the ones you want come up more often.", ok: ds_list_size(global.dice_bag) > 6, reason: "Your bag is already small (6 dice or fewer)." };
+			return { flavour: "Lighten the hold", label: "Remove a die", tip: "Remove a die from your bag.", ok: ds_list_size(global.dice_bag) > 6, reason: "Your bag has 6 dice or fewer." };
 		case "whet":
-			return { flavour: "Sharpen a die", label: "+1 min roll", tip: "Choose a die: it never rolls its lowest face again (+1 minimum roll).", ok: ds_list_size(global.dice_bag) > 0, reason: "Your bag is empty." };
+			return { flavour: "Sharpen a die", label: "+1 min roll", tip: "Give a die +1 minimum roll.", ok: ds_list_size(global.dice_bag) > 0, reason: "Your bag is empty." };
 		case "gold":
-			return { flavour: "Sell some cargo", label: "Gain 50 gold", tip: "50 gold for the next shop.", ok: true, reason: "" };
+			return { flavour: "Sell some cargo", label: "Gain 50 gold", tip: "Gain 50 gold.", ok: true, reason: "" };
 	}
 	return { flavour: "", label: "?", tip: "", ok: false, reason: "" };
 }

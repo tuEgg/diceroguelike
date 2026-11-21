@@ -145,9 +145,8 @@ if (room == rmMap) {
 			tab_text = "The boss is on this spread.";
 			if (spreads_to_boss == 1) tab_text = "1 more spread until the boss.";
 			if (spreads_to_boss > 1) tab_text = string(spreads_to_boss) + " more spreads until the boss.";
-			tab_text += " Chapter " + string(c) + " begins after it.";
 		} else {
-			tab_text = "Chapter " + string(c) + " of " + string(CHAPTER_COUNT) + ", after the chapter before it.";
+			tab_text = "Chapter " + string(c) + " of " + string(CHAPTER_COUNT) + ".";
 		}
 		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Chapter " + string(c) + ": " + chapter_title(c), tab_text);
 	}
@@ -481,8 +480,8 @@ if (room == rmMap) {
 		draw_set_font(ftDefault);
 		draw_set_color(global.ui_col.ink);
 		var next_text = voyage_over
-			? "You have sailed all " + string(CHAPTER_COUNT) + " chapters of the logbook."
-			: "Next: Chapter " + string(chapter + 1) + ", " + chapter_title(chapter + 1) + ". The seas grow more dangerous.";
+			? "All " + string(CHAPTER_COUNT) + " chapters sailed."
+			: "Next: Chapter " + string(chapter + 1) + ", " + chapter_title(chapter + 1) + ".";
 		draw_text_ext(gui_w / 2, _py1 + 212, next_text, -1, _pw - 120);
 		draw_set_alpha(1);
 		draw_set_color(c_white);
@@ -492,7 +491,7 @@ if (room == rmMap) {
 		if (chapter_btn.click) {
 			if (voyage_over) {
 				// the run is won: the summary deletes the save and leads back to the menu
-				run_end(true, "All " + string(CHAPTER_COUNT) + " chapters of the logbook sailed");
+				run_end(true, "All " + string(CHAPTER_COUNT) + " chapters sailed");
 			} else {
 				start_new_chapter();
 			}

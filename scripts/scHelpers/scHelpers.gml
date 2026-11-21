@@ -1536,7 +1536,7 @@ function lose_run() {
 	if (instance_exists(oRunManager) && oRunManager.run_over != undefined) return;
 
 	// what did it: the enemies still standing, or the voyage itself
-	var _cause = "Your hull gave out on the voyage";
+	var _cause = "Your hull gave out";
 	if (instance_exists(oCombat)) {
 		oCombat.state = CombatState.PLAYER_DEAD;
 		oCombat.player_death_t = current_time; // the ship keels over and sinks (oCombat Draw GUI)
@@ -1849,7 +1849,7 @@ function pause_draw() {
 		}
 	}
 	draw_set_font(ftDefault);
-	draw_outline_text("Your voyage is saved at the last stop you reached.", c_black, c_ltgray, 2, _gw / 2, _gh * 0.4 + 3 * (_bh + 30) + 20, 1, 1, 0);
+	draw_outline_text("Saved at your last stop.", c_black, c_ltgray, 2, _gw / 2, _gh * 0.4 + 3 * (_bh + 30) + 20, 1, 1, 0);
 	// the build number, inside the panel's top-right corner (panel from _gh*0.22, right edge _gw/2 + 260), clear of the
 	// centred title below it and of the save note
 	draw_version_tag(_gw / 2 + 260 - 22, _gh * 0.22 + 34);
@@ -2283,7 +2283,7 @@ function bag_controls_draw(_list, _pad) {
 	var _sort_cx = (_x + _w / 2 + _gap) - 30 - _sort_w / 2; // = 1002 - 30 - 85 = 887 at 1920 wide
 	var _sort = ui_button(_sort_cx, _y, _sort_w, _h, oRunManager.bag_btn_scales[6], "Sort: " + _sorts[oRunManager.bag_sort], global.ui_neutral, true, "", UI_LAYER.BAG, 1, ftDefault);
 	oRunManager.bag_btn_scales[6] = _sort.scale;
-	if (_sort.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Sort", "Click to change the order: bag order, type, size (biggest first), rarity (rarest first), name.");
+	if (_sort.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Sort", "Bag order, type, size, rarity or name.");
 	if (_sort.click) { oRunManager.bag_sort = (oRunManager.bag_sort + 1) mod array_length(_sorts); oRunManager.scroll_y = 0; }
 }
 
@@ -2528,7 +2528,7 @@ function card_hero_draw(_d, _out, _x1, _x2, _y1, _dy, _r, _alpha, _interactive, 
 		draw_set_valign(fa_middle);
 		draw_text(_tx, _ty + 1, _txt);
 		if (_interactive && mouse_hovering(_tx, _ty, _tw, _th, true, noone, noone, true, _layer)) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rolls " + _txt, "This die rolls " + string(_out.min_roll) + " to " + string(_out.max_roll) + " instead of 1 to " + string(_d.dice_value) + ", from its upgrades and your keepsakes.");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rolls " + _txt, "This die rolls " + string(_out.min_roll) + " to " + string(_out.max_roll) + " instead of 1 to " + string(_d.dice_value) + ".");
 		}
 	}
 
@@ -2746,7 +2746,7 @@ function offering_draw() {
 	draw_text(_gw / 2, _py + 56, "The quartermaster's offer");
 	draw_set_font(ftDefault);
 	draw_set_color(global.ui_col.rule);
-	draw_text(_gw / 2, _py + 96, "Take one die for your bag, fitted with a core. A core changes which faces a die rolls most often.");
+	draw_text(_gw / 2, _py + 96, "Take one die with a core. A core changes which faces it rolls most.");
 
 	// the cards
 	var _cx0 = _gw / 2 - ((_n - 1) * (_cw + _gap)) / 2;
@@ -2789,7 +2789,7 @@ function offering_draw() {
 	}
 
 	var _label = (_sel >= 0) ? "Take the " + oRunManager.offering[_sel].dice.name : "Choose a die";
-	var _btn = ui_button(_px + _pw - 200, _fy, 300, 64, oRunManager.offer_btn_scale, _label, global.ui_primary, _sel >= 0, "Click one of the three dice first.", UI_LAYER.POPUP, 1, ftDefault);
+	var _btn = ui_button(_px + _pw - 200, _fy, 300, 64, oRunManager.offer_btn_scale, _label, global.ui_primary, _sel >= 0, "Choose a die first.", UI_LAYER.POPUP, 1, ftDefault);
 	oRunManager.offer_btn_scale = _btn.scale;
 	if (_btn.click && _sel >= 0) offering_take(_sel, _px + _pw - 200, _fy);
 

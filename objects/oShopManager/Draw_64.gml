@@ -56,7 +56,7 @@ for (var c = 0; c < ds_list_size(shop_consumable_options); c++) {
 		if (mouse_check_button_pressed(mb_left) && !consumable.taken) {
 			// say why a purchase can't happen, rather than doing nothing
 			if (get_first_free_item_slot() == -1) {
-				throw_error("No room", "Your item slots are full. Use an item, or right click one to drop it.");
+				throw_error("Item slots full", "Use an item, or right click one to drop it.");
 			} else if (oRunManager.credits < consumable.price) {
 				throw_error("Not enough gold", "You need " + string(consumable.price - oRunManager.credits) + " more gold.");
 			} else {

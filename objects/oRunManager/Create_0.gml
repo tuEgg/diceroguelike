@@ -42,7 +42,7 @@ ds_list_add(keepsakes, get_keepsake_by_id("looking_glass"));
 global.keywords = {
     "Stowaway": {
         colour: c_aqua,
-        desc: "Bonus effect when dice is left unplayed.",
+        desc: "Bonus effect when left unplayed.",
 		index: 0,
 		icon_on: ["hand"]
     },
@@ -70,34 +70,34 @@ global.keywords = {
 
     "Followthrough": {
         colour: c_red,
-        desc: "Bonus effects when dice is rolled dependent on previous slots.",
+        desc: "Bonus effect that depends on earlier slots.",
 		index: 4,
 		icon_on: ["hand"]
     },
 
     "Exclusive": {
         colour: c_teal,
-        desc: "Clears its slot when played, and no other dice can join it. It can't build a slot.",
+        desc: "Clears its slot when played. No other dice can join it, and it can't build a slot.",
 		index: 5,
 		icon_on: ["hand"]
     },
 
 "Sticky": {
         colour: c_dkgray,
-        desc: "Stays in its slot for one extra turn, and acts again.",
+        desc: "Stays in its slot one extra turn and acts again.",
 		index: 7,
 		icon_on: ["hand", "slot"]
     },
 
     "Might": {
         colour: c_white,
-        desc: "Boost Attacks by 1 per point of Might",
+        desc: "Attacks get +1 per Might.",
 		index: 8
     },
 
     "Balance": {
         colour: c_white,
-        desc: "Boost Blocks by 1 per point of Balance",
+        desc: "Blocks get +1 per Balance.",
 		index: 9
     }
 };
@@ -182,12 +182,12 @@ ds_list_add(global.player_intel_data, {
 ds_list_add(global.player_intel_data, {
 	requirement: 0,
 	name: "Insight",
-	description: "You see exactly what each enemy will do this turn.",
+	description: "Enemy intents show exact numbers.",
 	index: 2,
 });
 global.intel_blotted = {
 	name: "Blotted",
-	description: "Below 0 insight the page is smudged: enemy intents are hidden.",
+	description: "Below 0 insight, enemy intents are hidden.",
 	index: 0,
 };
 
@@ -231,7 +231,7 @@ tools = ds_list_create();
 
 tool_hammer = {
 	name: "The Hammer",
-	desc: "Smash two dice together using this",
+	desc: "Smash two dice into one.",
 	index: 0, // index for the silhouette sprite
 	sprite: sHammer,
 	price: 150,
@@ -241,7 +241,7 @@ tool_hammer = {
 
 tool_drill = {
 	name: "The Drill",
-	desc: "Drill a new core into your dice using this",
+	desc: "Drill a new core into a die.",
 	index: 2, // index for the silhouette sprite
 	sprite: sDrill,
 	price: 125,
@@ -250,7 +250,7 @@ tool_drill = {
 
 tool_scissors = {
 	name: "The Cutters",
-	desc: "Cut two faces off of one of your die",
+	desc: "Cut two faces off a die.",
 	index: 1, // index for the silhouette sprite
 	sprite: sScissors,
 	price: 165,

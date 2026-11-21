@@ -12,7 +12,7 @@
 	}
 		event_prisoner_opt_1 = {
 			title: "Recruit him as a deckhand",
-			description: "Lose 10 gold, gain 5 alignment, and gain the Deckhand's Token keepsake.",
+			description: "Lose 10 gold. Gain 5 alignment and the Deckhand's Token keepsake.",
 			hover: function() {
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), oRunManager.ks_deckhands_token.name, oRunManager.ks_deckhands_token.desc, sKeepsake, oRunManager.ks_deckhands_token.sub_image);
 			},
@@ -24,7 +24,7 @@
 					oEventManager.event_complete = 0;
 					oEventManager.event_selected = true;
 				} else {
-					throw_error("Need more credits", "10 needed to complete this event.");
+					throw_error("Not enough gold", "You need 10 gold.");
 				}
 			},
 			result: "Pirate Pete has joined your crew."
@@ -82,7 +82,7 @@
 	}
 		event_storm_opt_1 = {
 			title: "Share your personal stores",
-			description: "Gain 5 alignment, lose 7 health, and upgrade a random block or heal die.",
+			description: "Gain 5 alignment, lose 7 health, upgrade a random block or heal die.",
 			effect: function(_context) {
 				global.player_hp -= 7;
 				gain_alignment(5);
@@ -125,7 +125,7 @@
 		}
 		event_storm_opt_2 = {
 			title: "Cut rations for everyone",
-			description: "Lose 4 alignment, and gain the Starver's Efficiency keepsake.",
+			description: "Lose 4 alignment. Gain the Starver's Efficiency keepsake.",
 			hover: function() {
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), oRunManager.ks_starvers_efficiency.name, oRunManager.ks_starvers_efficiency.desc, sKeepsake, oRunManager.ks_starvers_efficiency.sub_image);
 			},
@@ -139,7 +139,7 @@
 		}
 		event_storm_opt_3 = {
 			title: "Let the crew solve it for themselves",
-			description: "Gain 1 die playable every turn next combat.",
+			description: "Next fight, gain 1 extra play each turn.",
 			effect: function(_context) {
 				oRunManager.bonus_dice_next_combat = 1;
 				oEventManager.event_complete = 2;
@@ -239,7 +239,7 @@
 	}
 		event_sails_opt_1 = {
 			title: "Use the backup sail",
-			description: "Lose 10 coins to gain the Small Sail keepsake.",
+			description: "Lose 10 gold. Gain the Small Sail keepsake.",
 			hover: function() {
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), oRunManager.ks_small_sail.name, oRunManager.ks_small_sail.desc, sKeepsake, oRunManager.ks_small_sail.sub_image);
 			},
@@ -250,14 +250,14 @@
 					oEventManager.event_complete = 0;
 					oEventManager.event_selected = true;
 				} else {
-					throw_error("Need more credits", "10 needed to complete this event.");
+					throw_error("Not enough gold", "You need 10 gold.");
 				}
 			},
 			result: "Sail replaced and you are on your way."
 		}
 		event_sails_opt_2 = {
 			title: "Repair the sail",
-			description: "Lose a random consumable to gain the Rope of Repair keepsake.",
+			description: "Lose a random item. Gain the Rope of Repair keepsake.",
 			hover: function() {
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), oRunManager.ks_rope_of_repair.name, oRunManager.ks_rope_of_repair.desc, sKeepsake, oRunManager.ks_rope_of_repair.sub_image);
 			},
@@ -279,14 +279,14 @@
 					oEventManager.event_complete = 1;
 					oEventManager.event_selected = true;
 				} else {
-					throw_error("No consumables to sacrifice", "At least 1 is needed to complete this event.");
+					throw_error("No items", "You need an item to give up.");
 				}
 			},
 			result: "Sail repaired, it should hold out."
 		}
 		event_sails_opt_3 = {
 			title: "Continue with the tear",
-			description: "Proceed as you are and lose 2 max health.",
+			description: "Lose 2 max health.",
 			effect: function(_context) {
 				global.player_max_hp -= 2;
 				if (global.player_hp > global.player_max_hp) global.player_hp = global.player_max_hp;
@@ -307,7 +307,7 @@
 	
 	event_bounty = {
 		name: "Dividing up the bounty",
-		description: "Your latest plunder has been sold and shared amongst the crew, everyone has their fair share. What will you do?",
+		description: "Your latest plunder has been sold and shared amongst the crew, everyone has their fair share.",
 		options: ds_list_create(),
 	}
 		event_bounty_opt_1 = {
@@ -362,7 +362,7 @@
 	}
 		event_trunk_opt_1 = {
 			title: "A token from an ex lover",
-			description: "Gain a random dice.",
+			description: "Gain a random die.",
 			effect: function(_context) {
 				
 				// Generate a random dice
@@ -407,7 +407,7 @@
 					oEventManager.event_selected = true;
 					
 				} else {
-					throw_error("No free slots", "Make space by destroying an item (right click)");
+					throw_error("Item slots full", "Right click an item to drop it.");
 				}
 			},
 			result: "An old family heirloom, still humming with power. A new core for the workbench."
@@ -428,7 +428,7 @@
 					oEventManager.event_selected = true;
 					
 				} else {
-					throw_error("No free slots", "Make space by destroying an item (right click)");
+					throw_error("Item slots full", "Right click an item to drop it.");
 				}
 			},
 			result: "Today is the day!"
@@ -450,7 +450,7 @@
 	}
 		event_plunder_opt_1 = {
 			title: "Stick your hand in and pull something out",
-			description: "Gain a random keepsake, 50% chance to lose 8 health.",
+			description: "Gain a random keepsake. 50% chance to lose 8 health.",
 			effect: function(_context) {
 				// Generate a random keepsake
 				var keepsake_options = ds_list_create();
@@ -470,7 +470,7 @@
 		}
 		event_plunder_opt_2 = {
 			title: "Get the crew to find something for you",
-			description: "Gain a random rare dice core",
+			description: "Gain a random rare core.",
 			effect: function(_context) {
 				if (get_first_free_item_slot() != -1) {
 					
@@ -485,7 +485,7 @@
 					oEventManager.event_selected = true;
 					
 				} else {
-					throw_error("No free slots", "Make space by destroying an item (right click)");
+					throw_error("Item slots full", "Right click an item to drop it.");
 				}
 			},
 			result: "The crew digs through the hoard and comes back with a rare core."
@@ -573,7 +573,7 @@
 	}
 		event_albatross_opt_1 = {
 			title: "Offer it some food",
-			description: "If you have a shop relic, gain 7 max health and heal to full.",
+			description: "With a shop keepsake, gain 7 max health and heal to full.",
 			effect: function(_context) {
 				var player_has_shop_keepsake = false;
 				
@@ -599,7 +599,7 @@
 					oEventManager.event_complete = 0;
 					oEventManager.event_selected = true;
 				} else {
-					throw_error("No shop relic found", "You can't take this option without a shop relic");
+					throw_error("No shop keepsake", "You need a keepsake from a shop.");
 				}
 			},
 			result: "The albatross eats from your hand. You feel stronger for the kindness."
@@ -679,7 +679,7 @@
 		}
 		event_wishing_well_opt_2 = {
 			title: "Make a wish",
-			description: "Remove a coin from your bag and gain improved luck for the run.",
+			description: "Remove a coin from your bag. Gain 10 luck.",
 			effect: function(_context) {
 				// initialize variables
 				var player_has_coin = false;
@@ -711,14 +711,14 @@
 					oEventManager.event_complete = 1;
 					oEventManager.event_selected = true;
 				} else {
-					throw_error("No coins found in bag", "You cannot take this option without at least 1 coin in your bag");
+					throw_error("No coins", "You need a coin in your bag.");
 				}
 			},
 			result: "The coin drops into the dark. You feel luck turn in your favour."
 		}
 		event_wishing_well_opt_3 = {
 			title: "Leave it",
-			description: "Do nothing and leave.",
+			description: "Nothing happens.",
 			effect: function(_context) {
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
@@ -737,12 +737,12 @@
 	
 	event_mermaid = {
 		name: "An island dream",
-		description: "In a dream you find yourself on an island. You take a stroll along a rocky outcropping before being pulled below the surface of the water. A mermaid meets your face as you exhale bubbles that cover the view of her for a moment. As the sea stills her beauty captures you. What will you do?",
+		description: "In a dream you find yourself on an island. You take a stroll along a rocky outcropping before being pulled below the surface of the water. A mermaid meets your face as you exhale bubbles that cover the view of her for a moment. As the sea stills her beauty captures you.",
 		options: ds_list_create(),
 	}
 		event_mermaid_opt_1 = {
 			title: "Offer her a treasure and leave",
-			description: "Choose a die from your bag to remove.",
+			description: "Remove a die from your bag.",
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
 				oRunManager.dice_selection_message = "Choose a die to remove";
@@ -778,7 +778,7 @@
 		}
 		event_mermaid_opt_3 = {
 			title: "Venture into the depths with her",
-			description: "Lose 5 max health and gain a random rare dice",
+			description: "Lose 5 max health. Gain a random rare die.",
 			effect: function(_context) {
 				// Generate a random dice
 				var dice_options = ds_list_create();
@@ -825,7 +825,7 @@
 	}
 		event_dutchman_opt_1 = {
 			title: "Let the Dutchman sail through you",
-			description: "For the rest of this voyage: Guarantee item rewards every combat but lose the ability to port at shops.",
+			description: "For the rest of the voyage, every fight gives an item, but you can't visit shops.",
 			effect: function(_context) {
 				oRunManager.dutchman_taken = true;
 				
@@ -858,7 +858,7 @@
 		}
 		event_dutchman_opt_2 = {
 			title: "Steer to avoid the Dutchman",
-			description: "On success gain a random keepsake, on a failure lose a random die and 5 health.",
+			description: "Luck decides. Success: gain a random keepsake. Failure: lose a random die and 5 health.",
 			effect: function(_context) {
 				var success = irandom_range(1, 100);
 				
@@ -901,7 +901,7 @@
 	}
 		event_rough_tides_opt_1 = {
 			title: "Your bag has spilled out over the desk",
-			description: "Choose a die to remove from your bag.",
+			description: "Remove a die from your bag.",
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
 				oRunManager.dice_selection_message = "Choose a die to remove";
@@ -921,7 +921,7 @@
 		}
 		event_rough_tides_opt_2 = {
 			title: "Ink has spilled over your parchment",
-			description: "Choose a die to transform.",
+			description: "Turn a die into a random one.",
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
 				oRunManager.dice_selection_message = "Choose a die to transform";
@@ -950,7 +950,7 @@
 		}
 		event_rough_tides_opt_3 = {
 			title: "Something on the floor",
-			description: "Choose a die to duplicate.",
+			description: "Copy a die.",
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
 				oRunManager.dice_selection_message = "Choose a die to duplicate";
@@ -1033,7 +1033,7 @@
 	}
 		event_shipwright_opt_1 = {
 			title: "Fashion a new tool",
-			description: "Gain a random tool for the workbench.",
+			description: "Gain a random tool.",
 			effect: function(_context) {
 				if (ds_list_size(global.master_tool_list) > 0 && ds_list_size(oRunManager.tools) < 3) {
 					// Generate a random tool
@@ -1050,14 +1050,14 @@
 					oEventManager.event_complete = 0;
 					oEventManager.event_selected = true;
 				} else {
-					throw_error("You already have every tool", "There are no more tools available to acquire"); 
+					throw_error("No tools left", "You have every tool.");
 				}
 			},
 			result: "The shipwright hammers the ingot into a new tool for the workbench."
 		}
 		event_shipwright_opt_2 = {
 			title: "Enhance your buckle",
-			description: "Gain the toolbelt keepsake.",
+			description: "Gain the Toolbelt keepsake.",
 			hover: function() {
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), oRunManager.ks_toolbelt.name, oRunManager.ks_toolbelt.desc, sKeepsake, oRunManager.ks_toolbelt.sub_image);
 			},
@@ -1074,7 +1074,7 @@
 				}
 				
 				if (has_toolbelt) {
-						throw_error("You already have the toolbelt", "You cannot have duplicate keepsakes");
+						throw_error("Already owned", "You already have the Toolbelt.");
 				} else {
 					gain_keepsake(get_keepsake_by_id("toolbelt"), global.rollable_keepsake_list);
 				
@@ -1086,7 +1086,7 @@
 		}
 		event_shipwright_opt_3 = {
 			title: "Leave it",
-			description: "Save the resources for the men.",
+			description: "Nothing happens.",
 			effect: function(_context) {
 				oEventManager.event_complete = 2;
 				oEventManager.event_selected = true;
@@ -1105,7 +1105,7 @@
 	
 	event_sirens = {
 		name: "The Siren's Call",
-		description: "The call of distant Sirens can be heard through the early morning mist. Your sailors are already beginning to falter. What will you do?",
+		description: "The call of distant Sirens can be heard through the early morning mist. Your sailors are already beginning to falter.",
 		options: ds_list_create(),
 	}
 	
@@ -1133,7 +1133,7 @@
 		}
 		event_sirens_opt_3 = {
 			title: "Succumb to the song",
-			description: "Crash on the rocks, lose 5 health (0 if you have protective rigging) and go straight to the shop.",
+			description: "Lose 5 health, or none with Protective Rigging. Go straight to the shop.",
 			effect: function(_context) {
 				fail_sirens();
 				
@@ -1187,10 +1187,10 @@
 	}
 		event_tattooist_opt_1 = {
 			title: "An anchor (40 gold)",
-			description: "Lose 40 gold. Choose a die to gain +1 min roll.",
+			description: "Lose 40 gold. Give a die +1 min roll.",
 			effect: function(_context) {
 				if (oRunManager.credits < 40) {
-					throw_error("Need more gold", "40 gold needed for this one.");
+					throw_error("Not enough gold", "You need 40 gold.");
 					return;
 				}
 				oRunManager.credits -= 40;
@@ -1247,9 +1247,9 @@ function sirens_upgrade_count(_lean) {
 /// @desc What a Siren's Call option will do, with your alignment's count in it.
 function sirens_option_text(_type_word, _count) {
 	var _how = (_type_word == "insight") ? "merciful" : "ruthless";
-	var _rule = "(1 near neutral alignment, 2 at 75 and 3 at 90 toward " + _how + ", none at 75 the other way)";
-	if (_count <= 0) return "Your alignment gives this song no power: nothing is upgraded. " + _rule;
-	return "Upgrade " + string(_count) + " " + _type_word + ((_count == 1) ? " die" : " dice") + " for your alignment. " + _rule;
+	var _rule = "More with a " + _how + " compass.";
+	if (_count <= 0) return "Nothing at your alignment. " + _rule;
+	return "Upgrade " + string(_count) + " " + _type_word + ((_count == 1) ? " die" : " dice") + ". " + _rule;
 }
 
 /// @func sirens_upgrade(_type, _count, _col)
@@ -1301,7 +1301,7 @@ function fail_sirens() {
 		// change this so that we go to the shop on pressing exit
 		oEventManager.alternate_exit = rmShop;
 	} else {
-		throw_error("This would kill you", "At least try first!.");
+		throw_error("Not enough health", "This would sink you.");
 	}
 }
 
