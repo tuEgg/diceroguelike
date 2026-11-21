@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spread layouts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+/* map layout options for a spread (2026-11-21). Colours from docs/mockups/ui-style-tile.html. */
+:root { --ink: #2A1D12; --paper: #E7D6B0; --paper-hi: #F1E4C4; --rule: #E2D4B0; --gold: #F2D24A; --table: #15171d; --slate: #1A1E28; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--table); color: var(--rule); font: 15px/1.5 "Source Serif 4", Georgia, serif; }
+main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { font-size: 26px; margin: 0 0 4px; }
+.lede { color: #b9ad92; max-width: 860px; margin: 0 0 8px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; color: #b9ad92; font-size: 13px; margin: 0 0 24px; }
+.legend svg { vertical-align: middle; margin-right: 4px; }
+section { margin-bottom: 40px; background: var(--slate); border-radius: 12px; padding: 18px; }
+h2 { font-size: 20px; margin: 0 0 4px; color: var(--paper-hi); }
+h2 b { font-family: Lato, sans-serif; color: var(--gold); margin-right: 8px; }
+.flow { font-family: Lato, sans-serif; font-size: 13px; color: var(--gold); letter-spacing: .02em; margin: 0 0 10px; }
+section > p { margin: 0 0 12px; color: #cfc3a6; max-width: 900px; }
+.fig { width: 100%; overflow-x: auto; }
+.fig svg { display: block; width: 100%; height: auto; min-width: 640px; }
+.cap { font-size: 13px; color: #8f8670; margin: 6px 0 12px; }
+.pc { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 14px; }
+.pc div { background: rgba(255,255,255,.03); border-radius: 8px; padding: 10px 12px; }
+.pc h3 { margin: 0 0 4px; font-size: 14px; font-family: Lato, sans-serif; letter-spacing: .03em; }
+.pc .pro h3 { color: #7fc79a; } .pc .con h3 { color: #e08a7a; }
+.pc ul { margin: 0; padding-left: 18px; color: #cfc3a6; }
+.pick { border: 2px solid var(--gold); }
+@media (max-width: 700px) { .pc { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+	<h1>Laying out a spread: five options</h1>
+	<p class="lede">Each option shows one spread from start to page turn. Where it changes drafting, the three page cards you draft from are shown too (pick one, it locks one, you get the last). The art is schematic: what matters is the order of stops and where the decisions are.</p>
+	<div class="legend" id="legend"></div>
+	<div id="opts"></div>
+</main>
+<script>
+const INK = '#2A1D12', PAPER = '#E7D6B0', PAPERHI = '#F1E4C4', SEA = '#9fb7b3', SHADE = '#C9B48A';
+const STOP = {
+	fight: { g: '⚔', c: '#B33A22', n: 'Fight' }, elite: { g: '☠', c: '#6E1E18', n: 'Elite' }, event: { g: '?', c: '#5B4632', n: 'Event' },
+	shop: { g: '¢', c: '#C9A227', n: 'Shop' }, chest: { g: '▣', c: '#8a5a2b', n: 'Treasure' },
+	heal: { g: '♥', c: '#3C9A68', n: 'Calm water (heal)' }, bench: { g: '⚒', c: '#4d6a8a', n: 'Shipwright (workbench)' },
+	core: { g: '⚙', c: '#7a5aa0', n: 'Wreck (core)' }, gold: { g: '◎', c: '#b08a20', n: 'Flotsam (gold)' },
+	whet: { g: '◆', c: '#5a8a9a', n: 'Reef (sharpen)' }, trim: { g: '✂', c: '#7a6a5a', n: 'Squall (lose a die)' },
+	storm: { g: '⚡', c: '#3a3f55', n: 'Storm (risky fight)' },
+};
+const LAND = new Set(['fight', 'elite', 'event', 'shop', 'chest']);
+
+function node(x, y, k, opts = {}) {
+	const s = STOP[k], sea = !LAND.has(k), r = opts.r || 15;
+	const dim = opts.dim ? ' opacity=".35"' : '';
+	const shape = sea
+		? `<circle r="${r + 2}" fill="${PAPERHI}" stroke="${INK}" stroke-width="2.5" stroke-dasharray="${opts.fork ? '4 3' : 'none'}"/><circle r="${r - 3}" fill="${s.c}"/>`
+		: `<circle r="${r}" fill="${s.c}" stroke="${INK}" stroke-width="2.5"/>`;
+	return `<g transform="translate(${x},${y})"${dim}>${shape}<text y="5" text-anchor="middle" font-size="${r}" font-family="Lato, sans-serif" font-weight="900" fill="#fff">${s.g}</text></g>`;
+}
+function route(pts, opts = {}) {
+	let d = `M${pts[0][0]},${pts[0][1]}`;
+	for (let i = 1; i < pts.length; i++) {
+		const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], mx = (x0 + x1) / 2;
+		d += ` C${mx},${y0} ${mx},${y1} ${x1},${y1}`;
+	}
+	return `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${opts.w || 2.5}" stroke-dasharray="2 7" stroke-linecap="round" opacity="${opts.o || .8}"/>`;
+}
+function island(cx, cy, rx, ry, seed = 1) {
+	let pts = [];
+	for (let i = 0; i < 14; i++) {
+		const a = i / 14 * Math.PI * 2, w = 1 + .16 * Math.sin(i * 2.3 + seed) + .1 * Math.cos(i * 3.7 + seed * 2);
+		pts.push([cx + Math.cos(a) * rx * w, cy + Math.sin(a) * ry * w]);
+	}
+	const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ') + 'Z';
+	return `<path d="${d}" fill="#d9c08e" stroke="${INK}" stroke-width="2"/><path d="${d}" fill="none" stroke="#b39a6a" stroke-width="7" opacity=".35" transform="translate(0,0)"/>`;
+}
+function ship(x, y) {
+	return `<g transform="translate(${x},${y})"><path d="M-14,4 L14,4 L9,12 L-9,12Z" fill="#6b4a2b" stroke="${INK}" stroke-width="2"/><path d="M0,4 L0,-16 L11,0Z" fill="${PAPERHI}" stroke="${INK}" stroke-width="2"/></g>`;
+}
+function label(x, y, t, size = 13, col = INK, anchor = 'middle') {
+	return `<text x="${x}" y="${y}" text-anchor="${anchor}" font-size="${size}" font-family="Source Serif 4, Georgia, serif" font-weight="600" fill="${col}">${t}</text>`;
+}
+// the open book: two pages and a gutter; w 1000 x h 380
+function book(inner) {
+	return `<svg viewBox="0 0 1000 380" xmlns="http://www.w3.org/2000/svg">
+		<rect x="10" y="10" width="980" height="360" rx="14" fill="#3a2a1c"/>
+		<rect x="24" y="22" width="472" height="336" rx="6" fill="${PAPER}"/><rect x="504" y="22" width="472" height="336" rx="6" fill="${PAPER}"/>
+		<rect x="494" y="22" width="12" height="336" fill="#b8a27a"/>
+		${inner}
+	</svg>`;
+}
+// three page cards for drafting; each { nodes:[...], pass: key|null, note }
+function draft(cards, title) {
+	const W = 1000, cw = 290, gap = 30, x0 = (W - (3 * cw + 2 * gap)) / 2;
+	let g = '';
+	cards.forEach((c, i) => {
+		const x = x0 + i * (cw + gap), y = 30;
+		const locked = c.state === 'locked', picked = c.state === 'picked';
+		g += `<g opacity="${locked ? .45 : 1}">
+			<rect x="${x}" y="${y}" width="${cw}" height="230" rx="8" fill="${PAPER}" stroke="${picked ? '#C9A227' : INK}" stroke-width="${picked ? 5 : 2}"/>
+			${c.sea ? `<rect x="${x + 20}" y="${y + 45}" width="${cw - 40}" height="125" rx="6" fill="${SEA}" opacity=".55"/>` + route([[x + 30, y + 120], [x + 80, y + 90], [x + 145, y + 125], [x + 210, y + 90], [x + 260, y + 115]]) + node(x + 80, y + 90, "heal") + node(x + 145, y + 125, "core") + node(x + 210, y + 90, "storm") : island(x + (c.pass ? 110 : cw / 2), y + 105, 70, 52, i + 2)}
+			${c.nodes.map((k, j) => node(x + (c.pass ? 110 : cw / 2) - (c.nodes.length - 1) * 22 + j * 44, y + 105, k)).join('')}
+			${c.pass ? route([[x + 180, y + 105], [x + 238, y + 130]]) + node(x + 245, y + 135, c.pass, { r: 17 }) + label(x + 245, y + 172, 'sea stop', 12) : ''}
+			${label(x + cw / 2, y + 212, c.note, 13)}
+			${locked ? `<g transform="translate(${x + cw / 2},${y + 40})"><rect x="-38" y="-14" width="76" height="26" rx="6" fill="${INK}"/>${label(0, 5, 'locked', 13, PAPERHI)}</g>` : ''}
+			${picked ? `<g transform="translate(${x + cw / 2},${y + 40})"><rect x="-38" y="-14" width="76" height="26" rx="6" fill="#C9A227"/>${label(0, 5, 'picked', 13, INK)}</g>` : ''}
+		</g>`;
+	});
+	return `<svg viewBox="0 0 1000 290" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="980" height="270" rx="12" fill="#232837"/>${label(500, 26, title, 14, '#cfc3a6')}${g}</svg>`;
+}
+
+const OPTS = [
+	{
+		key: 'A', title: 'Today', flow: 'Island → Shipwright\'s buoy (optional) → Island → the strait: one of 4 stops → page turns',
+		text: 'For reference. Drafting picks only islands; the sea stops are decided by the game. The two sea moments are different kinds of thing (a detour, then a fork), and the fork at the end feels like a menu laid on the map.',
+		fig: book(
+			island(170, 190, 110, 80, 1) + node(130, 190, 'fight') + node(205, 175, 'event') +
+			route([[230, 185], [470, 230]]) + node(470, 235, 'bench', { fork: true }) + label(470, 272, 'buoy (detour)', 12) +
+			route([[470, 235], [690, 190]]) +
+			island(700, 190, 110, 80, 3) + node(665, 190, 'shop') + node(740, 200, 'fight') +
+			route([[760, 200], [900, 90]], { o: .5 }) + route([[760, 200], [910, 160]], { o: .5 }) + route([[760, 200], [910, 230]], { o: .5 }) + route([[760, 200], [900, 300]], { o: .5 }) +
+			node(905, 90, 'heal') + node(915, 160, 'bench') + node(915, 230, 'core') + node(905, 300, 'gold') + label(905, 340, 'the strait: pick 1 of 4', 12) +
+			ship(90, 120)),
+		pro: ['Heal and workbench are always reachable', 'The decision at the end comes when you know your HP'],
+		con: ['Two different sea mechanics in one spread', 'The fork of 4 reads as a menu, not a voyage', 'Drafting ignores the sea entirely'],
+	},
+	{
+		key: 'B', title: 'Each page brings its own sea stop (your idea)', pick: true,
+		flow: 'Draft pages that each carry a sea stop → Island → its stop → Island → its stop → page turns',
+		text: 'A page is an island plus the passage after it, and you draft them together: "a shop island that ends at a wreck" against "two fights, then calm water". The left page\'s stop sits in the gutter, the right page\'s at the far edge, so the ship sails one continuous line across the spread. One decision point (the draft), everything visible up front, and the map lock now trades sea stops as well as islands.',
+		draftFig: draft([
+			{ nodes: ['fight', 'fight'], pass: 'heal', note: 'two fights, then calm water', state: 'picked' },
+			{ nodes: ['shop'], pass: 'core', note: 'a shop, then a wreck', state: 'locked' },
+			{ nodes: ['event', 'chest'], pass: 'bench', note: 'event and treasure, then the Shipwright' },
+		], 'Drafting: each page card shows its island and its sea stop'),
+		fig: book(
+			island(180, 190, 115, 82, 1) + node(140, 190, 'fight') + node(215, 180, 'fight') +
+			route([[240, 190], [470, 190]]) + node(475, 190, 'heal', { r: 17 }) + label(475, 230, 'its sea stop', 12) +
+			route([[475, 190], [640, 190]]) +
+			island(720, 190, 110, 80, 4) + node(685, 195, 'event') + node(755, 180, 'chest') +
+			route([[780, 185], [935, 190]]) + node(940, 190, 'bench', { r: 17 }) + label(925, 230, 'its sea stop', 12) +
+			ship(90, 120)),
+		pro: ['One continuous voyage: land, sea, land, sea', 'Drafting gets richer: you weigh island and passage together', 'Simpler than today: no detour rule, no fork', 'Fits the map lock: locking a page can lock away the heal you wanted'],
+		con: ['No choice once you sail: bad luck can leave a spread with no heal or bench, so the offer needs a guarantee (say one of the 3 pages always carries Calm water or the Shipwright)', 'The 4-way choice at the end goes; its choices move into the draft'],
+	},
+	{
+		key: 'C', title: 'Crossings: choose your course between islands',
+		flow: 'Island → choose 1 of 2 sea routes (each with a stop) → Island → choose 1 of 2 routes out → page turns',
+		text: 'The sea between and after the islands is a pair of courses, each with its own stop, chosen as you sail. Two small forks per spread instead of a detour and a 4-way menu. The ship visibly picks a course, which is where the immersion comes from.',
+		fig: book(
+			island(170, 190, 105, 80, 1) + node(130, 190, 'fight') + node(205, 185, 'shop') +
+			route([[230, 185], [440, 110], [640, 175]]) + route([[230, 195], [440, 275], [640, 205]]) +
+			node(440, 110, 'whet', { fork: true }) + node(440, 275, 'heal', { fork: true }) + label(440, 70, 'over the reef', 12) + label(440, 318, 'through calm water', 12) +
+			island(720, 190, 100, 78, 5) + node(690, 190, 'event') + node(752, 190, 'fight') +
+			route([[775, 180], [910, 110]]) + route([[775, 200], [910, 275]]) +
+			node(915, 110, 'core', { fork: true }) + node(915, 275, 'bench', { fork: true }) + label(905, 70, 'past the wreck', 12) + label(905, 318, 'to the Shipwright', 12) +
+			ship(90, 120)),
+		pro: ['Decisions while sailing, when you know your HP and dice', 'Reads like plotting a course on a chart', 'Keeps the current stop types and their rolls'],
+		con: ['Two forks per spread is more clicking and more to read than B', 'Drafting still ignores the sea', 'Close to today, so less of a change in feel'],
+	},
+	{
+		key: 'D', title: 'Sea pages: draft land or open water',
+		flow: 'Draft 2 of 3 cards, each an island page or a sea page → sail them in order → page turns',
+		text: 'Some pages in the draft are open water: no island, but two or three sea stops on a route (calm water, a wreck, a storm fight worth more). A spread can be land and land, land and sea, or sea and sea, so you pace your own voyage: rest at sea when hurt, push through islands when strong. The Shipwright becomes a sea stop that turns up on sea pages.',
+		draftFig: draft([
+			{ nodes: ['fight', 'elite'], pass: null, note: 'island: a fight, then an elite', state: 'picked' },
+			{ nodes: [], pass: null, note: 'open sea: calm water, a wreck, a storm', sea: true, state: 'locked' },
+			{ nodes: ['shop', 'event'], pass: null, note: 'island: a shop and an event' },
+		], 'Drafting: island pages and sea pages in one offer'),
+		fig: book(
+			island(180, 190, 115, 82, 1) + node(140, 190, 'fight') + node(215, 180, 'elite') +
+			route([[240, 185], [520, 190]]) +
+			`<rect x="520" y="60" width="440" height="260" rx="8" fill="${SEA}" opacity=".45"/>` + label(740, 88, 'open sea page', 14) +
+			route([[520, 190], [610, 140], [720, 220], [830, 140], [940, 190]]) +
+			node(610, 140, 'heal', { r: 17 }) + node(720, 220, 'core', { r: 17 }) + node(830, 140, 'storm', { r: 17 }) + label(830, 110, 'risky, pays more', 12) +
+			ship(90, 120)),
+		pro: ['The most "voyage": you choose how much land and sea', 'Natural home for new sea content (storms, wrecks, the Shipwright)', 'Pacing is a real decision (rest vs. fight)'],
+		con: ['Biggest change, and needs sea-page content and balancing', 'A sea-heavy run sees fewer fights and gold, so rewards need tuning', 'Islands become less frequent unless pages get bigger'],
+	},
+	{
+		key: 'B+', title: 'B, with a harbour at the chapter\'s end',
+		flow: 'Like B for every spread, plus a fixed harbour (heal and Shipwright, pick one) before the boss',
+		text: 'B\'s weak spot is luck: you might draft past every heal. A fixed harbour on the boss spread (choose: heal or the workbench) guarantees one safe stop a chapter, and B\'s draft rule (one of the 3 cards always carries Calm water or the Shipwright) covers the rest. The end-of-chapter fork also builds tension before the boss.',
+		fig: book(
+			island(180, 190, 115, 82, 2) + node(150, 190, 'event') + node(215, 180, 'fight') +
+			route([[240, 190], [470, 190]]) + node(475, 190, 'gold', { r: 17 }) + label(475, 230, 'its sea stop', 12) +
+			route([[475, 190], [600, 120]]) + route([[475, 190], [600, 260]]) +
+			node(605, 120, 'heal', { fork: true }) + node(605, 260, 'bench', { fork: true }) + label(605, 85, 'harbour: rest', 12) + label(605, 300, 'harbour: refit', 12) +
+			route([[605, 120], [790, 190]]) + route([[605, 260], [790, 190]]) +
+			`<g transform="translate(820,190)"><circle r="40" fill="#6E1E18" stroke="${INK}" stroke-width="3"/>${label(0, 6, 'BOSS', 16, PAPERHI)}</g>` +
+			ship(90, 120)),
+		pro: ['Keeps B\'s clean single draft', 'A guaranteed rest or refit right before the boss', 'Gives the boss spread its own shape'],
+		con: ['One more special case to build', 'The harbour choice is the only fork left, so it should matter'],
+	},
+];
+
+document.getElementById('legend').innerHTML = Object.entries(STOP).map(([k, s]) =>
+	`<span><svg width="30" height="30" viewBox="-16 -16 32 32">${node(0, 0, k, { r: 12 })}</svg>${s.n}</span>`).join('') +
+	`<span><svg width="30" height="30" viewBox="-16 -16 32 32">${node(0, 0, 'heal', { r: 12, fork: true })}</svg>dashed ring: a stop you choose between</span>`;
+
+document.getElementById('opts').innerHTML = OPTS.map(o => `<section${o.pick ? ' class="pick"' : ''}>
+	<h2><b>${o.key}</b>${o.title}${o.pick ? ' <span style="font-size:13px;color:#F2D24A">(my pick, with B+)</span>' : ''}</h2>
+	<p class="flow">${o.flow}</p>
+	<p>${o.text}</p>
+	${o.draftFig ? `<div class="fig">${o.draftFig}</div>` : ''}
+	<div class="fig">${o.fig}</div>
+	<div class="pc"><div class="pro"><h3>FOR</h3><ul>${o.pro.map(x => `<li>${x}</li>`).join('')}</ul></div><div class="con"><h3>AGAINST</h3><ul>${o.con.map(x => `<li>${x}</li>`).join('')}</ul></div></div>
+</section>`).join('');
+</script>
+</body>
+</html>
