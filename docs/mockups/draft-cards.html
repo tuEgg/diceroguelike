@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draft card layouts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+/* drafting card options (2026-11-21): keeping each page's sea stop inside its card, and a calmer screen with one page picked */
+:root { --ink: #2A1D12; --paper: #E7D6B0; --rule: #E2D4B0; --gold: #F2D24A; --table: #15171d; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--table); color: var(--rule); font: 15px/1.5 "Source Serif 4", Georgia, serif; }
+main { max-width: 1240px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { font-size: 26px; margin: 0 0 4px; }
+.lede { color: #b9ad92; max-width: 900px; margin: 0 0 22px; }
+section { margin-bottom: 38px; }
+h2 { font-size: 20px; margin: 0 0 4px; color: #F1E4C4; }
+h2 b { font-family: Lato, sans-serif; color: var(--gold); margin-right: 8px; }
+section > p { margin: 0 0 10px; color: #cfc3a6; max-width: 960px; }
+svg { display: block; width: 100%; height: auto; border-radius: 12px; }
+.pc { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px; margin-top: 10px; }
+.pc div { background: rgba(255,255,255,.04); border-radius: 8px; padding: 8px 12px; }
+.pc h3 { margin: 0 0 2px; font: 900 13px Lato, sans-serif; letter-spacing: .03em; }
+.pro h3 { color: #7fc79a; } .con h3 { color: #e08a7a; }
+.pc ul { margin: 0; padding-left: 18px; color: #cfc3a6; }
+.pick { outline: 2px solid var(--gold); outline-offset: 10px; border-radius: 12px; }
+@media (max-width: 700px) { .pc { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+	<h1>Draft cards: options</h1>
+	<p class="lede">Each scene is the drafting screen with one page already picked (on the book, left) and three cards still to choose from. Two problems to solve: the sea stop sits off its card, and with a page picked the chart and the cards overlap into a busy tangle. The picked page is always drawn under the cards. Hover nothing: these are pictures.</p>
+	<div id="opts"></div>
+</main>
+<script>
+const INK = '#2A1D12', PAPER = '#F3E3C8', PAPER2 = '#EBD6B3', SEA = '#4f5d5c', SEAHI = '#6d8382', ISL = '#7DB683', STOP = '#9fbcbf';
+const ICON = { fight: '⚔', shop: '⌂', event: '?', calm: '≋', whet: '◆', core: '⬡', bench: '⚒', gold: '◎' };
+const NAMES = { fight: 'Combat', shop: 'Shop', event: 'Event', calm: 'Calm water', whet: 'Whetstone reef', core: 'The wreck', bench: 'Shipwright', gold: 'Flotsam' };
+
+function torn(x, y, w, h, seed) {
+	const pts = [], n = 7;
+	const j = (i) => ((Math.sin(i * 12.9898 + seed * 78.233) * 43758.5453) % 1 + 1) % 1;
+	for (let i = 0; i <= n; i++) pts.push([x + w * i / n, y + (j(i) - .5) * 10]);
+	for (let i = 1; i <= n; i++) pts.push([x + w + (j(i + 20) - .5) * 10, y + h * i / n]);
+	for (let i = n - 1; i >= 0; i--) pts.push([x + w * i / n, y + h + (j(i + 40) - .5) * 10]);
+	for (let i = n - 1; i >= 1; i--) pts.push([x + (j(i + 60) - .5) * 10, y + h * i / n]);
+	return pts.map(p => p.join(',')).join(' ');
+}
+function blob(cx, cy, rx, ry, seed) {
+	let d = '';
+	for (let i = 0; i <= 16; i++) {
+		const a = i / 16 * Math.PI * 2, w = 1 + .14 * Math.sin(i * 2.1 + seed) + .08 * Math.cos(i * 3.3 + seed);
+		d += (i ? 'L' : 'M') + (cx + Math.cos(a) * rx * w).toFixed(1) + ',' + (cy + Math.sin(a) * ry * w).toFixed(1);
+	}
+	return `<path d="${d}Z" fill="${ISL}" stroke="${INK}" stroke-width="3"/>`;
+}
+function dots(x1, y1, x2, y2, o = .7) {
+	const mx = (x1 + x2) / 2;
+	return `<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="#3a3a30" stroke-width="3.2" stroke-dasharray="0.1 11" stroke-linecap="round" opacity="${o}"/>`;
+}
+function node(x, y, k, s = 1) {
+	return `<g transform="translate(${x},${y}) scale(${s})"><text y="8" text-anchor="middle" font-size="26" font-family="Lato" font-weight="900" fill="#fff" stroke="${INK}" stroke-width="3" paint-order="stroke">${ICON[k]}</text>
+		<text y="34" text-anchor="middle" font-size="13" font-family="Source Serif 4" font-weight="700" fill="${INK}" stroke="${PAPER}" stroke-width="3" paint-order="stroke">${NAMES[k]}</text></g>`;
+}
+function stop(x, y, k, s = 1, onPaper = false) {
+	return `<g transform="translate(${x},${y}) scale(${s})"><circle r="22" fill="${STOP}"/><text y="7" text-anchor="middle" font-size="20" font-family="Lato" font-weight="900" fill="${INK}">${ICON[k]}</text>
+		<text y="40" text-anchor="middle" font-size="13" font-family="Source Serif 4" font-weight="700" fill="${INK}" stroke="${onPaper ? PAPER : '#e8dcc4'}" stroke-width="3" paint-order="stroke">${NAMES[k]}</text></g>`;
+}
+// a page's island content inside a box (x, y, w, h); nodes and the course; returns {svg, last}
+function island(x, y, w, h, p, seed) {
+	const cx = x + w * .5, cy = y + h * .5;
+	let g = blob(cx, cy, w * .33, h * .32, seed);
+	const n = p.nodes.length;
+	const pts = p.nodes.map((k, i) => [cx - w * .18 + (n > 1 ? i * w * .36 / (n - 1) : w * .18), cy + (i % 2 ? -h * .1 : h * .08)]);
+	for (let i = 1; i < n; i++) g += dots(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]);
+	p.nodes.forEach((k, i) => g += node(pts[i][0], pts[i][1], k, Math.min(1, w / 240)));
+	return { svg: g, last: pts[n - 1] };
+}
+function card(x, y, w, h, seed, opts = {}) {
+	const shade = opts.shadow !== false ? `<polygon points="${torn(x + 12, y + 12, w, h, seed)}" fill="#000" opacity=".35"/>` : '';
+	const sel = opts.picked ? `<polygon points="${torn(x - 6, y - 6, w + 12, h + 12, seed)}" fill="#46d65a"/>` : '';
+	return shade + sel + `<polygon points="${torn(x, y, w, h, seed)}" fill="${opts.fill || PAPER}" stroke="${INK}" stroke-width="4"/>`;
+}
+function chain(x, y, w, h) {
+	return `<g opacity=".85"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#111" opacity=".55"/>
+		<line x1="${x + 10}" y1="${y + 10}" x2="${x + w - 10}" y2="${y + h - 10}" stroke="#ccc" stroke-width="10" stroke-dasharray="26 8" stroke-linecap="round"/>
+		<line x1="${x + w - 10}" y1="${y + 10}" x2="${x + 10}" y2="${y + h - 10}" stroke="#ccc" stroke-width="10" stroke-dasharray="26 8" stroke-linecap="round"/></g>`;
+}
+function scene(inner, opts = {}) {
+	return `<svg viewBox="0 0 1200 560" xmlns="http://www.w3.org/2000/svg">
+		<rect width="1200" height="560" fill="#3b2a1d"/>
+		<rect x="40" y="30" width="1120" height="500" rx="10" fill="${SEA}"/>
+		<line x1="600" y1="30" x2="600" y2="530" stroke="#2c2620" stroke-width="6"/>
+		${opts.picked !== false ? pickedOnBook(opts.scrim) : ''}
+		${opts.scrim ? `<rect x="40" y="30" width="1120" height="500" rx="10" fill="#0d1014" opacity=".55"/>` : ''}
+		<g transform="translate(600,62)"><rect x="-150" y="-24" width="300" height="46" fill="#f3e6c6" stroke="${INK}" stroke-width="3"/><text y="9" text-anchor="middle" font-size="24" font-family="Source Serif 4" font-weight="700" fill="${INK}">Choose a page to draft</text></g>
+		${inner}
+	</svg>`;
+}
+// the page already picked, where it lies on the book (left page), with its sea stop in the gutter
+function pickedOnBook() {
+	const isl = island(110, 150, 300, 300, { nodes: ['fight', 'shop'] }, 2);
+	return card(110, 150, 300, 300, 9, { shadow: false }) + isl.svg + dots(isl.last[0], isl.last[1], 520, 300) + stop(520, 300, 'calm');
+}
+const P = [
+	{ nodes: ['fight'], stop: 'calm', seed: 4 },
+	{ nodes: ['fight', 'event'], stop: 'whet', seed: 6, picked: true },
+	{ nodes: ['fight'], stop: 'core', seed: 7, locked: true },
+];
+
+const OPTS = [
+	{
+		key: 'Today', title: 'For reference: what it looks like now',
+		text: 'The cards sit over the picked page, and each card\'s sea stop hangs off its right edge into the next card\'s space, with its course running over the chart.',
+		svg: () => {
+			let g = '';
+			P.forEach((p, i) => {
+				const x = 300 + i * 290, y = 150, w = 230, h = 300;
+				g += card(x, y, w, h, p.seed, { picked: p.picked });
+				const isl = island(x, y, w, h, p, p.seed);
+				g += isl.svg + dots(isl.last[0], isl.last[1], x + w + 40, y + h / 2) + stop(x + w + 40, y + h / 2, p.stop);
+				if (p.locked) g += chain(x, y, w, h);
+			});
+			return scene(g);
+		},
+		pro: ['Shows where the stop will sit'], con: ['Stops land on the next card and on the chart', 'With a page picked, two layers of islands, courses and stops overlap'],
+	},
+	{
+		key: 'A', title: 'Landscape cards: the page and its sea stop on one sheet', pick: true,
+		text: 'Each card is a wider sheet: the island on the left two thirds, the course running out to its sea stop on the right third, all inside the paper. A thin wash of sea colour behind the stop says "this part is at sea". The chart behind is dimmed while you draft, so the picked page reads as background.',
+		svg: () => {
+			let g = '';
+			P.forEach((p, i) => {
+				const x = 70 + i * 360, y = 170, w = 340, h = 250;
+				g += card(x, y, w, h, p.seed, { picked: p.picked });
+				g += `<rect x="${x + w * .66}" y="${y + 14}" width="${w * .31}" height="${h - 28}" rx="10" fill="${STOP}" opacity=".28"/>`;
+				const isl = island(x, y, w * .66, h, p, p.seed);
+				g += isl.svg + dots(isl.last[0], isl.last[1], x + w * .82, y + h / 2) + stop(x + w * .82, y + h / 2, p.stop, 1, true);
+				if (p.locked) g += chain(x, y, w, h);
+			});
+			return scene(g, { scrim: true });
+		},
+		pro: ['Everything about a page on one card: easy to compare three', 'Nothing hangs off a card', 'The scrim calms the picked page right down'],
+		con: ['New card proportions: the island area is narrower than a real page', 'Needs a wider paper sprite (or the page sprite stretched) for the cards'],
+	},
+	{
+		key: 'B', title: 'Same page, island shifted left, stop in the page\'s margin',
+		text: 'Keep the portrait page, but draw the island smaller and to the left, leaving a sea margin on the right of the page for the stop. Nearest to the real page, no new art; the island gets a bit cramped.',
+		svg: () => {
+			let g = '';
+			P.forEach((p, i) => {
+				const x = 150 + i * 330, y = 140, w = 270, h = 320;
+				g += card(x, y, w, h, p.seed, { picked: p.picked });
+				const isl = island(x - 10, y, w * .7, h, p, p.seed);
+				g += isl.svg + dots(isl.last[0], isl.last[1], x + w * .8, y + h * .5) + stop(x + w * .8, y + h * .5, p.stop, .9, true);
+				if (p.locked) g += chain(x, y, w, h);
+			});
+			return scene(g, { scrim: true });
+		},
+		pro: ['Uses the existing page sprite', 'Stop clearly belongs to its page'],
+		con: ['Islands and their icons squeezed into less room', 'The stop sits on paper, not sea, which reads less like a voyage'],
+	},
+	{
+		key: 'C', title: 'Page with a strip of sea underneath',
+		text: 'Each card is the page plus a band of sea under it, like a page pinned over a strip of chart. The course drops off the page into the sea band to its stop.',
+		svg: () => {
+			let g = '';
+			P.forEach((p, i) => {
+				const x = 200 + i * 300, y = 120, w = 240, h = 250;
+				g += `<rect x="${x - 6}" y="${y + h - 20}" width="${w + 12}" height="110" rx="10" fill="${SEAHI}" stroke="${INK}" stroke-width="3"/>`;
+				g += card(x, y, w, h, p.seed, { picked: p.picked });
+				const isl = island(x, y, w, h, p, p.seed);
+				g += isl.svg + dots(isl.last[0], isl.last[1], x + w / 2, y + h + 44) + stop(x + w / 2, y + h + 40, p.stop, .9);
+				if (p.locked) g += chain(x, y, w, h + 90);
+			});
+			return scene(g, { scrim: true });
+		},
+		pro: ['Island keeps its full page', 'The stop is clearly at sea'],
+		con: ['Taller cards: less room on screen', 'On the chart the stop sits beside the page, not under it, so the preview isn\'t a true layout'],
+	},
+	{
+		key: 'D', title: 'Hide the picked page while drafting; show the spread as thumbnails',
+		text: 'A different fix for the busyness: while drafting, the book is dimmed and the picked page shows only as a small thumbnail in a "Your spread" slot at the top left, so the three cards (in A\'s landscape layout) are the only full-size things on screen. Embark lays both pages on the chart.',
+		svg: () => {
+			let g = '';
+			g += `<g><text x="70" y="128" font-size="15" font-family="Source Serif 4" font-weight="700" fill="#e8dcc4">Your spread</text>`;
+			g += card(70, 140, 120, 90, 2) + blob(110, 185, 26, 22, 2) + stop(170, 185, 'calm', .5, true);
+			g += `<rect x="205" y="140" width="120" height="90" rx="6" fill="none" stroke="#e8dcc4" stroke-width="2" stroke-dasharray="8 6" opacity=".6"/><text x="265" y="190" text-anchor="middle" font-size="13" fill="#e8dcc4" opacity=".7">next page</text></g>`;
+			P.forEach((p, i) => {
+				const x = 120 + i * 340, y = 260, w = 320, h = 230;
+				g += card(x, y, w, h, p.seed, { picked: p.picked });
+				g += `<rect x="${x + w * .66}" y="${y + 14}" width="${w * .31}" height="${h - 28}" rx="10" fill="${STOP}" opacity=".28"/>`;
+				const isl = island(x, y, w * .66, h, p, p.seed);
+				g += isl.svg + dots(isl.last[0], isl.last[1], x + w * .82, y + h / 2) + stop(x + w * .82, y + h / 2, p.stop, .9, true);
+				if (p.locked) g += chain(x, y, w, h);
+			});
+			return scene(g, { picked: false, scrim: true });
+		},
+		pro: ['The calmest screen: only the choice is full size', 'The thumbnails show the spread building up'],
+		con: ['You lose the sense of the page landing on the chart until Embark', 'More UI to build (the thumbnail slots)'],
+	},
+];
+
+document.getElementById('opts').innerHTML = OPTS.map(o => `<section>
+	<h2><b>${o.key}</b>${o.title}${o.pick ? ' <span style="font-size:13px;color:#F2D24A">(my pick)</span>' : ''}</h2>
+	<p>${o.text}</p>
+	<div class="${o.pick ? 'pick' : ''}">${o.svg()}</div>
+	<div class="pc"><div class="pro"><h3>FOR</h3><ul>${o.pro.map(x => `<li>${x}</li>`).join('')}</ul></div><div class="con"><h3>AGAINST</h3><ul>${o.con.map(x => `<li>${x}</li>`).join('')}</ul></div></div>
+</section>`).join('');
+</script>
+</body>
+</html>

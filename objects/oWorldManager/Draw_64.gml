@@ -90,7 +90,7 @@ if (room == rmMap) {
 		var _tpi = chapter_pages + (c - chapter - 1) * future_pages_per_chapter;
 		var _tx1 = gui_w/2 + page_pos_offset + (page_offset * max(0, _tpi - book_spread - 1)) + page_w_on_screen - tab_edge_inset + tab_out;
 		var _ty0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
-		if (mouse_hovering(_tx1 - tab_out, _ty0, tab_out + 12, tab_h, false)) tab_hover_c = c;
+		if (mouse_hovering(_tx1 - tab_out, _ty0, tab_out + ((c < array_length(tab_pull)) ? tab_pull[c] : 0), tab_h, false)) tab_hover_c = c;
 	}
 	if (!variable_instance_exists(id, "tab_pull")) tab_pull = array_create(CHAPTER_COUNT + 2, 0);
 
@@ -117,9 +117,10 @@ if (room == rmMap) {
 			var c = chapter + 1 + (future_index div future_pages_per_chapter);
 			var tab_x0 = gui_w/2 + page_pos_offset + (page_offset * max(0, i - book_spread - 1)) + page_w_on_screen - tab_edge_inset - 30;
 			var tab_y0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
-			if (c < array_length(tab_pull)) tab_pull[c] = lerp(tab_pull[c], (c == tab_hover_c) ? 12 : 0, 0.25);
+			// hovered, it pulls out and its title runs down it (Jared, 2026-11-21); at rest it's a short plain tab
+			if (c < array_length(tab_pull)) tab_pull[c] = lerp(tab_pull[c], (c == tab_hover_c) ? 46 : 0, 0.25);
 			var _pull = (c < array_length(tab_pull)) ? tab_pull[c] : 0;
-			draw_chapter_tab(tab_x0, tab_y0, tab_x0 + 30 + tab_out + _pull, tab_y0 + tab_h, tab_slant, "", chapter_tab_colour(c), tab_out + _pull, book_open_scale); // no label: hover it
+			draw_chapter_tab(tab_x0, tab_y0, tab_x0 + 30 + tab_out + _pull, tab_y0 + tab_h, tab_slant, (_pull > 20) ? "Chapter " + string(c) : "", chapter_tab_colour(c), tab_out + _pull, book_open_scale * ((_pull > 20) ? 1 : 1), clamp((_pull - 20) / 26, 0, 1));
 		}
 
 	// draw the paper pages
@@ -211,6 +212,16 @@ if (room == rmMap) {
 		}
 	}
 	
+	// B+: while drafting, the pages already chosen show their sea stop where it will be (past each island). Part of the
+	// map, so drawn here, under the cards still to choose from (Jared, 2026-11-21)
+	if (world_state == WORLD_STATE.DRAFTING) {
+		var _np = ds_list_size(chosen_pages);
+		for (var k = max(0, _np - pages_drafted); k < _np; k++) {
+			var _cp = chosen_pages[| k];
+			if (!page_is_boss(_cp)) page_passage_preview(_cp, _cp.x, _cp.y, 1, 1);
+		}
+	}
+
 	// Draw the drafting panel background
 	if (world_state != WORLD_STATE.EXPLORING) {
 		var bg_w = gui_w;
@@ -413,14 +424,6 @@ if (room == rmMap) {
 	
 	// the spread as a chart (F125): dotted courses between its stops, the Shipwright's buoy between the pages and the
 	// strait's stops past the right page, on the map the whole spread (sailable when you get there), under the ship
-	// B+: while drafting, the pages already chosen show their sea stop where it will be (past each island)
-	if (world_state == WORLD_STATE.DRAFTING) {
-		var _np = ds_list_size(chosen_pages);
-		for (var k = max(0, _np - pages_drafted); k < _np; k++) {
-			var _cp = chosen_pages[| k];
-			if (!page_is_boss(_cp)) page_passage_preview(_cp, _cp.x, _cp.y, 1, 1);
-		}
-	}
 	var _spots = spread_sea_spots();
 	// the boss spread (one page): just the course in from the book's edge
 	if (_spots.left == undefined && world_state == WORLD_STATE.EXPLORING && ds_list_size(chosen_pages) > 0 && page_is_boss(chosen_pages[| ds_list_size(chosen_pages) - 1])) {

@@ -1182,7 +1182,7 @@ function node_pick_encounter(_memory_node, _pool) {
 /// @desc A folder-style divider tab sticking out to the right, with its label running down it.
 ///       x0 is the inner end (hidden under the page), x1 the outer end; the outer corners are cut.
 ///       _visible_w is how much sticks out past the page, the label is centred on that part.
-function draw_chapter_tab(_x0, _y0, _x1, _y1, _slant, _label, _col, _visible_w, _alpha) {
+function draw_chapter_tab(_x0, _y0, _x1, _y1, _slant, _label, _col, _visible_w, _alpha, _label_alpha = 1) {
 	var _outline = 4;
 	
 	draw_set_alpha(_alpha);
@@ -1199,7 +1199,7 @@ function draw_chapter_tab(_x0, _y0, _x1, _y1, _slant, _label, _col, _visible_w, 
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
 	var _visible_mid_x = _x1 - _visible_w / 2;
-	if (_label != "") draw_outline_text(_label, c_black, c_white, 2, _visible_mid_x, (_y0 + _y1) / 2, 1, _alpha, -90); // "": no label (the tab's tooltip names it)
+	if (_label != "") draw_outline_text(_label, c_black, c_white, 2, _visible_mid_x, (_y0 + _y1) / 2, 1, _alpha * _label_alpha, -90); // "": no label (the tab's tooltip names it)
 	
 	draw_set_alpha(1.0);
 }
