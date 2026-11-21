@@ -57,7 +57,6 @@ All known P0 bugs are fixed, see DONE.
 **Save / load**
 | ID | Bug | Size |
 |---|---|---|
-| B144 | `save_game` calls `random_set_seed` with the run's stored seed every time it saves (scSaving), so after every save (each stop entered, the workbench) the random rolls restart from the same point: sea stop rewards, shop stock, events and dice draws can repeat across a run. Save the RNG state instead, or reseed from something that changes. Spotted 2026-11-21, not reproduced in play. | S [C] |
 
 ## 🐞 BUGS: P2 UI / polish
 
