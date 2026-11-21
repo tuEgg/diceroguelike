@@ -282,7 +282,7 @@ alignment_scale = lerp(alignment_scale, 1.0, 0.2);
 var alignment_pos_x = alignment_x - 112 + ((global.player_alignment) * 2.24);
 draw_sprite_ext(sCircleSmall, 0, alignment_pos_x, bar_half + 2, alignment_scale, alignment_scale, 0, c_white, 1.0); // swells as motes land
 // the number too (Molly): 0-100, read as a percentage
-ui_numeral(string(round(global.player_alignment)) + "%", alignment_x - 188, bar_half, 18, global.ui_col.paper_hi, 1, fa_right); // left of the compass (the bar's right end meets the bounty)
+ui_numeral(string(round(global.player_alignment)) + "%", alignment_x - 200, bar_half, 18, global.ui_col.paper_hi, 1, fa_right); // left of the compass (the bar's right end meets the bounty)
 
 // "+5 merciful" / "-7 ruthless" under the compass for a moment after it moves (gain_alignment)
 if (alignment_popup_t >= 0) {

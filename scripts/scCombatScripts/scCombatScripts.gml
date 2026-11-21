@@ -1653,7 +1653,7 @@ function define_combat_ui_sizes() {
 	aq_tile_w = 140; // size of an action queue tile, needed to be declared here to reposition enemies in fights. 140 is the default value
 
 	global.enemy_x = (1600 * global.ui_scale) + (enemies_left_this_combat * (100 * global.ui_scale));
-	global.enemy_y = 665 * global.ui_scale; // (UI rework: raised, so the bottom right stays clear for End Turn)
+	global.enemy_y = 638 * global.ui_scale; // raised (UI rework), and again (2026-11-21) so health bars clear the tray's edge
 	global.player_x = 355 * global.ui_scale - (25 * global.ui_scale);
 	global.player_xstart = global.player_x;
 	global.player_y = global.enemy_y;

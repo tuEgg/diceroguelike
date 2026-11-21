@@ -17,7 +17,7 @@ for (var _qe = 0; _qe < ds_list_size(room_enemies); _qe++) {
 }
 aq_start_x = min(aq_start_x, _q_right - aq_total_w);
 aq_start_x = max(aq_start_x, global.player_x + 230 * global.ui_scale);
-var aq_start_y = gui_h / 2 - 70; // the fight sits a little higher, leaving the bottom right to End Turn
+var aq_start_y = gui_h / 2 - 92; // the fight sits higher, leaving the bottom right to End Turn and the tray's edge clear
 aq_left = aq_start_x; aq_mid_y = aq_start_y + aq_tile_w / 2; // the inkwell sits just before the queue (combat_inkwell_pos)
 
 // Keep tile_scale list synced with action_queue size
