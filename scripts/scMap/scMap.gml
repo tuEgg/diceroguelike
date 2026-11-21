@@ -1,3 +1,8 @@
+// drafting cards (F178, option A): a landscape sheet of sea chart drawn in code (draw_page), so its size is free
+#macro DRAFT_CARD_W 500
+#macro DRAFT_CARD_H 330
+#macro DRAFT_CARD_SEA make_color_rgb(150, 186, 190)
+
 /// @func generate_pages
 function generate_pages() {
 	var num_combat = 0; // generate no more than 5 across all 3 pages
@@ -543,30 +548,27 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	var page_width = sprite_get_width(_sprite);
 	var page_height = sprite_get_height(_sprite);
 		
-	// a drafting card is a landscape sheet (option A, docs/mockups/draft-cards.html, Jared 2026-11-21): the page stretched
-	// wide (_xs, _ys) with the island in its left two thirds (_icx) and the sea stop on a wash of sea in its right third
-	// (page_passage_preview). Placeholder until there's a wide paper sprite.
+	// a drafting card is a landscape sheet of sea chart, drawn in code so it can be any size (option A of
+	// docs/mockups/draft-cards.html; Jared 2026-11-21): sea blue all over with a torn ink edge (ui_paper), the island in
+	// its left part (_icx) and the sea stop in its right part (page_passage_preview), with room round both.
 	var _land = (_index != -1);
-	var _xs = _land ? 1.38 : 1, _ys = _land ? 0.82 : 1;
-	var pages_hover = mouse_hovering(page_x, page_y, page_width * _scale * _xs, page_height * _scale * _ys, true, soPaperHover, soClick4, !_locked * !page.chosen, UI_LAYER.BASE, "page:" + string(_index) + ":" + string(page.index) + ":" + string(page.island_index)); // a steady id (it grows on hover)
-	var _base_s = 1.0;
-	_scale = lerp(_scale, (pages_hover && _land) ? 1.05 : _base_s, 0.2);
-
-	if (_shadow) draw_sprite_ext(_sprite, page.index, page_x + 20, page_y + 20, _scale * 0.98 * _xs,  _scale * 0.98 * _ys, 0, c_black, 0.5 * pages_alpha);
+	var pages_hover = mouse_hovering(page_x, page_y, (_land ? DRAFT_CARD_W : page_width) * _scale, (_land ? DRAFT_CARD_H : page_height) * _scale, true, soPaperHover, soClick4, !_locked * !page.chosen, UI_LAYER.BASE, "page:" + string(_index) + ":" + string(page.index) + ":" + string(page.island_index)); // a steady id (it grows on hover)
+	_scale = lerp(_scale, (pages_hover && _land) ? 1.04 : 1.0, 0.2);
 
 	var draw_scale = _scale;
 	if (!_shadow) draw_scale = 1;
-	var _icx = page_x - (_land ? page_width * draw_scale * _xs * 0.17 : 0); // the island's centre: left on a landscape card
-	// a chosen page in the draft gets a thick green outline that follows the torn paper (Jared's mockup): the page drawn
-	// in solid green (fog) a few pixels out in every direction, behind the page. Fog works in every build, no shader.
-	if (_shadow && page.chosen && !page.locked && _alpha > 0) {
-		gpu_set_fog(true, make_color_rgb(70, 220, 90), 0, 0);
-		for (var _o = 0; _o < 12; _o++) {
-			draw_sprite_ext(_sprite, page.index, page_x + lengthdir_x(7, _o * 30), page_y + lengthdir_y(7, _o * 30), draw_scale * _xs, draw_scale * _ys, 0, c_white, _alpha * pages_alpha);
-		}
-		gpu_set_fog(false, c_white, 0, 0);
+	var _cw = DRAFT_CARD_W * draw_scale, _ch = DRAFT_CARD_H * draw_scale;
+	var _cx1 = page_x - _cw / 2, _cy1 = page_y - _ch / 2, _cx2 = page_x + _cw / 2, _cy2 = page_y + _ch / 2;
+	var _seed = page.index * 13 + page.island_index * 7 + max(0, _index) * 3 + 1;
+	var _icx = page_x - (_land ? _cw * 0.19 : 0); // the island's centre: left on a drafting card
+	if (_land) {
+		// picked in this draft: a thick green edge behind it (Jared's mockup)
+		if (page.chosen && !page.locked && _alpha > 0) ui_paper(_cx1 - 8, _cy1 - 8, _cx2 + 8, _cy2 + 8, _seed + 5, make_color_rgb(70, 220, 90), _alpha * pages_alpha, 0, false);
+		ui_paper(_cx1, _cy1, _cx2, _cy2, _seed, DRAFT_CARD_SEA, _alpha * pages_alpha, 4, _alpha > 0);
+	} else {
+		if (_shadow) draw_sprite_ext(_sprite, page.index, page_x + 20, page_y + 20, _scale * 0.98, _scale * 0.98, 0, c_black, 0.5 * pages_alpha);
+		draw_sprite_ext(_sprite, page.index, page_x, page_y, draw_scale, draw_scale, 0, _blend, _alpha * pages_alpha);
 	}
-	draw_sprite_ext(_sprite, page.index, page_x, page_y, draw_scale * _xs,  draw_scale * _ys, 0, _blend, _alpha * pages_alpha);
 	
 	
 	
@@ -592,7 +594,8 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 		// build the mask
 		surface_set_target(island_mask_surf);
 		draw_clear_alpha(c_black, 0);
-		draw_sprite_ext(_sprite, page.index, page_x, page_y, draw_scale * _xs,  draw_scale * _ys, 0, _blend, _alpha);
+		if (_land) ui_paper(_cx1, _cy1, _cx2, _cy2, _seed, c_white, 1, 0, false); // the card's own shape
+		else draw_sprite_ext(_sprite, page.index, page_x, page_y, draw_scale, draw_scale, 0, _blend, _alpha);
 		surface_reset_target();
 
 		surface_set_target(island_surf);
@@ -606,7 +609,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	var island_alpha = !_locked ? pages_alpha : 1;
 	
 	// a drafting card is drawn bigger, island and stops too (_is), so the preview looks like the page will (2026-11-21)
-	var _is = _land ? draw_scale * 0.8 : 1; // a landscape card is less tall: its island a little smaller
+	var _is = _land ? draw_scale * 0.78 : 1; // a drafting card's island, a little smaller so it has room round it
 	shader_set(shWhiteFill)
 	for (var i = 0; i < 3; i++) {
 		draw_sprite_ext(sIslands, page.island_index, _icx, page_y, (1 + i / 3) * _is, (1 + i / 3) * _is, 0, c_white, 0.2);
@@ -1988,15 +1991,8 @@ function map_done_ring(_x, _y, _r, _alpha = 1) {
 function page_passage_preview(_page, _px, _py, _scale, _alpha, _inside = false) {
 	if (page_passage(_page) == "") return;
 	var _sx = _px + (sprite_get_width(sMapParchment) / 2 + 66) * _scale, _sy = _py;
-	// on a landscape drafting card (_inside): in the card's right third, on a wash of sea, inside the paper (option A)
-	if (_inside) {
-		var _cw = sprite_get_width(sMapParchment) * 1.38 * _scale, _ch = sprite_get_height(sMapParchment) * 0.82 * _scale;
-		_sx = _px + _cw * 0.32;
-		draw_set_alpha(0.3 * _alpha);
-		draw_set_color(make_color_rgb(150, 186, 190));
-		draw_roundrect_ext(_px + _cw * 0.17, _py - _ch * 0.36, _px + _cw * 0.45, _py + _ch * 0.36, 18, 18, false);
-		draw_set_alpha(1);
-	}
+	// on a drafting card (_inside): in its right part, with room round it (the whole card is sea, so no box behind it)
+	if (_inside) _sx = _px + DRAFT_CARD_W * _scale * 0.29;
 	var _n = ds_list_size(_page.nodes);
 	if (_n > 0) {
 		var _last = _page.nodes[| _n - 1];
