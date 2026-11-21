@@ -691,7 +691,6 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 			else if (node.cleared) {
 			    _alph = 1.0;
 			}
-			if (node.cleared) _alph *= 0.5; // done: half opacity, with the tick (Jared, 2026-11-21)
 			// or if the choices are locked and the page is chosen
 			else if (choices_locked && page.chosen) {
 			    _alph = pages_alpha;
@@ -717,10 +716,10 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 					if (node_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), node.name, node.text, sMapIcon, node.subimg, undefined);
 					
 					// draw the node
-					draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale, node.scale, 0, _icon_blend, _alph);
+					map_icon_draw(sMapIcon, node.subimg, node.x, node.y, node.scale, _alph, _icon_blend == c_grey);
 				} else if _locked {
 					// if this page is locked, don't animate scale or show tooltip
-					draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, 1, 1, 0, _icon_blend, _alph);
+					map_icon_draw(sMapIcon, node.subimg, node.x, node.y, 1, _alph, _icon_blend == c_grey);
 				}
 			}
 			// if our page choices are locked
@@ -735,8 +734,8 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 			
 				// animate scale and draw node
 				node.scale = lerp(node.scale, node_hover ? 1.5 : 1.0, 0.2);
-				draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale, node.scale, 0, _icon_blend, _alph);
-			
+				map_icon_draw(sMapIcon, node.subimg, node.x, node.y, node.scale, _alph, _icon_blend == c_grey);
+
 				// if we are hovering this node
 				if (node_hover) {
 					// show tooltip
@@ -757,17 +756,13 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 				}
 			}
 		
-			// a done stop: half green over the icon (not all green), and the ink tick (F148; Jared, 2026-11-21). The icon
-			// itself was drawn at half opacity above.
-			if (node.cleared) {
-				draw_sprite_ext(sMapIcon, node.subimg, node.x, node.y, node.scale, node.scale, 0, make_color_rgb(126, 183, 131), _alph * 0.5);
-				map_visited_tick(node.x + 14, node.y - 12, 1, 1);
-			}
+			// a done stop: circled, with a tick (Jared, 2026-11-21: no fading, no green)
+			if (node.cleared) map_done_ring(node.x, node.y, 30 * node.scale, _alph);
 			// its name underneath, like the sea stops (in ink with a paper halo)
 			draw_set_font(ftDescriptions);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_top);
-			draw_outline_text(node.name, global.ui_col.paper_hi, global.ui_col.ink, 2, node.x, node.y + 24 + 6 * node.scale, 1, _alph * (node.cleared ? 0.5 : 1) * ((_icon_blend == c_grey) ? 0.6 : 1), 0);
+			draw_outline_text(node.name, global.ui_col.paper_hi, global.ui_col.ink, 2, node.x, node.y + 24 + 6 * node.scale, 1, _alph * ((_icon_blend == c_grey) ? 0.6 : 1), 0);
 			draw_set_halign(fa_left);
 		}
 	}
@@ -1147,8 +1142,9 @@ function draw_page_turning(_page, _turn, _pivot_x, _cover_x, _page_w) {
 		var _node_alpha = _on_right ? 1 : page_turn_cover_alpha(_node_x, _cover_edge, 30);
 		if (_node_alpha <= 0) continue;
 		
+		gpu_set_fog(true, c_white, 0, 0); // white like the rest of the map's icons
 		draw_sprite_ext(sMapIcon, _node.subimg, _node_x, _node.y, _xscale, 1, 0, c_white, _node_alpha);
-		if (_node.cleared) draw_sprite_ext(sMapIcon, _node.subimg, _node_x, _node.y, 1.2 * _xscale, 1.2, 0, make_color_rgb(126, 183, 131), _node_alpha);
+		gpu_set_fog(false, c_white, 0, 0);
 	}
 }
 
@@ -1447,18 +1443,21 @@ function sea_stop_draw(_id, _x, _y, _scale, _alpha, _ok) {
 	draw_set_color(_ok ? make_color_rgb(150, 186, 190) : make_color_rgb(150, 150, 150));
 	draw_circle(_x, _y, 26 * _s, false);
 	draw_set_alpha(_alpha);
+	// the icon in white on the disc (Jared, 2026-11-21: map icons are white), sprites filled with fog, lines in white
+	_ink = _ok ? c_white : make_color_rgb(220, 220, 220);
+	gpu_set_fog(true, _ink, 0, 0);
 	switch (_id) {
 		case "workbench": draw_sprite_ext(sToolbag, 0, _x, _y + 2 * _s, 0.62 * _s, 0.62 * _s, 0, _blend, _alpha); break;
 		case "core":      draw_sprite_ext(sCores, 0, _x, _y, 0.5 * _s, 0.5 * _s, 0, _blend, _alpha); break;
 		case "trim":      draw_sprite_ext(sToolSilhouettes, 1, _x, _y, 0.46 * _s, 0.46 * _s, 0, _ink, _alpha); break;
 		case "gold":      draw_sprite_ext(sCoin, 0, _x, _y, 0.55 * _s, 0.55 * _s, 0, _blend, _alpha); break;
 		case "whet":
-			draw_die_shape(_x - 4 * _s, _y + 2 * _s, 14 * _s, 6, _ink, 0, _alpha);
-			draw_die_shape(_x - 4 * _s, _y + 2 * _s, 11 * _s, 6, _ok ? make_color_rgb(242, 210, 74) : c_gray, 0, _alpha);
+			gpu_set_fog(false, c_white, 0, 0);
+			draw_die_shape(_x - 4 * _s, _y + 2 * _s, 12 * _s, 6, _ink, 0, _alpha);
 			draw_set_font(ftDescriptions);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
-			draw_outline_text("+1", c_black, c_white, 2, _x + 10 * _s, _y - 10 * _s, _s, _alpha, 0);
+			draw_outline_text("+1", make_color_rgb(60, 80, 90), c_white, 1, _x + 11 * _s, _y - 11 * _s, _s, _alpha, 0);
 			break;
 		case "calm":
 			draw_set_color(_ink);
@@ -1472,6 +1471,7 @@ function sea_stop_draw(_id, _x, _y, _scale, _alpha, _ok) {
 			}
 			break;
 	}
+	gpu_set_fog(false, c_white, 0, 0);
 	draw_set_alpha(1);
 	draw_set_color(c_white);
 }
@@ -1500,7 +1500,6 @@ function strait_draw(_ax, _ay) {
 		var _info = strait_stop_info(_id, strait.heal);
 		var _taken = (strait.chosen == i);
 		var _alpha = (strait.chosen == -1 || _taken) ? (strait.active ? 1 : 0.85) : 0.35;
-		if (_taken && strait.arrived) _alpha = 0.5; // done (with its tick)
 		var _hov = mouse_hovering(_sx, _sy, 64, 64, true, soSlotHover, noone); // it grows under the mouse, like the island stops
 		strait.scales[i] = lerp(strait.scales[i], _hov ? 1.25 : 1, 0.2);
 		sea_stop_draw(_id, _sx, _sy, strait.scales[i], _alpha, _info.ok || !strait.active);
@@ -1540,7 +1539,7 @@ function strait_draw(_ax, _ay) {
 		}
 
 		// been there (F148)
-		if (_taken && strait.arrived) map_visited_tick(_sx + 18, _sy - 14, 1, 1);
+		if (_taken && strait.arrived) map_done_ring(_sx, _sy, 31 * strait.scales[i], 1);
 
 		// the ink stamp: what you got, rising off the stop
 		if (_taken && strait.arrived) {
@@ -1589,13 +1588,13 @@ function passage_left_draw(_bx, _by) {
 	var _hov = !_b.sailing && mouse_hovering(_bx, _by, 64, 64, true, soSlotHover, noone);
 	var _breathe = _b.active ? 0.08 * (0.5 + 0.5 * sin(current_time / 220)) : 0; // it's your next stop: it breathes
 	_b.scale = lerp(_b.scale, _hov ? 1.25 : 1 + _breathe, 0.2); // grows under the mouse, like the island stops
-	var _salpha = (_done && !_b.sailing) ? 0.5 : ((_b.active || _b.sailing) ? 1 : 0.85); // done: half opacity, with its tick
+	var _salpha = (_done || _b.active || _b.sailing) ? 1 : 0.85; // done: circled with a tick (map_done_ring), not faded
 	sea_stop_draw(_shown, _bx, _by, _b.scale, _salpha, true);
 	draw_set_font(ftDescriptions);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
 	draw_outline_text(_info.name, global.ui_col.paper_hi, global.ui_col.ink, 2, _bx, _by + 36 * _b.scale, 1, max(_salpha, 0.6), 0); // ink, like the chart
-	if (_done && !_b.sailing) map_visited_tick(_bx + 18, _by - 14, 1, 1); // been there (F148)
+	if (_done && !_b.sailing) map_done_ring(_bx, _by, 31 * _b.scale, 1); // been there (F148)
 	draw_set_halign(fa_left);
 	if (_hov) {
 		var _tip = _info.tip;
@@ -1780,7 +1779,7 @@ function harbour_draw(_bp) {
 		var _info = strait_stop_info(_id, _heal);
 		var _can = !_done && _h.chosen == -1 && world_state == WORLD_STATE.EXPLORING && node_to_move_to == undefined && !boat_data.entering;
 		var _hov = mouse_hovering(_sx, _sy, 64, 64, true, soSlotHover, noone);
-		var _alpha = (_h.chosen == -1 && !_done) ? 1 : ((_h.chosen == i) ? (_h.arrived ? 0.5 : 1) : 0.35);
+		var _alpha = (_h.chosen == -1 && !_done) ? 1 : ((_h.chosen == i) ? 1 : 0.35);
 		_h.scales[i] = lerp(_h.scales[i], _hov ? 1.25 : 1, 0.2);
 		sea_stop_draw(_id, _sx, _sy, _h.scales[i], _alpha, _info.ok || _done);
 		draw_set_font(ftDescriptions);
@@ -1788,7 +1787,7 @@ function harbour_draw(_bp) {
 		draw_set_valign(fa_top);
 		draw_outline_text(_names[i], global.ui_col.paper_hi, global.ui_col.ink, 2, _sx, _sy + 36 * _h.scales[i], 1, _alpha, 0);
 		draw_set_halign(fa_left);
-		if (_h.chosen == i && _h.arrived) map_visited_tick(_sx + 18, _sy - 14, 1, 1);
+		if (_h.chosen == i && _h.arrived) map_done_ring(_sx, _sy, 31 * _h.scales[i], 1);
 		if (_hov) {
 			var _tip = _info.ok ? _info.tip : _info.reason;
 			if (_can) _tip += "\nThe harbour before the boss: choose one, then sail on.";
@@ -1948,4 +1947,29 @@ function map_waves_draw(_x1, _y1, _x2, _y2) {
 	}
 	draw_set_alpha(1);
 	draw_set_color(c_white);
+}
+
+/// @func map_icon_draw(_spr, _sub, _x, _y, _scale, _alpha, _greyed)
+/// @desc A map stop's icon in white with a thin ink edge (Jared, 2026-11-21: icons to be done are white). _greyed (a
+///       stop you can't reach on a chosen page): a light grey instead.
+function map_icon_draw(_spr, _sub, _x, _y, _scale, _alpha, _greyed) {
+	gpu_set_fog(true, global.ui_col.ink, 0, 0);
+	for (var k = 0; k < 4; k++) draw_sprite_ext(_spr, _sub, _x + lengthdir_x(2, k * 90), _y + lengthdir_y(2, k * 90), _scale, _scale, 0, c_white, _alpha);
+	gpu_set_fog(true, _greyed ? make_color_rgb(190, 190, 190) : c_white, 0, 0);
+	draw_sprite_ext(_spr, _sub, _x, _y, _scale, _scale, 0, c_white, _alpha);
+	gpu_set_fog(false, c_white, 0, 0);
+}
+
+/// @func map_done_ring(_x, _y, _r, _alpha)
+/// @desc A stop you've been to: circled in ink (with a paper halo so it reads on land or sea), and a tick on the ring's
+///       top right (Jared, 2026-11-21: no fading).
+function map_done_ring(_x, _y, _r, _alpha = 1) {
+	draw_set_alpha(_alpha * 0.8);
+	draw_set_color(global.ui_col.paper_hi);
+	for (var k = -2; k <= 2; k++) draw_circle(_x, _y, _r + k, true);
+	draw_set_alpha(_alpha);
+	draw_set_color(global.ui_col.ink);
+	for (var k = -1; k <= 0; k++) draw_circle(_x, _y, _r + k, true);
+	draw_set_alpha(1);
+	map_visited_tick(_x + _r * 0.72, _y - _r * 0.72, 1.1, _alpha);
 }
