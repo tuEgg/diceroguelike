@@ -250,7 +250,7 @@ if (toolbar_hover && !show_tools) { // (its tip would cover the tools once they'
 		if (can_visit_workbench) {
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools used to manipulate your dice at the workbench.");
 		} else {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools for the workbench. You can stop there at sea, each time you finish a page.");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools for the workbench: at the Shipwright, a sea stop some pages end in, and at the harbour before each boss.");
 		}
 	} else {
 		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Toolbag", "Tools used to manipulate your dice at the workbench.");

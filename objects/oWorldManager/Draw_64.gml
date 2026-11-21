@@ -268,6 +268,9 @@ if (room == rmMap) {
 		
 				// check if we're hovering
 				var page_hover = draw_page(page, page_pos[p].x, page_pos[p].y, p, true, false);
+				// B+: the sea stop this page brings, on its bottom right corner
+				var _pg_s = (p < ds_list_size(page_scale)) ? page_scale[| p] : 1;
+				page_passage_badge(page, page_pos[p].x + sprite_get_width(sMapParchment) * 0.36 * _pg_s, page_pos[p].y + sprite_get_height(sMapParchment) * 0.34 * _pg_s, 0.8 * _pg_s, pages_alpha * (page.locked ? 0.4 : 1));
 
 				// if we're hovering a draftable page but haven't selected it yet,
 				if (page_hover && !page.chosen) {
@@ -395,15 +398,23 @@ if (room == rmMap) {
 	
 	// the spread as a chart (F125): dotted courses between its stops, the Shipwright's buoy between the pages and the
 	// strait's stops past the right page, on the map the whole spread (sailable when you get there), under the ship
+	// B+: while drafting, the pages already chosen show their sea stop where it will be (past each island)
+	if (world_state == WORLD_STATE.DRAFTING) {
+		var _np = ds_list_size(chosen_pages);
+		for (var k = max(0, _np - pages_drafted); k < _np; k++) {
+			var _cp = chosen_pages[| k];
+			if (!page_is_boss(_cp)) page_passage_badge(_cp, _cp.x + sprite_get_width(sMapParchment) / 2 + 70, _cp.y, 1, 1);
+		}
+	}
 	var _spots = spread_sea_spots();
 	// the boss spread (one page): just the course in from the book's edge
 	if (_spots.left == undefined && world_state == WORLD_STATE.EXPLORING && ds_list_size(chosen_pages) > 0 && page_is_boss(chosen_pages[| ds_list_size(chosen_pages) - 1])) {
 		var _bp = chosen_pages[| ds_list_size(chosen_pages) - 1];
-		if (ds_list_size(_bp.nodes) > 0) { var _bn = _bp.nodes[| 0]; route_draw(book_left_x, gui_h / 2, _bn.x, _bn.y, _bn.cleared ? 0.85 : 0.38); }
+		harbour_draw(_bp); // B+: a harbour before the boss (its courses run in from the book's edge and on to the boss)
 	}
 	if (_spots.left != undefined && (world_state == WORLD_STATE.EXPLORING || world_state == WORLD_STATE.STRAIT)) {
 		spread_routes_draw(_spots);
-		sea_buoy_draw(_spots.buoy.x, _spots.buoy.y);
+		passage_left_draw(_spots.buoy.x, _spots.buoy.y);
 		strait_draw(_spots.strait.x, _spots.strait.y);
 	}
 

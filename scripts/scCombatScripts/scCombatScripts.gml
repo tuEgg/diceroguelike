@@ -2087,7 +2087,7 @@ function tutorial_map_notes() {
 		},
 		{
 			id: "map_draft", target: "pages",
-			text: "This is the captain's logbook. Each page is a stretch of sea with stops on it: fights, shops, events. Choose 2 pages for this spread. Your first choice locks one of the others away, so choose with care.",
+			text: "This is the captain's logbook. Each page is an island with stops on it (fights, shops, events) and a sea stop after it (bottom right: calm water to heal, the Shipwright's workbench, a wreck...). Choose 2 pages for this spread. Your first choice locks one of the others away, so choose with care.",
 			when: function() { return oWorldManager.world_state == WORLD_STATE.DRAFTING && oWorldManager.pages_drafted < 2 && oWorldManager.pages_alpha > 0.5; },
 			done: function() { return oWorldManager.pages_drafted >= 2; },
 		},
@@ -2156,7 +2156,7 @@ function tips_list() {
 	return [
 		{
 			id: "workbench_map", room: rmMap, target: "at_sea",
-			text: "At sea. When you finish a page's island and a tool has work, a buoy floats on the way to the next one: sail to it for the workbench, or sail past.",
+			text: "At sea. Every page you draft ends in a sea stop. You've finished this island: sail through its stop (click it) before the next island.",
 			when: function() { return instance_exists(oWorldManager) && is_struct(oWorldManager.sea_buoy) && oWorldManager.sea_buoy.active; },
 		},
 		{
@@ -2185,7 +2185,7 @@ function tips_list() {
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",
-			text: "The spread is done, and the route forks at sea. Sail to one stop: each offers something different (a core, losing or sharpening a die, gold, the workbench, or Calm water to heal). Then the page turns.",
+			text: "The spread is done. Sail through this page's sea stop (click it), then the page turns. When you draft, weigh each page's sea stop along with its island.",
 			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.STRAIT; },
 		},
 		{
