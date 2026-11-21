@@ -1142,9 +1142,7 @@ function draw_page_turning(_page, _turn, _pivot_x, _cover_x, _page_w) {
 		var _node_alpha = _on_right ? 1 : page_turn_cover_alpha(_node_x, _cover_edge, 30);
 		if (_node_alpha <= 0) continue;
 		
-		gpu_set_fog(true, c_white, 0, 0); // white like the rest of the map's icons
 		draw_sprite_ext(sMapIcon, _node.subimg, _node_x, _node.y, _xscale, 1, 0, c_white, _node_alpha);
-		gpu_set_fog(false, c_white, 0, 0);
 	}
 }
 
@@ -1443,21 +1441,18 @@ function sea_stop_draw(_id, _x, _y, _scale, _alpha, _ok) {
 	draw_set_color(_ok ? make_color_rgb(150, 186, 190) : make_color_rgb(150, 150, 150));
 	draw_circle(_x, _y, 26 * _s, false);
 	draw_set_alpha(_alpha);
-	// the icon in white on the disc (Jared, 2026-11-21: map icons are white), sprites filled with fog, lines in white
-	_ink = _ok ? c_white : make_color_rgb(220, 220, 220);
-	gpu_set_fog(true, _ink, 0, 0);
 	switch (_id) {
 		case "workbench": draw_sprite_ext(sToolbag, 0, _x, _y + 2 * _s, 0.62 * _s, 0.62 * _s, 0, _blend, _alpha); break;
 		case "core":      draw_sprite_ext(sCores, 0, _x, _y, 0.5 * _s, 0.5 * _s, 0, _blend, _alpha); break;
 		case "trim":      draw_sprite_ext(sToolSilhouettes, 1, _x, _y, 0.46 * _s, 0.46 * _s, 0, _ink, _alpha); break;
 		case "gold":      draw_sprite_ext(sCoin, 0, _x, _y, 0.55 * _s, 0.55 * _s, 0, _blend, _alpha); break;
 		case "whet":
-			gpu_set_fog(false, c_white, 0, 0);
-			draw_die_shape(_x - 4 * _s, _y + 2 * _s, 12 * _s, 6, _ink, 0, _alpha);
+			draw_die_shape(_x - 4 * _s, _y + 2 * _s, 14 * _s, 6, _ink, 0, _alpha);
+			draw_die_shape(_x - 4 * _s, _y + 2 * _s, 11 * _s, 6, _ok ? make_color_rgb(242, 210, 74) : c_gray, 0, _alpha);
 			draw_set_font(ftDescriptions);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
-			draw_outline_text("+1", make_color_rgb(60, 80, 90), c_white, 1, _x + 11 * _s, _y - 11 * _s, _s, _alpha, 0);
+			draw_outline_text("+1", c_black, c_white, 2, _x + 10 * _s, _y - 10 * _s, _s, _alpha, 0);
 			break;
 		case "calm":
 			draw_set_color(_ink);
@@ -1471,7 +1466,6 @@ function sea_stop_draw(_id, _x, _y, _scale, _alpha, _ok) {
 			}
 			break;
 	}
-	gpu_set_fog(false, c_white, 0, 0);
 	draw_set_alpha(1);
 	draw_set_color(c_white);
 }
@@ -1950,14 +1944,10 @@ function map_waves_draw(_x1, _y1, _x2, _y2) {
 }
 
 /// @func map_icon_draw(_spr, _sub, _x, _y, _scale, _alpha, _greyed)
-/// @desc A map stop's icon in white with a thin ink edge (Jared, 2026-11-21: icons to be done are white). _greyed (a
-///       stop you can't reach on a chosen page): a light grey instead.
+/// @desc A map stop's icon: Jared's sprite as it is (a fill was tried and taken out, 2026-11-21). _greyed (a stop you
+///       can't reach on a chosen page): tinted grey, as before.
 function map_icon_draw(_spr, _sub, _x, _y, _scale, _alpha, _greyed) {
-	gpu_set_fog(true, global.ui_col.ink, 0, 0);
-	for (var k = 0; k < 4; k++) draw_sprite_ext(_spr, _sub, _x + lengthdir_x(2, k * 90), _y + lengthdir_y(2, k * 90), _scale, _scale, 0, c_white, _alpha);
-	gpu_set_fog(true, _greyed ? make_color_rgb(190, 190, 190) : c_white, 0, 0);
-	draw_sprite_ext(_spr, _sub, _x, _y, _scale, _scale, 0, c_white, _alpha);
-	gpu_set_fog(false, c_white, 0, 0);
+	draw_sprite_ext(_spr, _sub, _x, _y, _scale, _scale, 0, _greyed ? c_grey : c_white, _alpha);
 }
 
 /// @func map_done_ring(_x, _y, _r, _alpha)
