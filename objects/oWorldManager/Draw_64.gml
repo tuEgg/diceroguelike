@@ -230,7 +230,7 @@ if (room == rmMap) {
 		var bg_y = ui_top_bar_h(); // the top bar stays in full colour
 		
 		draw_set_color(c_black);
-		draw_set_alpha(0.55 * (max(pages_alpha, resting_alpha)));
+		draw_set_alpha(0.65 * (max(pages_alpha, resting_alpha))); // the chart (and any page already picked) dimmed under the cards
 		draw_roundrect(bg_x, bg_y, bg_x + bg_w, bg_y + bg_h, false);
 		draw_set_alpha(1.0);
 		
@@ -296,7 +296,7 @@ if (room == rmMap) {
 				var page_hover = draw_page(page, page_pos[p].x, page_pos[p].y, p, true, false);
 				// B+: the sea stop this page brings, beside it as it will be on the chart, with the course out to it
 				var _pg_s = (p < ds_list_size(page_scale)) ? page_scale[| p] : 1;
-				page_passage_preview(page, page_pos[p].x, page_pos[p].y, _pg_s, pages_alpha * (page.locked ? 0.4 : 1));
+				page_passage_preview(page, page_pos[p].x, page_pos[p].y, _pg_s, pages_alpha * (page.locked ? 0.4 : 1), true); // inside the landscape card
 
 				// if we're hovering a draftable page but haven't selected it yet,
 				if (page_hover && !page.chosen) {

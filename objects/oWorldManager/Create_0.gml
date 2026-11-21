@@ -39,9 +39,10 @@ ds_list_add(page_scale, 1.0);
 ds_list_add(page_scale, 1.0);
 ds_list_add(page_scale, 1.0);
 // a little left of centre: each card has its sea stop to its right, laid out as it will be on the chart (B+)
-page_pos[0] = { x: display_get_gui_width() * 0.24, y: display_get_gui_height() * 0.55 };
-page_pos[1] = { x: display_get_gui_width() * 0.48, y: display_get_gui_height() * 0.55 };
-page_pos[2] = { x: display_get_gui_width() * 0.72, y: display_get_gui_height() * 0.55 };
+// three landscape cards (option A), each holding its island and its sea stop
+page_pos[0] = { x: display_get_gui_width() * 0.25, y: display_get_gui_height() * 0.55 };
+page_pos[1] = { x: display_get_gui_width() * 0.50, y: display_get_gui_height() * 0.55 };
+page_pos[2] = { x: display_get_gui_width() * 0.75, y: display_get_gui_height() * 0.55 };
 pages_alpha = 0; // used for fading out pages
 
 node_combat = {
