@@ -1,3 +1,6 @@
+// frames the dice picker has been open (its opening click must not pick a die): counted every frame, so it resets while closed
+dice_selection_age = (dice_selection != false) ? dice_selection_age + 1 : 0;
+
 // the screen shake ends here: windows, tooltips and the cursor stay still
 matrix_set(matrix_world, matrix_build_identity());
 // the log's ink look (F118): this frame was drawn into ink_scene (Draw GUI Begin); back to the screen first. If the
@@ -410,9 +413,9 @@ if (show_bag_contents) {
 		
 			if (info_hover) dice_hover = dice;
 			
-			// Functionality for selection events
+			// Functionality for selection events (not on the frames it opened: the click that opened it would pick a die)
 			if (dice_selection != false) {
-				if (mouse_check_button_pressed(mb_left) && info_hover) {
+				if (mouse_check_button_pressed(mb_left) && info_hover && dice_selection_age > 2) {
 					var filter_pass = false;
 					
 					switch (dice_selection_filter) {

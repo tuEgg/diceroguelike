@@ -1,6 +1,6 @@
 # Tides of Fortune
 
-A dice-building roguelike in GameMaker (GML), by Jared (solo, hobby). Sailing theme: the run is a captain's logbook of 3 chapters; each chapter is 3 drafted spreads then a boss. Combat is built by playing dice into an action queue of slots.
+A dice-building roguelike in GameMaker (GML), by Jared (solo, hobby). Sailing theme: the run is a captain's logbook of 3 chapters; each chapter is 4 drafted spreads then a boss. Combat is built by playing dice into an action queue of slots.
 
 **Start here every session:** read `KANBAN.md` (what's open, in testing, decided) and the context doc for the system you're about to touch (table below). Only open the big `.gml` files once a context doc has told you where to look.
 

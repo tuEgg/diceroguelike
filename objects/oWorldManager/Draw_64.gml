@@ -291,9 +291,12 @@ if (room == rmMap) {
 			// and take it when the burn has had its moment (auto_take_t frames)
 			if (pages_drafted == 1) {
 				if (auto_take_page == undefined) {
-					for (var ap = 0; ap < page_count; ap++) if (!pages_shown[| ap].chosen) { auto_take_page = pages_shown[| ap]; auto_take_t = 60; }
+					for (var ap = 0; ap < page_count; ap++) if (!pages_shown[| ap].chosen) { auto_take_page = pages_shown[| ap]; auto_take_t = page_has_morph(pages_shown[| ap]) ? 96 : 60; } // an icon changing gets its moment first
 				} else auto_take_t--;
 			} else auto_take_page = undefined;
+
+			// treasure and elites that only one page can keep: linked across the cards until you pick (draft_links_mark)
+			draft_links_mark(page_count);
 
 			// Draw each page onto the map
 			for (var p = 0; p < page_count; p++) {
@@ -357,7 +360,7 @@ if (room == rmMap) {
 										// loop through their nodes
 										for (var nn = 0; nn < pages_shown[| pp].num_nodes; nn++) {
 											if (pages_shown[| pp].nodes[| nn].type == NODE_TYPE.ELITE) {
-												pages_shown[| pp].nodes[| nn] = clone_node_static(node_combat);
+												pages_shown[| pp].nodes[| nn] = node_morph_into(pages_shown[| pp].nodes[| nn], node_combat); // changes after the burn
 											}
 										}
 									}	
@@ -373,7 +376,7 @@ if (room == rmMap) {
 										// loop through their nodes
 										for (var nn = 0; nn < pages_shown[| pp].num_nodes; nn++) {
 											if (pages_shown[| pp].nodes[| nn].type == NODE_TYPE.TREASURE) {
-												pages_shown[| pp].nodes[| nn] = clone_node_static(node_event);
+												pages_shown[| pp].nodes[| nn] = node_morph_into(pages_shown[| pp].nodes[| nn], node_event); // changes after the burn
 											}
 										}
 									}	
@@ -413,6 +416,9 @@ if (room == rmMap) {
 
 			}
 		
+			// the links themselves, over the cards
+			draft_links_draw(page_count);
+
 			// Draw embark button
 			var exit_col = c_dkgray;
 			if (pages_drafted == 2) exit_col = c_red;

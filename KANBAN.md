@@ -31,7 +31,13 @@
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
 
-Nothing waiting: batches 22 and 23 were approved on 2026-11-21 (see DONE).
+| v0.2.1 hotfix | F185, F186, F187, B145 | `hotfix/v0.2.1` (off `main`) | **Not yet play-tested.** Linked treasure and elites when drafting, 4 spreads a chapter, Cursed Heart -2 pips, the workbench picker's phantom pick. Version 0.2.1 in the menus. |
+
+**v0.2.1 test list (`hotfix/v0.2.1`)** Open this branch in GameMaker (it shows 0.2.1 in the menus) to test and export.
+- F185 Drafting: when two or more pages offer a treasure (or an elite), those stops get a breathing brass ring and a dashed brass line runs between them across the cards; hover one: "Only one page can keep this." Pick a page with the treasure: the page that burns goes, and on the page you're given, its treasure shows until the burn ends, then shrinks, puffs and pops into an Event (an elite into a Combat); you're given the page right after. With no treasure picked, nothing changes.
+- F186 A chapter is 4 spreads, then the boss: check the progress markers under the book, the chapter tabs' "N more spreads" and the pause menu's "spread N of 4". A save from before loads with a fresh book.
+- F187 Cursed Heart: "New slots cost 2 fewer pips." Slot 2 needs 1+, slot 3 4+ from 2 dice, slot 4 7+ (the tile shows it).
+- B145 Workbench: clicking "Open the bag" (or the tutorial's note) no longer picks the die under the mouse when the bag opens; nothing is picked until you click a die.
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
