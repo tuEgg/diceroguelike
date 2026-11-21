@@ -1414,21 +1414,17 @@ function spread_sea_spots() {
 }
 
 /// @func strait_stop_info(_id, _heal)
-/// @desc What a sea stop is called and does: { name, tip, ok, reason }. The heal is added to the tip by strait_draw.
+/// @desc A sea stop's name and what it does: { name, tip, ok, reason }. Short: what it does, nothing more (Jared, 2026-11-21).
 function strait_stop_info(_id, _heal) {
 	switch (_id) {
-		case "workbench": return { name: "Shipwright's buoy", tip: "Moor here and open the workbench: take dice from your bag (one per tool you own) and use each tool once.", ok: workbench_useful(), reason: "None of your tools has work to do (the Drill needs a core)." };
-		case "calm":      return { name: "Calm water", tip: "Drop anchor and rest: heal " + ((_heal > 0) ? string(_heal) + " HP" : string(round(oWorldManager.rest_amount * 100)) + "% of your health") + ".", ok: true, reason: "" };
+		case "workbench": return { name: "Shipwright's buoy", tip: "Use your tools on your dice.", ok: workbench_useful(), reason: "No tool has work to do." };
+		case "calm":      return { name: "Calm water", tip: "Heal " + ((_heal > 0) ? string(_heal) + " HP." : string(round(oWorldManager.rest_amount * 100)) + "% of your health."), ok: true, reason: "" };
+		case "core":      return { name: "The wreck", tip: "Gain a core.", ok: get_first_free_item_slot() != -1, reason: "Your item slots are full." };
+		case "trim":      return { name: "Squall", tip: "Remove a die from your bag.", ok: ds_list_size(global.dice_bag) > 6, reason: "Your bag has 6 dice or fewer." };
+		case "whet":      return { name: "Whetstone reef", tip: "Give a die +1 minimum roll.", ok: ds_list_size(global.dice_bag) > 0, reason: "Your bag is empty." };
+		case "gold":      return { name: "Flotsam", tip: "Gain 50 gold.", ok: true, reason: "" };
 	}
-	var _i = spread_end_option_info(_id, _heal, true);
-	var _name = "";
-	switch (_id) {
-		case "core":  _name = "The wreck"; break;
-		case "trim":  _name = "Squall"; break;
-		case "whet":  _name = "Whetstone reef"; break;
-		case "gold":  _name = "Flotsam"; break;
-	}
-	return { name: _name, tip: _i.label + ". " + _i.tip, ok: _i.ok, reason: _i.reason };
+	return { name: "", tip: "", ok: false, reason: "" };
 }
 
 /// @func map_visited_tick(_x, _y, _scale, _alpha)
@@ -1523,7 +1519,7 @@ function strait_draw(_ax, _ay) {
 		draw_outline_text(_info.name, global.ui_col.paper_hi, (_info.ok || !strait.active) ? global.ui_col.ink : global.ui_col.ink_soft, 2, _sx, _sy + 36 * strait.scales[i], 1, _alpha, 0); // ink, like the chart
 		if (_hov && strait.chosen == -1) {
 			// ahead (the islands aren't done yet): what it is, and that it's at the end of the spread
-			if (!strait.active) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, _info.tip + "\nThis page's sea stop: you sail through it after its island, then the page turns.");
+			if (!strait.active) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, _info.tip);
 			else {
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, (_info.ok ? _info.tip : _info.reason));
 			}
@@ -1612,9 +1608,7 @@ function passage_left_draw(_bx, _by) {
 	draw_set_halign(fa_left);
 	if (_hov) {
 		var _tip = _info.tip;
-		if (_b.active) _tip += "\nClick to sail here, then on to the next island.";
-		else if (!_done) _tip += "\nThis page's sea stop: you sail through it after its island.";
-		if (!_info.ok && !_done) _tip += "\n(If you still can't use it when you get there: " + _info.reason + " It becomes calm water.)";
+		if (!_info.ok && !_done) _tip += "\n" + _info.reason + " For now it's calm water.";
 		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, _tip);
 		if (mouse_check_button_pressed(mb_left) && _b.active && global.ui_layer == UI_LAYER.BASE) {
 			_b.sailing = true;
@@ -1738,12 +1732,12 @@ function map_node_blocked_reason(_node) {
 		if (_n == 0) return "";
 		var _last = chosen_pages[| _n - 1];
 		if (page_is_boss(_last)) {
-			if (!(variable_struct_exists(_last, "harbour_done") && _last.harbour_done)) return "Put in at the harbour first: rest or refit before the boss.";
+			if (!(variable_struct_exists(_last, "harbour_done") && _last.harbour_done)) return "Stop at the harbour first.";
 			return "";
 		}
 		if (_n >= 2 && ds_list_find_index(_last.nodes, _node) != -1) {
 			var _l = chosen_pages[| _n - 2];
-			if (page_passage(_l) != "" && !page_passage_done(_l) && page_nodes_cleared(_l)) return "Sail through " + strait_stop_info(page_passage(_l), 0).name + " first (between the pages).";
+			if (page_passage(_l) != "" && !page_passage_done(_l) && page_nodes_cleared(_l)) return "Sail through " + strait_stop_info(page_passage(_l), 0).name + " first.";
 		}
 	}
 	return "";
@@ -1763,7 +1757,7 @@ function page_passage_badge(_page, _x, _y, _scale, _alpha) {
 	draw_set_valign(fa_top);
 	draw_outline_text(_info.name, global.ui_col.paper_hi, global.ui_col.ink, 2, _x, _y + 32 * _scale, 1, _alpha, 0);
 	draw_set_halign(fa_left);
-	if (_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, _info.tip + "\nThis page's sea stop: the ship sails through it after the island." + (_info.ok ? "" : "\n(Right now: " + _info.reason + " If that's still so when you get there, it becomes calm water.)"));
+	if (_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, _info.tip + (_info.ok ? "" : "\n" + _info.reason + " For now it's calm water."));
 }
 
 /// @func harbour_draw(_bp)
@@ -1804,7 +1798,6 @@ function harbour_draw(_bp) {
 		if (_h.chosen == i && _h.arrived) map_done_ring(_sx, _sy, 31 * _h.scales[i], 1);
 		if (_hov) {
 			var _tip = _info.ok ? _info.tip : _info.reason;
-			if (_can) _tip += "\nThe harbour before the boss: choose one, then sail on.";
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _names[i], _tip);
 			if (mouse_check_button_pressed(mb_left) && _can && global.ui_layer == UI_LAYER.BASE) {
 				if (_info.ok) _h.chosen = i;
