@@ -788,7 +788,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	}
 	
 	// if this page is locked draw a chain over it
-	if (page.locked) draw_sprite_ext(sRewardChain, 0, page_x, page_y, 1.4, 1.4, 0, c_white, pages_alpha);
+	if (page.locked && !variable_struct_exists(page, "burn_t")) draw_sprite_ext(sRewardChain, 0, page_x, page_y, 1.4, 1.4, 0, c_white, pages_alpha); // a lost draft page burns instead (page_burn_draw)
 	
 	// update page scale ds list for next frame
 	if (_index != -1) {
@@ -1999,4 +1999,41 @@ function page_passage_preview(_page, _px, _py, _scale, _alpha, _inside = false) 
 		route_draw(_last.x, _last.y, _sx, _sy, 0.55 * _alpha);
 	}
 	page_passage_badge(_page, _sx, _sy, _scale, _alpha);
+}
+
+/// @func page_burn_draw(_page, _x, _y, _index)
+/// @desc The draft page the first pick lost (Jared, 2026-11-21: not chains, it burns away): drawn as usual into burn_surf,
+///       then through shBurn, whose flame front scorches it brown, glows ember orange at its edge and leaves nothing
+///       behind, over about 80 frames (page.burn_t 0 to 1). Embers and a little smoke rise off it as it goes.
+function page_burn_draw(_page, _x, _y, _index) {
+	if (!variable_struct_exists(_page, "burn_t")) {
+		_page.burn_t = 0;
+		particle_emit_later(_x, _y, "burst", make_color_rgb(255, 150, 50), 18); // it catches
+	}
+	if (_page.burn_t >= 1) return;
+	_page.burn_t = min(1, _page.burn_t + 1 / 80);
+	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+	if (!surface_exists(burn_surf)) burn_surf = surface_create(_gw, _gh);
+	surface_set_target(burn_surf);
+	draw_clear_alpha(c_black, 0);
+	draw_page(_page, _x, _y, _index, true, false);
+	page_passage_preview(_page, _x, _y, (_index < ds_list_size(page_scale)) ? page_scale[| _index] : 1, pages_alpha, true);
+	surface_reset_target();
+
+	// the flame front: slow to catch, then quicker (eased), from just before the page to past it
+	var _f = _page.burn_t;
+	var _t = lerp(-0.15, 1.0, _f * _f * (3 - 2 * _f));
+	shader_set(shBurn);
+	shader_set_uniform_f(shader_get_uniform(shBurn, "u_t"), _t);
+	shader_set_uniform_f(shader_get_uniform(shBurn, "u_seed"), _index * 3.7 + _page.island_index * 1.3);
+	shader_set_uniform_f(shader_get_uniform(shBurn, "u_scale"), _gw / 120, _gh / 120);
+	draw_surface(burn_surf, 0, 0);
+	shader_reset();
+
+	// embers (and a little smoke) rising off the card while it burns
+	var _hw = DRAFT_CARD_W / 2, _hh = DRAFT_CARD_H / 2;
+	if (_f < 0.9) {
+		repeat (3) particle_emit_later(_x + random_range(-_hw, _hw), _y + random_range(-_hh, _hh), "rise", choose(make_color_rgb(255, 170, 60), make_color_rgb(255, 110, 30), make_color_rgb(255, 220, 120)), 1);
+		if (random(1) < 0.4) particle_emit_later(_x + random_range(-_hw, _hw), _y + random_range(-_hh, _hh), "rise", make_color_rgb(70, 64, 58), 1);
+	}
 }

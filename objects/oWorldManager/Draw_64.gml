@@ -237,7 +237,7 @@ if (room == rmMap) {
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBigger);
 		// one heading for one action (it used to have "What happened next?" over it as well)
-		if (pages_alpha > 0.02) ui_label(bg_w/2, gui_h * 0.25, "Choose a page to draft", ftBigger, 41, pages_alpha); // a paper label (UI rework)
+		if (pages_alpha > 0.02) ui_label(bg_w/2, gui_h * 0.25, (pages_drafted == 0) ? "Take a page. One is lost, the other is yours." : "One page is lost. The other is yours.", ftBigger, 41, pages_alpha); // say plainly how the draft works (Jared, 2026-11-21)
 		draw_set_font(ftDefault);
 	
 		if (world_state == WORLD_STATE.OPENING) {		
@@ -287,10 +287,21 @@ if (room == rmMap) {
 		
 			var page_count = ds_list_size(pages_shown);
 	
+			// after the first pick one page burns away and the last is given to you (Jared, 2026-11-21): find it once,
+			// and take it when the burn has had its moment (auto_take_t frames)
+			if (pages_drafted == 1) {
+				if (auto_take_page == undefined) {
+					for (var ap = 0; ap < page_count; ap++) if (!pages_shown[| ap].chosen) { auto_take_page = pages_shown[| ap]; auto_take_t = 75; }
+				} else auto_take_t--;
+			} else auto_take_page = undefined;
+
 			// Draw each page onto the map
 			for (var p = 0; p < page_count; p++) {
 				var page = pages_shown[| p];
-		
+
+				// the page the first pick lost burns away (page_burn_draw, shBurn), then is gone
+				if (page.locked) { page_burn_draw(page, page_pos[p].x, page_pos[p].y, p); continue; }
+
 				// check if we're hovering
 				var page_hover = draw_page(page, page_pos[p].x, page_pos[p].y, p, true, false);
 				// B+: the sea stop this page brings, beside it as it will be on the chart, with the course out to it
@@ -298,7 +309,8 @@ if (room == rmMap) {
 				page_passage_preview(page, page_pos[p].x, page_pos[p].y, _pg_s, pages_alpha * (page.locked ? 0.4 : 1), true); // inside the landscape card
 
 				// if we're hovering a draftable page but haven't selected it yet,
-				if (page_hover && !page.chosen) {
+				var _auto_take = (auto_take_page == page && auto_take_t <= 0 && !page.chosen);
+				if ((page_hover && !page.chosen) || _auto_take) {
 					var page_offset_x = sprite_get_width(sMapParchment)/2 + 30;
 					var page_offset_y = sprite_get_height(sMapParchment)/2 - page.map_connection_in.x - 20 - page.margin.top + page.margin.bottom;
 			
@@ -310,7 +322,8 @@ if (room == rmMap) {
 			
 					//draw_page(page, drawn_page_x, drawn_page_y, p, false, false);
 			
-					if (mouse_check_button_pressed(mb_left) && can_draft && global.ui_layer == UI_LAYER.BASE) {
+					if ((mouse_check_button_pressed(mb_left) && can_draft && global.ui_layer == UI_LAYER.BASE) || (_auto_take && can_draft)) {
+						if (_auto_take) auto_take_page = undefined;
 					
 						// Set this page as selected
 						var _page_clone = clone_page(page);
@@ -411,7 +424,7 @@ if (room == rmMap) {
 			var embark_w = 300, embark_h = 104;
 			var embark_x = gui_w - 44 - embark_w / 2, embark_y = gui_h - 40 - embark_h / 2;
 			var _eb = 1 + 0.035 * embark_pulse;
-			var embark_btn = ui_primary(embark_x, embark_y, embark_w * _eb, embark_h * _eb, "Embark", embark_ready, "Choose two pages first.", UI_LAYER.BASE, pages_alpha);
+			var embark_btn = ui_primary(embark_x, embark_y, embark_w * _eb, embark_h * _eb, "Embark", embark_ready, "Take a page first.", UI_LAYER.BASE, pages_alpha);
 			if (embark_btn.click) {
 				choices_locked = true;
 				save_game(1);

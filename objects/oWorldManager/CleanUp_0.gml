@@ -7,5 +7,6 @@ if ds_safe_exists(possible_encounters, ds_type_list) ds_list_destroy(possible_en
 if ds_safe_exists(possible_elites, ds_type_list) ds_list_destroy(possible_elites);
 if ds_safe_exists(possible_alignment_encounters, ds_type_list) ds_list_destroy(possible_alignment_encounters);
 if ds_safe_exists(elite_list_before_bounty, ds_type_list) ds_list_destroy(elite_list_before_bounty);
+if (surface_exists(burn_surf)) surface_free(burn_surf);
 if (surface_exists(island_surf)) surface_free(island_surf);
 if (surface_exists(island_mask_surf)) surface_free(island_mask_surf);
