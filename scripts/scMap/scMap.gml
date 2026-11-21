@@ -1199,7 +1199,7 @@ function draw_chapter_tab(_x0, _y0, _x1, _y1, _slant, _label, _col, _visible_w, 
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
 	var _visible_mid_x = _x1 - _visible_w / 2;
-	draw_outline_text(_label, c_black, c_white, 2, _visible_mid_x, (_y0 + _y1) / 2, 1, _alpha, -90);
+	if (_label != "") draw_outline_text(_label, c_black, c_white, 2, _visible_mid_x, (_y0 + _y1) / 2, 1, _alpha, -90); // "": no label (the tab's tooltip names it)
 	
 	draw_set_alpha(1.0);
 }

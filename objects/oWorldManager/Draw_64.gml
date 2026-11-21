@@ -72,17 +72,27 @@ if (room == rmMap) {
 	// Placeholder shapes until there is art: nudge these numbers to move or resize them.
 	var future_pages_per_chapter = 5;	// pages drawn for each chapter still to come
 	var tab_edge_inset = 50;	// how far in from the sprite's right edge the paper actually ends
-	var tab_out = 90;			// how far each tab sticks out past the paper
+	var tab_out = 38;			// how far each tab sticks out past the paper (close to the edge, no label: Jared 2026-11-21; hover names it)
 	var tab_h = 230;			// length of a tab along the edge of the book
 	var tab_gap = 16;			// space between one tab and the next
 	var tab_y_offset = -150;	// first tab's centre, relative to the middle of the page
-	var tab_slant = 22;			// how much the outer corners are cut, like a folder tab
+	var tab_slant = 12;			// how much the outer corners are cut, like a folder tab
 
 	var chapter_pages = array_length(page_image_indices);
 	var future_chapters = max(0, CHAPTER_COUNT - chapter);
 	var last_page = chapter_pages - 1 + future_chapters * future_pages_per_chapter;
 	var page_w_on_screen = sprite_get_width(sWorldBook) * page_xscale * book_open_scale;
 	var tab_first_y0 = page_y + tab_y_offset - tab_h/2;
+
+	// which tab the mouse is over (it pulls out a little, and its tooltip says what it is, below)
+	var tab_hover_c = -1;
+	for (var c = chapter + 1; c <= CHAPTER_COUNT && book_open_scale > 0.5; c++) {
+		var _tpi = chapter_pages + (c - chapter - 1) * future_pages_per_chapter;
+		var _tx1 = gui_w/2 + page_pos_offset + (page_offset * max(0, _tpi - book_spread - 1)) + page_w_on_screen - tab_edge_inset + tab_out;
+		var _ty0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
+		if (mouse_hovering(_tx1 - tab_out, _ty0, tab_out + 12, tab_h, false)) tab_hover_c = c;
+	}
+	if (!variable_instance_exists(id, "tab_pull")) tab_pull = array_create(CHAPTER_COUNT + 2, 0);
 
 	// draw right pages, back to front (the chapters still to come are at the back)
 	for (var i = last_page; i >= book_spread; i--) {
@@ -107,7 +117,9 @@ if (room == rmMap) {
 			var c = chapter + 1 + (future_index div future_pages_per_chapter);
 			var tab_x0 = gui_w/2 + page_pos_offset + (page_offset * max(0, i - book_spread - 1)) + page_w_on_screen - tab_edge_inset - 30;
 			var tab_y0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
-			draw_chapter_tab(tab_x0, tab_y0, tab_x0 + 30 + tab_out, tab_y0 + tab_h, tab_slant, "Chapter " + string(c), chapter_tab_colour(c), tab_out, book_open_scale);
+			if (c < array_length(tab_pull)) tab_pull[c] = lerp(tab_pull[c], (c == tab_hover_c) ? 12 : 0, 0.25);
+			var _pull = (c < array_length(tab_pull)) ? tab_pull[c] : 0;
+			draw_chapter_tab(tab_x0, tab_y0, tab_x0 + 30 + tab_out + _pull, tab_y0 + tab_h, tab_slant, "", chapter_tab_colour(c), tab_out + _pull, book_open_scale); // no label: hover it
 		}
 
 	// draw the paper pages
@@ -124,7 +136,7 @@ if (room == rmMap) {
 		var tab_page_index = chapter_pages + (c - chapter - 1) * future_pages_per_chapter;
 		var tab_x1 = gui_w/2 + page_pos_offset + (page_offset * max(0, tab_page_index - book_spread - 1)) + page_w_on_screen - tab_edge_inset + tab_out;
 		var tab_y0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
-		if (!mouse_hovering(tab_x1 - tab_out, tab_y0, tab_out, tab_h, false)) continue;
+		if (c != tab_hover_c) continue;
 
 		var tab_text;
 		if (c == chapter + 1) {

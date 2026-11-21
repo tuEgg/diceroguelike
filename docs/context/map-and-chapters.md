@@ -5,7 +5,7 @@ Room `rmMap`, object `oWorldManager` (persistent for the run). Logic in `oWorldM
 ## The book
 
 - Drawn in `oWorldManager/Draw_64`: covers, then turned pages on the left and unread pages on the right, placed by **depth from the open spread** (`page_offset` px apart), so the open spread never moves. `page_image_indices` (from `generate_book_pages`, `CHAPTER_SPREADS + 2` pages) picks each page's paper art.
-- Chapters still to come get `future_pages_per_chapter` extra pages behind, each with a divider tab on its first page (`draw_chapter_tab`, colour `chapter_tab_colour`). Tunable numbers sit at the top of that block.
+- Chapters still to come get `future_pages_per_chapter` extra pages behind, each with a divider tab on its first page (`draw_chapter_tab`, colour `chapter_tab_colour`): a short unlabelled tab (`tab_out` 38) that pulls out on hover (`tab_pull`), its tooltip naming the chapter. Tunable numbers sit at the top of that block.
 - `draw_voyage_progress` draws the marker track under the book (one per spread, diamond per boss).
 - Page turning: `current_page_turn` goes 1 → -1 in `WORLD_STATE.TURNING`; the finished spread's islands/icons follow via `draw_page_turning`.
 
