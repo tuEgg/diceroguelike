@@ -2728,28 +2728,18 @@ function offering_draw() {
 	// the page: heading 140, the cards, then the bag and button row
 	var _pw = 1400, _ph = 140 + _ch + 150;
 	var _px = (_gw - _pw) / 2, _py = ui_top_bar_h() + (_gh - ui_top_bar_h() - _ph) / 2;
-	draw_set_alpha(0.4);
-	draw_set_color(c_black);
-	draw_roundrect_ext(_px + 8, _py + 12, _px + _pw + 8, _py + _ph + 12, 24, 24, false);
-	draw_set_alpha(1);
-	draw_set_color(_ink);
-	draw_roundrect_ext(_px - 4, _py - 4, _px + _pw + 4, _py + _ph + 4, 26, 26, false);
-	draw_set_color(_paper);
-	draw_roundrect_ext(_px, _py, _px + _pw, _py + _ph, 22, 22, false);
-	// a faint inner rule, like the logbook's
-	draw_set_alpha(0.35);
-	draw_set_color(_ink);
-	draw_roundrect_ext(_px + 14, _py + 14, _px + _pw - 14, _py + _ph - 14, 16, 16, true);
-	draw_set_alpha(1);
+	// a dark slate window like every other one (bag view, settings, pause), with the paper cards on it: paper is for
+	// things in the world, and the first-voyage notes (paper) now stand out against it (Jared, 2026-11-21)
+	ui_panel(_px, _py, _px + _pw, _py + _ph);
 
 	// the heading
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
 	draw_set_font(ftBigger);
-	draw_set_color(_ink);
+	draw_set_color(global.ui_col.paper_hi);
 	draw_text(_gw / 2, _py + 56, "The quartermaster's offer");
 	draw_set_font(ftDefault);
-	draw_set_color(make_color_rgb(91, 70, 48));
+	draw_set_color(global.ui_col.rule);
 	draw_text(_gw / 2, _py + 96, "Take one die for your bag, fitted with a core. A core changes which faces a die rolls most often.");
 
 	// the cards
@@ -2770,9 +2760,10 @@ function offering_draw() {
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
-	draw_set_color(_ink);
+	draw_set_color(global.ui_col.paper_hi);
 	var _bx = _px + 50;
 	draw_text(_bx, _fy, "Your bag:");
+	_ink = global.ui_col.rule; // the bag strip's dice are outlined light, on the dark window
 	// one die every 40px: a d4's triangle is about 33px across here, so they never touch. Hover one to see what it is.
 	_bx += string_width("Your bag:") + 34; // the first die's centre
 	for (var d = 0; d < ds_list_size(global.dice_bag); d++) {

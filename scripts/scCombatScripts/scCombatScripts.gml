@@ -905,11 +905,19 @@ function sacrifice_die(_die) {
 }
 
 /// @func die_cant_build_slot_reason(_die_struct)
-/// @desc Why this die can't go on the new-slot tile, or "" if it can. Generic (neutral) dice never make a slot, neither
-///       by starting one nor by building one: they only power up a slot that already has an action (B36, Jared 2026-11-20).
+/// @desc Why this die can't go on the new-slot tile, or "" if it can. A generic (neutral) die can't start a slot (B36,
+///       Jared 2026-11-20), but once a coloured die is on the tile it can help build it (Jared, 2026-11-21).
 function die_cant_build_slot_reason(_die_struct) {
-	if (_die_struct.possible_type == "None") return "Generic dice can't build slots. Play one into a slot that already has an action to power it up.";
+	if (_die_struct.possible_type == "None" && !new_slot_has_coloured()) return "Generic dice can't start a slot. Drop a coloured die on the new-slot tile first, then generic dice can help build it.";
 	return "";
+}
+
+/// @func new_slot_has_coloured()
+/// @desc Is a coloured (non-generic) die waiting on the new-slot tile? A slot is only built with one (it gives the type).
+function new_slot_has_coloured() {
+	if (!ds_safe_exists(global.sacrifice_list, ds_type_list)) return false;
+	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) if (global.sacrifice_list[| j].possible_type != "None") return true;
+	return false;
 }
 
 /// @func new_slot_threshold()
@@ -944,6 +952,7 @@ function new_slot_total() {
 ///       slot it's empty and untyped again after End Turn; what it keeps is its place, worth a bonus (slot_set_position_bonus).
 function combat_try_build_slot() {
 	if (ds_list_size(global.sacrifice_list) < new_slot_min_dice() || new_slot_total() < new_slot_threshold() || !combat_all_slots_have_action()) return;
+	if (!new_slot_has_coloured()) return; // only generic dice left on it (the coloured one was taken back): it waits for one
 
 	// it can be taken apart again this turn (combat_unbuild_slot) unless something that can't be undone fires: a die's
 	// "when sacrificed" effect (or its "when played" one, which Lead Line fires on sacrifice)
@@ -1785,7 +1794,7 @@ function tutorial_steps() {
 		},
 		{
 			id: "generic", target: "slot0", allow: ["place"], die_types: ["None"], slot: 0,
-			text: "Generic dice can't start or build a slot, but they add to any slot that has an action. Lay the generic die in your Attack slot.",
+			text: "Generic dice can't start a slot, but they add to any slot that has an action (and help build one once a coloured die is on the new-slot tile). Lay the generic die in your Attack slot.",
 			done: function() {
 				var _dice = oCombat.action_queue[| 0].dice_list;
 				for (var i = 0; i < ds_list_size(_dice); i++) if (_dice[| i].action_type == "None") return true;

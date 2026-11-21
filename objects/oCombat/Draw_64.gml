@@ -363,11 +363,22 @@ for (var i = 0; i < aq_list_size; i++) {
 		}
 		if (last_hover && !is_placing && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", (!_filled ? "Fill every slot first.\n" : "") + "Drop " + ((new_slot_min_dice() == 1) ? "a die" : string(new_slot_min_dice()) + "+ dice") + " adding up to " + string(_need) + " to build a slot. They act in it this turn."); // short: the rest (plays, taking back, End Turn) works as everywhere else
 
-		// the dice waiting on it, above it like a slot's
+		// the dice waiting on it, above it like a slot's. How many it needs shows there too (Jared, 2026-11-21): a faded
+		// d6 outline for each die still to come, so slot 3 shows two outlines over "6+ pips"; dropped dice take their places
 		var _wait = ds_list_size(global.sacrifice_list);
+		var _seats = max(_wait, new_slot_min_dice());
+		for (var w = _wait; w < _seats; w++) {
+			var _gx = last_x + last_w / 2 - ((_seats - 1) * 40 / 2) + w * 40;
+			var _ga = (_filled ? 0.55 : 0.3) * (0.85 + 0.15 * sin(current_time / 400 + w));
+			draw_die_shape(_gx, last_y - 20, 17 * 1.07, 6, global.ui_col.rule, 0, _ga);
+			draw_die_shape(_gx, last_y - 20, 17 * 0.9, 6, make_color_rgb(40, 44, 56), 0, _ga);
+		}
+		if (_seats > 0 && mouse_hovering(last_x + last_w / 2, last_y - 20, _seats * 40, 40, true) && !show_rewards && _wait < _seats) {
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", "Needs " + ((new_slot_min_dice() == 1) ? "1 die" : string(new_slot_min_dice()) + " or more dice") + " adding up to " + string(_need) + " pips. A coloured die first: generic dice can join once one is there.");
+		}
 		for (var w = 0; w < _wait; w++) {
 			var _wd = global.sacrifice_list[| w];
-			var _wx = last_x + last_w / 2 - ((_wait - 1) * 40 / 2) + w * 40;
+			var _wx = last_x + last_w / 2 - ((_seats - 1) * 40 / 2) + w * 40;
 			var _wy = last_y - 20;
 			draw_die(_wx, _wy, 17, _wd.dice_value, die_face_total(_wd), die_colours(_wd.possible_type), 0, 1, _wd); // its roll as pips
 			draw_set_font(ftDefault);
