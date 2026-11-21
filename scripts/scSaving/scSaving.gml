@@ -2,7 +2,7 @@
 #macro SAVE_VERSION 2
 // the build players see in the corner of the main menu and pause menu. dev shows the next version with -dev;
 // set the plain number when releasing to main (and tag the commit with it, e.g. v0.1.2)
-#macro GAME_VERSION "0.2.0"
+#macro GAME_VERSION "0.3.0-dev"
 
 function save_game(_slot) {
 	// Serialise dice bag
