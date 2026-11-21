@@ -271,9 +271,9 @@ if (room == rmMap) {
 		
 				// check if we're hovering
 				var page_hover = draw_page(page, page_pos[p].x, page_pos[p].y, p, true, false);
-				// B+: the sea stop this page brings, on its bottom right corner
+				// B+: the sea stop this page brings, beside it as it will be on the chart, with the course out to it
 				var _pg_s = (p < ds_list_size(page_scale)) ? page_scale[| p] : 1;
-				page_passage_badge(page, page_pos[p].x + sprite_get_width(sMapParchment) * 0.36 * _pg_s, page_pos[p].y + sprite_get_height(sMapParchment) * 0.34 * _pg_s, 0.8 * _pg_s, pages_alpha * (page.locked ? 0.4 : 1));
+				page_passage_preview(page, page_pos[p].x, page_pos[p].y, _pg_s, pages_alpha * (page.locked ? 0.4 : 1));
 
 				// if we're hovering a draftable page but haven't selected it yet,
 				if (page_hover && !page.chosen) {
@@ -406,7 +406,7 @@ if (room == rmMap) {
 		var _np = ds_list_size(chosen_pages);
 		for (var k = max(0, _np - pages_drafted); k < _np; k++) {
 			var _cp = chosen_pages[| k];
-			if (!page_is_boss(_cp)) page_passage_badge(_cp, _cp.x + sprite_get_width(sMapParchment) / 2 + 70, _cp.y, 1, 1);
+			if (!page_is_boss(_cp)) page_passage_preview(_cp, _cp.x, _cp.y, 1, 1);
 		}
 	}
 	var _spots = spread_sea_spots();

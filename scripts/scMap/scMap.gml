@@ -543,8 +543,10 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	var page_width = sprite_get_width(_sprite);
 	var page_height = sprite_get_height(_sprite);
 		
-	var pages_hover = mouse_hovering(page_x, page_y, page_width, page_height, true, soPaperHover, soClick4, !_locked * !page.chosen);
-	_scale = lerp(_scale, pages_hover ? 1.2 : 1.0, 0.2);
+	var pages_hover = mouse_hovering(page_x, page_y, page_width * _scale, page_height * _scale, true, soPaperHover, soClick4, !_locked * !page.chosen, UI_LAYER.BASE, "page:" + string(_index) + ":" + string(page.index) + ":" + string(page.island_index)); // a steady id (it grows on hover)
+	// drafting cards are drawn a little bigger, so you can see the page as it will be (with its sea stop beside it)
+	var _base_s = (_index == -1) ? 1.0 : 1.08;
+	_scale = lerp(_scale, pages_hover ? _base_s * 1.1 : _base_s, 0.2);
 		
 	if (_shadow) draw_sprite_ext(_sprite, page.index, page_x + 20, page_y + 20, _scale * 0.98,  _scale * 0.98, 0, c_black, 0.5 * pages_alpha);
 	
@@ -598,13 +600,15 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	// draw sprites
 	var island_alpha = !_locked ? pages_alpha : 1;
 	
+	// a drafting card is drawn bigger, island and stops too (_is), so the preview looks like the page will (2026-11-21)
+	var _is = (_index == -1) ? 1 : draw_scale;
 	shader_set(shWhiteFill)
 	for (var i = 0; i < 3; i++) {
-		draw_sprite_ext(sIslands, page.island_index, page_x, page_y, 1 + i / 3, 1 + i / 3, 0, c_white, 0.2);
+		draw_sprite_ext(sIslands, page.island_index, page_x, page_y, (1 + i / 3) * _is, (1 + i / 3) * _is, 0, c_white, 0.2);
 	}
 	shader_reset();
 	
-	draw_sprite_ext(sIslands, page.island_index, page_x, page_y, 1, 1, 0, c_white, island_alpha);
+	draw_sprite_ext(sIslands, page.island_index, page_x, page_y, _is, _is, 0, c_white, island_alpha);
 
 	if (_alpha == 1) {
 		// apply mask across the whole surface
@@ -665,6 +669,14 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 		}
 	}
 		
+	// a bigger drafting card: its stops spread with it, round the page's centre
+	if (_is != 1) {
+		for (var n = 0; n < array_length(node_x); n++) {
+			node_x[n] = _x + (node_x[n] - _x) * _is;
+			node_y[n] = _y + (node_y[n] - _y) * _is;
+		}
+	}
+
 	// while drafting, each page's course between its stops (once sailing, spread_routes_draw inks them)
 	if (!choices_locked) {
 		for (var n = 1; n < ds_list_size(page.nodes); n++) route_draw(node_x[n], node_y[n], node_x[n + 1], node_y[n + 1], 0.55 * (_locked ? 0.4 : 1) * ((_index == -1) ? 1 : pages_alpha));
@@ -1962,4 +1974,19 @@ function map_done_ring(_x, _y, _r, _alpha = 1) {
 	for (var k = -1; k <= 0; k++) draw_circle(_x, _y, _r + k, true);
 	draw_set_alpha(1);
 	map_visited_tick(_x + _r * 0.72, _y - _r * 0.72, 1.1, _alpha);
+}
+
+/// @func page_passage_preview(_page, _px, _py, _scale, _alpha)
+/// @desc While drafting: a page's sea stop where it will sit on the chart (to the right of the page, level with its
+///       middle, as spread_sea_spots puts it), with the dotted course from the page's last stop out to it (Jared,
+///       2026-11-21: previews that look like the real layout). _px, _py: the page's centre; _scale: its drawn scale.
+function page_passage_preview(_page, _px, _py, _scale, _alpha) {
+	if (page_passage(_page) == "") return;
+	var _sx = _px + (sprite_get_width(sMapParchment) / 2 + 66) * _scale, _sy = _py;
+	var _n = ds_list_size(_page.nodes);
+	if (_n > 0) {
+		var _last = _page.nodes[| _n - 1];
+		route_draw(_last.x, _last.y, _sx, _sy, 0.55 * _alpha);
+	}
+	page_passage_badge(_page, _sx, _sy, _scale, _alpha);
 }

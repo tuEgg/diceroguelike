@@ -1200,8 +1200,7 @@ function mouse_hovering_check(_x, _y, _width, _height, _centered, _hover_sound =
 				//draw_rectangle(_x, _y, _x + _width, _y + _height, false);
 				//draw_set_alpha(1.0);
 			}
-			global.is_hovering = _sound_id;
-			global.hovering_sound = _hover_sound;
+			if (_hover_sound != noone) { global.is_hovering = _sound_id; global.hovering_sound = _hover_sound; } // silent things don't take the hover (repeat sounds, 2026-11-21)
 			global.clicking_sound = _click_sound;
 			return true;
 		}
@@ -1211,8 +1210,7 @@ function mouse_hovering_check(_x, _y, _width, _height, _centered, _hover_sound =
 				//draw_rectangle(_x - _width/2, _y - _height/2, _x + _width/2, _y + _height/2, false);
 				//draw_set_alpha(1.0);
 			}
-			global.is_hovering = _sound_id;
-			global.hovering_sound = _hover_sound;
+			if (_hover_sound != noone) { global.is_hovering = _sound_id; global.hovering_sound = _hover_sound; } // silent things don't take the hover (repeat sounds, 2026-11-21)
 			global.clicking_sound = _click_sound;
 			return true;
 		}
@@ -2099,7 +2097,7 @@ function insight_rot(_x, _y, _lx, _ly, _scale) {
 ///       Returns { hover, click, scale }; keep .scale for next frame.
 function ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active = true, _reason = "", _layer = UI_LAYER.BASE, _alpha = 1, _font = ftBig, _click_sound = soClick2) {
 	// a button still fading in can't be pressed yet; nothing can while a cutscene has input switched off
-	var _hover = (_alpha > 0.5) && mouse_hovering(_cx - _w / 2, _cy - _h / 2, _w, _h, false, soSlotHover, _active ? _click_sound : noone, !global.all_input_disabled, _layer);
+	var _hover = (_alpha > 0.5) && mouse_hovering(_cx - _w / 2, _cy - _h / 2, _w, _h, false, soSlotHover, _active ? _click_sound : noone, !global.all_input_disabled, _layer, "button:" + string(round(_cx)) + "," + string(round(_cy)) + _text); // a steady id: its size can change
 	var _scale = lerp(_scale_ref, (_hover && _active) ? 1.06 : 1, 0.25);
 	var _pressed = _hover && _active && mouse_check_button(mb_left);
 	var _w2 = _w * _scale / 2, _h2 = _h * _scale / 2;
