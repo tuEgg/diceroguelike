@@ -79,7 +79,7 @@ function define_buffs_and_debuffs() {
 		name: "Mock",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Attacks cannot roll higher than 1.",
+	    desc: "Attack dice roll 1.",
 	    icon_index: 0,
 		debuff: true,
 		color: c_red,
@@ -101,7 +101,7 @@ function define_buffs_and_debuffs() {
 		name: "Barnacle Bind",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Lowers the amount of playable dice this turn",
+	    desc: "Fewer plays this turn.",
 	    icon_index: 1,
 		debuff: true,
 		color: c_aqua,
@@ -123,7 +123,7 @@ function define_buffs_and_debuffs() {
 		name: "Bind",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Prevents a random slot from firing this turn",
+	    desc: "A random slot doesn't act this turn.",
 	    icon_index: 5,
 		debuff: true,
 		color: c_dkgray,
@@ -189,7 +189,7 @@ function define_buffs_and_debuffs() {
 		name: "Rot",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Eject all base dice from this slot this turn",
+	    desc: "Halves one slot's total this turn.",
 	    icon_index: 5,
 		debuff: true,
 		color: c_green,
@@ -218,7 +218,7 @@ function define_buffs_and_debuffs() {
 		name: "Overwhelm",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Spills your ink: lowers your insight (below 0, enemy intents are hidden) and locks your aim on this creature. You can't change target this turn.",
+	    desc: "Lowers your insight. Your target is locked on this enemy this turn.",
 	    icon_index: 2,
 		debuff: true,
 		color: c_red,
@@ -244,7 +244,7 @@ function define_buffs_and_debuffs() {
 		name: "Shiny Scales",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Driftnet fish gains a coin to their attack roll every time they take take damage",
+	    desc: "Adds a Coin to its attack each time it takes damage.",
 	    icon_index: 6,
 		debuff: false,
 		color: c_aqua,
@@ -280,7 +280,7 @@ function define_buffs_and_debuffs() {
 		name: "Spines",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Every time the Pufferfish takes damage it deals 1 back.",
+	    desc: "Deals 1 damage back when hit.",
 	    icon_index: 7,
 		debuff: false,
 		color: make_color_rgb(100, 60, 0),
@@ -305,7 +305,7 @@ function define_buffs_and_debuffs() {
 		name: "Reserve",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Carry a dice to next turn.",
+	    desc: "Keep a die for next turn.",
 	    icon_index: 1,
 		debuff: false,
 		color: c_lime,
@@ -344,12 +344,36 @@ function define_buffs_and_debuffs() {
 	    ]
 	};
 	
+	// insight for each of the next 2 turns (Radar die). Its own buff so it stacks only with more of the same: merged into
+	// "Queued insight" it would either cut the 2 turns to 1 or make the whole queue last 2 (Jared, 2026-11-20)
+	buff_intel_lasting = {
+	    _id: "intel_lasting",
+		name: "Lasting insight",
+	    duration: 2,
+		amount: 1,
+	    desc: "Gain insight at the start of each turn.",
+	    icon_index: 2,
+		debuff: false,
+		color: make_color_rgb(230, 190, 40),
+		stackable: true, // more of it adds to the amount (it all runs out together)
+		remove_next_turn: false,
+		removal_event: "on_turn_start",
+	    effects: [
+	        {
+	            trigger: "on_turn_start",
+	            modify: function(_ctx) {
+					oCombat.player_intel += _ctx.debuff.amount;
+				}
+	        }
+	    ]
+	};
+
 	buff_might = {
 	    _id: "might",
 		name: "Might",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Boost Attacks by 1 per point of Might",
+	    desc: "Attacks deal +1 per Might.",
 	    icon_index: 3,
 		debuff: false,
 		color: c_orange,
@@ -374,7 +398,7 @@ function define_buffs_and_debuffs() {
 		name: "Balance",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Boost Block by 1 per point of Balance",
+	    desc: "Block gains +1 per Balance.",
 	    icon_index: 4,
 		debuff: false,
 		color: c_blue,
@@ -397,7 +421,7 @@ function define_buffs_and_debuffs() {
 		name: "Turtle Shell",
 	    duration: 1,  // lasts 1 full turn
 		amount: 0,
-	    desc: "Doesn't lose block between turns",
+	    desc: "Keeps its block between turns.",
 	    icon_index: 8,
 		debuff: false,
 		color: make_colour_rgb(40, 150, 60),
@@ -419,7 +443,7 @@ function define_buffs_and_debuffs() {
 		name: "Conch Layer",
 	    duration: 3,  // lasts 1 full turn
 		amount: 10,
-	    desc: "Has 3 protective layers that reduce flat damage by 2 per hit. Dealing 10/15/20 damage in total will break a layer, causing the Conch to be stunned.",
+	    desc: "3 layers: each hit deals 2 less damage. A layer breaks at 10, 15 and 20 total damage, stunning the Conch.",
 	    icon_index: 8,
 		debuff: false,
 		color: make_colour_rgb(60, 180, 240),
@@ -458,7 +482,7 @@ function define_buffs_and_debuffs() {
 		name: "Heart Ache",
 	    duration: 1,  // lasts 1 full turn
 		amount: 0,
-	    desc: "When this enemy dies, its partner is rallied in heartache.",
+	    desc: "When it dies, its partner takes revenge.",
 	    icon_index: 9,
 		debuff: false,
 		color: make_colour_rgb(160, 50, 30),
@@ -483,6 +507,38 @@ function define_buffs_and_debuffs() {
 	        }
 	    ]
 	};
+
+	// the ones a player meets by name, explained wherever their name is written (glossary_terms, F137)
+	global.status_glossary = [debuff_mock, debuff_barnacle_bind, debuff_bind, debuff_stunned, debuff_rot, debuff_overwhelm, buff_reserve, buff_might, buff_balance];
+}
+
+/// @func die_is_mocked(_die)
+/// @desc You're Mocked and this die can attack: its attack can't roll above 1 (B133). Marked on the die in hand, and the
+///       reroll hover warns that rerolling won't help.
+function die_is_mocked(_die) {
+	if (room != rmCombat || !is_struct(_die) || string_pos("ATK", string(_die.possible_type)) == 0) return false;
+	if (!variable_global_exists("player_debuffs") || !ds_safe_exists(global.player_debuffs, ds_type_list)) return false;
+	for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
+		if (global.player_debuffs[| d].template._id == "mock") return true;
+	}
+	return false;
+}
+
+/// @func draw_mock_mark(_x, _y, _scale)
+/// @desc A Mocked die's mark (B133): a small red ink tag reading "Mock", tilted like a stamp. Returns its hover box.
+function draw_mock_mark(_x, _y, _scale = 1) {
+	draw_set_font(ftDescriptions);
+	var _w = string_width("Mock") + 14 * _scale, _h = 24 * _scale;
+	draw_set_color(global.ui_col.ink);
+	draw_roundrect_ext(_x - _w / 2 - 2, _y - _h / 2 - 2, _x + _w / 2 + 2, _y + _h / 2 + 2, 8, 8, false);
+	draw_set_color(global.color_attack);
+	draw_roundrect_ext(_x - _w / 2, _y - _h / 2, _x + _w / 2, _y + _h / 2, 7, 7, false);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_color(global.ui_col.paper_hi);
+	draw_text(_x, _y, "Mock");
+	draw_set_color(c_white);
+	return { x1: _x - _w / 2, y1: _y - _h / 2, x2: _x + _w / 2, y2: _y + _h / 2 };
 }
 
 /// @func buff_tooltip_text(_inst)

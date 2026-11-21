@@ -69,6 +69,19 @@ draw_set_valign(fa_middle);
 	
 var exit_col = c_red;
 
-var exit_btn = ui_button(gui_w - 150, gui_h - 200, 180, 70, exit_scale, "Exit", global.ui_neutral, !oRunManager.is_dealing_dice && !oRunManager.holding_item);
-exit_scale = exit_btn.scale;
-if (exit_btn.click) room_goto(rmMap);
+// the room's commit action, bottom right (ui_primary, UI rework)
+// leaving with the treasure still there asks first (B136): the first click turns it into "Leave it?" for a few seconds
+var _untaken = !chest_open || keepsake_reward[| 0] != undefined;
+if (exit_confirm > 0) exit_confirm--;
+var _asking = _untaken && exit_confirm > 0;
+var exit_btn = ui_primary(gui_w - 44 - 140, gui_h - 40 - 48, 280, 96, _asking ? "Leave it?" : "Continue", !oRunManager.is_dealing_dice && !oRunManager.holding_item, "", UI_LAYER.BASE, 1, _asking ? global.ui_col.danger : undefined);
+if (_asking) {
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_outline_text(chest_open ? "The keepsake stays behind." : "The chest is still closed.", c_black, c_white, 2, gui_w - 44 - 140, gui_h - 40 - 48 - 72, 1, 1, 0);
+}
+if (exit_btn.click) {
+	if (_untaken && exit_confirm <= 0) exit_confirm = round(game_get_speed(gamespeed_fps) * 3);
+	else room_goto(rmMap);
+}

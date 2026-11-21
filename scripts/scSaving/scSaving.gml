@@ -1,5 +1,8 @@
 // Bump this whenever the save format changes, older saves are then ignored instead of loading wrongly
 #macro SAVE_VERSION 2
+// the build players see in the corner of the main menu and pause menu. dev shows the next version with -dev;
+// set the plain number when releasing to main (and tag the commit with it, e.g. v0.1.2)
+#macro GAME_VERSION "0.2.0-dev"
 
 function save_game(_slot) {
 	// Serialise dice bag
@@ -159,6 +162,7 @@ function load_game(_slot) {
 
     // Basic state
     oRunManager.credits = _save.credits;
+    oRunManager.credits_heard = _save.credits; // no jingle for loading a game
     global.player_hp = _save.player_hp;
     global.player_max_hp = _save.player_max_hp;
     global.player_alignment = _save.alignment;
@@ -383,7 +387,8 @@ function save_settings() {
 		fullscreen: window_get_fullscreen(),
 		combat_speed_index: global.combat_speed_index,
 		custom_cursor: global.custom_cursor,
-		action_icons: global.action_icons,
+		action_glyphs: global.action_icons, // renamed from action_icons when glyphs became the default
+		shake_on: global.shake_on,
 	}
 	
 	var _json = json_stringify(_save);
@@ -406,7 +411,8 @@ function load_settings() {
 	global.muted = _save.muted;
 	if (variable_struct_exists(_save, "combat_speed_index")) global.combat_speed_index = _save.combat_speed_index;
 	if (variable_struct_exists(_save, "custom_cursor")) global.custom_cursor = _save.custom_cursor;
-	if (variable_struct_exists(_save, "action_icons")) global.action_icons = _save.action_icons;
+	if (variable_struct_exists(_save, "action_glyphs")) global.action_icons = _save.action_glyphs;
+	if (variable_struct_exists(_save, "shake_on")) global.shake_on = _save.shake_on;
 
 	// a browser only allows fullscreen from a click, so a web build doesn't restore it at start-up
 	if (!IS_BROWSER) window_set_fullscreen(_save.fullscreen);
@@ -428,7 +434,8 @@ function check_settings() {
 		|| (window_get_fullscreen() != _save.fullscreen)
 		|| (variable_struct_exists(_save, "combat_speed_index") ? global.combat_speed_index != _save.combat_speed_index : global.combat_speed_index != 1)
 		|| (variable_struct_exists(_save, "custom_cursor") ? global.custom_cursor != _save.custom_cursor : !global.custom_cursor)
-		|| (variable_struct_exists(_save, "action_icons") ? global.action_icons != _save.action_icons : global.action_icons) {
+		|| (variable_struct_exists(_save, "action_glyphs") ? global.action_icons != _save.action_glyphs : !global.action_icons)
+		|| (variable_struct_exists(_save, "shake_on") ? global.shake_on != _save.shake_on : !global.shake_on) {
 			settings_changed = true;
 		} else {
 			settings_changed = false;

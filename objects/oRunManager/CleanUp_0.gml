@@ -9,6 +9,8 @@ if (ds_safe_exists(global.shop_keepsake_list, ds_type_list)) ds_list_destroy(glo
 if (ds_safe_exists(global.boss_keepsake_list, ds_type_list)) ds_list_destroy(global.boss_keepsake_list);
 if (ds_safe_exists(global.enemy_list, ds_type_list)) ds_list_destroy(global.enemy_list);
 if (ds_safe_exists(keepsakes, ds_type_list)) ds_list_destroy(keepsakes);
+if (surface_exists(ink_scene)) surface_free(ink_scene);
+if (surface_exists(bag_clip_surf)) surface_free(bag_clip_surf);
 if (ds_safe_exists(keepsake_scale, ds_type_list)) ds_list_destroy(keepsake_scale);
 if (ds_safe_exists(global.enemy_debuffs, ds_type_list)) ds_list_destroy(global.enemy_debuffs);
 if (ds_safe_exists(global.player_debuffs, ds_type_list)) ds_list_destroy(global.player_debuffs);

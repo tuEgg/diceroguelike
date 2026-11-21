@@ -4,7 +4,7 @@ y_speed = -irandom_range(2, 3);
 grav = 0.3;
 
 // Target
-target_x = 310;
+target_x = variable_global_exists("gold_pos") ? global.gold_pos : 310; // the gold in the top bar
 target_y = 35;
 
 // Visuals

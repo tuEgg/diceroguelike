@@ -7,7 +7,7 @@ function define_items() {
 		sprite: sCoin,
 		index: 0,
 		name: "Coins",
-		description: "Used to buy shit",
+		description: "Spend in shops.",
 		type: "money",
 		dragging: false,
 		distribution: "",
@@ -22,7 +22,7 @@ function define_items() {
 		sprite: sCores,
 		index: 0,
 		name: "Weighted Core",
-		description: "Increases the odds of a die rolling higher numbers",
+		description: "Rolls high more often.",
 		type: "core",
 		dragging: false,
 		distribution: "weighted",
@@ -37,7 +37,7 @@ function define_items() {
 		sprite: sCores,
 		index: 1,
 		name: "Loaded Core",
-		description: "Greatly increases the odds of a die rolling higher numbers",
+		description: "Rolls high much more often.",
 		type: "core",
 		dragging: false,
 		distribution: "loaded",
@@ -52,7 +52,7 @@ function define_items() {
 		sprite: sCores,
 		index: 2,
 		name: "Edge Core",
-		description: "Dice will roll its minimum or maximum value most of the time",
+		description: "Mostly rolls its minimum or maximum.",
 		type: "core",
 		dragging: false,
 		distribution: "edge",
@@ -67,7 +67,7 @@ function define_items() {
 		sprite: sCores,
 		index: 3,
 		name: "Binary Core",
-		description: "Dice will always roll either its minimum or maximum value",
+		description: "Only rolls its minimum or maximum.",
 		type: "core",
 		dragging: false,
 		distribution: "binary",
@@ -82,7 +82,7 @@ function define_items() {
 		sprite: sCores,
 		index: 4,
 		name: "Bell Core",
-		description: "Dice will roll on a bell curve, emphasising middle values",
+		description: "Rolls middle values more often.",
 		type: "core",
 		dragging: false,
 		distribution: "bell",
@@ -97,7 +97,7 @@ function define_items() {
 		sprite: sCores,
 		index: 5,
 		name: "Dome Core",
-		description: "Dice will nearly always roll their middle values",
+		description: "Nearly always rolls middle values.",
 		type: "core",
 		dragging: false,
 		distribution: "dome",
@@ -108,14 +108,16 @@ function define_items() {
 	}
 	ds_list_add(global.master_item_list, clone_item(item_core_dome));
 	
+	// the alignment pair (F151, 2026-11-19), in Odd and Even's place (parity barely moved a die): your compass shapes
+	// the roll, read live as it rolls (core_alignment_lean)
 	item_core_odd = {
 		sprite: sCores,
 		index: 6,
-		name: "Odd Core",
-		description: "Dice will roll odd numbers more often",
+		name: "Compass Core",
+		description: "The more ruthless you are, the more it rolls its lowest or highest. The more merciful, the more it rolls its middle.",
 		type: "core",
 		dragging: false,
-		distribution: "odd",
+		distribution: "compass",
 		taken: false,
 		amount: 1,
 		rarity: "uncommon",
@@ -126,11 +128,11 @@ function define_items() {
 	item_core_even = {
 		sprite: sCores,
 		index: 7,
-		name: "Even Core",
-		description: "Dice will roll even numbers more often",
+		name: "Lodestone Core",
+		description: "Fully ruthless, it only rolls its lowest or highest. Fully merciful, only its middle.",
 		type: "core",
 		dragging: false,
-		distribution: "even",
+		distribution: "lodestone",
 		taken: false,
 		amount: 1,
 		rarity: "rare",
@@ -142,7 +144,7 @@ function define_items() {
 		sprite: sCores,
 		index: 8,
 		name: "Dual Core",
-		description: "Dice will roll their second highest/lowest values more often",
+		description: "Rolls its second highest or lowest more often.",
 		type: "core",
 		dragging: false,
 		distribution: "dual",
@@ -157,7 +159,7 @@ function define_items() {
 		sprite: sCores,
 		index: 9,
 		name: "Tower Core",
-		description: "Dice will only roll their second highest or lowest values",
+		description: "Only rolls its second highest or lowest.",
 		type: "core",
 		dragging: false,
 		distribution: "tower",
@@ -172,7 +174,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 0,
 		name: "Riggers Tonic",
-		description: "Choose a slot: every die in it gains +1 to its roll this turn",
+		description: "Every die in a slot gets +2 this turn.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -194,7 +196,7 @@ function define_items() {
 			},
 			modify: function(_context) {
 				// +1 on every die in this slot until the end of this round
-				slot_add_bonus(_context._slot, "Rigger's Tonic", 1, 1);
+				slot_add_bonus(_context._slot, "Rigger's Tonic", 2, 1); // F24: was +1
 			}
 		},
 		price: 25
@@ -205,7 +207,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 1,
 		name: "Bilge-Purge Flask",
-		description: "Completely empty a slot, ejecting all dice within it. Gain +3 dice to play this turn.",
+		description: "Empty a slot. Gain 3 plays this turn.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -218,7 +220,7 @@ function define_items() {
 				var dice_exist = true;
 				if (ds_list_size(_context._slot.dice_list) == 0) {
 					dice_exist = false;
-					throw_error("This slot is empty", "Try playing this to a slot with dice in it");
+					throw_error("This slot is empty", "Use it on a slot with dice in it.");
 				}
 				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
 			},
@@ -239,7 +241,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 2,
 		name: "Artisan's Ember Draught",
-		description: "Upgrade a random dice in play +4 for the rest of combat",
+		description: "A random die in your hand gets +4 max roll this combat.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -286,7 +288,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 3,
 		name: "Corsair's Gambit",
-		description: "Gain +1 playable dice this turn for every enemy",
+		description: "Gain 1 play per enemy this turn, minimum 2.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -308,7 +310,7 @@ function define_items() {
 			},
 			modify: function(_context) {
 				// select a random die in play and upgrade it
-				oCombat.dice_allowed_this_turn_bonus += ds_list_size(oCombat.room_enemies);
+				oCombat.dice_allowed_this_turn_bonus += max(2, ds_list_size(oCombat.room_enemies)); // F24: at least 2
 				oCombat.dice_played_scale = 1.5;
 				particle_emit( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", c_teal);
 				// when we eventually have multiple enemies, use a loop
@@ -324,7 +326,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 4,
 		name: "Mirage Brew",
-		description: "Gain a copy of a random dice in play for the remainder of combat",
+		description: "Copy a random die in your hand for this combat.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -384,7 +386,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 5,
 		name: "Crow's Nest Clarity",
-		description: "Gain 10 insight (Quill) next turn",
+		description: "Gain 10 insight next turn.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -423,7 +425,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 6,
 		name: "Grog of Grit",
-		description: "Gain +2 might for the rest of combat.",
+		description: "Gain 3 Might this turn.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -444,7 +446,7 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
-				apply_buff("player", oRunManager.buff_might, -1, 2, oRunManager.buff_might.remove_next_turn, { source: "player", index: -1 }, true);
+				apply_buff("player", oRunManager.buff_might, 1, 3, false, { source: "player", index: -1 }); // this turn only (2026-11-20; was +3 all fight)
 				particle_emit( global.player_x, global.player_y, "rise", c_orange);
 			}
 		},
@@ -456,7 +458,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 7,
 		name: "Captain's Brew",
-		description: "Gain +2 balance for the rest of combat.",
+		description: "Gain 3 Balance for the rest of combat.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -477,7 +479,7 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
-				apply_buff("player", oRunManager.buff_balance, -1, 2, oRunManager.buff_balance.remove_next_turn, { source: "player", index: -1 }, true);
+				apply_buff("player", oRunManager.buff_balance, -1, 3, oRunManager.buff_balance.remove_next_turn, { source: "player", index: -1 }, true); // F24: was 2
 				particle_emit( global.player_x, global.player_y, "rise", c_blue);
 			}
 		},
@@ -489,7 +491,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 8,
 		name: "Navigator's Brew",
-		description: "Draw 4 dice",
+		description: "Draw 4 dice. In combat, gain 1 play.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -510,6 +512,7 @@ function define_items() {
 				return dice_exist;
 			},
 			modify: function(_context) {
+				if (room == rmCombat && instance_exists(oCombat)) oCombat.dice_allowed_this_turn_bonus += 1; // F24: a play for them
 				with (oRunManager) {
 					dice_to_deal = 4;
 					is_dealing_dice = true;
@@ -525,7 +528,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 9,
 		name: "Healing Flask",
-		description: "Heal 30% of your max HP",
+		description: "Heal 40% of your max health.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -542,9 +545,10 @@ function define_items() {
 				}
 			},
 			modify: function(_context) {
-				var heal_amount = ceil(global.player_max_hp * 0.3);
+				var heal_amount = ceil(global.player_max_hp * 0.4); // F24: was 30%
 				global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
-				particle_emit(650, 25, "burst", c_lime);
+				var _hs = ui_health_spot();
+				particle_emit(_hs.x, _hs.y, "burst", c_lime); // where your health is in the top bar
 			}
 		},
 		price: 40
@@ -611,6 +615,9 @@ function get_first_free_item_slot() {
 }
 
 function get_item_by_name(_name) {
+	// cores renamed in a save from before 2026-11-19 (Odd and Even became the alignment pair)
+	if (_name == "Odd Core") _name = "Compass Core";
+	if (_name == "Even Core") _name = "Lodestone Core";
     for (var i = 0; i < ds_list_size(global.master_item_list); i++) {
         if (global.master_item_list[| i].name == _name) {
             return global.master_item_list[| i];

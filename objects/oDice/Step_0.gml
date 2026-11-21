@@ -20,6 +20,25 @@ if (!still) {
 
 image_index = get_dice_index(dice_value);
 
+// rolled dice: it tumbles while it flies out of the bag (and after a reroll), flicking through faces, then lands on its roll
+if (room == rmCombat && is_struct(struct) && die_has_faces(struct)) {
+	if (roll_anim > 0) roll_anim--;
+	var _was_tumbling = tumbling;
+	tumbling = (roll_anim > 0) || (!has_rolled && !no_tumble && !is_dragging);
+	if (tumbling) {
+		tumble_angle += 26;
+		flick_timer--;
+		if (flick_timer <= 0) {
+			flick_face = irandom_range(1, max(1, dice_value));
+			flick_timer = 3;
+		}
+	} else {
+		tumble_angle += angle_difference(0, tumble_angle) * 0.35; // settles square
+		if (_was_tumbling) land_pop = 1;
+		land_pop = lerp(land_pop, 0, 0.18);
+	}
+}
+
 // Get mouse position
 var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
@@ -56,11 +75,24 @@ if (!hovered_local && global.hovered_dice_id == id) {
 
 // --- Smooth scaling ---
 hover_target = hovered ? hover_scale : 1.0;
+// dragged over the discard pile: it swells and wobbles (oDice Draw GUI) so it's clear letting go discards it
+over_discard = false; // no discarding by dragging: a die is discarded only by a redraw with ink (the inkwell)
+if (over_discard) hover_target = 1.7;
 scale = lerp(scale, hover_target, hover_speed);
 
 // --- Start dragging ---
+// an event's dice (and coins) go into the bag with a click (F149), unless the plank is waiting for one to be dragged onto it
+var _event_click = (room == rmEvent) && !(instance_exists(oEventManager) && oEventManager.deleting_die == 1) && global.ui_layer == UI_LAYER.BASE;
 if (!is_dragging && hovered && mouse_check_button_pressed(mb_left)) {
-	if (!still) {
+	if (_event_click) {
+		var _p = instance_create_depth(x, y, -13, oDiceParticle);
+		_p.die_struct = clone_die(struct, struct.permanence);
+		_p.color_main = get_dice_color(struct.possible_type);
+		_p.target_x = 60;
+		_p.target_y = 1040;
+		sfx_play(soClick4, AUDIO_GROUP.UI, 0.05, 1);
+		instance_destroy();
+	} else if (!still) {
 	    is_dragging = true;
 	    drag_offset_x = mx - x;
 	    drag_offset_y = my - y;
@@ -75,6 +107,22 @@ if (!is_dragging && hovered && mouse_check_button_pressed(mb_left)) {
 		_p.target_x = 60;
 		_p.target_y = 1040;
 		instance_destroy();
+	}
+}
+
+// rolled dice: right-click a die in hand to reroll it (once per turn, free)
+// (rerolling a die is done in the insight phase now: combat_insight_view_draw)
+
+// a shortcut: hover a die in hand and press 1-9 to put it in that slot, the same as dragging it there
+if (room == rmCombat && hovered && !is_dragging && !in_slot && !still && has_rolled && !tumbling && oCombat.state == CombatState.PLAYER_INPUT && !oCombat.insight_view) {
+	for (var _k = 1; _k <= 9; _k++) {
+		if (!keyboard_check_pressed(ord(string(_k))) && !keyboard_check_pressed(vk_numpad0 + _k)) continue;
+		var _slot_i = _k - 1;
+		if (_slot_i < ds_list_size(oCombat.action_queue) && tutorial_allows("place", struct, _slot_i)) {
+			var _die_id = id;
+			with (oCombat) apply_dice_to_slot(_die_id, _slot_i);
+		}
+		break;
 	}
 }
 
@@ -134,8 +182,8 @@ if (is_dragging) {
 					else if (_target == 0 && _die.struct.dice_value == 2) _reason = "coin";
 					else if (_target == 1 && workbench_slot[1].core != undefined) _reason = "core";
 
-					if (_reason == "coin") throw_error("Can't upgrade coins", "Coins are are too small to receive a core");
-					if (_reason == "core") throw_error("Core already here", "Remove the core before placing a dice here");
+					if (_reason == "coin") throw_error("Can't upgrade coins", "Coins can't take a core.");
+					if (_reason == "core") throw_error("Core already here", "Remove the core first.");
 
 					// leave the slot it was in (moving between slots is allowed)
 					if (_die.in_slot > 0) {
@@ -155,6 +203,19 @@ if (is_dragging) {
 	}
 }
 
+// --- Safety net (B123): a die in hand that's off screen, or still drifting long after it was dealt, is placed in the hand area
+if (!is_dragging && !in_slot && !still) {
+	stray_timer = (variable_instance_exists(id, "stray_timer") ? stray_timer : 0) + 1;
+	var _off = (x < -40 || y < -40 || x > display_get_gui_width() + 40 || y > display_get_gui_height() + 40);
+	if ((_off && has_rolled) || (!has_rolled && stray_timer > game_get_speed(gamespeed_fps) * 3)) {
+		var _spot = generate_valid_targets(1, 100)[0];
+		x = _spot[0]; y = _spot[1];
+		target_x = x; target_y = y;
+		speed = 0;
+		has_rolled = true;
+	}
+}
+
 // --- Snap back smoothly when not dragging ---
 if (!is_dragging && has_rolled && !in_slot && !still) {
 
@@ -170,7 +231,7 @@ if (is_dragging && mouse_check_button_released(mb_left)) {
     if (combat != noone) {
         // the guided first fight only lets through what its current step asks for (tutorial_allows)
         if (is_mouse_over_discard_button()) {
-            if (tutorial_allows("discard", struct)) with (combat) discard_dice(other.id);
+            throw_error("Can't discard", "Use the inkwell to redraw a die."); // only a redraw with ink discards
         } else if (oCombat.last_hover) {
 			if (!die_has_keyword(struct, "exclusive") && tutorial_allows("sacrifice", struct)) {
 				with (combat) sacrifice_die(other.id);

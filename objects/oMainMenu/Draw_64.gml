@@ -13,7 +13,7 @@ if (room == rmMainMenu && !global.all_input_disabled && !global.show_settings) {
 	
 	if (show_run_warning == true) {
 		// give a warning if we try to start a new run with one existing
-		var warning_txt = "Are you sure you want to abandon your current run?";
+		var warning_txt = "Abandon your current voyage?";
 		
 		// Draw background
 		var btn_w = gui_w / 9;
@@ -48,11 +48,7 @@ if (room == rmMainMenu && !global.all_input_disabled && !global.show_settings) {
 	} else {
 		for (var i = 0; i < array_length(menu); i++) {
 		var menu_item = draw_gui_button(menu_x - button_w/2, menu_y + (vertical_spacer * i) - button_h/2, button_w, button_h, menu[i].scale, menu[i].title, global.ui_neutral, ftBig, menu[i].flag, true, UI_LAYER.BASE, soClick1, soClick4);
-		draw_set_color(c_white);
-		draw_set_font(ftDefault);
-		draw_set_halign(fa_center);
-		draw_set_valign(fa_middle);
-		draw_outline_text(menu[i].title, c_black, c_white, 2, menu_x, menu_y + (vertical_spacer * i), menu[i].scale, menu[i].flag ? 1.0 : 0.25, 0);
+		// (the kit button draws its own label in ink: UI rework)
 		
 		menu[i].scale = menu_item.scale;
 		
@@ -62,3 +58,6 @@ if (room == rmMainMenu && !global.all_input_disabled && !global.show_settings) {
 	}
 	}
 }
+
+// the build number, bottom right (also hidden under Settings, which covers the screen)
+if (room == rmMainMenu && !global.show_settings) draw_version_tag(display_get_gui_width() - 16, display_get_gui_height() - 12);

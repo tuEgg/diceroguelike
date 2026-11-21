@@ -3,13 +3,22 @@ var my = device_mouse_y_to_gui(0);
 
 var tooltip = "";
 
-aq_tile_w = 62.48177 * power(1.000414, gui_w); // using desmos graphic calculator, expontential regression at these values: 1600 = 120, 1920 = 140, 2560 = 180
+aq_tile_w = 62.48177 * power(1.000414, gui_w) * 1.12; // (UI rework: tickets 12% bigger, so names and totals read) // using desmos graphic calculator, expontential regression at these values: 1600 = 120, 1920 = 140, 2560 = 180
 
 var aq_list_size = ds_list_size(action_queue);
 var aq_tile_padding = aq_tile_w / 7;
 var aq_total_w = ((aq_list_size + 1) * aq_tile_w) + ((aq_list_size) * aq_tile_padding);
 var aq_start_x = gui_w / 2 - (aq_total_w / 2);
-var aq_start_y = gui_h / 2;
+// the queue keeps clear of the enemies (a crowd pushes it left), but stays right of you and the inkwell before it
+var _q_right = gui_w;
+for (var _qe = 0; _qe < ds_list_size(room_enemies); _qe++) {
+	var _qen = room_enemies[| _qe];
+	if (!_qen.dead && variable_struct_exists(_qen, "pos_x_start")) _q_right = min(_q_right, _qen.pos_x_start - 150 * global.ui_scale);
+}
+aq_start_x = min(aq_start_x, _q_right - aq_total_w);
+aq_start_x = max(aq_start_x, global.player_x + 230 * global.ui_scale);
+var aq_start_y = gui_h / 2 - 92; // the fight sits higher, leaving the bottom right to End Turn and the tray's edge clear
+aq_left = aq_start_x; aq_mid_y = aq_start_y + aq_tile_w / 2; // the inkwell sits just before the queue (combat_inkwell_pos)
 
 // Keep tile_scale list synced with action_queue size
 if (ds_list_size(tile_scale) < aq_list_size) {
@@ -24,103 +33,40 @@ if (!variable_instance_exists(id, "slot_positions")) {
 }
 ds_list_clear(slot_positions);
 
-var played_dice_hover = mouse_hovering(aq_start_x - aq_tile_w/2 - aq_tile_padding + 12, aq_start_y + aq_tile_w/2 - 40, 100, 50, true);
-
-if (played_dice_hover && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Played dice", "You can play " + string(dice_allowed_per_turn - dice_played) + " more dice this turn");
-
-// --- Play Button ---
-var btn_x = aq_start_x - 120 - (30 * global.ui_scale); // top left position of the button
-var btn_y = aq_start_y + (70 * global.ui_scale);
-var btn_w = 120 + ((20 * global.ui_scale));
-var btn_h = sprite_get_height(sEndTurn);
-
-var btn_scaler = btn_w / 140; // used to scale the button at different ui sizes
-
-// Determine label dynamically
-// Need to have it say "Dealing Dice" when its the start of a turn 
-var label_text = "";
-var label_col = c_dkgray;
-
-switch (state) {
-	case CombatState.PLAYER_INPUT:
-		if (dice_to_deal > 0) {
-			label_text = "DEALING DICE";
-			label_col = c_dkgray;
-		} else {
-			label_text = "END TURN " + string(turn_count);
-			label_col = global.ui_primary; // the screen's main go action, same green as Embark
-		}
-	break;
-	
-	default:
-		label_text = "PENDING";
-		label_col = c_dkgray;
+// --- End Turn: the screen's one commit action, bottom right (docs/design-ui-rework.md, ui_primary_button) ---
+var _et_w = 300, _et_h = 104;
+var _et_cx = gui_w - 44 - _et_w / 2, _et_cy = gui_h - 40 - _et_h / 2;
+var label_text = "Wait";
+var _et_frame = global.ui_col.brass;
+if (state == CombatState.PLAYER_INPUT) {
+	if (dice_to_deal > 0) label_text = "Dealing dice";
+	else if (insight_view) { label_text = "Confirm"; _et_frame = global.color_intel; } // the ink view is open: this puts it away (clicked in combat_insight_view_draw)
+	else label_text = "End turn";
 }
-
-// Draw button using helper
-var play_btn = draw_gui_button(
-    btn_x,
-    btn_y,
-    btn_w,
-    btn_h,
-    btn_scale,
-    label_text,
-    c_green,
-    ftDefault,
-    (state == CombatState.PLAYER_INPUT) && !show_rewards,         // active
-	false,
-	UI_LAYER.BASE,
-	soSlotHover,
-	noone
-);
-
-// Update animation state
-btn_scale = play_btn.scale;
-
-var end_text_pos = btn_x + (btn_w/2) - (20 * global.ui_scale);
-
+var _et_active = (state == CombatState.PLAYER_INPUT) && !show_rewards && dice_to_deal <= 0;
+var _et_hover = _et_active && mouse_hovering(_et_cx - _et_w / 2, _et_cy - _et_h / 2, _et_w, _et_h, false, soSlotHover, noone, true, UI_LAYER.BASE);
+btn_scale = lerp(btn_scale, _et_hover ? 1.04 : 1, 0.25);
 // once your hand is empty, End Turn breathes so it is obvious what is next
-var end_draw_scale = btn_scale;
-if (state == CombatState.PLAYER_INPUT && dice_to_deal <= 0 && instance_number(oDice) == 0 && !show_rewards) end_draw_scale *= 1 + 0.05 * (0.5 + 0.5 * sin(current_time / 220));
-draw_sprite_ext(sEndTurn, 0, btn_x + btn_w/2, btn_y + btn_h/2, end_draw_scale * btn_scaler, end_draw_scale * btn_scaler, 0, label_col, 1);
-draw_set_color(c_white);
-draw_set_font(ftDefault);
-draw_set_halign(fa_center);
-draw_set_valign(fa_middle);
-draw_outline_text(label_text, c_black, c_white, 2, end_text_pos, btn_y + (btn_h/2), btn_scale, btn_scale, 0);
+var _breathe = (_et_active && !insight_view && instance_number(oDice) == 0) ? 1 + 0.035 * (0.5 + 0.5 * sin(current_time / 220)) : 1;
+ui_primary_button(_et_cx, _et_cy, _et_w * btn_scale * _breathe, _et_h * btn_scale * _breathe, label_text, _et_frame, _et_active || insight_view, _et_hover);
+var play_btn = { click: _et_hover && mouse_check_button_pressed(mb_left), hover: _et_hover };
+// where End Turn is, for the ink view's Confirm click and for leaving it out of the ink view's dark (combat_insight_view_draw)
+end_turn_draw = { x1: _et_cx - _et_w / 2, y1: _et_cy - _et_h / 2, x2: _et_cx + _et_w / 2, y2: _et_cy + _et_h / 2 };
 
-// Draw playable dice
-
-draw_set_font(ftBig);
-draw_set_halign(fa_center);
-draw_set_valign(fa_middle);
+// this turn's plays: a row of brass studs and "N plays left" just above End Turn (combat_turn_tokens_draw)
 dice_played_scale = lerp(dice_played_scale, 1.0, 0.05);
 dice_played_color = merge_colour(dice_played_color, c_white, 0.05);
-// plays left this turn, as a row of pips: filled for each play left, hollow for each used (coins don't use one)
-var _plays_total = max(dice_allowed_per_turn, dice_played);
-var _plays_left = max(0, dice_allowed_per_turn - dice_played);
-var _pip = 20 * dice_played_scale, _pip_gap = 7;
-var _pips_w = _plays_total * _pip + (_plays_total - 1) * _pip_gap;
-var _pips_x = end_text_pos + 8 - _pips_w / 2, _pips_y = aq_start_y + aq_tile_w/2 - 40;
-draw_set_font(ftDefault);
-draw_outline_text((_plays_left == 1) ? "1 play left" : string(_plays_left) + " plays left", c_black, dice_played_color, 2, end_text_pos + 8, _pips_y - 30, 1, 1.0, 0);
-for (var _p = 0; _p < _plays_total; _p++) {
-	var _px = _pips_x + _p * (_pip + _pip_gap);
-	draw_set_color(c_black);
-	draw_roundrect_ext(_px - 2, _pips_y - _pip / 2 - 2, _px + _pip + 2, _pips_y + _pip / 2 + 2, 6, 6, false);
-	draw_set_color((_p < _plays_left) ? dice_played_color : make_color_rgb(60, 60, 70));
-	draw_roundrect_ext(_px, _pips_y - _pip / 2, _px + _pip, _pips_y + _pip / 2, 5, 5, false);
-}
-draw_set_color(c_white);
+tokens_args = { cx: _et_cx, right: gui_w - 30, y: _et_cy - _et_h / 2 - 24 };
+if (!show_rewards) combat_turn_tokens_draw(tokens_args.cx, tokens_args.right, tokens_args.y, false);
 draw_set_font(ftBig);
 
 // Click handling
 if (play_btn.click && state == CombatState.PLAYER_INPUT && !is_dealing_dice && tutorial_allows("end_turn")) {
+	sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
     actions_submitted = true;
 }
-// the tutorial points here: the sprite as drawn, from its origin and scale
-var _et_s = btn_scale * btn_scaler;
-tut_end_turn = { x: btn_x + btn_w/2 - sprite_get_xoffset(sEndTurn) * _et_s, y: btn_y + btn_h/2 - sprite_get_yoffset(sEndTurn) * _et_s, w: sprite_get_width(sEndTurn) * _et_s, h: sprite_get_height(sEndTurn) * _et_s };
+// the tutorial points here
+tut_end_turn = { x: end_turn_draw.x1, y: end_turn_draw.y1, w: _et_w, h: _et_h };
 
 hovered_slot = -1;
 
@@ -213,30 +159,6 @@ for (var i = 0; i < aq_list_size; i++) {
 		particle_emit(start_x, start_y, "constant", c_green, 1);
 	}
 
-    // --- Highlight the active action slot during RESOLVE_ROUND ---
-	if (state == CombatState.RESOLVE_ROUND && !enemies_turn_done) {
-	    if (i == draw_action_index) {
-	        slot_index = 0;
-			
-			// double up the sprite so the visual is more obvious
-			draw_sprite_ext(sActionSlot, slot_index, draw_x, draw_y, current_scale * aq_tile_w/140, current_scale * aq_tile_w/140, 0, draw_col, 1.0);
-		}
-	}
-	
-	// Draw slot highlight if we can play to it
-	//if (draw_playable_slots) {
-	//	draw_sprite_ext(sActionSlotHighlight, slot_index, draw_x - 12, draw_y - 12, current_scale, current_scale, 0, c_white, 0.3);
-	//}
-
-	// Draw the main slot sprite
-	//draw_wonky_rectangle(draw_x, draw_y, current_scale * aq_tile_w, current_scale * aq_tile_w, draw_col, c_black, draw_alpha_val, false, true);
-	draw_sprite_ext(sActionSlot, slot_index, draw_x, draw_y, current_scale * aq_tile_w/140, current_scale * aq_tile_w/140, 0, draw_col, draw_alpha_val);
-	
-	// If slot locked, draw the chain
-	if (locked_slot == i) {
-		draw_sprite_ext(sRewardChain, 0, draw_x + draw_w/2, draw_y + draw_h/2, current_scale * 0.75 * aq_tile_w/140, current_scale * 0.75 * aq_tile_w/140, 0, c_white, 1.0);
-	}
-	
 	var stats = get_slot_stats(action_queue[| i], i);
 	var _low_roll = stats.low_roll;
 	var _high_roll = stats.high_roll;
@@ -247,21 +169,23 @@ for (var i = 0; i < aq_list_size; i++) {
 	var slot_amount = total_amount;
 	var slot_value = highest_value;
 	var slot_possible_type = action_queue[| i].possible_type;
-
-    // Draw label
 	var label = get_action_name(action_queue[| i], i);
-    draw_set_color(c_black);
-    draw_set_alpha(1.0);
-    draw_set_halign(fa_center);
-    draw_set_valign(fa_middle);
-	draw_set_font(ftDefault);
-    draw_outline_text(label, c_black, c_white, 2, draw_x + draw_w / 2, draw_y + draw_h / 2 - (draw_h/10), 1, 1, 0);
-	
-	// Draw dice outcome (an empty slot has none to show)
-	if (label != "" && !(_low_roll == 0 && _high_roll == 0)) {
-		draw_set_font(ftDefault);
-	    draw_outline_text( "(" + string(_low_roll) + "-" + string(_high_roll) + ")", c_black, c_white, 2, draw_x + draw_w / 2, draw_y + draw_h - 35, 1, 1, 0);
+
+	// the slot as a paper ticket (ui_ticket, scUI): a band in its action's pigment with its glyph and name, the total
+	// huge in ink, and what its place adds (slot_set_position_bonus) inked beside it. Brass-edged while it acts.
+	var _pos_bonus = variable_struct_exists(action_queue[| i], "position_bonus") ? action_queue[| i].position_bonus : 0;
+	var _total_text = (label != "" && !(_low_roll == 0 && _high_roll == 0)) ? ((_low_roll == _high_roll) ? string(max(0, _low_roll)) : string(_low_roll) + "-" + string(_high_roll)) : "";
+	var _t_state = "";
+	if (state == CombatState.RESOLVE_ROUND && !enemies_turn_done && i == draw_action_index) _t_state = "acting";
+	if (locked_slot == i) _t_state = "locked";
+	ui_ticket(draw_x, draw_y, draw_w, draw_h, action_queue_type, label, _total_text, (_pos_bonus > 0) ? "+" + string(_pos_bonus) : "", i * 7 + 3, _t_state);
+
+	// If slot locked, draw the chain
+	if (locked_slot == i) {
+		draw_sprite_ext(sRewardChain, 0, draw_x + draw_w/2, draw_y + draw_h/2, current_scale * 0.75 * aq_tile_w/140, current_scale * 0.75 * aq_tile_w/140, 0, c_white, 1.0);
 	}
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
 
 	// where the slot's bonuses come from
 	if (hover && array_length(action_queue[| i].bonuses) > 0 && !show_rewards && !is_placing) { // while dragging a die, the placement hint takes this spot
@@ -367,12 +291,8 @@ for (var i = 0; i < aq_list_size; i++) {
 			if (different_dice) tooltip = "Different dice";
 		}
 		
-	    draw_set_color(c_black);
-	    draw_set_alpha(0.7);
-	    draw_set_halign(fa_center);
-	    draw_set_valign(fa_middle);
-		draw_set_font(ftDefault);
-		draw_text(draw_x + draw_w / 2, draw_y - draw_h / 2, string(tooltip));
+		// (the old grey hint text over the slot is gone: the ticket shows its total, and a refused drop says why in a tip)
+		draw_set_alpha(1);
 	}
 	
 	// a potion that goes on a slot (Rigger's Tonic, Bilge-Purge) is being carried: every slot pulses where it can land.
@@ -411,14 +331,67 @@ for (var i = 0; i < aq_list_size; i++) {
 	    last_x = lx + ((base_w - last_w) / 2);
 	    last_y = base_y + ((base_h - last_h) / 2);
 
-		draw_sprite_ext(sActionSlot, 2, last_x, last_y, c_scale * aq_tile_w/140, c_scale * aq_tile_w/140, 0, c_white, 1);
+		// a dashed place on the table where the next slot will go (ui_dashed_box)
+		ui_dashed_box(last_x, last_y, last_x + last_w, last_y + last_h, global.ui_col.rule, 1);
 
 		// Draw text
 	    draw_set_halign(fa_center);
 	    draw_set_valign(fa_middle);
 		draw_set_font(ftDefault);
-		draw_outline_text("Sacrifice\n" + string(sacrificies_til_new_action_tile) + ((sacrificies_til_new_action_tile == 1) ? " die" : " dice"), c_black, c_white, 2, last_x + last_w / 2, last_y + last_h / 2, 1, 1, 0);
-		
+		// rolled dice: enough dice adding up to the threshold build a slot (combat_try_build_slot)
+		new_tile_pos = { x: last_x, y: last_y, w: last_w, h: last_h };
+		var _need = new_slot_threshold();
+		var _have = new_slot_total();
+		// just what its dice add up to and what they need; a padlock while a slot is still empty (the hover explains)
+		var _filled = combat_all_slots_have_action();
+		// what its dice add up to, over what it needs, in the numeral face; "New slot" under; a padlock while a slot is empty
+		var _nc = last_x + last_w / 2;
+		// "3+ pips": what it needs, plainly; once dice wait on it, what they add up to so far
+		var _need_txt = (_have > 0) ? string(_have) + " / " + string(_need) + "+" : string(_need) + "+";
+		ui_numeral(_need_txt, _nc, last_y + last_h * 0.40, 40, _filled ? global.ui_col.paper_hi : make_color_rgb(150, 140, 120), 1, fa_center);
+		draw_set_font(ftBig);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_outline_text("pips", global.ui_col.ink, make_color_rgb(201, 187, 156), 2, _nc, last_y + last_h * 0.62, 1, 1, 0);
+		if (!_filled) draw_padlock(_nc, last_y + last_h * 0.84, 0.9, make_color_rgb(190, 180, 160));
+		else { draw_set_font(ftDefault); draw_outline_text("New slot", global.ui_col.ink, make_color_rgb(170, 158, 132), 2, _nc, last_y + last_h * 0.84, 1, 1, 0); }
+		// a generic die dragged over the tile: it can't build a slot (B36), so say why before it's dropped
+		if (last_hover && is_placing && !show_rewards) {
+			var _tile_drag = noone;
+			with (oDice) if (is_dragging) _tile_drag = id;
+			if (_tile_drag != noone && die_cant_build_slot_reason(_tile_drag.struct) != "") queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't build a slot", die_cant_build_slot_reason(_tile_drag.struct));
+		}
+		if (last_hover && !is_placing && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", (!_filled ? "Fill every slot first.\n" : "") + "Drop " + ((new_slot_min_dice() == 1) ? "a die" : string(new_slot_min_dice()) + "+ dice") + " adding up to " + string(_need) + " to build a slot. They act in it this turn."); // short: the rest (plays, taking back, End Turn) works as everywhere else
+
+		// the dice waiting on it, above it like a slot's. How many it needs shows there too (Jared, 2026-11-21): a faded
+		// d6 outline for each die still to come, so slot 3 shows two outlines over "6+ pips"; dropped dice take their places
+		var _wait = ds_list_size(global.sacrifice_list);
+		var _seats = max(_wait, new_slot_min_dice());
+		for (var w = _wait; w < _seats; w++) {
+			var _gx = last_x + last_w / 2 - ((_seats - 1) * 40 / 2) + w * 40;
+			var _ga = (_filled ? 0.55 : 0.3) * (0.85 + 0.15 * sin(current_time / 400 + w));
+			draw_die_shape(_gx, last_y - 20, 17 * 1.07, 6, global.ui_col.rule, 0, _ga);
+			draw_die_shape(_gx, last_y - 20, 17 * 0.9, 6, make_color_rgb(40, 44, 56), 0, _ga);
+		}
+		if (_seats > 0 && mouse_hovering(last_x + last_w / 2, last_y - 20, _seats * 40, 40, true) && !show_rewards && _wait < _seats) {
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "New slot", "Needs " + ((new_slot_min_dice() == 1) ? "1 die" : string(new_slot_min_dice()) + "+ dice") + " adding up to " + string(_need) + " pips, starting with a coloured die.");
+		}
+		for (var w = 0; w < _wait; w++) {
+			var _wd = global.sacrifice_list[| w];
+			var _wx = last_x + last_w / 2 - ((_seats - 1) * 40 / 2) + w * 40;
+			var _wy = last_y - 20;
+			draw_die(_wx, _wy, 17, _wd.dice_value, die_face_total(_wd), die_colours(_wd.possible_type), 0, 1, _wd); // its roll as pips
+			draw_set_font(ftDefault);
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			if (mouse_hovering(_wx, _wy, sprite_get_width(sDiceIcon), sprite_get_height(sDiceIcon), true) && !show_rewards) {
+				queue_die_tip(_wd, _wx, _wy - 22, undefined, "Click to take it back.");
+				if (mouse_check_button_pressed(mb_left) && state == CombatState.PLAYER_INPUT && global.ui_layer == UI_LAYER.BASE && !oRunManager.holding_item && combat_no_die_dragged()) {
+					take_back_request = { slot: -1, index: w };
+				}
+			}
+		}
+
 		draw_action_type_bars(last_x, last_y + last_h + 30, last_w, type_array, "None");
 	}
 	
@@ -429,7 +402,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	if (dice_count > 0) {
 	    var cx_top = draw_x + (draw_w / 2);
 	    var cy_top = draw_y - 20; // slightly above tile
-	    var spacing_top = 32;
+	    var spacing_top = 40; // room for the code-drawn dice (draw_die, radius 17)
 
 	    for (var d = 0; d < dice_count; d++) {
 	        var die_struct = slot.dice_list[| d];
@@ -437,17 +410,10 @@ for (var i = 0; i < aq_list_size; i++) {
 	        var yy_top = cy_top;
 
 	        // Color by action type
-	        var _col;
-	        switch (die_struct.action_type) {
-	            case "ATK":  _col = make_color_rgb(255, 80, 80); break;   // red
-	            case "HEAL": _col = make_color_rgb(80, 255, 100); break;  // green
-	            case "BLK":  _col = make_color_rgb(100, 180, 255); break; // blue
-				case "INTEL": _col = make_color_rgb(210, 210, 0); break;
-	            default:     _col = make_color_rgb(160, 160, 160); break; // grey (generic)
-	        }
+	        var _col = get_dice_color(die_struct.action_type); // the same pigments as everywhere (scUI)
 			
 			// multitype dice blend their types' colours, like they do everywhere else
-			if (string_pos(" ", die_struct.possible_type) > 0) _col = get_dice_color(die_struct.possible_type);
+			if (string_pos(" ", die_struct.possible_type) > 0) _col = die_colours(die_struct.possible_type); // multitype: split diagonally
 
 	        draw_set_alpha(1.0);
 
@@ -457,36 +423,69 @@ for (var i = 0; i < aq_list_size; i++) {
 			var this_dice_spin = 0;
 			var this_dice_scale = 1;
 			
-			// Emphasise rolled dice
-			if (d == draw_dice_index && state == CombatState.RESOLVE_ROUND && i == draw_action_index && !player_turn_done) {
-				_angle = sin(((current_time / 1000) + 20) * 3.33) * 3;
-				dice_spin = lerp(dice_spin, 360, 0.15);
-				this_dice_spin =- dice_spin;
-				this_dice_scale = 1 - ((360/this_dice_spin)*0.3);
-				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, lerp(1.5, abs(_angle) + 1.5, 0.2), lerp(1.5, abs(_angle) + 1.5, 0.2), _angle, _col, 0.4);
+			// resolving: the die acting now pops up and glows (its number is already known, so no roll); the ones that
+			// have acted this round fade back. dice_spin counts 0 to 360 for each die (reset in Step as it acts).
+			var _resolving = (state == CombatState.RESOLVE_ROUND);
+			var _players_part = _resolving && action_index < ds_list_size(action_queue); // then the enemies act: all yours have
+			var _acting = _players_part && i == draw_action_index && d == draw_dice_index;
+			var _acted = _resolving && (!_players_part || i < draw_action_index || (i == draw_action_index && d < draw_dice_index));
+			if (_acting) {
+				dice_spin = lerp(dice_spin, 360, 0.25);
+				var _pop = 1 - dice_spin / 360; // 1 when it starts acting, easing to 0
+				this_dice_scale = 1.25 + 0.3 * _pop;
+				var _glow = 0.45 + 0.2 * sin(current_time / 80);
+				draw_die_shape(xx_top, yy_top, 17 * this_dice_scale * 1.45, die_struct.dice_value, c_white, 0, _glow * 0.6);
+				draw_die_shape(xx_top, yy_top, 17 * this_dice_scale * 1.3, die_struct.dice_value, _col, 0, _glow);
 			}
 
 	        // Outline ones that are sticky or played this turn
 			if (die_struct.permanence == "sticky" || die_struct.permanence == "base") {
-				draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, 1.15 * this_dice_scale, 1.15 * this_dice_scale, this_dice_spin, c_black, 1);
+				draw_die_shape(xx_top, yy_top, 17 * 1.2 * this_dice_scale, die_struct.dice_value, c_black, this_dice_spin, 1);
 			}
 			
 			var dice_hovered = mouse_hovering(xx_top, yy_top, sprite_get_width(sDiceIcon), sprite_get_height(sDiceIcon), true);
 			
 			if (dice_hovered && !show_rewards) {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die_struct.name, die_description(die_struct), undefined, 0, die_struct);
+				// rolled dice: a die played this turn can be clicked back to the hand (combat_take_back, from Step)
+				var _back_hint = "";
+				if (state == CombatState.PLAYER_INPUT) {
+					// the order rule says why up front, rather than a click that seems to do nothing
+					var _blocked = die_can_take_back(die_struct) ? combat_take_back_blocked(i, d) : "";
+					if (_blocked != "") _back_hint = "\n\n" + _blocked;
+					else if (die_can_take_back(die_struct)) _back_hint = (variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot) ? "\n\nClick to take it back: this slot comes apart, and the other dice that built it wait on the new-slot tile." : "\n\nClick to take it back to your hand.";
+					else if (variable_struct_exists(die_struct, "played_turn") && die_struct.played_turn == turn_count) {
+						if (variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot) _back_hint = (i < ds_list_size(action_queue) - 1) ? "\n\nIt built this slot. Take the newer slot apart first." : "\n\nIt built this slot, and its 'when sacrificed' effect has happened, so it stays.";
+						else if (variable_struct_exists(die_struct, "play_locked") && die_struct.play_locked) _back_hint = "\n\nIts 'when played' effect has happened, so it stays.";
+					}
+				}
+				// what it comes to, source by source (F146), then how to take it back
+				var _breakdown = die_bonus_breakdown(die_struct, i, d);
+				queue_die_tip(die_struct, xx_top, yy_top - 22 * this_dice_scale, undefined, string_trim(_breakdown + _back_hint));
+				if (mouse_check_button_pressed(mb_left) && die_can_take_back(die_struct) && state == CombatState.PLAYER_INPUT && global.ui_layer == UI_LAYER.BASE && !oRunManager.holding_item && combat_no_die_dragged()) {
+					take_back_request = { slot: i, index: d };
+				}
 			}
 
-	        // Draw sprite
-			draw_sprite_ext(sDiceIcon, _index, xx_top, yy_top, 1 * this_dice_scale, 1 * this_dice_scale, this_dice_spin, _col, 1);
+			// the die, drawn in code (draw_die): pips for its roll. Once it has resolved, what it did; before, the face it
+			// rolled (a forced roll wins). Bonuses are the badge in its corner.
+			var _out = get_dice_output(die_struct, i, d, true, "player");
+			var _shown_face = -1;
+			if (die_struct.rolled_value != -1) _shown_face = die_struct.rolled_value;
+			else if (die_struct.forced_roll != -1) _shown_face = clamp(die_struct.forced_roll, _out.min_roll, _out.max_roll);
+			else if (die_has_faces(die_struct)) _shown_face = die_face_total(die_struct, _out.min_roll, _out.max_roll);
+			var _jig = die_jiggle_pose(die_struct); // its effect firing: a punch and a wobble (F40)
+			draw_die(xx_top, yy_top, 17 * this_dice_scale * _jig.scale, die_struct.dice_value, _shown_face, _col, _jig.angle, _acted ? 0.5 : 1, die_struct);
 			
 			// Draw keyword icons above
-			draw_dice_keywords(die_struct, xx_top + 3, yy_top - 34, 1);
+			draw_dice_keywords(die_struct, xx_top, yy_top + die_bottom_edge(die_struct.dice_value, 17 * this_dice_scale), 0.65, 1, "slot"); // only what matters in a slot (Sticky), on its bottom edge
+			// it built this slot this turn and can't come back out (its tip says why): a small padlock on its corner
+			if (state == CombatState.PLAYER_INPUT && variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot && variable_struct_exists(die_struct, "played_turn") && die_struct.played_turn == turn_count && !die_can_take_back(die_struct)) draw_padlock(xx_top + 15, yy_top - 13, 0.55, make_color_rgb(226, 212, 176));
 			if (global.action_icons) draw_action_type_icon(die_struct.action_type, xx_top - 13, yy_top + 13, 0.8); // Settings > Display > Action icons on dice
 			
-			// Slot bonus badge in the die's bottom-right corner: every-die bonuses, plus first-die ones on the first die.
-			// The keyword icons sit above the die and the rolled number in its middle, so the corner is free.
-			var _die_bonus = slot.bonus_amount + (d == 0 ? slot.first_die_bonus : 0);
+			// Bonus badge in the die's bottom-right corner: every-die bonuses, first-die ones on the first die, and what
+			// keepsakes and its own effects add (until it has resolved: then the pips already show what it did).
+			// The keyword icons sit above the die and the pips in its middle, so the corner is free.
+			var _die_bonus = (die_struct.rolled_value != -1) ? 0 : slot.bonus_amount + (d == 0 ? slot.first_die_bonus : 0) + _out.keepsake_dice_bonus_amount;
 			if (_die_bonus != 0) {
 				var _old_halign = draw_get_halign(); // put the alignment back after, the rolled number below relies on it
 				var _old_valign = draw_get_valign();
@@ -494,44 +493,15 @@ for (var i = 0; i < aq_list_size; i++) {
 				draw_set_halign(fa_center);
 				draw_set_valign(fa_middle);
 				var _badge_col = _die_bonus > 0 ? c_lime : c_red;
-				draw_outline_text((_die_bonus > 0 ? "+" : "") + string(_die_bonus), c_black, _badge_col, 2, xx_top + 12, yy_top + 12, this_dice_scale, 1, 0);
+				draw_outline_text((_die_bonus > 0 ? "+" : "") + string(_die_bonus), c_black, _badge_col, 2, xx_top + 15, yy_top + 14, this_dice_scale, 1, 0);
 				draw_set_halign(_old_halign);
 				draw_set_valign(_old_valign);
 			}
 			
 			
-			draw_set_font(ftSmall);
-			draw_set_color(c_black);
-				
-			// used to offset the rolled numbers
-			var off_x = -2;
-			var off_y = 1;
-				
-			switch (_index) {
-				case 1:
-				off_x = -2;
-				off_y = 3;
-				break;
-				case 2:
-				off_x = -2;
-				off_y = 1;
-				break;
-				case 3:
-				case 4:
-				case 5:
-				off_x = 0;
-				off_y = -1;
-				break;
-			}
-			
-			// Draw rolled value
-			if (die_struct.rolled_value != -1) {
-				draw_text(xx_top + off_x, yy_top + off_y, string(die_struct.rolled_value));
-			} else if (die_struct.forced_roll != -1) {
-				var _bonus = get_dice_output(die_struct, i, -1, true, "player").keepsake_dice_bonus_amount;
-					
-				draw_outline_text(string(die_struct.forced_roll + _bonus), c_black, c_white, 2, xx_top + off_x, yy_top + off_y, 1, 1, 0);
-			}
+			// (the roll itself is the pips: draw_die above)
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
 			
 			//if (die_struct.min_roll_bonus > 0) {
 			//	draw_outline_text("+" + string(die_struct.min_roll_bonus) + " min", c_black, c_white, 2, xx_top + off_x, yy_top + off_y - 24, 1, 1, 0);
@@ -544,32 +514,6 @@ for (var i = 0; i < aq_list_size; i++) {
 	var types = (pos_type == "All") ? ["ATK", "BLK", "HEAL"] : string_split(pos_type, " ");
 	draw_action_type_bars(draw_x, draw_y + draw_h + 30, draw_w, types, action_queue_type);
 }
-
-// --- Discard Button ---
-var disc_x = gui_w - global.gui.discard_w - 40;
-var disc_y = gui_h - global.gui.discard_h - 40;
-var disc_w = global.gui.discard_w;
-var disc_h = global.gui.discard_h;
-
-// Dynamic label + color
-var disc_color = is_discarding ? c_red : c_dkgray;
-
-// Draw button via helper
-var disc_btn = draw_gui_button(
-    disc_x,
-    disc_y,
-    disc_w,
-    disc_h,
-    disc_btn_scale,
-    "",
-    disc_color,
-    ftDefault,
-    !show_rewards,         // active
-	false
-);
-
-// Update animation
-disc_btn_scale = disc_btn.scale;
 
 // ---------------
 // Draw enemy data
@@ -620,7 +564,19 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	draw_set_alpha(0.5 * enemy.alpha);
 	draw_set_color(c_black);
 	draw_ellipse(enemy.pos_x - 100 * enemy.data.shadow_scale, enemy.pos_y + 50, enemy.pos_x + 100 * enemy.data.shadow_scale, enemy.pos_y + 70, false);
-	draw_sprite_ext(sEnemies, enemy.data.index, enemy.pos_x, enemy.pos_y + 60, enemy.scale, enemy.scale, 0, c_white, enemy.alpha);
+	// hit: a white flash for a moment; dead: it tilts back and sinks as it fades (F41)
+	var _e_ang = 0, _e_sink = 0, _e_flash = false;
+	if (variable_struct_exists(enemy, "hit_t") && current_time - enemy.hit_t < 90) _e_flash = true;
+	if (variable_struct_exists(enemy, "death_t")) {
+		var _dk = clamp((current_time - enemy.death_t) / 650, 0, 1);
+		var _de = 1 - power(1 - _dk, 3);
+		_e_ang = -24 * _de;
+		_e_sink = 50 * _de;
+		if (current_time - enemy.death_t < 130) _e_flash = true;
+	}
+	if (_e_flash) hit_flash_set(true);
+	draw_sprite_ext(sEnemies, enemy.data.index, enemy.pos_x, enemy.pos_y + 60 + _e_sink, enemy.scale, enemy.scale, _e_ang, c_white, enemy.alpha);
+	if (_e_flash) hit_flash_set(false);
 	
 	// X and Y coordinates for testing: turned off (flip to true when placing enemies)
 	if (false) {
@@ -641,13 +597,13 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		var reveal_intent_single = !intel_is_blotted();
 		var reveal_intent_all = !intel_is_blotted();
 	
-	    var text = intent_number_text(enemy, intel_level);
+	    var text = intent_number_text(enemy, enemy_intent_revealed(enemy) ? INTEL_LEGIBLE : INTEL_FADED); // exact once paid for (per enemy)
 
 	    var xx = enemy.pos_x; // enemy position on screen
 	    var yy = enemy.pos_y - 10 - (enemy.scale * 180);  // slightly above their head
 
-		// Quill: an intent you can rewrite this turn pulses and glows, with a quill beside it, so it can't be missed
-		var _rewritable = (intel_level >= 2 && !intel_is_blotted() && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards && enemy_can_quill(enemy));
+		// Quill lives in insight view now (combat_insight_view_draw): no glow or pulse out here
+		var _rewritable = false;
 		var _quill_pulse = 0.5 + 0.5 * sin(current_time / 200);
 		if (_rewritable) enemy.intent.scale = enemy.intent.start_scale * (1 + 0.12 * _quill_pulse);
 		
@@ -661,11 +617,16 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 
 		// Set index and text width
 		draw_set_font(ftTopBar);
-		var text_w = string_width(text) + 10 + (sprite_get_width(sIntentIcons) * enemy.intent.scale);
+		// measured at the size it's drawn (the number is drawn at intent.scale too), so the tag hugs icon and number
+		var _is = enemy.intent.scale;
+		var _icon_w = sprite_get_width(sIntentIcons) * _is;
+		var _gap = (text != "") ? 12 * _is : 0;
+		var text_w = _icon_w + _gap + string_width(text) * _is;
+		var tag_w = text_w + 28 * _is, tag_h = 92 * _is; // even padding: about 10 px a side, 8 above and below the icon
 		
 		var sprite = sIntentIcons;
-		var icon_x = xx - text_w/2 + 5 + ((sprite_get_width(sprite) / 2) * enemy.intent.scale);
-		var text_x = icon_x + ((sprite_get_width(sprite) / 2) * enemy.intent.scale) + 10;
+		var icon_x = xx - text_w / 2 + _icon_w / 2;
+		var text_x = icon_x + _icon_w / 2 + _gap;
 		var bonus_scale = 1;
 
 		var index = 4;
@@ -682,6 +643,9 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			draw_insight_icon("quill", xx - _glow_w - 24, yy - 4 * _quill_pulse, 1.1, enemy.intent.alpha);
 		}
 
+		// the intent on a paper tag hung over the enemy (ui_tag, scUI): its icons in their pigment and the number in ink
+		ui_tag(xx, yy, tag_w, tag_h, e * 11 + 5, enemy.intent.alpha);
+
 		// Draw enemy intent
 		for (var i = 0; i < array_length(intent_array); i++) {
 			
@@ -692,6 +656,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 					case "HEAL": col = global.color_heal; index = 2; break;
 					case "EXIT": col = c_orange; index = 5; enemy_exiting = true; break;
 					case "DEBUFF": case "NONE": case "BUFF": col = c_white; index = 3; break;
+					case "SUMMON": col = make_color_rgb(230, 150, 60); index = 3; break; // calls for help: its own icon (ui_summon_icon, F139)
 					default: 
 					col = c_dkgray; 
 					index = 0;
@@ -709,21 +674,24 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 				}
 			}
 			
-			draw_sprite_ext(sprite, index, icon_x, yy, enemy.intent.scale * bonus_scale,  enemy.intent.scale * bonus_scale, 0, col, enemy.intent.alpha);
+			if (col == c_white) col = global.ui_col.ink; // a white icon would vanish on the paper
+			if (intent_array[i] == "SUMMON" && (reveal_intent_all || (reveal_intent_single && e == enemy_target_index))) ui_summon_icon(xx, yy, enemy.intent.scale, enemy.intent.alpha);
+			else draw_sprite_ext(sprite, index, icon_x, yy, enemy.intent.scale * bonus_scale,  enemy.intent.scale * bonus_scale, 0, col, enemy.intent.alpha);
 			
 		}
 		
-		draw_outline_text(text, c_black, c_white, 2, text_x, yy, enemy.intent.scale, enemy.intent.alpha);
+		draw_outline_text(text, global.ui_col.paper_hi, global.ui_col.ink, 1, text_x, yy, enemy.intent.scale, enemy.intent.alpha); // ink on the tag
 
 		// Quill: click an intent, then choose Reroll (the enemy picks a different move) or Halve (its numbers this turn)
-		var _intent_hover = mouse_hovering(xx, yy, text_w + 20, 50, true);
-		var _can_rewrite = (intel_level >= 2 && !intel_is_blotted() && !intel_rewrite_used && state == CombatState.PLAYER_INPUT && !show_rewards);
+		var _intent_hover = mouse_hovering(xx, yy, tag_w, tag_h, true);
+		enemy.intent_rect = { x: xx, y: yy, w: tag_w, h: tag_h, split: text_x - 6 }; // centred; split: icon | number (insight view)
+		var _can_rewrite = false; // the old Quill menu: insight view rerolls intents now
 		if (!_can_rewrite && quill_menu_enemy == enemy) quill_menu_enemy = undefined;
 		if (_can_rewrite && _intent_hover && quill_menu_enemy != enemy) {
 			if (!enemy_can_quill(enemy)) {
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Quill: nothing to change", "This move is forced and has no numbers to halve.", undefined, 0, undefined);
 			} else {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Quill: rewrite intent", "Click to rewrite this intent, once per turn. Reroll: the enemy picks a different move. Halve: this move's numbers are halved.", undefined, 0, undefined);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Quill: rewrite intent (" + string(INSIGHT_COST_QUILL) + " insight)", "Reroll: the enemy picks a different move.\nHalve: this move's numbers are halved.", undefined, 0, undefined, INSIGHT_COST_QUILL, "insight");
 				if (mouse_check_button_pressed(mb_left)) {
 					quill_menu_enemy = enemy;
 					quill_btn_scales = [1, 1];
@@ -741,17 +709,17 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var _halve = draw_gui_button(xx + 6, _qb_y, _qb_w, _qb_h, quill_btn_scales[1], "Halve", global.color_intel, ftDefault, _halve_ok, true);
 			quill_btn_scales[0] = _reroll.scale;
 			quill_btn_scales[1] = _halve.scale;
-			if (_reroll.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll", "The enemy picks a different move, rolled fresh.", undefined, 0, undefined);
-			if (_halve.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Halve", "This turn, this move's attack, block or heal is halved (rounded down).", undefined, 0, undefined);
-			if (!_reroll_ok && mouse_hovering(xx - _qb_w - 6, _qb_y, _qb_w, _qb_h, false)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't reroll", "This move is forced, or the enemy has nothing else to choose.", undefined, 0, undefined);
+			if (_reroll.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll", "Spend " + string(INSIGHT_COST_QUILL) + " insight: the enemy picks a different move.", undefined, 0, undefined, INSIGHT_COST_QUILL, "insight");
+			if (_halve.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Halve", "Spend " + string(INSIGHT_COST_QUILL) + " insight: halve this move's attack, block or heal this turn.", undefined, 0, undefined, INSIGHT_COST_QUILL, "insight");
+			if (!_reroll_ok && mouse_hovering(xx - _qb_w - 6, _qb_y, _qb_w, _qb_h, false)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't reroll", "This move is forced, or the enemy has no other move.", undefined, 0, undefined);
 			if (!_halve_ok && mouse_hovering(xx + 6, _qb_y, _qb_w, _qb_h, false)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't halve", "This move has no attack, block or heal to halve.", undefined, 0, undefined);
 
-			if (_reroll.click && enemy_rewrite_intent(enemy)) {
+			if (_reroll.click && enemy_can_rewrite_intent(enemy) && combat_insight_spend(INSIGHT_COST_QUILL) && enemy_rewrite_intent(enemy)) {
 				intel_rewrite_used = true;
 				quill_menu_enemy = undefined;
 				enemy.intent.scale = enemy.intent.start_scale * 1.4; // pop, so the change is noticed
 				add_feed_entry("You rewrote " + string(enemy.data.name) + "'s intent: " + string(enemy.intent.move.move_name));
-			} else if (_halve.click && enemy_halve_intent(enemy)) {
+			} else if (_halve.click && enemy_can_halve_intent(enemy) && combat_insight_spend(INSIGHT_COST_QUILL) && enemy_halve_intent(enemy)) {
 				intel_rewrite_used = true;
 				quill_menu_enemy = undefined;
 				enemy.intent.scale = enemy.intent.start_scale * 1.4;
@@ -775,15 +743,15 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	
 		if (hover_enemy && !show_rewards) {
 			if (enemy.intent.move.action_type == "DEBUFF" || enemy.intent.move.action_type == "BUFF") && (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), enemy.intent.move.debuff.name, enemy.intent.move.debuff.desc, undefined, 0, undefined);
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), string(enemy.intent.move.move_name), intent_status_text(enemy.intent.move), undefined, 0, undefined);
 			} else {
 				if (enemy_exiting) {
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "The enemy intents to escape", undefined, 0, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "This enemy will escape.", undefined, 0, undefined);
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
 					// plain words: what it will do and how much (the range when Faded, the exact number from Legible)
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, intent_hover_text(enemy, intel_level), undefined, 0, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, intent_hover_text(enemy, enemy_intent_revealed(enemy) ? INTEL_LEGIBLE : INTEL_FADED), undefined, 0, undefined);
 				} else {
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Your insight is below 0, so the page is blotted and enemy intents are hidden.", undefined, 0, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 insight, enemy intents are hidden.", undefined, 0, undefined);
 				}
 			}
 		}
@@ -810,7 +778,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		var btn_2_hover = _spare.hover;
 
 		if (btn_1_hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Kill", "Your compass swings 5 toward ruthless. You take its bounty in gold" + ((oWorldManager.current_node_type == NODE_TYPE.ELITE) ? ", and it counts for a bounty contract." : "."));
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Kill", "Compass swings 5 toward ruthless. Gain its bounty in gold" + ((oWorldManager.current_node_type == NODE_TYPE.ELITE) ? ". Counts for a bounty contract." : "."));
 			if (mouse_check_button_pressed(mb_left)) {
 				enemy.killed = true;
 				gain_alignment(-5);
@@ -820,7 +788,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		}
 		
 		if (btn_2_hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Spare", "Your compass swings 5 toward merciful. It sails away and pays one and a half times its bounty in gold. Spare every enemy and an item reward is guaranteed.");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Spare", "Compass swings 5 toward merciful. Gain a third of its bounty in gold. Spare every enemy for a guaranteed item.");
 			if (mouse_check_button_pressed(mb_left)) {
 				enemy.spared = true;
 				enemy.alignment_choices_shown = false;
@@ -847,16 +815,10 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	var e_hp_ratio = clamp(enemy.hp_display / enemy.max_hp, 0, 1);
 	var e_hp_color = merge_color(c_red, c_red, e_hp_ratio);
 
-	// Current HP
-	draw_sprite_ext(sHealthBar, 1, e_bar_x, e_bar_y, e_hp_ratio * bar_scale, bar_scale, 0, e_hp_color, enemy.alpha);
-	draw_sprite_ext(sHealthBar, 0, e_bar_x, e_bar_y, bar_scale, bar_scale, 0, c_white, enemy.alpha);
-
-	// Text label
+	// a readable bar with the number under it (ui_hp_bar, scUI); e_bar_h now covers both, for what's drawn below it
+	e_bar_h = ui_hp_bar(enemy.pos_x, e_bar_y, e_bar_w, enemy.hp_display, enemy.hp, enemy.max_hp, enemy.alpha);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
-	draw_set_color(c_white);
-	draw_set_font(ftDefault);
-	draw_outline_text(string_format(enemy.hp, 0, 0) + " / " + string(enemy.max_hp), c_black, c_white, 2, e_bar_x + e_bar_w / 2, e_bar_y + e_bar_h / 2, 1, enemy.alpha, 0);
 
 	// targeting: your attacks go to the marked enemy; any other one can be clicked to make it the target
 	if (_living_enemies > 1 && !enemy.dead && !show_rewards) {
@@ -872,10 +834,10 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			draw_triangle(enemy.pos_x - _ax, _mark_y - 9, enemy.pos_x - _ax, _mark_y + 9, enemy.pos_x - _ax + 12, _mark_y, false);
 			draw_triangle(enemy.pos_x + _ax, _mark_y - 9, enemy.pos_x + _ax, _mark_y + 9, enemy.pos_x + _ax - 12, _mark_y, false);
 			draw_set_alpha(1);
-		} else if (e != enemy_target_index && hover_enemy && state == CombatState.PLAYER_INPUT) {
-			// under the name, which shows while hovered
+		} else if (e != enemy_target_index && hover_enemy && state == CombatState.PLAYER_INPUT && target_locked) {
+			// only when the click won't work: Overwhelm has locked the target (otherwise the cursor says it's clickable)
 			draw_set_font(ftDefault);
-			draw_outline_text(target_locked ? "Target locked" : "Click to target", c_black, c_ltgray, 2, enemy.pos_x, _mark_y + 26, 1, enemy.alpha, 0);
+			draw_outline_text("Target locked", c_black, c_ltgray, 2, enemy.pos_x, _mark_y + 26, 1, enemy.alpha, 0);
 		}
 	}
 	
@@ -890,7 +852,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	// Draw enemy block
 	if (enemy.block_amount > 0) {
 		var block_x = enemy.pos_x + e_bar_w/2;
-		var block_y = e_bar_y + e_bar_h/2 + 2;
+		var block_y = e_bar_y + 10; // on the bar's right end
 		var block_radius = 30;
 		draw_set_color(c_blue);
 		draw_sprite_ext(sIntentIcons, 1, block_x, block_y, bar_scale * 1.25, bar_scale * 1.25, 0, global.color_block, 1.0);
@@ -943,7 +905,18 @@ draw_set_alpha(0.5);
 draw_set_color(c_black);
 draw_ellipse( global.player_x - 100,  global.player_y + 50, global.player_x + 100,  global.player_y + 70, false);
 	
-draw_sprite_ext(sEnemies, 0, global.player_x, global.player_y + 60, -1, 1, 0, c_white, 1.0);
+// hit: a white flash; sunk (lose_run): it keels over and goes down (F41)
+var _p_ang = 0, _p_sink = 0, _p_alpha = 1;
+if (player_death_t >= 0) {
+	var _pk = clamp((current_time - player_death_t) / 1100, 0, 1);
+	_p_ang = 35 * (1 - power(1 - _pk, 2));
+	_p_sink = 90 * _pk * _pk;
+	_p_alpha = 1 - 0.7 * _pk;
+}
+var _p_flash = (current_time - player_hit_t < 90) || (player_death_t >= 0 && current_time - player_death_t < 150);
+if (_p_flash) hit_flash_set(true);
+draw_sprite_ext(sEnemies, 0, global.player_x, global.player_y + 60 + _p_sink, -1, 1, _p_ang, c_white, _p_alpha);
+if (_p_flash) hit_flash_set(false);
 
 // =========================================================
 // PLAYER HEALTH BAR (left side)
@@ -960,16 +933,10 @@ player_hp_display = clamp(player_hp_display, 0, global.player_max_hp);
 var p_hp_ratio = clamp(player_hp_display / global.player_max_hp, 0, 1);
 var p_hp_color = merge_color(c_red, c_red, p_hp_ratio);
 
-// Current HP
-draw_sprite_ext(sHealthBar, 1, p_bar_x, p_bar_y, p_hp_ratio, 1, 0, p_hp_color, 1.0);
-draw_sprite_ext(sHealthBar, 0, p_bar_x, p_bar_y, 1, 1, 0, c_white, 1.0 );
-
-// Text label
+// a readable bar with the number under it (ui_hp_bar, scUI)
+p_bar_h = ui_hp_bar(global.player_x, p_bar_y, p_bar_w, player_hp_display, global.player_hp, global.player_max_hp, 1); // its height covers the number, for the debuffs below
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
-draw_set_color(c_white);
-draw_set_font(ftDefault);
-draw_outline_text(string_format(global.player_hp, 0, 0) + " / " + string(global.player_max_hp), c_black, c_white, 2, p_bar_x + p_bar_w / 2, p_bar_y + p_bar_h / 2, 1, 1.0, 0);
 
 // Draw player debuffs
 var d_x = 9;
@@ -996,7 +963,7 @@ for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
 // Draw player block
 if (player_block_amount > 0) {
 	var block_x = global.player_x - 155;
-	var block_y = p_bar_y + 25;
+	var block_y = p_bar_y + 10; // on the bar's right end
 	var block_radius = 30;
 	draw_set_color(c_blue);
 	draw_sprite_ext(sIntentIcons, 1, block_x, block_y, 1, 1, 0, global.color_block, 1.0);
@@ -1013,45 +980,36 @@ if (state != CombatState.PLAYER_DEAD) {
 	// Draw intel level
 	draw_intel = lerp(draw_intel, player_intel, 0.1);
 
-	var arc_start = 180;
-	// the ring runs from empty to full: below zero it would wrap round into an almost-full circle, above the max it would overflow
-	var _intel_max = intel_max();
-	var intel_fill = clamp(draw_intel / _intel_max, 0, 1);
-	var arc_end = 181 + (intel_fill * 179);
-	var _intel_ratio = clamp(player_intel / _intel_max, 0, 1);
-	draw_arc_thick_deg_gradient(global.player_x, global.player_y - 175, 50, 60, arc_start, arc_end, 50, global.color_intel, make_color_rgb(210 - (_intel_ratio * 50), 210 - (_intel_ratio * 100), 0), 0.7);
+	// (the old ring gauge: the inkwell's ink level shows it now)
 
-	// a tick at each state (Faded at the start, Legible, Quill at the end)
-	draw_set_alpha(1.0);
-	draw_set_color(c_white);
-	for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {
-		var _tick = 180 + (global.player_intel_data[| i].requirement / _intel_max) * 180;
-		draw_arc_thick_deg(global.player_x, global.player_y - 175, 50, 60, (_tick - 2 + 360) mod 360, (_tick + 2) mod 360, 50);
+	// the inkwell: your insight as ink (draw_inkwell). Spent at the start of a turn, in the insight phase.
+	var _iw = combat_inkwell_pos(); // beside you, on the ground (UI rework)
+	var intel_hover = mouse_hovering(_iw.x, _iw.y, 70, 70, true);
+	intel_scale = intel_hover ? lerp(intel_scale, 1.1, 0.2) : lerp(intel_scale, 1.0, 0.2);
+	// the start-of-turn pulse (ink_pulse, oCombat Step): it swells and glows, so you know your ink can do something
+	var _ink_s = intel_scale;
+	if (ink_pulse > 0) {
+		var _beat = 0.5 + 0.5 * sin(current_time / 140);
+		var _fade = min(1, ink_pulse / 20);
+		_ink_s *= 1 + 0.14 * _beat * _fade;
+		draw_set_alpha(0.35 * _beat * _fade);
+		draw_set_color(global.color_intel);
+		draw_circle(_iw.x, _iw.y, 40 + 10 * _beat, false);
+		draw_set_alpha(1);
 	}
-
-	var _intel_state = intel_state(intel_level);
-	draw_insight_icon(_intel_state.icon, global.player_x, global.player_y - 180, intel_scale * 1.6, intel_alpha);
-	draw_outline_text(string(_intel_state.name), c_black, intel_is_blotted() ? c_red : global.color_intel, 2, global.player_x, global.player_y - 230, intel_scale, 1.0, 0);
-	var intel_hover = mouse_hovering(global.player_x, global.player_y - 190, 120, 120, true);
-	insight_panel_open = intel_hover; // the panel itself draws in oRunManager Draw GUI End (insight_panel_draw), over the tutorial notes
-
-	intel_scale = intel_hover ? lerp(intel_scale, 1.2, 0.2) : lerp(intel_scale, 1.0, 0.2);
+	draw_inkwell(_iw.x, _iw.y, _ink_s, player_intel / INSIGHT_MAX, intel_is_blotted());
+	if (intel_hover) {
+		if (intel_is_blotted()) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 insight, enemy intents are hidden and you can't use ink this turn.");
+		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Use your ink", "Spend insight to rewrite enemy intents, see their exact numbers, or reroll and redraw dice. Unspent insight carries over, up to " + string(INSIGHT_MAX) + ".", undefined, 0, undefined, 0, "insight", { button: "left", text: "Use", col: global.color_intel });
+		// a toggle: the inkwell opens the log any time on your turn
+		if (mouse_check_button_pressed(mb_left) && !intel_is_blotted() && state == CombatState.PLAYER_INPUT && !show_rewards && global.ui_layer == UI_LAYER.BASE) combat_insight_view_set(true);
+	}
 
 	// the number shows when it isn't zero, negative intel (from Overwhelm) included
 	if (player_intel != 0) {
-		draw_outline_text(string(player_intel), c_black, player_intel < 0 ? c_red : c_white, 2, global.player_x + 30, global.player_y - 170, intel_scale, 1.0, 0);
+		ui_numeral(string(player_intel), _iw.x, _iw.y + 46, 30, player_intel < 0 ? global.text_attack : global.color_intel, 1, fa_center); // under the inkwell (beside it ran into the queue)
 	}
 
-	if (intel_hover) {
-
-		// the tooltip only says what matters now
-		var _intel_tip = string(_intel_state.description);
-		if (!intel_is_blotted() && intel_level < ds_list_size(global.player_intel_data) - 1) {
-			var _next_state = global.player_intel_data[| intel_level + 1];
-			_intel_tip += " " + string(_next_state.requirement - player_intel) + " more for " + string(_next_state.name) + ".";
-		}
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Insight: " + string(_intel_state.name), _intel_tip, undefined, 0, undefined);
-	}
 }
 
 /// PLAYER DEAD
@@ -1181,84 +1139,38 @@ if (show_rewards) {
 		break;
 		
 		case "dice":
+			// the dice on offer as the same paper cards as the bag (draw_bag_card, UI rework), side by side, all as tall as
+			// the tallest needs; hover lifts one, a click takes it
+			var _rc_w = 320, _rc_gap = 40;
+			var _rc_n = ds_list_size(reward_dice_options);
+			var _rc_h = 150;
+			for (var r = 0; r < _rc_n; r++) _rc_h = max(_rc_h, bag_card_layout(reward_dice_options[| r], _rc_w).h);
+			var _rc_cy = gui_h / 2 + 40;
 			draw_set_font(ftDefault);
-			draw_outline_text("Choose one die", c_black, c_white, 2, gui_w/2, gui_h/2 - 100, 1, 1, 0);
-	
-			for (var r = 0; r < ds_list_size(reward_dice_options); r++) {
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_outline_text("Choose one die", c_black, c_white, 2, gui_w/2, _rc_cy - _rc_h / 2 - 40, 1, 1, 0);
+
+			// dealt face down, then each flips in turn and flashes its rarity (F145); a card can't be taken until it's turned
+			reward_reveal_t++;
+			for (var r = 0; r < _rc_n; r++) {
 			    var die = reward_dice_options[| r];
-
-			    // --- Layout ---
-			    var reward_w = 120;
-			    var reward_h = 70;
-			    var reward_padding = 120;
-			    var reward_total_w = (ds_list_size(reward_dice_options) * reward_w) + ((ds_list_size(reward_dice_options) - 1) * reward_padding);
-			    var reward_x = gui_w / 2 - (reward_total_w / 2);
-			    var base_x = reward_x + (r * (reward_w + reward_padding));
-			    var base_y = gui_h/2;
-			    var base_w = reward_w;
-			    var base_h = reward_h;
-				
-				// Draw background sprite
-				var btn_col = make_colour_rgb(52, 55, 73);
-				switch (die.rarity) {
-					case "uncommon":
-					btn_col = make_colour_rgb(42, 90, 85);
-					break;
-					
-					case "rare":
-					btn_col = make_colour_rgb(85, 42, 90);
-					break;
+				var _rc_cx = gui_w / 2 - ((_rc_n - 1) * (_rc_w + _rc_gap)) / 2 + r * (_rc_w + _rc_gap);
+				var _flip = reward_flip_state(reward_reveal_t, r);
+				if (_flip.turned_now) {
+					sfx_play_layered(soCard, AUDIO_GROUP.SFX, 1 + random_range(-0.06, 0.06) + r * 0.04, 1); // each card turning over (Jared's soCard), a touch higher each
+					if (die.rarity == "rare") sfx_play(soCoins, AUDIO_GROUP.SFX, 0.05, 0.9); // and a rare one jingles
 				}
-				var wobble = sin(((current_time / 1000) + r) * 3) * 3;
-				draw_sprite_ext(sRewardFrame, 0, base_x + base_w/2, base_y + base_w/2 - 10, reward_scale[| r] * 0.95, reward_scale[| r] * 0.95, wobble, btn_col, 1.0);
-
-			    // --- Draw dice sprite using hoverable scaling ---
-			    var btn = draw_gui_button(
-			        base_x, base_y,
-			        base_w, base_h,
-			        reward_scale[| r],
-			        "", // no text (we’ll draw sprite manually)
-			        die.color,
-			        ftDefault,
-			        !rewards_dice_taken,         // active
-					false,
-					UI_LAYER.POPUP
-			    );
-
-			    // Update scale for animation
-			    reward_scale[| r] = btn.scale;
-
-			    // --- Choose sprite index based on dice value ---
-			    var spr_index = get_dice_index( die.dice_value );
-
-			    // --- Draw the dice sprite ---
-			    var alpha = rewards_dice_taken ? 0.2 : 1.0;
-			    draw_sprite_ext(
-			        sDice,
-			        spr_index,
-			        btn.x + btn.w / 2,
-			        btn.y + btn.h / 2,
-			        btn.scale,
-			        btn.scale,
-			        0,
-			        get_dice_color(die.possible_type),
-			        alpha
-			    );
-		
-				draw_dice_keywords(die, btn.x + btn.w / 2, btn.y + btn.h / 2, 1, alpha);
-
-			    // --- Draw name ---
-			    var label = string(die.name);
-			    draw_set_color(c_white);
-			    draw_set_alpha(alpha);
-			    draw_set_halign(fa_center);
-			    draw_set_valign(fa_middle);
-			    draw_set_font(ftDefault);
-			    draw_text_ext(btn.x + btn.w / 2, btn.y + btn.h + 20 - 12 * (string_height_ext(label, -1, sprite_get_width(sRewardFrame) * 0.85) > string_height("A") * 1.5), label, -1, sprite_get_width(sRewardFrame) * 0.85); // long names wrap inside the frame
-		
-				if (btn.hover) {
-					queue_tooltip( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), die.name, die_description(die), undefined, 0, die);
+				if (!_flip.face_up) {
+					reward_card_back(_rc_cx, _rc_cy + 27, _rc_w * _flip.squash, _rc_h - 54, r); // the paper's part (the die sits above it)
+					continue;
 				}
+				var _rc_hover = !rewards_dice_taken && mouse_hovering(_rc_cx - _rc_w / 2, _rc_cy - _rc_h / 2, _rc_w, _rc_h, false, soSlotHover, noone, true, UI_LAYER.POPUP);
+				var alpha = rewards_dice_taken ? 0.35 : 1.0;
+				draw_bag_card(die, _rc_cx, _rc_cy - 14 * _flip.pop, _rc_w, _rc_h, alpha * _flip.fade_in, _rc_hover, false, "reward");
+				reward_rarity_flash(die.rarity, _rc_cx, _rc_cy, _rc_w, _rc_h, _flip.since, alpha);
+				var btn = { x: _rc_cx - _rc_w / 2, y: _rc_cy - _rc_h / 2, w: _rc_w, h: _rc_h, hover: _rc_hover, click: _rc_hover && mouse_check_button_pressed(mb_left) };
+				if (btn.click) sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
 
 			    // --- Click logic: Take reward ---
 			    if (!rewards_dice_taken && btn.click) {
@@ -1273,115 +1185,41 @@ if (show_rewards) {
 		break;
 		
 		case "consumables":
+			// the items on offer as paper cards in the dice rewards' design (draw_item_card, Jared 2026-11-21): dealt face
+			// down, then flipped in turn; take two (the first pick locks one of the others away)
+			var _ic_w = 280, _ic_gap = 40;
+			var _ic_n = ds_list_size(reward_consumable_options);
+			var _ic_h = 150;
+			for (var r = 0; r < _ic_n; r++) _ic_h = max(_ic_h, item_card_layout(reward_consumable_options[| r], _ic_w).h);
+			var _ic_cy = gui_h / 2 + 40;
 			draw_set_font(ftDefault);
-			draw_outline_text("Choose two items", c_black, c_white, 2, gui_w/2, gui_h/2 - 100, 1, 1, 0);
-	
-			for (var r = 0; r < ds_list_size(reward_consumable_options); r++) {
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_outline_text("Choose two items", c_black, c_white, 2, gui_w/2, _ic_cy - _ic_h / 2 - 40, 1, 1, 0);
+			reward_item_reveal_t++;
+
+			for (var r = 0; r < _ic_n; r++) {
 			    var consumable = reward_consumable_options[| r];
-
-			    // --- Layout ---
-			    var reward_w = 120;
-			    var reward_h = 70;
-			    var reward_padding = 120;
-			    var reward_total_w = (ds_list_size(reward_consumable_options) * reward_w) + ((ds_list_size(reward_consumable_options) - 1) * reward_padding);
-			    var reward_x = gui_w / 2 - (reward_total_w / 2);
-			    var base_x = reward_x + (r * (reward_w + reward_padding));
-			    var base_y = gui_h/2;
-			    var base_w = reward_w;
-			    var base_h = reward_h;
-				
-				// Draw background sprite
-				
-				// Draw background sprite
-				var btn_col = global.color_common;
-				switch (consumable.rarity) {
-					case "uncommon":
-					btn_col = global.color_uncommon;
-					break;
-					
-					case "rare":
-					btn_col = global.color_rare;
-					break;
+				var _ic_cx = gui_w / 2 - ((_ic_n - 1) * (_ic_w + _ic_gap)) / 2 + r * (_ic_w + _ic_gap);
+				var _flip = reward_flip_state(reward_item_reveal_t, r);
+				if (_flip.turned_now) {
+					sfx_play_layered(soCard, AUDIO_GROUP.SFX, 1 + random_range(-0.06, 0.06) + r * 0.04, 1);
+					if (variable_struct_exists(consumable, "rarity") && consumable.rarity == "rare") sfx_play(soCoins, AUDIO_GROUP.SFX, 0.05, 0.9);
 				}
-				
-				var wobble = sin(((current_time / 1000) + r) * 3) * 3;
-				draw_sprite_ext(sRewardFrame, 0, base_x + base_w/2, base_y + base_w/2 - 10, reward_scale[| r] * 0.95, reward_scale[| r] * 0.95, wobble, btn_col, 1.0);
-
-			    // --- Draw dice sprite using hoverable scaling ---
-			    var btn = draw_gui_button(
-			        base_x, base_y,
-			        base_w, base_h,
-			        reward_scale[| r],
-			        "", // no text (we’ll draw sprite manually)
-			        c_white,
-			        ftDefault,
-			        !consumable.taken,         // active
-					false,
-					UI_LAYER.POPUP
-			    );
-
-			    // Update scale for animation
-			    reward_scale[| r] = btn.scale;
-
-			    // --- Draw the dice sprite ---
-			    var alpha = 1.0
-				if (consumable.taken) alpha = 0.2;
-				
-				var col = c_white;
-				if (rewards_consumables_locked == r) col = c_black;
-				
-				// Draw consumable sprite
-				
-			    draw_sprite_ext(
-			        consumable.sprite,
-			        consumable.index,
-			        btn.x + btn.w / 2,
-			        btn.y + btn.h / 2,
-			        btn.scale,
-			        btn.scale,
-			        0,
-			        col,
-			        alpha
-			    );
-
-			    // --- Draw name ---
-			    var label = string(consumable.name);
-			    draw_set_halign(fa_center);
-			    draw_set_valign(fa_middle);
-			    draw_set_font(ftDefault);
-			    draw_outline_text(label, c_black, col, 2, btn.x + btn.w / 2, btn.y + btn.h + 20 - 12 * (string_height_ext(label, -1, sprite_get_width(sRewardFrame) * 0.85) > string_height("A") * 1.5), 1, alpha, 0, sprite_get_width(sRewardFrame) * 0.85); // long names wrap inside the frame
-				
-				// Draw chains over locked item
-				
-				if (rewards_consumables_locked == r) {
-					draw_sprite_ext(
-				        sRewardChain,
-				        consumable.index,
-				        btn.x + btn.w / 2,
-				        btn.y + btn.h / 2 + 10,
-				        btn.scale,
-				        btn.scale,
-				        wobble,
-				        c_white,
-				        1.0
-				    );
+				if (!_flip.face_up) {
+					reward_card_back(_ic_cx, _ic_cy + 23, _ic_w * _flip.squash, _ic_h - 46, r + 3);
+					continue;
 				}
-				
-				// Draw quantity
-				if (consumable.amount > 1) {
-					draw_set_font(ftBig);
-					draw_outline_text(consumable.amount, c_black, col, 2, btn.x + btn.w - 20, btn.y + btn.h - 20, 1, alpha, 0);
-				}
-		
-				if (btn.hover) {
-					var die = undefined;
-					if (string_pos("Core", consumable.name) > 0) {
-						die = core_preview_die();
-						die.distribution = consumable.distribution;
-					}
-					queue_tooltip( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), consumable.name, consumable.description, undefined, 0, die);
-				}
-				
+				var _ic_locked = (rewards_consumables_locked == r);
+				var _ic_open = !consumable.taken && !_ic_locked && !rewards_consumables_second_taken;
+				var _ic_hover = mouse_hovering(_ic_cx - _ic_w / 2, _ic_cy - _ic_h / 2, _ic_w, _ic_h, false, _ic_open ? soSlotHover : noone, noone, true, UI_LAYER.POPUP);
+				var alpha = consumable.taken ? 0.35 : 1.0;
+				draw_item_card(consumable, _ic_cx, _ic_cy - 14 * _flip.pop, _ic_w, _ic_h, alpha * _flip.fade_in, _ic_hover && _ic_open, _ic_locked);
+				reward_rarity_flash(variable_struct_exists(consumable, "rarity") ? consumable.rarity : "common", _ic_cx, _ic_cy, _ic_w, _ic_h, _flip.since, alpha);
+				var btn = { x: _ic_cx - _ic_w / 2, y: _ic_cy - _ic_h / 2, w: _ic_w, h: _ic_h, hover: _ic_hover, click: _ic_hover && _ic_open && mouse_check_button_pressed(mb_left), scale: 1 };
+				if (btn.click) sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
+				if (_ic_hover && _ic_locked) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Locked", "Your first pick locked this one away.");
+
 				// check for item free
 
 			    // Take first reward
@@ -1395,7 +1233,7 @@ if (show_rewards) {
 								rewards_consumables_first_taken = r;
 							}
 						} else {
-							throw_error("No space", "Right click to delete an existing item");
+							throw_error("Item slots full", "Right click an item to drop it.");
 						}
 					} else {
 						gain_coins(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), consumable.amount);
@@ -1416,7 +1254,7 @@ if (show_rewards) {
 								rewards_consumables_second_taken = true;
 							}
 						} else {
-							throw_error("No space", "Right click to delete an existing item");
+							throw_error("Item slots full", "Right click an item to drop it.");
 						}
 					} else {
 						gain_coins(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), consumable.amount);
@@ -1500,28 +1338,34 @@ if (show_rewards) {
 }
 
 // Draw discard bag either side (draw bag in oRunManager)
-draw_sprite(sDiceBag, 1, gui_w - 60 - sprite_get_width(sDiceBag), gui_h - 40);
+// outlined like the draw bag when hovered or open; while a die is dragged over it, the outline swells and pulses
+var _disc_open = (oRunManager.show_bag_contents && oRunManager.bag_to_show == global.discard_pile);
+var _ds = combat_discard_spot(); // bottom left, beside the draw bag (End Turn has the bottom right)
+if (is_discarding || disc_bag_hover || _disc_open) {
+	var _pulse = is_discarding ? 0.05 + 0.03 * sin(current_time / 90) : 0;
+	draw_sprite_ext(sDiceBag, 1, _ds.x - 4, _ds.y + 4, 1.07 + _pulse, 1.07 + _pulse, 0, is_discarding ? c_white : c_black, 1);
+}
+draw_sprite(sDiceBag, 1, _ds.x, _ds.y);
 draw_set_font(ftBigger);
-draw_set_valign(fa_bottom)
-draw_set_halign(fa_right);
-draw_outline_text("DISCARD", c_black, c_white, 2, gui_w - 10 - sprite_get_width(sDiceBag), gui_h - 33, 1, 1, 0);
+draw_set_valign(fa_bottom);
+draw_set_halign(fa_left);
+draw_outline_text("DISCARD", c_black, c_white, 2, _ds.x + 50, _ds.y + 7, 1, 1, 0);
 
-// --- Draw discard count ---
-draw_set_color(c_maroon);
-draw_circle(gui_w - 70, gui_h - 55, 20, false);
-draw_set_color(c_white);
+// --- the discard count, on the pile like the draw bag's ---
+draw_set_color(c_black);
+draw_circle(_ds.x + 10, _ds.y - 15, 20, false);
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
 draw_set_color(c_white);
 draw_set_font(ftBig);
-draw_text(gui_w - 70, gui_h - 55, string(ds_list_size(global.discard_pile)));
+draw_text(_ds.x + 10, _ds.y - 15, string(ds_list_size(global.discard_pile)));
 
 // Draw discard preview
-// the click area is the discard bag sprite as drawn above (bottom right)
+// the click area is the discard bag sprite as drawn above (bottom left, combat_discard_spot)
 var disc_bag_w = sprite_get_width(sDiceBag);
 var disc_bag_h = sprite_get_height(sDiceBag);
-var disc_bag_x = gui_w - 60 - sprite_get_width(sDiceBag) - sprite_get_xoffset(sDiceBag);
-var disc_bag_y = gui_h - 40 - sprite_get_yoffset(sDiceBag);
+var disc_bag_x = _ds.x - sprite_get_xoffset(sDiceBag);
+var disc_bag_y = _ds.y - sprite_get_yoffset(sDiceBag);
 disc_bag_hover = (mx > disc_bag_x && mx < disc_bag_x + disc_bag_w && my > disc_bag_y && my < disc_bag_y + disc_bag_h);
 
 if (disc_bag_hover) {
@@ -1530,6 +1374,7 @@ if (disc_bag_hover) {
 		oRunManager.bag_to_show = global.discard_pile;
 	}
 }
+
 
 // the guided first fight's margin notes, on top of the combat UI
 tutorial_draw();

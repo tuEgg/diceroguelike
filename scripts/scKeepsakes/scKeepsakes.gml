@@ -3,7 +3,9 @@
 
 function trigger_keepsake_visual() {
 	var index = ds_list_find_index(oRunManager.keepsakes, self);
+	if (index == -1) return; // a keepsake that isn't in the bar (yet)
 	oRunManager.keepsake_scale[| index] = 2.0;
+	self.flash_time = current_time; // its name floats up under its icon (oRunManager Draw GUI, F15)
 }
 
 function define_keepsakes() {
@@ -18,12 +20,12 @@ function define_keepsakes() {
 	ks_looking_glass = {
 	    _id: "looking_glass",
 	    name: "Looking Glass",
-	    desc: "Start each combat with 5 insight (Legible)",
+	    desc: "Start each combat with 6 insight.",
 		sub_image: 5,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
 	            if (oCombat.turn_count == 1) {
-					oCombat.player_intel = 5;
+					oCombat.player_intel = max(oCombat.player_intel, 6); // never lowers insight you already had
 					trigger_keepsake_visual();
 				}
 	        }
@@ -37,7 +39,7 @@ function define_keepsakes() {
 	ks_lime_juice = {
 	    _id: "lime_juice",
 	    name: "Lime Juice",
-	    desc: "Lose 5hp and gain 10 max hp",
+	    desc: "Lose 5 health and gain 10 max health.",
 		sub_image: 28,
 		price: 80,
 	    trigger: function(event, data) {
@@ -53,7 +55,7 @@ function define_keepsakes() {
 	ks_salted_pork = {
 	    _id: "salted_pork",
 	    name: "Salted Pork",
-	    desc: "Heal 10% more every time you rest",
+	    desc: "Heal 10% more when you rest.",
 		sub_image: 29,
 		price: 90,
 	    trigger: function(event, data) {
@@ -70,7 +72,7 @@ function define_keepsakes() {
 	ks_pickled_cucumber = {
 	    _id: "pickled_cucumber",
 	    name: "Pickled Cucumber",
-	    desc: "+1 playable die during first turn of combat",
+	    desc: "+1 play on the first turn of combat.",
 		sub_image: 33,
 		price: 100,
 	    trigger: function(event, data) {
@@ -89,7 +91,7 @@ function define_keepsakes() {
 	ks_toolbelt = {
 	    _id: "toolbelt",
 	    name: "Toolbelt",
-	    desc: "Gain +2 item slots",
+	    desc: "+2 item slots.",
 		sub_image: 25,
 		price: 100,
 	    trigger: function(event, data) {
@@ -109,7 +111,7 @@ function define_keepsakes() {
 	ks_rum = {
 	    _id: "rum",
 	    name: "Rum",
-	    desc: "All attacks gain +1 max roll and -1 min roll",
+	    desc: "Attacks get +1 max roll and -1 min roll.",
 	    sub_image: 30,
 		price: 110,
 	    trigger: function(event, data) {			
@@ -131,7 +133,7 @@ function define_keepsakes() {
 	ks_rations = {
 	    _id: "rations",
 	    name: "Rations",
-	    desc: "When you drink a potion, heal 3 hitpoints",
+	    desc: "When you drink a potion, heal 3.",
 	    sub_image: 31,
 		price: 110,
 	    trigger: function(event, data) {			
@@ -151,7 +153,7 @@ function define_keepsakes() {
 	ks_water_barrel = {
 	    _id: "water_barrel",
 	    name: "Water Barrel",
-	    desc: "Potions have a 30% chance to not be consumed",
+	    desc: "Potions have a 30% chance not to be used up.",
 	    sub_image: 32,
 		price: 120,
 	    trigger: function(event, data) {			
@@ -176,7 +178,7 @@ function define_keepsakes() {
 	ks_small_sail = {
 	    _id: "small_sail",
 	    name: "Small Sail",
-	    desc: "Draw 2 additional dice at the start of combat",
+	    desc: "Draw 2 more dice at the start of combat.",
 		sub_image: 6,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
@@ -195,7 +197,7 @@ function define_keepsakes() {
 	ks_rope_of_repair = {
 	    _id: "rope_of_repair",
 	    name: "Rope of Repair",
-	    desc: "Heal 3 health at the start of each combat",
+	    desc: "Heal 3 at the start of each combat.",
 		sub_image: 7,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
@@ -214,13 +216,12 @@ function define_keepsakes() {
 	ks_deckhands_token = {
 	    _id: "deckhands_token",
 	    name: "Deckhand's Token",
-	    desc: "First dice in slot 1 gets +1 bonus",
+	    desc: "The first die in slot 1 gets +1.",
 		sub_image: 8,
 	    trigger: function(event, data) {
 	        if (event == "on_roll_die") {
 	            if (data.slot_num == 0 && data.die == oCombat.action_queue[| data.slot_num].dice_list[| 0]) {
-					data.min_roll++;
-					data.max_roll++;
+					data._d_amount += 1; // a bonus, live in the slot (its roll is already made)
 				
 					if (!data.read_only) {				
 						trigger_keepsake_visual();
@@ -234,12 +235,12 @@ function define_keepsakes() {
 	ks_starvers_efficiency = {
 	    _id: "starvers_efficiency",
 	    name: "Starver's Efficiency",
-	    desc: "The first block you play each turn rolls twice and takes the higher value",
+	    desc: "The first Block die dealt each turn rolls twice and keeps the higher.",
 		sub_image: 43,
 		state: { effect_used: false },
 	    trigger: function(event, data) {
 	        if (event == "on_roll_die") {
-	            if (!self.state.effect_used && data.action_type == "BLK" && !data.read_only) {
+	            if (!self.state.effect_used && data.action_type == "BLK" && variable_struct_exists(data, "on_deal") && data.on_deal) { // as it's dealt (die_roll_faces)
 					data.roll_twice = true;
 					self.state.effect_used = true;
 				
@@ -261,7 +262,7 @@ function define_keepsakes() {
 	ks_black_purse = {
 	    _id: "black_purse",
 	    name: "Black Purse",
-	    desc: "At the end of combat gain 3 gold for every slot in your action queue",
+	    desc: "After combat, gain 3 gold per slot.",
 		sub_image: 9,
 	    trigger: function(event, data) {
 	        if (event == "on_combat_end") {
@@ -279,7 +280,7 @@ function define_keepsakes() {
 	ks_shipwrights_draft = {
 	    _id: "shipwrights_draft",
 	    name: "Shipwright's Draft",
-	    desc: "When new slots are created, gain 1 more dice playable that turn",
+	    desc: "When you build a slot, gain 1 play this turn.",
 		sub_image: 10,
 	    trigger: function(event, data) {
 	        if (event == "on_new_slot_created") {
@@ -295,7 +296,7 @@ function define_keepsakes() {
 	ks_cannon_splitter = {
 	    _id: "cannon_splitter",
 	    name: "Cannon Splitter",
-	    desc: "Your first attack slot hits all other enemies for 75%",
+	    desc: "Your first attack slot each turn also hits other enemies for 75%.",
 		sub_image: 11,
 		state: {
 			used: false,
@@ -330,7 +331,7 @@ function define_keepsakes() {
 	ks_bandage = {
 	    _id: "bandage",
 	    name: "Bandage",
-	    desc: "Every time you are debuffed, the first slot in your queue gains +1 for the remainder of combat",
+	    desc: "When you're debuffed, your first slot gets +1 for the rest of combat.",
 		sub_image: 14,
 		state: {
 			triggered: false,
@@ -353,7 +354,7 @@ function define_keepsakes() {
 	ks_single_focus = {
 	    _id: "single_focus",
 	    name: "Single Focus",
-	    desc: "The first die in each slot with only one possible action type gains +1",
+	    desc: "The first die in each single-type slot gets +1.",
 		sub_image: 13,
 		state: {
 		},
@@ -374,20 +375,14 @@ function define_keepsakes() {
 	ks_repeater_rail = {
 	    _id: "repeater_rail",
 	    name: "Repeater Rail",
-	    desc: "Slots gain +1 to their first dice for every slot of the same type before them",
+	    desc: "Each die in a slot gets +1 for every die before it.",
 		sub_image: 12,
 		state: { },
 	    trigger: function(event, data) {
-			// +1 for every slot of the same type directly before this one, worked out again whenever the queue changes
-			if (event == "on_dice_played_to_slot" || event == "after_new_slot_created" || event == "on_turn_start" || event == "after_change_current_action") {
-				var _last_type = "";
-				var _streak = 0;
-				for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
-					var _slot = oCombat.action_queue[| i];
-					_streak = (_slot.current_action_type == _last_type && _last_type != "None") ? _streak + 1 : 0;
-					slot_set_bonus(_slot, "Repeater Rail", _streak, "first"); // only the slot's first die, as its description says
-					_last_type = _slot.current_action_type;
-				}
+			// Q15 (2026-11-19): rewards stacking one slot, now slots are scarce. A die's place in its slot (die_index) is its
+			// bonus; live in the slot's total (slot_get_total passes each die's index) and in the hover breakdown.
+			if (event == "on_roll_die" && data.slot_num >= 0 && is_real(data.die_index) && data.die_index > 0) {
+				data._d_amount += data.die_index;
 			}
 	    }
 	};
@@ -406,30 +401,15 @@ function define_keepsakes() {
 		state: { effect_used: false, first_die: undefined },
 	    trigger: function(event, data) {
 	        if (event == "on_roll_die") {
-				if (die_has_keyword(data.die, "Followthrough")) {
-					// the first Followthrough die in the queue, in the order the slots resolve
-					var _first_die = undefined;
-					if (instance_exists(oCombat)) {
-						for (var s = 0; s < ds_list_size(oCombat.action_queue) && _first_die == undefined; s++) {
-							var _dice_list = oCombat.action_queue[| s].dice_list;
-							for (var d = 0; d < ds_list_size(_dice_list); d++) {
-								if (die_has_keyword(_dice_list[| d], "Followthrough")) {
-									_first_die = _dice_list[| d];
-									break;
-								}
-							}
-						}
-					}
-					
-					if (data.die != _first_die) return;
-					
-					data.repeat_followthrough = true;
-					
-					if (!data.read_only && !self.state.effect_used) {
-						self.state.effect_used = true;
-				
-						trigger_keepsake_visual();
-					}
+				// only when a Followthrough die's effect actually fired this roll (its condition was met: it added to
+				// the roll), and only the first time each turn. Previews show the doubled bonus while it's unused.
+				if (!die_has_keyword(data.die, "Followthrough") || self.state.effect_used) return;
+				var _fired = variable_struct_exists(data, "die_effects_added") && data.die_effects_added > 0;
+				if (!_fired) return;
+				data.repeat_followthrough = true;
+				if (!data.read_only) {
+					self.state.effect_used = true;
+					trigger_keepsake_visual();
 				}
 			}
 			
@@ -444,7 +424,7 @@ function define_keepsakes() {
 	ks_lantern_of_patience = {
 	    _id: "lantern_of_patience",
 	    name: "Lantern of Patience",
-	    desc: "Each unused die grants +2 block at the end of turn",
+	    desc: "Each unused die gives 2 block at end of turn.",
 	    sub_image: 4,
 		state: { },
 	    trigger: function(event, data) {			
@@ -463,7 +443,7 @@ function define_keepsakes() {
 	ks_windbound_charm = {
 	    _id: "windbound_charm",
 	    name: "Windbound Charm",
-	    desc: "Stowaway effects also trigger when played",
+	    desc: "Stowaway effects also trigger when played.",
 	    sub_image: 15,
 		state: { },
 	    trigger: function(event, data) {			
@@ -480,7 +460,7 @@ function define_keepsakes() {
 	ks_lead_line = {
 	    _id: "lead_line",
 	    name: "Lead Line",
-	    desc: "'When played' effects also trigger twice when sacrificed",
+	    desc: "When a die builds a slot, its 'When played' effect triggers twice.",
 	    sub_image: 17,
 		state: { },
 	    trigger: function(event, data) {			
@@ -506,14 +486,14 @@ function define_keepsakes() {
 	ks_friendship_bracelet = {
 	    _id: "friendship_bracelet",
 	    name: "Friendship Bracelet",
-	    desc: "On pickup, choose a die in your bag to gain Favourite",
+	    desc: "Give a die Favourite.",
 	    sub_image: 16,
 		state: { },
 	    trigger: function(event, data) {			
 			if (event == "on_keepsake_acquired" && data.keepsake_id == _id) {
 	            // Need to add choosing functionality
 				oRunManager.dice_selection = 1;
-				oRunManager.dice_selection_message = "Choose 1 die to add Favourite to.";
+				oRunManager.dice_selection_message = "Choose a die to gain Favourite.";
 				oRunManager.dice_selection_event = function(_die) {
 					die_add_keyword(_die, "Favourite"); // the keyword and its text together
 				}
@@ -532,32 +512,28 @@ function define_keepsakes() {
 	ks_topographic_map = {
 	    _id: "topographic_map",
 	    name: "Topographic Map",
-	    desc: "If a die rolls its max, the next dice in that slot has its minimum roll increased by 2.",
+	    desc: "When you play a max roll, its slot gets +2 this turn. When a die rolls its minimum, draw a die, at most twice a turn.",
 	    sub_image: 20,
-		state: { },
-	    trigger: function(event, data) {			
-			if (event == "after_roll_die") {
-				if (data._d_amount == data.max_roll) {
-					// next dice in sequence roll_twice = true
-					if (data.dice_index != ds_list_size(data._slot.dice_list) - 1) {
-						var next_die = data._slot.dice_list[| data.dice_index+1];
-						
-						if (next_die.dice_value != 2) {
-							next_die.reset_after_next_roll = function(_dice) {
-								_dice.min_roll_bonus -= 2;
-							}
-							next_die.min_roll_bonus += 2;
-						} else {
-							next_die.reset_after_next_roll = function(_dice) {
-								_dice.min_roll_bonus -= 1;
-							}
-							next_die.min_roll_bonus += 1;
-						}
-						
-						next_die.reset_this_turn = true;
-				
-						trigger_keepsake_visual();
-					}
+		state: { draws: 0, turn: -1 },
+	    trigger: function(event, data) {
+			// a valley: a die that rolls its lowest face draws you another (Q15), at most twice a turn so a run of 1s can't
+			// chain on and on
+			if (event == "on_die_rolled" && room == rmCombat && instance_exists(oCombat) && data.min_roll < data.max_roll && data.face <= data.min_roll) {
+				if (self.state.turn != oCombat.turn_count) { self.state.turn = oCombat.turn_count; self.state.draws = 0; }
+				if (self.state.draws < 2) {
+					self.state.draws++;
+					die_effect_popup(data._die_struct, "Valley!", global.color_intel);
+					oCombat.dice_to_deal += 1;
+					oCombat.is_dealing_dice = true;
+					trigger_keepsake_visual();
+				}
+			}
+			// rolled dice: the roll is known as it's played, so the bonus goes on its slot (live in the total)
+			if (event == "on_dice_played_to_slot" && is_struct(data._d_struct) && is_struct(data._slot)) {
+				var _out = get_dice_output(data._d_struct, -1, -1, true, "player");
+				if (die_has_faces(data._d_struct) && die_face_total(data._d_struct) >= _out.max_roll) {
+					slot_add_bonus(data._slot, "Topographic Map", 2, 1);
+					trigger_keepsake_visual();
 				}
 	        }
 	    }
@@ -568,31 +544,21 @@ function define_keepsakes() {
 	ks_nav_chart = {
 	    _id: "nav_chart",
 	    name: "Navigation Chart",
-	    desc: "Every time a die rolls its minimum, roll the next die twice.",
+	    desc: "When a die rolls its minimum, the next die you're dealt rolls twice and keeps the higher.",
 	    sub_image: 19,
-		state: { },
-	    trigger: function(event, data) {			
-			if (event == "after_roll_die") {
-				if (data._d_amount == data.min_roll) {
-					// the next die to roll: later in this slot, or the first die of the next slot that has any
-					// (B93: an empty next slot has no die, and marking "nothing" crashed the web build)
-					var _next = undefined;
-					if (data.dice_index < ds_list_size(data._slot.dice_list) - 1) {
-						_next = data._slot.dice_list[| data.dice_index + 1];
-					} else {
-						for (var s = data.slot_num + 1; s < ds_list_size(oCombat.action_queue); s++) {
-							var _later = oCombat.action_queue[| s];
-							if (s == oCombat.locked_slot || ds_list_size(_later.dice_list) == 0) continue;
-							_next = _later.dice_list[| 0];
-							break;
-						}
-					}
-					if (is_struct(_next)) {
-						_next.roll_twice = true;
-						trigger_keepsake_visual();
-					}
-				}
-	        }
+		state: { next_twice: false },
+		is_armed: function() { return self.state.next_twice; }, // lit in the keepsake bar while waiting
+	    trigger: function(event, data) {
+			// rolled dice: a die rolls as it's dealt, so the minimum marks the next one dealt
+			if (event == "on_die_rolled" && data.face <= data.min_roll) {
+				self.state.next_twice = true;
+				trigger_keepsake_visual();
+			}
+			if (event == "on_roll_die" && self.state.next_twice && variable_struct_exists(data, "on_deal") && data.on_deal) {
+				data.roll_twice = true;
+				self.state.next_twice = false;
+			}
+			if (event == "on_player_turn_end") self.state.next_twice = false;
 	    }
 	};
 	ds_list_add(global.master_keepsake_list, ks_nav_chart);
@@ -601,22 +567,32 @@ function define_keepsakes() {
 	ks_balancing_compass = {
 	    _id: "balancing_compass",
 	    name: "Balancing Compass",
-	    desc: "After a die rolls its minimum, guarantee it rolls its maximum next turn.",
+	    desc: "When a die rolls its minimum, the next die you're dealt rolls its maximum.",
 	    sub_image: 18,
-		state: { },
-	    trigger: function(event, data) {			
-			if (event == "after_roll_die") {
-				if (data._d_amount == data.min_roll) {
-					data.die.reset_after_next_roll = function(_dice) {
-						_dice.forced_roll = -1;
-					}
-					data.die.forced_roll = data.max_roll;
-					data.die.reset_this_turn = false;
-					show_debug_message("this die's forced roll is set to: " + string(data.die.forced_roll));
-				
+		state: { next_max: false, landing: false },
+		// lit in the keepsake bar while it's waiting for the next die (oRunManager Draw GUI)
+		is_armed: function() { return self.state.next_max; },
+	    trigger: function(event, data) {
+			// rolled dice (Jared, 2026-11-20): dice roll as they're dealt, so a minimum now pays off on the next die dealt
+			// (or rerolled with ink), not on the same die whenever it comes round again
+			if (event == "on_combat_started") { self.state.next_max = false; self.state.landing = false; }
+			if (event == "on_roll_die" && self.state.next_max && data.on_deal) {
+				data.min_roll = data.max_roll; // it can only roll its max
+				self.state.next_max = false;
+				self.state.landing = true;
+			}
+			if (event == "on_die_rolled" && room == rmCombat && instance_exists(oCombat)) {
+				// the max landing: say so over that die. (its min equals its max now, so it can't arm the compass again)
+				if (self.state.landing) {
+					self.state.landing = false;
+					die_effect_popup(data._die_struct, "Balanced: max!", global.color_intel);
+					trigger_keepsake_visual();
+				} else if (data.min_roll < data.max_roll && data.face <= data.min_roll && !self.state.next_max) {
+					self.state.next_max = true;
+					die_effect_popup(data._die_struct, "Compass: next die max", global.color_intel);
 					trigger_keepsake_visual();
 				}
-	        }
+			}
 	    }
 	};
 	ds_list_add(global.master_keepsake_list, ks_balancing_compass);
@@ -629,16 +605,18 @@ function define_keepsakes() {
 	ks_message_in_a_bottle = {
 	    _id: "message_in_a_bottle",
 	    name: "Message in a Bottle",
-	    desc: "Gain a random dice at the start of combat.",
+	    desc: "Start each combat with a random extra die.",
 	    sub_image: 1,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
 	            if (oCombat.turn_count == 1) {
 					// Grab a random dice in the master dice list
 					var d = clone_die(global.master_dice_list[| irandom(ds_list_size(global.master_dice_list)-1)], "");
-					
+					die_roll_faces(d); // it rolls as it comes, like every dealt die (it sat unrolled as "d4": B132, Molly's Surge die)
+
 					var die_inst = instance_create_layer(display_get_gui_width()/2, display_get_gui_height(), "Instances", oDice);
 					die_inst.struct = d;
+					die_inst.roll_anim = 16; // it tumbles in, then shows its roll
 					die_inst.action_type = d.action_type;
 					die_inst.dice_amount = d.dice_amount;
 					die_inst.dice_value  = d.dice_value;
@@ -685,7 +663,7 @@ function define_keepsakes() {
 	ks_shield_plating = {
 	    _id: "shield_plating",
 	    name: "Shield Plating",
-	    desc: "+1 minimum roll on all Block die.",
+	    desc: "+1 minimum roll on Block dice.",
 	    sub_image: 39,
 		state: { },
 	    trigger: function(event, data) {			
@@ -706,7 +684,7 @@ function define_keepsakes() {
 	ks_weapon_polish = {
 	    _id: "weapon_polish",
 	    name: "Weapon Polish",
-	    desc: "+1 minimum roll on all Attack die.",
+	    desc: "+1 minimum roll on Attack dice.",
 	    sub_image: 40,
 		state: { },
 	    trigger: function(event, data) {			
@@ -727,7 +705,7 @@ function define_keepsakes() {
 	ks_crossword_puzzle = {
 	    _id: "crossword_puzzle",
 	    name: "Crossword Puzzle",
-	    desc: "+1 minimum roll on all Neutral die.",
+	    desc: "+1 minimum roll on Neutral dice.",
 	    sub_image: 41,
 		state: { },
 	    trigger: function(event, data) {			
@@ -748,7 +726,7 @@ function define_keepsakes() {
 	ks_book_of_secrets = {
 	    _id: "book_of_secrets",
 	    name: "Book of Secrets",
-	    desc: "+1 minimum roll on all insight dice.",
+	    desc: "+1 minimum roll on insight dice.",
 	    sub_image: 42,
 		state: { },
 	    trigger: function(event, data) {			
@@ -769,7 +747,7 @@ function define_keepsakes() {
 	ks_lucky_coin = {
 	    _id: "lucky_coin",
 	    name: "Lucky Coin",
-	    desc: "Coins roll 2s twice as often as 1s",
+	    desc: "Coins roll 2s twice as often as 1s.",
 	    sub_image: 0,
 		state: { },
 	    trigger: function(event, data) {			
@@ -790,7 +768,7 @@ function define_keepsakes() {
 	ks_protective_rigging = {
 	    _id: "protective_rigging",
 	    name: "Protective Rigging",
-	    desc: "Gain +2 block every time you play a die.",
+	    desc: "Gain 2 block when you play a die.",
 	    sub_image: 26,
 
 	    trigger: function(event, data) {
@@ -812,7 +790,7 @@ function define_keepsakes() {
 	ks_captains_ledger = {
 	    _id: "captains_ledger",
 	    name: "Captain's Ledger",
-	    desc: "Whenever you draw the last die from your bag, deal 5 damage to all enemies and gain 3 gold.",
+	    desc: "When your bag runs out, deal 5 damage to all enemies and gain 3 gold.",
 	    sub_image: 22,
 	    trigger: function(event, data) {
 	        // IMPORTANT: `self` here is the keepsake struct itself — no need for `var that`
@@ -837,13 +815,14 @@ function define_keepsakes() {
 	ks_rusty_rudder = {
 	    _id: "rusty_rudder",
 	    name: "Rusty Rudder",
-	    desc: "Whenever a die rolls its minimum value, deal equal damage to a random enemy.",
+	    desc: "When a die rolls its minimum, deal that much damage to a random enemy.",
 	    sub_image: 23,
 	    trigger: function(event, data) {
 	        // IMPORTANT: `self` here is the keepsake struct itself — no need for `var that`
 	        switch (event) {
-	            case "after_roll_die":
-					if (data._d_amount == data.min_roll) {
+	            case "on_die_rolled": // when rolled: it hits as the die lands
+					if (data.face <= data.min_roll) {
+						data._d_amount = data.face; data.slot_bonus = 0; data.keepsake_bonus = 0; // the damage is the face
 						// a random enemy still standing (B93: it could pick one already dead)
 						var _alive = [];
 						with (oCombat) {
@@ -871,7 +850,7 @@ function define_keepsakes() {
 	ks_eye_patch = {
 	    _id: "eye_patch",
 	    name: "Eye patch",
-	    desc: "Gain 1 insight every time you play a die.",
+	    desc: "Gain 1 insight next turn when you play a die.",
 	    sub_image: 2,
 
 	    trigger: function(event, data) {
@@ -879,7 +858,8 @@ function define_keepsakes() {
 	        switch (event) {
 
 	            case "on_dice_played_to_slot":
-					oCombat.player_intel += 1;
+					// insight gained during your turn arrives next turn, like an insight die's
+					apply_buff("player", oRunManager.buff_intel, 1, 1, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
 					var num = spawn_floating_number("player", 1, -1, global.color_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
@@ -900,7 +880,7 @@ function define_keepsakes() {
 	ks_krakens_grasp = {
 	    _id: "krakens_grasp",
 	    name: "Kraken's Grasp",
-	    desc: "+1 die playable per turn, draw 1 fewer die per turn",
+	    desc: "+1 play and 1 fewer die drawn each turn.",
 		sub_image: 34,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
@@ -917,13 +897,13 @@ function define_keepsakes() {
 	ks_deep_lens = {
 	    _id: "deep_lens",
 	    name: "Deep Lens",
-	    desc: "Start the first 2 turns of combat with 10 insight (Quill), replaces starting keepsake",
+	    desc: "Start the first 2 turns of combat with 12 insight. Replaces the Looking Glass.",
 		replaces: "looking_glass", // takes the starting keepsake's place in the keepsake bar
 		sub_image: 35,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
 	            if (oCombat.turn_count <= 2) {
-					oCombat.player_intel = 10;
+					oCombat.player_intel = max(oCombat.player_intel, 12);
 					trigger_keepsake_visual();
 				}
 	        }
@@ -935,7 +915,7 @@ function define_keepsakes() {
 	ks_scavengers_tear = {
 	    _id: "scavengers_tear",
 	    name: "Scavenger's Tear",
-	    desc: "Choose 2 dice to remove from your bag",
+	    desc: "Remove 2 dice from your bag.",
 		sub_image: 36,
 	    trigger: function(event, data) {
 	        if (event == "on_keepsake_acquired" && data.keepsake_id == _id) {
@@ -956,7 +936,7 @@ function define_keepsakes() {
 	ks_medallion_of_the_deep = {
 	    _id: "medallion_of_the_deep",
 	    name: "Medallion of the Sea",
-	    desc: "+1 die playable per turn if you have extreme alignment",
+	    desc: "+1 play each turn at extreme alignment.",
 		sub_image: 37,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
@@ -974,7 +954,7 @@ function define_keepsakes() {
 	ks_cursed_heart = {
 	    _id: "cursed_heart",
 	    name: "Cursed Heart",
-	    desc: "Slots cost 1 more die to create",
+	    desc: "New slots need 3 more to build.",
 		sub_image: 38,
 	    trigger: function(event, data) {
 	        if (event == "on_combat_started") {

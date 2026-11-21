@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dice card layouts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+/* bag view card mockups (F156). Colours from docs/mockups/ui-style-tile.html. Cards are drawn at the game's size
+   (about 300 x 360 at 1920x1080, five a row). */
+:root {
+	--ink: #2A1D12; --ink-soft: #5B4632; --paper: #E7D6B0; --paper-hi: #F1E4C4; --paper-shade: #C9B48A;
+	--slate: #1A1E28; --rule: #E2D4B0; --gold: #F2D24A;
+	--atk: #B33A22; --blk: #6FA8E8; --heal: #3C9A68; --neutral: #E9E0CC; --ins: #E9B93A;
+	--table: #15171d;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--table); color: var(--rule); font: 15px/1.45 "Source Serif 4", Georgia, serif; }
+main { max-width: 1680px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { font-size: 26px; margin: 0 0 4px; }
+.lede { color: #b9ad92; max-width: 900px; margin: 0 0 18px; }
+.controls { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; margin-bottom: 22px; color: #b9ad92; font-size: 14px; }
+.controls label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+section { margin-bottom: 34px; }
+section h2 { font-size: 18px; margin: 0 0 2px; color: var(--paper-hi); }
+section h2 b { font-family: Lato, sans-serif; color: var(--gold); margin-right: 8px; }
+section p { margin: 0 0 12px; color: #b9ad92; font-size: 14px; max-width: 980px; }
+.row { display: flex; flex-wrap: wrap; gap: 18px; background: var(--slate); padding: 18px; border-radius: 10px; }
+
+/* the paper card */
+.card { position: relative; width: 300px; min-height: 360px; color: var(--ink); filter: drop-shadow(0 3px 0 rgba(0,0,0,.45)); }
+.paper { position: absolute; inset: 0; background: var(--paper); border: 2px solid var(--ink);
+	clip-path: polygon(0 1%, 4% 0, 12% .6%, 22% 0, 35% .8%, 48% 0, 60% .5%, 73% 0, 86% .7%, 96% 0, 100% 1.2%, 99.4% 15%, 100% 32%, 99.3% 50%, 100% 68%, 99.4% 85%, 100% 99%, 92% 100%, 80% 99.3%, 66% 100%, 52% 99.4%, 38% 100%, 24% 99.3%, 10% 100%, 0 99%, .6% 84%, 0 66%, .7% 48%, 0 30%, .5% 14%);
+	box-shadow: inset 0 0 26px rgba(120, 90, 40, .28); }
+.inner { position: relative; padding: 14px 16px 16px; display: flex; flex-direction: column; min-height: 360px; }
+.name { font-weight: 700; font-size: 25px; line-height: 1.1; }
+.desc { font-weight: 600; font-size: 19px; line-height: 1.28; }
+.desc .kw { color: #7a4b12; }
+.gem { position: absolute; width: 14px; height: 14px; transform: rotate(45deg); border: 2px solid var(--ink); }
+.gem.common { background: #a9a49a; } .gem.uncommon { background: #3fbfa8; } .gem.rare { background: #a46ae0; }
+.kws { display: flex; gap: 6px; justify-content: center; }
+.kw-icon { width: 26px; height: 26px; border-radius: 50%; background: var(--paper-hi); border: 3px solid #7a4b12;
+	display: grid; place-items: center; font: 900 12px Lato, sans-serif; color: var(--ink); }
+
+/* distribution: bars in ink, the face under each */
+.dist { margin-top: auto; padding-top: 10px; }
+.bars { display: flex; align-items: flex-end; gap: 4px; height: 52px; }
+.bar { flex: 1; background: var(--ink-soft); border-radius: 2px 2px 0 0; }
+.axis { display: flex; gap: 4px; border-top: 2px solid var(--ink); margin-top: 0; }
+.axis span { flex: 1; text-align: center; font: 900 13px Lato, sans-serif; color: var(--ink); padding-top: 2px; }
+.dist.padded { padding-left: 64px; padding-right: 64px; }
+.dist.full { margin-left: -6px; margin-right: -6px; }
+.dist.bleed { margin: auto -16px -16px; padding: 0; }
+.dist.bleed .bars { height: 70px; gap: 0; }
+.dist.bleed .bar { position: relative; border-radius: 0; border-right: 2px solid var(--paper); }
+.dist.bleed .bar:last-child { border-right: 0; }
+.dist.bleed .bar span { position: absolute; bottom: 3px; left: 0; right: 0; text-align: center; font: 900 13px Lato, sans-serif; color: var(--paper-hi); }
+.dist.bleed .bar.low span { bottom: auto; top: -18px; color: var(--ink); }
+.dist.bleed .bars { border-top: 0; }
+
+/* current layout: header band */
+.band { margin: -14px -16px 12px; padding: 10px 16px 8px; border-bottom: 2px solid var(--ink); display: flex; align-items: center; }
+.cur-body { display: flex; gap: 14px; align-items: flex-start; }
+
+/* new layout: die on a rule, name under it */
+.hero { position: relative; height: 104px; margin: 4px -16px 0; display: grid; place-items: center; }
+.hero .rule { position: absolute; left: 0; right: 0; top: 50%; height: var(--rule-h, 3px); transform: translateY(-50%); }
+.hero svg { position: relative; }
+.new .name { text-align: center; margin-top: 4px; }
+.new .kws { margin-top: 6px; }
+.new .desc { text-align: center; margin-top: 10px; }
+.new.left .desc { text-align: left; }
+.hero .kws { position: absolute; top: 50%; transform: translateY(-50%); margin: 0; }
+.hero .kws.l { left: 14px; } .hero .kws.r { right: 14px; }
+
+.note { font-size: 13px; color: #8f8670; margin-top: 8px; }
+</style>
+</head>
+<body>
+<main>
+	<h1>Dice card layouts</h1>
+	<p class="lede">Mockups for the bag view card (also used by the dice picker, the quartermaster and fight rewards). Each row shows the same four dice. Only <b>A</b> is the current card; B to E use your layout (the die top middle on a thin rule across the card, the name under it, then the description and distribution), with different distributions and rules.</p>
+	<div class="controls">
+		<label><input type="checkbox" id="optKw" checked> Keyword icons on the rule beside the die (off: under the name)</label>
+		<label><input type="checkbox" id="optInk"> Ink rule (off: the die's action colour)</label>
+		<label><input type="checkbox" id="optThick"> Thicker rule</label>
+		<label><input type="checkbox" id="optLeft"> Left-aligned description</label>
+	</div>
+	<div id="variants"></div>
+</main>
+
+<script>
+const COL = { BLK: '#6FA8E8', ATK: '#B33A22', HEAL: '#3C9A68', INTEL: '#E9B93A', None: '#E9E0CC' };
+const DICE = [
+	{ name: 'Block', sides: 4, face: 'd4', types: ['BLK'], rarity: 'common', desc: 'Blocks damage.', dist: null, kws: [] },
+	{ name: 'Deepdiver Die', sides: 6, face: 'd6', types: ['None'], rarity: 'uncommon',
+		desc: 'When this die is rerolled or redrawn with <span class="kw">ink</span>, draw a die (an extra one, if redrawn).',
+		dist: [5, 1, 1, 1, 1, 5], kws: [] },
+	{ name: 'Barnacle Blade', sides: 8, face: 'd8', types: ['ATK'], rarity: 'rare',
+		desc: '<span class="kw">Sticky</span>. When played, +2 to the next Attack die in this slot.',
+		dist: [1, 1, 2, 3, 3, 2, 1, 1], kws: ['St', 'Ex'] },
+	{ name: 'Tidecaller Die', sides: 12, face: 'd12', types: ['HEAL', 'BLK'], rarity: 'uncommon',
+		desc: 'Heal or Block. <span class="kw">Followthrough</span>: if the slot before it healed, +1.',
+		dist: [1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1], kws: ['Fo'] },
+];
+
+// a die drawn roughly as draw_die does it: its shape per size, its colour (split for multitype), its size label
+function dieSvg(d, size = 84) {
+	const r = size / 2 - 4, id = 'c' + Math.random().toString(36).slice(2, 8);
+	let pts;
+	if (d.sides === 4) pts = [[0, -r], [r * .95, r * .7], [-r * .95, r * .7]];
+	else if (d.sides === 8) pts = [[0, -r], [r * .9, 0], [0, r], [-r * .9, 0]];
+	else if (d.sides === 12) pts = [0, 1, 2, 3, 4].map(i => { const a = -Math.PI / 2 + i * 2 * Math.PI / 5; return [Math.cos(a) * r, Math.sin(a) * r]; });
+	const shape = pts
+		? `<polygon points="${pts.map(p => p.join(',')).join(' ')}" stroke-linejoin="round"/>`
+		: `<rect x="${-r * .82}" y="${-r * .82}" width="${r * 1.64}" height="${r * 1.64}" rx="7"/>`;
+	const fill = d.types.length > 1
+		? `<g clip-path="url(#${id})"><rect x="${-r}" y="${-r}" width="${2 * r}" height="${2 * r}" fill="${COL[d.types[1]]}"/><polygon points="${-r},${-r} ${r},${-r} ${-r},${r}" fill="${COL[d.types[0]]}"/></g>`
+		: `<g clip-path="url(#${id})"><rect x="${-r}" y="${-r}" width="${2 * r}" height="${2 * r}" fill="${COL[d.types[0]]}"/></g>`;
+	return `<svg width="${size}" height="${size}" viewBox="${-size / 2} ${-size / 2} ${size} ${size}">
+		<clipPath id="${id}">${shape}</clipPath>
+		<g fill="#1d1712" stroke="#1d1712" stroke-width="7">${shape}</g>
+		${fill}
+		<g fill="none" stroke="#1d1712" stroke-width="3">${shape}</g>
+		<text y="${d.sides === 4 ? 13 : 9}" text-anchor="middle" font-family="Lato" font-weight="900" font-size="${size * .3}" fill="#fff" stroke="#1d1712" stroke-width="4" paint-order="stroke">${d.face}</text>
+	</svg>`;
+}
+
+function distHtml(d, kind) {
+	if (!d.dist) return '';
+	const max = Math.max(...d.dist);
+	if (kind === 'bleed') {
+		return `<div class="dist bleed"><div class="bars">${d.dist.map((v, i) => {
+			const h = 14 + 56 * v / max;
+			return `<div class="bar${h < 30 ? ' low' : ''}" style="height:${h}px"><span>${i + 1}</span></div>`;
+		}).join('')}</div></div>`;
+	}
+	return `<div class="dist ${kind}"><div class="bars">${d.dist.map(v => `<div class="bar" style="height:${8 + 44 * v / max}px"></div>`).join('')}</div>
+		<div class="axis">${d.dist.map((_, i) => `<span>${i + 1}</span>`).join('')}</div></div>`;
+}
+
+const kwHtml = (k, cls = '') => k.length ? `<div class="kws ${cls}">${k.map(x => `<div class="kw-icon">${x}</div>`).join('')}</div>` : '';
+
+function currentCard(d) {
+	const band = d.types.length > 1
+		? `linear-gradient(135deg, ${COL[d.types[0]]} 50%, ${COL[d.types[1]]} 50%)` : COL[d.types[0]];
+	return `<div class="card"><div class="paper"></div><div class="inner">
+		<div class="band" style="background:${band}"><span class="name">${d.name}</span></div>
+		<div class="gem ${d.rarity}" style="right:16px;top:20px"></div>
+		<div class="cur-body"><div>${dieSvg(d, 78)}${kwHtml(d.kws)}</div><div class="desc">${d.desc}</div></div>
+		${distHtml(d, 'padded')}
+	</div></div>`;
+}
+
+function newCard(d, dist, opt, extra = {}) {
+	const ruleCol = opt.ink ? 'var(--ink)' : (d.types.length > 1
+		? `linear-gradient(90deg, ${COL[d.types[0]]} 50%, ${COL[d.types[1]]} 50%)` : COL[d.types[0]]);
+	const ruleH = extra.ruleH || (opt.thick ? '8px' : '3px');
+	const sideKw = opt.kwOnRule && d.kws.length;
+	return `<div class="card new${opt.left ? ' left' : ''}"><div class="paper"></div><div class="inner">
+		<div class="gem ${d.rarity}" style="right:16px;top:16px"></div>
+		<div class="hero" style="--rule-h:${ruleH}">
+			<div class="rule" style="background:${ruleCol}${opt.ink ? '' : ';box-shadow:0 0 0 1px rgba(29,23,18,.55)'}"></div>
+			${sideKw ? kwHtml(d.kws.slice(0, 1), 'l') + kwHtml(d.kws.slice(1), 'r') : ''}
+			${dieSvg(d, 92)}
+		</div>
+		<div class="name">${d.name}</div>
+		${sideKw ? '' : kwHtml(d.kws)}
+		<div class="desc">${d.desc}</div>
+		${distHtml(d, dist)}
+	</div></div>`;
+}
+
+const VARIANTS = [
+	{ key: 'A', title: 'Current card', text: 'For reference: the coloured band with the name, the die to the left of the description, the distribution with wide padding.', card: d => currentCard(d) },
+	{ key: 'B', title: 'Your layout, distribution padded as now', text: 'The die sits on the rule, the name under it, then the description. The distribution keeps today\'s side padding, so a d12\'s bars get thin.', card: (d, o) => newCard(d, 'padded', o) },
+	{ key: 'C', title: 'Your layout, distribution full width', text: 'The same, with the distribution across the card\'s full width (just inside the ink border). Bars are two to three times wider and a d12 reads easily. My pick.', card: (d, o) => newCard(d, 'full', o) },
+	{ key: 'D', title: 'Full width, bars rising from the bottom edge', text: 'The distribution fills the bottom of the card edge to edge, with the face numbers inside the bars. Bolder, and it makes cards with a core easy to spot in a full bag; cards without one end in plain paper.', card: (d, o) => newCard(d, 'bleed', o) },
+	{ key: 'E', title: 'Full width with a thick colour rule', text: 'C with an 8 px rule, so the action colour reads from across the bag the way today\'s band does.', card: (d, o) => newCard(d, 'full', o, { ruleH: '8px' }) },
+];
+
+function render() {
+	const o = { kwOnRule: optKw.checked, ink: optInk.checked, thick: optThick.checked, left: optLeft.checked };
+	variants.innerHTML = VARIANTS.map(v => `<section>
+		<h2><b>${v.key}</b>${v.title}</h2><p>${v.text}</p>
+		<div class="row">${DICE.map(d => v.card(d, o)).join('')}</div>
+	</section>`).join('') + '<p class="note">Dice, keyword icons and the torn edge are approximations of the in-game drawing; the layout and proportions are the point. Barnacle Blade and Tidecaller Die are made-up examples, to show keywords and a multitype die.</p>';
+}
+['optKw', 'optInk', 'optThick', 'optLeft'].forEach(id => document.getElementById(id).addEventListener('change', render));
+render();
+</script>
+</body>
+</html>

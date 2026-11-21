@@ -15,6 +15,8 @@ if (room == rmMap) {
 	var page_y = gui_h * 0.52;
 	var page_pos_offset = -(page_w*page_xscale)/16;
 	var cover_offset = 40;
+	book_left_x = gui_w/2 - page_pos_offset - page_w * page_xscale; // the water pages' outer edges
+	book_right_x = gui_w/2 + page_pos_offset + page_w * page_xscale;
 			
 	draw_sprite_ext(sWorldBook, 0, gui_w/2 - page_pos_offset - cover_offset, page_y, -page_xscale * book_open_scale, page_yscale, 0, c_white, 1.0);
 	draw_sprite_ext(sWorldBook, 1, gui_w/2 + page_pos_offset + cover_offset, page_y, page_xscale * book_open_scale, page_yscale, 0, c_white, 1.0);
@@ -70,17 +72,27 @@ if (room == rmMap) {
 	// Placeholder shapes until there is art: nudge these numbers to move or resize them.
 	var future_pages_per_chapter = 5;	// pages drawn for each chapter still to come
 	var tab_edge_inset = 50;	// how far in from the sprite's right edge the paper actually ends
-	var tab_out = 90;			// how far each tab sticks out past the paper
+	var tab_out = 38;			// how far each tab sticks out past the paper (close to the edge, no label: Jared 2026-11-21; hover names it)
 	var tab_h = 230;			// length of a tab along the edge of the book
 	var tab_gap = 16;			// space between one tab and the next
 	var tab_y_offset = -150;	// first tab's centre, relative to the middle of the page
-	var tab_slant = 22;			// how much the outer corners are cut, like a folder tab
+	var tab_slant = 12;			// how much the outer corners are cut, like a folder tab
 
 	var chapter_pages = array_length(page_image_indices);
 	var future_chapters = max(0, CHAPTER_COUNT - chapter);
 	var last_page = chapter_pages - 1 + future_chapters * future_pages_per_chapter;
 	var page_w_on_screen = sprite_get_width(sWorldBook) * page_xscale * book_open_scale;
 	var tab_first_y0 = page_y + tab_y_offset - tab_h/2;
+
+	// which tab the mouse is over (it pulls out a little, and its tooltip says what it is, below)
+	var tab_hover_c = -1;
+	for (var c = chapter + 1; c <= CHAPTER_COUNT && book_open_scale > 0.5; c++) {
+		var _tpi = chapter_pages + (c - chapter - 1) * future_pages_per_chapter;
+		var _tx1 = gui_w/2 + page_pos_offset + (page_offset * max(0, _tpi - book_spread - 1)) + page_w_on_screen - tab_edge_inset + tab_out;
+		var _ty0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
+		if (mouse_hovering(_tx1 - tab_out, _ty0, tab_out + ((c < array_length(tab_pull)) ? tab_pull[c] : 0), tab_h, false)) tab_hover_c = c;
+	}
+	if (!variable_instance_exists(id, "tab_pull")) tab_pull = array_create(CHAPTER_COUNT + 2, 0);
 
 	// draw right pages, back to front (the chapters still to come are at the back)
 	for (var i = last_page; i >= book_spread; i--) {
@@ -105,7 +117,10 @@ if (room == rmMap) {
 			var c = chapter + 1 + (future_index div future_pages_per_chapter);
 			var tab_x0 = gui_w/2 + page_pos_offset + (page_offset * max(0, i - book_spread - 1)) + page_w_on_screen - tab_edge_inset - 30;
 			var tab_y0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
-			draw_chapter_tab(tab_x0, tab_y0, tab_x0 + 30 + tab_out, tab_y0 + tab_h, tab_slant, "Chapter " + string(c), chapter_tab_colour(c), tab_out, book_open_scale);
+			// hovered, it pulls out and its title runs down it (Jared, 2026-11-21); at rest it's a short plain tab
+			if (c < array_length(tab_pull)) tab_pull[c] = lerp(tab_pull[c], (c == tab_hover_c) ? 46 : 0, 0.25);
+			var _pull = (c < array_length(tab_pull)) ? tab_pull[c] : 0;
+			draw_chapter_tab(tab_x0, tab_y0, tab_x0 + 30 + tab_out + _pull, tab_y0 + tab_h, tab_slant, (_pull > 20) ? "Chapter " + string(c) : "", chapter_tab_colour(c), tab_out + _pull, book_open_scale * ((_pull > 20) ? 1 : 1), clamp((_pull - 20) / 26, 0, 1));
 		}
 
 	// draw the paper pages
@@ -122,7 +137,7 @@ if (room == rmMap) {
 		var tab_page_index = chapter_pages + (c - chapter - 1) * future_pages_per_chapter;
 		var tab_x1 = gui_w/2 + page_pos_offset + (page_offset * max(0, tab_page_index - book_spread - 1)) + page_w_on_screen - tab_edge_inset + tab_out;
 		var tab_y0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
-		if (!mouse_hovering(tab_x1 - tab_out, tab_y0, tab_out, tab_h, false)) continue;
+		if (c != tab_hover_c) continue;
 
 		var tab_text;
 		if (c == chapter + 1) {
@@ -130,9 +145,8 @@ if (room == rmMap) {
 			tab_text = "The boss is on this spread.";
 			if (spreads_to_boss == 1) tab_text = "1 more spread until the boss.";
 			if (spreads_to_boss > 1) tab_text = string(spreads_to_boss) + " more spreads until the boss.";
-			tab_text += " Chapter " + string(c) + " begins after it.";
 		} else {
-			tab_text = "Chapter " + string(c) + " of " + string(CHAPTER_COUNT) + ", after the chapter before it.";
+			tab_text = "Chapter " + string(c) + " of " + string(CHAPTER_COUNT) + ".";
 		}
 		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Chapter " + string(c) + ": " + chapter_title(c), tab_text);
 	}
@@ -146,11 +160,20 @@ if (room == rmMap) {
 	if (choices_locked) {
 		pages_alpha = lerp(pages_alpha, 0, 0.2);
 		if (pages_alpha < 0.05)	{
+			if (world_state != WORLD_STATE.EXPLORING) {
+				// the ship sails onto the new spread from the book's left edge (to the start of its course)
+				boat_data.x = book_left_x - 90;
+				boat_data.y = gui_h / 2;
+				boat_data.entering = true;
+			}
 			world_state = WORLD_STATE.EXPLORING;
 			pages_alpha = 0;
 		}
 	}
 	
+	// now and then a small wave on the open water pages, under the islands (map_waves_draw)
+	if (world_state != WORLD_STATE.TURNING && world_state != WORLD_STATE.OPENING) map_waves_draw(book_left_x, page_y - sprite_get_height(sWorldBookWater) * page_yscale / 2, book_right_x, page_y + sprite_get_height(sWorldBookWater) * page_yscale / 2);
+
 	// Draw chosen pages
 	// the boss spread is a single page, so don't show the previous spread's island beside it
 	var _pages_on_spread = 2;
@@ -188,6 +211,16 @@ if (room == rmMap) {
 		}
 	}
 	
+	// B+: while drafting, the pages already chosen show their sea stop where it will be (past each island). Part of the
+	// map, so drawn here, under the cards still to choose from (Jared, 2026-11-21)
+	if (world_state == WORLD_STATE.DRAFTING) {
+		var _np = ds_list_size(chosen_pages);
+		for (var k = max(0, _np - pages_drafted); k < _np; k++) {
+			var _cp = chosen_pages[| k];
+			if (!page_is_boss(_cp)) page_passage_preview(_cp, _cp.x, _cp.y, 1, 1);
+		}
+	}
+
 	// Draw the drafting panel background
 	if (world_state != WORLD_STATE.EXPLORING) {
 		var bg_w = gui_w;
@@ -196,18 +229,16 @@ if (room == rmMap) {
 		var bg_y = ui_top_bar_h(); // the top bar stays in full colour
 		
 		draw_set_color(c_black);
-		draw_set_alpha(0.55 * (max(pages_alpha, resting_alpha)));
+		draw_set_alpha(0.65 * (max(pages_alpha, resting_alpha))); // the chart (and any page already picked) dimmed under the cards
 		draw_roundrect(bg_x, bg_y, bg_x + bg_w, bg_y + bg_h, false);
 		draw_set_alpha(1.0);
 		
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBigger);
-		if (world_state == WORLD_STATE.TURNING && resting_alpha > 0.05) draw_outline_text("The spread is done", c_black, c_white, 3, gui_w/2, gui_h * 0.25, 1, resting_alpha, 0);
-		draw_outline_text("What happened next?", c_black, c_white, 3, gui_w/2, gui_h * 0.25, 1, pages_alpha, 0);
+		// one heading for one action (it used to have "What happened next?" over it as well)
+		if (pages_alpha > 0.02) ui_label(bg_w/2, gui_h * 0.25, (pages_drafted == 0) ? "Take a page. One is lost, the other is yours." : "One page is lost. The other is yours.", ftBigger, 41, pages_alpha); // say plainly how the draft works (Jared, 2026-11-21)
 		draw_set_font(ftDefault);
-		draw_outline_text("Choose a page to draft", c_black, c_white, 2, bg_w/2, gui_h * 0.29, 1, pages_alpha, 0);
-		if (pages_alpha > 0.05) ui_divider(gui_w/2 - 200, gui_w/2 + 200, gui_h * 0.32, pages_alpha);
 	
 		if (world_state == WORLD_STATE.OPENING) {		
 			book_open_scale = lerp(book_open_scale, 1.0, 0.08);
@@ -221,80 +252,11 @@ if (room == rmMap) {
 		// If we are healing or workbench
 		if (world_state == WORLD_STATE.TURNING) {
 			
-			// reset boat position
-			boat_data.x = lerp(boat_data.x, 300, 0.06);
-			boat_data.y = lerp(boat_data.y, display_get_gui_height()/2, 0.06);
+			// the ship sails off the right edge of the book while the page turns (it sails in again after Embark)
+			if (boat_data.x < book_right_x + 130) boat_sail_toward(book_right_x + 140, page_y);
 			
-			// a choice for the end of a spread: heal on the left page, a core on the right, or just continue.
-			// Each option says why when it can't be taken (full health, no free item slot).
-			// the choice waits until the page has finished turning
-			resting_alpha = lerp(resting_alpha, (current_page_turn < -0.9) ? 1.0 : 0.0, 0.25);
-
-			// how much resting heals(keepsakes like Salted Pork add to it), worked out once per spread end
-			if (rest_heal_preview == undefined) {
-				var heal_ctx = { rest_amount: rest_amount };
-				runmanager_trigger_keepsakes("on_rest", heal_ctx);
-				rest_heal_preview = { pct: heal_ctx.rest_amount, hp: ceil(global.player_max_hp * heal_ctx.rest_amount) }; // rounds up, like the healing potion
-			}
-			var heal_amount = rest_heal_preview.hp;
-			var can_heal = global.player_hp < global.player_max_hp;
-			var can_core = get_first_free_item_slot() != -1;
-			var input_ok = (global.ui_layer == UI_LAYER.BASE) && resting_alpha > 0.9;
-
-			// the buttons appear once the page has turned (they have no fade of their own)
-			if (resting_alpha > 0.3) {
-				var opt_w = 380, opt_h = 96;
-				var left_x = gui_w * 0.5 - opt_w / 2 - 30, right_x = gui_w * 0.5 + opt_w / 2 + 30, opt_y = gui_h * 0.46; // either side of the spine
-
-				// the choice sits on one logbook panel
-				ui_panel(left_x - opt_w / 2 - 40, opt_y - opt_h / 2 - 70, right_x + opt_w / 2 + 40, gui_h * 0.72 + 64 + 30, resting_alpha);
-
-				// small flavour lines above each option
-				draw_set_font(ftDefault);
-				draw_set_halign(fa_center);
-				draw_set_valign(fa_middle);
-				if (resting_alpha > 0.05) {
-					draw_outline_text("Recover below deck", c_black, c_ltgray, 2, left_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
-					draw_outline_text("Search the hold", c_black, c_ltgray, 2, right_x, opt_y - opt_h / 2 - 28, 1, resting_alpha, 0);
-				}
-
-				var heal_btn = draw_gui_button(left_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[0], "Heal " + string(heal_amount) + " HP", global.ui_neutral, ftBig, can_heal && input_ok, true);
-				var core_btn = draw_gui_button(right_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, rest_btn_scales[1], "Gain a random core", global.ui_neutral, ftBig, can_core && input_ok, true);
-				var cont_btn = draw_gui_button(gui_w / 2 - 130, gui_h * 0.72, 260, 64, rest_btn_scales[2], "Continue", global.ui_quiet, ftBig, input_ok, true);
-				rest_btn_scales[0] = heal_btn.scale;
-				rest_btn_scales[1] = core_btn.scale;
-				rest_btn_scales[2] = cont_btn.scale;
-
-				// tooltips, including why an option is greyed out
-				if (mouse_hovering(left_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, false)) {
-					if (can_heal) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Heal " + string(heal_amount) + " HP", string(round(rest_heal_preview.pct * 100)) + "% of your max health, before you choose your next pages.");
-					else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Already at full health", "There's nothing to heal. Take a core or continue.");
-				}
-				if (mouse_hovering(right_x - opt_w / 2, opt_y - opt_h / 2, opt_w, opt_h, false)) {
-					if (can_core) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Gain a random core", "A core goes in your item bar. Drill it into a die at the workbench.");
-					else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "No free item slot", "Use or drop an item (right click it) to make room for a core.");
-				}
-				if (cont_btn.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Continue", "Take nothing and choose your next pages.");
-
-				if (heal_btn.click) {
-					global.player_hp = min(global.player_max_hp, global.player_hp + heal_amount);
-					particle_emit(650, 25, "burst", c_lime);
-					rest_heal_preview = undefined;
-					start_drafting();
-				} else if (core_btn.click) {
-					var consumable_options = ds_list_create();
-					generate_item_rewards(consumable_options, global.master_item_list, 1, "core");
-					gain_item(consumable_options[| 0]);
-					ds_list_destroy(consumable_options);
-					rest_heal_preview = undefined;
-					start_drafting();
-				} else if (cont_btn.click) {
-					rest_heal_preview = undefined;
-					start_drafting();
-				}
-			}
-		} else {
-			resting_alpha = lerp(resting_alpha, 0, 0.2);
+			// the choice was made at sea (strait_draw): once the page has turned, choose the next pages
+			if (current_page_turn < -0.9) start_drafting();
 		}
 		
 		// If we are drafting
@@ -325,27 +287,43 @@ if (room == rmMap) {
 		
 			var page_count = ds_list_size(pages_shown);
 	
+			// after the first pick one page burns away and the last is given to you (Jared, 2026-11-21): find it once,
+			// and take it when the burn has had its moment (auto_take_t frames)
+			if (pages_drafted == 1) {
+				if (auto_take_page == undefined) {
+					for (var ap = 0; ap < page_count; ap++) if (!pages_shown[| ap].chosen) { auto_take_page = pages_shown[| ap]; auto_take_t = 60; }
+				} else auto_take_t--;
+			} else auto_take_page = undefined;
+
 			// Draw each page onto the map
 			for (var p = 0; p < page_count; p++) {
 				var page = pages_shown[| p];
-		
+
+				// the page the first pick lost burns away (page_burn_draw, shBurn), then is gone
+				if (page.locked) { page_burn_draw(page, page_pos[p].x, page_pos[p].y, p); continue; }
+
 				// check if we're hovering
 				var page_hover = draw_page(page, page_pos[p].x, page_pos[p].y, p, true, false);
+				// B+: the sea stop this page brings, beside it as it will be on the chart, with the course out to it
+				var _pg_s = (p < ds_list_size(page_scale)) ? page_scale[| p] : 1;
+				page_passage_preview(page, page_pos[p].x, page_pos[p].y, _pg_s, pages_alpha * (page.locked ? 0.4 : 1), true); // inside the landscape card
 
 				// if we're hovering a draftable page but haven't selected it yet,
-				if (page_hover && !page.chosen) {
+				var _auto_take = (auto_take_page == page && auto_take_t <= 0 && !page.chosen);
+				if ((page_hover && !page.chosen) || _auto_take) {
 					var page_offset_x = sprite_get_width(sMapParchment)/2 + 30;
 					var page_offset_y = sprite_get_height(sMapParchment)/2 - page.map_connection_in.x - 20 - page.margin.top + page.margin.bottom;
 			
 					var left_or_right_page = ds_list_size(chosen_pages) mod 2;
 					
-					var drawn_page_x = gui_w * (0.333 + (0.333 * left_or_right_page));
+					var drawn_page_x = gui_w * (0.333 + (0.333 * left_or_right_page)) - 70; // a little left: room for the sea stop past each island (spread_sea_spots)
 					var drawn_page_y = gui_h * 0.5;
 			
 			
 					//draw_page(page, drawn_page_x, drawn_page_y, p, false, false);
 			
-					if (mouse_check_button_pressed(mb_left) && can_draft && global.ui_layer == UI_LAYER.BASE) {
+					if ((mouse_check_button_pressed(mb_left) && can_draft && global.ui_layer == UI_LAYER.BASE) || (_auto_take && can_draft)) {
+						if (_auto_take) auto_take_page = undefined;
 					
 						// Set this page as selected
 						var _page_clone = clone_page(page);
@@ -442,18 +420,11 @@ if (room == rmMap) {
 			// Embark: a kit button that glows and breathes once both pages are chosen, fading in with the pages
 			var embark_ready = (exit_col == c_red);
 			var embark_pulse = embark_ready ? (0.5 + 0.5 * sin(current_time / 220)) : 0;
-			var embark_x = display_get_gui_width() * 3/4, embark_y = gui_h - 100;
-			var embark_w = 240, embark_h = 84;
-			if (embark_ready) {
-				var glow_w = embark_w / 2 * embark_scale + 16 + 8 * embark_pulse;
-				var glow_h = embark_h / 2 * embark_scale + 12 + 6 * embark_pulse;
-				draw_set_color(global.color_intel);
-				draw_set_alpha(pages_alpha * (0.25 + 0.3 * embark_pulse));
-				draw_roundrect_ext(embark_x - glow_w, embark_y - glow_h, embark_x + glow_w, embark_y + glow_h, 30, 30, false);
-				draw_set_alpha(1);
-			}
-			var embark_btn = ui_button(embark_x, embark_y, embark_w * (1 + 0.05 * embark_pulse), embark_h * (1 + 0.05 * embark_pulse), embark_scale, "Embark", embark_ready ? global.ui_primary : global.ui_neutral, embark_ready, "Choose two pages first.", UI_LAYER.BASE, pages_alpha, ftBigger);
-			embark_scale = embark_btn.scale;
+			// the screen's commit action, bottom right like End Turn (ui_primary, UI rework); it breathes once both pages are chosen
+			var embark_w = 300, embark_h = 104;
+			var embark_x = gui_w - 44 - embark_w / 2, embark_y = gui_h - 40 - embark_h / 2;
+			var _eb = 1 + 0.035 * embark_pulse;
+			var embark_btn = ui_primary(embark_x, embark_y, embark_w * _eb, embark_h * _eb, "Embark", embark_ready, "Take a page first.", UI_LAYER.BASE, pages_alpha);
 			if (embark_btn.click) {
 				choices_locked = true;
 				save_game(1);
@@ -463,92 +434,83 @@ if (room == rmMap) {
 		}
 	}
 	
+	// the spread as a chart (F125): dotted courses between its stops, the Shipwright's buoy between the pages and the
+	// strait's stops past the right page, on the map the whole spread (sailable when you get there), under the ship
+	var _spots = spread_sea_spots();
+	// the boss spread (one page): just the course in from the book's edge
+	if (_spots.left == undefined && world_state == WORLD_STATE.EXPLORING && ds_list_size(chosen_pages) > 0 && page_is_boss(chosen_pages[| ds_list_size(chosen_pages) - 1])) {
+		var _bp = chosen_pages[| ds_list_size(chosen_pages) - 1];
+		harbour_draw(_bp); // B+: a harbour before the boss (its courses run in from the book's edge and on to the boss)
+	}
+	if (_spots.left != undefined && (world_state == WORLD_STATE.EXPLORING || world_state == WORLD_STATE.STRAIT)) {
+		spread_routes_draw(_spots);
+		passage_left_draw(_spots.buoy.x, _spots.buoy.y);
+		strait_draw(_spots.strait.x, _spots.strait.y);
+	}
+
+	// sailing in from the book's edge to the start of the course (after Embark); clicking an island takes over
+	if (boat_data.entering) {
+		if (node_to_move_to != undefined || world_state != WORLD_STATE.EXPLORING) { boat_data.entering = false; boat_data.voyage = undefined; }
+		else {
+			if (boat_sail_toward(book_left_x + 40, gui_h / 2)) boat_data.entering = false;
+		}
+	}
+
 	// Draw the boat (clicking it to visit the workbench was tried and taken out: see KANBAN F02)
-	var boat_hover = mouse_hovering(boat_data.x, boat_data.y - sprite_get_height(sMapShip)/2, sprite_get_width(sMapShip), sprite_get_height(sMapShip), true);
+	var boat_hover = (world_state != WORLD_STATE.DRAFTING) && mouse_hovering(boat_data.x, boat_data.y - sprite_get_height(sMapShip) * 0.4, sprite_get_width(sMapShip) * 0.8, sprite_get_height(sMapShip) * 0.8, true);
 	if (boat_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Your ship", "Where to captain?", undefined, 0, undefined);
 	
-	draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 1, 1, boat_data.angle, c_white, 1.0);
+	var _boat_a = 1 - clamp((boat_data.x - book_right_x) / 90, 0, 1) - clamp((book_left_x - boat_data.x) / 90, 0, 1); // off the book: gone
+	if (!is_struct(boat_data.voyage)) boat_data.tilt = lerp(boat_data.tilt, 0, 0.1); // settles once it's there
+	if (world_state == WORLD_STATE.DRAFTING || world_state == WORLD_STATE.OPENING) _boat_a = 0; // hidden while drafting: it sails in from the left once you Embark
+	if (_boat_a > 0) draw_sprite_ext(sMapShip, 0, boat_data.x, boat_data.y, 0.8, 0.8, boat_data.angle + boat_data.tilt, c_white, _boat_a); // a fifth smaller: the sea feels bigger (Jared, 2026-11-21)
 	
 	// Chapter complete: shown once the boss is beaten, until the player turns to the next chapter
 	if (world_state == WORLD_STATE.CHAPTER_END) {
 		chapter_end_alpha = lerp(chapter_end_alpha, 1, 0.1);
 		
 		draw_set_color(c_black);
-		draw_set_alpha(0.7 * chapter_end_alpha);
+		draw_set_alpha(0.6 * chapter_end_alpha);
 		draw_rectangle(0, ui_top_bar_h(), gui_w, gui_h, false); // the top bar stays in full colour
 		draw_set_alpha(1.0);
 
+		// the chapter's last page (UI rework): a paper page, the title in ink, what comes next, and the commit at its
+		// bottom right
+		var voyage_over = (chapter >= CHAPTER_COUNT);
+		var _pw = 820, _ph = 380;
+		var _px1 = gui_w / 2 - _pw / 2, _py1 = gui_h * 0.5 - _ph / 2 - 30;
+		ui_paper(_px1, _py1, _px1 + _pw, _py1 + _ph, 77 + chapter, global.ui_col.paper, chapter_end_alpha);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
+		draw_set_alpha(chapter_end_alpha);
+		draw_set_color(global.ui_col.ink);
+		draw_set_font(ftHuge);
+		draw_text(gui_w / 2, _py1 + 78, voyage_over ? "Voyage complete" : "Chapter " + string(chapter) + " complete");
 		draw_set_font(ftBigger);
-		var voyage_over= (chapter >= CHAPTER_COUNT);
-
-		draw_outline_text(voyage_over ? "Voyage complete" : "Chapter " + string(chapter) + " complete", c_black, c_white, 3, gui_w/2, gui_h * 0.34, 1, chapter_end_alpha, 0);
-		draw_set_font(ftBig);
-		draw_outline_text(chapter_title(chapter), c_black, c_white, 2, gui_w/2, gui_h * 0.41, 1, chapter_end_alpha, 0);
+		draw_set_color(global.ui_col.ink_soft);
+		draw_text(gui_w / 2, _py1 + 140, chapter_title(chapter));
+		draw_set_color(global.ui_col.paper_shade);
+		draw_line_width(gui_w / 2 - 160, _py1 + 172, gui_w / 2 + 160, _py1 + 172, 2);
 		draw_set_font(ftDefault);
+		draw_set_color(global.ui_col.ink);
 		var next_text = voyage_over
-			? "You have sailed all " + string(CHAPTER_COUNT) + " chapters of the logbook."
-			: "Next: Chapter " + string(chapter + 1) + ", " + chapter_title(chapter + 1) + ". The seas grow more dangerous.";
-		draw_outline_text(next_text, c_black, c_white, 2, gui_w/2, gui_h * 0.50, 1, chapter_end_alpha, 0);
+			? "All " + string(CHAPTER_COUNT) + " chapters sailed."
+			: "Next: Chapter " + string(chapter + 1) + ", " + chapter_title(chapter + 1) + ".";
+		draw_text_ext(gui_w / 2, _py1 + 212, next_text, -1, _pw - 120);
+		draw_set_alpha(1);
+		draw_set_color(c_white);
 
-		var chapter_btn = draw_gui_button(
-			gui_w/2 - gui_w/10,
-			gui_h * 0.58,
-			gui_w/5,
-			gui_h/12,
-			chapter_btn_scale,
-			voyage_over ? "Finish the voyage" : "Turn the page",
-			global.ui_primary,
-			ftBig,
-			chapter_end_alpha > 0.9,
-			true
-		);
-
-		chapter_btn_scale = lerp(chapter_btn_scale, chapter_btn.hover ? 1.2 : 1.0, 0.2);
+		var chapter_btn = ui_primary(_px1 + _pw - 30 - 150, _py1 + _ph - 30 - 48, 300, 96, voyage_over ? "Finish the voyage" : "Turn the page", chapter_end_alpha > 0.9, "", UI_LAYER.BASE, chapter_end_alpha);
 
 		if (chapter_btn.click) {
 			if (voyage_over) {
 				// the run is won: the summary deletes the save and leads back to the menu
-				run_end(true, "All " + string(CHAPTER_COUNT) + " chapters of the logbook sailed");
+				run_end(true, "All " + string(CHAPTER_COUNT) + " chapters sailed");
 			} else {
 				start_new_chapter();
 			}
 		}
 	}
 
-	// At sea (F02): between pages you may work on your dice once. Setting sail for the next stop counts as sailing on.
-	if (world_state == WORLD_STATE.EXPLORING && oRunManager.can_visit_workbench) {
-		if (node_to_move_to != undefined) {
-			oRunManager.can_visit_workbench = false;
-		} else {
-			var sea_w = 640, sea_h = 230; // roomy: text keeps well inside the panel's inner rule
-			var sea_x1 = gui_w / 2 - sea_w / 2, sea_y1 = gui_h - sea_h - 90;
-			ui_panel(sea_x1, sea_y1, sea_x1 + sea_w, sea_y1 + sea_h);
-			draw_set_halign(fa_center);
-			draw_set_valign(fa_middle);
-			draw_set_font(ftBig);
-			draw_outline_text("At sea", c_black, c_white, 2, gui_w / 2, sea_y1 + 44, 1, 1, 0);
-			draw_set_font(ftDefault);
-			draw_outline_text("Between islands there's time to work on your dice.", c_black, c_ltgray, 2, gui_w / 2, sea_y1 + 86, 1, 1, 0);
-			var sea_open = draw_gui_button(gui_w / 2 - 262, sea_y1 + 128, 270, 64, oRunManager.at_sea_scales[0], "Open the workbench", global.ui_primary, ftBig, true, true);
-			var sea_sail = draw_gui_button(gui_w / 2 + 38, sea_y1 + 128, 220, 64, oRunManager.at_sea_scales[1], "Sail on", global.ui_quiet, ftBig, true, true);
-			oRunManager.at_sea_scales[0] = sea_open.scale;
-			oRunManager.at_sea_scales[1] = sea_sail.scale;
-			if (sea_open.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "The workbench", "Take dice from your bag (one per tool you own) and use each tool once.");
-			if (sea_sail.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Sail on", "Skip the workbench and sail to your next stop. Clicking the next stop does the same.");
-			if (sea_open.click) {
-				oRunManager.can_visit_workbench = false;
-				room_goto(rmWorkbench);
-			} else if (sea_sail.click) {
-				oRunManager.can_visit_workbench = false;
-				// and set sail for the next stop straight away (as if it had been clicked)
-				if (next_node != undefined && node_to_move_to == undefined) {
-					node_to_move_to = next_node;
-					node_to_move_to.y += 10;
-				}
-			}
-		}
-	}
 }
 

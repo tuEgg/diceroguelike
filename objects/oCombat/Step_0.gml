@@ -19,14 +19,18 @@ switch (state) {
     case CombatState.START_TURN:
 		turn_count++;
 		player_turn_done = false;
-		intel_rewrite_used = false; // Quill: one rewrite per turn
+		intel_rewrite_used = false;
+		insight_revealed = false; // what insight bought last turn is gone
+		for (var e = 0; e < ds_list_size(room_enemies); e++) room_enemies[| e].revealed = false; // exact values, per enemy
+		rerolls_bought = 0;
+		redraws_bought = 0;
+		plays_bought = 0;
 		quill_menu_enemy = undefined;
 		target_locked = false; // Overwhelm locks it again in on_turn_start
 		delayed_enemy_attack = false;
 		
 		if (turn_count == 1) {
 			combat_trigger_effects("on_combat_started", {});
-			sacrificies_til_new_action_tile = ds_list_size(action_queue) + slot_cost_modifier;
 		}
 		
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
@@ -85,8 +89,13 @@ switch (state) {
 		player_block_amount = 0;
 		dice_allowed_this_turn_bonus = 0;
 		ejected_dice = false;
-		
-		player_intel = debug_turn_intel(); // 0 unless set in the F1 debug menu
+		played_uids = [];
+		rerolls_used = 0;
+		redraws_used = 0;
+		take_back_request = undefined;
+
+		// ink carries over from last turn (never a debt: Blotted doesn't carry), plus the F1 debug amount (0 unless set)
+		player_intel = max(0, player_intel) + debug_turn_intel();
 		
 		// Modify dice allowed this turn
 		var turn_start_data = {
@@ -96,10 +105,13 @@ switch (state) {
 		};
 		
 		combat_trigger_effects("on_turn_start", turn_start_data);
+		// Balance earned last turn (Balanced die rolled its max)
+		if (balance_next_turn > 0) { apply_buff("player", oRunManager.buff_balance, balance_next_turn, 1, false, { source: "player", index: -1 }); balance_next_turn = 0; }
 		
-		// capped at the top state; it can go below 0 (Overwhelm), which hides enemy intents
+		// capped at INSIGHT_MAX (12); it can go below 0 (Overwhelm), which hides enemy intents
 		player_intel = min(player_intel, intel_max());
-		intel_level = intel_level_for(player_intel);
+		insight_phase_done = false; // the inkwell pulses once the hand is dealt, if ink can do something (oCombat Step, PLAYER_INPUT)
+		intel_level = insight_revealed ? INTEL_LEGIBLE : INTEL_FADED;
 		//show_debug_message("Player intel amount: "+string(player_intel));
 		//show_debug_message("Player intel level: "+string(intel_level));
 		
@@ -122,18 +134,7 @@ switch (state) {
 		    enemy.intent.scale = lerp(enemy.intent.scale, enemy.intent.start_scale, 0.3);
 		}
 		
-		// Make any bound slots dice all temporary
-		for (var i = 0; i < ds_list_size(action_queue); i++) {
-			if (i == bound_slot) {
-				var slot = action_queue[| i];
-				
-				for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
-					if (slot.dice_list[| d].permanence != "sticky") {
-						slot.dice_list[| d].permanence = "temporary";
-					}
-				}
-			}
-		}
+		// (Rot used to make the rotten slot's dice temporary here; it halves the slot's total now: process_action)
 		
 		// Failsafe for targeting in case enemy_target_index is outside of the room_enemies size.
 		if (enemy_target_index < 0 || enemy_target_index >= ds_list_size(room_enemies)) {
@@ -144,7 +145,12 @@ switch (state) {
         break;
 
     case CombatState.PLAYER_INPUT:
-		
+		// a played die was clicked (oCombat Draw GUI): back to the hand
+		if (take_back_request != undefined) {
+			combat_take_back(take_back_request.slot, take_back_request.index);
+			take_back_request = undefined;
+		}
+
 		// (the Space and Backspace testing keys now live in scDebug, debug_hotkeys)
 
 
@@ -219,7 +225,9 @@ switch (state) {
 						}
 					}
 				} else {
-			        reset_die();
+					// the slot's last die gets its full time in the spotlight (dice_timer) before moving on
+					if (dice_timer > 0) dice_timer -= 1;
+					else reset_die();
 				}
 			} else {
 	            reset_die();
@@ -372,16 +380,22 @@ switch (state) {
         enemies_turn_done = false;
         actions_submitted = false;
 	
-		// Reset player intel 
-		player_intel = 0;
-		
+		// ink is not reset: what you didn't spend carries into next turn (capped at the start of the turn)
+
 		// Eject temporary dice and remove buffed timers
 		if (!ejected_dice) {
 		    for (var i = 0; i < ds_list_size(action_queue); i++) {
 		        var slot = action_queue[| i];
 		        var slot_pos = slot_positions[| i]; // from Draw GUI
 				slot.possible_type = "";
-				
+
+				// rolled dice: everything played leaves at the end of the turn; a Sticky die stays one extra turn (and acts again)
+				for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
+					var _sd = slot.dice_list[| d];
+					if (_sd.permanence == "sticky" && !(variable_struct_exists(_sd, "sticky_held") && _sd.sticky_held)) _sd.sticky_held = true;
+					else _sd.permanence = "temporary";
+				}
+
 				show_debug_message("enemies_to_fade_out: " + string(enemies_to_fade_out));
 				show_debug_message("enemies_left_this_combat: " + string(enemies_left_this_combat));
 
@@ -396,7 +410,10 @@ switch (state) {
 				
 				// Count down timed slot bonuses (Rigger's Tonic and the like)
 				slot_tick_bonuses(slot);
-			
+
+				// back to the types it was built with (an empty starting slot is untyped again)
+				slot_recompute_types(slot);
+
 				// set all dice in this slot to temporary
 				for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
 					// turn every "base" dice into a temporary one at the end of the turn, note: sticky dice are "sticky" and are not affected by this
@@ -407,6 +424,9 @@ switch (state) {
 				}
 		    }
 			
+			// dice left on the new-slot tile (not enough to build it) go to the discard pile too
+			combat_discard_slot_building();
+
 			ejected_dice = true;
 		}
 
@@ -418,6 +438,19 @@ switch (state) {
 					var enemy = room_enemies[| e];
 				
 					if (enemy.dead) {
+						// fled when their leader fell (combat_enemies_flee): they just fade away, no gold and no kill/spare choice
+						if (variable_struct_exists(enemy, "fled") && enemy.fled) {
+							enemy.alpha = lerp(enemy.alpha, 0.0, 0.1);
+							enemy.intent.alpha = lerp(enemy.intent.alpha, 0, 0.1);
+							if (enemy.alpha <= 0.05) {
+								enemies_to_fade_out--;
+								enemy.alpha = 0;
+								ds_list_delete(room_enemies, e);
+								if (enemy_target_index > e) enemy_target_index--;
+							}
+							continue;
+						}
+
 						if (oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT || oWorldManager.current_node_type == NODE_TYPE.ELITE) {
 							if (!enemy.alignment_choices_shown && !enemy.spared && !enemy.killed) {
 								enemy.alignment_choices_shown = true;
@@ -428,7 +461,7 @@ switch (state) {
 									gain_alignment(5);
 								
 									// Earn some credits, regardless of secondary rewards
-									gain_coins(enemy.pos_x, enemy.pos_y, ceil(enemy_data.bounty * 1.5));
+									gain_coins(enemy.pos_x, enemy.pos_y, ceil(enemy_data.bounty / 3)); // a third of its bounty: killing pays (Q12)
 									
 									enemy.looted = true;
 								} else {
@@ -536,7 +569,7 @@ switch (state) {
 	break;
 }
 		
-dice_allowed_per_turn = dice_allowed_per_turn_original + dice_allowed_this_turn_bonus + oRunManager.bonus_dice_next_combat;
+dice_allowed_per_turn = dice_allowed_per_turn_original + dice_allowed_this_turn_bonus + oRunManager.bonus_dice_next_combat + plays_bought;
 
 if (is_dealing_dice) {
 	if (dice_deal_timer > 0) {
@@ -579,12 +612,29 @@ global.player_xstart = 355 * global.ui_scale - ((ds_list_size(action_queue)-1) *
 
 global.player_x = lerp(global.player_x, global.player_xstart, 0.2);
 
-if (keyboard_check_pressed(vk_enter) && state == CombatState.PLAYER_INPUT && !is_dealing_dice && tutorial_allows("end_turn")) {
+if (insight_view) insight_view_age++;
+// I opens and closes insight view
+// the log doesn't open by itself: once the hand is dealt, the inkwell pulses for a few seconds if your ink can do
+// something (combat_insight_phase_worth). Click the inkwell to open it.
+if (state == CombatState.PLAYER_INPUT && !insight_phase_done && !is_dealing_dice && dice_to_deal <= 0 && !show_rewards) {
+	insight_phase_done = true;
+	if (combat_insight_phase_worth()) { ink_pulse = round(game_get_speed(gamespeed_fps) * 2.5); ink_waiting = true; }
+}
+// it keeps pulsing until you act: use your ink, play a die or end the turn (then it fades out)
+if (ink_waiting && (insight_view || actions_submitted || dice_played > 0 || state != CombatState.PLAYER_INPUT)) ink_waiting = false;
+if (ink_waiting) ink_pulse = max(ink_pulse, 21); else if (ink_pulse > 0) ink_pulse--;
+if (insight_view) ink_pulse = 0;
+// Enter confirms (closes the log), like the button that stands in for End Turn (it can't be reopened until next turn)
+var _sealed_now = false;
+if (keyboard_check_pressed(vk_enter) && insight_view && insight_view_age > 0) { combat_insight_view_set(false); _sealed_now = true; }
+if (insight_view && (state != CombatState.PLAYER_INPUT || show_rewards || intel_is_blotted())) combat_insight_view_set(false);
+
+if (keyboard_check_pressed(vk_enter) && !_sealed_now && state == CombatState.PLAYER_INPUT && !is_dealing_dice && !insight_view && tutorial_allows("end_turn")) {
     actions_submitted = true;
 }
 
 // intel can change mid-turn (keepsakes), so its state is kept up to date every frame
-intel_level = intel_level_for(player_intel);
+intel_level = insight_revealed ? INTEL_LEGIBLE : INTEL_FADED;
 
 // the guided first fight moves on as its steps are done
 tutorial_step();

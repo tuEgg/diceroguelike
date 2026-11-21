@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Telling dice apart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+/* F42 interim: ways to tell dice apart in hand before the art pass. Colours from docs/mockups/ui-style-tile.html. */
+:root { --ink: #2A1D12; --paper: #E7D6B0; --rule: #E2D4B0; --gold: #F2D24A; --table: #15171d; --felt: #1f3a33; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--table); color: var(--rule); font: 15px/1.45 "Source Serif 4", Georgia, serif; }
+main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { font-size: 26px; margin: 0 0 4px; }
+.lede { color: #b9ad92; max-width: 880px; margin: 0 0 22px; }
+section { margin-bottom: 30px; }
+h2 { font-size: 18px; margin: 0 0 2px; color: #F1E4C4; }
+h2 b { font-family: Lato, sans-serif; color: var(--gold); margin-right: 8px; }
+section p { margin: 0 0 10px; color: #b9ad92; font-size: 14px; max-width: 900px; }
+.felt { background: radial-gradient(ellipse at 50% 40%, #2a4a41, var(--felt)); border: 3px solid #0d1a16; border-radius: 14px; padding: 18px 10px 8px; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.die { display: flex; flex-direction: column; align-items: center; width: 108px; }
+.die span { font-size: 12px; color: #cfc3a6; text-align: center; line-height: 1.2; margin-top: 2px; min-height: 30px; }
+.die span.starter { color: #7f8a85; }
+.pros { font-size: 13px; color: #8f8670; margin-top: 6px; }
+</style>
+</head>
+<body>
+<main>
+	<h1>Telling dice apart (F42, before the art pass)</h1>
+	<p class="lede">Each row is the same hand: two starters (grey labels) and six special dice. Today in the game a special die is a coloured shape with a number, the same as a starter of its size and type. These are code-only options, and they can be combined. My recommendation is <b>B</b> for every die, plus <b>D</b> for the handful that need their own look.</p>
+	<div id="rows"></div>
+</main>
+<script>
+const COL = { ATK: '#B33A22', BLK: '#6FA8E8', HEAL: '#3C9A68', INTEL: '#E9B93A', None: '#E9E0CC' };
+const RAR = { common: '#a9a49a', uncommon: '#3fbfa8', rare: '#a46ae0' };
+const HAND = [
+	{ name: 'Attack', sides: 4, type: 'ATK', face: 3, rarity: 'starter' },
+	{ name: 'Generic', sides: 4, type: 'None', face: 2, rarity: 'starter' },
+	{ name: 'Invisible die', sides: 4, type: 'None', face: 4, rarity: 'common', look: 'ghost', glyph: 'eye' },
+	{ name: 'Muzzle die', sides: 4, type: 'ATK', face: 2, rarity: 'common', glyph: 'spark' },
+	{ name: 'Echo Die', sides: 4, type: 'None', face: 3, rarity: 'uncommon', look: 'echo', glyph: 'echo' },
+	{ name: 'Sticky die', sides: 4, type: 'None', face: 1, rarity: 'common', look: 'drip', glyph: 'drop' },
+	{ name: 'Deepdiver Die', sides: 6, type: 'None', face: 5, rarity: 'uncommon', look: 'ink', glyph: 'ink' },
+	{ name: 'Surge die', sides: 4, type: 'BLK', face: 4, rarity: 'rare', look: 'waves', glyph: 'wave' },
+];
+
+function shapePts(sides, r) {
+	if (sides === 4) return [[0, -r], [r * .95, r * .7], [-r * .95, r * .7]];
+	if (sides === 8) return [[0, -r], [r * .9, 0], [0, r], [-r * .9, 0]];
+	return null;
+}
+function shape(sides, r, attrs) {
+	const p = shapePts(sides, r);
+	return p ? `<polygon points="${p.map(q => q.join(',')).join(' ')}" stroke-linejoin="round" ${attrs}/>`
+		: `<rect x="${-r * .8}" y="${-r * .8}" width="${r * 1.6}" height="${r * 1.6}" rx="${r * .16}" ${attrs}/>`;
+}
+function pips(d, r) {
+	const s = r * .14, c = '#1d1712';
+	const P = { 1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]], 5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], 6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]] }[d.face];
+	const k = r * .3, oy = d.sides === 4 ? r * .22 : 0;
+	return P.map(([x, y]) => `<circle cx="${x * k}" cy="${y * k + oy}" r="${s}" fill="${c}"/>`).join('');
+}
+function glyph(kind, x, y) {
+	const g = { eye: `<ellipse cx="0" cy="0" rx="7" ry="4.5" fill="none" stroke="#1d1712" stroke-width="2"/><circle r="2" fill="#1d1712"/>`,
+		spark: `<path d="M0,-7 L2,-2 L7,0 L2,2 L0,7 L-2,2 L-7,0 L-2,-2Z" fill="#1d1712"/>`,
+		echo: `<path d="M-5,-5 A7,7 0 0,1 -5,5 M0,-6 A9,9 0 0,1 0,6" fill="none" stroke="#1d1712" stroke-width="2"/>`,
+		drop: `<path d="M0,-7 C4,-1 5,2 0,6 C-5,2 -4,-1 0,-7Z" fill="#1d1712"/>`,
+		ink: `<path d="M0,-7 C4,-1 5,2 0,6 C-5,2 -4,-1 0,-7Z" fill="#1d1712"/><circle cx="-1.5" cy="1" r="1.4" fill="#7888c0"/>`,
+		wave: `<path d="M-7,1 Q-3.5,-4 0,1 T7,1" fill="none" stroke="#1d1712" stroke-width="2.2"/>` }[kind];
+	return `<g transform="translate(${x},${y})"><circle r="10" fill="#F1E4C4" stroke="#1d1712" stroke-width="2"/>${g}</g>`;
+}
+
+// opt: rarityEdge, glyph, numerals, looks
+function dieSvg(d, opt) {
+	const r = 34, W = 100, id = 'k' + Math.random().toString(36).slice(2, 7);
+	const col = COL[d.type];
+	const special = d.rarity !== 'starter';
+	let alpha = 1, extra = '', under = '';
+	const look = opt.looks ? d.look : null;
+	if (look === 'ghost') alpha = .5;
+	if (look === 'echo') under = `<g transform="translate(6,-5)" opacity=".45">${shape(d.sides, r, `fill="${col}" stroke="#1d1712" stroke-width="3"`)}</g>`;
+	if (look === 'drip') extra += `<path d="M-6,${r * .62} q0,12 4,14 q4,-2 4,-14Z" fill="#c8c0a8" stroke="#1d1712" stroke-width="2"/>`;
+	if (look === 'waves') extra += `<g clip-path="url(#${id})" opacity=".35">${[-.5, 0, .5].map(f => `<path d="M${-r},${f * r} q${r / 4},-7 ${r / 2},0 t${r / 2},0 t${r / 2},0 t${r / 2},0" fill="none" stroke="#fff" stroke-width="3"/>`).join('')}</g>`;
+	if (look === 'ink') extra += `<g clip-path="url(#${id})"><circle cx="${r * .5}" cy="${r * .55}" r="${r * .55}" fill="#1a1e30" opacity=".75"/></g>`;
+	const edgeCol = (opt.rarityEdge && special) ? RAR[d.rarity] : null;
+	const edge = edgeCol ? shape(d.sides, r + 5, `fill="none" stroke="${edgeCol}" stroke-width="4"`) : '';
+	const dashed = look === 'ghost' ? `stroke-dasharray="7 5"` : '';
+	const face = opt.numerals && special
+		? `<text y="${d.sides === 4 ? 14 : 9}" text-anchor="middle" font-family="Lato" font-weight="900" font-size="26" fill="#fff" stroke="#1d1712" stroke-width="4" paint-order="stroke">${d.face}</text>`
+		: pips(d, r);
+	return `<svg width="${W}" height="${W}" viewBox="${-W / 2} ${-W / 2} ${W} ${W}">
+		<clipPath id="${id}">${shape(d.sides, r)}</clipPath>
+		${under}${edge}
+		<g opacity="${alpha}">
+			${shape(d.sides, r, `fill="${col}" stroke="#1d1712" stroke-width="4" ${dashed}`)}
+			${extra}${face}
+		</g>
+		${opt.glyph && special && d.glyph ? glyph(d.glyph, r * .72, -r * .62) : ''}
+	</svg>`;
+}
+
+const ROWS = [
+	{ key: 'A', title: 'Today', text: 'Starters and specials look the same: the Invisible die and the Generic die are both bone d4s with pips.', opt: {} },
+	{ key: 'B', title: 'A rarity ring on every special die', text: 'Starters stay plain. Every other die gets a thin ring in its rarity colour (grey, teal, purple: the same as the gem on its card). One rule covers all 40 dice, and no die needs anything added to it. It says "this one is special", but not which one.', opt: { rarityEdge: true } },
+	{ key: 'C', title: 'A corner glyph per die', text: 'A small paper badge with a symbol for what the die does (an eye, a drop, a wave...). Most informative, but each die needs a glyph chosen and drawn in code, and a hand of six badges gets busy.', opt: { glyph: true } },
+	{ key: 'D', title: 'Signature looks for the few that need them', text: 'Drawn in code, about one line each: Invisible see-through with a dashed edge, Echo with a faint double behind it, Sticky dripping, Deepdiver with an ink blot, Surge with waves across it. Done for the 5 to 8 dice people mix up, not all 40.', opt: { looks: true } },
+	{ key: 'B+D', title: 'Recommended: rarity ring for all, signature looks for a few', text: 'Every special die is visibly special, and the ones with tricks you need to remember (Invisible, Echo, Sticky, Deepdiver, Surge) are recognisable at a glance. When the art pass comes, the looks show which dice the art needs to set apart.', opt: { rarityEdge: true, looks: true } },
+	{ key: 'E', title: 'Numerals instead of pips on special dice', text: 'Another cheap tell: special dice show their roll as a number, starters as pips. Clear, but it swaps one convention for another and doesn\'t say which die it is. Shown with B.', opt: { rarityEdge: true, numerals: true } },
+];
+
+document.getElementById('rows').innerHTML = ROWS.map(r => `<section>
+	<h2><b>${r.key}</b>${r.title}</h2><p>${r.text}</p>
+	<div class="felt">${HAND.map(d => `<div class="die">${dieSvg(d, r.opt)}<span class="${d.rarity === 'starter' ? 'starter' : ''}">${d.name}</span></div>`).join('')}</div>
+</section>`).join('');
+</script>
+</body>
+</html>

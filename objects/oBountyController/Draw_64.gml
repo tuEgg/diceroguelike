@@ -13,51 +13,59 @@ if (room == rmBounty) {
 	draw_set_font(ftHuge);
 	draw_outline_text("Bounty\nHuntin'", c_black, c_white, 4, 50, 200, 1, 1, 0);
 	draw_set_font(ftBig);
-	draw_outline_text("Choose a boss to encounter later in the run. Accept a special bounty condition for the fight and receive greater rewards.",
+	draw_outline_text("Pick a boss to hunt. Meet its condition for a bigger reward.",
 		c_black, c_white, 2, 50, 370, 1, 1, 0, 400);
 	
 
-	draw_set_font(ftBigger);
-
-	// Offer the player a potion
-	draw_outline_text("Grab a drink", c_black, c_white, 2, 125, 635, 1, 1, 0);
-
-	var pot_x = 75;
-	var pot_y = 650;
-
+	// "On the house" (F129): the free potion as a card of its own, so it's clearly yours to take: the potion bobbing on a
+	// plate, its name and what it does, and a Take it button (it says why when your item slots are full); a stamp once taken
 	var pot = potion;
-
-	var potion_w = potion_scale * sprite_get_width(pot.sprite);
-	var potion_h =  potion_scale * sprite_get_height(pot.sprite);
-	
-	var hover_con = mouse_hovering(pot_x, pot_y, potion_w, potion_h, true);
-	potion_scale = lerp(potion_scale, !pot.taken && hover_con ? 1.2 : 1.0, 0.2);
-	
-	var alpha = pot.taken ? 0 : 1.0;
-	
-	draw_set_alpha(0.4 * alpha);
+	var _cx1 = 50, _cy1 = 600, _cx2 = 450, _cy2 = 860;
+	ui_panel(_cx1, _cy1, _cx2, _cy2);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	draw_set_font(ftBig);
+	draw_outline_text("On the house", c_black, make_color_rgb(242, 210, 74), 2, _cx1 + 26, _cy1 + 22, 1, 1, 0);
+	// the potion on a plate
+	var pot_x = _cx1 + 80, pot_y = _cy1 + 130 + sin(current_time / 400) * 4 * !pot.taken;
+	draw_set_alpha(0.35);
 	draw_set_color(c_black);
-	draw_ellipse(pot_x - sprite_get_width(pot.sprite)/2, pot_y + sprite_get_height(pot.sprite)/2 - 7, pot_x + sprite_get_width(pot.sprite)/2, pot_y + sprite_get_height(pot.sprite)/2 + 7, false);
-	draw_sprite_ext(pot.sprite, pot.index, pot_x, pot_y, potion_scale, potion_scale, 0, c_white, alpha);
-	draw_set_alpha(1.0);
-
-	if (hover_con && alpha > 0) {
+	draw_ellipse(pot_x - 44, _cy1 + 160, pot_x + 44, _cy1 + 178, false);
+	draw_set_alpha(1);
+	draw_set_color(make_color_rgb(200, 190, 170));
+	draw_ellipse(pot_x - 40, _cy1 + 156, pot_x + 40, _cy1 + 172, false);
+	var hover_con = !pot.taken && mouse_hovering(pot_x, pot_y, sprite_get_width(pot.sprite), sprite_get_height(pot.sprite), true);
+	potion_scale = lerp(potion_scale, hover_con ? 1.15 : 1.0, 0.2);
+	draw_sprite_ext(pot.sprite, pot.index, pot_x, pot_y, potion_scale, potion_scale, 0, c_white, pot.taken ? 0.35 : 1);
+	if (hover_con) {
 		var die = undefined;
-		if (string_pos("Core", pot.name) > 0) {
-			die = core_preview_die();
-			die.distribution = pot.distribution;
-		}
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), pot.name, pot.description + " Free to take.", undefined, 0, die);
-		
-		if (mouse_check_button_pressed(mb_left) && !pot.taken) {
-			// say why when it can't be taken, instead of doing nothing
-			if (!oRunManager.has_space_for_item) {
-				throw_error("No room for this", "Free up an item slot first.");
-			} else {
-				gain_item(pot); // the bounty board's potion is free
-			}
-		}
+		if (string_pos("Core", pot.name) > 0) { die = core_preview_die(); die.distribution = pot.distribution; }
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), pot.name, pot.description, undefined, 0, die);
 	}
+	// its name and what it does
+	var _tx = _cx1 + 150;
+	draw_set_font(ftDefault);
+	draw_outline_text(pot.name, c_black, c_white, 2, _tx, _cy1 + 78, 1, 1, 0, _cx2 - _tx - 20);
+	draw_set_font(ftDescriptions);
+	draw_outline_text(colorcode_text(pot.description), c_black, make_color_rgb(225, 225, 235), 1, _tx, _cy1 + 108, 1, 1, 0, _cx2 - _tx - 20);
+	// take it (free), or a stamp once it's yours
+	if (!pot.taken) {
+		var _room = oRunManager.has_space_for_item;
+		var _take = ui_primary(_cx2 - 110, _cy2 - 52, 170, 64, "Take it", _room, "Use or drop an item first.");
+		if (_take.click && _room) gain_item(pot); // free
+		if (!_room) {
+			draw_set_font(ftDescriptions);
+			draw_set_halign(fa_left);
+			draw_outline_text("Item slots full", c_black, make_color_rgb(230, 120, 110), 1, _cx1 + 26, _cy2 - 62, 1, 1, 0);
+		}
+	} else {
+		draw_set_font(ftBig);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_outline_text("Taken", c_black, make_color_rgb(120, 200, 120), 3, _cx2 - 110, _cy2 - 52, 1, 1, 12);
+	}
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
 	
 	// Draw the bounties
 	for (var b = 0; b < array_length(bounty); b++) {
@@ -108,7 +116,7 @@ if (room == rmBounty) {
 			draw_text_ext(details_x + 100, condition_icon_y - sprite_get_height(_bounty.condition.icon)/2*_bounty.condition.scale + 10, "Defeat " + string(_bounty.enemy_name) + " " +_bounty.condition.description, font_get_size( draw_get_font() ) * 1.2, 235);
 		
 			// Draw reward info
-			draw_text_ext(details_x, condition_icon_y + 72, "Then get offered these rewards:", font_get_size( draw_get_font() ) * 1.2, 400);
+			draw_text_ext(details_x, condition_icon_y + 72, "Rewards:", font_get_size( draw_get_font() ) * 1.2, 400);
 		
 			// Draw rewards
 			for (var r = 0; r < array_length(_bounty.rewards); r++) {
@@ -168,7 +176,8 @@ if (room == rmBounty) {
 				}
 				
 				draw_sprite_ext(sFrameSmall, 0, reward_x, reward_y, _bounty.rewards_scale[r], _bounty.rewards_scale[r], 0, frame_col, 1.0);
-				draw_sprite_ext(sprite, index, reward_x, reward_y, _bounty.rewards_scale[r], _bounty.rewards_scale[r], angle, col, 1.0);
+				if (is_dice) draw_die(reward_x, reward_y, 30 * _bounty.rewards_scale[r], _bounty.rewards[r].dice_value, -1, die_colours(_bounty.rewards[r].possible_type), 0, 1, _bounty.rewards[r]); // drawn in code: split if multitype
+				else draw_sprite_ext(sprite, index, reward_x, reward_y, _bounty.rewards_scale[r], _bounty.rewards_scale[r], angle, col, 1.0);
 			
 				var reward_hover = mouse_hovering( reward_x, reward_y, sprite_get_width(sFrameSmall), sprite_get_height(sFrameSmall), true);
 			
@@ -216,7 +225,7 @@ if (room == rmBounty) {
 	var hover_reroll = mouse_hovering(gui_w/2 + 230, gui_h - 250, reroll_scale*sprite_get_width(sButtonSmall) * 0.75, reroll_scale*sprite_get_height(sButtonSmall) * 0.75, true);
 
 	if (hover_reroll && reroll_col == global.color_block) {
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Re-roll options", "Spend " + string(price) + " gold to reroll options");
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Re-roll", "Spend " + string(price) + " gold for new bounties.");
 	
 		if (mouse_check_button_pressed(mb_left)) {
 			if (oRunManager.credits >= price) {
@@ -226,7 +235,7 @@ if (room == rmBounty) {
 				generate_bounties(2);
 				reroll_col = c_dkgray;
 			} else {
-				throw_error("Not enough money", "10 gold is needed to reroll");
+				throw_error("Not enough gold", "You need 10 gold.");
 			}
 		}
 		reroll_scale = lerp(reroll_scale, 1.2, 0.2);
@@ -257,8 +266,8 @@ if (room == rmBounty) {
 		button_scale = 1.0;
 	}
 
-	var exit_btn = ui_button(gui_w - 150, gui_h - 200, 200, 70, exit_scale, button_text, ui_button_col(exit_col), true);
-	exit_scale = exit_btn.scale;
+	// the room's commit action, bottom right (ui_primary, UI rework): "Confirm" with a bounty taken, else "Continue"
+	var exit_btn = ui_primary(gui_w - 44 - 140, gui_h - 40 - 48, 280, 96, (button_text == "Exit") ? "Continue" : button_text, true);
 	if (exit_btn.click) room_goto(rmMap);
 
 }

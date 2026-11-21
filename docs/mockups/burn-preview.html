@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Burn preview</title>
+<style>
+:root { --bg: #15171d; --text: #e2d4b0; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 Georgia, serif; }
+main { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+canvas { width: 100%; height: auto; display: block; border-radius: 10px; background: #3f4a4a; }
+button { font: inherit; padding: 6px 14px; margin-top: 10px; border-radius: 6px; border: 2px solid #2A1D12; background: #F1E4C4; color: #2A1D12; cursor: pointer; }
+p { color: #b9ad92; }
+</style>
+</head>
+<body>
+<main>
+	<h1 style="font-size:22px;margin:0 0 6px">shBurn preview</h1>
+	<p>The game's burn shader (shaders/shBurn/shBurn.fsh) running in WebGL over a stand-in draft card, so it can be checked without GameMaker. Embers here are a rough stand-in for the game's particles.</p>
+	<canvas id="c" width="900" height="460"></canvas>
+	<button id="go">Burn again</button>
+	<p id="err" style="color:#e08a7a"></p>
+</main>
+<script>
+const FS = `precision mediump float;
+varying vec2 v_vTexcoord;
+uniform sampler2D gm_BaseTexture;
+uniform float u_t;
+uniform float u_seed;
+uniform vec2 u_scale;
+float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32 + u_seed); return fract(p.x * p.y); }
+float noise(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	float a = hash(i); float b = hash(i + vec2(1.0, 0.0)); float c = hash(i + vec2(0.0, 1.0)); float d = hash(i + vec2(1.0, 1.0));
+	return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }
+float fbm(vec2 p) { float v = 0.0; float a = 0.5; for (int k = 0; k < 4; k++) { v += a * noise(p); p *= 2.0; a *= 0.5; } return v; }
+void main() {
+	vec4 base = texture2D(gm_BaseTexture, v_vTexcoord);
+	if (base.a <= 0.0) discard;
+	float n = clamp((fbm(v_vTexcoord * u_scale) - 0.22) / 0.52, 0.0, 1.0); // fbm bunches round 0.47: spread it over 0-1 so the burn moves evenly
+	float edge = n - u_t;
+	if (edge < 0.0) discard;
+	vec3 col = base.rgb;
+	float scorch = 1.0 - smoothstep(0.0, 0.2, edge);
+	col = mix(col, vec3(0.18, 0.10, 0.05), scorch * 0.85);
+	float rim = 1.0 - smoothstep(0.0, 0.06, edge);
+	vec3 ember = mix(vec3(1.0, 0.85, 0.3), vec3(1.0, 0.35, 0.05), rim);
+	col = mix(col, ember, rim);
+	gl_FragColor = vec4(col, base.a);
+}`;
+const VS = `attribute vec2 p; varying vec2 v_vTexcoord; void main() { v_vTexcoord = vec2(p.x * 0.5 + 0.5, 0.5 - p.y * 0.5); gl_Position = vec4(p, 0.0, 1.0); }`;
+
+// the stand-in card: sea blue, torn ink edge, an island, a dotted course, a sea stop
+const card = document.createElement('canvas'); card.width = 900; card.height = 460;
+const g = card.getContext('2d');
+function drawCard() {
+	g.clearRect(0, 0, 900, 460);
+	g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(208, 88, 500, 330);
+	g.beginPath();
+	for (let i = 0; i <= 40; i++) { const t = i / 40; g.lineTo(200 + 500 * t, 80 + (Math.sin(i * 7.1) * 1.5)); }
+	for (let i = 0; i <= 20; i++) { const t = i / 20; g.lineTo(700 + Math.sin(i * 3.3) * 1.5, 80 + 330 * t); }
+	for (let i = 0; i <= 40; i++) { const t = i / 40; g.lineTo(700 - 500 * t, 410 + Math.sin(i * 5.7) * 1.5); }
+	g.closePath(); g.fillStyle = '#96babe'; g.fill(); g.lineWidth = 4; g.strokeStyle = '#2A1D12'; g.stroke();
+	g.fillStyle = 'rgba(255,255,255,.25)'; g.beginPath(); g.ellipse(360, 245, 120, 100, .3, 0, 7); g.fill();
+	g.fillStyle = '#7DB683'; g.beginPath(); g.ellipse(360, 245, 85, 70, .3, 0, 7); g.fill(); g.lineWidth = 3; g.stroke();
+	g.fillStyle = '#555'; g.setLineDash([2, 10]); g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.moveTo(400, 245); g.lineTo(590, 245); g.stroke(); g.setLineDash([]);
+	g.fillStyle = '#fff'; g.font = '900 34px sans-serif'; g.textAlign = 'center'; g.fillText('⚔', 360, 255);
+	g.fillStyle = '#e6c84a'; g.beginPath(); g.arc(600, 245, 16, 0, 7); g.fill();
+	g.font = '700 16px Georgia'; g.fillStyle = '#2A1D12'; g.fillText('Combat', 360, 290); g.fillText('Flotsam', 600, 290);
+}
+drawCard();
+
+const cv = document.getElementById('c');
+const gl = cv.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: true });
+function sh(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+let prog;
+try {
+	prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog);
+	if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+	window.shaderOk = true;
+} catch (e) { document.getElementById('err').textContent = 'Shader error: ' + e.message; window.shaderOk = false; }
+gl.useProgram(prog);
+const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, card);
+gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+const U = n => gl.getUniformLocation(prog, n);
+gl.uniform1f(U('u_seed'), 2.3); gl.uniform2f(U('u_scale'), 900 / 120, 460 / 120); // the game's 120 px noise cells
+
+// a 2D overlay for embers
+const ov = document.createElement('canvas'); ov.width = 900; ov.height = 460;
+let burn = 0, embers = [];
+window.hold = null; // set to 0..1 to freeze the burn there (for checking)
+function frame() {
+	burn = (window.hold != null) ? window.hold : Math.min(1, burn + 1 / 80);
+	const f = burn, t = -0.15 + 1.2 * (f * f * (3 - 2 * f));
+	gl.clearColor(0.25, 0.29, 0.29, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+	gl.uniform1f(U('u_t'), t); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+	if (f < 0.9) for (let k = 0; k < 3; k++) embers.push({ x: 200 + Math.random() * 500, y: 80 + Math.random() * 330, life: 40 + Math.random() * 30, t: 0, c: ['#ffaa3c', '#ff6e1e', '#ffdc78'][k % 3] });
+	window.burnT = t;
+	requestAnimationFrame(frame);
+	drawEmbers();
+}
+// embers drawn on a second canvas laid over the WebGL one
+const ec = document.createElement('canvas'); ec.width = 900; ec.height = 460; ec.style.cssText = 'position:absolute;pointer-events:none';
+cv.parentNode.style.position = 'relative'; cv.parentNode.insertBefore(ec, cv.nextSibling);
+function place() { const r = cv.getBoundingClientRect(), pr = cv.parentNode.getBoundingClientRect(); ec.style.left = (r.left - pr.left) + 'px'; ec.style.top = (r.top - pr.top) + 'px'; ec.style.width = r.width + 'px'; ec.style.height = r.height + 'px'; }
+place(); addEventListener('resize', place);
+const ex = ec.getContext('2d');
+function drawEmbers() {
+	ex.clearRect(0, 0, 900, 460);
+	embers = embers.filter(e => (e.t++ < e.life));
+	for (const e of embers) { e.y -= 1.2; e.x += Math.sin(e.t / 6) * 0.6; ex.globalAlpha = 1 - e.t / e.life; ex.fillStyle = e.c; ex.beginPath(); ex.arc(e.x, e.y, 2.5, 0, 7); ex.fill(); }
+	ex.globalAlpha = 1;
+}
+document.getElementById('go').onclick = () => { burn = 0; };
+frame();
+</script>
+</body>
+</html>

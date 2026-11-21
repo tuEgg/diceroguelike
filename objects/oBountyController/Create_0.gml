@@ -116,6 +116,7 @@ bounty_taken = -1;
 
 var potion_list = ds_list_create();
 potion_scale = 1;
+potion_btn_scale = 1; // the On the house card's Take it button
 generate_item_rewards(potion_list, global.master_item_list, 1, "consumable", "common");
 potion = potion_list[| 0];
 ds_list_destroy(potion_list);

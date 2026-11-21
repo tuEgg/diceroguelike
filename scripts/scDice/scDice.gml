@@ -18,6 +18,8 @@ function deal_single_die( _can_discard_this_turn = true) {
 	    // outside a fight the discard pile has been freed (oCombat CleanUp), so only a live one can be reshuffled (B109)
 	    if (ds_safe_exists(global.discard_pile, ds_type_list) && ds_list_size(global.discard_pile) > 0) {
 	        //show_debug_message("Dice bag empty — reshuffling discard pile!");
+	        // in a fight, you see it happen: the spent dice fly out of the discard pile and back into the bag
+	        if (room == rmCombat) combat_shuffle_effect(ds_list_size(global.discard_pile));
 	        for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
 	            var discard_die = global.discard_pile[| i];
 	            var die_copy = clone_die(discard_die, "");
@@ -60,12 +62,14 @@ function deal_single_die( _can_discard_this_turn = true) {
 	}
 	
 	// the guided first fight deals a set hand, taken from the bag so the bag stays right
-	var _tut_type = (room == rmCombat) ? tutorial_next_hand_type() : "";
-	if (_tut_type != "" && _debug_die == undefined) {
+	var _tut = (room == rmCombat) ? tutorial_next_hand_type() : undefined;
+	if (is_struct(_tut) && _debug_die == undefined) {
 		for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
-			if (global.dice_bag[| d].action_type == _tut_type) {
+			if (global.dice_bag[| d].action_type == _tut.type) {
 				die_struct = clone_die(global.dice_bag[| d], "");
 				index = d;
+				// it lands on the face the step needs (die_roll_faces uses forced_roll once, then clears it)
+				if (_tut.face > 0) die_struct.forced_roll = _tut.face;
 				break;
 			}
 		}
@@ -88,6 +92,9 @@ function deal_single_die( _can_discard_this_turn = true) {
 	// Trigger on dice dealt effects
 	trigger_die_effects_single(die_struct, "on_dice_dealt", trigger_data);
 
+	// rolled dice: a die rolls as it's dealt, and shows its number in hand (docs/design-rolled-dice.md)
+	if (room == rmCombat) die_roll_faces(die_struct);
+
     // Spawn instance
     var die_inst = instance_create_layer(global.gui.bag_x_deal, global.gui.bag_y_deal, "Instances", oDice);
     die_inst.struct = die_struct;
@@ -97,6 +104,9 @@ function deal_single_die( _can_discard_this_turn = true) {
 	die_inst.possible_type = die_struct.possible_type;
 	die_inst.can_discard = _can_discard_this_turn;
 
+	// rolled dice: it tumbles as it flies out of the bag, then lands on its roll (oDice Step)
+	if (room == rmCombat && die_has_faces(die_struct)) die_inst.roll_anim = 16;
+
     var target = generate_valid_targets(1, 100) [0];
     die_inst.target_x = target[0];
     die_inst.target_y = target[1];
@@ -105,6 +115,77 @@ function deal_single_die( _can_discard_this_turn = true) {
     if (index != -1) ds_list_delete(global.dice_bag, index);
 	
 	return die_inst;
+}
+
+/// @func die_roll_faces(_die)
+/// @desc Rolled dice: rolls a die when it's dealt and keeps the result on it (faces, one per die in a "2d4").
+///       Uses its range and weighting as it is in hand. A die that rolls twice (Accurate) does it now and keeps the
+///       higher (faces_twice). process_action resolves these faces instead of rolling again.
+function die_roll_faces(_die) {
+	var _out = get_dice_output(_die, -1, -1, true, "player", true);
+	var _min = _out.min_roll, _max = _out.max_roll;
+	var _dist = [];
+	define_dice_distributions((_out.weighting != "") ? _out.weighting : _die.distribution, _min, _max, _dist);
+	var _weight = 0;
+	for (var d = 0; d < array_length(_dist); d++) _weight += _dist[d];
+	_die.faces = [];
+	_die.faces_twice = _out.roll_twice;
+	repeat (max(1, _die.dice_amount)) {
+		var _face = (_weight > 0) ? weighted_to_face(_dist, irandom_range(1, _weight), _min) : irandom_range(_min, _max);
+		if (_out.roll_twice) {
+			var _second = (_weight > 0) ? weighted_to_face(_dist, irandom_range(1, _weight), _min) : irandom_range(_min, _max);
+			_face = max(_face, _second);
+		}
+		array_push(_die.faces, _face);
+	}
+	// a forced face (Balancing Compass: "its max next time") lands now, as it's dealt
+	if (variable_struct_exists(_die, "forced_roll") && _die.forced_roll != -1) {
+		for (var f = 0; f < array_length(_die.faces); f++) _die.faces[f] = clamp(_die.forced_roll, _min, _max);
+		_die.forced_roll = -1;
+	}
+	// "when rolled" effects (docs/design-port-dice-keepsakes.md): the die's own (on_die_rolled) and keepsakes'
+	if (room == rmCombat && instance_exists(oCombat)) {
+		combat_trigger_effects("on_die_rolled", { _die_struct: _die, face: die_face_total(_die), min_roll: _min, max_roll: _max });
+	}
+}
+
+/// @func die_effect_popup(_die, _text, _col)
+/// @desc A die's "when rolled" effect firing: a word over it in your hand (or where dice are dealt, as it comes out).
+function die_effect_popup(_die, _text, _col) {
+	die_jiggle(_die); // and the die wobbles (F40)
+	var _x = global.gui.bag_x_deal, _y = global.gui.bag_y_deal - 60;
+	with (oDice) if (struct == _die) { _x = x; _y = y - 60; }
+	var _inst = instance_create_layer(_x, _y, "Instances", oDamageText);
+	_inst.txt = _text;
+	_inst.amount = 0;
+	_inst.color_main = _col;
+	_inst.num_sign = 0;
+	_inst.size = 0.6;
+}
+
+/// @func die_has_faces(_die)
+/// @desc Whether a die has been rolled (die_roll_faces) and is waiting to be used.
+function die_has_faces(_die) {
+	return is_struct(_die) && variable_struct_exists(_die, "faces") && is_array(_die.faces) && array_length(_die.faces) > 0;
+}
+
+/// @func die_face_total(_die, [_min], [_max])
+/// @desc The die's rolled number (all its faces added up), each kept within _min.._max if given. -1 if not rolled.
+function die_face_total(_die, _min = -1, _max = -1) {
+	if (!die_has_faces(_die)) return -1;
+	var _t = 0;
+	for (var i = 0; i < array_length(_die.faces); i++) {
+		var _f = _die.faces[i];
+		if (_min != -1) _f = clamp(_f, min(_min, _max), _max);
+		_t += _f;
+	}
+	return _t;
+}
+
+/// @func die_clear_faces(_die)
+/// @desc A used or discarded die forgets its roll, so it rolls fresh next time it's dealt.
+function die_clear_faces(_die) {
+	if (is_struct(_die)) { _die.faces = undefined; _die.faces_twice = false; }
 }
 
 function generate_dice_bag() {
@@ -155,7 +236,7 @@ function generate_dice_bag() {
 	// Anchor Die: Gain +3 block if not used
 	global.die_anchor = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Anchor die",
-	    "Stowaway: +5 block if not used.",
+	    "Stowaway: Gain 5 block.",
 		"common",
 		30,
 	    [
@@ -175,7 +256,7 @@ function generate_dice_bag() {
 	// Slipstream Die: Play 1 extra dice next turn.
 	global.die_slipstream = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Slipstream die",
-	    "Stowaway: Play 1 extra dice next turn.",
+	    "Stowaway: Play 1 extra die next turn.",
 		"common",
 		40,
 	    [
@@ -193,7 +274,7 @@ function generate_dice_bag() {
 	// Defensive Die: Coin. Favourite. Multitype: Can create HEAL and BLK slo
 	global.die_defensive = make_die_struct(
 	    1, 2, "HEAL", "HEAL BLK", "", "Defensive coin",
-	    "Coin. Favourite. Multitype: Can create HEAL and BLK slots.",
+	    "Coin. Favourite. Multitype: HEAL or BLK.",
 		"rare",
 		70,
 	    []
@@ -204,7 +285,7 @@ function generate_dice_bag() {
 	// Anchor Die: Gain +3 block if not used
 	global.die_tidebreaker = make_die_struct(
 	    1, 6, "ATK", "ATK", "", "Tidebreaker die",
-	    "Followthrough: If previous slot was BLK, deal +2 damage to attacking rolls.",
+	    "Followthrough: +2 damage if the slot before is BLK.",
 		"common",
 		50,
 	    [
@@ -224,7 +305,7 @@ function generate_dice_bag() {
 	// Pretty penny
 	global.die_power_penny = make_die_struct(
 	    1, 2, "BLK", "BLK", "", "Power penny",
-	    "Coin. +1 bonus to this coin for the number of dice in this slot.",
+	    "Coin. +1 for each die in its slot.",
 		"common",
 		50,
 	    [
@@ -244,7 +325,7 @@ function generate_dice_bag() {
 	// Invisible Die
 	global.die_invisible = make_die_struct(
 	    1, 4, "None", "None", "", "Invisible die",
-	    "When played: draw 1 die and play +1 die this turn.",
+	    "When played: draw 1 die and gain 1 play.",
 		"common",
 		30,
 	    [
@@ -266,7 +347,7 @@ function generate_dice_bag() {
 	// Surge Die
 	global.die_surge = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Surge die",
-	    "+1 bonus to this die for every subsequent slot.",
+	    "+1 for each slot after it.",
 		"uncommon",
 		40,
 	    [
@@ -284,7 +365,7 @@ function generate_dice_bag() {
 	// Kill Coin
 	global.die_kill_coin = make_die_struct(
 	    1, 2, "ATK", "ATK", "", "Kill coin",
-	    "Coin. +2 bonus if placed in the last slot in your queue.",
+	    "Coin. +2 in the last slot.",
 		"uncommon",
 		40,
 	    [
@@ -302,7 +383,7 @@ function generate_dice_bag() {
 	// Tidepusher die
 	global.die_tidepusher = make_die_struct(
 	    1, 4, "HEAL", "HEAL", "", "Tidepusher die",
-	    "Exclusive. If this die rolls a 4, heal 1 more.",
+	    "Exclusive. If it rolls 4, heal 1 more.",
 		"rare",
 		90,
 	    [
@@ -310,6 +391,7 @@ function generate_dice_bag() {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._d_amount == 4 && _context.die.uid == _context._die_struct_source.uid) {
+						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
 						_context._d_amount = 5;
 					}
 	            }
@@ -322,7 +404,7 @@ function generate_dice_bag() {
 	// Bulwark die
 	global.die_bulwark = make_die_struct(
 	    1, 8, "BLK", "BLK", "", "Bulwark die",
-	    "Followthrough: If previous slot was block, deal {min2} damage (double this die's minimum roll) to all enemies.",
+	    "Followthrough: If the slot before is block, deal {min2} damage to all enemies.",
 		"rare",
 		70,
 	    [
@@ -330,6 +412,7 @@ function generate_dice_bag() {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._p_slot_type == "BLK" && _context.die.uid == _context._die_struct_source.uid) {
+						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
 	                    with (oCombat) {
 							// Deal flat damage to all enemies, we have to run this backwards in case any enemies die during this roll
 							for (var i = ds_list_size(oCombat.room_enemies)-1; i >= 0 ; i--) {
@@ -350,7 +433,7 @@ function generate_dice_bag() {
 	// Bulwark die
 	global.die_crescendo = make_die_struct(
 	    1, 8, "ATK", "ATK", "", "Crescendo die",
-	    "Increase this die's minimum roll by 1 (up to {half}) each time it rolls (resets each combat).",
+	    "+1 minimum roll each time it rolls this combat, up to {half}.",
 		"rare",
 		80,
 	    [
@@ -367,15 +450,17 @@ function generate_dice_bag() {
 	// Squall die
 	global.die_squall = make_die_struct(
 	    1, 6, "None", "None", "", "Squall die",
-	    "If this die rolls 5 or higher, draw a die.",
+	    "If it rolls 5 or higher, draw a die.",
 		"common",
 		50,
 	    [
 	        {
-	            trigger: "after_roll_die",
+	            trigger: "on_die_rolled", // when rolled: the extra die comes as it lands
 	            modify: function(_context) {
-					if (_context._d_amount >= 5 && _context.die.uid == _context._die_struct_source.uid) {
-						with (oRunManager) deal_single_die(false); // deal a dice that can't be discarded this turn
+					if (_context.face >= 5) {
+						die_effect_popup(_context._die_struct, "Squall!", c_white);
+						oCombat.dice_to_deal += 1;
+						oCombat.is_dealing_dice = true;
 					}
 	            }
 	        }
@@ -386,7 +471,7 @@ function generate_dice_bag() {
 	// Reed snap die
 	global.die_reed_snap = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Reed snap die",
-	    "If this die rolls a 4 or higher, gain 2 block.",
+	    "If it rolls 4 or higher, gain 2 block.",
 		"common",
 		30,
 	    [
@@ -394,6 +479,7 @@ function generate_dice_bag() {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._d_amount >= 4 && _context.die.uid == _context._die_struct_source.uid) {
+						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
 						with (oCombat) {
 							process_action("player", 0, 2, 0, "player", undefined, "BLK");
 						}
@@ -407,7 +493,7 @@ function generate_dice_bag() {
 	// Reed snap die
 	global.die_blood_reef = make_die_struct(
 	    1, 6, "ATK", "ATK", "", "Blood Reef die",
-	    "If this deals damage, gain +2 damage but lose 1 HP.",
+	    "When attacking: +2 damage, lose 1 health.",
 		"rare",
 		80,
 	    [
@@ -429,7 +515,7 @@ function generate_dice_bag() {
 	// Slipstream Die
 	global.die_muzzle = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Muzzle die",
-	    "Followthrough: +1 bonus to this die for every previous slot",
+	    "Followthrough: +1 for each slot before it.",
 		"uncommon",
 		60,
 	    [
@@ -449,7 +535,7 @@ function generate_dice_bag() {
 	// Bilge Die
 	global.die_bilge = make_die_struct(
 	    1, 6, "None", "None", "", "Bilge die",
-	    "Sticky. If this die's total (roll plus bonuses) is even, heal 2.",
+	    "Sticky. If its total is even, heal 2.",
 		"rare",
 		80,
 	    [
@@ -459,6 +545,7 @@ function generate_dice_bag() {
 					// the total the player sees on the die: the roll plus the slot's and keepsakes' bonuses
 					var _total = _context._d_amount + _context.slot_bonus + _context.keepsake_bonus + _context.first_bonus;
 					if (_total mod 2 == 0 && _context.die.uid == _context._die_struct_source.uid) {
+						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
 						global.player_hp = min(global.player_max_hp, global.player_hp + 2);
 						particle_emit(global.player_x, global.player_y, "burst", c_lime);
 						var num = spawn_floating_number("player", 2, -1, c_lime, 1, -1, 0);
@@ -486,7 +573,7 @@ function generate_dice_bag() {
 	// Fogcaller Die
 	global.die_fogcaller = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Fogcaller Die",
-	    "Followthrough: Gain +1 and draw a die if the previous slot contained a coin.",
+	    "Followthrough: if the slot before it holds a coin, +1 and draw a die.",
 		"common",
 		40,
 	    [
@@ -505,10 +592,20 @@ function generate_dice_bag() {
 							}
 						}
 							
-						if (!_context.read_only) {
-							if (prev_has_coin) {
-								with (oRunManager) deal_single_die(false);
-							}
+					}
+	            }
+	        },
+			{
+				// the draw: when it's played into a slot after one holding a coin (not at End Turn, where it was wasted)
+	            trigger: "on_dice_played_to_slot",
+	            modify: function(_context) {
+					if (_context._d_struct.uid != _context._die_struct_source.uid || _context._slot_num <= 0) return;
+					var _prev = oCombat.action_queue[| _context._slot_num - 1].dice_list;
+					for (var i = 0; i < ds_list_size(_prev); i++) {
+						if (die_has_keyword(_prev[| i], "Coin")) {
+							oCombat.dice_to_deal += 1;
+							oCombat.is_dealing_dice = true;
+							break;
 						}
 					}
 	            }
@@ -521,21 +618,16 @@ function generate_dice_bag() {
 	// Deepdiver Die
 	global.die_deepdiver = make_die_struct(
 	    1, 6, "None", "None", "", "Deepdiver Die",
-	    "When played: discard all remaining dice in play then draw 2 more.",
+	    "When rerolled or redrawn with ink, draw a die.",
 		"uncommon",
 		50,
 	    [
 	        {
-	            trigger: "on_dice_played_to_slot",
+	            trigger: "on_die_inked", // rerolled or redrawn with ink (combat_reroll_die, combat_redraw_die)
 	            modify: function(_context) {
-					// only when this die is the one played, not every die played after it while it's in a slot
-					if (_context._d_struct.uid != _context._die_struct_source.uid) return;
-					with (oCombat) {
-						_context.dice_object.can_discard = false;
-						discard_dice_in_play();
-						oCombat.dice_to_deal += 2;
-						oCombat.is_dealing_dice = true;
-					}
+					die_effect_popup(_context._die_struct, "Deepdiver!", c_white);
+					oCombat.dice_to_deal += 1;
+					oCombat.is_dealing_dice = true;
 	            }
 	        }
 	    ]
@@ -545,7 +637,7 @@ function generate_dice_bag() {
 	// Inteli Die
 	global.die_intelli = make_die_struct(
 	    1, 4, "INTEL", "INTEL", "", "Inkwell Die",
-	    "Gain +1 for each unique action in the action queue",
+	    "+1 for each action type in your queue.",
 		"uncommon",
 		50,
 	    [
@@ -575,7 +667,7 @@ function generate_dice_bag() {
 	// Deflect Die
 	global.die_deflect = make_die_struct(
 	    1, 6, "BLK", "BLK INTEL", "", "Deflect Die",
-	    "Multitype. Can create BLK and INTEL slots.",
+	    "Multitype. BLK or INSIGHT.",
 		"uncommon",
 		70,
 		[]
@@ -585,7 +677,7 @@ function generate_dice_bag() {
 	
 	global.die_bolster = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Bolster Die",
-	    "When sacrificed: gain {max2} block (double this die's max value).",
+	    "When it builds a slot: gain {max2} block.",
 		"common",
 		50,
 	    [
@@ -603,7 +695,7 @@ function generate_dice_bag() {
 	
 	global.die_echo = make_die_struct(
 	    1, 4, "None", "None", "", "Echo Die",
-	    "When played: create another copy of this die in the sacrificed slot",
+	    "When played: a copy joins its slot.",
 		"rare",
 		60,
 	    [
@@ -621,14 +713,15 @@ function generate_dice_bag() {
 	
 	global.die_accurate = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Accurate Die",
-	    "Rolls itself twice and takes the higher of the two",
+	    "Rolls twice and keeps the higher.",
 		"common",
 		40,
 	    [
 	        {
 				trigger: "on_roll_die",
 	            modify: function(_context) {
-					if (!_context.read_only) {
+					// it rolls twice as it's dealt (rolled dice), or when it resolves if it wasn't dealt
+					if (!_context.read_only || (variable_struct_exists(_context, "on_deal") && _context.on_deal)) {
 						_context.roll_twice = true;
 					}
 	            }
@@ -639,7 +732,7 @@ function generate_dice_bag() {
 	
 	global.die_barrel = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Barrel Die",
-	    "When sacrificed: generate a random potion",
+	    "When it builds a slot: gain a random potion.",
 		"rare",
 		70,
 	    [
@@ -665,18 +758,10 @@ function generate_dice_bag() {
 	
 	global.die_harvest = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Harvest Die",
-	    "Gain 1 gold every time this die is either played or ejected",
+	    "Gain 1 gold when played or when it builds a slot.",
 		"common",
 		50,
 	    [
-	        {
-	            trigger: "on_dice_ejected",
-	            modify: function(_context) {		
-					if (_context._ejected_die.uid == _context._die_struct_source.uid) {
-						gain_coins(_context._ejected_slot_pos_x, _context._ejected_slot_pos_y, 1);
-					}
-	            }
-	        },
 			{
 	            trigger: "on_dice_played_to_slot",
 	            modify: function(_context) {
@@ -721,7 +806,7 @@ function generate_dice_bag() {
 	
 	global.die_bouncing = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Bouncing Die",
-	    "When this die rolls to deal damage, randomly change targets",
+	    "When attacking: switch to a random target.",
 		"common",
 		40,
 	    [
@@ -756,18 +841,18 @@ function generate_dice_bag() {
 	
 	global.die_guerrilla_coin = make_die_struct(
 	    1, 2, "INTEL", "INTEL", "", "Guerrilla Coin",
-	    "Coin. When sacrificed, deal damage to a random enemy equal to the amount of insight you have.",
+	    "Coin. When it builds a slot: deal half your insight as damage to a random enemy.",
 		"common",
 		40,
 	    [
 	        {
 				trigger: "on_sacrifice_die",
 	            modify: function(_context) {
-					var target = irandom(ds_list_size(oCombat.room_enemies) - 1);
-					
-					with (oCombat) {
-						process_action(oCombat.room_enemies[| target], 0, oCombat.player_intel, 0, "player", -1, "ATK");
-					}
+					// half your ink, to a random enemy still standing
+					var _alive = [];
+					with (oCombat) for (var e = 0; e < ds_list_size(room_enemies); e++) if (!room_enemies[| e].dead) array_push(_alive, room_enemies[| e]);
+					var _dmg = floor(max(0, oCombat.player_intel) / 2);
+					if (array_length(_alive) > 0 && _dmg > 0) with (oCombat) process_action(_alive[irandom(array_length(_alive) - 1)], 0, _dmg, 0, "player", -1, "ATK");
 	            }
 	        }
 	    ]
@@ -777,7 +862,7 @@ function generate_dice_bag() {
 	
 	global.die_radar = make_die_struct(
 	    1, 6, "INTEL", "INTEL", "", "Radar die",
-	    "When sacrificed, gain 3 insight for the next 2 turns.",
+	    "When it builds a slot: gain 3 insight next turn and the turn after.",
 		"common",
 		40,
 	    [
@@ -785,7 +870,7 @@ function generate_dice_bag() {
 	            trigger: "on_sacrifice_die",
 	            modify: function(_context) {
 					var amount = 3;
-	                apply_buff("player", oRunManager.buff_intel, 2, amount, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
+	                apply_buff("player", oRunManager.buff_intel_lasting, 2, amount, oRunManager.buff_intel_lasting.remove_next_turn, { source: "player", index: -1 });
 					var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
@@ -797,14 +882,15 @@ function generate_dice_bag() {
 	
 	global.die_offhand = make_die_struct(
 	    1, 6, "ATK", "ATK", "", "Offhand die",
-	    "Gain 1 might this turn if this die rolls its minimum value ({min}).",
+	    "If it rolls {min}, gain 1 Might.",
 		"common",
 		30,
 	    [
 	        {
-	            trigger: "after_roll_die",
+	            trigger: "on_die_rolled", // when rolled: the Might counts for this turn's queue
 	            modify: function(_context) {
-					if (_context._d_amount == _context.min_roll && _context.die.uid == _context._die_struct_source.uid) {
+					if (_context.face == _context.min_roll) {
+						die_effect_popup(_context._die_struct, "Might!", c_white);
 						apply_buff("player", oRunManager.buff_might, 1, 1, false, { source: "player", index: -1 });
 					}
 	            }
@@ -815,15 +901,16 @@ function generate_dice_bag() {
 	
 	global.die_balanced = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Balanced die",
-	    "Gain 1 balance this turn if this die rolls its maximum value ({max}).",
+	    "If it rolls {max}, gain 1 Balance next turn.",
 		"common",
 		30,
 	    [
 	        {
-	            trigger: "after_roll_die",
+	            trigger: "on_die_rolled", // when rolled; the Balance arrives next turn (oCombat balance_next_turn)
 	            modify: function(_context) {
-					if (_context._d_amount == _context.max_roll && _context.die.uid == _context._die_struct_source.uid) {
-						apply_buff("player", oRunManager.buff_balance, 1, 1, false, { source: "player", index: -1 });
+					if (_context.face == _context.max_roll) {
+						die_effect_popup(_context._die_struct, "Balance next turn", c_white);
+						oCombat.balance_next_turn += 1;
 					}
 	            }
 	        }
@@ -833,7 +920,7 @@ function generate_dice_bag() {
 	
 	global.die_holy = make_die_struct(
 	    1, 8, "None", "None", "", "Holy die",
-	    "Alignment: The higher your alignment, the higher this die's minimum roll",
+	    "Alignment: The higher your alignment, the higher its minimum roll.",
 		"rare",
 		30,
 	    [
@@ -849,7 +936,7 @@ function generate_dice_bag() {
 	
 	global.die_unholy = make_die_struct(
 	    1, 6, "None", "None", "", "Unholy die",
-	    "Alignment: The lower your alignment, the higher this die's maximum roll",
+	    "Alignment: The lower your alignment, the higher its maximum roll.",
 		"rare",
 		30,
 	    [
@@ -865,7 +952,7 @@ function generate_dice_bag() {
 	
 	global.die_ninja = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Ninja die",
-	    "Followthrough: Gains +2 if the previous slot was insight.",
+	    "Followthrough: +2 if the slot before is insight.",
 		"common",
 		40,
 	    [
@@ -884,16 +971,17 @@ function generate_dice_bag() {
 	
 	global.die_warrior = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Warrior die",
-	    "If this die rolls its minimum value ({min}), change it to its max value ({max}) instead.",
+	    "Rolls of {min} become {max}.",
 		"common",
 		30,
 	    [
 	        {
-	            trigger: "after_roll_die",
+	            trigger: "on_die_rolled", // when rolled: the face itself becomes its max, so the slot shows it
 	            modify: function(_context) {
-					if (_context._d_amount <= _context.min_roll && _context.die.uid == _context._die_struct_source.uid) {
-	                    _context._d_amount = _context.max_roll;
-						roll_popup(_context.slot_num, _context.dice_index, "Warrior!", c_orange);
+					if (_context.face <= _context.min_roll) {
+						var _d = _context._die_struct;
+						for (var f = 0; f < array_length(_d.faces); f++) _d.faces[f] = _context.max_roll;
+						die_effect_popup(_d, "Warrior!", c_orange);
 	                }
 	            }
 	        }
@@ -903,7 +991,7 @@ function generate_dice_bag() {
 	
 	global.die_assassin = make_die_struct(
 	    1, 4, "ATK", "ATK INTEL", "", "Assassin Die",
-	    "Multitype. Can create ATK and INSIGHT slots. Gains +1 minimum roll for every insight state above Faded.",
+	    "Multitype. ATK or INSIGHT. +1 minimum roll per 3 insight.",
 		"rare",
 		70,
 	    [
@@ -911,7 +999,7 @@ function generate_dice_bag() {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
 					// only in a fight, this also runs when the die is shown in the bag or shop
-					if (instance_exists(oCombat)) _context.min_roll += oCombat.intel_level;
+					if (instance_exists(oCombat)) _context.min_roll += floor(max(0, oCombat.player_intel) / 3);
 	            }
 	        }
 	    ]
@@ -921,7 +1009,7 @@ function generate_dice_bag() {
 	
 	global.die_last_stand = make_die_struct(
 	    1, 6, "ATK", "ATK", "", "Last Stand Die",
-	    "Gains +1 minimum roll for every 20% hp missing.",
+	    "+1 minimum roll per 20% health missing.",
 		"uncommon",
 		60,
 	    [
@@ -937,7 +1025,7 @@ function generate_dice_bag() {
 	
 	global.die_splash = make_die_struct(
 	    1, 10, "BLK", "BLK", "", "Splash Die",
-	    "-2 on every roll (never below 0).",
+	    "-2 on every roll, minimum 0.",
 		"common",
 		60,
 	    [
@@ -950,6 +1038,66 @@ function generate_dice_bag() {
 	    ]
 	);
 	ds_list_add(global.master_dice_list, clone_die(global.die_splash, ""));
+
+	// --- v0.2 dice (F21) ---
+	// Gunpowder: when it rolls, every other enemy takes 2 (at roll time, so enemies only ever fall while the queue resolves)
+	global.die_gunpowder = make_die_struct(
+	    1, 4, "ATK", "ATK", "", "Gunpowder die",
+	    "When attacking: every other enemy takes 2 damage.",
+		"common",
+		40,
+	    [
+	        {
+	            trigger: "after_roll_die", // owner-only: fires for this die's own roll (die_fire_effects)
+	            modify: function(_context) {
+					if (_context._c_slot_type != "ATK") return; // only as an attack
+					with (oCombat) {
+						for (var i = 0; i < ds_list_size(room_enemies); i++) {
+							if (i != enemy_target_index && !room_enemies[| i].dead) process_action(room_enemies[| i], 0, 2, 0, "player", -1, "ATK", undefined, undefined, 0);
+						}
+					}
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_gunpowder, ""));
+
+	// Tidecaller: a high heal also raises your guard
+	global.die_tidecaller = make_die_struct(
+	    1, 6, "HEAL", "HEAL", "", "Tidecaller die",
+	    "If it rolls 5 or higher, also gain 3 block.",
+		"uncommon",
+		50,
+	    [
+	        {
+	            trigger: "after_roll_die",
+	            modify: function(_context) {
+					if (_context._d_amount >= 5) {
+						with (oCombat) process_action("player", 0, 3, 0, "player", undefined, "BLK");
+						roll_popup(_context.slot_num, _context.dice_index, "Tidecaller!", global.color_block);
+					}
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_tidecaller, ""));
+
+	// Ballast: a heavy die that never rolls low
+	global.die_ballast = make_die_struct(
+	    1, 8, "BLK", "BLK", "", "Ballast die",
+	    "Never rolls below 4.",
+		"uncommon",
+		55,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					_context.min_roll = max(_context.min_roll, 4);
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_ballast, ""));
 	
 	// Add to bag - STARTING DICE SET HERE
 	repeat(3)		{ ds_list_add(global.dice_bag, clone_die(global.dice_d4_atk, "")); }
@@ -1015,6 +1163,17 @@ function generate_target_clearance(_x, _y, _a, _b) {
 	for (var j = 0; j < array_length(_a); j++) nearest = min(nearest, point_distance(_a[j][0], _a[j][1], _x, _y));
 	for (var j = 0; j < array_length(_b); j++) nearest = min(nearest, point_distance(_b[j][0], _b[j][1], _x, _y));
 	return nearest;
+}
+
+/// @func die_has_trigger(_die, _trigger)
+/// @desc Does this die have an effect of its own on this event? (e.g. "on_die_inked": Deepdiver, lit up in the ink view)
+function die_has_trigger(_die, _trigger) {
+	if (!is_struct(_die) || !variable_struct_exists(_die, "effects") || !is_array(_die.effects)) return false;
+	for (var i = 0; i < array_length(_die.effects); i++) {
+		var _e = _die.effects[i];
+		if (is_struct(_e) && variable_struct_exists(_e, "trigger") && _e.trigger == _trigger) return true;
+	}
+	return false;
 }
 
 /// @func make_die_struct(_amount, _value, _action, _poss, _perm, _name, _desc, _rarity, [_price], [_effects], [_distribution])
@@ -1146,7 +1305,7 @@ function get_dice_name_and_bonus(_die, _bonus_amount) {
 /// @param _die_index	The dice_list index this dice is
 /// @param _read_only	Determine whether we are just reading to generate numbers, or actually running the code
 /// @param _owner		Whether its player owned or owned by the enemy
-function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
+function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner, _on_deal = false) {
 	// "not in a slot" is always -1 from here on, so dice effects can compare slot_num safely
 	if (_slot_num == undefined) _slot_num = -1;
 	
@@ -1178,6 +1337,7 @@ function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
 		die_index: _die_index,
 		die: _die,
 		read_only: _read_only,
+		on_deal: _on_deal, // rolled dice: being rolled as it's dealt (read only, but Accurate still rolls twice)
 		roll_twice: false,
 		repeat_followthrough: false,
 		target: _owner,
@@ -1192,7 +1352,8 @@ function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
 	return {
 		min_roll: roll_data.min_roll,
 		max_roll: roll_data.max_roll,
-		keepsake_dice_bonus_amount: roll_data._d_amount * (roll_data.repeat_followthrough + 1), // double the bonuses if we're repeating followthrough
+		// a repeated Followthrough (Chainmaster's Anchor) adds the die's own effect once more, not every keepsake's bonus too
+		keepsake_dice_bonus_amount: roll_data._d_amount + (roll_data.repeat_followthrough ? (variable_struct_exists(roll_data, "die_effects_added") ? roll_data.die_effects_added : 0) : 0),
 		previous_slot_type: roll_data.previous_slot_action_type,
 		roll_twice: roll_data.roll_twice,
 		weighting: roll_data.weighting
@@ -1200,69 +1361,146 @@ function get_dice_output(_die, _slot_num, _die_index, _read_only, _owner) {
 	
 }
 
+/// @func die_bonus_breakdown(_die, _slot_num, _die_index)
+/// @desc What a die in a slot comes to, source by source (F146), as lines for its tip: what it rolled, then its own
+///       effect, each keepsake and each of your buffs or debuffs that changes it, then the slot's bonuses, then the sum.
+///       Fires each source on its own read-only copy of get_dice_output's roll data (keep the two in step), so a
+///       source's share is what it added. A first-die bonus (the slot's place bonus is one) shows only on its first die.
+function die_bonus_breakdown(_die, _slot_num, _die_index) {
+	if (!die_has_faces(_die) || _slot_num < 0 || !instance_exists(oCombat)) return "";
+	var _slot = oCombat.action_queue[| _slot_num];
+	var _make = function(_die, _slot, _slot_num, _die_index) {
+		return {
+			previous_slot_action_type: (_slot_num > 0) ? oCombat.action_queue[| _slot_num - 1].current_action_type : "",
+			action_type: _slot.current_action_type, min_roll: 1 + _die.min_roll_bonus, max_roll: _die.dice_value,
+			_d_amount: 0, _die_struct: _die, _slot: _slot, slot_num: _slot_num, die_index: _die_index, die: _die,
+			read_only: true, on_deal: false, roll_twice: false, repeat_followthrough: false, target: "player", weighting: ""
+		};
+	};
+	var _face = die_face_total(_die);
+	var _lines = ["Rolled " + string(_face)];
+	var _sum = _face;
+	// its own effect
+	var _ctx = _make(_die, _slot, _slot_num, _die_index);
+	trigger_die_effects_single(_die, "on_roll_die", _ctx);
+	if (_ctx._d_amount != 0) { array_push(_lines, "Its effect " + ((_ctx._d_amount > 0) ? "+" : "") + string(_ctx._d_amount)); _sum += _ctx._d_amount; }
+	// each keepsake
+	for (var k = 0; k < ds_list_size(oRunManager.keepsakes); k++) {
+		var _ks = oRunManager.keepsakes[| k];
+		if (is_undefined(_ks.trigger)) continue;
+		_ctx = _make(_die, _slot, _slot_num, _die_index);
+		_ks.trigger("on_roll_die", _ctx);
+		if (_ctx._d_amount != 0) { array_push(_lines, string(_ks.name) + " " + ((_ctx._d_amount > 0) ? "+" : "") + string(_ctx._d_amount)); _sum += _ctx._d_amount; }
+	}
+	// each of your buffs and debuffs (Might, Balance...)
+	for (var b = 0; b < ds_list_size(global.player_debuffs); b++) {
+		var _inst = global.player_debuffs[| b];
+		var _one = ds_list_create();
+		ds_list_add(_one, _inst);
+		_ctx = _make(_die, _slot, _slot_num, _die_index);
+		_ctx.owner = "player";
+		// on_roll_die never counts a buff down (intent_exact_value relies on that too)
+		trigger_debuff_list(_one, "on_roll_die", _ctx);
+		ds_list_destroy(_one);
+		if (_ctx._d_amount != 0) { array_push(_lines, string(_inst.template.name) + " " + ((_ctx._d_amount > 0) ? "+" : "") + string(_ctx._d_amount)); _sum += _ctx._d_amount; }
+	}
+	// the slot's bonuses: every die's, and the first die's (its place bonus is one: "Slot 2 +1", once per slot)
+	for (var i = 0; i < array_length(_slot.bonuses); i++) {
+		var _bn = _slot.bonuses[i];
+		if (_bn.amount == 0 || (_bn.scope == "first" && _die_index != 0)) continue;
+		array_push(_lines, string(_bn.source) + " " + ((_bn.amount > 0) ? "+" : "") + string(_bn.amount));
+		_sum += _bn.amount;
+	}
+	var _out = "";
+	for (var l = 0; l < array_length(_lines); l++) _out += ((l == 0) ? "" : "\n") + _lines[l];
+	if (array_length(_lines) > 1) _out += "\n= " + string(_sum);
+	return _out;
+}
+
+/// @func dice_trigger_effects(_event, _data)
+/// @desc Fire _event on every die in the action queue (a broadcast: after_roll_die, on_dice_played_to_slot,
+///       on_dice_ejected). Each die's effects are owner-only by default here: they fire only when the die the event is
+///       about (effect_subject_die) is that die. An effect can set owner_only: false to react to other dice. (T03)
 function dice_trigger_effects(_event, _data) {
-    // Iterate through all dice currently in play
-    for (var s = 0; s < ds_list_size(oCombat.action_queue); s++) {
-        var slot = oCombat.action_queue[| s];
-        for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
-            var die = slot.dice_list[| d];
-            if (is_undefined(die.effects)) continue;
-
-            // Some dice have one effect, others multiple
-            if (is_array(die.effects)) {
-                for (var e = 0; e < array_length(die.effects); e++) {
-                    var eff = die.effects[e];
-					_data._die_struct_source = die;  // the die whose effect we're about to fire
-                    if (eff.trigger == _event && is_callable(eff.modify)) {
-                        eff.modify(_data);
-                    }
-                }
-            } else {
-                var eff = die.effects;
-				_data._die_struct_source = die;  // the die whose effect we're about to fire
-                if (eff.trigger == _event && is_callable(eff.modify)) {
-                    eff.modify(_data);
-                }
-            }
-        }
-    }
+	for (var s = 0; s < ds_list_size(oCombat.action_queue); s++) {
+		var slot = oCombat.action_queue[| s];
+		for (var d = 0; d < ds_list_size(slot.dice_list); d++) {
+			die_fire_effects(slot.dice_list[| d], _event, _data, true);
+		}
+	}
 }
 
+/// @func trigger_die_effects_single(_die_struct, _event, _data)
+/// @desc Fire _event on one die (it is the die the event is about: rolling, sacrificing, dealt, not used).
 function trigger_die_effects_single(_die_struct, _event, _data) {
-    if (is_undefined(_die_struct.effects)) return;
-
-    if (is_array(_die_struct.effects)) {
-        for (var e = 0; e < array_length(_die_struct.effects); e++) {
-            var eff = _die_struct.effects[e];
-			_data._die_struct_source = _die_struct;  // the die whose effect we're about to fire
-            if (eff.trigger == _event && is_callable(eff.modify)) {
-                eff.modify(_data);
-            }
-        }
-    } else {
-        var eff = _die_struct.effects;
-		_data._die_struct_source = _die_struct;  // the die whose effect we're about to fire
-        if (eff.trigger == _event && is_callable(eff.modify)) {
-            eff.modify(_data);
-        }
-    }
+	die_fire_effects(_die_struct, _event, _data, false);
 }
 
-function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0) {
-    // icons come from the die's keywords list; Coin and Multitype have no icon (they show in the die's shape and colour)
+/// @func die_fire_effects(_die, _event, _data, _broadcast)
+/// @desc The one place a die's effects fire (T03). Sets _data._die_struct_source to the die, and skips an owner-only
+///       effect (owner_only: true, or by default in a broadcast) when the event is about another die. Effects can
+///       still check uids themselves; that stays harmless.
+function die_fire_effects(_die, _event, _data, _broadcast = false) {
+	if (!is_struct(_die) || !variable_struct_exists(_die, "effects") || is_undefined(_die.effects)) return;
+	// what this die's own effects add to the roll bonus (_d_amount), kept on the context as die_effects_added so
+	// keepsakes can tell whether the die's effect actually did something (Chainmaster's Anchor)
+	var _before = (variable_struct_exists(_data, "_d_amount") && is_real(_data._d_amount)) ? _data._d_amount : 0;
+	var _effs = is_array(_die.effects) ? _die.effects : [_die.effects];
+	for (var e = 0; e < array_length(_effs); e++) {
+		var eff = _effs[e];
+		if (!is_struct(eff) || eff.trigger != _event || !is_callable(eff.modify)) continue;
+		var _owner_only = variable_struct_exists(eff, "owner_only") ? eff.owner_only : _broadcast;
+		if (_owner_only) {
+			var _subject = effect_subject_die(_data);
+			if (is_struct(_subject) && variable_struct_exists(_subject, "uid") && _subject.uid != _die.uid) continue;
+		}
+		_data._die_struct_source = _die; // the die whose effect is firing
+		eff.modify(_data);
+	}
+	if (variable_struct_exists(_data, "_d_amount") && is_real(_data._d_amount)) _data.die_effects_added = _data._d_amount - _before;
+}
+
+/// @func effect_subject_die(_data)
+/// @desc The die an event is about, from whichever field its context uses (ejected, played, rolled...), or undefined.
+function effect_subject_die(_data) {
+	var _fields = ["_ejected_die", "_d_struct", "die", "_slot_die", "_die_struct"];
+	for (var i = 0; i < array_length(_fields); i++) {
+		if (variable_struct_exists(_data, _fields[i]) && is_struct(_data[$ _fields[i]])) return _data[$ _fields[i]];
+	}
+	return undefined;
+}
+
+/// @func die_bottom_edge(_sides, _r)
+/// @desc How far below its centre a code-drawn die's lowest edge is (draw_die at radius _r): keyword icons sit centred on it.
+function die_bottom_edge(_sides, _r) {
+	if (_sides <= 2) return _r * 1.07;
+	var _pts = die_shape_points(_sides, _r * 1.07); // the outline
+	var _lo = 0;
+	for (var i = 0; i < array_length(_pts); i++) _lo = max(_lo, _pts[i][1]);
+	return _lo;
+}
+
+/// @func draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha, _where)
+/// @desc A die's keyword icons (draw_keyword_icon), centred in a row on _x, _y: callers put _y on the die's bottom edge
+///       (die_bottom_edge) so the roundels overlap it by half. Only keywords whose icon_on includes _where. Returns
+///       where each was drawn: [{ key, x, y, r }].
+function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0, _where = "hand") {
+    // icons come from the die's keywords list, only those worth an icon _where the die is (the keyword's icon_on)
     var found = [];
     var key_names = variable_struct_get_names(global.keywords);
     for (var k = 0; k < array_length(key_names); k++) {
         var key = key_names[k];
-        if (key == "Coin" || key == "Multitype") continue;
+        var _on = variable_struct_exists(global.keywords[$ key], "icon_on") ? global.keywords[$ key].icon_on : [];
+        if (!array_contains(_on, _where)) continue;
         if (die_has_keyword(_die_struct, key)) array_push(found, key);
     }
 
-    if (array_length(found) == 0) return;
+    var _drawn = [];
+    if (array_length(found) == 0) return _drawn;
 
-    var icon_x = _x - 4;
-    var icon_y = _y + 3;
-    var icon_spacing = 35 * _scale;
+    var icon_x = _x;
+    var icon_y = _y;
+    var icon_spacing = 33 * _scale; // the roundels (30 px at scale 1) nearly touch
 	
 	icon_x -= (array_length(found)-1) * icon_spacing / 2;
 
@@ -1270,17 +1508,22 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0) {
         var key = found[i];
         var data = global.keywords[$ key];
 
-        if (!is_undefined(data.index)) {
-			draw_sprite_ext(sKeywordIcons, data.index, icon_x, icon_y, _scale, _scale, 0, c_white, _alpha);
-        }
+        draw_keyword_icon(key, icon_x, icon_y, _scale, _alpha);
+        array_push(_drawn, { key: key, x: icon_x, y: icon_y, r: 15 * _scale });
 
         icon_x += icon_spacing;
     }
+    return _drawn;
 }
 
-// draw_dice_distribution(_die, _x, _y, _centered = false)
-function draw_dice_distribution(_die, _x, _y, _centered = false) {
-	// a core's preview shows the core's own shape on a plain d6: keepsakes (Weapon Polish...) don't touch it
+/// @func draw_dice_distribution(_die, _x, _y, [_centered], [_scale], [_paper], [_fit_w])
+/// @desc How likely each face of a die is (its core): a bar per face rising from one baseline, the tallest face full
+///       height, its number under the line, all on a dark plate so it reads over anything. A face it can't roll is a
+///       flat stub with a dimmed number. _y is the bottom of the whole graphic (numbers included), so it sits on top of
+///       whatever is below it; _x its left edge, or its centre with _centered. _scale makes it bigger (1: 14px bars).
+///       A core's preview (core_preview) shows the core's own shape on a plain d6: keepsakes don't touch it.
+///       _fit_w > 0: the bars widen to fill that width (bag cards, F156), whatever the die's size.
+function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _paper = false, _fit_w = -1) {
 	var _min_roll = 1;
 	var _max_roll = _die.dice_value;
 	if (!variable_struct_exists(_die, "core_preview")) {
@@ -1288,39 +1531,44 @@ function draw_dice_distribution(_die, _x, _y, _centered = false) {
 		_min_roll = dice_output.min_roll;
 		_max_roll = dice_output.max_roll;
 	}
-	
-	var distribution_array = [];
-	var xx = _x;
-	var yy = _y;
-	
-	if (_centered) {
-		xx -= ((sprite_get_width(sSmallBar) * _die.dice_value) / 2) - sprite_get_width(sSmallBar) * 0.5;
+	var _dist = [];
+	define_dice_distributions(_die.distribution, _min_roll, _max_roll, _dist);
+	var _n = array_length(_dist);
+	if (_n == 0) return;
+	var _top = 0;
+	for (var i = 0; i < _n; i++) _top = max(_top, _dist[i]);
+	if (_top <= 0) _top = 1; // all zero (a squeezed range, B125): flat stubs, not 0/0
+
+	var _bw = 14 * _scale, _gap = 3 * _scale, _bh = 30 * _scale, _num_h = 15 * _scale, _pad = 5 * _scale;
+	if (_fit_w > 0) { _gap = 4 * _scale; _bw = (_fit_w - (_n - 1) * _gap) / _n; }
+	var _w = _n * _bw + (_n - 1) * _gap;
+	var _x0 = _centered ? _x - _w / 2 : _x;
+	var _base = _y - _pad - _num_h; // the line the bars stand on
+	var _bar_col = _paper ? global.ui_col.ink_soft : make_color_rgb(242, 210, 74);
+
+	// the plate (on paper there's none: the bars are inked straight onto it)
+	if (!_paper) {
+		draw_set_alpha(0.85);
+		draw_set_color(make_color_rgb(20, 22, 30));
+		draw_roundrect_ext(_x0 - _pad, _base - _bh - _pad, _x0 + _w + _pad, _y, 8 * _scale, 8 * _scale, false);
+		draw_set_alpha(1);
 	}
-	
-	define_dice_distributions(_die.distribution, _min_roll, _max_roll, distribution_array);
-	
-	var max_size = 0;
-	var curr_size = 0;
-	for (var i = 0; i < array_length(distribution_array); i++) {
-		if (curr_size < distribution_array[i]) {
-			max_size = distribution_array[i];
-			curr_size = distribution_array[i];
-		}
+
+	draw_set_font((_scale >= 1.4) ? ftDescriptions : ftTiny);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	for (var i = 0; i < _n; i++) {
+		var _bx = _x0 + i * (_bw + _gap);
+		var _h = (_dist[i] > 0) ? max(3 * _scale, _bh * _dist[i] / _top) : 2 * _scale;
+		draw_set_color((_dist[i] > 0) ? _bar_col : (_paper ? global.ui_col.paper_shade : make_color_rgb(90, 90, 100)));
+		draw_rectangle(_bx, _base - _h, _bx + _bw - 1, _base, false);
+		draw_set_color(_paper ? ((_dist[i] > 0) ? global.ui_col.ink : global.ui_col.paper_shade) : ((_dist[i] > 0) ? c_white : make_color_rgb(110, 110, 120)));
+		draw_text(_bx + _bw / 2, _base + _num_h / 2 + 1, string(i + _min_roll));
 	}
-	
-	for (var i = 0; i < array_length(distribution_array); i++) {
-		var bar_height = distribution_array[i]/max_size;
-		draw_sprite_ext(sSmallBar, 0, xx, yy, 1, bar_height + 0.2, 0, c_white, 1.0);
-		draw_set_font(ftTiny);
-		draw_set_halign(fa_center);
-		if (distribution_array[i] > 0) {
-			draw_set_color(c_black);
-		} else {
-			draw_set_color(c_white);
-		}
-		draw_text(xx - 1, yy - 8, string(i + _min_roll));
-		xx += sprite_get_width(sSmallBar);
-	}
+	// the baseline
+	draw_set_color(_paper ? global.ui_col.ink : make_color_rgb(150, 150, 160));
+	draw_line_width(_x0 - 2 * _scale, _base + 1, _x0 + _w + 2 * _scale, _base + 1, max(1, _scale));
+	draw_set_color(c_white);
 }
 
 function draw_dice_history(_die, _x, _y, _centered = false) {
@@ -1364,9 +1612,28 @@ function draw_dice_history(_die, _x, _y, _centered = false) {
 	}
 }
 
+/// @func core_alignment_lean()
+/// @desc Where the compass leans, for the alignment cores: -1 fully ruthless (alignment 0), 0 even (50), +1 fully merciful (100).
+function core_alignment_lean() {
+	return clamp((global.player_alignment - 50) / 50, -1, 1);
+}
+
 /// @func	define_dice_distributions(_die_dist, _min_roll, _max_roll, _array)
 function define_dice_distributions(_die_dist, _min_roll, _max_roll, _array) {
 	switch (_die_dist) {
+		case "compass":
+		case "lodestone":
+		// the alignment pair (F151): at 50 every face is even; ruthless (0) leans to the edges, merciful (100) to the middle.
+		// Lodestone leans all the way (at the extremes the other faces can't come up); Compass about two-thirds of the way.
+		var _lean = core_alignment_lean();
+		var _strength = (_die_dist == "lodestone") ? 1 : 0.65;
+		for (var d = _min_roll; d <= _max_roll; d++) {
+			var _p = (_max_roll > _min_roll) ? (d - _min_roll) / (_max_roll - _min_roll) : 0.5;
+			var _middle = 1 - abs(2 * _p - 1); // 1 in the middle, 0 at the edges
+			array_push(_array, max(0, round(10 + 10 * _strength * _lean * (2 * _middle - 1))));
+		}
+		break;
+
 		case "":		
 		// by default each array is [1, 1, 1, 1] for a d4 for example
 		for (var d = _min_roll; d <= _max_roll; d++) {
@@ -1513,39 +1780,10 @@ function get_dice_color(_action) {
 		    }
 		}
 
-		// --- Fallbacks and Pulsing Blends --------------------------------------
-
-		var blended;
-
-		if (count == 0) {
-		    blended = c_white;
-		}
-		else if (count == 1) {
-		    blended = colours[0];
-		}
-		else {
-		    // 2+ colours: pulse through all of them in a loop
-
-		    // Pulse speed (tweak to taste)
-		    var spd = 0.006;
-
-		    // Normalized sine wave from 0..1
-		    var t = (sin(current_time * spd) + 1) * 0.5;
-
-		    // Index selection: smoothly moves between colour slots
-		    // t spreads across (count-1) intervals
-		    var pos = t * (count - 1);
-
-		    var index_a = floor(pos);
-		    var index_b = min(index_a + 1, count - 1);
-
-		    var local_t = pos - index_a;
-
-		    // Blend between those two colours only
-		    blended = merge_colour(colours[index_a], colours[index_b], local_t);
-		}
-		
-		return blended;
+		// a multitype die is drawn split diagonally in its colours (die_colours); one colour stands for it in text and
+		// particles: its first type's (it used to pulse between them)
+		if (count == 0) return c_white;
+		return colours[0];
 	} else {
 		var _col;
 		switch (_action) {
@@ -1554,9 +1792,77 @@ function get_dice_color(_action) {
 			case "HEAL": _col = global.color_heal; break;
 			case "INTEL": _col = global.color_intel; break;
 		
-			default: _col = c_ltgray;
+			default: _col = variable_global_exists("ui_col") ? global.ui_col.bone : c_ltgray; // neutral dice: bone
 		}
 		return _col;
+	}
+}
+
+/// @func die_colours(_possible_type)
+/// @desc A die's colours for drawing: one for a single type, one per type for a multitype die ("ATK INTEL": attack red
+///       and insight yellow), which draw_die and draw_die_shape split diagonally. An array.
+function die_colours(_possible_type) {
+	if (string_pos(" ", _possible_type) == 0) return [get_dice_color(_possible_type)];
+	var _out = [];
+	var _parts = string_split(_possible_type, " ");
+	for (var i = 0; i < array_length(_parts); i++) {
+		var _p = string_upper(_parts[i]);
+		if (_p == "ATK" || _p == "BLK" || _p == "HEAL" || _p == "INTEL") array_push(_out, get_dice_color(_p));
+	}
+	if (array_length(_out) == 0) array_push(_out, get_dice_color(_possible_type));
+	return _out;
+}
+
+/// @func colours_merge(_col, _to, _amount)
+/// @desc merge_colour for a colour or an array of colours (die_colours): each one merged the same way.
+function colours_merge(_col, _to, _amount) {
+	if (!is_array(_col)) return merge_colour(_col, _to, _amount);
+	var _out = [];
+	for (var i = 0; i < array_length(_col); i++) array_push(_out, merge_colour(_col[i], _to, _amount));
+	return _out;
+}
+
+/// @func draw_split_polygon(_x, _y, _pts, _cols, _angle)
+/// @desc A convex polygon (_pts around 0,0, [x, y] each) filled in diagonal bands, one per colour, the split running
+///       from bottom left to top right (first colour top left), turned with the shape by _angle. Clips each band out of
+///       the polygon (two half-planes) and fans it.
+function draw_split_polygon(_x, _y, _pts, _cols, _angle) {
+	var _n = array_length(_cols);
+	// how far along the diagonal each corner is (x + y: top left is low)
+	var _lo = infinity, _hi = -infinity;
+	for (var i = 0; i < array_length(_pts); i++) { var _d = _pts[i][0] + _pts[i][1]; _lo = min(_lo, _d); _hi = max(_hi, _d); }
+	var _c = dcos(_angle), _s = dsin(_angle);
+	for (var b = 0; b < _n; b++) {
+		var _a0 = (b == 0) ? -infinity : lerp(_lo, _hi, b / _n);
+		var _a1 = (b == _n - 1) ? infinity : lerp(_lo, _hi, (b + 1) / _n);
+		var _poly = _pts;
+		// keep x + y >= _a0, then x + y <= _a1
+		for (var side = 0; side < 2; side++) {
+			var _lim = (side == 0) ? _a0 : _a1;
+			if (abs(_lim) == infinity) continue;
+			var _clip = [];
+			var _m = array_length(_poly);
+			for (var i = 0; i < _m; i++) {
+				var _p = _poly[i], _q = _poly[(i + 1) mod _m];
+				var _dp = (_p[0] + _p[1] - _lim) * ((side == 0) ? 1 : -1);
+				var _dq = (_q[0] + _q[1] - _lim) * ((side == 0) ? 1 : -1);
+				if (_dp >= 0) array_push(_clip, _p);
+				if ((_dp >= 0) != (_dq >= 0)) {
+					var _t = _dp / (_dp - _dq);
+					array_push(_clip, [lerp(_p[0], _q[0], _t), lerp(_p[1], _q[1], _t)]);
+				}
+			}
+			_poly = _clip;
+		}
+		var _k = array_length(_poly);
+		if (_k < 3) continue;
+		draw_set_color(_cols[b]);
+		draw_primitive_begin(pr_trianglelist);
+		for (var i = 1; i < _k - 1; i++) {
+			var _v = [_poly[0], _poly[i], _poly[i + 1]];
+			for (var j = 0; j < 3; j++) draw_vertex(_x + _v[j][0] * _c + _v[j][1] * _s, _y - _v[j][0] * _s + _v[j][1] * _c);
+		}
+		draw_primitive_end();
 	}
 }
 
@@ -1638,4 +1944,234 @@ function core_preview_die() {
 	_d.action_type = "None";
 	_d.core_preview = true;
 	return _d;
+}
+
+// =====================================================================
+// DICE DRAWN IN CODE (rolled dice prototype): a shape per size and real pips
+// =====================================================================
+
+/// @func die_shape_points(_sides, _r)
+/// @desc The corners of a die's outline around (0,0), radius _r: d4 a triangle, d6 a square, d8 a diamond, d10 a
+///       pentagon, d12 a hexagon (a coin is a circle, no points). An array of [x, y].
+function die_shape_points(_sides, _r) {
+	var _n = 4, _start = 45, _rr = _r;
+	switch (_sides) {
+		case 4:  _n = 3; _start = -90; _rr = _r * 1.18; break; // a triangle looks small at the same radius
+		case 6:  _n = 4; _start = 45;  _rr = _r * 1.08; break;
+		case 8:  _n = 4; _start = -90; _rr = _r * 1.15; break;
+		case 10: _n = 5; _start = -90; break;
+		case 12: _n = 6; _start = -90; break;
+		default: _n = 6; _start = -90; break; // anything else: a hexagon
+	}
+	var _pts = [];
+	for (var i = 0; i < _n; i++) {
+		var _a = _start + i * 360 / _n;
+		array_push(_pts, [lengthdir_x(_rr, -_a), lengthdir_y(_rr, -_a)]);
+	}
+	return _pts;
+}
+
+/// @func draw_die_shape(_x, _y, _r, _sides, _col, _angle, _alpha)
+/// @desc A die's filled outline (no pips): a circle for a coin, a polygon otherwise. _angle in degrees. _col can be an
+///       array of colours (die_colours): a multitype die, split diagonally (draw_split_polygon).
+function draw_die_shape(_x, _y, _r, _sides, _col, _angle = 0, _alpha = 1) {
+	if (is_array(_col) && array_length(_col) == 1) _col = _col[0];
+	draw_set_alpha(_alpha);
+	if (is_array(_col)) {
+		var _pts = [];
+		if (_sides <= 2) { for (var i = 0; i < 28; i++) array_push(_pts, [lengthdir_x(_r, i * 360 / 28), lengthdir_y(_r, i * 360 / 28)]); }
+		else _pts = die_shape_points(_sides, _r);
+		draw_split_polygon(_x, _y, _pts, _col, _angle);
+		draw_set_alpha(1);
+		return;
+	}
+	draw_set_color(_col);
+	if (_sides <= 2) {
+		draw_circle(_x, _y, _r, false);
+	} else {
+		var _pts = die_shape_points(_sides, _r);
+		var _n = array_length(_pts);
+		draw_primitive_begin(pr_trianglelist);
+		for (var i = 0; i < _n; i++) {
+			var _a = _pts[i], _b = _pts[(i + 1) mod _n];
+			draw_vertex(_x, _y);
+			draw_vertex(_x + _a[0] * dcos(_angle) + _a[1] * dsin(_angle), _y - _a[0] * dsin(_angle) + _a[1] * dcos(_angle));
+			draw_vertex(_x + _b[0] * dcos(_angle) + _b[1] * dsin(_angle), _y - _b[0] * dsin(_angle) + _b[1] * dcos(_angle));
+		}
+		draw_primitive_end();
+	}
+	draw_set_alpha(1);
+}
+
+/// @func die_pip_layout(_face)
+/// @desc Where the pips go for a face, on a grid from -1 to 1: the classic 1-6, then 7-9 filling the 3x3. [] past 9.
+function die_pip_layout(_face) {
+	switch (_face) {
+		case 1: return [[0, 0]];
+		case 2: return [[-1, -1], [1, 1]];
+		case 3: return [[-1, -1], [0, 0], [1, 1]];
+		case 4: return [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+		case 5: return [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]];
+		case 6: return [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]];
+		case 7: return [[-1, -1], [1, -1], [-1, 0], [0, 0], [1, 0], [-1, 1], [1, 1]];
+		case 8: return [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+		case 9: return [[-1, -1], [0, -1], [1, -1], [-1, 0], [0, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+	}
+	return [];
+}
+
+/// @func die_is_special(_d)
+/// @desc Any die that isn't a starter (common, uncommon or rare): it wears a ring in its rarity colour (draw_die).
+function die_is_special(_d) {
+	return is_struct(_d) && variable_struct_exists(_d, "rarity") && (_d.rarity == "common" || _d.rarity == "uncommon" || _d.rarity == "rare");
+}
+
+/// @func die_look(_d)
+/// @desc A die's signature look until it has its own art (F42; Jared picked B+D, 2026-11-20): "ghost" (Invisible:
+///       see-through, dashed edge), "echo" (a faint copy behind it), "ink" (Deepdiver: an ink blot), "waves" (Surge),
+///       or "". By name, so saved dice get it too. Add one here for a die people mix up.
+function die_look(_d) {
+	if (!is_struct(_d) || !variable_struct_exists(_d, "name")) return "";
+	switch (_d.name) {
+		case "Invisible die": return "ghost";
+		case "Echo Die": return "echo";
+		case "Deepdiver Die": return "ink";
+		case "Surge die": return "waves";
+	}
+	return "";
+}
+
+/// @func die_rot_x(_x, _px, _py, _angle) / die_rot_y
+/// @desc A point on a die (offset _px, _py from its centre) turned by its angle, as draw_die turns its pips.
+function die_rot_x(_x, _px, _py, _angle) { return _x + _px * dcos(_angle) + _py * dsin(_angle); }
+function die_rot_y(_y, _px, _py, _angle) { return _y - _px * dsin(_angle) + _py * dcos(_angle); }
+
+/// @func draw_die(_x, _y, _r, _sides, _face, _col, [_angle], [_alpha], [_die])
+/// @desc A die drawn in code: its shape by size, filled with its type colour (or die_colours, split), a shadow and outline, and _face as pips
+///       (1-9; a numeral from 10, or 0). _face -1: not rolled, shows its size ("d6"). _r is about half its width.
+///       _die (its struct, optional): a non-starter gets a ring in its rarity colour, and a few dice their signature
+///       look (die_look). Pass it wherever a real die is drawn.
+function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1, _die = undefined) {
+	var _look = die_look(_die);
+	var _a0 = _alpha; // the ring and outline stay solid on a see-through die
+	if (_look == "ghost") _alpha *= 0.5;
+
+	// echo: a faint copy of itself just behind, up and to the right
+	if (_look == "echo") {
+		var _ex = die_rot_x(_x, _r * 0.2, -_r * 0.16, _angle), _ey = die_rot_y(_y, _r * 0.2, -_r * 0.16, _angle);
+		draw_die_shape(_ex, _ey, _r * 1.07, _sides, make_color_rgb(20, 20, 26), _angle, _alpha * 0.4);
+		draw_die_shape(_ex, _ey, _r * 0.95, _sides, _col, _angle, _alpha * 0.4);
+	}
+
+	// shadow, (a rarity ring,) outline, body, and a lighter inner face for a little depth
+	draw_die_shape(_x + _r * 0.08, _y + _r * 0.12, _r * 1.06, _sides, c_black, _angle, _alpha * 0.35);
+	if (die_is_special(_die)) {
+		draw_die_shape(_x, _y, _r * 1.3, _sides, make_color_rgb(20, 20, 26), _angle, _a0);
+		draw_die_shape(_x, _y, _r * 1.22, _sides, rarity_colour(_die.rarity), _angle, _a0);
+	}
+	draw_die_shape(_x, _y, _r * 1.07, _sides, make_color_rgb(20, 20, 26), _angle, (_look == "ghost") ? _a0 * 0.35 : _alpha);
+	draw_die_shape(_x, _y, _r, _sides, colours_merge(_col, c_black, 0.18), _angle, _alpha);
+	draw_die_shape(_x, _y - _r * 0.04, _r * 0.86, _sides, _col, _angle, _alpha);
+	if (_look != "") die_look_draw(_look, _x, _y, _r, _sides, _col, _angle, _a0);
+
+	// pips (or a number) on the face: light pips on dark colours, dark on light (a split die: by its colours' average)
+	var _cols = is_array(_col) ? _col : [_col];
+	var _lum = 0;
+	for (var c = 0; c < array_length(_cols); c++) _lum += (0.299 * colour_get_red(_cols[c]) + 0.587 * colour_get_green(_cols[c]) + 0.114 * colour_get_blue(_cols[c])) / array_length(_cols);
+	var _light = (_lum < 150); // light pips on a dark body
+	var _pip_col = _light ? make_color_rgb(250, 248, 240) : make_color_rgb(30, 28, 36);
+	var _ring_col = _light ? make_color_rgb(20, 20, 26) : make_color_rgb(250, 248, 240);
+	// how far the pips spread: the inside of each shape (a triangle's is small)
+	var _spread = _r * 0.42, _cy = 0;
+	switch (_sides) {
+		case 2:  _spread = _r * 0.36; break;
+		case 4:  _spread = _r * 0.27; _cy = _r * 0.02; break; // the triangle's centre (its centroid)
+		case 8:  _spread = _r * 0.34; break;
+		case 10: _spread = _r * 0.38; break;
+	}
+	var _pips = die_pip_layout(_face);
+	if (array_length(_pips) > 0) {
+		var _pr = max(2, _r * ((_face > 6) ? 0.125 : 0.165) * ((_sides == 4) ? 0.85 : 1)); // chunky enough to count at a glance
+		draw_set_alpha(_alpha);
+		for (var i = 0; i < array_length(_pips); i++) {
+			var _px = _pips[i][0] * _spread, _py = _pips[i][1] * _spread + _cy;
+			var _wx = _x + _px * dcos(_angle) + _py * dsin(_angle);
+			var _wy = _y - _px * dsin(_angle) + _py * dcos(_angle);
+			draw_set_color(_ring_col);
+			draw_circle(_wx, _wy, _pr + 1, false);
+			draw_set_color(_pip_col);
+			draw_circle(_wx, _wy, _pr, false);
+		}
+		draw_set_alpha(1);
+	} else {
+		var _txt = (_face < 0) ? "d" + string(_sides) : string(_face);
+		draw_set_font((_r >= 30) ? ftBig : ((_r >= 22) ? ftDefault : ftSmall));
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_outline_text(_txt, _ring_col, _pip_col, 2, _x, _y + _cy, 1, _alpha, _angle);
+	}
+	draw_set_color(c_white);
+}
+
+/// @func die_look_draw(_look, _x, _y, _r, _sides, _col, _angle, _alpha)
+/// @desc draw_die's signature looks (die_look), over the body and under the pips. Kept inside the shape's inscribed
+///       circle (half the radius for a d4's triangle) so they fit every size.
+function die_look_draw(_look, _x, _y, _r, _sides, _col, _angle, _alpha) {
+	var _in = (_sides == 4) ? _r * 0.48 : _r * 0.72; // the room inside the shape
+	var _cy = (_sides == 4) ? _r * 0.02 : 0;
+	switch (_look) {
+		case "ghost":
+			// a dashed pale edge round it
+			var _pts = (_sides <= 2) ? [] : die_shape_points(_sides, _r * 1.07);
+			if (_sides <= 2) for (var i = 0; i < 28; i++) array_push(_pts, [lengthdir_x(_r * 1.07, i * 360 / 28), lengthdir_y(_r * 1.07, i * 360 / 28)]);
+			draw_set_alpha(_alpha * 0.9);
+			draw_set_color(make_color_rgb(235, 232, 220));
+			var _n = array_length(_pts), _dash = max(3, _r * 0.22);
+			for (var i = 0; i < _n; i++) {
+				var _p = _pts[i], _q = _pts[(i + 1) mod _n];
+				var _len = point_distance(_p[0], _p[1], _q[0], _q[1]);
+				for (var d = 0; d < _len; d += _dash * 1.8) {
+					var _t0 = d / _len, _t1 = min(1, (d + _dash) / _len);
+					var _ax = lerp(_p[0], _q[0], _t0), _ay = lerp(_p[1], _q[1], _t0), _bx = lerp(_p[0], _q[0], _t1), _by = lerp(_p[1], _q[1], _t1);
+					draw_line_width(die_rot_x(_x, _ax, _ay, _angle), die_rot_y(_y, _ax, _ay, _angle), die_rot_x(_x, _bx, _by, _angle), die_rot_y(_y, _bx, _by, _angle), max(1.5, _r * 0.07));
+				}
+			}
+			break;
+		case "waves":
+			// three white swells across its face
+			draw_set_alpha(_alpha * 0.4);
+			draw_set_color(c_white);
+			for (var row = -1; row <= 1; row++) {
+				var _wy = row * _in * 0.5;
+				var _half = sqrt(max(0, _in * _in - _wy * _wy));
+				var _steps = 10, _px = -_half, _py = _wy + _cy;
+				for (var k = 1; k <= _steps; k++) {
+					var _nx = -_half + 2 * _half * k / _steps;
+					var _ny = _wy + _cy + sin(k / _steps * pi * 3) * _r * 0.07;
+					draw_line_width(die_rot_x(_x, _px, _py, _angle), die_rot_y(_y, _px, _py, _angle), die_rot_x(_x, _nx, _ny, _angle), die_rot_y(_y, _nx, _ny, _angle), max(1.5, _r * 0.07));
+					_px = _nx; _py = _ny;
+				}
+			}
+			break;
+		case "ink":
+			// an ink blot in the lower right of its face, with a splash beside it: a wash, not a hole (Jared: too dark)
+			draw_set_alpha(_alpha * 0.35);
+			draw_set_color(make_color_rgb(40, 52, 96));
+			var _bx = _in * 0.45, _by = _in * 0.45 + _cy;
+			draw_circle(die_rot_x(_x, _bx, _by, _angle), die_rot_y(_y, _bx, _by, _angle), _in * 0.5, false);
+			draw_circle(die_rot_x(_x, _bx - _in * 0.55, _by + _in * 0.1, _angle), die_rot_y(_y, _bx - _in * 0.55, _by + _in * 0.1, _angle), _in * 0.14, false);
+			draw_circle(die_rot_x(_x, _bx + _in * 0.05, _by - _in * 0.6, _angle), die_rot_y(_y, _bx + _in * 0.05, _by - _in * 0.6, _angle), _in * 0.1, false);
+			break;
+	}
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
+/// @func dice_particle_draw()
+/// @desc oDiceParticle Draw: the die flying to the bag (or from a reward), drawn in code like every die (split if
+///       multitype; its sprite's scale as the radius).
+function dice_particle_draw() {
+	if (!variable_instance_exists(id, "die_struct") || !is_struct(die_struct)) { draw_sprite_ext(sprite_index, image_index, x, y, image_xscale, image_yscale, image_angle, image_blend, 1.0); return; }
+	var _r = 36 * image_xscale;
+	draw_die(x, y, _r, die_struct.dice_value, -1, die_colours(die_struct.possible_type), image_angle, 1, die_struct);
 }

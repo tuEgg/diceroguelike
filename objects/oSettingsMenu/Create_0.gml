@@ -5,10 +5,11 @@ global.show_settings = false;
 
 global.resolution_index = 0;
 global.custom_cursor = true; // Settings > Display > Custom cursor (cursor_draw)
-global.action_icons = false; // Settings > Display > Action icons on dice (draw_action_type_icon), for telling types apart without colour
+global.action_icons = true; // on by default (UI rework): every action colour also has a shape. // Settings > Display > Action icons on dice (draw_action_type_icon), for telling types apart without colour
 global.cursor_hidden = false;
 global.cursor_hover_time = 0;
 global.cursor_tilt = 0;
+global.shake_on = true; // Settings > Gameplay > Screen shake (screen_shake)
 global.combat_speed_index = 1; // Settings > Gameplay > Combat speed: Slow, Normal, Fast, Fastest (F13)
 
 global.resolution_options = [
@@ -136,6 +137,12 @@ categories = [
 				options: ["Slow", "Normal", "Fast", "Fastest"],
 				show_options: false
             },
+            {
+                name: "Screen shake",
+                type: "toggle",
+                get_value: function() { return global.shake_on; },
+                set_value: function(_val) { global.shake_on = _val; if (!_val) global.shake = 0; },
+            },
         ]
     },
 		
@@ -166,6 +173,7 @@ global.color_debuff = c_white;
 global.color_unknown = c_dkgray;
 global.color_bg = make_color_rgb(20, 50, 80);
 global.color_error = make_color_rgb(140, 10, 10);
+ui_init(); // the logbook palette (scUI): replaces the action pigments above with its brightness ladder
 
 // button colours, by role (red/blue/green/yellow stay for attack/block/heal/insight only)
 global.ui_primary = make_color_rgb(46, 150, 90);	// the main "go" action on a screen (Embark, Resume, Save, Back to the menu)

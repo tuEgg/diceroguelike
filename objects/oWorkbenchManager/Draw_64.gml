@@ -115,7 +115,7 @@ for (var i = 0; i < wb_list_size; i++) {
 			draw_dice_distribution(_die_here, slot_x, _bar_y, true);
 			if (_die_here.distribution != "") {
 				draw_set_font(ftDefault);
-				draw_outline_text(string(_die_here.distribution), c_black, c_white, 2, slot_x, _bar_y - 46, 1, 1, 0);
+				draw_outline_text(string(_die_here.distribution), c_black, c_white, 2, slot_x, _bar_y - 64, 1, 1, 0); // above the distribution (55px tall)
 			}
 		}
 	}
@@ -126,11 +126,34 @@ for (var i = 0; i < wb_list_size; i++) {
 
 		draw_dice_distribution(d, slot_x, _bar_y, true);
 		draw_set_font(ftDefault);
-		draw_outline_text(string(d.distribution), c_black, c_white, 2, slot_x, _bar_y - 46, 1, 1, 0);
+		draw_outline_text(string(d.distribution), c_black, c_white, 2, slot_x, _bar_y - 64, 1, 1, 0);
 	}
 	
-	// Draw output preview
-	// NEED TO ADD THIS
+	// what the tool will make, ghosted in its slot until you craft (workbench_preview; Jared, 2026-11-20): the output in
+	// the last slot (with its distribution above), and with the Cutters the coin in the middle one. Hover it for its tip.
+	if (crafting_state == "waiting" && (i == 1 || i == 2)) {
+		var _pv = workbench_preview();
+		var _pd = (i == 2) ? _pv.out : _pv.coin;
+		var _free = (i == 2) ? (workbench_slot[2].dice == undefined) : (workbench_slot[1].dice == undefined && workbench_slot[1].core == undefined);
+		if (is_struct(_pd) && _free) {
+			var _pa = 0.5 + 0.15 * sin(current_time / 300);
+			draw_die(slot_x, slot_y, 36, _pd.dice_value, -1, die_colours(_pd.possible_type), 0, _pa, _pd);
+			if (i == 2 && _pd.dice_value > 2) {
+				draw_dice_distribution(_pd, slot_x, _bar_y, true);
+				if (_pd.distribution != "") {
+					draw_set_font(ftDefault);
+					draw_set_halign(fa_center);
+					draw_set_valign(fa_middle);
+					draw_outline_text(string(_pd.distribution), c_black, c_white, 2, slot_x, _bar_y - 64, 1, 1, 0);
+				}
+			}
+			draw_set_font(ftDefault);
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_outline_text("Preview: " + _pv.tool, c_black, c_ltgray, 2, slot_x, slot_y - wb_tile_size / 2 + 18, 1, 0.9, 0);
+			if (mouse_hovering(slot_x, slot_y, wb_tile_size, wb_tile_size, true)) queue_die_tip(_pd, slot_x, slot_y - 44, "after the " + _pv.tool + ": " + die_tip_sub(_pd));
+		}
+	}
 }
 
 var button_text_w = 100;
@@ -332,16 +355,21 @@ switch (crafting_state) {
 // before anything else: choose the dice to work on (the bag opens on request, not by itself)
 if (pick_pending) {
 	var _pw = 560, _ph = 170;
-	var _px = gui_w / 2 - _pw / 2, _py = start_y - wb_tile_size - 230;
+	var _px = gui_w / 2 - _pw / 2, _py = max(start_y - wb_tile_size - 230, 200); // below the toolbag's tools (they drop down to about y 180)
 	ui_panel(_px, _py, _px + _pw, _py + _ph);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
 	draw_set_font(ftDefault);
 	var _n = workbench_dice_allowance();
-	draw_outline_text("Take up to " + string(_n) + ((_n == 1) ? " die" : " dice") + " from your bag to work on.", c_black, c_white, 2, gui_w / 2, _py + 44, 1, 1, 0);
+	draw_outline_text("Choose up to " + string(_n) + ((_n == 1) ? " die" : " dice") + " to work on.", c_black, c_white, 2, gui_w / 2, _py + 44, 1, 1, 0);
 	var _pick = ui_button(gui_w / 2, _py + 108, 260, 64, pick_scale, "Open the bag", global.ui_primary);
 	pick_scale = _pick.scale;
 	if (_pick.click) workbench_open_picker();
+} else if (workbench_can_change_dice()) {
+	// picked the wrong die? until the first craft you can put them back and choose again (B134)
+	var _change = ui_button(start_x - wb_tile_size / 2 - 170, start_y, 220, 56, pick_scale, "Change dice", global.ui_quiet);
+	pick_scale = _change.scale;
+	if (_change.click) workbench_change_dice();
 }
 
 // "Dice + Core = Output", or with the Cutters "Dice = Basic coin + Remainder"
@@ -354,7 +382,7 @@ var _tool_in_hand = "";
 if (instance_exists(oDrill) && oDrill.is_dragging) _tool_in_hand = "drill";
 if (instance_exists(oHammer) && oHammer.is_dragging) _tool_in_hand = "smash";
 if (instance_exists(oScissors) && oScissors.is_dragging) _tool_in_hand = "cut";
-if (_tool_in_hand != "") {
+if (_tool_in_hand != "" && progress_get("workbench_hints_done") != true) { // until a tool has crafted once (workbench_tool_used)
 	var _hint_y = start_y - wb_tile_size - 70; // above the bench, clear of the dice in hand
 	draw_mouse_hint(gui_w/2 - 230, _hint_y, "left", (_tool_in_hand == "drill") ? "Hold over the Drill button" : "Click the " + button_text + " button");
 	draw_mouse_hint(gui_w/2 + 90, _hint_y, "right", "Put the tool down");
@@ -366,6 +394,6 @@ if	(workbench_slot[2].dice == undefined && instance_number(oDice) == 0 && instan
 	(workbench_slot[0].dice == undefined && workbench_slot[1].core == undefined && workbench_slot[1].dice == undefined && workbench_slot[2].dice == undefined) exit_col = c_red;
 
 var exit_ready = (exit_col == c_red) && !oRunManager.is_dealing_dice && !oRunManager.holding_item;
-var exit_btn = ui_button(gui_w - 150, gui_h - 200, 180, 70, exit_scale, "Exit", global.ui_neutral, exit_ready, "Take the dice off the bench first (click a finished die).");
-exit_scale = exit_btn.scale;
+// the room's commit action, bottom right (ui_primary, UI rework)
+var exit_btn = ui_primary(gui_w - 44 - 140, gui_h - 40 - 48, 280, 96, "Continue", exit_ready, "Click finished dice to take them off the bench first.");
 if (exit_btn.click) exiting = true;

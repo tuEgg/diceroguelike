@@ -1,4 +1,6 @@
 /// oDamageText Draw GUI
+// during a run these are drawn by oRunManager Draw GUI End, after the bag and its picker, so they show over them (B140)
+if (instance_exists(oRunManager) && !(variable_global_exists("damage_text_late") && global.damage_text_late)) exit;
 var font_to_use = ftDamage; // optional big bold font
 draw_set_font(font_to_use);
 draw_set_halign(fa_center);

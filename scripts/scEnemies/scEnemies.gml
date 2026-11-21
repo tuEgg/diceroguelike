@@ -24,6 +24,7 @@ function enemy_create(_name, _index, _shadow_scale, _max_hp, _bounty, _starting_
     return e;
 }
 
+// v0.2 (2026-11-19): normal enemies' health cut by about 20% (Jared: early fights took too long); elites and bosses unchanged
 function define_enemies() {
 	// Create a global enemy list to hold all types
 	global.enemy_list = ds_list_create();
@@ -37,7 +38,7 @@ function define_enemies() {
 	    { dice_amount: 1, dice_value: 8, action_type: "ATK", bonus_amount: 1, move_name: "Pointed Cutlass" },
 	    { dice_amount: 2, dice_value: 2, action_type: "BLK", bonus_amount: 3, move_name: "Block" },
 	];
-	var pirate_ruffian = enemy_create("Pirate Ruffian", 0, 1, 23, 7, 0, pirate_ruffian_moves, "pseudo_random");
+	var pirate_ruffian = enemy_create("Pirate Ruffian", 0, 1, 18, 7, 0, pirate_ruffian_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, pirate_ruffian);
 	
 	// Weak enemy that always copies the players last intent
@@ -45,7 +46,7 @@ function define_enemies() {
 	    { dice_amount: 3, dice_value: 2, action_type: "MIMIC", bonus_amount: 1, move_name: "Mimic" },
 	    { dice_amount: 3, dice_value: 2, action_type: "MIMIC", bonus_amount: 1, move_name: "Mimic" },
 	];
-	var parrot = enemy_create("Parrot", 7, 0.5, 10, 5, 0, parrot_moves, "pseudo_random");
+	var parrot = enemy_create("Parrot", 7, 0.5, 8, 5, 0, parrot_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, parrot);
 	
 	// Spends 2 turns charging, third turn dealing big damage, then runs away on the final turn
@@ -55,7 +56,7 @@ function define_enemies() {
 	    { dice_amount: 2, dice_value: 4, action_type: "ATK", bonus_amount: 14, move_name: "Throwing Leg" },
 	    { dice_amount: 1, dice_value: 2, action_type: "EXIT", bonus_amount: 2, move_name: "Escaping" },
 	];
-	var peg_leg = enemy_create("Peg-leg", 0, 1, 18, 20, 0, peg_leg_moves, "ordered");
+	var peg_leg = enemy_create("Peg-leg", 0, 1, 14, 20, 0, peg_leg_moves, "ordered");
 	ds_list_add(global.enemy_list, peg_leg);
 	
 	// Pack enemy that does attacks and defends
@@ -63,7 +64,7 @@ function define_enemies() {
 	    { dice_amount: 2, dice_value: 2, action_type: "ATK", bonus_amount: -1, move_name: "Peck" },
 	    { dice_amount: 1, dice_value: 2, action_type: "BLK", bonus_amount: 2, move_name: "Evade" },
 	];
-	var seagull = enemy_create("Seagull", 2, 0.5, 8, 8, 0, seagull_moves, "pseudo_random");
+	var seagull = enemy_create("Seagull", 2, 0.5, 6, 8, 0, seagull_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, seagull);
 	
 	// Basic enemy that has attack, defend and a disabling debuff
@@ -72,7 +73,7 @@ function define_enemies() {
 	    { dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 0, move_name: "Coil" },
 	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Bind", debuff: debuff_bind, amount: 1, duration: 1 },
 	];
-	var baby_kraken = enemy_create("Baby Kraken", 3, 1, 26, 16, 0, baby_kraken_moves, "pseudo_random");
+	var baby_kraken = enemy_create("Baby Kraken", 3, 1, 20, 16, 0, baby_kraken_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, baby_kraken);
 	
 	// Basic enemy that has attack and defend.
@@ -80,7 +81,7 @@ function define_enemies() {
 	    { dice_amount: 1, dice_value: 6, action_type: "ATK", bonus_amount: 3, move_name: "Slash" }, // Slash
 	    { dice_amount: 1, dice_value: 4, action_type: "BLK", bonus_amount: 4, move_name: "Duck" }  // Duck
 	];
-	var deckhand = enemy_create("Deckhand", 0, 1, 29, 15, 0, deckhand_moves, "pseudo_random");
+	var deckhand = enemy_create("Deckhand", 0, 1, 23, 15, 0, deckhand_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, deckhand);
 
 	// Moderate enemy that has a debuff
@@ -89,7 +90,7 @@ function define_enemies() {
 	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Mock", debuff: debuff_mock, amount: 1, duration: 1 }, // Mock
 	    { dice_amount: 1, dice_value: 4, action_type: "BLK", bonus_amount: 4, move_name: "Parry" }  // Duck
 	];
-	var thug = enemy_create("Thug", 1, 1, 36, 17, 0, thug_moves, "pseudo_random");
+	var thug = enemy_create("Thug", 1, 1, 28, 17, 0, thug_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, thug);
 
 	// Comes in a pair with Bill, has a debuff, and a passive.
@@ -98,7 +99,7 @@ function define_enemies() {
 	    { dice_amount: 2, dice_value: 2, action_type: "BLK/ATK", bonus_amount: 3, move_name: "Flap", weight: 70 },
 	    { dice_amount: 2, dice_value: 2, action_type: "HEAL", bonus_amount: 3, move_name: "Rest", use_trigger: "HEALTH 50", weight: 0 },
 	];
-	var elizabeak = enemy_create("Elizabeak", 2, 1, 16, 8, 0, elizabeak_moves, "weighted", false, passive_heartache);
+	var elizabeak = enemy_create("Elizabeak", 2, 1, 12, 8, 0, elizabeak_moves, "weighted", false, passive_heartache);
 	ds_list_add(global.enemy_list, elizabeak);
 	
 	// Comes in a pair with Elizabeak, has a buff, and a passive.
@@ -107,7 +108,7 @@ function define_enemies() {
 	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Sharpen Cutlass", debuff: buff_might, amount: 1, duration: -1 }, // Mock
 	    { dice_amount: 1, dice_value: 4, action_type: "BLK", bonus_amount: 4, move_name: "Parry" }  // Duck
 	];
-	var bill = enemy_create("Bill", 0, 1, 20, 17, 0, bill_moves, "pseudo_random", false, passive_heartache);
+	var bill = enemy_create("Bill", 0, 1, 16, 17, 0, bill_moves, "pseudo_random", false, passive_heartache);
 	ds_list_add(global.enemy_list, bill);
 	
 	// Moderate enemy with a first turn buff!
@@ -116,7 +117,7 @@ function define_enemies() {
 	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Inflate Spines", weight: 0, use_trigger: "FIRST", debuff: buff_spines, amount: 1, duration: -1 }, // Mock
 	    { dice_amount: 2, dice_value: 4, action_type: "BLK", bonus_amount: 2, move_name: "Roll", weight: 50 }  // Duck
 	];
-	var pufferfish = enemy_create("Pufferfish", 0, 1, 36, 17, 0, pufferfish_moves, "weighted");
+	var pufferfish = enemy_create("Pufferfish", 0, 1, 28, 17, 0, pufferfish_moves, "weighted");
 	ds_list_add(global.enemy_list, pufferfish);
 
 	// Moderate enemy that aims, fires, reloads on a cycle.
@@ -125,7 +126,7 @@ function define_enemies() {
 	    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 6, move_name: "Volley Fire" }, // Volley Fire
 	    { dice_amount: 0, dice_value: 0, action_type: "NONE", bonus_amount: 0, move_name: "Reload" } // Reload
 	];
-	var gunner = enemy_create("Corsair Gunner", 5, 1, 35, 19, 0, gunner_moves, "ordered");
+	var gunner = enemy_create("Corsair Gunner", 5, 1, 28, 19, 0, gunner_moves, "ordered");
 	ds_list_add(global.enemy_list, gunner);
 
 	// Moderate enemy that builds up block over time, doesn't lose it between turns.
@@ -134,7 +135,7 @@ function define_enemies() {
 	    { dice_amount: 4, dice_value: 2, action_type: "ATK", bonus_amount: 4, move_name: "Claw" }, // Volley Fire
 	    { dice_amount: 2, dice_value: 4, action_type: "BLK/ATK", bonus_amount: 1, move_name: "Rapid Spin" }, // Volley Fire
 	];
-	var turtle = enemy_create("Turtle", 0, 1, 20, 18, 32, turtle_moves, "pseudo_random", false, passive_turtle_shell);
+	var turtle = enemy_create("Turtle", 0, 1, 16, 18, 32, turtle_moves, "pseudo_random", false, passive_turtle_shell);
 	ds_list_add(global.enemy_list, turtle);
 	
 	// Support enemy that heals others and debuffs the player.
@@ -143,7 +144,7 @@ function define_enemies() {
 	    { dice_amount: 2, dice_value: 2, action_type: "HEAL", bonus_amount: 4, move_name: "Feeding Frenzy", weight: 25, target: "other" },
 	    { dice_amount: 2, dice_value: 2, action_type: "ATK", bonus_amount: 0, move_name: "Snap", weight: 50 }
 	];
-	var barrel_of_fish = enemy_create("Barrel o' Fish", 4, 1, 15, 10, 0, barrel_of_fish_moves, "weighted");
+	var barrel_of_fish = enemy_create("Barrel o' Fish", 4, 1, 12, 10, 0, barrel_of_fish_moves, "weighted");
 	ds_list_add(global.enemy_list, barrel_of_fish);
 
 	// Pack enemy that gets stronger when attacked, and messes with player focus.
@@ -152,7 +153,7 @@ function define_enemies() {
 	    { dice_amount: 1, dice_value: 2, action_type: "ATK", bonus_amount: 3, move_name: "Snap", weight: 75 },
 	    { dice_amount: 2, dice_value: 2, action_type: "DEBUFF", bonus_amount: 1, move_name: "Overwhelm", debuff: debuff_overwhelm, weight: 25, amount: 3, duration: 1 }
 	];
-	var driftnet_fish = enemy_create("Driftnet Fish", 6, 1, 18, 10, 0, driftnet_fish_moves, "weighted");
+	var driftnet_fish = enemy_create("Driftnet Fish", 6, 1, 14, 10, 0, driftnet_fish_moves, "weighted");
 	ds_list_add(global.enemy_list, driftnet_fish);
 	
 	// -------------------------------
@@ -170,12 +171,16 @@ function define_enemies() {
 	ds_list_add(global.enemy_list, pirate_captain);
 	
 	// Elite that disrupts intel, echoes attacks, and has 3 protective layers that block damage. The layers block 2/3/4 flat damage per attack but once the conch takes 10/12/14 damage in a single turn a layer is broken.
+	// (F20) its only move used to be Command, an ally buff, though it always fights alone: now it hums to blot your
+	// insight, echoes your last action back at you, slams and shelters behind its layers
 	var giant_conch_moves = [
-	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Command", debuff: buff_might, weight: 20, use_trigger: "FIRST", target: "other", amount: 1, duration: 1 }, // Command
-		//{ dice_amount: 3, dice_value: 2, action_type: "ATK", bonus_amount: 4, move_name: "Wrap", weight: 100 },
-	    //{ dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 4, move_name: "Shield", weight: 40 }
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Siren Hum", debuff: debuff_overwhelm, weight: 0, amount: 3, duration: 1, use_trigger: "FIRST" },
+	    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 3, move_name: "Shell Slam", weight: 40 },
+	    { dice_amount: 2, dice_value: 4, action_type: "MIMIC", bonus_amount: 2, move_name: "Echo", weight: 30 },
+	    { dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 5, move_name: "Retreat Inward", weight: 20 },
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Siren Hum", debuff: debuff_overwhelm, weight: 10, amount: 2, duration: 1 },
 	];
-	var giant_conch = enemy_create("Giant Conch", 0, 1.25, 40, 50, 0, giant_conch_moves, "weighted", true, passive_conch_layers);
+	var giant_conch = enemy_create("Giant Conch", 0, 1.25, 55, 50, 0, giant_conch_moves, "weighted", true, passive_conch_layers);
 	ds_list_add(global.enemy_list, giant_conch);
 	
 	//// Elite that buffs others and summons minions to the fight.
@@ -240,8 +245,8 @@ function enemy_set_intent(_enemy, _move) {
 	}
 
 	// the range shown when Faded (and the name shown for moves with no numbers)
-	if (_move.action_type == "DEBUFF" || _move.action_type == "BUFF") {
-		_enemy.intent.text = "";
+	if (_move.action_type == "DEBUFF" || _move.action_type == "BUFF" || _move.action_type == "SUMMON") {
+		_enemy.intent.text = ""; // just its icon (a summon has no number, F139)
 	} else if (_move.action_type == "NONE" || _move.action_type == "EXIT") {
 		_enemy.intent.text = _move.move_name;
 	} else {
@@ -252,7 +257,7 @@ function enemy_set_intent(_enemy, _move) {
 /// @func intent_has_numbers(_move)
 /// @desc Attacks, blocks and heals have numbers to reveal; buffs, debuffs, waiting and fleeing don't.
 function intent_has_numbers(_move) {
-	return !(_move.action_type == "DEBUFF" || _move.action_type == "BUFF" || _move.action_type == "NONE" || _move.action_type == "EXIT");
+	return !(_move.action_type == "DEBUFF" || _move.action_type == "BUFF" || _move.action_type == "NONE" || _move.action_type == "EXIT" || _move.action_type == "SUMMON");
 }
 
 /// @func intent_exact_value(_enemy)
@@ -305,16 +310,37 @@ function intent_hover_text(_enemy, _intel_level) {
 			case "BLK": _line = "Blocks " + _number; break;
 			case "HEAL": _line = "Heals " + _number; break;
 			case "INTEL": _line = "Gains insight"; break;
-			case "SUMMON": _line = "Calls for help"; break;
+			case "SUMMON": _line = "Summons " + ((variable_struct_exists(_move, "summon") && is_string(_move.summon)) ? _move.summon : "help"); break;
+			case "DEBUFF": case "BUFF": _line = intent_status_text(_move); break;
 			default: _line = "";
 		}
 		if (_line != "") _text += ((_text == "") ? "" : ", then ") + _line;
 	}
 	if (_text == "") _text = "Does something unusual";
-	_text += ".";
+	if (string_char_at(_text, string_length(_text)) != ".") _text += ".";
 	if (intent_is_halved(_enemy)) _text += " Halved by your quill.";
-	if (intent_has_numbers(_move) && _intel_level < 1) _text += " Reach " + string(global.player_intel_data[| 1].requirement) + " insight (Legible) to see the exact number.";
+	if (intent_has_numbers(_move) && _intel_level < INTEL_LEGIBLE) _text += " Exact number: " + string(combat_reveal_cost()) + " insight.";
 	return _text;
+}
+
+/// @func intent_status_text(_move)
+/// @desc What a buff or debuff move does and to whom (F138): "Mocks you for 1 turn. Mock: attacks cannot roll higher
+///       than 1." A debuff lands on you; a buff on itself, or its allies (target "other").
+function intent_status_text(_move) {
+	if (!variable_struct_exists(_move, "debuff") || !is_struct(_move.debuff)) return "";
+	var _b = _move.debuff;
+	var _amount = variable_struct_exists(_move, "amount") ? _move.amount : 1;
+	var _dur = variable_struct_exists(_move, "duration") ? _move.duration : 1;
+	var _for = (_dur < 0) ? " for the rest of the fight" : " for " + string(_dur) + ((_dur == 1) ? " turn" : " turns");
+	var _name = _b.name;
+	if (_amount != 1 || _b.stackable) _name += " " + ((_amount > 0) ? "+" : "") + string(_amount); // "Might +1", "Might -2"
+	var _who;
+	if (_move.action_type == "DEBUFF") _who = "Puts " + _name + " on you";
+	else if (variable_struct_exists(_move, "target") && _move.target == "other") _who = "Gives its allies " + _name;
+	else _who = "Gives itself " + _name;
+	var _desc = string(_b.desc);
+	if (string_char_at(_desc, string_length(_desc)) != ".") _desc += ".";
+	return _who + _for + ". " + _b.name + ": " + _desc;
 }
 
 /// @func intent_number_text(_enemy, _intel_level)
@@ -322,7 +348,7 @@ function intent_hover_text(_enemy, _intel_level) {
 function intent_number_text(_enemy, _intel_level) {
 	if (intel_is_blotted()) return "?";
 	if (!intent_has_numbers(_enemy.intent.move)) return _enemy.intent.text;
-	if (_intel_level >= 1) return string(intent_exact_value(_enemy));
+	if (_intel_level >= INTEL_LEGIBLE) return string(intent_exact_value(_enemy));
 	return intent_range_text(_enemy);
 }
 
@@ -483,14 +509,25 @@ function enemy_rewrite_intent(_enemy) {
 	return true;
 }
 
+// intel_level is what you can see of enemy intents: a range, or exact numbers once you've spent insight on it
+#macro INTEL_FADED 0
+#macro INTEL_LEGIBLE 1
+// what insight buys during your turn (combat_buy)
+#macro INSIGHT_COST_REVEAL 2 // see exact enemy intents this turn
+#macro INSIGHT_COST_REROLL 3 // one more reroll
+#macro INSIGHT_COST_REDRAW 3 // one more redraw
+#macro INSIGHT_COST_PLAY 4   // one more play
+#macro INSIGHT_COST_QUILL 6  // rewrite an intent (reroll or halve it)
+#macro INSIGHT_MAX 12        // the most you can hold (the gauge)
+
 /// @func intel_max()
 /// @desc The intel needed for the top state (Quill). Intel is capped here.
 function intel_max() {
-	return global.player_intel_data[| ds_list_size(global.player_intel_data) - 1].requirement;
+	return INSIGHT_MAX;
 }
 
 /// @func intel_level_for(_intel)
-/// @desc The intel state (0 Faded, 1 Legible, 2 Quill) this much intel reaches. Below 0 is still 0, but Blotted (intel_is_blotted).
+/// @desc The intel state (the INTEL_ macros: Faded, Legible, Inked, Underlined, Quill) this much intel reaches. Below 0 is still 0, but Blotted (intel_is_blotted).
 function intel_level_for(_intel) {
 	var _level = 0;
 	for (var i = 0; i < ds_list_size(global.player_intel_data); i++) {

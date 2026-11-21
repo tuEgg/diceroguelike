@@ -42,7 +42,7 @@ function debug_menu_init() {
 		// Events
 		event_names: ["Pirate Prisoner", "A Great Storm", "Clear skies", "Broken sails", "Dividing up the bounty", "A Hidden Trunk",
 			"Some old loot", "Spare Ammunition", "A bird flies aboard", "The Wishing Well", "An island dream", "The Flying Dutchman",
-			"Rough tides", "The constellation", "A precious ingot", "The Siren's Call"],
+			"Rough tides", "The constellation", "A precious ingot", "The Siren's Call", "A floating crate", "The tattooist"],
 		forced_event: "",			// name of the event the next event room must show
 
 		// Dice
@@ -496,7 +496,7 @@ function debug_menu_draw() {
 
 			debug_label(cx, yy + 6, "Insight at the start of every turn  " + string(dbg.turn_intel));
 			yy += row_h;
-			var intel_steps = [-3, 0, 5, 10]; // Blotted, Faded, Legible, Quill
+			var intel_steps = [-3, 0, 3, 6, 9, 12]; // Blotted, Faded, Legible, Inked, Underlined, Quill
 			var intel_w = floor(cw / array_length(intel_steps));
 			for (var i = 0; i < array_length(intel_steps); i++) {
 				if (debug_button(cx + intel_w * i, yy, intel_w, row_h, string(intel_steps[i]), dbg.turn_intel == intel_steps[i])) {
@@ -621,7 +621,7 @@ function debug_menu_draw() {
 
 			// Live read-out
 			debug_label(cx, yy, "Turn " + string(oCombat.turn_count)
-				+ "   Insight " + string(oCombat.player_intel) + " (" + string(intel_state(oCombat.intel_level).name) + ")"
+				+ "   Insight " + string(oCombat.player_intel) + (oCombat.insight_revealed ? " (exact intents)" : "")
 				+ "   Dice played " + string(oCombat.dice_played) + " / " + string(oCombat.dice_allowed_per_turn));
 			yy += row_h;
 			debug_label(cx, yy, "Bag " + string(ds_list_size(global.dice_bag))

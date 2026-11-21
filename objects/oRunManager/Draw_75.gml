@@ -1,3 +1,16 @@
+// the screen shake ends here: windows, tooltips and the cursor stay still
+matrix_set(matrix_world, matrix_build_identity());
+// the log's ink look (F118): this frame was drawn into ink_scene (Draw GUI Begin); back to the screen first. If the
+// log closed during this frame, show the frame as it was; otherwise combat_insight_view_draw draws it through shInk.
+if (ink_capturing) {
+	surface_reset_target();
+	if (!(instance_exists(oCombat) && oCombat.insight_view) && surface_exists(ink_scene)) {
+		gpu_set_blendenable(false);
+		draw_surface(ink_scene, 0, 0);
+		gpu_set_blendenable(true);
+	}
+}
+
 if (show_dice_list) {
 	
 	// Fill the background of the screen
@@ -43,11 +56,9 @@ if (show_dice_list) {
 		}
 		
 		// Draw dice sprite
-		draw_sprite_ext(sDice, get_dice_index(dice.dice_value), dice_x, dice_y, row_spacing/80, row_spacing/80, 0, get_dice_color(dice.possible_type), 1.0);
+		draw_die(dice_x, dice_y, row_spacing * 0.4, dice.dice_value, -1, die_colours(dice.possible_type), 0, 1, dice);
 		
-		// Draw dice keywords
-		draw_dice_keywords(dice, dice_x, dice_y, 1);
-		
+
 		// Draw dice name
 		draw_set_font(ftDefault);
 		draw_set_valign(fa_middle);
@@ -181,7 +192,7 @@ if (show_dice_list) {
 		scroll_y = lerp(scroll_y, s_grab_y + (m_grab_y - device_mouse_y_to_gui(0)), 0.5);
 		scroll_y = clamp(scroll_y, scroll_height, 0);
 	}
-	
+
 }
 
 // the bag view and the dice picker (moved from Draw GUI so event, shop and workbench windows can't cover them)
@@ -189,6 +200,72 @@ var gui_w = display_get_gui_width();
 var gui_h = display_get_gui_height();
 var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
+
+// the toolbag's tools, dropped down under the top bar (moved from Draw GUI: random events and shops drew over them)
+var tools_x = gui_w - 940; // under the toolbag icon (oRunManager Draw GUI)
+if (show_tools) {
+	for (var i = 0; i < ds_list_size(tools); i++) {
+		var tool = tools[| i];
+		var tile_width = sprite_get_width(sToolButton) + 10;
+		var starting_offset = (ds_list_size(tools)-1)/2 * tile_width; // 1 tool, offset by 0, 2 tools, offset by 0.5, 3 tools offset by 1,
+		var tool_x = tools_x - starting_offset + (tile_width*i);
+		
+		var tool_hover = mouse_hovering(tool_x, 130, tile_width - 10, tile_width - 10, true);
+		
+		tools_scale[| i] = lerp(tools_scale[| i], tool_hover ? 1.2 : 1.0, 0.2);
+		
+		draw_sprite_ext(sToolButton, 0, tool_x, 130, tools_scale[| i], tools_scale[| i], 0, c_gray, 1.0);
+		draw_sprite_ext(sToolSilhouettes, tool.index, tool_x, 130, tools_scale[| i], tools_scale[| i], 0, c_gray, 1.0);
+		
+		if (tool_hover) {
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc);
+
+			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
+				if (room == rmWorkbench) {
+					if (instance_exists(oWorkbenchManager) && array_contains(oWorkbenchManager.tools_used, tool.object)) {
+						throw_error("Used this visit", "Each tool works once per visit.");
+					} else if (!instance_exists(tool.object)) {
+						var pos_x;
+						var pos_y;
+				
+						switch(i) {
+							case 0:
+							pos_x = gui_w - 150;
+							pos_y = gui_h/2 + 50;
+							break;
+					
+							case 1:
+							pos_x = 150;
+							pos_y = gui_h/2 + 50;
+							break;
+					
+							case 2:
+							pos_x = gui_w - 300;
+							pos_y = gui_h - 200;
+							break;
+						}
+						instance_create_layer(pos_x, pos_y, "Instances", tool.object);
+					} else {
+						throw_error("Already out", "This tool is already on the workbench.");
+					}
+				} else {
+					throw_error("Workbench only", "Tools work only at the workbench.");
+				}
+			}
+		}
+	}
+} else {
+	if (tools_scale[| 0] > 0.5) {
+		for (var i = 0; i < ds_list_size(tools); i++) {
+			tools_scale[| i] = 0.5;
+		}
+	}
+}
+
+
+
+// insight view (the eye in a fight): darkens everything but what insight can buy, drawn over the whole Draw GUI
+combat_insight_view_draw();
 
 // the bag icon (bottom left), above the map and every room window
 // Draw bag preview
@@ -232,7 +309,7 @@ if (bag_hover) {
 			global.ui_layer = pre_bag_open_ui_layer;
 		}
 	}
-	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Click to open", "Details all the dice you have in your bag");
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Dice bag", "See the dice inside.");
 }
 
 // show bag contents
@@ -259,13 +336,14 @@ if (show_bag_contents) {
 	}
 	
 	draw_outline_text(bag_title, c_black, c_white, 2, bag_outer_padding, bag_outer_padding - 56, 1, 1, 0);
+	bag_controls_draw(bag_to_show, bag_outer_padding);
 	ui_divider(bag_outer_padding, bag_outer_padding + 420, bag_outer_padding - 10);
 	ui_panel(bag_outer_padding, bag_outer_padding, display_get_gui_width() - bag_outer_padding, display_get_gui_height() - bag_outer_padding);
 	
 	var bag_width =		display_get_gui_width() - (bag_inner_padding * 2);
 	var bag_height =	display_get_gui_height() - (bag_inner_padding * 2);
 
-	if ((mouse_check_button_pressed(mb_left) || mouse_check_button_pressed(mb_right)) && !mouse_hovering(bag_outer_padding, bag_outer_padding, display_get_gui_width() - bag_outer_padding*2, display_get_gui_height() - bag_outer_padding*2, false, noone, soClick4, true, UI_LAYER.BAG)) {
+	if ((mouse_check_button_pressed(mb_left) || mouse_check_button_pressed(mb_right)) && !mouse_hovering(bag_outer_padding, bag_outer_padding - 64, display_get_gui_width() - bag_outer_padding*2, display_get_gui_height() - bag_outer_padding*2 + 64, false, noone, soClick4, true, UI_LAYER.BAG) /* the title row with the sort and filter buttons counts as inside */) {
 		if (show_bag_contents && !bag_hover) {
 			if (room == rmCombat) {
 				if (!oCombat.disc_bag_hover) {
@@ -282,43 +360,55 @@ if (show_bag_contents) {
 	// Set draw sizes
 	var scrollbar_w = 30;
 	
-	var col_spacing = (bag_width - (scrollbar_w * 4)) / 5;
-	var box_width = col_spacing - 20;
-	
-	var row_spacing = bag_height / 3;
-	var box_height = row_spacing - 20;
+	// five cards a row (compact, Molly); every row as tall as the tallest card in view needs (bag_card_layout)
+	var bag_cols = 5;
+	var col_spacing = (bag_width - (scrollbar_w * 4)) / bag_cols;
+	var box_width = col_spacing - 24;
+
+	var _view = bag_view_list(bag_to_show);
+	var box_height = 150;
+	for (var _c = 0; _c < array_length(_view); _c++) box_height = max(box_height, bag_card_layout(_view[_c], box_width).h);
+	var row_spacing = box_height + 24;
 	
 	var inner_padding_w = box_width/2
 	var inner_padding_h = box_height/2;
 	
-	for (var i = 0; i < ds_list_size(bag_to_show); i++) {
+	// the cards are drawn into a surface the size of the panel's inside and cut off at its edges, so a row half out of
+	// view is drawn half, and you can see there's more (F157; they used to fade). The surface is at window resolution
+	// (_bk) so text stays crisp; drawn with premultiplied alpha so soft edges don't darken.
+	var _clip_x1 = bag_outer_padding + 4, _clip_y1 = bag_outer_padding + 4;
+	var _clip_x2 = display_get_gui_width() - bag_outer_padding - 4, _clip_y2 = display_get_gui_height() - bag_outer_padding - 4;
+	var _bk = max(0.5, window_get_width() / display_get_gui_width());
+	var _bsw = max(1, ceil((_clip_x2 - _clip_x1) * _bk)), _bsh = max(1, ceil((_clip_y2 - _clip_y1) * _bk));
+	if (surface_exists(bag_clip_surf) && (surface_get_width(bag_clip_surf) != _bsw || surface_get_height(bag_clip_surf) != _bsh)) surface_free(bag_clip_surf);
+	if (!surface_exists(bag_clip_surf)) bag_clip_surf = surface_create(_bsw, _bsh);
+	var _bmx = device_mouse_x_to_gui(0), _bmy = device_mouse_y_to_gui(0);
+	var _mouse_in_clip = point_in_rectangle(_bmx, _bmy, _clip_x1, _clip_y1, _clip_x2, _clip_y2);
+	var _bag_old_world = matrix_get(matrix_world);
+	surface_set_target(bag_clip_surf);
+	draw_clear_alpha(c_black, 0);
+	matrix_set(matrix_world, matrix_build(-_clip_x1 * _bk, -_clip_y1 * _bk, 0, 0, 0, 0, _bk, _bk, 1));
+	gpu_set_blendmode_ext_sepalpha(bm_src_alpha, bm_inv_src_alpha, bm_one, bm_inv_src_alpha);
+
+	// what's shown: the bag filtered by type and sorted (bag_view_list, the controls above the panel)
+	for (var i = 0; i < array_length(_view); i++) {
 		
 		// Increase spacing for next dice
-		var dice_x = (bag_inner_padding + inner_padding_w + scrollbar_w*2) +		i mod 5 * col_spacing;
-		var dice_y = (scroll_y + bag_inner_padding + inner_padding_h) +			i div 5 * row_spacing;
+		var dice_x = (bag_inner_padding + inner_padding_w + scrollbar_w*2) +		i mod bag_cols * col_spacing;
+		var dice_y = (scroll_y + bag_inner_padding + inner_padding_h) +			i div bag_cols * row_spacing;
 			
 		var top_of_box = dice_y - box_height/2;
 		var bottom_of_box = dice_y + box_height/2
 		
-		if (top_of_box < display_get_gui_height() - bag_inner_padding && bottom_of_box > bag_inner_padding) {
+		if (top_of_box - 12 < _clip_y2 && bottom_of_box + 12 > _clip_y1) {
+
+			var dice = _view[i];
+			var dice_alpha = 1; // cut off at the panel's edge by the surface, never faded
+
+			// only the part you can see can be hovered or clicked
+			var info_hover = _mouse_in_clip && mouse_hovering(dice_x - box_width/2, dice_y - box_height/2, box_width, box_height, false, noone, soClick4, true, UI_LAYER.BAG);
 		
-			var dice = bag_to_show[| i];
-			
-			var top_edge_overlap = bag_inner_padding - top_of_box;
-			var bottom_edge_overlap = (bottom_of_box - (display_get_gui_height() - bag_inner_padding));
-			edge_overlap = max(top_edge_overlap, bottom_edge_overlap);
-			var dice_alpha = min(1, 1 - (edge_overlap / (box_height/1.5)));
-		
-			var info_hover = mouse_hovering(dice_x - box_width/2, dice_y - box_height/2, box_width, box_height, false, noone, soClick4, true, UI_LAYER.BAG);
-		
-			if (info_hover) {
-				dice_hover = dice;
-				
-				// Give highlighted dice a white border
-				draw_set_alpha(dice_alpha);
-				draw_set_color(c_white);
-				draw_roundrect(dice_x - box_width/2 - 2, dice_y - box_height/2 - 2, dice_x + box_width/2 + 2, dice_y + box_height/2 + 2, false);
-			}
+			if (info_hover) dice_hover = dice;
 			
 			// Functionality for selection events
 			if (dice_selection != false) {
@@ -333,7 +423,7 @@ if (show_bag_contents) {
 							if (dice.dice_value == 2) {
 								filter_pass = true;
 							} else {
-								throw_error("Not a coin", "You must select a coin");
+								throw_error("Not a coin", "Choose a coin.");
 							}
 						break;
 					}
@@ -346,6 +436,12 @@ if (show_bag_contents) {
 							ds_list_delete(dice_selection_list, _ind);
 							show_debug_message("dice_selection_list size: " + string(ds_list_size(dice_selection_list)));
 						} else {
+							// already full: the oldest pick makes way, so a new click always picks (Molly: picking 1 replaces it)
+							if (dice_selection_num_selected >= dice_selection && ds_list_size(dice_selection_list) > 0) {
+								dice_selection_list[| 0].selected = false;
+								ds_list_delete(dice_selection_list, 0);
+								dice_selection_num_selected -= 1;
+							}
 							if (dice_selection_num_selected < dice_selection) {
 								dice.selected = true;
 								dice_selection_num_selected += 1;
@@ -357,93 +453,22 @@ if (show_bag_contents) {
 				}
 			}
 			
-			// Give each dice its own background, edged in its rarity colour
-			draw_set_alpha(dice_alpha);
-			var rarity_col = make_color_rgb(44, 40, 62);
-			switch(dice.rarity) {
-				case "common": rarity_col = global.color_common; break;
-				case "uncommon": rarity_col = global.color_uncommon; break;
-				case "rare": rarity_col = global.color_rare; break;
-			}
-			draw_set_color(rarity_col);
-			draw_roundrect(dice_x - box_width/2 - 3, dice_y - box_height/2 - 3, dice_x + box_width/2 + 3, dice_y + box_height/2 + 3, false);
-			draw_set_color(make_color_rgb(44, 40, 62));
-			if (dice.selected) draw_set_color(c_green);
-			draw_roundrect(dice_x - box_width/2, dice_y - box_height/2, dice_x + box_width/2, dice_y + box_height/2, false);
-		
-			// Draw dice sprite (multitype dice blend their colours)
-			draw_sprite_ext(sDice, get_dice_index(dice.dice_value), dice_x - box_width/3.75, dice_y - box_height/3.75, 1.0, 1.0, 0, get_dice_color(dice.possible_type), dice_alpha);
-		
-			// Draw dice keywords
-			draw_dice_keywords(dice, dice_x - box_width/3.75, dice_y - box_height/3.75, 1, dice_alpha);
-			
-			// Draw dice range
-			var dice_output = get_dice_output(dice, -1, -1, true, "player"); // read only: viewing the bag must never trigger keepsakes
-	
-			var off_x = 0;
-			var off_y = 0;
-	
-			// nudge the numbers to suit this die's shape (it used oRunManager's own image_index, so it never changed)
-			switch (get_dice_index(dice.dice_value)) {
-				case 1:
-				off_x = -4;
-				off_y = 3;
-				break;
-				case 2:
-				off_x = -2;
-				off_y = 1;
-				break;
-				case 3:
-				case 4:
-				case 5:
-				off_x = -2;
-				off_y = -1;
-				break;
-			}
-			
-			var _min_roll = dice_output.min_roll;			
-			var _max_roll = dice_output.max_roll;
-	
-			draw_set_font(ftSmall);
-			draw_set_halign(fa_center);
-			draw_set_valign(fa_middle);
-			draw_outline_text(string(_min_roll) + "-" + string(_max_roll), c_black, c_white, 2, dice_x - box_width/3.75 + off_x, dice_y - box_height/3.75 + off_y, 1, 1, 0, -1);
-		
-			// Draw dice name
-			draw_set_font(ftDefault);
-			draw_set_valign(fa_middle);
-			draw_set_halign(fa_left);
-			draw_outline_text(dice.name, c_black, c_white, 2, dice_x - 10, dice_y - box_height/3.5, 1, dice_alpha, 0, box_width/4);
-		
-			// Draw dice description
-			draw_set_font(ftDescriptions);
-			draw_set_valign(fa_top);
-		    var desc_x = dice_x - box_width/2 + 20;
-		    var desc_y = dice_y;
-			
-			var colored_desc = colorcode_text(die_description(dice));
-			draw_outline_text(colored_desc, c_black, c_white, 2, desc_x, desc_y, 1, dice_alpha, 0, col_spacing - 40);
-			
-			// Draw distribution
-			if (dice.distribution != "") {
-				var core_index = get_core_index(dice);
-				
-				draw_sprite_ext(
-		            sCores, core_index,
-		            dice_x + box_width/2 - 40,
-		            dice_y - box_height/3.5 + 5,
-		            0.75, 0.75, 0, c_white, 1
-		        );
-			
-				if (info_hover) {
-					draw_dice_distribution(dice, dice_x, dice_y - 100, true);
-				}
-			}
-			
+			// the card (draw_bag_card): header with its name, the die and its range and types, the description
+			draw_bag_card(dice, dice_x, dice_y, box_width, box_height, dice_alpha, info_hover, dice.selected);
+
+
 			
 		}
 	}
 	
+	// the cards, cut to the panel
+	gpu_set_blendmode(bm_normal);
+	matrix_set(matrix_world, _bag_old_world);
+	surface_reset_target();
+	gpu_set_blendmode_ext(bm_one, bm_inv_src_alpha);
+	draw_surface_ext(bag_clip_surf, _clip_x1, _clip_y1, 1 / _bk, 1 / _bk, 0, c_white, 1);
+	gpu_set_blendmode(bm_normal);
+
 	if (show_bag_dice_info && dice_hover != undefined) {
 		//var info_x = bag_inner_padding + inner_padding + 30 + col_spacing * 12 + 20;
 		//var info_y = bag_inner_padding + inner_padding/2;
@@ -469,13 +494,10 @@ if (show_bag_contents) {
 	if (mouse_wheel_down()) scroll_y -= 100;
 	if (mouse_wheel_up()) scroll_y += 100;
 	
-	// Total pixel height of the bag height, its never less than 3 rows high (hence 15)
-	var minimum_size = min(3 * -row_spacing, (ds_list_size(bag_to_show) div 5 + ceil((ds_list_size(bag_to_show) mod 5)/5)) * -row_spacing);
-	
-	// The adaptive height of the scrollable area
-	var scroll_height = minimum_size + bag_height;
-	
-	// The Y position in the world of the scroll bar
+	// how far it can scroll: the rows' height past what the panel shows (none when everything fits)
+	var _content_h = ceil(array_length(_view) / bag_cols) * row_spacing;
+	var _max_scroll = max(0, _content_h - bag_height);
+	var scroll_height = -_max_scroll;
 	scroll_y = clamp(scroll_y, scroll_height, 0);
 	
 	//if (keyboard_check_pressed(vk_enter)) {
@@ -486,20 +508,46 @@ if (show_bag_contents) {
 	//	show_debug_message("Scroll Y: " + string(scroll_y));
 	//}
 	
-	// Draw scrollbar -- If room height is 1000, and scroll height is 2000, the scroll bar should be half the screen
-	var scrollbar_size_ratio = bag_height / abs(scroll_height - bag_height);
-	var scrollbar_h = scrollbar_size_ratio * bag_height;
-	var scrollbar_y = (abs(scroll_y) / abs(scroll_height - (bag_height*1))) * bag_height;
+	// the scrollbar: its thumb is the share of the rows you can see, at where you are; no bar when everything fits
+	var scrollbar_h = (_max_scroll > 0) ? bag_height * bag_height / _content_h : 0;
+	var scrollbar_y = (_max_scroll > 0) ? (-scroll_y / _max_scroll) * (bag_height - scrollbar_h) : 0;
+	if (_max_scroll > 0) {
 	
-	draw_set_color(c_black);
-	draw_set_alpha(0.4);
-	draw_rectangle(bag_inner_padding, bag_inner_padding, bag_inner_padding + scrollbar_w, bag_inner_padding + bag_height, false);
-	
-	draw_set_color(c_white);
-	draw_set_alpha(0.4);
-	draw_rectangle(bag_inner_padding, bag_inner_padding + scrollbar_y, bag_inner_padding + scrollbar_w, bag_inner_padding + scrollbar_y + scrollbar_h, false);
-	
+	// the logbook look (F158): a slate groove with an inked edge, and a brass thumb with an ink outline and grip lines,
+	// a little wider and brighter under the mouse or while dragged. Clicking the groove jumps there and keeps dragging.
 	var scroll_bar_hover = mouse_hovering(bag_inner_padding, bag_inner_padding + scrollbar_y, scrollbar_w, scrollbar_h, false, noone, soClick4, true, UI_LAYER.BAG);
+	var _sb_cx = bag_inner_padding + scrollbar_w / 2;
+	var _sb_y1 = bag_inner_padding, _sb_y2 = bag_inner_padding + bag_height;
+	draw_set_alpha(1);
+	draw_set_color(global.ui_col.ink);
+	draw_roundrect_ext(_sb_cx - 8, _sb_y1 - 2, _sb_cx + 8, _sb_y2 + 2, 14, 14, false);
+	draw_set_color(global.ui_col.slate);
+	draw_roundrect_ext(_sb_cx - 6, _sb_y1, _sb_cx + 6, _sb_y2, 12, 12, false);
+	var _sb_lit = scroll_bar_hover || scroll_dragging;
+	var _sb_hw = _sb_lit ? 12 : 10;
+	var _sb_t1 = _sb_y1 + scrollbar_y, _sb_t2 = _sb_t1 + scrollbar_h;
+	draw_set_color(global.ui_col.ink);
+	draw_roundrect_ext(_sb_cx - _sb_hw - 2, _sb_t1 - 2, _sb_cx + _sb_hw + 2, _sb_t2 + 2, 16, 16, false);
+	draw_set_color(_sb_lit ? merge_colour(global.ui_col.brass, global.ui_col.paper_hi, 0.35) : global.ui_col.brass);
+	draw_roundrect_ext(_sb_cx - _sb_hw, _sb_t1, _sb_cx + _sb_hw, _sb_t2, 14, 14, false);
+	// a paper glint down its left side, and three grip lines in the middle
+	draw_set_alpha(0.45);
+	draw_set_color(global.ui_col.paper_hi);
+	draw_line_width(_sb_cx - _sb_hw + 4, _sb_t1 + 8, _sb_cx - _sb_hw + 4, _sb_t2 - 8, 2);
+	draw_set_alpha(1);
+	if (scrollbar_h > 44) {
+		var _sb_mid = (_sb_t1 + _sb_t2) / 2;
+		draw_set_color(global.ui_col.ink);
+		for (var _g = -1; _g <= 1; _g++) draw_line_width(_sb_cx - 5, _sb_mid + _g * 7, _sb_cx + 5, _sb_mid + _g * 7, 2);
+	}
+	var _groove_hover = mouse_hovering(bag_inner_padding, _sb_y1, scrollbar_w, bag_height, false, noone, noone, true, UI_LAYER.BAG);
+	if (_groove_hover && !scroll_bar_hover && mouse_check_button_pressed(mb_left)) {
+		var _sb_frac = clamp((device_mouse_y_to_gui(0) - _sb_y1 - scrollbar_h / 2) / max(1, bag_height - scrollbar_h), 0, 1);
+		scroll_y = -_sb_frac * _max_scroll;
+		scroll_dragging = true;
+		m_grab_y = device_mouse_y_to_gui(0);
+		s_grab_y = scroll_y;
+	}
 	
 	if (scroll_bar_hover) {
 		
@@ -514,9 +562,11 @@ if (show_bag_contents) {
 	if (!mouse_check_button(mb_left)) scroll_dragging = false;
 		
 	if (scroll_dragging) {
-		scroll_y = lerp(scroll_y, s_grab_y + (m_grab_y - device_mouse_y_to_gui(0)), 0.5);
+		// dragging the thumb down moves the rows up, in step with the thumb
+		scroll_y = s_grab_y - (device_mouse_y_to_gui(0) - m_grab_y) * (_max_scroll / max(1, bag_height - scrollbar_h));
 		scroll_y = clamp(scroll_y, scroll_height, 0);
 	}
+	} else scroll_dragging = false;
 } else {
 	dice_hover = undefined;
 }
@@ -535,8 +585,8 @@ if (dice_selection != false) {
 	var button_scale = 1.0;
 
 	var _can_confirm = (dice_selection_num_selected == dice_selection || (dice_selection_up_to && dice_selection_num_selected <= dice_selection));
-	var _confirm = ui_button(gui_w - 150, gui_h - 200, 200, 70, dice_selection_scale, (dice_selection_up_to && dice_selection_num_selected == 0) ? "Take none" : button_text, global.ui_primary, _can_confirm, "Choose " + string(dice_selection) + ((dice_selection == 1) ? " die" : " dice") + " first.", UI_LAYER.BAG);
-	dice_selection_scale = _confirm.scale;
+	// the same commit button, in the same spot, as the rooms' Continue under it (ui_primary), so it sits exactly over it
+	var _confirm = ui_primary(gui_w - 44 - 140, gui_h - 40 - 48, 280, 96, (dice_selection_up_to && dice_selection_num_selected == 0) ? "Take none" : button_text, _can_confirm, "Choose " + string(dice_selection) + ((dice_selection == 1) ? " die" : " dice") + " first.", UI_LAYER.BAG);
 
 	if (_confirm.hover || !_can_confirm) {
 		if (_confirm.click) {
@@ -569,6 +619,11 @@ if (dice_selection != false) {
 	}
 }
 
+// floating numbers and words ("X replaced with Y"), above the bag view and the picker (B140)
+global.damage_text_late = true;
+with (oDamageText) event_perform(ev_draw, ev_gui);
+global.damage_text_late = false;
+
 // tooltips are drawn in Draw GUI End (Draw_75), after every window, so nothing covers them
 
 // the first voyage's map notes and the one-time tips, above every window
@@ -586,6 +641,9 @@ run_summary_draw();
 
 // tooltips last, after every window and panel (Draw GUI End), so nothing draws over them
 draw_all_tooltips();
+
+// a room's opening ink wash (F65), over everything but the cursor
+room_wipe_draw();
 
 // the game's own mouse pointer, last of all during a run (above the bag, its darkening and every window).
 // Outside a run (main menu) oSettingsMenu draws it instead.
