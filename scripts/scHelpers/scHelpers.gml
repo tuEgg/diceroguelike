@@ -2577,13 +2577,14 @@ function bag_card_layout(_d, _w) {
 ///       - what it does, in ink ("d6 Block, 1-6" only on hovering the die)
 ///       - a fitted core: its distribution across the card's full width (the core isn't described)
 ///       Lifts with a brass edge when hovered; a green edge and tick when picked.
-function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected, _style = "") {
+function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected, _style = "reward") {
 	var _lay = bag_card_layout(_d, _w);
 	var _x1 = _cx - _w / 2, _y1 = _cy - _h / 2 - (_hover ? 5 : 0);
 	var _x2 = _x1 + _w, _y2 = _y1 + _h;
-	// "reward" (fight rewards, Jared 2026-11-21): no rule; the paper starts where the rule was, so the die sits over its
-	// top edge, with its keyword icons a little bigger on the same line
-	var _reward = (_style == "reward");
+	// "reward" (Jared, 2026-11-21; first on fight rewards, then every dice card: bag, picker, rewards): no rule; the paper
+	// starts where the rule was, so the die sits over its top edge, with its keyword icons a little bigger on the same line.
+	// "rule" keeps the old look (the rule across the paper), if it's ever wanted again.
+	var _reward = (_style != "rule");
 	var _pt = _reward ? _y1 + _lay.die_y : _y1; // the paper's top
 	if (_hover || _selected) {
 		draw_set_alpha(_alpha);
@@ -2596,7 +2597,7 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected, _style =
 	// the die on its rule (or the paper's edge), the gem, a changed range, the keywords (card_hero_draw)
 	var _dx = _cx, _dy = _y1 + _lay.die_y;
 	var _out = get_dice_output(_d, -1, -1, true, "player"); // read only: viewing the bag must never trigger keepsakes
-	card_hero_draw(_d, _out, _x1, _x2, _reward ? _pt + 6 : _y1, _dy, 36, _alpha, _hover && _alpha > 0.5, _reward ? UI_LAYER.POPUP : UI_LAYER.BAG, !_reward, _reward ? 1.1 : 0.9);
+	card_hero_draw(_d, _out, _x1, _x2, _reward ? _pt + 6 : _y1, _dy, 36, _alpha, _hover && _alpha > 0.5, max(global.ui_layer, UI_LAYER.BAG), !_reward, _reward ? 1.1 : 0.9); // hoverable on whatever layer shows it (the bag, a reward popup)
 
 	// its name under it, then what it does, in ink
 	draw_set_alpha(_alpha);
@@ -2612,7 +2613,7 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected, _style =
 
 
 	// its size, type and range on hovering the die
-	if (_hover && mouse_hovering(_dx, _dy, 80, 80, true, noone, noone, true, UI_LAYER.BAG)) queue_die_tip(_d, _dx, _dy - 40, die_stats_line(_d, _out));
+	if (_hover && mouse_hovering(_dx, _dy, 80, 80, true, noone, noone, true, max(global.ui_layer, UI_LAYER.BAG))) queue_die_tip(_d, _dx, _dy - 40, die_stats_line(_d, _out));
 
 	// a fitted core: how it shapes this die's faces, across the card's full width under its words
 	if (_d.distribution != "") {
@@ -2843,16 +2844,18 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	var _x1 = _cx - _w / 2, _x2 = _cx + _w / 2, _y1 = _top, _y2 = _top + _h;
 
 	// the same paper card as the bag's, a shade brighter than the page it lies on; hover: a brass edge, chosen: green
+	// like every dice card (Jared, 2026-11-21): the paper starts at the die's middle, so the die sits over its top edge
+	var _pt = _y1 + _lay.die_y;
 	if (_hover || _chosen) {
 		draw_set_color(_chosen ? global.color_heal : global.ui_col.brass);
-		draw_roundrect_ext(_x1 - 7, _y1 - 7, _x2 + 7, _y2 + 7, 16, 16, false);
+		draw_roundrect_ext(_x1 - 7, _pt - 7, _x2 + 7, _y2 + 7, 16, 16, false);
 	}
-	ui_paper(_x1, _y1, _x2, _y2, _cx * 0.37 + 2, global.ui_col.paper_hi, 1);
+	ui_paper(_x1, _pt, _x2, _y2, _cx * 0.37 + 2, global.ui_col.paper_hi, 1);
 
-	// the die on its rule, then its name and what it does
-	var _dy = _y1 + _lay.die_y;
+	// the die on the paper's edge, then its name and what it does
+	var _dy = _pt;
 	var _out = get_dice_output(_d, -1, -1, true, "player");
-	card_hero_draw(_d, _out, _x1, _x2, _y1, _dy, 40, 1, true, UI_LAYER.POPUP);
+	card_hero_draw(_d, _out, _x1, _x2, _pt + 6, _dy, 40, 1, true, UI_LAYER.POPUP, false, 1.1);
 	draw_set_font(ftBig);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
