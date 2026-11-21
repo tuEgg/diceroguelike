@@ -223,7 +223,7 @@ if (show_tools) {
 			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
 				if (room == rmWorkbench) {
 					if (instance_exists(oWorkbenchManager) && array_contains(oWorkbenchManager.tools_used, tool.object)) {
-						throw_error("Used this visit", "Each tool works once per visit to the workbench.");
+						throw_error("Used this visit", "Each tool works once per visit.");
 					} else if (!instance_exists(tool.object)) {
 						var pos_x;
 						var pos_y;
@@ -246,10 +246,10 @@ if (show_tools) {
 						}
 						instance_create_layer(pos_x, pos_y, "Instances", tool.object);
 					} else {
-						throw_error("Tool already exists", "This tool is already on the workbench");
+						throw_error("Already out", "This tool is already on the workbench.");
 					}
 				} else {
-					throw_error("Open at the workbench", "You can't open the toolbag outside of the workbench");
+					throw_error("Workbench only", "Tools work only at the workbench.");
 				}
 			}
 		}
@@ -309,7 +309,7 @@ if (bag_hover) {
 			global.ui_layer = pre_bag_open_ui_layer;
 		}
 	}
-	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Click to open", "Details all the dice you have in your bag");
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Dice bag", "See the dice inside.");
 }
 
 // show bag contents
@@ -423,7 +423,7 @@ if (show_bag_contents) {
 							if (dice.dice_value == 2) {
 								filter_pass = true;
 							} else {
-								throw_error("Not a coin", "You must select a coin");
+								throw_error("Not a coin", "Choose a coin.");
 							}
 						break;
 					}
@@ -585,8 +585,8 @@ if (dice_selection != false) {
 	var button_scale = 1.0;
 
 	var _can_confirm = (dice_selection_num_selected == dice_selection || (dice_selection_up_to && dice_selection_num_selected <= dice_selection));
-	var _confirm = ui_button(gui_w - 44 - 140, gui_h - 20 - 44, 280, 88, dice_selection_scale, (dice_selection_up_to && dice_selection_num_selected == 0) ? "Take none" : button_text, global.ui_primary, _can_confirm, "Choose " + string(dice_selection) + ((dice_selection == 1) ? " die" : " dice") + " first.", UI_LAYER.BAG);
-	dice_selection_scale = _confirm.scale;
+	// the same commit button, in the same spot, as the rooms' Continue under it (ui_primary), so it sits exactly over it
+	var _confirm = ui_primary(gui_w - 44 - 140, gui_h - 40 - 48, 280, 96, (dice_selection_up_to && dice_selection_num_selected == 0) ? "Take none" : button_text, _can_confirm, "Choose " + string(dice_selection) + ((dice_selection == 1) ? " die" : " dice") + " first.", UI_LAYER.BAG);
 
 	if (_confirm.hover || !_can_confirm) {
 		if (_confirm.click) {

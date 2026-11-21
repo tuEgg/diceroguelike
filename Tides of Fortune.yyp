@@ -105,6 +105,7 @@
     {"id":{"name":"scShop","path":"scripts/scShop/scShop.yy",},},
     {"id":{"name":"scSounds","path":"scripts/scSounds/scSounds.yy",},},
     {"id":{"name":"scUI","path":"scripts/scUI/scUI.yy",},},
+    {"id":{"name":"shBurn","path":"shaders/shBurn/shBurn.yy",},},
     {"id":{"name":"shErode","path":"shaders/shErode/shErode.yy",},},
     {"id":{"name":"shInk","path":"shaders/shInk/shInk.yy",},},
     {"id":{"name":"shWhiteFill","path":"shaders/shWhiteFill/shWhiteFill.yy",},},

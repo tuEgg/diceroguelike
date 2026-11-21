@@ -51,7 +51,7 @@ if (room == rmBounty) {
 	// take it (free), or a stamp once it's yours
 	if (!pot.taken) {
 		var _room = oRunManager.has_space_for_item;
-		var _take = ui_primary(_cx2 - 110, _cy2 - 52, 170, 64, "Take it", _room, "Your item slots are full. Use or drop an item first.");
+		var _take = ui_primary(_cx2 - 110, _cy2 - 52, 170, 64, "Take it", _room, "Use or drop an item first.");
 		if (_take.click && _room) gain_item(pot); // free
 		if (!_room) {
 			draw_set_font(ftDescriptions);
@@ -116,7 +116,7 @@ if (room == rmBounty) {
 			draw_text_ext(details_x + 100, condition_icon_y - sprite_get_height(_bounty.condition.icon)/2*_bounty.condition.scale + 10, "Defeat " + string(_bounty.enemy_name) + " " +_bounty.condition.description, font_get_size( draw_get_font() ) * 1.2, 235);
 		
 			// Draw reward info
-			draw_text_ext(details_x, condition_icon_y + 72, "Then get offered these rewards:", font_get_size( draw_get_font() ) * 1.2, 400);
+			draw_text_ext(details_x, condition_icon_y + 72, "Rewards:", font_get_size( draw_get_font() ) * 1.2, 400);
 		
 			// Draw rewards
 			for (var r = 0; r < array_length(_bounty.rewards); r++) {
@@ -225,7 +225,7 @@ if (room == rmBounty) {
 	var hover_reroll = mouse_hovering(gui_w/2 + 230, gui_h - 250, reroll_scale*sprite_get_width(sButtonSmall) * 0.75, reroll_scale*sprite_get_height(sButtonSmall) * 0.75, true);
 
 	if (hover_reroll && reroll_col == global.color_block) {
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Re-roll options", "Spend " + string(price) + " gold to reroll options");
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Re-roll", "Spend " + string(price) + " gold for new bounties.");
 	
 		if (mouse_check_button_pressed(mb_left)) {
 			if (oRunManager.credits >= price) {
@@ -235,7 +235,7 @@ if (room == rmBounty) {
 				generate_bounties(2);
 				reroll_col = c_dkgray;
 			} else {
-				throw_error("Not enough money", "10 gold is needed to reroll");
+				throw_error("Not enough gold", "You need 10 gold.");
 			}
 		}
 		reroll_scale = lerp(reroll_scale, 1.2, 0.2);

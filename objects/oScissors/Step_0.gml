@@ -16,7 +16,7 @@ if (tool_used) {
 		x = lerp(x, xstart, 0.2);
 		y = lerp(y, ystart, 0.2);
 		over_button = false;
-		if (position_meeting(device_mouse_x(0), device_mouse_y(0), self)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "The Cutters (used)", "Each tool works once per visit to the workbench.", undefined, 0, undefined);
+		if (position_meeting(device_mouse_x(0), device_mouse_y(0), self)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "The Cutters (used)", "One use per visit.", undefined, 0, undefined);
 	}
 	exit;
 }
@@ -31,7 +31,7 @@ var my = device_mouse_y(0);
 var hovered = position_meeting(mx, my, self);
 
 if (hovered && !is_dragging) {
-	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "The Cutters", "Cut two faces off of one of your die", undefined, 0, undefined);
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "The Cutters", "Cut two faces off a die.", undefined, 0, undefined);
 }
 
 // --- Start dragging ---

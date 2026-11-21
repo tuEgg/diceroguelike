@@ -361,7 +361,7 @@ if (pick_pending) {
 	draw_set_valign(fa_middle);
 	draw_set_font(ftDefault);
 	var _n = workbench_dice_allowance();
-	draw_outline_text("Take up to " + string(_n) + ((_n == 1) ? " die" : " dice") + " from your bag to work on.", c_black, c_white, 2, gui_w / 2, _py + 44, 1, 1, 0);
+	draw_outline_text("Choose up to " + string(_n) + ((_n == 1) ? " die" : " dice") + " to work on.", c_black, c_white, 2, gui_w / 2, _py + 44, 1, 1, 0);
 	var _pick = ui_button(gui_w / 2, _py + 108, 260, 64, pick_scale, "Open the bag", global.ui_primary);
 	pick_scale = _pick.scale;
 	if (_pick.click) workbench_open_picker();
@@ -395,5 +395,5 @@ if	(workbench_slot[2].dice == undefined && instance_number(oDice) == 0 && instan
 
 var exit_ready = (exit_col == c_red) && !oRunManager.is_dealing_dice && !oRunManager.holding_item;
 // the room's commit action, bottom right (ui_primary, UI rework)
-var exit_btn = ui_primary(gui_w - 44 - 140, gui_h - 40 - 48, 280, 96, "Continue", exit_ready, "Take the dice off the bench first (click a finished die).");
+var exit_btn = ui_primary(gui_w - 44 - 140, gui_h - 40 - 48, 280, 96, "Continue", exit_ready, "Click finished dice to take them off the bench first.");
 if (exit_btn.click) exiting = true;

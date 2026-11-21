@@ -11,6 +11,7 @@ A dice-building roguelike in GameMaker (GML), by Jared (solo, hobby). Sailing th
 - Commit in themed batches, each with a short "how to test" list for Jared. Merge and push **only when Jared approves**. Remote is HTTPS; pushing opens a browser sign-in once.
 - **Update `KANBAN.md` in the same commit as the work.** Jared's dashboard (`tools/kanban`, `node tools/kanban/server.js`, localhost:4747) renders it: each `## ` heading is a column, table rows with an ID are cards, the IN TESTING table badges cards in testing, approved cards move to the DONE table.
 - **Update the matching `docs/context/*.md` in the same commit** when you change how a system works (new function, moved responsibility, new rule). Keep them short and true; delete what goes stale.
+- **Game text is as short and clear as it can be** (Jared, 2026-11-21). Tooltips, notes, buttons and descriptions say what a thing does and nothing more: no restating where it is or when it comes up, no "click to..." the screen already shows, no hedged asides in brackets. "Remove a die from your bag." not "Choose a die to throw overboard, so the ones you want come up more often." Over-explaining reads as written by AI.
 - Match the surrounding code: tabs, `var` locals, `_underscore` params, lowercase comments that say why. Most `.gml` files are CRLF; keep a file's line endings (edit with tools that preserve them).
 - `debug_mode` is only F6 runs. Use the `DEBUG_TOOLS` macro (scDebug) for anything testing-only: true whenever run from the IDE, never in exported builds.
 

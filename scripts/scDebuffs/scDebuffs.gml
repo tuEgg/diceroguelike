@@ -79,7 +79,7 @@ function define_buffs_and_debuffs() {
 		name: "Mock",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Attacks cannot roll higher than 1.",
+	    desc: "Attack dice roll 1.",
 	    icon_index: 0,
 		debuff: true,
 		color: c_red,
@@ -101,7 +101,7 @@ function define_buffs_and_debuffs() {
 		name: "Barnacle Bind",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Lowers the amount of playable dice this turn",
+	    desc: "Fewer plays this turn.",
 	    icon_index: 1,
 		debuff: true,
 		color: c_aqua,
@@ -123,7 +123,7 @@ function define_buffs_and_debuffs() {
 		name: "Bind",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Prevents a random slot from firing this turn",
+	    desc: "A random slot doesn't act this turn.",
 	    icon_index: 5,
 		debuff: true,
 		color: c_dkgray,
@@ -189,7 +189,7 @@ function define_buffs_and_debuffs() {
 		name: "Rot",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "One of your slots is rotten this turn: its total is halved.",
+	    desc: "Halves one slot's total this turn.",
 	    icon_index: 5,
 		debuff: true,
 		color: c_green,
@@ -218,7 +218,7 @@ function define_buffs_and_debuffs() {
 		name: "Overwhelm",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Spills your ink: lowers your insight (below 0, enemy intents are hidden) and locks your aim on this creature. You can't change target this turn.",
+	    desc: "Lowers your insight. Your target is locked on this enemy this turn.",
 	    icon_index: 2,
 		debuff: true,
 		color: c_red,
@@ -244,7 +244,7 @@ function define_buffs_and_debuffs() {
 		name: "Shiny Scales",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Driftnet fish gains a coin to their attack roll every time they take take damage",
+	    desc: "Adds a Coin to its attack each time it takes damage.",
 	    icon_index: 6,
 		debuff: false,
 		color: c_aqua,
@@ -280,7 +280,7 @@ function define_buffs_and_debuffs() {
 		name: "Spines",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Every time the Pufferfish takes damage it deals 1 back.",
+	    desc: "Deals 1 damage back when hit.",
 	    icon_index: 7,
 		debuff: false,
 		color: make_color_rgb(100, 60, 0),
@@ -305,7 +305,7 @@ function define_buffs_and_debuffs() {
 		name: "Reserve",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Carry a dice to next turn.",
+	    desc: "Keep a die for next turn.",
 	    icon_index: 1,
 		debuff: false,
 		color: c_lime,
@@ -351,7 +351,7 @@ function define_buffs_and_debuffs() {
 		name: "Lasting insight",
 	    duration: 2,
 		amount: 1,
-	    desc: "Insight at the start of each of your next turns, while it lasts.",
+	    desc: "Gain insight at the start of each turn.",
 	    icon_index: 2,
 		debuff: false,
 		color: make_color_rgb(230, 190, 40),
@@ -373,7 +373,7 @@ function define_buffs_and_debuffs() {
 		name: "Might",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Boost Attacks by 1 per point of Might",
+	    desc: "Attacks deal +1 per Might.",
 	    icon_index: 3,
 		debuff: false,
 		color: c_orange,
@@ -398,7 +398,7 @@ function define_buffs_and_debuffs() {
 		name: "Balance",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Boost Block by 1 per point of Balance",
+	    desc: "Block gains +1 per Balance.",
 	    icon_index: 4,
 		debuff: false,
 		color: c_blue,
@@ -421,7 +421,7 @@ function define_buffs_and_debuffs() {
 		name: "Turtle Shell",
 	    duration: 1,  // lasts 1 full turn
 		amount: 0,
-	    desc: "Doesn't lose block between turns",
+	    desc: "Keeps its block between turns.",
 	    icon_index: 8,
 		debuff: false,
 		color: make_colour_rgb(40, 150, 60),
@@ -443,7 +443,7 @@ function define_buffs_and_debuffs() {
 		name: "Conch Layer",
 	    duration: 3,  // lasts 1 full turn
 		amount: 10,
-	    desc: "Has 3 protective layers that reduce flat damage by 2 per hit. Dealing 10/15/20 damage in total will break a layer, causing the Conch to be stunned.",
+	    desc: "3 layers: each hit deals 2 less damage. A layer breaks at 10, 15 and 20 total damage, stunning the Conch.",
 	    icon_index: 8,
 		debuff: false,
 		color: make_colour_rgb(60, 180, 240),
@@ -482,7 +482,7 @@ function define_buffs_and_debuffs() {
 		name: "Heart Ache",
 	    duration: 1,  // lasts 1 full turn
 		amount: 0,
-	    desc: "When this enemy dies, its partner is rallied in heartache.",
+	    desc: "When it dies, its partner takes revenge.",
 	    icon_index: 9,
 		debuff: false,
 		color: make_colour_rgb(160, 50, 30),

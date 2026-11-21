@@ -13,7 +13,7 @@ if (room == rmMainMenu && !global.all_input_disabled && !global.show_settings) {
 	
 	if (show_run_warning == true) {
 		// give a warning if we try to start a new run with one existing
-		var warning_txt = "Are you sure you want to abandon your current run?";
+		var warning_txt = "Abandon your current voyage?";
 		
 		// Draw background
 		var btn_w = gui_w / 9;

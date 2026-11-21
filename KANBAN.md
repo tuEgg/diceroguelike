@@ -31,7 +31,7 @@
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
 
-Nothing waiting: batches 20 and 21 were approved on 2026-11-20 (see DONE).
+Nothing waiting: batches 22 and 23 were approved on 2026-11-21 (see DONE).
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -45,7 +45,6 @@ All known P0 bugs are fixed, see DONE.
 **Combat core**
 | ID | Bug | Where | Size |
 |---|---|---|---|
-| B36 | `"None!"` in `get_slot_stats` makes its condition always true. Left alone on purpose: it looks like a deliberate switch-off, and removing it would change how neutral dice count in a slot. Needs Jared's call. (The doubled `is_slot_exclusive` check was fixed in batch 2.) | `scCombatScripts.gml` | S [C] |
 
 **Dice / keepsakes / items**
 | ID | Bug | Where | Size |
@@ -58,6 +57,7 @@ All known P0 bugs are fixed, see DONE.
 **Save / load**
 | ID | Bug | Size |
 |---|---|---|
+| B144 | `save_game` calls `random_set_seed` with the run's stored seed every time it saves (scSaving), so after every save (each stop entered, the workbench) the random rolls restart from the same point: sea stop rewards, shop stock, events and dice draws can repeat across a run. Save the RNG state instead, or reseed from something that changes. Spotted 2026-11-21, not reproduced in play. | S [C] |
 
 ## 🐞 BUGS: P2 UI / polish
 
@@ -89,20 +89,19 @@ All known P0 bugs are fixed, see DONE.
 Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
 
 **Open from the playtests (2026-11-19 and 2026-11-20)**
-- F153 **Rewrite the guided first fight for rolled dice and ink.** It's been switched off since the rolled-dice change (`tutorial_wanted` returns false; its steps still teach "dice in one slot roll together", sacrificing to build slots, 2-turn dice). New players get only the one-time tips (`rolled_dice`, `new_slot`, `insight_spend`...), which are up to date. The map notes are off with it, and the last one still says "your first fight will walk you through the dice". Needs: steps for reading rolled dice, filling slots left to right, building a slot from pips, taking a die back, and the inkwell (reroll, redraw, exact numbers).
 - F139 Giant Conch (parked by Jared, 2026-11-19; the summon intent icon is done): its echo attack uses the normal attack icon, no separate normal attack, less damage reduction (discuss numbers).
 - F151 (alignment cores done, batch 20) Cores beyond weighted/loaded: every core should be worth taking (no reason to take weighted or loaded otherwise). Alignment cores (chaotic rolls the lower your alignment, central rolls the higher).
 - F152 Alignment in combat: e.g. start with a d4 shaped by alignment.
 - H12 Reminder for Jared: more enemy art. (Pen and coin sounds added by Jared: soQuill, soCoins.)
 
 **Core loop**
-- F02 **Rethink what happens between pages (Jared, 2026-11-17).** Workbench part done in batch 12 (At sea). Still open: the spread-end choices themselves. Built version (2026-11-17): the workbench becomes an "At sea" step between pages (after a page's island is done, before the next), replacing the map button. You choose which dice to take from your bag (not dealt at random), up to one per tool you own (plus a core for the Drill); each tool can be used once per visit and goes back in the toolbag after. "Sail on" skips it. Like FTL's ship upgrades between jumps, or the Slay the Spire campfire, but more often and smaller. Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
+- F02 **Rethink what happens between pages (Jared, 2026-11-17).** (Superseded by F166's layout.) Workbench part done in batch 12 (At sea). Still open: the spread-end choices themselves. Built version (2026-11-17): the workbench becomes an "At sea" step between pages (after a page's island is done, before the next), replacing the map button. You choose which dice to take from your bag (not dealt at random), up to one per tool you own (plus a core for the Drill); each tool can be used once per visit and goes back in the toolbag after. "Sail on" skips it. Like FTL's ship upgrades between jumps, or the Slay the Spire campfire, but more often and smaller. Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
 - F03 Elite/boss chest reward
 - F05 Die roll-history stats page (death/win screens and the run summary were done in batch 10)
 - F06 Chapters, what's left: real art for the chapter tab, a second boss (chapter 2 reuses Barnacle Titan), a story tie-in for the chapter break, and balancing the chapter difficulty growth (+50% health, +3 attack and block per chapter, macros in scMap).
 
 **Combat clarity** (the most common playtest feedback)
-- F14 Colour-blind-safe palette (Jack can't tell the blues apart). Action icons on dice are done (batch 12, Settings > Display); a palette change is still open
+- F14 Colour-blind-safe palette: **addressed for the UI (Jared, 2026-11-20).** Every action has a glyph (sword, shield, heart, eye) on dice, slots and intent tags, on by default (batch 20), and the batch 20 palette split the blues (block is light blue, insight gold). Reopen if a tester still mixes colours up.
 - F15 Summon intent icon, buff animation, clearer "Nav Chart fired" feedback
 
 **Content**
@@ -140,6 +139,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 ## 📌 DECISIONS
 
+- 2026-11-21 **Map layout B+:** every page you draft brings a sea stop after its island; the buoy and the four-way strait go; one of the three offered pages always carries Calm water or the Shipwright; a harbour (rest or refit) before each boss. Sea pages (option D) stay an idea for later.
 - 2026-11-19 **Balance (Q11-Q14, after Molly's playtest):** start on 60 HP; every enemy attack hits about 20% harder from chapter 1 (`ENEMY_ATTACK_BOOST`). Sparing pays a third of the bounty, killing all of it. A chapter is 3 drafted spreads, then the boss. The strait no longer heals for free: Calm water (heal 30%) is always one of its stops. The intent reroll cost stays as it is for now.
 - 2026-11-15 **Action queue:** settled as "permanent dice eject on their second turn". Other ideas stay in the notes.
 - 2026-11-15 **Map lock stays.** It's a design pillar: "pick 1, lose 1, gain the last" choices like the rewards. Look for more places to use it.
@@ -151,6 +151,45 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 ---
 
 ## ✅ DONE
+
+**Play-tested and approved by Jared (2026-11-21), merged to `dev` (v0.2, not released yet)**
+
+| Batch | Cards | Branch / commit | Status |
+|---|---|---|---|
+| 23: map layout B+, new-slot tile, quartermaster, map and reward polish | F166, B36 (change), F167, F168, F169, F170, F171, F172, F173, F174, F175, B143, F176, F177, F178, F179, F180, F181, F182 | `feature/map-passages`, merged into `dev` | **Approved.** Every page brings its own sea stop; the buoy and the four-way strait are gone; a harbour before the boss. Generic dice help build a slot once a coloured die is on the tile; the tile shows how many dice it needs; the quartermaster's offer is a dark window. Map polish (icons, labels, waves, smaller ship) and reward cards (die over the edge, items as cards). |
+| 22: guided first fight, generic dice | F153, B36 | `feature/tutorial-rewrite`, merged into `dev` | **Approved.** The guided first fight is back, rewritten for rolled dice and ink; generic dice can't build slots. |
+
+**Batch 23 test list (`feature/map-passages`)** Layout B+ of docs/mockups/map-layouts.html. Start a new run (a save from before still loads: its current spread has no sea stops and ends at calm water).
+- Drafting: each of the 3 page cards shows its sea stop on its bottom right corner, with its name; hover for what it does. The three are always different, and at least one is Calm water or the Shipwright (the Shipwright only while a tool has work). A locked page's stop fades with it. Once you've picked a page, its stop shows on the book where it will be, past the island.
+- Sailing: after the left island, its stop (between the pages) breathes; clicking the right island says to sail through the stop first. Click the stop: the ship sails there and it happens (Calm water heals if you're hurt, the Shipwright opens the workbench, the wreck gives a core, the reef or squall open the dice picker, flotsam gives gold), with an ink stamp; then the right island. After the right island, its stop past the page works the same, then the ship sails off and the page turns. A stop you can't use when you get there (no tool has work, item slots full, 6 dice or fewer for the squall) becomes Calm water.
+- Courses on the chart: in from the book's edge, through each island, through each stop; no more sail-past route or fork.
+- The boss spread: a harbour on the left page with two moorings, "Harbour: rest" (Calm water) and "Harbour: refit" (the Shipwright, greyed if no tool has work). The boss can't be clicked until you've moored at one. Refit opens the workbench; coming back, the boss is next.
+- Continue: quit after sailing through a left stop, or from the workbench, and Continue: the stop stays used (ticked), you aren't offered it again.
+- Tips: the first-voyage drafting note and the at-sea and spread-end tips describe the new layout; the toolbag's tip mentions the Shipwright and the harbour.
+- B36 (change, Jared 2026-11-21) A generic die can go on the new-slot tile once a coloured die is there (before that it's refused with the reason, and the tile says so while you drag one over it). Take the coloured die back and the slot won't build from generic dice alone: it waits for a coloured one.
+- F167 The new-slot tile says how many dice it needs: "6+ pips" inside as before, and above it a faded d6 outline for each die it needs (one for slot 2, two for slot 3, three for slot 4), gently pulsing (dimmer while a slot is still empty). Dropped dice take the outlines' places; hover the outlines for a reminder. Check the outlines and the waiting dice line up, and that more dice than it needs still all show.
+- F176 Chapter tabs on the book's right edge stick out much less (close to the pages' edge) and carry no label; hovering one pulls it well out and its title ("Chapter 2") fades in down it, with the tooltip naming the chapter and how far away it is.
+- F182 Small fixes (Jared, 2026-11-21): the ship is hidden while drafting (it sails in from the left after Embark), so it never floats over the cards; the compass % sits a little further left, clear of the compass; the dice picker's Confirm is the same button in the same spot as the room's Continue under it (check the workbench); in fights you, the enemies and the action queue sit about 25 px higher, so health bars clear the hand tray's edge (check intents, the inkwell and the new-slot tile still line up).
+- F181 Drafting says how it works: "Take a page. One is lost, the other is yours." (then "One page is lost. The other is yours."). After your pick, the lost page burns away instead of getting chains: it catches with a puff of embers, scorches brown ahead of a glowing orange flame front that eats through it in a ragged pattern (new shader shBurn), a few embers and wisps of smoke rise off it, and in about a second it's gone. Then the last page is taken for you (no second click). Check the burn in the desktop and web builds (it's a new shader), that the second page lands on the book as before, and that quitting mid-draft and Continuing still works.
+- F180 All game text cut to the rule (tutorial notes, tips, tooltips, errors, dice/keepsake/item descriptions, keywords, map nodes, event choices; event story text left as it was). Read through as you play: anything unclear, or wrong for what it does, tell me. A few were reworded to match the code (Bouncing, Gunpowder, Cannon Splitter, Artisan's Ember). "Spend N insight" lines rely on the cost tag in the tooltip's corner.
+- F179 Sea stop and map tooltips cut to what they do: Squall "Remove a die from your bag.", Flotsam "Gain 50 gold.", the wreck "Gain a core.", the reef "Give a die +1 minimum roll.", Calm water "Heal N HP.", the Shipwright "Use your tools on your dice." No more "This page's sea stop..." or "Click to sail here..." lines; an unusable stop adds one short line. New rule in CLAUDE.md: all game text as short and clear as possible.
+- F178 Drafting cards are landscape sheets of sea chart (option A of docs/mockups/draft-cards.html), drawn in code (500 x 330, 70 px apart): sea blue all over with a torn ink edge, the island (with its stops and course) in the left part, the sea stop in the right part with the course out to it, with room round both (no box behind the stop). They grow a little on hover; the picked one has the green outline, a locked one the chains. The chart behind is darker while drafting. Check the three cards don't touch (also while one grows), names and labels fit, and islands sit inside the paper.
+- F177 Drafting with one page picked: the picked page's sea stop and its course are drawn as part of the map, under the cards still to choose from (they were drawn over them).
+- B143 Hover sounds no longer repeat: moving between a drafting page and the stops on it replayed the page's paper sound every time (silent icons took over "what's hovered"), and Embark's hover sound looped while it breathed (its hover was keyed to its size). Check hovering pages, their stops, Embark, and buttons that grow on hover elsewhere: one sound per thing hovered.
+- F175 Drafting previews look like the page will: the cards are a little bigger (island and stops too), set a little left, with the sea stop beside each page level with its middle, as on the chart, and a dotted course from the page's last stop out to it. The pages you've already picked show theirs the same way.
+- F169 Fight reward cards: no dividing line; the paper starts where it was, so the die sits over the card's top edge, with its keyword icons a little bigger on the same line, and the gem inside the paper's top right. Face-down cards cover just the paper part. The same look is used on every dice card: the bag view, the dice picker and the quartermaster's offer (its green tick sits bottom right). Check the bag view's rows don't overlap (the die pokes above each card's paper) and its cropping at the panel edge still looks right.
+- F170 Item rewards (potions, cores, coins) are cards in the same design: face down, flipped in turn with the rarity flash; the icon on a paper disc over the card's top edge, name, what it does (centred), a core's distribution across the bottom, "x2" for a stack. Take two as before: after the first, one of the others is locked (darkened, chained, "Locked" on hover). Taken cards fade. (Keepsake rewards keep their old look for now.)
+- F171 Map stops: sea stops lose their three rings, just a soft blue disc behind the icon so the dotted courses stop short of it. Island stops have their name underneath like the sea stops. Every stop grows under the mouse (sea stops too, even when not yet reachable). Icons are Jared's sprites as drawn (a white fill was tried and taken out). Done stops are circled in ink with a tick on the ring, not faded and not green (Jared, 2026-11-21). The page turning over shows its icons white too.
+- F172 The ship is a fifth smaller on the map, and moors beside a sea stop (down and left of it) rather than on it, so the tick shows.
+- F173 Now and then a small white wave rises, drifts and fades on the water pages, under the islands (a few at a time, rare).
+- F174 Flotsam's 50 gold flies from the stop itself; healing (Calm water, the harbour, a healing potion) sparkles at your health in the top bar. Drafting: each page card shows its dotted course between its stops (fainter on a locked page).
+- F168 The quartermaster's offer (start of a run) is a dark slate window like the bag view, with the paper cards on it; heading and words in light ink, the bag strip's dice outlined light. The first-voyage note (paper) should now stand out against it.
+
+**Batch 22 test list (`feature/tutorial-rewrite`)** To see the guided fight: Settings > Gameplay > Tutorial next run, then start a run (the map notes come back too).
+- F153 Turn 1, a lone Pirate Ruffian and a set hand that rolls the same every time: Attack 3, Attack 2, generic 2, Block 4, insight 2, Block 1. The notes, one at a time: read the intent (points at its tag), your dice have rolled (circles your hand), drag an Attack die into the slot, add the other Attack die, add the generic die, take a die back by clicking it (then you can put it back), build slot 2 by dropping the Block 4 on the new-slot tile (the insight 2 or Block 1 should be refused as too low), its +1 place bonus, end turn. Moves the step isn't asking for are refused with "Follow the logbook".
+- F153 Turn 2: click the inkwell (you'll have at least 6 ink), then reroll (left-click) or redraw (right-click) a die; the note should stay readable on top of the ink view. Then the enemy side of ink, Confirm to close, and "The rest is yours". Skip tutorial works at every step, the ink view included.
+- F153 After the guided fight, the next fights don't repeat its tips (rolled dice, new slot, insight); a tip it didn't reach (if the fight ends early) still shows later. Kill the Ruffian on turn 1 with the debug menu to check.
+- B36 Generic (bone-white) dice: dragging one over an empty slot says it can't start a slot; over the new-slot tile, "Can't build a slot" with the reason; dropping it there is refused. Into a slot with an action it adds as before.
 
 **Play-tested and approved by Jared (2026-11-20), merged to `dev` (v0.2, not released yet)**
 

@@ -62,12 +62,14 @@ function deal_single_die( _can_discard_this_turn = true) {
 	}
 	
 	// the guided first fight deals a set hand, taken from the bag so the bag stays right
-	var _tut_type = (room == rmCombat) ? tutorial_next_hand_type() : "";
-	if (_tut_type != "" && _debug_die == undefined) {
+	var _tut = (room == rmCombat) ? tutorial_next_hand_type() : undefined;
+	if (is_struct(_tut) && _debug_die == undefined) {
 		for (var d = 0; d < ds_list_size(global.dice_bag); d++) {
-			if (global.dice_bag[| d].action_type == _tut_type) {
+			if (global.dice_bag[| d].action_type == _tut.type) {
 				die_struct = clone_die(global.dice_bag[| d], "");
 				index = d;
+				// it lands on the face the step needs (die_roll_faces uses forced_roll once, then clears it)
+				if (_tut.face > 0) die_struct.forced_roll = _tut.face;
 				break;
 			}
 		}
@@ -234,7 +236,7 @@ function generate_dice_bag() {
 	// Anchor Die: Gain +3 block if not used
 	global.die_anchor = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Anchor die",
-	    "Stowaway: +5 block if not used.",
+	    "Stowaway: Gain 5 block.",
 		"common",
 		30,
 	    [
@@ -254,7 +256,7 @@ function generate_dice_bag() {
 	// Slipstream Die: Play 1 extra dice next turn.
 	global.die_slipstream = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Slipstream die",
-	    "Stowaway: Play 1 extra dice next turn.",
+	    "Stowaway: Play 1 extra die next turn.",
 		"common",
 		40,
 	    [
@@ -272,7 +274,7 @@ function generate_dice_bag() {
 	// Defensive Die: Coin. Favourite. Multitype: Can create HEAL and BLK slo
 	global.die_defensive = make_die_struct(
 	    1, 2, "HEAL", "HEAL BLK", "", "Defensive coin",
-	    "Coin. Favourite. Multitype: Can create HEAL and BLK slots.",
+	    "Coin. Favourite. Multitype: HEAL or BLK.",
 		"rare",
 		70,
 	    []
@@ -283,7 +285,7 @@ function generate_dice_bag() {
 	// Anchor Die: Gain +3 block if not used
 	global.die_tidebreaker = make_die_struct(
 	    1, 6, "ATK", "ATK", "", "Tidebreaker die",
-	    "Followthrough: If previous slot was BLK, deal +2 damage to attacking rolls.",
+	    "Followthrough: +2 damage if the slot before is BLK.",
 		"common",
 		50,
 	    [
@@ -303,7 +305,7 @@ function generate_dice_bag() {
 	// Pretty penny
 	global.die_power_penny = make_die_struct(
 	    1, 2, "BLK", "BLK", "", "Power penny",
-	    "Coin. +1 bonus to this coin for the number of dice in this slot.",
+	    "Coin. +1 for each die in its slot.",
 		"common",
 		50,
 	    [
@@ -323,7 +325,7 @@ function generate_dice_bag() {
 	// Invisible Die
 	global.die_invisible = make_die_struct(
 	    1, 4, "None", "None", "", "Invisible die",
-	    "When played: draw 1 die and play +1 die this turn.",
+	    "When played: draw 1 die and gain 1 play.",
 		"common",
 		30,
 	    [
@@ -345,7 +347,7 @@ function generate_dice_bag() {
 	// Surge Die
 	global.die_surge = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Surge die",
-	    "+1 bonus to this die for every subsequent slot.",
+	    "+1 for each slot after it.",
 		"uncommon",
 		40,
 	    [
@@ -363,7 +365,7 @@ function generate_dice_bag() {
 	// Kill Coin
 	global.die_kill_coin = make_die_struct(
 	    1, 2, "ATK", "ATK", "", "Kill coin",
-	    "Coin. +2 bonus if placed in the last slot in your queue.",
+	    "Coin. +2 in the last slot.",
 		"uncommon",
 		40,
 	    [
@@ -381,7 +383,7 @@ function generate_dice_bag() {
 	// Tidepusher die
 	global.die_tidepusher = make_die_struct(
 	    1, 4, "HEAL", "HEAL", "", "Tidepusher die",
-	    "Exclusive. If this die rolls a 4, heal 1 more.",
+	    "Exclusive. If it rolls 4, heal 1 more.",
 		"rare",
 		90,
 	    [
@@ -402,7 +404,7 @@ function generate_dice_bag() {
 	// Bulwark die
 	global.die_bulwark = make_die_struct(
 	    1, 8, "BLK", "BLK", "", "Bulwark die",
-	    "Followthrough: If previous slot was block, deal {min2} damage (double this die's minimum roll) to all enemies.",
+	    "Followthrough: If the slot before is block, deal {min2} damage to all enemies.",
 		"rare",
 		70,
 	    [
@@ -431,7 +433,7 @@ function generate_dice_bag() {
 	// Bulwark die
 	global.die_crescendo = make_die_struct(
 	    1, 8, "ATK", "ATK", "", "Crescendo die",
-	    "Increase this die's minimum roll by 1 (up to {half}) each time it rolls (resets each combat).",
+	    "+1 minimum roll each time it rolls this combat, up to {half}.",
 		"rare",
 		80,
 	    [
@@ -448,7 +450,7 @@ function generate_dice_bag() {
 	// Squall die
 	global.die_squall = make_die_struct(
 	    1, 6, "None", "None", "", "Squall die",
-	    "If this die rolls 5 or higher, draw a die.",
+	    "If it rolls 5 or higher, draw a die.",
 		"common",
 		50,
 	    [
@@ -469,7 +471,7 @@ function generate_dice_bag() {
 	// Reed snap die
 	global.die_reed_snap = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Reed snap die",
-	    "If this die rolls a 4 or higher, gain 2 block.",
+	    "If it rolls 4 or higher, gain 2 block.",
 		"common",
 		30,
 	    [
@@ -491,7 +493,7 @@ function generate_dice_bag() {
 	// Reed snap die
 	global.die_blood_reef = make_die_struct(
 	    1, 6, "ATK", "ATK", "", "Blood Reef die",
-	    "If this deals damage, gain +2 damage but lose 1 HP.",
+	    "When attacking: +2 damage, lose 1 health.",
 		"rare",
 		80,
 	    [
@@ -513,7 +515,7 @@ function generate_dice_bag() {
 	// Slipstream Die
 	global.die_muzzle = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Muzzle die",
-	    "Followthrough: +1 to this die for each slot before it.",
+	    "Followthrough: +1 for each slot before it.",
 		"uncommon",
 		60,
 	    [
@@ -533,7 +535,7 @@ function generate_dice_bag() {
 	// Bilge Die
 	global.die_bilge = make_die_struct(
 	    1, 6, "None", "None", "", "Bilge die",
-	    "Sticky. If this die's total (roll plus bonuses) is even, heal 2.",
+	    "Sticky. If its total is even, heal 2.",
 		"rare",
 		80,
 	    [
@@ -616,7 +618,7 @@ function generate_dice_bag() {
 	// Deepdiver Die
 	global.die_deepdiver = make_die_struct(
 	    1, 6, "None", "None", "", "Deepdiver Die",
-	    "When this die is rerolled or redrawn with ink, draw a die (an extra one, if redrawn).",
+	    "When rerolled or redrawn with ink, draw a die.",
 		"uncommon",
 		50,
 	    [
@@ -635,7 +637,7 @@ function generate_dice_bag() {
 	// Inteli Die
 	global.die_intelli = make_die_struct(
 	    1, 4, "INTEL", "INTEL", "", "Inkwell Die",
-	    "Gain +1 for each unique action in the action queue",
+	    "+1 for each action type in your queue.",
 		"uncommon",
 		50,
 	    [
@@ -665,7 +667,7 @@ function generate_dice_bag() {
 	// Deflect Die
 	global.die_deflect = make_die_struct(
 	    1, 6, "BLK", "BLK INTEL", "", "Deflect Die",
-	    "Multitype. Can create BLK and INTEL slots.",
+	    "Multitype. BLK or INSIGHT.",
 		"uncommon",
 		70,
 		[]
@@ -675,7 +677,7 @@ function generate_dice_bag() {
 	
 	global.die_bolster = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Bolster Die",
-	    "When it builds a slot: gain {max2} block (double this die's max value).",
+	    "When it builds a slot: gain {max2} block.",
 		"common",
 		50,
 	    [
@@ -693,7 +695,7 @@ function generate_dice_bag() {
 	
 	global.die_echo = make_die_struct(
 	    1, 4, "None", "None", "", "Echo Die",
-	    "When played: a copy of this die joins its slot.",
+	    "When played: a copy joins its slot.",
 		"rare",
 		60,
 	    [
@@ -711,7 +713,7 @@ function generate_dice_bag() {
 	
 	global.die_accurate = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Accurate Die",
-	    "Rolls itself twice and takes the higher of the two",
+	    "Rolls twice and keeps the higher.",
 		"common",
 		40,
 	    [
@@ -756,7 +758,7 @@ function generate_dice_bag() {
 	
 	global.die_harvest = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Harvest Die",
-	    "Gain 1 gold when this die is played, or when it builds a slot.",
+	    "Gain 1 gold when played or when it builds a slot.",
 		"common",
 		50,
 	    [
@@ -804,7 +806,7 @@ function generate_dice_bag() {
 	
 	global.die_bouncing = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Bouncing Die",
-	    "When this die rolls to deal damage, randomly change targets",
+	    "When attacking: switch to a random target.",
 		"common",
 		40,
 	    [
@@ -839,7 +841,7 @@ function generate_dice_bag() {
 	
 	global.die_guerrilla_coin = make_die_struct(
 	    1, 2, "INTEL", "INTEL", "", "Guerrilla Coin",
-	    "Coin. When it builds a slot, deal damage equal to half your insight to a random enemy.",
+	    "Coin. When it builds a slot: deal half your insight as damage to a random enemy.",
 		"common",
 		40,
 	    [
@@ -880,7 +882,7 @@ function generate_dice_bag() {
 	
 	global.die_offhand = make_die_struct(
 	    1, 6, "ATK", "ATK", "", "Offhand die",
-	    "Gain 1 might this turn if this die rolls its minimum value ({min}).",
+	    "If it rolls {min}, gain 1 Might.",
 		"common",
 		30,
 	    [
@@ -899,7 +901,7 @@ function generate_dice_bag() {
 	
 	global.die_balanced = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Balanced die",
-	    "Gain 1 balance next turn if this die rolls its maximum value ({max}).",
+	    "If it rolls {max}, gain 1 Balance next turn.",
 		"common",
 		30,
 	    [
@@ -918,7 +920,7 @@ function generate_dice_bag() {
 	
 	global.die_holy = make_die_struct(
 	    1, 8, "None", "None", "", "Holy die",
-	    "Alignment: The higher your alignment, the higher this die's minimum roll",
+	    "Alignment: The higher your alignment, the higher its minimum roll.",
 		"rare",
 		30,
 	    [
@@ -934,7 +936,7 @@ function generate_dice_bag() {
 	
 	global.die_unholy = make_die_struct(
 	    1, 6, "None", "None", "", "Unholy die",
-	    "Alignment: The lower your alignment, the higher this die's maximum roll",
+	    "Alignment: The lower your alignment, the higher its maximum roll.",
 		"rare",
 		30,
 	    [
@@ -950,7 +952,7 @@ function generate_dice_bag() {
 	
 	global.die_ninja = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Ninja die",
-	    "Followthrough: Gains +2 if the previous slot was insight.",
+	    "Followthrough: +2 if the slot before is insight.",
 		"common",
 		40,
 	    [
@@ -969,7 +971,7 @@ function generate_dice_bag() {
 	
 	global.die_warrior = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Warrior die",
-	    "If this die rolls its minimum value ({min}), change it to its max value ({max}) instead.",
+	    "Rolls of {min} become {max}.",
 		"common",
 		30,
 	    [
@@ -989,7 +991,7 @@ function generate_dice_bag() {
 	
 	global.die_assassin = make_die_struct(
 	    1, 4, "ATK", "ATK INTEL", "", "Assassin Die",
-	    "Multitype. Can create ATK and INSIGHT slots. Gains +1 minimum roll for every 3 insight you have.",
+	    "Multitype. ATK or INSIGHT. +1 minimum roll per 3 insight.",
 		"rare",
 		70,
 	    [
@@ -1007,7 +1009,7 @@ function generate_dice_bag() {
 	
 	global.die_last_stand = make_die_struct(
 	    1, 6, "ATK", "ATK", "", "Last Stand Die",
-	    "Gains +1 minimum roll for every 20% hp missing.",
+	    "+1 minimum roll per 20% health missing.",
 		"uncommon",
 		60,
 	    [
@@ -1023,7 +1025,7 @@ function generate_dice_bag() {
 	
 	global.die_splash = make_die_struct(
 	    1, 10, "BLK", "BLK", "", "Splash Die",
-	    "-2 on every roll (never below 0).",
+	    "-2 on every roll, minimum 0.",
 		"common",
 		60,
 	    [
@@ -1041,7 +1043,7 @@ function generate_dice_bag() {
 	// Gunpowder: when it rolls, every other enemy takes 2 (at roll time, so enemies only ever fall while the queue resolves)
 	global.die_gunpowder = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Gunpowder die",
-	    "When this die rolls, every other enemy takes 2 damage.",
+	    "When attacking: every other enemy takes 2 damage.",
 		"common",
 		40,
 	    [
@@ -1063,7 +1065,7 @@ function generate_dice_bag() {
 	// Tidecaller: a high heal also raises your guard
 	global.die_tidecaller = make_die_struct(
 	    1, 6, "HEAL", "HEAL", "", "Tidecaller die",
-	    "If this die rolls 5 or higher, also gain 3 block.",
+	    "If it rolls 5 or higher, also gain 3 block.",
 		"uncommon",
 		50,
 	    [

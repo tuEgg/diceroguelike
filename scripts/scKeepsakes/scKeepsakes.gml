@@ -20,7 +20,7 @@ function define_keepsakes() {
 	ks_looking_glass = {
 	    _id: "looking_glass",
 	    name: "Looking Glass",
-	    desc: "Start each combat with 6 insight to spend.",
+	    desc: "Start each combat with 6 insight.",
 		sub_image: 5,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
@@ -39,7 +39,7 @@ function define_keepsakes() {
 	ks_lime_juice = {
 	    _id: "lime_juice",
 	    name: "Lime Juice",
-	    desc: "Lose 5hp and gain 10 max hp",
+	    desc: "Lose 5 health and gain 10 max health.",
 		sub_image: 28,
 		price: 80,
 	    trigger: function(event, data) {
@@ -55,7 +55,7 @@ function define_keepsakes() {
 	ks_salted_pork = {
 	    _id: "salted_pork",
 	    name: "Salted Pork",
-	    desc: "Heal 10% more every time you rest",
+	    desc: "Heal 10% more when you rest.",
 		sub_image: 29,
 		price: 90,
 	    trigger: function(event, data) {
@@ -72,7 +72,7 @@ function define_keepsakes() {
 	ks_pickled_cucumber = {
 	    _id: "pickled_cucumber",
 	    name: "Pickled Cucumber",
-	    desc: "+1 playable die during first turn of combat",
+	    desc: "+1 play on the first turn of combat.",
 		sub_image: 33,
 		price: 100,
 	    trigger: function(event, data) {
@@ -91,7 +91,7 @@ function define_keepsakes() {
 	ks_toolbelt = {
 	    _id: "toolbelt",
 	    name: "Toolbelt",
-	    desc: "Gain +2 item slots",
+	    desc: "+2 item slots.",
 		sub_image: 25,
 		price: 100,
 	    trigger: function(event, data) {
@@ -111,7 +111,7 @@ function define_keepsakes() {
 	ks_rum = {
 	    _id: "rum",
 	    name: "Rum",
-	    desc: "All attacks gain +1 max roll and -1 min roll",
+	    desc: "Attacks get +1 max roll and -1 min roll.",
 	    sub_image: 30,
 		price: 110,
 	    trigger: function(event, data) {			
@@ -133,7 +133,7 @@ function define_keepsakes() {
 	ks_rations = {
 	    _id: "rations",
 	    name: "Rations",
-	    desc: "When you drink a potion, heal 3 hitpoints",
+	    desc: "When you drink a potion, heal 3.",
 	    sub_image: 31,
 		price: 110,
 	    trigger: function(event, data) {			
@@ -153,7 +153,7 @@ function define_keepsakes() {
 	ks_water_barrel = {
 	    _id: "water_barrel",
 	    name: "Water Barrel",
-	    desc: "Potions have a 30% chance to not be consumed",
+	    desc: "Potions have a 30% chance not to be used up.",
 	    sub_image: 32,
 		price: 120,
 	    trigger: function(event, data) {			
@@ -178,7 +178,7 @@ function define_keepsakes() {
 	ks_small_sail = {
 	    _id: "small_sail",
 	    name: "Small Sail",
-	    desc: "Draw 2 additional dice at the start of combat",
+	    desc: "Draw 2 more dice at the start of combat.",
 		sub_image: 6,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
@@ -197,7 +197,7 @@ function define_keepsakes() {
 	ks_rope_of_repair = {
 	    _id: "rope_of_repair",
 	    name: "Rope of Repair",
-	    desc: "Heal 3 health at the start of each combat",
+	    desc: "Heal 3 at the start of each combat.",
 		sub_image: 7,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
@@ -262,7 +262,7 @@ function define_keepsakes() {
 	ks_black_purse = {
 	    _id: "black_purse",
 	    name: "Black Purse",
-	    desc: "At the end of combat gain 3 gold for every slot in your action queue",
+	    desc: "After combat, gain 3 gold per slot.",
 		sub_image: 9,
 	    trigger: function(event, data) {
 	        if (event == "on_combat_end") {
@@ -280,7 +280,7 @@ function define_keepsakes() {
 	ks_shipwrights_draft = {
 	    _id: "shipwrights_draft",
 	    name: "Shipwright's Draft",
-	    desc: "When new slots are created, gain 1 more dice playable that turn",
+	    desc: "When you build a slot, gain 1 play this turn.",
 		sub_image: 10,
 	    trigger: function(event, data) {
 	        if (event == "on_new_slot_created") {
@@ -296,7 +296,7 @@ function define_keepsakes() {
 	ks_cannon_splitter = {
 	    _id: "cannon_splitter",
 	    name: "Cannon Splitter",
-	    desc: "Your first attack slot hits all other enemies for 75%",
+	    desc: "Your first attack slot each turn also hits other enemies for 75%.",
 		sub_image: 11,
 		state: {
 			used: false,
@@ -331,7 +331,7 @@ function define_keepsakes() {
 	ks_bandage = {
 	    _id: "bandage",
 	    name: "Bandage",
-	    desc: "Every time you are debuffed, the first slot in your queue gains +1 for the remainder of combat",
+	    desc: "When you're debuffed, your first slot gets +1 for the rest of combat.",
 		sub_image: 14,
 		state: {
 			triggered: false,
@@ -354,7 +354,7 @@ function define_keepsakes() {
 	ks_single_focus = {
 	    _id: "single_focus",
 	    name: "Single Focus",
-	    desc: "The first die in each slot with only one possible action type gains +1",
+	    desc: "The first die in each single-type slot gets +1.",
 		sub_image: 13,
 		state: {
 		},
@@ -375,7 +375,7 @@ function define_keepsakes() {
 	ks_repeater_rail = {
 	    _id: "repeater_rail",
 	    name: "Repeater Rail",
-	    desc: "Rapid fire: in a slot, each die after the first gets +1 for every die before it (the 2nd +1, the 3rd +2...).",
+	    desc: "Each die in a slot gets +1 for every die before it.",
 		sub_image: 12,
 		state: { },
 	    trigger: function(event, data) {
@@ -424,7 +424,7 @@ function define_keepsakes() {
 	ks_lantern_of_patience = {
 	    _id: "lantern_of_patience",
 	    name: "Lantern of Patience",
-	    desc: "Each unused die grants +2 block at the end of turn",
+	    desc: "Each unused die gives 2 block at end of turn.",
 	    sub_image: 4,
 		state: { },
 	    trigger: function(event, data) {			
@@ -443,7 +443,7 @@ function define_keepsakes() {
 	ks_windbound_charm = {
 	    _id: "windbound_charm",
 	    name: "Windbound Charm",
-	    desc: "Stowaway effects also trigger when played",
+	    desc: "Stowaway effects also trigger when played.",
 	    sub_image: 15,
 		state: { },
 	    trigger: function(event, data) {			
@@ -460,7 +460,7 @@ function define_keepsakes() {
 	ks_lead_line = {
 	    _id: "lead_line",
 	    name: "Lead Line",
-	    desc: "'When played' effects also trigger twice when a die builds a slot",
+	    desc: "When a die builds a slot, its 'When played' effect triggers twice.",
 	    sub_image: 17,
 		state: { },
 	    trigger: function(event, data) {			
@@ -486,14 +486,14 @@ function define_keepsakes() {
 	ks_friendship_bracelet = {
 	    _id: "friendship_bracelet",
 	    name: "Friendship Bracelet",
-	    desc: "On pickup, choose a die in your bag to gain Favourite",
+	    desc: "Give a die Favourite.",
 	    sub_image: 16,
 		state: { },
 	    trigger: function(event, data) {			
 			if (event == "on_keepsake_acquired" && data.keepsake_id == _id) {
 	            // Need to add choosing functionality
 				oRunManager.dice_selection = 1;
-				oRunManager.dice_selection_message = "Choose 1 die to add Favourite to.";
+				oRunManager.dice_selection_message = "Choose a die to gain Favourite.";
 				oRunManager.dice_selection_event = function(_die) {
 					die_add_keyword(_die, "Favourite"); // the keyword and its text together
 				}
@@ -512,7 +512,7 @@ function define_keepsakes() {
 	ks_topographic_map = {
 	    _id: "topographic_map",
 	    name: "Topographic Map",
-	    desc: "Peaks and valleys: when you play a die that rolled its max, its slot gets +2 this turn. When a die rolls its lowest face, draw a die (twice a turn).",
+	    desc: "When you play a max roll, its slot gets +2 this turn. When a die rolls its minimum, draw a die, at most twice a turn.",
 	    sub_image: 20,
 		state: { draws: 0, turn: -1 },
 	    trigger: function(event, data) {
@@ -605,7 +605,7 @@ function define_keepsakes() {
 	ks_message_in_a_bottle = {
 	    _id: "message_in_a_bottle",
 	    name: "Message in a Bottle",
-	    desc: "Gain a random dice at the start of combat.",
+	    desc: "Start each combat with a random extra die.",
 	    sub_image: 1,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
@@ -663,7 +663,7 @@ function define_keepsakes() {
 	ks_shield_plating = {
 	    _id: "shield_plating",
 	    name: "Shield Plating",
-	    desc: "+1 minimum roll on all Block die.",
+	    desc: "+1 minimum roll on Block dice.",
 	    sub_image: 39,
 		state: { },
 	    trigger: function(event, data) {			
@@ -684,7 +684,7 @@ function define_keepsakes() {
 	ks_weapon_polish = {
 	    _id: "weapon_polish",
 	    name: "Weapon Polish",
-	    desc: "+1 minimum roll on all Attack die.",
+	    desc: "+1 minimum roll on Attack dice.",
 	    sub_image: 40,
 		state: { },
 	    trigger: function(event, data) {			
@@ -705,7 +705,7 @@ function define_keepsakes() {
 	ks_crossword_puzzle = {
 	    _id: "crossword_puzzle",
 	    name: "Crossword Puzzle",
-	    desc: "+1 minimum roll on all Neutral die.",
+	    desc: "+1 minimum roll on Neutral dice.",
 	    sub_image: 41,
 		state: { },
 	    trigger: function(event, data) {			
@@ -726,7 +726,7 @@ function define_keepsakes() {
 	ks_book_of_secrets = {
 	    _id: "book_of_secrets",
 	    name: "Book of Secrets",
-	    desc: "+1 minimum roll on all insight dice.",
+	    desc: "+1 minimum roll on insight dice.",
 	    sub_image: 42,
 		state: { },
 	    trigger: function(event, data) {			
@@ -747,7 +747,7 @@ function define_keepsakes() {
 	ks_lucky_coin = {
 	    _id: "lucky_coin",
 	    name: "Lucky Coin",
-	    desc: "Coins roll 2s twice as often as 1s",
+	    desc: "Coins roll 2s twice as often as 1s.",
 	    sub_image: 0,
 		state: { },
 	    trigger: function(event, data) {			
@@ -768,7 +768,7 @@ function define_keepsakes() {
 	ks_protective_rigging = {
 	    _id: "protective_rigging",
 	    name: "Protective Rigging",
-	    desc: "Gain +2 block every time you play a die.",
+	    desc: "Gain 2 block when you play a die.",
 	    sub_image: 26,
 
 	    trigger: function(event, data) {
@@ -790,7 +790,7 @@ function define_keepsakes() {
 	ks_captains_ledger = {
 	    _id: "captains_ledger",
 	    name: "Captain's Ledger",
-	    desc: "Whenever you draw the last die from your bag, deal 5 damage to all enemies and gain 3 gold.",
+	    desc: "When your bag runs out, deal 5 damage to all enemies and gain 3 gold.",
 	    sub_image: 22,
 	    trigger: function(event, data) {
 	        // IMPORTANT: `self` here is the keepsake struct itself — no need for `var that`
@@ -815,7 +815,7 @@ function define_keepsakes() {
 	ks_rusty_rudder = {
 	    _id: "rusty_rudder",
 	    name: "Rusty Rudder",
-	    desc: "Whenever a die rolls its minimum, deal that much damage to a random enemy.",
+	    desc: "When a die rolls its minimum, deal that much damage to a random enemy.",
 	    sub_image: 23,
 	    trigger: function(event, data) {
 	        // IMPORTANT: `self` here is the keepsake struct itself — no need for `var that`
@@ -850,7 +850,7 @@ function define_keepsakes() {
 	ks_eye_patch = {
 	    _id: "eye_patch",
 	    name: "Eye patch",
-	    desc: "Gain 1 insight next turn every time you play a die.",
+	    desc: "Gain 1 insight next turn when you play a die.",
 	    sub_image: 2,
 
 	    trigger: function(event, data) {
@@ -880,7 +880,7 @@ function define_keepsakes() {
 	ks_krakens_grasp = {
 	    _id: "krakens_grasp",
 	    name: "Kraken's Grasp",
-	    desc: "+1 die playable per turn, draw 1 fewer die per turn",
+	    desc: "+1 play and 1 fewer die drawn each turn.",
 		sub_image: 34,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
@@ -897,7 +897,7 @@ function define_keepsakes() {
 	ks_deep_lens = {
 	    _id: "deep_lens",
 	    name: "Deep Lens",
-	    desc: "Start the first 2 turns of combat with 12 insight to spend. Replaces the Looking Glass.",
+	    desc: "Start the first 2 turns of combat with 12 insight. Replaces the Looking Glass.",
 		replaces: "looking_glass", // takes the starting keepsake's place in the keepsake bar
 		sub_image: 35,
 	    trigger: function(event, data) {
@@ -915,7 +915,7 @@ function define_keepsakes() {
 	ks_scavengers_tear = {
 	    _id: "scavengers_tear",
 	    name: "Scavenger's Tear",
-	    desc: "Choose 2 dice to remove from your bag",
+	    desc: "Remove 2 dice from your bag.",
 		sub_image: 36,
 	    trigger: function(event, data) {
 	        if (event == "on_keepsake_acquired" && data.keepsake_id == _id) {
@@ -936,7 +936,7 @@ function define_keepsakes() {
 	ks_medallion_of_the_deep = {
 	    _id: "medallion_of_the_deep",
 	    name: "Medallion of the Sea",
-	    desc: "+1 die playable per turn if you have extreme alignment",
+	    desc: "+1 play each turn at extreme alignment.",
 		sub_image: 37,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
@@ -954,7 +954,7 @@ function define_keepsakes() {
 	ks_cursed_heart = {
 	    _id: "cursed_heart",
 	    name: "Cursed Heart",
-	    desc: "New slots need 3 more to build",
+	    desc: "New slots need 3 more to build.",
 		sub_image: 38,
 	    trigger: function(event, data) {
 	        if (event == "on_combat_started") {

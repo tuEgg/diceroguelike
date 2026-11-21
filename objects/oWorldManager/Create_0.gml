@@ -38,16 +38,18 @@ current_page_turn = 1;
 ds_list_add(page_scale, 1.0);
 ds_list_add(page_scale, 1.0);
 ds_list_add(page_scale, 1.0);
-page_pos[0] = { x: display_get_gui_width() * 0.3, y: display_get_gui_height() * 0.55 };
-page_pos[1] = { x: display_get_gui_width() * 0.5, y: display_get_gui_height() * 0.55 };
-page_pos[2] = { x: display_get_gui_width() * 0.7, y: display_get_gui_height() * 0.55 };
+// a little left of centre: each card has its sea stop to its right, laid out as it will be on the chart (B+)
+// three landscape cards (option A), each holding its island and its sea stop
+page_pos[0] = { x: display_get_gui_width() * 0.5 - 570, y: display_get_gui_height() * 0.56 }; // 500 wide, 70 apart
+page_pos[1] = { x: display_get_gui_width() * 0.5, y: display_get_gui_height() * 0.56 };
+page_pos[2] = { x: display_get_gui_width() * 0.5 + 570, y: display_get_gui_height() * 0.56 };
 pages_alpha = 0; // used for fading out pages
 
 node_combat = {
 	type: NODE_TYPE.COMBAT,
 	subimg: 0,
 	name: "Combat",
-	text: "Fight against enemies to earn rewards",
+	text: "Fight enemies for rewards.",
 	linked_room: rmCombat,
 	scale: 1.0,
 	cleared: false,
@@ -60,7 +62,7 @@ node_shop = {
 	type: NODE_TYPE.SHOP,
 	subimg: 2,
 	name: "Shop",
-	text: "Trade at port",
+	text: "Spend gold at port.",
 	linked_room: rmShop,
 	scale: 1.0,
 	cleared: false,
@@ -73,7 +75,7 @@ node_event = {
 	type: NODE_TYPE.EVENT,
 	subimg: 1,
 	name: "Event",
-	text: "Take a chance on a random event",
+	text: "A random event.",
 	linked_room: rmEvent,
 	scale: 1.0,
 	cleared: false,
@@ -86,7 +88,7 @@ node_workbench = {
 	type: NODE_TYPE.WORKBENCH,
 	subimg: 3,
 	name: "Workbench",
-	text: "Upgrade dice at the workbench",
+	text: "Upgrade dice.",
 	linked_room: rmWorkbench,
 	scale: 1.0,
 	cleared: false,
@@ -99,7 +101,7 @@ node_bounty = {
 	type: NODE_TYPE.BOUNTY,
 	subimg: 4,
 	name: "Bounty",
-	text: "Choose a bounty target",
+	text: "Choose a bounty target.",
 	linked_room: rmBounty,
 	scale: 1.0,
 	cleared: false,
@@ -112,7 +114,7 @@ node_elite = {
 	type: NODE_TYPE.ELITE,
 	subimg: 5,
 	name: "Elite",
-	text: "Fight a difficult enemy for great reward",
+	text: "Fight a tough enemy for a big reward.",
 	linked_room: rmCombat,
 	scale: 1.0,
 	cleared: false,
@@ -125,7 +127,7 @@ node_boss = {
 	type: NODE_TYPE.BOSS,
 	subimg: 6,
 	name: "Boss",
-	text: "Put your build to the test against the boss.",
+	text: "Fight the chapter's boss.",
 	linked_room: rmCombat,
 	scale: 1.0,
 	cleared: false,
@@ -138,7 +140,7 @@ node_treasure = {
 	type: NODE_TYPE.TREASURE,
 	subimg: 7,
 	name: "Treasure",
-	text: "Gain a relic",
+	text: "Gain a keepsake.",
 	linked_room: rmTreasure,
 	scale: 1.0,
 	cleared: false,
@@ -151,7 +153,7 @@ node_alignment = {
 	type: NODE_TYPE.ALIGNMENT,
 	subimg: 8,
 	name: "Alignment Fight",
-	text: "A moral battle that affects your alignment",
+	text: "A fight that moves your compass.",
 	linked_room: rmCombat,
 	scale: 1.0,
 	cleared: false,
@@ -213,7 +215,12 @@ workbench_scale = workbench_scale_target;
 resting_alpha = 0;
 rest_amount = 0.30; // Calm water at the strait heals this share of your health (Q14)
 strait = undefined;    // this spread end's sea stops (strait_build), while world_state is STRAIT
-sea_buoy = undefined;  // the workbench buoy between a spread's pages (sea_buoy_draw)
+sea_buoy = undefined;  // the left page's sea stop between a spread's pages: its look and stamp (passage_left_draw, B+)
+harbour = undefined;
+map_waves = [];
+burn_surf = -1;          // the lost draft page, drawn here to burn it away through shBurn (page_burn_draw)
+auto_take_page = undefined; // the page given to you after the first pick (Draw GUI), and when
+auto_take_t = 0;        // the little waves now and then on the water pages (map_waves_draw)   // the boss spread's harbour, rest or refit (harbour_draw, B+)
 
 embark_scale = 1.0;
 workbench_scale = 1.0;

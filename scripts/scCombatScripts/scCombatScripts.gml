@@ -600,7 +600,7 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 
 	// coins are free to play; everything else needs a play left this turn
 	if (dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(_die_struct, "coin")) {
-		return _no("No plays left this turn. Coins are still free to play.");
+		return _no("No plays left this turn. Coins are still free.");
 	}
 
 	// slots fill left to right: every slot before this one needs an action (a chained slot doesn't count)
@@ -635,18 +635,18 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 		if (_slot_all) return _no("Coloured dice can't go in an 'All' slot.");
 		if (_matches) {
 			if (_die_exclusive) return _no("Exclusive dice need a slot to themselves.");
-			if (_slot_exclusive) return _no("This slot holds an Exclusive die, nothing can join it.");
+			if (_slot_exclusive) return _no("Nothing can join an Exclusive die.");
 			return _yes("add");
 		}
 		if (_die_exclusive) return _yes("replace");
-		return _no("This die's type doesn't match this slot.");
+		return _no("Wrong type for this slot.");
 	}
 
-	// neutral dice join slots that already have a type, they can't start one
+	// generic (neutral) dice join slots that already have a type, they can't start one (or build one: sacrifice_die)
 	if (_slot_all) return _yes("add");
-	if (_slot_empty) return _no("Neutral dice can't start a slot. Play a coloured die here first.");
+	if (_slot_empty) return _no("Generic dice can't start a slot.");
 	if (_die_exclusive) return _no("Exclusive dice need a slot to themselves.");
-	if (_slot_exclusive) return _no("This slot holds an Exclusive die, nothing can join it.");
+	if (_slot_exclusive) return _no("Nothing can join an Exclusive die.");
 	return _yes("add");
 }
 
@@ -863,8 +863,13 @@ function add_dice_to_bag(_die) {
 /// @desc Rolled dice: a die dropped on the new-slot tile waits there (it uses a play, coins are free, and it can be taken
 ///       back) until enough dice on it (new_slot_min_dice) add up to new_slot_threshold. Then the slot is built (combat_try_build_slot).
 function sacrifice_die(_die) {
+	var _why_not = die_cant_build_slot_reason(_die.struct);
+	if (_why_not != "") {
+		throw_error("Can't build a slot", _why_not);
+		return;
+	}
 	if (!combat_all_slots_have_action()) {
-		throw_error("Fill your slots first", "A new slot can only be built once every slot you have has an action.");
+		throw_error("Fill your slots first", "Every slot needs an action first.");
 		return;
 	}
 	// a slot built from one die (the first you build) takes just that die, and it has to reach the number on its own
@@ -872,14 +877,14 @@ function sacrifice_die(_die) {
 		var _face = die_face_total(_die.struct);
 		if (_face == -1) _face = ceil(_die.struct.dice_value / 2);
 		if (_face < new_slot_threshold()) {
-			throw_error("Too low", "This slot needs one die of " + string(new_slot_threshold()) + " or more. This one rolled " + string(_face) + ".");
+			throw_error("Too low", "Needs a die of " + string(new_slot_threshold()) + " or more. This one rolled " + string(_face) + ".");
 			return;
 		}
 	}
 	if (dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(_die.struct, "coin")) {
 		dice_played_scale = 1.4;
 		dice_played_color = c_red;
-		throw_error("No plays left", "No plays left this turn. Coins are still free to play.");
+		throw_error("No plays left", "Coins are still free to play.");
 		return;
 	}
 	if (!die_has_keyword(_die.struct, "coin")) dice_played += 1;
@@ -897,6 +902,22 @@ function sacrifice_die(_die) {
 
 	update_sacrificed_type_array();
 	combat_try_build_slot();
+}
+
+/// @func die_cant_build_slot_reason(_die_struct)
+/// @desc Why this die can't go on the new-slot tile, or "" if it can. A generic (neutral) die can't start a slot (B36,
+///       Jared 2026-11-20), but once a coloured die is on the tile it can help build it (Jared, 2026-11-21).
+function die_cant_build_slot_reason(_die_struct) {
+	if (_die_struct.possible_type == "None" && !new_slot_has_coloured()) return "Add a coloured die first.";
+	return "";
+}
+
+/// @func new_slot_has_coloured()
+/// @desc Is a coloured (non-generic) die waiting on the new-slot tile? A slot is only built with one (it gives the type).
+function new_slot_has_coloured() {
+	if (!ds_safe_exists(global.sacrifice_list, ds_type_list)) return false;
+	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) if (global.sacrifice_list[| j].possible_type != "None") return true;
+	return false;
 }
 
 /// @func new_slot_threshold()
@@ -931,6 +952,7 @@ function new_slot_total() {
 ///       slot it's empty and untyped again after End Turn; what it keeps is its place, worth a bonus (slot_set_position_bonus).
 function combat_try_build_slot() {
 	if (ds_list_size(global.sacrifice_list) < new_slot_min_dice() || new_slot_total() < new_slot_threshold() || !combat_all_slots_have_action()) return;
+	if (!new_slot_has_coloured()) return; // only generic dice left on it (the coloured one was taken back): it waits for one
 
 	// it can be taken apart again this turn (combat_unbuild_slot) unless something that can't be undone fires: a die's
 	// "when sacrificed" effect (or its "when played" one, which Lead Line fires on sacrifice)
@@ -1033,9 +1055,7 @@ function get_slot_stats(_slot, _num) {
 		low += ((_face != -1) ? _face : dice_values.min_roll) + dice_values.keepsake_dice_bonus_amount;
 		high += ((_face != -1) ? _face : dice_values.max_roll) + dice_values.keepsake_dice_bonus_amount;
 		
-		if (die_struct.action_type != "None!") { 
-			total_amount += die_struct.dice_amount;
-		}
+		total_amount += die_struct.dice_amount; // every die counts, generic ones too (B36: the old "None!" check was always true)
 		
 		if (i > 0 && _highest_value != die_struct.dice_value) different = true; // set to true if there are different types
         _highest_value = max(_highest_value, die_struct.dice_value);
@@ -1633,7 +1653,7 @@ function define_combat_ui_sizes() {
 	aq_tile_w = 140; // size of an action queue tile, needed to be declared here to reposition enemies in fights. 140 is the default value
 
 	global.enemy_x = (1600 * global.ui_scale) + (enemies_left_this_combat * (100 * global.ui_scale));
-	global.enemy_y = 665 * global.ui_scale; // (UI rework: raised, so the bottom right stays clear for End Turn)
+	global.enemy_y = 638 * global.ui_scale; // raised (UI rework), and again (2026-11-21) so health bars clear the tray's edge
 	global.player_x = 355 * global.ui_scale - (25 * global.ui_scale);
 	global.player_xstart = global.player_x;
 	global.player_y = global.enemy_y;
@@ -1738,8 +1758,7 @@ function slot_total_bonus(_slot, _dice_count) {
 /// @func tutorial_wanted()
 /// @desc Should fights be guided? Until the tutorial has been finished or skipped once.
 function tutorial_wanted() {
-	return false; // rolled dice prototype: the guided fight teaches the old rules, so it's off until it's rewritten
-	return !progress_get("tutorial_done");
+	return !progress_get("tutorial_done"); // back on: rewritten for rolled dice and ink (F153)
 }
 
 /// @func tutorial_active()
@@ -1748,34 +1767,34 @@ function tutorial_active() {
 }
 
 /// @func tutorial_steps()
-/// @desc The guided steps, over two turns. target: what the note points at. allow: the actions that work while it's
-///       up ("all" for anything). die_types / slot: which dice and which slot ("newest" = the last slot). done: when it
-///       moves on (steps with a button wait for it instead).
+/// @desc The guided steps, over two turns (F153: rewritten for rolled dice and ink, 2026-11-20). target: what the note
+///       points at. allow: the actions that work while it's up ("all" for anything). die_types / slot: which dice and
+///       which slot ("newest" = the last slot). done: when it moves on (steps with a button wait for it instead).
+///       enter: run once when the step comes up. covers: a one-time tip this step teaches, marked seen once it's passed.
 function tutorial_steps() {
 	return [
-		// turn 1: a slot, stacking, a slot from a sacrifice, generic dice, how long dice stay
+		// turn 1: rolled dice, filling a slot, generic dice, taking back, building a slot, ending the turn
 		{
 			id: "intent", target: "intent", allow: [], button: "Next",
-			text: "Read your enemy first. Its intent shows what it will do this turn, and a range of how much. Insight dice give you ink for next turn: at the start of a turn your quill can spend 2 of it to show the exact number.",
+			text: "Read your enemy first: its tag shows what it will do this turn.",
+		},
+		{
+			id: "rolled", target: "hand", allow: [], button: "Next", covers: "rolled_dice",
+			text: "Your dice have rolled. Colour is the action: red attacks, blue blocks, green heals, gold gives insight. White dice are generic.",
 		},
 		{
 			id: "claim", target: "slot0", allow: ["place"], die_types: ["ATK"], slot: 0,
-			text: "Lay an Attack die in the empty slot. A slot takes the type of the first die laid in it.",
+			text: "Drag an Attack die into the empty slot. A slot's first coloured die sets its action.",
 			done: function() { return oCombat.action_queue[| 0].current_action_type == "ATK"; },
 		},
 		{
 			id: "stack", target: "slot0", allow: ["place"], die_types: ["ATK"], slot: 0,
-			text: "Lay your other Attack die in the same slot. Dice in one slot roll together.",
+			text: "Add your other Attack die to the same slot. A slot adds up its dice.",
 			done: function() { return ds_list_size(oCombat.action_queue[| 0].dice_list) >= 2; },
 		},
 		{
-			id: "sacrifice", target: "sacrifice", allow: ["sacrifice"], die_types: ["INTEL"],
-			text: "Sacrificing a die builds a new slot, and the die stays in it. Sacrifice your Insight die here. Insight it rolls counts next turn.",
-			done: function() { return ds_list_size(oCombat.action_queue) >= 2; },
-		},
-		{
 			id: "generic", target: "slot0", allow: ["place"], die_types: ["None"], slot: 0,
-			text: "Generic dice power up any slot. Lay the Generic die in your Attack slot.",
+			text: "Generic dice can't start a slot, but add to any slot with an action. Add the generic die to your Attack slot.",
 			done: function() {
 				var _dice = oCombat.action_queue[| 0].dice_list;
 				for (var i = 0; i < ds_list_size(_dice); i++) if (_dice[| i].action_type == "None") return true;
@@ -1783,32 +1802,46 @@ function tutorial_steps() {
 			},
 		},
 		{
-			id: "lasting", target: "slot0", allow: [], button: "Next",
-			text: "Action dice stay in their slot for 2 turns, Generic dice for only 1. A bold outline means a die will still be here next turn.",
+			id: "take_back", target: "slot0", allow: ["place"], slot: 0,
+			text: "Click a die in a slot to take it back. You get the play back too. Try it now.",
+			enter: function() { global.tut.took_back = false; },
+			done: function() { return global.tut.took_back; },
 		},
 		{
-			id: "end_turn", target: "end_turn", allow: ["end_turn"],
-			text: "You can play 4 dice a turn. When you end your turn your slots fire left to right, then the enemy acts. End your turn.",
+			id: "build", target: "sacrifice", allow: ["place", "sacrifice"], covers: "new_slot",
+			text: "Every slot has an action, so you can build another. Drop a die of 3 or more on the new-slot tile: your Block die will do. It becomes the new slot's first die.",
+			done: function() { return ds_list_size(oCombat.action_queue) >= 2; },
+		},
+		{
+			id: "place_bonus", target: "newest", allow: [], button: "Next",
+			text: "Later slots add more to their total: this one +1, the next +2. The next slot costs more dice.",
+		},
+		{
+			id: "end_turn", target: "end_turn", allow: ["place", "end_turn"],
+			text: "You can play 4 dice a turn; coins are free. At End Turn your slots act left to right, then the enemy moves and the rest is discarded. End your turn.",
 			done: function() { return oCombat.turn_count >= 2; },
 		},
-		// turn 2: insight, a slot with two actions, right-click to switch
+		// turn 2: ink
 		{
-			id: "insight", target: "insight", allow: [], button: "Next",
-			text: "Your insight is ink. Click the inkwell to use it, then with the quill: reroll or redraw a die (3), see the enemy's exact numbers (2), or make it choose again (6). Confirm when you're done. The inkwell pulses when your ink can do something.",
+			id: "inkwell", target: "insight", allow: [], covers: "insight_spend",
+			text: "Your insight is ink. Click the inkwell to open it.",
+			enter: function() { oCombat.player_intel = max(oCombat.player_intel, 6); }, // enough to try it, whatever turn 1 gave
+			done: function() { return oCombat.insight_view; },
 		},
 		{
-			id: "two_types", target: "sacrifice", allow: ["sacrifice"], die_types: ["ATK", "BLK"],
-			text: "Your next slot costs 2 sacrifices. Build it from an Attack die and a Block die, and it can do either.",
-			done: function() { return ds_list_size(oCombat.action_queue) >= 3; },
+			id: "reroll", target: "hand", allow: [],
+			text: "Left-click a die to reroll it, or right-click to swap it for a new one. Each costs 3 ink. Try one now.",
+			enter: function() { global.tut.inked = false; },
+			done: function() { return global.tut.inked || !oCombat.insight_view; }, // closing the log moves on too
 		},
 		{
-			id: "switch", target: "newest", allow: [],
-			text: "Right-click a slot with more than one action to switch between them. Switch your new slot now.",
-			done: function() { return global.tut.switched; },
+			id: "ink_more", target: "intent", allow: [],
+			text: "Ink works on the enemy too: click its number to see it exactly (2 ink), or its move to make it choose again (6 ink). Unspent ink carries over. Click Confirm to close the log.",
+			done: function() { return !oCombat.insight_view; },
 		},
 		{
 			id: "free", target: "", allow: "all", button: "Set sail",
-			text: "The rest is yours, Captain. Dice left in your hand at the end of a turn are discarded, so use them well.",
+			text: "The rest is yours, Captain. The inkwell pulses when your ink can help.",
 		},
 	];
 }
@@ -1822,16 +1855,27 @@ function tutorial_begin() {
 		active: true,
 		step: 0,
 		steps: tutorial_steps(),
-		hand: ["ATK", "ATK", "INTEL", "None", "BLK", "BLK"],	// turn 1's hand, drawn from the bag in this order
-		hand2: ["ATK", "BLK"],									// turn 2 starts with these (the two-action slot), the rest are drawn as usual
+		// turn 1's hand, drawn from the bag in this order, each landing on a set face so every step works: two Attack dice
+		// to fill the slot, a generic die to add, a Block die of 4 to build slot 2 (it needs one die of 3+), and two more
+		hand: [{ type: "ATK", face: 3 }, { type: "ATK", face: 2 }, { type: "None", face: 2 }, { type: "BLK", face: 4 }, { type: "INTEL", face: 2 }, { type: "BLK", face: 1 }],
+		hand2: [],												// turn 2 is drawn as usual
 		switched: false,										// set when a slot's action is switched by right-click
+		took_back: false,										// set by combat_take_back (the take-back step)
+		inked: false,											// set when a die is rerolled or redrawn with ink
 		note_alpha: 0,
 	};
 }
 
 /// @func tutorial_finish()
-/// @desc Finished or skipped: never guided again (unless Settings turns it back on).
+/// @desc Finished or skipped: never guided again (unless Settings turns it back on). The one-time tips its passed steps
+///       taught (covers) are marked seen, so they don't repeat it in the next fight; ones it didn't reach still show.
 function tutorial_finish() {
+	if (variable_global_exists("tut") && is_struct(global.tut) && variable_struct_exists(global.tut, "steps")) {
+		for (var i = 0; i < min(global.tut.step, array_length(global.tut.steps)); i++) {
+			var _st = global.tut.steps[i];
+			if (variable_struct_exists(_st, "covers") && !tip_seen(_st.covers)) tip_mark_seen(_st.covers);
+		}
+	}
 	if (variable_global_exists("tut") && is_struct(global.tut)) global.tut.active = false;
 	if (!progress_get("tutorial_done")) progress_set("tutorial_done", true);
 }
@@ -1855,14 +1899,15 @@ function tutorial_current() {
 }
 
 /// @func tutorial_next_hand_type()
-/// @desc deal_single_die: the action type the guided first hand wants next, or "" for a normal draw.
+/// @desc deal_single_die: what the guided first hand wants next, { type, face } (face -1: rolled as usual), or
+///       undefined for a normal draw.
 function tutorial_next_hand_type() {
-	if (!tutorial_active()) return "";
+	if (!tutorial_active()) return undefined;
 	var _hand = (oCombat.turn_count == 1) ? global.tut.hand : ((oCombat.turn_count == 2) ? global.tut.hand2 : []);
-	if (array_length(_hand) == 0) return "";
-	var _type = _hand[0];
+	if (array_length(_hand) == 0) return undefined;
+	var _next = _hand[0];
 	array_delete(_hand, 0, 1); // arrays are shared by reference, so this takes it off global.tut's list
-	return _type;
+	return is_struct(_next) ? _next : { type: _next, face: -1 };
 }
 
 /// @func tutorial_allows(_action, _die_struct, _slot_i)
@@ -1894,6 +1939,11 @@ function tutorial_step() {
 
 	var _s = tutorial_current();
 	if (_s == undefined) { tutorial_finish(); return; }
+	// a step's setup, once, as it comes up
+	if (!variable_struct_exists(_s, "entered")) {
+		_s.entered = true;
+		if (variable_struct_exists(_s, "enter")) _s.enter();
+	}
 	if (variable_struct_exists(_s, "done") && _s.done()) {
 		global.tut.step++;
 		global.tut.note_alpha = 0;
@@ -1908,11 +1958,18 @@ function tutorial_target_rect(_target) {
 			case "intent":
 				if (ds_list_size(room_enemies) == 0) return undefined;
 				var _e = room_enemies[| 0];
+				if (variable_struct_exists(_e, "intent_rect")) { var _ir = _e.intent_rect; return { x: _ir.x - _ir.w / 2, y: _ir.y - _ir.h / 2, w: _ir.w, h: _ir.h }; } // the tag as drawn
 				var _iy = _e.pos_y - 10 - (_e.scale * 180);
 				return { x: _e.pos_x - 90, y: _iy - 35, w: 180, h: 70 };
 			case "slot0":
 				if (ds_list_size(slot_positions) == 0) return undefined;
 				return slot_positions[| 0];
+			case "hand":
+				// round the dice in your hand (not the ones in slots)
+				var _hx1 = infinity, _hy1 = infinity, _hx2 = -infinity, _hy2 = -infinity, _hn = 0;
+				with (oDice) if (!in_slot && !still) { _hx1 = min(_hx1, x - 45); _hy1 = min(_hy1, y - 45); _hx2 = max(_hx2, x + 45); _hy2 = max(_hy2, y + 45); _hn++; }
+				if (_hn == 0) return undefined;
+				return { x: _hx1, y: _hy1, w: _hx2 - _hx1, h: _hy2 - _hy1 };
 			case "newest":
 				if (ds_list_size(slot_positions) == 0) return undefined;
 				return slot_positions[| ds_list_size(slot_positions) - 1];
@@ -1930,14 +1987,16 @@ function tutorial_target_rect(_target) {
 /// @func tutorial_draw()
 /// @desc End of oCombat Draw GUI: the highlight, the margin note with its arrow, Next and Skip. Input is handled here,
 ///       like the rest of the combat UI.
-function tutorial_draw() {
+function tutorial_draw(_over_ink = false) {
 	if (!tutorial_active()) return;
 	var _s = tutorial_current();
 	if (_s == undefined) return;
 	if (oCombat.state != CombatState.PLAYER_INPUT || oCombat.show_rewards) return; // nothing to read while dice resolve
+	// while the log (ink view) is open it covers the fight, so the note is drawn over it instead (tips_draw calls this)
+	if (oCombat.insight_view != _over_ink) return;
 
 	// Skip, top right under the bar
-	var _skip = draw_gui_button(display_get_gui_width() - 230, 90, 200, 50, 1, "Skip tutorial", global.ui_quiet, ftDefault, true, true, UI_LAYER.BASE);
+	var _skip = draw_gui_button(display_get_gui_width() - 230, 90, 200, 50, 1, "Skip tutorial", global.ui_quiet, ftDefault, true, true, _over_ink ? UI_LAYER.POPUP : UI_LAYER.BASE);
 	if (_skip.click) { tutorial_skip(); return; }
 
 	if (tutorial_draw_note(_s.text, tutorial_target_rect(_s.target), variable_struct_exists(_s, "button") ? _s.button : "")) {
@@ -2031,25 +2090,25 @@ function tutorial_map_notes() {
 	return [
 		{
 			id: "map_offering", target: "",
-			text: "Every voyage begins with a gift from the quartermaster: a die with a core already fitted. A core changes which faces a die rolls most often. Cores you find later can be drilled into dice at the workbench.",
+			text: "A gift from the quartermaster: a die with a core fitted. A core changes which faces a die rolls most often. Drill cores into dice at the workbench.",
 			when: function() { return oRunManager.new_run_offering; },
 			done: function() { return !oRunManager.new_run_offering; },
 		},
 		{
 			id: "map_draft", target: "pages",
-			text: "This is the captain's logbook. Each page is a stretch of sea with stops on it: fights, shops, events. Choose 2 pages for this spread. Your first choice locks one of the others away, so choose with care.",
+			text: "Each page is an island of stops, then a sea stop. Choose 2 pages for this spread. Your first choice locks one of the others away.",
 			when: function() { return oWorldManager.world_state == WORLD_STATE.DRAFTING && oWorldManager.pages_drafted < 2 && oWorldManager.pages_alpha > 0.5; },
 			done: function() { return oWorldManager.pages_drafted >= 2; },
 		},
 		{
 			id: "map_embark", target: "embark",
-			text: "Embark to set sail on the pages you chose.",
+			text: "Embark to set sail.",
 			when: function() { return oWorldManager.world_state == WORLD_STATE.DRAFTING && oWorldManager.pages_drafted >= 2 && !oWorldManager.choices_locked; },
 			done: function() { return oWorldManager.choices_locked; },
 		},
 		{
 			id: "map_sail", target: "first_stop",
-			text: "Click your first stop to sail there. Your first fight will walk you through the dice.",
+			text: "Click your first stop to sail there.",
 			when: function() { return oWorldManager.world_state == WORLD_STATE.EXPLORING; },
 			done: function() { return oWorldManager.node_to_move_to != undefined; },
 		},
@@ -2061,7 +2120,9 @@ function tutorial_map_notes() {
 ///       first (only while the tutorial is wanted), then the one-time tips (tips_list). One note at a time, never
 ///       during the guided fight, a cutscene, Settings, the bag view or a popup.
 function tips_draw() {
-	if (tutorial_active() || global.all_input_disabled || global.show_settings) return;
+	// the guided fight's note, over the ink view while it's open (tutorial_draw draws it under otherwise)
+	if (tutorial_active()) { if (instance_exists(oCombat) && oCombat.insight_view && !global.show_settings) tutorial_draw(true); return; }
+	if (global.all_input_disabled || global.show_settings) return;
 	if (instance_exists(oRunManager) && (oRunManager.show_bag_contents || oRunManager.paused || oRunManager.run_over != undefined)) return;
 
 	// the map notes of a first voyage
@@ -2104,91 +2165,91 @@ function tips_list() {
 	return [
 		{
 			id: "workbench_map", room: rmMap, target: "at_sea",
-			text: "At sea. When you finish a page's island and a tool has work, a buoy floats on the way to the next one: sail to it for the workbench, or sail past.",
+			text: "Island done. Sail through its sea stop before the next one.",
 			when: function() { return instance_exists(oWorldManager) && is_struct(oWorldManager.sea_buoy) && oWorldManager.sea_buoy.active; },
 		},
 		{
 			id: "workbench_bag", room: rmWorkbench, target: "wb_pick",
-			text: "The workbench. First choose what to work on: open your bag and take up to one die per tool you own.",
+			text: "Take up to one die per tool you own from your bag.",
 			when: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.pick_pending; },
 			done: function() { return instance_exists(oWorkbenchManager) && !oWorkbenchManager.pick_pending && oRunManager.dice_selection == false; },
 		},
 		{
 			id: "workbench", room: rmWorkbench, target: "wb_slots",
-			text: "Put a die in the first slot and drag a core from the top bar into the middle one. Each tool works once per visit; click a finished die to send it to your bag.",
+			text: "Put a die in the first slot and drag a core into the middle one. Each tool works once per visit.",
 			when: function() { return instance_exists(oWorkbenchManager) && !oWorkbenchManager.pick_pending && oRunManager.dice_selection == false; },
 			done: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined; },
 		},
 		{
 			id: "workbench_toolbag", room: rmWorkbench, target: "toolbag",
-			text: "Now click the Drill in your toolbag to lay it on the bench.",
+			text: "Click the Drill in your toolbag.",
 			when: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined && !instance_exists(oDrill); },
 			done: function() { return instance_exists(oDrill); },
 		},
 		{
 			id: "workbench_drill", room: rmWorkbench, target: "drill",
-			text: "Click the Drill to pick it up, then hold left click over the Drill button until it bites. Right click puts the tool down.",
+			text: "Click the Drill to pick it up, then hold left click on the Drill button until it bites. Right click puts it down.",
 			when: function() { return instance_exists(oDrill) && !oDrill.is_dragging; },
 			done: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.crafting_state != "waiting"; },
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",
-			text: "The spread is done, and the route forks at sea. Sail to one stop: each offers something different (a core, losing or sharpening a die, gold, the workbench, or Calm water to heal). Then the page turns.",
+			text: "Spread done. Sail through this page's sea stop to turn the page.",
 			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.STRAIT; },
 		},
 		{
 			// the guided fight is off on this branch, so this teaches insight the first time you have some to spend
 			id: "insight_spend", room: rmCombat, target: "insight",
-			text: "Your insight is ink: click the inkwell to use it, then with the quill reroll or redraw a die in your hand (" + string(INSIGHT_COST_REROLL) + " each), see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + ", or 1 each when there are several), or make it choose its move again (" + string(INSIGHT_COST_QUILL) + "). Click Confirm (where End Turn is) when you're done; the inkwell works any time on your turn. Ink you don't spend carries over.",
+			text: "Your insight is ink. Click the inkwell, then reroll or swap a die (" + string(INSIGHT_COST_REROLL) + " each), see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + "), or make it choose again (" + string(INSIGHT_COST_QUILL) + "). Unspent ink carries over.",
 			when: function() { return instance_exists(oCombat) && oCombat.ink_pulse > 0 && !oCombat.insight_view; }, // the first time the inkwell pulses
 		},
 		{
 			id: "blotted", room: rmCombat, target: "insight",
-			text: "Blotted: your insight fell below 0, so enemy intents are hidden this turn.",
+			text: "Blotted: your insight is below 0, so enemy intents are hidden.",
 			when: function() { return tips_combat_ready() && intel_is_blotted(); },
 		},
 		{
 			// rolled dice prototype: the guided fight is off, so this explains the new rules once
 			id: "rolled_dice", room: rmCombat, target: "",
-			text: "Your dice show what they rolled. Drag them into your slots, left to right: the first coloured die picks a slot's type. Click a die in a slot to take it back. End Turn discards everything.",
+			text: "Drag your dice into your slots, left to right. A slot's first coloured die sets its type. Click a die in a slot to take it back. End Turn discards everything.",
 			when: function() { return tips_combat_ready() && oCombat.turn_count == 1; },
 		},
 		{
 			// the second half: once every slot has something in it, building the next one
 			id: "new_slot", room: rmCombat, target: "",
-			text: "Every slot has an action, so you can build another: drop dice on the new-slot tile until they add up to its number. Later slots add more to their total.",
+			text: "Every slot has an action, so you can build another: drop dice on the new-slot tile until they reach its number.",
 			when: function() { return tips_combat_ready() && tip_seen("rolled_dice") && combat_all_slots_have_action() && oCombat.state == CombatState.PLAYER_INPUT; },
 		},
 		{
 			id: "multi_enemy", room: rmCombat, target: "target_enemy",
-			text: "More than one enemy. Your attacks all go to your target, marked under its health bar. Click another enemy to change target any time before you end your turn.",
+			text: "Your attacks hit your target, marked under its health bar. Click another enemy to change target.",
 			when: function() { return tips_combat_ready() && !tutorial_active() && combat_living_enemies() >= 2; },
 		},
 		{
 			id: "alignment_fight", room: rmCombat, target: "",
-			text: "A crossroads fight. When the enemy falls you choose: Kill it or Spare it. Killing swings your compass (top bar) toward ruthless; sparing swings it toward merciful but pays less gold. Some events and keepsakes care where your compass points. The rewards here are alignment dice.",
+			text: "A crossroads fight. When the enemy falls, kill it or spare it. Killing swings your compass to ruthless; sparing swings it to merciful for less gold. Rewards are alignment dice.",
 			when: function() { return tips_combat_ready() && oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT; },
 		},
 		{
 			id: "kill_or_spare", room: rmCombat, target: "spare_buttons",
-			text: "Kill or spare? Kill: compass toward ruthless, its bounty in gold. Spare: compass toward merciful, a third of the gold, and it sails away. Hover each button for more.",
+			text: "Kill: compass to ruthless, full gold. Spare: compass to merciful, a third of the gold.",
 			when: function() { return combat_spare_choice_enemy() != undefined; },
 		},
 		{
 			id: "shop", room: rmShop, target: "",
-			text: "A shop. Spend your gold on dice, keepsakes, items and tools. Keepsakes last the whole voyage.",
+			text: "Spend gold on dice, keepsakes, items and tools. Keepsakes last the whole voyage.",
 		},
 		{
 			id: "event", room: rmEvent, target: "",
-			text: "Something happens on your voyage. Hover an option to see what it does, then choose one.",
+			text: "Hover an option to see what it does.",
 		},
 		{
 			id: "bounty", room: rmBounty, target: "",
-			text: "The bounty board. Take a contract to hunt a tougher enemy under a condition. Beat it while keeping to the condition to claim the rewards.",
+			text: "Take a contract to hunt a tougher enemy. Beat it while keeping to its condition to claim the rewards.",
 		},
 		{
 			id: "treasure", room: rmTreasure, target: "",
-			text: "Treasure! Open the chest for a keepsake: a lasting effect for the rest of the voyage.",
+			text: "Open the chest for a keepsake. It lasts the whole voyage.",
 		},
 	];
 }
@@ -2756,7 +2817,7 @@ function combat_take_back_blocked(_slot_i, _index) {
 	var _list = _slot.dice_list;
 	for (var k = 0; k < ds_list_size(_list); k++) if (k != _index && _list[| k].possible_type != "None") return "";
 	for (var j = _slot_i + 1; j < ds_list_size(action_queue); j++) {
-		if (j != locked_slot && ds_list_size(action_queue[| j].dice_list) > 0) return "Slots fill in order: take back the dice in later slots first, or slot " + string(_slot_i + 1) + " would lose its action.";
+		if (j != locked_slot && ds_list_size(action_queue[| j].dice_list) > 0) return "Take back later slots' dice first, or slot " + string(_slot_i + 1) + " loses its action.";
 	}
 	return "";
 }
@@ -2777,6 +2838,7 @@ function combat_take_back(_slot_i, _index) {
 	if (!ds_safe_exists(_list, ds_type_list) || _index < 0 || _index >= ds_list_size(_list)) return;
 	var _die = _list[| _index];
 	if (!die_can_take_back(_die)) return;
+	if (tutorial_active()) global.tut.took_back = true; // the guided fight's take-back step
 	// a die that built its slot: the slot comes apart (combat_unbuild_slot)
 	if (_slot != undefined && variable_struct_exists(_die, "built_slot") && _die.built_slot) {
 		combat_unbuild_slot(_slot_i, _index);
@@ -2907,6 +2969,7 @@ function combat_reroll_die(_inst) {
 	}
 	if (!combat_insight_spend(INSIGHT_COST_REROLL)) return;
 	rerolls_used++;
+	if (tutorial_active()) global.tut.inked = true;
 	die_roll_faces(_inst.struct);
 	trigger_die_effects_single(_inst.struct, "on_die_inked", { _die_struct: _inst.struct, redrawn: false });
 	_inst.roll_anim = 18; // it tumbles in place, then lands on the new roll
@@ -2920,7 +2983,7 @@ function combat_reroll_die(_inst) {
 function combat_discard_and_redraw(_inst) {
 	if (state != CombatState.PLAYER_INPUT) return;
 	if (!combat_insight_can(INSIGHT_COST_REDRAW)) {
-		throw_error("Not enough insight", "Discarding a die draws a new one, for " + string(INSIGHT_COST_REDRAW) + " insight. You have " + string(max(0, player_intel)) + ".");
+		throw_error("Not enough insight", "Redrawing a die costs " + string(INSIGHT_COST_REDRAW) + " insight. You have " + string(max(0, player_intel)) + ".");
 		return;
 	}
 	if (!combat_insight_spend(INSIGHT_COST_REDRAW)) return;
@@ -3021,7 +3084,7 @@ function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
 		draw_set_color(_fill);
 		draw_circle(_tx, _y - _rr * 0.15, _rr * 0.55, false);
 	}
-	if (_hover && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Plays", "Dice you can play this turn: " + string(_left) + " left. Coins are free to play.");
+	if (_hover && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Plays", string(_left) + " left this turn. Coins are free.");
 
 	// the plays your insight could buy: faded yellow pips, click to buy one
 	for (var b = 0; b < _buyable; b++) {
@@ -3037,7 +3100,7 @@ function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
 		draw_set_color(global.color_intel);
 		for (var k = 0; k < 8; k++) draw_arc_thick_deg(_bx, _y, _br + 1, _br + 3, k * 45, k * 45 + 25, 4); // a dashed edge: not yours yet
 		if (_bhover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Buy a play", "Spend " + string(INSIGHT_COST_PLAY) + " insight to play one more die this turn.", undefined, 0, undefined, INSIGHT_COST_PLAY, "insight");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Buy a play", "Play one more die this turn.", undefined, 0, undefined, INSIGHT_COST_PLAY, "insight");
 			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && combat_no_die_dragged()) combat_buy("play");
 		}
 	}
@@ -3045,7 +3108,7 @@ function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
 	// out of plays, but insight could buy more: say so above the row
 	if (_left == 0 && _buyable > 0) {
 		var _name = "Out of plays";
-		var _desc = "Spend " + string(INSIGHT_COST_PLAY) + " insight to play another die: click a yellow pip.";
+		var _desc = "Click a yellow pip to buy another play.";
 		var _sz = draw_tooltip_box(0, 0, _name, _desc, undefined, 0, undefined, false, true);
 		var _bx0 = clamp(_x0 + _w / 2 - _sz.w / 2, 10, display_get_gui_width() - _sz.w - 10);
 		var _by0 = _y - 52 - _sz.h;
@@ -3131,6 +3194,7 @@ function combat_insight_phase_worth() {
 /// @desc In the insight phase: for 3 ink, a die in hand is discarded and a new one dealt (it rolls as it comes).
 function combat_redraw_die(_inst) {
 	if (!instance_exists(_inst) || !combat_insight_spend(INSIGHT_COST_REDRAW)) return;
+	if (tutorial_active()) global.tut.inked = true;
 	trigger_die_effects_single(_inst.struct, "on_die_inked", { _die_struct: _inst.struct, redrawn: true });
 	discard_dice(_inst);
 	dice_to_deal += 1;
@@ -3240,7 +3304,7 @@ function combat_insight_view_draw() {
 		var _ex = combat_inkwell_pos().x, _ey = combat_inkwell_pos().y;
 		var _ink_hov = mouse_hovering(_ex, _ey, 70, 70, true, noone, noone, true, UI_LAYER.POPUP);
 		draw_inkwell(_ex, _ey, _ink_hov ? 1.25 : 1.15, player_intel / INSIGHT_MAX, false);
-		if (_ink_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Put your ink away", "Back to your dice. Click the inkwell again any time this turn to use your ink.", undefined, 0, undefined, 0, "insight", { button: "left", text: "Done", col: global.color_intel });
+		if (_ink_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Put your ink away", "Back to your dice.", undefined, 0, undefined, 0, "insight", { button: "left", text: "Done", col: global.color_intel });
 		var _ink_click = _ink_hov && mouse_check_button_pressed(mb_left);
 		draw_set_font(ftDefault);
 		draw_set_halign(fa_center);
@@ -3255,7 +3319,7 @@ function combat_insight_view_draw() {
 			var _et = end_turn_draw;
 			// End Turn's rectangle (bottom right, oCombat Draw GUI)
 			var _seal_hov = mouse_hovering(_et.x1, _et.y1, _et.x2 - _et.x1, _et.y2 - _et.y1, false, soSlotHover, noone, true, UI_LAYER.POPUP);
-			if (_seal_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Confirm", "Done with your ink: put it away and play your dice. The inkwell brings it back; ink you don't spend carries over.");
+			if (_seal_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Confirm", "Put your ink away. Unspent ink carries over.");
 			_seal_click = _seal_hov && mouse_check_button_pressed(mb_left);
 		}
 
@@ -3275,8 +3339,8 @@ function combat_insight_view_draw() {
 			if (_lhover && _ok) quill_over = true;
 			combat_insight_part_draw(_x1, _y1, _sx - 2, _y2, _afford, _lhover, _pulse, INSIGHT_COST_QUILL, "", true);
 			if (_lhover) {
-				if (_ok) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll intent", "Spend " + string(INSIGHT_COST_QUILL) + " insight: " + string(_en.data.name) + " picks a different move, rolled fresh.", undefined, 0, undefined, INSIGHT_COST_QUILL, "insight");
-				else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't be rewritten", "This move is forced, or " + string(_en.data.name) + " has nothing else to choose.");
+				if (_ok) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll intent", string(_en.data.name) + " picks a different move.", undefined, 0, undefined, INSIGHT_COST_QUILL, "insight");
+				else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't be rewritten", string(_en.data.name) + " can't change this move.");
 				if (mouse_check_button_pressed(mb_left) && _ok && combat_insight_spend(INSIGHT_COST_QUILL) && enemy_rewrite_intent(_en)) {
 					_en.intent.scale = _en.intent.start_scale * 1.4; // pop, so the change is noticed
 					add_feed_entry("You rewrote " + string(_en.data.name) + "'s intent: " + string(_en.intent.move.move_name));
@@ -3290,7 +3354,7 @@ function combat_insight_view_draw() {
 				if (_rhover) quill_over = true;
 				combat_insight_part_draw(_sx + 2, _y1, _x2, _y2, _rafford, _rhover, _pulse, _rcost, "", false);
 				if (_rhover) {
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reveal exact numbers", "Spend " + string(_rcost) + " insight to reveal the exact value " + string(_en.data.name) + " intends to " + intent_verbs(_en.intent.move) + " with.", undefined, 0, undefined, _rcost, "insight");
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reveal exact numbers", "See exactly how much " + string(_en.data.name) + " will " + intent_verbs(_en.intent.move) + ".", undefined, 0, undefined, _rcost, "insight");
 					if (mouse_check_button_pressed(mb_left)) combat_reveal_enemy(_en);
 				}
 			}
@@ -3326,7 +3390,7 @@ function combat_insight_view_draw() {
 				_over_die = true;
 				other.quill_over = true;
 				_hint_at = { x: x, y: y - _r - 46 }; // its mouse hints go on top of every die, after this loop
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll or redraw", "Left-click: spend " + string(INSIGHT_COST_REROLL) + " insight to roll this die again.\nRight-click: spend " + string(INSIGHT_COST_REDRAW) + " insight to discard it and draw a new die." + (die_is_mocked(struct) ? "\nMocked: rerolling it will still roll 1. Redrawing might bring a die that isn't." : "") + (_inky ? "\n" + struct.name + ": " + struct.description : ""), undefined, 0, undefined, INSIGHT_COST_REROLL, "insight");
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll or redraw", "Left-click: reroll it (" + string(INSIGHT_COST_REROLL) + " insight).\nRight-click: swap it for a new die (" + string(INSIGHT_COST_REDRAW) + " insight)." + (die_is_mocked(struct) ? "\nMocked: a reroll still rolls 1." : "") + (_inky ? "\n" + struct.name + ": " + struct.description : ""), undefined, 0, undefined, INSIGHT_COST_REROLL, "insight");
 				if (mouse_check_button_pressed(mb_left) && _rr_can) { _clicked = id; _clicked_what = "reroll"; }
 				if (mouse_check_button_pressed(mb_right) && _rd_can) { _clicked = id; _clicked_what = "redraw"; }
 			}

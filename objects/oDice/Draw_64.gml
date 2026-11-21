@@ -63,7 +63,7 @@ if (_coded && die_is_mocked(struct) && !tumbling) {
 	var _mmx = device_mouse_x_to_gui(0), _mmy = device_mouse_y_to_gui(0);
 	if (global.ui_layer <= UI_LAYER.POPUP && !is_dragging && point_in_rectangle(_mmx, _mmy, _mk.x1, _mk.y1, _mk.x2, _mk.y2)) {
 		_kw_hover = true;
-		queue_tooltip(_mmx, _mmy, "Mocked", "While Mock lasts, this die's attack can't roll higher than 1. Rerolling it won't help.");
+		queue_tooltip(_mmx, _mmy, "Mocked", "This die's attack can't roll higher than 1 while Mock lasts.");
 	}
 }
 // Settings > Display > Action icons on dice: a small symbol so types don't rely on colour alone
@@ -88,7 +88,7 @@ if (!_kw_hover && mouse_hovering(x, y, sprite_width, sprite_height, true)) {
 	var _sub = _rolled ? "rolled " + string(die_face_total(struct)) : string(dice_output.min_roll) + "-" + string(dice_output.max_roll);
 	var _r_now = (_coded ? 36 * scale : sprite_height / 2);
 	// in an event, a click sends it to the bag (F149, oDice Step); not while the plank waits for one
-	var _ev_hint = (room == rmEvent && !(instance_exists(oEventManager) && oEventManager.deleting_die == 1)) ? "Click to put it in your bag." : "";
+	var _ev_hint = (room == rmEvent && !(instance_exists(oEventManager) && oEventManager.deleting_die == 1)) ? "Click to bag it." : "";
 	queue_die_tip(struct, x, y - _r_now * 1.25, undefined, _ev_hint);
 	
 	var off_x = 0;

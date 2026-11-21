@@ -310,7 +310,7 @@ function intent_hover_text(_enemy, _intel_level) {
 			case "BLK": _line = "Blocks " + _number; break;
 			case "HEAL": _line = "Heals " + _number; break;
 			case "INTEL": _line = "Gains insight"; break;
-			case "SUMMON": _line = "Calls for help" + ((variable_struct_exists(_move, "summon") && is_string(_move.summon)) ? ": " + _move.summon + " joins the fight" : ""); break;
+			case "SUMMON": _line = "Summons " + ((variable_struct_exists(_move, "summon") && is_string(_move.summon)) ? _move.summon : "help"); break;
 			case "DEBUFF": case "BUFF": _line = intent_status_text(_move); break;
 			default: _line = "";
 		}
@@ -319,7 +319,7 @@ function intent_hover_text(_enemy, _intel_level) {
 	if (_text == "") _text = "Does something unusual";
 	if (string_char_at(_text, string_length(_text)) != ".") _text += ".";
 	if (intent_is_halved(_enemy)) _text += " Halved by your quill.";
-	if (intent_has_numbers(_move) && _intel_level < INTEL_LEGIBLE) _text += " At the start of a turn, with ink to spend, your quill can show the exact number (" + string(combat_reveal_cost()) + ").";
+	if (intent_has_numbers(_move) && _intel_level < INTEL_LEGIBLE) _text += " Exact number: " + string(combat_reveal_cost()) + " insight.";
 	return _text;
 }
 

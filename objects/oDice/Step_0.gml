@@ -182,8 +182,8 @@ if (is_dragging) {
 					else if (_target == 0 && _die.struct.dice_value == 2) _reason = "coin";
 					else if (_target == 1 && workbench_slot[1].core != undefined) _reason = "core";
 
-					if (_reason == "coin") throw_error("Can't upgrade coins", "Coins are are too small to receive a core");
-					if (_reason == "core") throw_error("Core already here", "Remove the core before placing a dice here");
+					if (_reason == "coin") throw_error("Can't upgrade coins", "Coins can't take a core.");
+					if (_reason == "core") throw_error("Core already here", "Remove the core first.");
 
 					// leave the slot it was in (moving between slots is allowed)
 					if (_die.in_slot > 0) {
@@ -231,7 +231,7 @@ if (is_dragging && mouse_check_button_released(mb_left)) {
     if (combat != noone) {
         // the guided first fight only lets through what its current step asks for (tutorial_allows)
         if (is_mouse_over_discard_button()) {
-            throw_error("Can't discard", "Redraw a die with your ink instead: click the inkwell."); // only a redraw with ink discards
+            throw_error("Can't discard", "Use the inkwell to redraw a die."); // only a redraw with ink discards
         } else if (oCombat.last_hover) {
 			if (!die_has_keyword(struct, "exclusive") && tutorial_allows("sacrifice", struct)) {
 				with (combat) sacrifice_die(other.id);
