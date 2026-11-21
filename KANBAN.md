@@ -18,11 +18,11 @@
 | H11 | **Reminder for Jared:** the shop's exit door is drawn twice (it's in the room background and is also the exit object's sprite). Remove it from the background. | Jared, art |
 | H09 | **itch.io playtest build** live at https://tuegg.itch.io/tides-of-fortune (v0.2.0 tagged on main 2026-11-21; Jared exports and uploads the web build). Collecting feedback; fixes go out as hotfixes (v0.1.2...). | Jared, ongoing |
 
-**Waiting for playtest feedback** (agreed 2026-11-17; on 2026-11-19 Jared started v0.2 on `dev` with items 1-4 below, now batch 17)
-1. Game feel: room transitions (F65) and trigger animations (F40).
-2. Content gaps: stub keepsakes (F22), stronger consumables (F24), Giant Conch (F20).
-3. Between-pages choices, the rest of F02 (design talk first).
-4. Tech debt: one effect dispatcher (T03), input out of Draw GUI (T06).
+**Next for v0.3 (Jared, 2026-11-21)**, while itch testers play v0.2.0:
+1. Sound pass (Jared): sound effects across the game, including the page burn (F184).
+2. Art pass (Jared, his own art): keepsakes and cores (H13), unique dice (F42), sea stop icons, enemies (H12), the shop door (H11).
+3. Content: more dice, keepsakes, events and enemies (F20 to F25), shaped by the feedback.
+4. Feedback from the v0.2.0 playtest decides what else comes first.
 
 ---
 
@@ -88,6 +88,8 @@ All known P0 bugs are fixed, see DONE.
 Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
 
 **Open from the playtests (2026-11-19 and 2026-11-20)**
+- F183 Reward screens: anywhere an option is locked away (the item rewards' second pick), it burns away like the drafting page (page_burn_draw, shBurn) instead of chains (Jared, 2026-11-21).
+- F184 A sound for the burn (drafting page, and F183). Needs a sound from Jared (a soft whoosh and crackle), then one sfx_play where the burn starts.
 - F139 Giant Conch (parked by Jared, 2026-11-19; the summon intent icon is done): its echo attack uses the normal attack icon, no separate normal attack, less damage reduction (discuss numbers).
 - F151 (alignment cores done, batch 20) Cores beyond weighted/loaded: every core should be worth taking (no reason to take weighted or loaded otherwise). Alignment cores (chaotic rolls the lower your alignment, central rolls the higher).
 - F152 Alignment in combat: e.g. start with a d4 shaped by alignment.
