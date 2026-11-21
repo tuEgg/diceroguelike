@@ -2022,7 +2022,7 @@ function page_burn_draw(_page, _x, _y, _index) {
 
 	// the flame front: slow to catch, then quicker (eased), from just before the page to past it
 	var _f = _page.burn_t;
-	var _t = lerp(-0.15, 1.0, _f * _f * (3 - 2 * _f));
+	var _t = lerp(-0.15, 1.05, _f * _f * (3 - 2 * _f));
 	shader_set(shBurn);
 	shader_set_uniform_f(shader_get_uniform(shBurn, "u_t"), _t);
 	shader_set_uniform_f(shader_get_uniform(shBurn, "u_seed"), _index * 3.7 + _page.island_index * 1.3);

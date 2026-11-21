@@ -41,15 +41,15 @@ float fbm(vec2 p) {
 void main() {
 	vec4 base = v_vColour * texture2D(gm_BaseTexture, v_vTexcoord);
 	if (base.a <= 0.0) discard;
-	float n = fbm(v_vTexcoord * u_scale);
+	float n = clamp((fbm(v_vTexcoord * u_scale) - 0.22) / 0.52, 0.0, 1.0); // fbm bunches round 0.47: spread it over 0-1 so the burn moves evenly
 	float edge = n - u_t; // below 0: burnt away
 	if (edge < 0.0) discard;
 	vec3 col = base.rgb;
 	// scorched ahead of the flame
-	float scorch = 1.0 - smoothstep(0.0, 0.12, edge);
+	float scorch = 1.0 - smoothstep(0.0, 0.2, edge);
 	col = mix(col, vec3(0.18, 0.10, 0.05), scorch * 0.85);
 	// the glowing rim of the flame
-	float rim = 1.0 - smoothstep(0.0, 0.035, edge);
+	float rim = 1.0 - smoothstep(0.0, 0.06, edge);
 	vec3 ember = mix(vec3(1.0, 0.85, 0.3), vec3(1.0, 0.35, 0.05), rim);
 	col = mix(col, ember, rim);
 	gl_FragColor = vec4(col, base.a);
