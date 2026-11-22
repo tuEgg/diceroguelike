@@ -2226,7 +2226,10 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1, _die 
 		draw_set_font((_r >= 30) ? ftBig : ((_r >= 22) ? ftDefault : ftSmall));
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
-		draw_outline_text(_txt, _ring_col, _pip_col, 2, _x, _y + _cy, 1, _alpha, _angle);
+		// the offset to the shape's centre turns with the die (it was added straight down, so a tumbling d4's text
+		// drifted off it), and a touch lower: fa_middle centres the font's whole line, digits sit high in it
+		var _oy = _cy + string_height(_txt) * 0.07;
+		draw_outline_text(_txt, _ring_col, _pip_col, 2, _x + _oy * dsin(_angle), _y + _oy * dcos(_angle), 1, _alpha, _angle);
 	}
 	draw_set_color(c_white);
 }

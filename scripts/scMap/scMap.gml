@@ -1669,9 +1669,22 @@ function passage_arrive(_id, _b, _x = -1, _y = -1) {
 }
 
 /// @func passage_pool()
-/// @desc The sea stops a page can bring, with how often (B+). Calm water is the only heal (Q14).
+/// @desc The sea stops a page can bring, with how often (B+). Calm water is the only heal (Q14). Its odds follow your
+///       health: 1 at full, up to 5 near death. The Shipwright's go up 2 for each core you hold, up to +4 (Q16).
 function passage_pool() {
-	return [["calm", 3], ["workbench", 3], ["core", 2], ["whet", 2], ["gold", 2], ["trim", 1]];
+	var _calm = 1 + round(4 * (1 - clamp(global.player_hp / max(1, global.player_max_hp), 0, 1)));
+	return [["calm", _calm], ["workbench", 3 + min(4, 2 * passage_cores_held())], ["core", 2], ["whet", 2], ["gold", 2], ["trim", 1]];
+}
+
+/// @func passage_cores_held()
+/// @desc How many cores are in your item slots.
+function passage_cores_held() {
+	var _n = 0;
+	for (var i = 0; i < array_length(oRunManager.items); i++) {
+		var _it = oRunManager.items[i];
+		if (is_struct(_it) && variable_struct_exists(_it, "type") && _it.type == "core") _n++;
+	}
+	return _n;
 }
 
 /// @func pages_assign_passages()
@@ -1693,11 +1706,25 @@ function pages_assign_passages() {
 		pages_shown[| p].passage = _pick;
 		pages_shown[| p].passage_done = false;
 	}
-	// the guarantee: a safe stop on offer
-	if (!array_contains(_used, "calm") && !array_contains(_used, "workbench") && ds_list_size(pages_shown) > 0) {
-		var _pg = pages_shown[| irandom(ds_list_size(pages_shown) - 1)];
-		_pg.passage = workbench_useful() ? choose("calm", "workbench") : "calm";
+	// a core held through two spreads with no Shipwright offered: this spread has one (Q16)
+	if (passage_cores_held() > 0 && oRunManager.shipwright_wait >= 2 && !array_contains(_used, "workbench") && ds_list_size(pages_shown) > 0) {
+		var _swap = -1;
+		for (var p = 0; p < ds_list_size(pages_shown); p++) if (pages_shown[| p].passage != "calm") { _swap = p; break; } // keep a Calm water
+		if (_swap == -1) _swap = irandom(ds_list_size(pages_shown) - 1);
+		_used[_swap] = "workbench";
+		pages_shown[| _swap].passage = "workbench";
 	}
+	// the guarantee: a safe stop on offer. At full health it's the Shipwright, if a tool has work
+	if (!array_contains(_used, "calm") && !array_contains(_used, "workbench") && ds_list_size(pages_shown) > 0) {
+		var _i = irandom(ds_list_size(pages_shown) - 1);
+		var _full = global.player_hp >= global.player_max_hp;
+		var _pick = workbench_useful() ? (_full ? "workbench" : choose("calm", "workbench")) : "calm";
+		_used[_i] = _pick;
+		pages_shown[| _i].passage = _pick;
+	}
+	// spreads in a row offered with a core in hand and no Shipwright
+	if (passage_cores_held() > 0 && !array_contains(_used, "workbench")) oRunManager.shipwright_wait++;
+	else oRunManager.shipwright_wait = 0;
 }
 
 /// @func page_passage(_page) / page_passage_done(_page) / page_nodes_cleared(_page)

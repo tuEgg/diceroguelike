@@ -30,8 +30,20 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 28: queue and ink view | B152, B153, B154, F205, F206, F207, F208, F209, F210 | `fix/playtest-11-22` | **Not yet play-tested.** Four slots always in view, drag a move along the track, click intents in the ink view, dice dealt in an arc, sea stop odds, the settings not inked, d4 text centred, the track lifts over a hovered slot, an ink easter egg. |
 | 27: sounds | F204 | `fix/playtest-11-22` | **Not yet play-tested.** Jared's new sounds wired in. |
 | 26: playtest notes 2026-11-22 | B147, B148, B149, B150, B151, F196, F197, F198, F199, F200, F201, F202 | `fix/playtest-11-22` (off `dev`) | **Not yet play-tested.** Two crashes, the island flash on the page turn, a wrong padlock in slot 1, enemy block lasts until it acts again, ink buttons stand out, d6 ink slosh, linked stop badge, keepsake reward cards, min roll cap, the wreck with full slots. |
+
+**Batch 28 test list (queue and ink view)**
+- F205 The queue always shows four places: your slots, the new-slot tile, then faint locked ones with the pips each will need (4+, 6+). Build past four and the tile appears after them as before. The track's notches run over all four. Enemies whose move is past your last slot now act in their order on the track (an earlier point first), not in list order.
+- F206 Ink view: the Earlier/Later arrows are gone. Each marker on the track has one small handle (two arrows) hanging under it. Drag it along the track: a line shows the slot it will land after; let go there and it moves for 4 ink. Letting go where it started costs nothing. Can't afford it: "Not enough ink" when you press it.
+- F207 Ink view: the eye and quill overlap the bottom of the intent tag. Left-click the intent itself to Reveal, right-click to Rewrite (like a die's reroll and redraw). The little mouse now sits just below-left of the cursor instead of between the buttons, for dice and intents; a button that does nothing there is faint.
+- F208 Dice are dealt in a slight arc: the two ends level, the middle ones highest (up to 32 px with a full hand).
+- F209 Sea stop odds: Calm water is rarer at full health (weight 1) and commoner when hurt (up to 5). The Shipwright is commoner with cores in your item slots (+2 each, up to +4). Hold a core through two spreads with no Shipwright offered and the next spread has one. At full health, the spread's safe stop is the Shipwright when a tool has work.
+- F210 Easter egg, once a run: in the ink view draw a triangle in one stroke, then tap four dots inside it. The drawing lifts off as a generic d4, "Drawn die", that always rolls 4, and flies to your bag. (Big enough: at least 60 px across.)
+- B152 Open the settings (or the bag) while the ink view is open: the menu is drawn normally, not inked over.
+- B153 A die with no number showing (an ejected die, the reward fly-in): its "d4" sits in the middle of the shape, even while it turns.
+- B154 Hover a slot (it grows): the track line and its notches lift with it instead of being covered.
 
 **Batch 27 test list (sounds, F204)**
 - Dice rattle as they're dealt; a slot resolving no longer plays the dice roll.
@@ -122,7 +134,9 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 **From the 2026-11-22 playtest**
 - F203 Keepsake idea: rerolls can't roll the same value again.
-- Q16 Sea stop odds (to discuss): with a core in hand, the Shipwright shows up more often than other stops (or is guaranteed by the end of spread 2 if you haven't seen one); Calm water shows up less the more health you have.
+- F211 Keepsake ideas (Jared): keepsakes that change sea stops (pick a stop's type, see the next spread's stops, a stop counts twice...).
+- Sounds still to make: `docs/sound-recommendations.md` (tiers and suggestions; Jared makes them, Claude wires them in).
+- Q16 Sea stop odds: agreed 2026-11-22, built as F209 (batch 28).
 - Q17 Design chat (soon): after the timeline queue, go through every keepsake, die and potion and the build archetypes emerging. Shipwright's Draft needs rebalancing. Merge "when played" and "when sacrificed" into one trigger, as they're barely different now.
 
 **Core loop**
@@ -173,6 +187,8 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 ## 📌 DECISIONS
 
+- 2026-11-22 **The queue shows four places (F205):** your slots, the one to build, locked ones up to four; a move is moved by dragging its handle along the track for 4 ink (F206), not by arrows.
+- 2026-11-22 **Sea stop odds (Q16, F209):** Calm water 1 to 5 by missing health; Shipwright 3, +2 per core held up to +4; a core held two spreads without a Shipwright guarantees one; at full health the safe stop is the Shipwright when a tool has work.
 - 2026-11-22 **Enemy block (F196):** an enemy's block lasts until it acts again; a new Block replaces it rather than stacking (enemies built to keep block still do).
 - 2026-11-22 **The queue as a timeline (F193):** every enemy move happens after one of your slots, shown on a track over the queue (option C). A move after a slot you haven't built happens at the end. Block counts from the moment its slot resolves, so a hit before your Block slot gets through. An enemy killed or stunned before its point loses that move (its marker stays, greyed). Ink can move an enemy's move one slot earlier or later for 4. Where a move lands is rolled each turn, except moves that always come first (after slot 1) or last. The queue fully resets every turn: you start with one slot, new slots cost 2, 4, 6... pips (no dice minimum), and the dice that build a slot act in it that turn, then are discarded. Dice keep owning their action and number; colour still gates the action.
 - 2026-11-22 **Ink view:** keep the mode, label every action, ink as pips, ink is inky black, show what changed, call it ink everywhere.

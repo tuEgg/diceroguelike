@@ -227,6 +227,8 @@ dice_selection_num_selected = 0;
 dice_selection_event = undefined;
 dice_selection_filter = "none";
 pending_item = undefined; // an item waiting for a free slot (the wreck with full slots: pending_item_draw)
+shipwright_wait = 0;      // spreads in a row offered with a core held and no Shipwright (pages_assign_passages; saved)
+ink_egg_found = false;    // the triangle drawn in ink has paid out this run (ink_egg_check; saved)
 dice_selection_up_to = false; // true: Confirm works with any number up to dice_selection (the workbench)
 
 tools = ds_list_create();

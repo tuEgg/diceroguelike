@@ -8,7 +8,8 @@ aq_tile_w = 62.48177 * power(1.000414, gui_w) * 1.12; // (UI rework: tickets 12%
 
 var aq_list_size = ds_list_size(action_queue);
 var aq_tile_padding = aq_tile_w / 7;
-var aq_total_w = ((aq_list_size + 1) * aq_tile_w) + ((aq_list_size) * aq_tile_padding);
+aq_vis = max(4, aq_list_size + 1); // four slots always show (Jared, 2026-11-22): yours, the one to build, the rest locked
+var aq_total_w = (aq_vis * aq_tile_w) + ((aq_vis - 1) * aq_tile_padding);
 var aq_start_x = gui_w / 2 - (aq_total_w / 2);
 // the queue keeps clear of the enemies (a crowd pushes it left), but stays right of you and the inkwell before it
 var _q_right = gui_w;
@@ -395,6 +396,17 @@ for (var i = 0; i < aq_list_size; i++) {
 		}
 
 		draw_action_type_bars(last_x, last_y + last_h + 30, last_w, type_array, "None");
+
+		// the slots still to come, up to four in all (Jared, 2026-11-22): the turn's whole sequence shows from the start,
+		// faint and locked, each with the pips it will need
+		for (var k = aq_list_size + 1; k < aq_vis; k++) {
+			var _px = aq_start_x + k * (aq_tile_w + aq_tile_padding);
+			ui_dashed_box(_px, base_y, _px + base_w, base_y + base_h, global.ui_col.rule, 0.45);
+			ui_numeral(string(max(1, 2 * k + slot_cost_modifier)) + "+", _px + base_w / 2, base_y + base_h * 0.40, 40, make_color_rgb(150, 140, 120), 0.45, fa_center);
+			draw_set_alpha(0.5);
+			draw_padlock(_px + base_w / 2, base_y + base_h * 0.78, 0.9, make_color_rgb(190, 180, 160));
+			draw_set_alpha(1);
+		}
 	}
 	
 	// === Draw icons ABOVE each slot for number of dice loaded ===

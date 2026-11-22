@@ -267,8 +267,9 @@ if (show_tools) {
 
 
 
-// insight view (the eye in a fight): darkens everything but what insight can buy, drawn over the whole Draw GUI
-combat_insight_view_draw();
+// insight view (the eye in a fight): darkens everything but what insight can buy, drawn over the whole Draw GUI. Not
+// while the settings or the bag cover the screen: they'd be inked over too
+if (!global.show_settings && !show_dice_list) combat_insight_view_draw();
 
 // the bag icon (bottom left), above the map and every room window
 // Draw bag preview

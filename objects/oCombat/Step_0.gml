@@ -262,12 +262,15 @@ switch (state) {
 			}
 				
 			// the rest of the enemies (their point is your last slot or past it, or they waited): one at a time
+			// in their order on the track (an earlier point first), so it plays out as it reads
+			var _next = -1, _next_p = infinity;
 			for (var e = 0; e < ds_list_size(room_enemies); e++) {
 				var enemy = room_enemies[| e];
 				if (enemy.turn_done || enemy.dead) continue;
-				combat_enemy_act(e);
-				break; // one per tick, with action_delay between
+				var _ep = variable_struct_exists(enemy.intent, "after_slot") ? enemy.intent.after_slot : ENEMY_POINT_LAST;
+				if (_ep < _next_p) { _next = e; _next_p = _ep; }
 			}
+			if (_next != -1) combat_enemy_act(_next); // one per tick, with action_delay between
 		} else {
 	        action_timer -= 1;
 	    }
