@@ -2062,6 +2062,100 @@ function die_look(_d) {
 	return "";
 }
 
+/// @func die_style(_d)
+/// @desc A die's style, drawn round it by draw_die: "ink" for ink dice (Jared, 2026-11-22: all dice get one some day; ink
+///       first), "" for the rest.
+function die_style(_d) {
+	if (!is_struct(_d) || !variable_struct_exists(_d, "possible_type")) return "";
+	if (_d.possible_type == "INTEL") return "ink";
+	return "";
+}
+
+/// @func die_slosh(_die, _x, _y)
+/// @desc How an ink die's ink lags as it moves: { vx, vy }, smoothed, per die (by uid) in global.die_slosh. A die that
+///       jumps (not drawn for a while, or a big leap) starts still.
+function die_slosh(_die, _x, _y) {
+	if (!variable_global_exists("die_slosh")) global.die_slosh = {};
+	if (!is_struct(_die) || !variable_struct_exists(_die, "uid")) return { vx: 0, vy: 0 };
+	var _k = string(_die.uid);
+	var _s = global.die_slosh[$ _k];
+	var _t = current_time;
+	if (_s == undefined || _t - _s.t > 200 || point_distance(_s.x, _s.y, _x, _y) > 300) {
+		_s = { x: _x, y: _y, vx: 0, vy: 0, t: _t };
+		global.die_slosh[$ _k] = _s;
+		return _s;
+	}
+	if (_t - _s.t >= 8) { // once a frame, however many times it's drawn
+		var _f = 16 / max(1, _t - _s.t); // per 60fps frame
+		_s.vx = lerp(_s.vx, (_x - _s.x) * _f, 0.25);
+		_s.vy = lerp(_s.vy, (_y - _s.y) * _f, 0.25);
+		_s.x = _x; _s.y = _y; _s.t = _t;
+	}
+	return _s;
+}
+
+/// @func die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die)
+/// @desc An ink die's wet edge: its outline in dark ink, rippling, bulging out behind as it moves (the ink sloshing), a
+///       few drops trailing when it's quick, and a shine. Drawn just before the body, so the body sits in it.
+function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
+	var _sl = die_slosh(_die, _x, _y);
+	var _sp = min(point_distance(0, 0, _sl.vx, _sl.vy), 40);
+	var _dx = (_sp > 0.01) ? -_sl.vx / _sp : 0, _dy = (_sp > 0.01) ? -_sl.vy / _sp : 0; // behind it
+	var _t = current_time / 1000;
+	var _seed = is_struct(_die) && variable_struct_exists(_die, "uid") ? _die.uid * 1.7 : 0;
+	// the outline, many points round it, each pushed out by a ripple and by the slosh
+	var _base = [];
+	if (_sides <= 2) { for (var i = 0; i < 24; i++) array_push(_base, [lengthdir_x(_r * 1.1, i * 15), lengthdir_y(_r * 1.1, i * 15)]); }
+	else {
+		var _pts = die_shape_points(_sides, _r * 1.12), _n = array_length(_pts);
+		for (var i = 0; i < _n; i++) {
+			var _p = _pts[i], _q = _pts[(i + 1) mod _n];
+			for (var k = 0; k < 6; k++) array_push(_base, [lerp(_p[0], _q[0], k / 6), lerp(_p[1], _q[1], k / 6)]);
+		}
+	}
+	var _cyo = die_shape_yoff(_sides, _r);
+	var _m = array_length(_base);
+	var _ring = array_create(_m);
+	for (var i = 0; i < _m; i++) {
+		var _px = _base[i][0], _py = _base[i][1];
+		var _len = max(0.001, point_distance(0, _cyo, _px, _py));
+		var _nx = _px / _len, _ny = (_py - _cyo) / _len;
+		var _rip = (sin(_t * 3.1 + i * 1.3 + _seed) * 0.5 + sin(_t * 4.7 - i * 0.7 + _seed) * 0.5) * _r * 0.05;
+		var _lag = max(0, _nx * _dx + _ny * _dy) * _sp * _r * 0.012; // the side away from where it's going
+		var _push = _r * 0.05 + _rip + _lag;
+		var _ox = _px + _nx * _push, _oy = _py + _ny * _push;
+		_ring[i] = [die_rot_x(_x, _ox, _oy, _angle), die_rot_y(_y, _ox, _oy, _angle)];
+	}
+	var _cx = die_rot_x(_x, 0, _cyo, _angle), _cy = die_rot_y(_y, 0, _cyo, _angle);
+	draw_set_alpha(_alpha * 0.92);
+	draw_set_color(make_color_rgb(13, 15, 33));
+	draw_primitive_begin(pr_trianglelist); // a list, not a fan: the web build is fussy about fans
+	for (var i = 0; i < _m; i++) {
+		var _q = _ring[(i + 1) mod _m];
+		draw_vertex(_cx, _cy);
+		draw_vertex(_ring[i][0], _ring[i][1]);
+		draw_vertex(_q[0], _q[1]);
+	}
+	draw_primitive_end();
+	// drops thrown off behind it when it's quick
+	if (_sp > 4) {
+		var _drops = min(3, floor(_sp / 6));
+		for (var d = 1; d <= _drops; d++) {
+			var _dd = _r * (1.15 + d * 0.28);
+			var _wob = sin(_t * 6 + d * 2.1 + _seed) * _r * 0.12;
+			draw_circle(_x + _dx * _dd - _dy * _wob, _y + _dy * _dd + _dx * _wob + _cyo, max(1.5, _r * (0.13 - d * 0.03)), false);
+		}
+	}
+	// the shine: a glint sliding along its top left edge
+	var _gi = floor((0.5 + 0.5 * sin(_t * 0.9 + _seed)) * (_m * 0.25)) + floor(_m * 0.55);
+	var _g = _ring[_gi mod _m];
+	draw_set_alpha(_alpha * 0.55);
+	draw_set_color(make_color_rgb(170, 184, 240));
+	draw_circle(lerp(_g[0], _cx, 0.08), lerp(_g[1], _cy, 0.08), max(1.2, _r * 0.07), false);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
 /// @func die_rot_x(_x, _px, _py, _angle) / die_rot_y
 /// @desc A point on a die (offset _px, _py from its centre) turned by its angle, as draw_die turns its pips.
 function die_rot_x(_x, _px, _py, _angle) { return _x + _px * dcos(_angle) + _py * dsin(_angle); }
@@ -2083,6 +2177,10 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1, _die 
 		draw_die_shape(_ex, _ey, _r * 1.07, _sides, make_color_rgb(20, 20, 26), _angle, _alpha * 0.4);
 		draw_die_shape(_ex, _ey, _r * 0.95, _sides, _col, _angle, _alpha * 0.4);
 	}
+
+	// its style (die_style): drawn round it, before the body. Ink sloshes.
+	var _style = die_style(_die);
+	if (_style == "ink") die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die);
 
 	// shadow, (a rarity ring,) outline, body, and a lighter inner face for a little depth
 	draw_die_shape(_x + _r * 0.08, _y + _r * 0.12, _r * 1.06, _sides, c_black, _angle, _alpha * 0.35);

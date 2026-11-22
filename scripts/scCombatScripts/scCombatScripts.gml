@@ -3298,7 +3298,9 @@ function combat_insight_view_draw() {
 		// the inkwell, on top: clicking it closes the log (a toggle, like Done). Your ink shows as pips under it (drawn last,
 		// so a hovered action can show what it would spend)
 		ink_preview = 0;
+		wet_shapes = []; // what gets the wet edge this frame (wet_ink_draw, below)
 		var _ex = combat_inkwell_pos().x, _ey = combat_inkwell_pos().y;
+		wet_ink_rect(_ex - 30, _ey - 34, _ex + 30, _ey + 26, 10);
 		var _ink_hov = mouse_hovering(_ex, _ey, 70, 70, true, noone, noone, true, UI_LAYER.POPUP);
 		draw_inkwell(_ex, _ey, _ink_hov ? 1.25 : 1.15, player_intel / INSIGHT_MAX, false);
 		if (_ink_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Put your ink away", "Back to your dice.");
@@ -3402,6 +3404,9 @@ function combat_insight_view_draw() {
 		// the timeline track, over the log too, with its ink arrows (Earlier, Later)
 		combat_timeline_draw(true);
 
+		// the wet edge round every ink thing drawn above (shWetInk)
+		wet_ink_draw();
+
 		// your ink as pips under the inkwell; the ones a hovered action would spend flicker
 		draw_ink_pips(_ex, _ey + 50, player_intel, ink_preview);
 
@@ -3432,6 +3437,7 @@ function ink_button(_cx, _cy, _w, _h, _label, _cost, _ok) {
 	var _hov = mouse_hovering(_cx, _cy, _w, _h, true, soSlotHover, noone, true, UI_LAYER.POPUP);
 	var _s = (_hov && _ok) ? 1.08 : 1;
 	var _w2 = _w * _s / 2, _h2 = _h * _s / 2;
+	if (_ok) wet_ink_rect(_cx - _w2 - 2, _cy - _h2 - 2, _cx + _w2 + 2, _cy + _h2 + 2, _h / 2); // only what you can afford is wet
 	var _a = _ok ? 1 : 0.5;
 	draw_set_alpha(_a);
 	draw_set_color(global.color_intel);
@@ -3738,6 +3744,7 @@ function combat_timeline_draw(_ink = false) {
 					var _axx = _gx + s * (_w / 2 + 20);
 					var _hov = mouse_hovering(_axx, _my, 30, 34, true, soSlotHover, noone, true, UI_LAYER.POPUP);
 					var _sc = (_hov && _ok) ? 1.15 : 1;
+					if (_ok) wet_ink_circle(_axx, _my, 14 * _sc);
 					draw_set_alpha(_ok ? _a : _a * 0.45);
 					draw_set_color(global.color_intel);
 					draw_circle(_axx, _my, 14 * _sc, false);
@@ -3783,5 +3790,55 @@ function combat_pick_debuffed_slots() {
 				particle_emit(_sp.x + _sp.w / 2, _sp.y + _sp.h / 2, "burst", c_green);
 			}
 		}
+	}
+}
+
+// =====================================================================
+// THE WET EDGE (Jared, 2026-11-22; docs/mockups/wet-ink-edge.html): in the ink view everything you can spend ink on bleeds
+// wet ink. Its shapes are collected as they're drawn (wet_ink_rect, wet_ink_circle: ink_button, the track's arrows, the
+// inkwell), then wet_ink_draw paints them white into a half-size mask and draws it through shWetInk, which puts ink round
+// them and nothing on them. Ink dice slosh too, but that's drawn with the die (die_style_ink, scDice).
+// =====================================================================
+
+/// @func wet_ink_rect(_x1, _y1, _x2, _y2, _r)
+/// @desc Gives this rounded rect a wet ink edge this frame (the ink view only).
+function wet_ink_rect(_x1, _y1, _x2, _y2, _r) {
+	if (!instance_exists(oCombat) || !oCombat.insight_view) return;
+	array_push(oCombat.wet_shapes, { k: 0, x1: _x1, y1: _y1, x2: _x2, y2: _y2, r: _r });
+}
+
+/// @func wet_ink_circle(_x, _y, _r)
+/// @desc Gives this circle a wet ink edge this frame (the ink view only).
+function wet_ink_circle(_x, _y, _r) {
+	if (!instance_exists(oCombat) || !oCombat.insight_view) return;
+	array_push(oCombat.wet_shapes, { k: 1, x: _x, y: _y, r: _r });
+}
+
+/// @func wet_ink_draw()
+/// @desc The wet edge round this frame's shapes (above). Half size, so the shader's many samples stay cheap.
+function wet_ink_draw() {
+	with (oCombat) {
+		if (array_length(wet_shapes) == 0) return;
+		var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+		var _sw = max(1, _gw div 2), _sh = max(1, _gh div 2);
+		if (surface_exists(wet_surf) && (surface_get_width(wet_surf) != _sw || surface_get_height(wet_surf) != _sh)) surface_free(wet_surf);
+		if (!surface_exists(wet_surf)) wet_surf = surface_create(_sw, _sh);
+		surface_set_target(wet_surf);
+		draw_clear_alpha(c_black, 0);
+		draw_set_color(c_white);
+		draw_set_alpha(1);
+		for (var i = 0; i < array_length(wet_shapes); i++) {
+			var _s = wet_shapes[i];
+			if (_s.k == 0) draw_roundrect_ext(_s.x1 / 2, _s.y1 / 2, _s.x2 / 2, _s.y2 / 2, _s.r, _s.r, false);
+			else draw_circle(_s.x / 2, _s.y / 2, _s.r / 2, false);
+		}
+		surface_reset_target();
+		shader_set(shWetInk);
+		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_texel"), 1 / _sw, 1 / _sh);
+		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_time"), (current_time / 1000) mod 100);
+		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_spread"), 7);
+		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_shine"), 0.6);
+		draw_surface_ext(wet_surf, 0, 0, _gw / _sw, _gh / _sh, 0, c_white, 1);
+		shader_reset();
 	}
 }

@@ -108,6 +108,7 @@
     {"id":{"name":"shBurn","path":"shaders/shBurn/shBurn.yy",},},
     {"id":{"name":"shErode","path":"shaders/shErode/shErode.yy",},},
     {"id":{"name":"shInk","path":"shaders/shInk/shInk.yy",},},
+    {"id":{"name":"shWetInk","path":"shaders/shWetInk/shWetInk.yy",},},
     {"id":{"name":"shWhiteFill","path":"shaders/shWhiteFill/shWhiteFill.yy",},},
     {"id":{"name":"sIntro","path":"sounds/sIntro/sIntro.yy",},},
     {"id":{"name":"soCard","path":"sounds/soCard/soCard.yy",},},
