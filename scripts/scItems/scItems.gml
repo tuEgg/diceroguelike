@@ -505,7 +505,7 @@ function define_items() {
 				if (room == rmCombat) {
 					dice_exist = !oCombat.show_rewards && oCombat.state == CombatState.PLAYER_INPUT;
 				} else if (room == rmWorkbench) {
-					dice_exist = true;
+					dice_exist = ds_list_size(global.dice_bag) > 0;
 				} else if (room == rmEvent) {
 					dice_exist = (instance_number(oDice) != 0);
 				}
@@ -513,6 +513,12 @@ function define_items() {
 			},
 			modify: function(_context) {
 				if (room == rmCombat && instance_exists(oCombat)) oCombat.dice_allowed_this_turn_bonus += 1; // F24: a play for them
+				if (room == rmWorkbench) {
+					// the free bench (F224) has no hand: 4 random dice from the bag fly onto the table
+					repeat (4) if (ds_list_size(global.dice_bag) > 0) workbench_take_die(global.dice_bag[| irandom(ds_list_size(global.dice_bag) - 1)]);
+					particle_emit(global.gui.bag_x, global.gui.bag_y, "burst", c_purple);
+					return;
+				}
 				with (oRunManager) {
 					dice_to_deal = 4;
 					is_dealing_dice = true;

@@ -110,9 +110,21 @@ wb_remove_die = function(_d) {
 wb_free_spot = function() {
 	for (var _try = 0; _try < 60; _try++) {
 		var _x = irandom_range(table.x1 + 120, table.x2 - 120), _y = irandom_range(table.y1 + 160, table.y2 - 90);
-		if (wb_die_at(_x, _y, undefined, 110) == undefined) return [_x, _y];
+		if (wb_die_at(_x, _y, undefined, 110) != undefined || wb_near_bag(_x, _y)) continue;
+		// nor where a die still flying in will land
+		var _taken = false;
+		for (var k = 0; k < array_length(wb_dice); k++) if (is_struct(wb_dice[k].fly) && point_distance(_x, _y, wb_dice[k].fly.tx, wb_dice[k].fly.ty) < 110) _taken = true;
+		if (!_taken) return [_x, _y];
 	}
 	return [irandom_range(table.x1 + 120, table.x2 - 120), irandom_range(table.y1 + 160, table.y2 - 90)];
+}
+
+/// @func wb_near_bag(_x, _y)
+/// @desc Is this spot in the table's corner under the bag icon? Dice are kept out of it, so they can't be dropped
+///       back in the bag (or open it) by accident.
+wb_near_bag = function(_x, _y) {
+	var _gb = global.gui;
+	return _x < _gb.bag_x + _gb.bag_w + 60 && _y > _gb.bag_y - 70;
 }
 
 /// @func wb_to_bag(_d)

@@ -83,6 +83,7 @@ for (var i = 0; i < array_length(wb_dice); i++) {
 	if (is_struct(_d.fly) || (is_struct(wb_held) && wb_held.ref == _d)) continue;
 	_d.x = clamp(_d.x, table.x1 + 50, table.x2 - 50);
 	_d.y = clamp(_d.y, table.y1 + 50, table.y2 - 50);
+	if (wb_near_bag(_d.x, _d.y)) _d.y = global.gui.bag_y - 70; // out of the bag's corner
 }
 
 // ---------------------------------------------------------------- the tools
