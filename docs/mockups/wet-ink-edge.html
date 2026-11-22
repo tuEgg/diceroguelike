@@ -18,13 +18,11 @@ p { color: var(--muted); }
 <body>
 <main>
 	<h1 style="font-size:22px;margin:0 0 6px">Wet ink edge (shader mockup)</h1>
-	<p>Anything you can spend ink on in the ink view gets a wet edge: ink bleeding out from it, darker where it pools at the rim, with a moving shine and a slow creep. Here it's on the Reroll/Redraw buttons, the timeline marker's arrows, Reveal/Rewrite and the inkwell. In the game it would be one extra step in the ink view's shader pass, drawn from a mask of those shapes.</p>
+	<p>v2 (Jared: not a border). The ink edge of everything you can spend ink on sloshes: it swells out and back in a slow wave running round the edge, with a quicker ripple and a glint, like liquid in a container. This is the game's shader (shaders/shWetInk) running on a mask of the buttons and arrows.</p>
 	<canvas id="c" width="960" height="540"></canvas>
 	<div class="row">
 		<button id="toggle">Edge: on</button>
-		<label>Spread <input id="spread" type="range" min="4" max="26" value="14"></label>
-		<label>Wobble <input id="wob" type="range" min="0" max="100" value="55"></label>
-		<label>Shine <input id="shine" type="range" min="0" max="100" value="60"></label>
+		<label>Reach <input id="reach" type="range" min="2" max="12" value="6"></label>
 	</div>
 	<p id="err" style="color:#e08a7a"></p>
 </main>
@@ -103,70 +101,73 @@ die(330, 470, '#2a2e4c'); die(480, 470, '#5b9bd5');
 pill(330, 370, 'Reroll', 3); pill(330, 406, 'Redraw', 3);
 pill(480, 370, 'Reroll', 3); pill(480, 406, 'Redraw', 3);
 // the inkwell
-both((c, m) => {
+((c, m) => {
 	c.fillStyle = m ? '#fff' : INK; rr(c, 50, 200, 56, 48, 8); c.fill(); rr(c, 64, 186, 28, 18, 4); c.fill();
 	if (!m) { c.fillStyle = 'rgba(255,255,255,0.25)'; c.fillRect(58, 210, 8, 28); }
-});
+})(S, false);
 
 // ---- the shader ----
 const VS = `attribute vec2 p; varying vec2 v_vTexcoord; void main(){ v_vTexcoord = p * 0.5 + 0.5; v_vTexcoord.y = 1.0 - v_vTexcoord.y; gl_Position = vec4(p, 0.0, 1.0); }`;
 // shWetInk: the frame, with ink bleeding out round every shape in u_mask
 const FS = `precision mediump float;
-varying vec2 v_vTexcoord;
 uniform sampler2D gm_BaseTexture; // the frame
-uniform sampler2D u_mask;         // white where an ink thing is
-uniform vec2 u_texel;
-uniform float u_time, u_spread, u_wobble, u_shine, u_on;
+uniform sampler2D u_mask;
+uniform float u_on;
+// The ink view's wet edge (Jared, 2026-11-22: not a border, the edge itself sloshing like liquid in a container): the
+// ink edge of everything you can spend ink on swells out and back in a slow travelling wave, with a quicker ripple and
+// a glint on top. Drawn over the view from oCombat.wet_surf, a mask (white where an ink thing is) that wet_ink_draw
+// fills from the shapes wet_ink_rect / wet_ink_circle collected this frame. Only touches a thin band round each edge.
+varying vec2 v_vTexcoord;
+
+uniform vec2 u_texel;     // 1 / the mask's size
+uniform float u_time;     // seconds, kept small
+uniform float u_reach;    // how far the edge moves, in pixels
+uniform vec3 u_col;       // the ink (global.color_intel)
+
 float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-float noise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
-	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
-float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int k = 0; k < 4; k++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v; }
-// how much ink is near: the mask blurred over a disc of u_spread px (rings of taps)
+float noise(vec2 p) {
+	vec2 i = floor(p), f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+float m(vec2 uv) { return texture2D(u_mask, uv).a; }
+// 0 well outside a shape, 1 well inside, 0.5 on its edge: the mask blurred over u_reach
 float field(vec2 uv) {
-	float s = 0.0, w = 0.0;
-	for (int i = 0; i < 12; i++) {
-		float a = float(i) * 0.5236;
-		for (int j = 1; j <= 3; j++) {
-			float r = float(j) / 3.0 * u_spread;
-			float ww = 1.25 - float(j) * 0.3;
-			s += texture2D(u_mask, uv + vec2(cos(a), sin(a)) * r * u_texel).a * ww;
-			w += ww;
-		}
+	float s = m(uv) * 2.0, w = 2.0;
+	for (int i = 0; i < 8; i++) {
+		float a = float(i) * 0.7854 + 0.39;
+		vec2 d = vec2(cos(a), sin(a)) * u_reach * u_texel;
+		s += m(uv + d) + m(uv + d * 0.5) * 1.5;
+		w += 2.5;
 	}
 	return s / w;
 }
+
+vec4 wet() {
+	vec2 uv = v_vTexcoord;
+	float f = field(uv);
+	if (f <= 0.002 || f >= 0.998) { return vec4(0.0); } // away from every edge
+	vec2 px = uv / u_texel;
+	float t = u_time;
+	// the slosh: a slow swell running round the edges, a quicker ripple on it
+	float swell = sin(px.x * 0.05 + px.y * 0.03 + t * 2.1) * 0.6 + sin(px.x * 0.11 - px.y * 0.07 - t * 3.3) * 0.25;
+	float ripple = noise(px / 7.0 + vec2(t * 0.9, -t * 0.6)) - 0.5;
+	float th = 0.5 - 0.38 * (swell * 0.7 + ripple * 0.6); // where the ink's edge is now: past the shape when the swell's up
+	// a band of ink from that moving edge in to just inside the shape's own border
+	float ink = smoothstep(th - 0.05, th + 0.05, f) * (1.0 - smoothstep(0.7, 0.8, f));
+	if (ink <= 0.0) { return vec4(0.0); }
+	// a glint where the liquid's surface faces up and left
+	float gx = field(uv + vec2(u_texel.x, 0.0)) - f;
+	float gy = field(uv + vec2(0.0, u_texel.y)) - f;
+	float lit = clamp(dot(normalize(vec2(gx, gy) + 1e-5), normalize(vec2(0.6, 0.8))), 0.0, 1.0);
+	vec3 col = u_col + vec3(0.35, 0.38, 0.5) * pow(lit, 6.0) * (0.6 + 0.4 * sin(t * 1.3 + px.x * 0.02));
+	return vec4(col, ink );
+}
+
 void main() {
 	vec4 base = texture2D(gm_BaseTexture, v_vTexcoord);
-	float inside = texture2D(u_mask, v_vTexcoord).a;
-	if (u_on < 0.5 || inside > 0.5) { gl_FragColor = base; return; }
-	// the edge creeps: the place we sample from wanders with slow noise, and the threshold breathes
-	vec2 px = v_vTexcoord / u_texel;
-	vec2 drift = vec2(fbm(px / 38.0 + u_time * 0.12), fbm(px / 38.0 + 9.3 - u_time * 0.1)) - 0.5;
-	vec2 uv = v_vTexcoord + drift * u_wobble * 10.0 * u_texel;
-	// drips: here and there the ink runs down a little, swaying slowly
-	float dn = noise(vec2(px.x / 11.0, 3.0));
-	float drip = pow(dn, 4.0) * u_spread * (2.2 + 0.4 * sin(u_time * 0.6 + dn * 6.0));
-	float f = max(field(uv), field(uv - vec2(0.0, drip * u_texel.y)) * smoothstep(0.55, 0.8, dn));
-	float grain = fbm(px / 9.0 + u_time * 0.04); // fibres of the paper soaking it up unevenly: lobes
-	float th = 0.03 + 0.16 * grain * grain + 0.01 * sin(u_time * 1.7);
-	float wet = smoothstep(th, th + 0.025, f);
-	if (wet <= 0.0) { gl_FragColor = base; return; }
-	// solid near the shape, pooling darkest at the outer rim, a lighter wash between
-	float rim = 1.0 - smoothstep(th + 0.01, th + 0.09, f);
-	float a = wet * mix(0.72, 0.96, max(rim, smoothstep(0.35, 0.6, f)));
-	vec3 ink = vec3(0.05, 0.06, 0.13);
-	vec3 col = mix(base.rgb, ink, a);
-	// the shine: the wet surface as a dome (higher towards the shape), lit from the top left; crisp, sliding a little
-	float e = 3.0;
-	float fx = field(uv + vec2(u_texel.x * e, 0.0)) - field(uv - vec2(u_texel.x * e, 0.0));
-	float fy = field(uv + vec2(0.0, u_texel.y * e)) - field(uv - vec2(0.0, u_texel.y * e));
-	vec3 n = normalize(vec3(-fx * 9.0, -fy * 9.0, 1.0));
-	vec3 L = normalize(vec3(-0.5 + 0.3 * sin(u_time * 0.7), -0.7, 0.55));
-	vec3 Hh = normalize(L + vec3(0.0, 0.0, 1.0));
-	float spec = pow(max(dot(n, Hh), 0.0), 40.0) * wet;
-	float glint = pow(max(dot(n, Hh), 0.0), 160.0) * wet; // the bright point of the shine
-	col += vec3(0.62, 0.68, 0.9) * spec * u_shine * 0.55 + vec3(1.0) * glint * u_shine * 0.7;
-	gl_FragColor = vec4(col, 1.0);
+	vec4 w = (u_on > 0.5) ? wet() : vec4(0.0);
+	gl_FragColor = vec4(mix(base.rgb, w.rgb, w.a), 1.0);
 }`;
 const c = document.getElementById('c');
 const gl = c.getContext('webgl');
@@ -181,15 +182,13 @@ try {
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); }
 	tex(0, scene); tex(1, mask);
 	const U = n => gl.getUniformLocation(pr, n);
-	gl.uniform1i(U('gm_BaseTexture'), 0); gl.uniform1i(U('u_mask'), 1); gl.uniform2f(U('u_texel'), 1 / W, 1 / H);
+	gl.uniform1i(U('gm_BaseTexture'), 0); gl.uniform1i(U('u_mask'), 1); gl.uniform2f(U('u_texel'), 1 / W, 1 / H); gl.uniform3f(U('u_col'), 42 / 255, 46 / 255, 76 / 255);
 	let on = 1;
 	document.getElementById('toggle').onclick = e => { on = 1 - on; e.target.textContent = 'Edge: ' + (on ? 'on' : 'off'); };
 	const t0 = performance.now();
 	(function frame() {
 		gl.uniform1f(U('u_time'), (performance.now() - t0) / 1000);
-		gl.uniform1f(U('u_spread'), +document.getElementById('spread').value);
-		gl.uniform1f(U('u_wobble'), document.getElementById('wob').value / 100);
-		gl.uniform1f(U('u_shine'), document.getElementById('shine').value / 100);
+		gl.uniform1f(U('u_reach'), +document.getElementById('reach').value);
 		gl.uniform1f(U('u_on'), on);
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 		requestAnimationFrame(frame);

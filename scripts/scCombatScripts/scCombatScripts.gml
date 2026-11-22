@@ -3300,7 +3300,6 @@ function combat_insight_view_draw() {
 		ink_preview = 0;
 		wet_shapes = []; // what gets the wet edge this frame (wet_ink_draw, below)
 		var _ex = combat_inkwell_pos().x, _ey = combat_inkwell_pos().y;
-		wet_ink_rect(_ex - 30, _ey - 34, _ex + 30, _ey + 26, 10);
 		var _ink_hov = mouse_hovering(_ex, _ey, 70, 70, true, noone, noone, true, UI_LAYER.POPUP);
 		draw_inkwell(_ex, _ey, _ink_hov ? 1.25 : 1.15, player_intel / INSIGHT_MAX, false);
 		if (_ink_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Put your ink away", "Back to your dice.");
@@ -3794,10 +3793,10 @@ function combat_pick_debuffed_slots() {
 }
 
 // =====================================================================
-// THE WET EDGE (Jared, 2026-11-22; docs/mockups/wet-ink-edge.html): in the ink view everything you can spend ink on bleeds
-// wet ink. Its shapes are collected as they're drawn (wet_ink_rect, wet_ink_circle: ink_button, the track's arrows, the
-// inkwell), then wet_ink_draw paints them white into a half-size mask and draws it through shWetInk, which puts ink round
-// them and nothing on them. Ink dice slosh too, but that's drawn with the die (die_style_ink, scDice).
+// THE WET EDGE (Jared, 2026-11-22; docs/mockups/wet-ink-edge.html): in the ink view the edge of everything you can spend
+// ink on sloshes like liquid in a container. Its shapes are collected as they're drawn (wet_ink_rect, wet_ink_circle:
+// ink_button, the track's arrows), then wet_ink_draw paints them white into a mask and draws it through shWetInk, which
+// moves a thin band of ink round each edge. Ink dice slosh too, but that's drawn with the die (die_style_ink, scDice).
 // =====================================================================
 
 /// @func wet_ink_rect(_x1, _y1, _x2, _y2, _r)
@@ -3815,12 +3814,12 @@ function wet_ink_circle(_x, _y, _r) {
 }
 
 /// @func wet_ink_draw()
-/// @desc The wet edge round this frame's shapes (above). Half size, so the shader's many samples stay cheap.
+/// @desc The wet edge on this frame's shapes (above): their own edges slosh (shWetInk).
 function wet_ink_draw() {
 	with (oCombat) {
 		if (array_length(wet_shapes) == 0) return;
 		var _gw = display_get_gui_width(), _gh = display_get_gui_height();
-		var _sw = max(1, _gw div 2), _sh = max(1, _gh div 2);
+		var _sw = max(1, _gw), _sh = max(1, _gh); // full size: the band is a few pixels thin
 		if (surface_exists(wet_surf) && (surface_get_width(wet_surf) != _sw || surface_get_height(wet_surf) != _sh)) surface_free(wet_surf);
 		if (!surface_exists(wet_surf)) wet_surf = surface_create(_sw, _sh);
 		surface_set_target(wet_surf);
@@ -3829,15 +3828,15 @@ function wet_ink_draw() {
 		draw_set_alpha(1);
 		for (var i = 0; i < array_length(wet_shapes); i++) {
 			var _s = wet_shapes[i];
-			if (_s.k == 0) draw_roundrect_ext(_s.x1 / 2, _s.y1 / 2, _s.x2 / 2, _s.y2 / 2, _s.r, _s.r, false);
-			else draw_circle(_s.x / 2, _s.y / 2, _s.r / 2, false);
+			if (_s.k == 0) draw_roundrect_ext(_s.x1, _s.y1, _s.x2, _s.y2, _s.r, _s.r, false);
+			else draw_circle(_s.x, _s.y, _s.r, false);
 		}
 		surface_reset_target();
 		shader_set(shWetInk);
 		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_texel"), 1 / _sw, 1 / _sh);
 		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_time"), (current_time / 1000) mod 100);
-		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_spread"), 7);
-		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_shine"), 0.6);
+		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_reach"), 6);
+		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_col"), colour_get_red(global.color_intel) / 255, colour_get_green(global.color_intel) / 255, colour_get_blue(global.color_intel) / 255);
 		draw_surface_ext(wet_surf, 0, 0, _gw / _sw, _gh / _sh, 0, c_white, 1);
 		shader_reset();
 	}

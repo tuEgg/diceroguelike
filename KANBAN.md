@@ -43,8 +43,8 @@
 - F193 Ink view: an arrow either side of each marker on the track (4 ink each) moves it a slot earlier or later; "After your slot N." floats up. Hovering one flickers the 4 pips it costs. Earlier stops at slot 1, Later at "last" moves. Nothing extra under the intents any more.
 - Intent tags over enemies are their normal size again (the letter badge was shrinking the number).
 - d4s and d6s side by side sit level everywhere dice are drawn (hand, slots, bag, rewards): the triangle used to sit high. Check d4 pips are still centred in the triangle, and d10s too if any show.
-- Wet ink edge (docs/mockups/wet-ink-edge.html) in the ink view: everything you can afford to spend ink on (Reroll, Redraw, Reveal, Rewrite, the track arrows) and the inkwell bleeds dark ink round its edge, lobed, with a few drips and a moving shine. Buttons you can't afford stay dry. Check it doesn't slow the game down, and that the ink round Redraw doesn't cover the die under it.
-- Ink dice (pure ink, like the starter Ink die) have a wet dark rim that ripples all the time. Drag one or watch them deal: the ink bulges out behind and throws a few drops when it moves quickly. Everywhere dice are drawn (hand, slots, bag, shop, rewards).
+- Wet ink edge v2 (docs/mockups/wet-ink-edge.html): in the ink view the ink edge of everything you can afford (Reroll, Redraw, Reveal, Rewrite, the track arrows) sloshes: it swells out and back in a slow wave running round it, with a ripple and a glint. No border, no drips. Buttons you can't afford stay still. Check it doesn't slow the game down.
+- Ink dice (pure ink, like the starter Ink die): their edge ripples gently all the time; when one moves, the ink bulges out behind it, and a fast move throws a couple of drops. Everywhere dice are drawn.
 - F193 Bind and Rot pick their slot when you end your turn, from the slots with dice (Rot's slot flashes green). During your turn no slot shows as chained or rotten, and you can play into any of them.
 
 **Batch 24 test list (`feature/ink-view`)**

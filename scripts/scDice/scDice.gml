@@ -2120,9 +2120,9 @@ function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
 		var _px = _base[i][0], _py = _base[i][1];
 		var _len = max(0.001, point_distance(0, _cyo, _px, _py));
 		var _nx = _px / _len, _ny = (_py - _cyo) / _len;
-		var _rip = (sin(_t * 3.1 + i * 1.3 + _seed) * 0.5 + sin(_t * 4.7 - i * 0.7 + _seed) * 0.5) * _r * 0.05;
+		var _rip = (sin(_t * 2.6 + i * 0.9 + _seed) * 0.6 + sin(_t * 4.1 - i * 0.5 + _seed) * 0.4) * _r * 0.035; // a slow swell round it
 		var _lag = max(0, _nx * _dx + _ny * _dy) * _sp * _r * 0.012; // the side away from where it's going
-		var _push = _r * 0.05 + _rip + _lag;
+		var _push = _r * 0.01 + _rip + _lag; // hugs its own edge (Jared: not a border)
 		var _ox = _px + _nx * _push, _oy = _py + _ny * _push;
 		_ring[i] = [die_rot_x(_x, _ox, _oy, _angle), die_rot_y(_y, _ox, _oy, _angle)];
 	}
@@ -2138,7 +2138,7 @@ function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
 	}
 	draw_primitive_end();
 	// drops thrown off behind it when it's quick
-	if (_sp > 4) {
+	if (_sp > 9) {
 		var _drops = min(3, floor(_sp / 6));
 		for (var d = 1; d <= _drops; d++) {
 			var _dd = _r * (1.15 + d * 0.28);
