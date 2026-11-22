@@ -150,7 +150,7 @@ grabbed_type   = "";
 
 dice_to_deal = 0;
 dice_deal_timer = 0;
-dice_deal_delay = 10; // frames between dice (at 60fps ~0.17s)
+dice_deal_delay = 6; // frames between dice (at 60fps 0.1s; Jared 2026-11-22: quicker)
 is_dealing_dice = false;
 ejected_dice = false;
 type_array = [];

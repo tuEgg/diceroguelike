@@ -44,7 +44,8 @@
 - Intent tags over enemies are their normal size again (the letter badge was shrinking the number).
 - d4s and d6s side by side sit level everywhere dice are drawn (hand, slots, bag, rewards): the triangle used to sit high. Check d4 pips are still centred in the triangle, and d10s too if any show.
 - Wet ink edge v3 (docs/mockups/wet-ink-edge.html): in the ink view the ink edge of everything you can afford sloshes, each on its own: Reroll and Redraw each have their own edge (no shared container round both), and so do Reveal, Rewrite, the track arrows and the ink edge round each die. The swell is about a third bigger than v2. Check it doesn't slow the game down.
-- Doodles: in the ink view, left-drag anywhere that isn't a button, a die, the inkwell or Done to draw in ink (thinner when you move fast). Each stroke fades out 10 s after you finish it; closing the log wipes them.
+- Doodles: in the ink view, left-drag anywhere that isn't a button, a die, the inkwell or Done to draw in ink (thinner when you move fast). Each stroke fades out 6 s after you finish it; closing the log wipes them.
+- Dealing is quicker (a die every 0.1 s, a shorter tumble), and each die flies straight to its own spot in the row and lands on it: nothing shuffles along as the rest arrive. Same for dice taken back from a slot.
 - Ink view dice: two round icon buttons over each die, side by side: left, a die in a turning arrow (Reroll); right, a die between two arrows going opposite ways (Redraw). Each has its cost on a small ink disc, a tooltip, and the sloshing edge. Left/right-click on the die still work.
 - Stacked markers on the track: the lower marker is drawn over the line coming down from the one above it.
 - No extra pause after your last slot: enemies left to act go straight away, as they do mid-queue. (Keepsakes on "your turn ends" fire once, not once per enemy left.)

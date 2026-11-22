@@ -3523,16 +3523,18 @@ function float_text(_x, _y, _text, _col) {
 ///       (combat_hand_row_pos).
 function combat_hand_row() {
 	var _dice = [];
-	with (oDice) if (!still && !in_slot && !is_dragging && has_rolled) array_push(_dice, id); // (a die still flying in joins once it lands)
-	var _n = array_length(_dice);
-	if (_n == 0) return;
+	with (oDice) if (!still && !in_slot && !is_dragging) array_push(_dice, id); // dice flying in too: they keep their spot
+	var _coming = (instance_exists(oCombat) && oCombat.is_dealing_dice) ? oCombat.dice_to_deal : 0; // spots kept for the rest of the deal
+	var _n = array_length(_dice) + _coming;
+	if (array_length(_dice) == 0) return;
 	array_sort(_dice, function(_a, _b) { return _a.target_x - _b.target_x; });
-	for (var i = 0; i < _n; i++) {
+	for (var i = 0; i < array_length(_dice); i++) {
 		var _d = _dice[i];
 		var _spot = combat_hand_row_pos(i, _n);
 		_d.target_x = _spot.x; _d.target_y = _spot.y; // where it rests (the hand only snaps dice back from outside its area)
-		_d.x = lerp(_d.x, _d.target_x, 0.25); // slides there
-		_d.y = lerp(_d.y, _d.target_y, 0.25);
+		if (!_d.has_rolled) continue; // still flying: it steers there itself (oDice Step)
+		_d.x = lerp(_d.x, _d.target_x, 0.35); // slides there
+		_d.y = lerp(_d.y, _d.target_y, 0.35);
 	}
 }
 
@@ -3892,9 +3894,9 @@ function wet_ink_die(_x, _y, _r, _sides, _angle) {
 
 // =====================================================================
 // DOODLES (Jared, 2026-11-22): in the ink view, left-drag on anything that isn't a button draws in ink on the log. Each
-// stroke stays INK_DOODLE_LIFE ms after it's finished, fading over the last 2 s; closing the log wipes them.
+// stroke stays INK_DOODLE_LIFE ms (6 s) after it's finished, fading over the last 2 s; closing the log wipes them.
 // =====================================================================
-#macro INK_DOODLE_LIFE 10000
+#macro INK_DOODLE_LIFE 6000 // Jared, 2026-11-22: a few seconds less
 
 /// @func ink_doodle_step(_over_something)
 /// @desc Called last in the ink view, after every button: starts, extends and ends strokes; drops old ones.

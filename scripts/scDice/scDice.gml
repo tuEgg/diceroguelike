@@ -105,14 +105,16 @@ function deal_single_die( _can_discard_this_turn = true) {
 	die_inst.can_discard = _can_discard_this_turn;
 
 	// rolled dice: it tumbles as it flies out of the bag, then lands on its roll (oDice Step)
-	if (room == rmCombat && die_has_faces(die_struct)) die_inst.roll_anim = 16;
+	if (room == rmCombat && die_has_faces(die_struct)) die_inst.roll_anim = 12;
 
     var target = generate_valid_targets(1, 100) [0];
-	// in a fight a dealt die flies to the right end of the hand's row (combat_hand_row lays the rest out round it)
+	// in a fight a dealt die flies to its own spot in the row as it will be once the whole deal is in (dice still to
+	// come counted), so it lands where it stays (combat_hand_row keeps the row)
 	if (room == rmCombat) {
 		var _in_hand = 0;
 		with (oDice) if (!still && !in_slot) _in_hand++;
-		var _rp = combat_hand_row_pos(_in_hand - 1, _in_hand);
+		var _coming = instance_exists(oCombat) ? max(0, oCombat.dice_to_deal - 1) : 0; // dice_to_deal counts this one until after
+		var _rp = combat_hand_row_pos(_in_hand - 1, _in_hand + _coming);
 		target = [_rp.x, _rp.y];
 	}
     die_inst.target_x = target[0];
