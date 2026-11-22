@@ -5,7 +5,7 @@ global.show_settings = false;
 
 global.resolution_index = 0;
 global.custom_cursor = true; // Settings > Display > Custom cursor (cursor_draw)
-global.action_icons = true; // on by default (UI rework): every action colour also has a shape. // Settings > Display > Action icons on dice (draw_action_type_icon), for telling types apart without colour
+global.action_icons = false; // off by default (Jared, 2026-11-22): action glyphs on dice are a Settings option. // Settings > Display > Action icons on dice (draw_action_type_icon), for telling types apart without colour
 global.cursor_hidden = false;
 global.cursor_hover_time = 0;
 global.cursor_tilt = 0;

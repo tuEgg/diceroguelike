@@ -108,6 +108,13 @@ function deal_single_die( _can_discard_this_turn = true) {
 	if (room == rmCombat && die_has_faces(die_struct)) die_inst.roll_anim = 16;
 
     var target = generate_valid_targets(1, 100) [0];
+	// in a fight a dealt die flies to the right end of the hand's row (combat_hand_row lays the rest out round it)
+	if (room == rmCombat) {
+		var _in_hand = 0;
+		with (oDice) if (!still && !in_slot) _in_hand++;
+		var _rp = combat_hand_row_pos(_in_hand - 1, _in_hand);
+		target = [_rp.x, _rp.y];
+	}
     die_inst.target_x = target[0];
     die_inst.target_y = target[1];
 

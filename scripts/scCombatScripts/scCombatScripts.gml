@@ -3366,7 +3366,7 @@ function combat_insight_view_draw() {
 		// right-clicking the die still work.) Not while it's still rolling in.
 		var _rr_can = combat_insight_can(INSIGHT_COST_REROLL), _rd_can = combat_insight_can(INSIGHT_COST_REDRAW);
 		var _clicked = noone, _clicked_what = "";
-		combat_ink_hand_row(); // the hand slides into an even row, so each die's buttons have room (Jared, 2026-11-22)
+		combat_hand_row(); // the hand in its even row (it always is now), so each die's buttons have room
 		with (oDice) {
 			if (still || in_slot) continue;
 			var _r = 36 * scale * (1 + 0.22 * land_pop);
@@ -3508,24 +3508,30 @@ function float_text(_x, _y, _text, _col) {
 	return _inst;
 }
 
-/// @func combat_ink_hand_row()
-/// @desc While the ink view is open: the dice in hand (in their left-to-right order) are given evenly spaced targets in one
-///       row across the middle of the tray, so their Reroll and Redraw buttons never overlap. Runs every frame, so a die
-///       drawn by a redraw joins the row. They stay put when the log closes.
-function combat_ink_hand_row() {
+/// @func combat_hand_row()
+/// @desc The hand is one even row across the middle of the tray (Jared, 2026-11-22; first only in the ink view): the dice
+///       in hand, in their left-to-right order, get evenly spaced spots and slide there. Runs every frame in a fight
+///       (oCombat Step), so dealt, drawn and dropped dice all join the row; dealt dice fly straight to their spot
+///       (combat_hand_row_pos).
+function combat_hand_row() {
 	var _dice = [];
 	with (oDice) if (!still && !in_slot && !is_dragging && has_rolled) array_push(_dice, id); // (a die still flying in joins once it lands)
 	var _n = array_length(_dice);
 	if (_n == 0) return;
 	array_sort(_dice, function(_a, _b) { return _a.target_x - _b.target_x; });
-	var _gw = display_get_gui_width();
-	var _space = min(150, (_gw * 0.5) / max(1, _n - 1));
-	var _x0 = _gw / 2 - (_n - 1) * _space / 2;
-	var _y = (global.dice_safe_area_y1 + global.dice_safe_area_y2) / 2 + 20;
 	for (var i = 0; i < _n; i++) {
 		var _d = _dice[i];
-		_d.target_x = _x0 + i * _space; _d.target_y = _y; // where it rests (the hand only snaps dice back from outside its area)
+		var _spot = combat_hand_row_pos(i, _n);
+		_d.target_x = _spot.x; _d.target_y = _spot.y; // where it rests (the hand only snaps dice back from outside its area)
 		_d.x = lerp(_d.x, _d.target_x, 0.25); // slides there
 		_d.y = lerp(_d.y, _d.target_y, 0.25);
 	}
+}
+
+/// @func combat_hand_row_pos(_i, _n)
+/// @desc Spot _i of _n in the hand's row: centred, up to 150 px apart, across at most half the screen.
+function combat_hand_row_pos(_i, _n) {
+	var _gw = display_get_gui_width();
+	var _space = min(150, (_gw * 0.5) / max(1, _n - 1));
+	return { x: _gw / 2 - (_n - 1) * _space / 2 + _i * _space, y: (global.dice_safe_area_y1 + global.dice_safe_area_y2) / 2 + 20 };
 }

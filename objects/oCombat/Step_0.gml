@@ -637,4 +637,7 @@ if (keyboard_check_pressed(vk_enter) && !_sealed_now && state == CombatState.PLA
 intel_level = insight_revealed ? INTEL_LEGIBLE : INTEL_FADED;
 
 // the guided first fight moves on as its steps are done
+// the hand is always one even row (combat_hand_row)
+if (!show_rewards) combat_hand_row();
+
 tutorial_step();

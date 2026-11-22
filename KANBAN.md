@@ -31,7 +31,7 @@
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
 
-| 24: map click jump, ink view | B146, F188, F189, F190, F191, F192 | `feature/ink-view` (off `dev`, includes `fix/map-click-jump`) | **Not yet play-tested.** The map click jump; the ink view labelled, ink pips, inky black, what changed, one name: ink. |
+| 24: map click jump, ink view | B146, F188, F189, F190, F191, F192, F194, F195 | `feature/ink-view` (off `dev`, includes `fix/map-click-jump`) | **Not yet play-tested.** The map click jump; the ink view labelled, ink pips, inky black, what changed, one name: ink. |
 
 **Batch 24 test list (`feature/ink-view`)**
 - B146 Click a stop on the map: the stop and its dotted courses stay put (they jumped down for a moment); the ship still sails to it and lands just below it.
@@ -39,6 +39,8 @@
 - F189 Ink shows as pips under the inkwell, in and out of the log: two rows of 6, filled in ink; hover an ink button and the pips it would spend flicker. Below 0 (Blotted) it shows the red number.
 - F190 Ink is an inky black everywhere: ink dice (they were yellow), ink slots, the inkwell's ink, the ink view's edges and buttons. Ink numbers and words on dark backgrounds are a pale ink blue so they read; on paper they're near black. Things that only used the old yellow as a highlight (keepsake names when they fire, "Valley!", the armed keepsake ring, potion targets) stay gold. Check ink dice read on the felt (white pips on the dark die).
 - F191 What changed: a reroll floats "2 to 5" over the die, a redraw "Redrawn", a reveal "Exact: 7" over the intent, a rewrite "Old move to New move".
+- F194 Action glyphs on dice are off by default (Settings > Display > Action icons turns them on). Your saved setting is reset to off once.
+- F195 The hand is always one even row across the tray: dealt dice fly to its right end and the rest shift to make room; a die you drag and drop back slides into place. The ink view uses the same row.
 - F192 One name: insight is now ink in all the game's text (tooltips, dice, keepsakes, the bag filter "Ink", slot type "INK", the run summary). The starter die is called "Ink"; old saves still load it.
 
 

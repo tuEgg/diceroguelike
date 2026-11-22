@@ -387,7 +387,7 @@ function save_settings() {
 		fullscreen: window_get_fullscreen(),
 		combat_speed_index: global.combat_speed_index,
 		custom_cursor: global.custom_cursor,
-		action_glyphs: global.action_icons, // renamed from action_icons when glyphs became the default
+		dice_glyphs: global.action_icons, // renamed again (from action_glyphs) when they went off by default, so old saved "on" values don't carry over
 		shake_on: global.shake_on,
 	}
 	
@@ -411,7 +411,7 @@ function load_settings() {
 	global.muted = _save.muted;
 	if (variable_struct_exists(_save, "combat_speed_index")) global.combat_speed_index = _save.combat_speed_index;
 	if (variable_struct_exists(_save, "custom_cursor")) global.custom_cursor = _save.custom_cursor;
-	if (variable_struct_exists(_save, "action_glyphs")) global.action_icons = _save.action_glyphs;
+	if (variable_struct_exists(_save, "dice_glyphs")) global.action_icons = _save.dice_glyphs;
 	if (variable_struct_exists(_save, "shake_on")) global.shake_on = _save.shake_on;
 
 	// a browser only allows fullscreen from a click, so a web build doesn't restore it at start-up
@@ -434,7 +434,7 @@ function check_settings() {
 		|| (window_get_fullscreen() != _save.fullscreen)
 		|| (variable_struct_exists(_save, "combat_speed_index") ? global.combat_speed_index != _save.combat_speed_index : global.combat_speed_index != 1)
 		|| (variable_struct_exists(_save, "custom_cursor") ? global.custom_cursor != _save.custom_cursor : !global.custom_cursor)
-		|| (variable_struct_exists(_save, "action_glyphs") ? global.action_icons != _save.action_glyphs : !global.action_icons)
+		|| (variable_struct_exists(_save, "dice_glyphs") ? global.action_icons != _save.dice_glyphs : global.action_icons)
 		|| (variable_struct_exists(_save, "shake_on") ? global.shake_on != _save.shake_on : !global.shake_on) {
 			settings_changed = true;
 		} else {
