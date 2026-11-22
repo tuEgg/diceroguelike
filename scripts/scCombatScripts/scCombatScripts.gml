@@ -250,12 +250,6 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 
     var inst_color = c_red; // default color for damage
 	
-	// If it's actions from the player
-	if (_source == "player") {
-		var snd_roll = choose(soDiceRolling1, soDiceRolling2, soDiceRolling3);
-		sfx_play(snd_roll, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.4);
-	}
-
     // --- DAMAGE ---
     switch (_type) {
 		case "ATK":
@@ -755,9 +749,8 @@ function apply_dice_to_slot(_die, _slot_i) {
 		dice_played_scale = 1.2;
 		dice_played_color = c_green;
 
-		var place_sound = choose(soRubble1, soRubble2, soRubble3, soRubble4);
-
-		sfx_play(place_sound, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
+		if (die.struct.action_type == "INTEL") sfx_play(soInk2, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.8);
+		else sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
 		
 		instance_destroy(die);
     }
@@ -889,8 +882,10 @@ function sacrifice_die(_die) {
 	ds_list_add(global.sacrifice_list, _copy);
 
 	particle_emit(_die.x, _die.y, "burst", _die.struct.color);
+	var _ink = (_die.struct.action_type == "INTEL");
 	instance_destroy(_die);
-	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
+	if (_ink) sfx_play(soInk1, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.8);
+	else sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
 
 	update_sacrificed_type_array();
 	combat_try_build_slot();
@@ -2900,7 +2895,7 @@ function combat_insight_spend(_cost) {
 		var _num = spawn_floating_number("player", _cost, -1, global.text_intel, -1, -1, 0);
 		_num.x += 20;
 		_num.y -= 20;
-		sfx_play(soQuill, AUDIO_GROUP.SFX, 0.08, 1); // the pen at work: ink spent
+		sfx_play(choose(soPaper1, soPaper2, soPaper3, soPaper4), AUDIO_GROUP.SFX, 0.05, 1); // ink spent: a rustle of paper
 		return true;
 	}
 	return false;
@@ -3207,7 +3202,9 @@ function combat_insight_view_set(_open) {
 		ink_strokes = []; // doodles are only on the log while it's open
 		ink_drawing = false;
 		global.ui_layer = _open ? UI_LAYER.POPUP : UI_LAYER.BASE;
-		sfx_play(soQuill, AUDIO_GROUP.UI, 0.1, 0.5); // a light stroke of the pen, opening or closing the log
+		if (_open) sfx_play(soQuillStart, AUDIO_GROUP.UI, 0.05, 0.8); // the quill takes up the log
+		else sfx_play(soQuill, AUDIO_GROUP.UI, 0.1, 0.5);
+		ink_writing_snd = sfx_loop(ink_writing_snd, false, soWriting, AUDIO_GROUP.SFX);
 	}
 }
 
@@ -3927,6 +3924,11 @@ function ink_doodle_step(_over_something) {
 				quill_over = true; // the quill cursor while you draw
 			} else ink_drawing = false;
 		}
+		// the quill scratches while the pen moves (soWriting, looped), and goes quiet when it stops
+		if (ink_drawing && point_distance(_mx, _my, ink_pen_last[0], ink_pen_last[1]) > 1) ink_pen_still = 0;
+		else ink_pen_still++;
+		ink_pen_last = [_mx, _my];
+		ink_writing_snd = sfx_loop(ink_writing_snd, ink_drawing && ink_pen_still < 6, soWriting, AUDIO_GROUP.SFX, 0.7);
 		for (var i = array_length(ink_strokes) - 1; i >= 0; i--) {
 			if (!(ink_drawing && i == array_length(ink_strokes) - 1) && current_time - ink_strokes[i].t > INK_DOODLE_LIFE) array_delete(ink_strokes, i, 1);
 		}

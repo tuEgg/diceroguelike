@@ -2,6 +2,10 @@
 // https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
 /// @function apply_buff(_target, _template, _duration, _amount, _remove_next_turn, _source, [_permanent])
 function apply_buff(_target, _template, _duration, _amount, _remove_next_turn, _source, _permanent = false) {
+	switch (_template._id) {
+		case "bind": case "barnacle_bind": sfx_play(soRope, AUDIO_GROUP.SFX, 0.05, 0.9); break;
+		case "spines": sfx_play(soThorns, AUDIO_GROUP.SFX, 0.05, 0.9); break;
+	}
 
     var inst = {
         template: clone_buff(_template),   // <-- reference, NOT a clone

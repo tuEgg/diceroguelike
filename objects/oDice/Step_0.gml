@@ -95,6 +95,7 @@ if (!is_dragging && hovered && mouse_check_button_pressed(mb_left)) {
 		instance_destroy();
 	} else if (!still) {
 	    is_dragging = true;
+		if (room == rmCombat && struct.action_type == "INTEL") sfx_play(soInk2, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.6);
 	    drag_offset_x = mx - x;
 	    drag_offset_y = my - y;
 	} else if (room == rmWorkbench) {

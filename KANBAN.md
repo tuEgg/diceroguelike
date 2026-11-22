@@ -30,7 +30,18 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 27: sounds | F204 | `fix/playtest-11-22` | **Not yet play-tested.** Jared's new sounds wired in. |
 | 26: playtest notes 2026-11-22 | B147, B148, B149, B150, B151, F196, F197, F198, F199, F200, F201, F202 | `fix/playtest-11-22` (off `dev`) | **Not yet play-tested.** Two crashes, the island flash on the page turn, a wrong padlock in slot 1, enemy block lasts until it acts again, ink buttons stand out, d6 ink slosh, linked stop badge, keepsake reward cards, min roll cap, the wreck with full slots. |
+
+**Batch 27 test list (sounds, F204)**
+- Dice rattle as they're dealt; a slot resolving no longer plays the dice roll.
+- Alignment: each mote chimes as it lands on the compass, rising through a gain; a loss falls in pitch instead (GameMaker can't play a sound backwards: export a reversed soAlignment and I'll swap it in).
+- An enemy's Bind (and the barnacle bind): rope. An enemy's Spines: thorns.
+- Ink view: opening it plays soQuillStart; drawing loops soWriting while the pen moves and stops when it rests or lifts; spending ink plays one of soPaper1 to 4.
+- Any potion: one of the three bubbles.
+- A stowaway going off at End Turn (Anchor, Slipstream, Lookout; or played, with Windbound Charm): the barrel.
+- An ink die onto the new-slot tile: soInk1 (other dice keep the old sound). An ink die picked up, or placed in a slot: soInk2.
+- Hovering a slot or the new-slot tile: soPaper5 or 6.
 
 **Batch 26 test list (`fix/playtest-11-22`, off `dev`)**
 - B147 Map: no crash from the chapter tabs (tab_pull read before it was set).

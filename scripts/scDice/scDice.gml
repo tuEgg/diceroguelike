@@ -106,6 +106,7 @@ function deal_single_die( _can_discard_this_turn = true) {
 
 	// rolled dice: it tumbles as it flies out of the bag, then lands on its roll (oDice Step)
 	if (room == rmCombat && die_has_faces(die_struct)) die_inst.roll_anim = 12;
+	if (room == rmCombat) sfx_play(choose(soDiceRolling1, soDiceRolling2, soDiceRolling3), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.4);
 
     var target = generate_valid_targets(1, 100) [0];
 	// in a fight a dealt die flies to its own spot in the row as it will be once the whole deal is in (dice still to
@@ -1443,6 +1444,8 @@ function dice_trigger_effects(_event, _data) {
 /// @func trigger_die_effects_single(_die_struct, _event, _data)
 /// @desc Fire _event on one die (it is the die the event is about: rolling, sacrificing, dealt, not used).
 function trigger_die_effects_single(_die_struct, _event, _data) {
+	// a stowaway going off: a barrel rolls out of the hold
+	if (_event == "on_not_used" && room == rmCombat && die_has_effect_trigger(_die_struct, "on_not_used")) sfx_play(soBarrel, AUDIO_GROUP.SFX, 0.05, 0.8);
 	die_fire_effects(_die_struct, _event, _data, false);
 }
 

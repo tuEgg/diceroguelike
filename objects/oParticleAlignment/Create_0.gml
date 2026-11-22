@@ -3,6 +3,7 @@
 delay = 1;
 negative = 1;
 col = c_white;
+order = 0; // its place in the stream: later motes chime higher (or lower, losing alignment)
 var _dir = random(360);
 var _spd = random_range(5, 10);
 vx = lengthdir_x(_spd, _dir); // the first burst outwards

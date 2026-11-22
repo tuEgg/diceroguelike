@@ -2,6 +2,7 @@ var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
 
 var tooltip = "";
+slot_hover_sound = choose(soPaper5, soPaper6); // a slot under the mouse rustles, one of two (picked as the hover starts)
 
 aq_tile_w = 62.48177 * power(1.000414, gui_w) * 1.12; // (UI rework: tickets 12% bigger, so names and totals read) // using desmos graphic calculator, expontential regression at these values: 1600 = 120, 1920 = 140, 2560 = 180
 
@@ -85,7 +86,7 @@ for (var i = 0; i < aq_list_size; i++) {
     var draw_y = base_y + (base_h - draw_h) / 2;
 
     // Hover check based on *scaled* rectangle
-	var hover = mouse_hovering(draw_x, draw_y, draw_w, draw_h, false, soSlotHover, noone, !show_rewards, UI_LAYER.BASE, string(base_x) + "," + string(base_y));
+	var hover = mouse_hovering(draw_x, draw_y, draw_w, draw_h, false, slot_hover_sound, noone, !show_rewards, UI_LAYER.BASE, string(base_x) + "," + string(base_y));
     //var hover = (mx > draw_x && mx < draw_x + draw_w && my > draw_y && my < draw_y + draw_h && !show_rewards);
 	
 	if (hover) {
@@ -318,7 +319,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	    var last_y = base_y + ((base_h - last_h) / 2);
 
 	    // Hover check basesd on *scaled* rectangle
-		last_hover = mouse_hovering(last_x, last_y, last_w, last_h, false, soSlotHover, noone, !show_rewards, UI_LAYER.BASE, string(lx));
+		last_hover = mouse_hovering(last_x, last_y, last_w, last_h, false, slot_hover_sound, noone, !show_rewards, UI_LAYER.BASE, string(lx));
 		tut_last_tile = { x: last_x, y: last_y, w: last_w, h: last_h }; // the tutorial points here
 	    //last_hover = (mx > last_x && mx < last_x + last_w && my > last_y && my < last_y + last_h && !show_rewards);
 

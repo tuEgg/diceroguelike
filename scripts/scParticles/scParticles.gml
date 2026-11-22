@@ -125,6 +125,7 @@ function gain_alignment(_amount, _x = device_mouse_x_to_gui(0), _y = device_mous
 		var c = instance_create_depth(_x + random_range(-20, 20), _y + random_range(-20, 20), -200, oParticleAlignment);
 		c.delay = floor(i * _fps * 0.05) + 1; // a quick ripple, one after another
 		c.negative = _neg;
+		c.order = i;
 		c.col = alignment_colour(global.player_alignment + _neg * (i + 1));
 	}
 
@@ -160,5 +161,5 @@ function particles_flush() {
 function potion_burst(_x, _y) {
 	particle_emit_later(_x, _y, "burst", make_color_rgb(226, 236, 240), 14);
 	particle_emit_later(_x, _y, "rise", global.color_heal, 16);
-	sfx_play(soSlotPlace, AUDIO_GROUP.SFX, 0.1, 0.8);
+	sfx_play(choose(soBubbles1, soBubbles2, soBubbles3), AUDIO_GROUP.SFX, 0.05, 0.9);
 }
