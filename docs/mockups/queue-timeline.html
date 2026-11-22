@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Queue timeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+/* the action queue as a timeline: enemy moves sit between your slots (2026-11-22) */
+:root { --ink: #2A1D12; --paper: #E7D6B0; --rule: #E2D4B0; --gold: #F2D24A; --table: #15171d; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--table); color: var(--rule); font: 15px/1.5 "Source Serif 4", Georgia, serif; }
+main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { font-size: 26px; margin: 0 0 4px; }
+.lede { color: #b9ad92; max-width: 940px; margin: 0 0 22px; }
+section { margin-bottom: 38px; }
+h2 { font-size: 20px; margin: 0 0 4px; color: #F1E4C4; }
+h2 b { font-family: Lato, sans-serif; color: var(--gold); margin-right: 8px; }
+section > p { margin: 0 0 10px; color: #cfc3a6; max-width: 980px; }
+svg { display: block; width: 100%; height: auto; border-radius: 12px; }
+.pc { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px; margin-top: 10px; }
+.pc div { background: rgba(255,255,255,.04); border-radius: 8px; padding: 8px 12px; }
+.pc h3 { margin: 0 0 2px; font: 900 13px Lato, sans-serif; letter-spacing: .03em; }
+.pro h3 { color: #7fc79a; } .con h3 { color: #e08a7a; }
+.pc ul { margin: 0; padding-left: 18px; color: #cfc3a6; }
+.pick { outline: 2px solid var(--gold); outline-offset: 10px; border-radius: 12px; }
+@media (max-width: 700px) { .pc { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+	<h1>Enemy moves in the queue: options</h1>
+	<p class="lede">The same fight in each: you have built 3 slots (Attack 6, Block 5, Attack 4, plus the place bonus), and three gulls act at different points. Gull A strikes after your slot 1, Gull B buffs after slot 2, Gull C attacks after slot 3 (which you haven't built yet, so it acts at the end). The queue resolves left to right, yours and theirs mixed. The numbers in small circles are the order things happen.</p>
+	<div id="opts"></div>
+</main>
+<script>
+const INK = '#2A1D12', PAPER = '#ECDDB8', ATK = '#B33A22', BLK = '#6FA8E8', BUFF = '#8a63c9', GULL = ['#d9534f', '#3e8ed0', '#e0a43a'];
+
+function scene(inner, h = 470) {
+	return `<svg viewBox="0 0 1240 ${h}" xmlns="http://www.w3.org/2000/svg">
+		<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f8fa8"/><stop offset="1" stop-color="#9ec3c9"/></linearGradient></defs>
+		<rect width="1240" height="${h}" fill="url(#sky)"/>
+		<path d="M0,170 Q620,110 1240,170 L1240,${h} L0,${h}Z" fill="#8a6447"/>
+		<rect y="${h - 70}" width="1240" height="70" fill="#2a1f19"/>
+		${player(110, 270)}
+		${gull(960, 245, 0)}${gull(1060, 270, 1)}${gull(1160, 295, 2)}
+		${inner}
+	</svg>`;
+}
+function player(x, y) {
+	return `<g transform="translate(${x},${y})"><ellipse cx="0" cy="62" rx="58" ry="10" fill="#000" opacity=".25"/><circle cy="-30" r="26" fill="#e7b38b" stroke="${INK}" stroke-width="3"/><rect x="-18" y="-4" width="36" height="58" rx="10" fill="#49b6e6" stroke="${INK}" stroke-width="3"/>
+		<rect x="-60" y="80" width="120" height="14" rx="4" fill="#c0392b" stroke="${INK}" stroke-width="2"/><text y="91" text-anchor="middle" font-size="12" font-family="Lato" font-weight="900" fill="#fff">40 / 60</text></g>`;
+}
+function gull(x, y, i) {
+	return `<g transform="translate(${x},${y})"><ellipse cx="0" cy="42" rx="36" ry="7" fill="#000" opacity=".25"/><ellipse cx="0" cy="10" rx="26" ry="18" fill="#f4f4f4" stroke="${INK}" stroke-width="2"/><circle cx="-14" cy="-8" r="11" fill="#f4f4f4" stroke="${INK}" stroke-width="2"/><path d="M-24,-8 L-38,-5 L-24,-3Z" fill="#f2a33a" stroke="${INK}" stroke-width="1.5"/>
+		<circle cx="18" cy="-26" r="11" fill="${GULL[i]}" stroke="${INK}" stroke-width="2.5"/><text x="18" y="-21" text-anchor="middle" font-size="13" font-family="Lato" font-weight="900" fill="#fff">${'ABC'[i]}</text>
+		<rect x="-36" y="56" width="72" height="12" rx="3" fill="#c0392b" stroke="${INK}" stroke-width="2"/></g>`;
+}
+function ticket(x, y, type, total, bonus, w = 104, h = 120, dim = false) {
+	const col = type === 'ATK' ? ATK : BLK, glyph = type === 'ATK' ? '⚔' : '⛨', name = type === 'ATK' ? 'Attack' : 'Block';
+	return `<g opacity="${dim ? .4 : 1}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${PAPER}" stroke="${INK}" stroke-width="3"/>
+		<rect x="${x + 4}" y="${y + 4}" width="${w - 8}" height="24" fill="${col}"/><text x="${x + w / 2}" y="${y + 22}" text-anchor="middle" font-size="14" font-family="Source Serif 4" font-weight="700" fill="#fff">${glyph} ${name}</text>
+		<text x="${x + w / 2 - (bonus ? 10 : 0)}" y="${y + 82}" text-anchor="middle" font-size="44" font-family="Lato" font-weight="900" fill="${INK}">${total}</text>${bonus ? `<text x="${x + w / 2 + 22}" y="${y + 78}" font-size="18" font-family="Lato" font-weight="900" fill="#2e8b57">+${bonus}</text>` : ''}</g>`;
+}
+function ghost(x, y, label, w = 104, h = 120) {
+	return `<g><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="rgba(255,255,255,.06)" stroke="#e2d4b0" stroke-width="2.5" stroke-dasharray="10 7"/>
+		<text x="${x + w / 2}" y="${y + h / 2 - 4}" text-anchor="middle" font-size="26" font-family="Lato" font-weight="900" fill="#e2d4b0" opacity=".8">${label}</text>
+		<text x="${x + w / 2}" y="${y + h / 2 + 20}" text-anchor="middle" font-size="13" font-family="Source Serif 4" font-weight="700" fill="#e2d4b0" opacity=".8">pips</text></g>`;
+}
+function order(x, y, n, col = INK) {
+	return `<g transform="translate(${x},${y})"><circle r="11" fill="#f3e6c6" stroke="${col}" stroke-width="2.5"/><text y="5" text-anchor="middle" font-size="13" font-family="Lato" font-weight="900" fill="${INK}">${n}</text></g>`;
+}
+function badge(i) { return `<circle r="10" fill="${GULL[i]}" stroke="${INK}" stroke-width="2"/><text y="4.5" text-anchor="middle" font-size="12" font-family="Lato" font-weight="900" fill="#fff">${'ABC'[i]}</text>`; }
+function moveIcon(kind) {
+	return kind === 'atk' ? `<text y="8" text-anchor="middle" font-size="22" font-family="Lato" font-weight="900" fill="${ATK}">⚔</text>`
+		: `<text y="8" text-anchor="middle" font-size="22" font-family="Lato" font-weight="900" fill="${BUFF}">▲</text>`;
+}
+// an enemy move as a narrow card standing in the queue between your slots
+function moveCard(x, y, i, kind, num, h = 120) {
+	const w = 58;
+	return `<g><rect x="${x}" y="${y + 10}" width="${w}" height="${h - 20}" rx="6" fill="#3a2a22" stroke="${GULL[i]}" stroke-width="3"/>
+		<g transform="translate(${x + w / 2},${y + 30})">${badge(i)}</g>
+		<g transform="translate(${x + w / 2},${y + 62})">${moveIcon(kind)}</g>
+		<text x="${x + w / 2}" y="${y + 96}" text-anchor="middle" font-size="18" font-family="Lato" font-weight="900" fill="#f3e6c6">${num}</text></g>`;
+}
+
+const Y = 250; // the queue's top
+const OPTS = [
+	{
+		key: 'A', title: 'Enemy moves as narrow cards in the queue', pick: true,
+		text: 'Each enemy move is a dark card, edged in that enemy\'s colour with its letter, standing in the queue exactly where it happens. Your paper tickets and their dark cards read as one line, left to right. A move "after slot 3" that you haven\'t built yet waits after a dashed slot, showing you could build past it. The order numbers above make it explicit. Each gull\'s own intent tag says "after slot 1" etc., and hovering either lights both.',
+		svg: () => {
+			let g = '';
+			let x = 290;
+			g += ticket(x, Y, 'ATK', 6, 0) + order(x + 52, Y - 18, 1); x += 112;
+			g += moveCard(x, Y, 0, 'atk', 7) + order(x + 29, Y - 18, 2, GULL[0]); x += 66;
+			g += ticket(x, Y, 'BLK', 5, 1) + order(x + 52, Y - 18, 3); x += 112;
+			g += moveCard(x, Y, 1, 'buff', '+2') + order(x + 29, Y - 18, 4, GULL[1]); x += 66;
+			g += ticket(x, Y, 'ATK', 4, 2) + order(x + 52, Y - 18, 5); x += 112;
+			g += ghost(x, Y, '6+') ; x += 112;
+			g += moveCard(x, Y, 2, 'atk', 5) + order(x + 29, Y - 18, 6, GULL[2]);
+			// intent tags over the gulls say where
+			g += tag(960, 160, 0, 'after slot 1') + tag(1060, 190, 1, 'after slot 2') + tag(1160, 220, 2, 'after slot 3');
+			return scene(g);
+		},
+		pro: ['The queue is the whole turn: you read it once, left to right', 'Clear where a block must go (before the hit) and what killing early cancels', 'Ghost slots show what building more would get you past'],
+		con: ['The queue gets wide with 3 enemies: it needs the bigger queue you mentioned', 'Another card shape to learn'],
+	},
+	{
+		key: 'B', title: 'Pins between slots, hanging under the queue',
+		text: 'Your slots stay as they are. Between them, pins hang below the queue line, each with the enemy\'s letter, its move and number. Several enemies acting in the same gap stack down the pin. Compact: the queue doesn\'t widen.',
+		svg: () => {
+			let g = '';
+			const xs = [330, 470, 610, 750];
+			g += ticket(xs[0], Y - 30, 'ATK', 6, 0) + ticket(xs[1], Y - 30, 'BLK', 5, 1) + ticket(xs[2], Y - 30, 'ATK', 4, 2) + ghost(xs[3], Y - 30, '6+');
+			const pin = (gx, stack) => {
+				let p = `<line x1="${gx}" y1="${Y - 30}" x2="${gx}" y2="${Y + 112 + stack.length * 40}" stroke="#f3e6c6" stroke-width="2" stroke-dasharray="4 4" opacity=".7"/>`;
+				stack.forEach((s, k) => { const cy = Y + 112 + k * 40; p += `<g transform="translate(${gx},${cy})"><rect x="-44" y="-16" width="88" height="32" rx="16" fill="#3a2a22" stroke="${GULL[s.i]}" stroke-width="3"/><g transform="translate(-26,0)">${badge(s.i)}</g><g transform="translate(2,-1) scale(.8)">${moveIcon(s.k)}</g><text x="28" y="6" text-anchor="middle" font-size="15" font-family="Lato" font-weight="900" fill="#f3e6c6">${s.n}</text></g>`; });
+				return p;
+			};
+			g += pin(xs[0] + 116, [{ i: 0, k: 'atk', n: 7 }]);
+			g += pin(xs[1] + 116, [{ i: 1, k: 'buff', n: '+2' }]);
+			g += pin(xs[3] + 120, [{ i: 2, k: 'atk', n: 5 }]);
+			g += tag(960, 160, 0, 'after slot 1') + tag(1060, 190, 1, 'after slot 2') + tag(1160, 220, 2, 'after slot 3');
+			return scene(g, 520);
+		},
+		pro: ['The queue keeps its size', 'Stacking in one gap is natural (pins get longer)'],
+		con: ['Moves sit below the queue, so the order is less obvious at a glance', 'Pins can clash with the hand tray below'],
+	},
+	{
+		key: 'C', title: 'A numbered track over the queue',
+		text: 'A thin track runs over your slots with a notch at each slot. Enemy markers ride the track at their notch, with a line down to the gap. Ink\'s "move it" would slide a marker along the track, which reads well.',
+		svg: () => {
+			let g = '';
+			const xs = [330, 470, 610, 750];
+			g += ticket(xs[0], Y, 'ATK', 6, 0) + ticket(xs[1], Y, 'BLK', 5, 1) + ticket(xs[2], Y, 'ATK', 4, 2) + ghost(xs[3], Y, '6+');
+			g += `<line x1="310" y1="${Y - 40}" x2="900" y2="${Y - 40}" stroke="#f3e6c6" stroke-width="4" stroke-linecap="round"/>`;
+			[xs[0] + 52, xs[1] + 52, xs[2] + 52, xs[3] + 52].forEach((cx, k) => g += `<circle cx="${cx}" cy="${Y - 40}" r="5" fill="#f3e6c6"/><text x="${cx}" y="${Y - 50}" text-anchor="middle" font-size="12" font-family="Lato" font-weight="900" fill="#f3e6c6">${k + 1}</text>`);
+			const mk = (gx, i, k, n) => `<line x1="${gx}" y1="${Y - 40}" x2="${gx}" y2="${Y + 6}" stroke="${GULL[i]}" stroke-width="3"/><g transform="translate(${gx},${Y - 78})"><rect x="-40" y="-18" width="80" height="36" rx="8" fill="#3a2a22" stroke="${GULL[i]}" stroke-width="3"/><g transform="translate(-22,0)">${badge(i)}</g><g transform="translate(4,0) scale(.8)">${moveIcon(k)}</g><text x="28" y="6" text-anchor="middle" font-size="15" font-family="Lato" font-weight="900" fill="#f3e6c6">${n}</text></g>`;
+			g += mk(xs[0] + 116, 0, 'atk', 7) + mk(xs[1] + 116, 1, 'buff', '+2') + mk(xs[3] + 120, 2, 'atk', 5);
+			g += tag(960, 160, 0, 'after slot 1') + tag(1060, 190, 1, 'after slot 2') + tag(1160, 220, 2, 'after slot 3');
+			return scene(g);
+		},
+		pro: ['Reads like a timeline; sliding a marker with ink is very clear', 'Slots keep their spacing'],
+		con: ['Markers over the queue compete with the intent tags over the enemies (two places showing the same move)'],
+	},
+	{
+		key: 'A+', title: 'Option A in a crowd: two enemies in the same gap, one beyond your slots',
+		text: 'Moves in the same gap stand side by side in their resolve order (here A then B both after slot 1). A move after a slot you haven\'t built waits beyond the dashed slots. With 2 slots built and Gull C "after slot 3", C acts at the end.',
+		svg: () => {
+			let g = '';
+			let x = 300;
+			g += ticket(x, Y, 'BLK', 5, 0) + order(x + 52, Y - 18, 1); x += 112;
+			g += moveCard(x, Y, 0, 'atk', 7) + order(x + 29, Y - 18, 2, GULL[0]); x += 66;
+			g += moveCard(x, Y, 1, 'atk', 4) + order(x + 29, Y - 18, 3, GULL[1]); x += 66;
+			g += ticket(x, Y, 'ATK', 6, 1) + order(x + 52, Y - 18, 4); x += 112;
+			g += ghost(x, Y, '4+'); x += 112;
+			g += ghost(x, Y, '6+'); x += 112;
+			g += moveCard(x, Y, 2, 'atk', 5) + order(x + 29, Y - 18, 5, GULL[2]);
+			g += tag(960, 160, 0, 'after slot 1') + tag(1060, 190, 1, 'after slot 1') + tag(1160, 220, 2, 'after slot 3');
+			return scene(g);
+		},
+		pro: ['The block in slot 1 covers both hits after it, only if it\'s big enough', 'Building to slot 3 would let you kill Gull C before it acts'],
+		con: ['Wide: needs the queue to scale down or scroll in big fights'],
+	},
+];
+function tag(x, y, i, where) {
+	return `<g transform="translate(${x},${y})"><line x1="0" y1="-26" x2="0" y2="-12" stroke="#e2d4b0" stroke-width="2"/><rect x="-52" y="-12" width="104" height="24" fill="#ECDDB8" stroke="${INK}" stroke-width="2"/><g transform="translate(-38,0) scale(.8)">${badge(i)}</g><text x="8" y="5" text-anchor="middle" font-size="12" font-family="Source Serif 4" font-weight="700" fill="${INK}">${where}</text></g>`;
+}
+document.getElementById('opts').innerHTML = OPTS.map(o => `<section>
+	<h2><b>${o.key}</b>${o.title}${o.pick ? ' <span style="font-size:13px;color:#F2D24A">(my pick)</span>' : ''}</h2>
+	<p>${o.text}</p>
+	<div class="${o.pick ? 'pick' : ''}">${o.svg()}</div>
+	<div class="pc"><div class="pro"><h3>FOR</h3><ul>${o.pro.map(x => `<li>${x}</li>`).join('')}</ul></div><div class="con"><h3>AGAINST</h3><ul>${o.con.map(x => `<li>${x}</li>`).join('')}</ul></div></div>
+</section>`).join('');
+</script>
+</body>
+</html>
