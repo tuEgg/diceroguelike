@@ -3147,7 +3147,7 @@ function draw_item_card(_it, _cx, _cy, _w, _h, _alpha, _hover, _locked) {
 		draw_set_alpha(1);
 	}
 	ui_paper(_x1, _pt, _x2, _y2, round(_cx) * 7 + 3, global.ui_col.paper, _alpha);
-	draw_rarity_gem(_x2 - 20, _pt + 20, variable_struct_exists(_it, "rarity") ? _it.rarity : "common", 1, _alpha);
+	if (!variable_struct_exists(_it, "rarity") || _it.rarity != "none") draw_rarity_gem(_x2 - 20, _pt + 20, variable_struct_exists(_it, "rarity") ? _it.rarity : "common", 1, _alpha); // keepsakes have none
 
 	// the icon on the paper's edge, on a paper disc so it reads half on the card and half off
 	draw_set_alpha(_alpha);

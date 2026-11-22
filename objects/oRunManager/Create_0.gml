@@ -226,6 +226,7 @@ dice_selection_list = ds_list_create();
 dice_selection_num_selected = 0;
 dice_selection_event = undefined;
 dice_selection_filter = "none";
+pending_item = undefined; // an item waiting for a free slot (the wreck with full slots: pending_item_draw)
 dice_selection_up_to = false; // true: Confirm works with any number up to dice_selection (the workbench)
 
 tools = ds_list_create();

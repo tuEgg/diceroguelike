@@ -195,6 +195,7 @@ pending_reward_die = undefined; // a reward die waiting to fly to the bag (made 
 player_hit_t = -100000;          // when you were last hit (a white flash on your ship)
 player_death_t = -1;             // when you went down (lose_run): the ship keels over and sinks
 reward_reveal_t = 0;
+reward_keepsake_reveal_t = 0; // and the keepsake rewards (cards too, 2026-11-22)
 reward_item_reveal_t = 0; // the same for the item rewards (they get the dice rewards' card design)// frames the dice rewards have been on show: they're dealt face down and flip one by one (F145)
 rewards_consumables_first_taken = -1;
 rewards_consumables_second_taken = false;

@@ -1238,6 +1238,7 @@ function clone_die(_src, _perm)
 {
     // Shallow clone of base-level fields
     var c = variable_clone(_src);
+	c.built_slot = false; // only the copy that built a slot this turn carries it (it stayed on, so a die padlocked in slot 1 next turn)
 
     // --- Deep copy effects array (you already do this) ---
     if (variable_struct_exists(c, "effects")) {
@@ -2116,6 +2117,7 @@ function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
 		}
 	}
 	var _cyo = die_shape_yoff(_sides, _r);
+	var _far = (_sides == 6) ? 2 : 1; // a d6's body covers most of the rim, so its slosh reaches further out (Jared, 2026-11-22)
 	var _m = array_length(_base);
 	var _ring = array_create(_m);
 	for (var i = 0; i < _m; i++) {
@@ -2124,7 +2126,7 @@ function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
 		var _nx = _px / _len, _ny = (_py - _cyo) / _len;
 		var _rip = (sin(_t * 2.6 + i * 0.9 + _seed) * 0.6 + sin(_t * 4.1 - i * 0.5 + _seed) * 0.4) * _r * 0.06; // a slow swell round it
 		var _lag = max(0, _nx * _dx + _ny * _dy) * _sp * _r * 0.012; // the side away from where it's going
-		var _push = _r * 0.03 + _rip + _lag; // hugs its own edge (Jared: not a border)
+		var _push = (_r * 0.03 + _rip) * _far + _lag; // hugs its own edge (Jared: not a border)
 		var _ox = _px + _nx * _push, _oy = _py + _ny * _push;
 		_ring[i] = [die_rot_x(_x, _ox, _oy, _angle), die_rot_y(_y, _ox, _oy, _angle)];
 	}

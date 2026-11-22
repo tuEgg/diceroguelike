@@ -478,8 +478,7 @@ switch (state) {
 					
 						enemy.turn_done = false;
 						enemy.turns_since_last_block++;
-						// block lasts the round it's made in (the timeline: an early Block soaks your later slots)
-						if (!enemy.keep_block_between_turns) enemy.block_amount = 0;
+						// (enemy block now lasts until that enemy acts again: combat_enemy_act)
 					}
 					
 					var end_of_round_data = {

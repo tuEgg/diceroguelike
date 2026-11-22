@@ -528,9 +528,10 @@
 			effect: function(_context) {
 				oRunManager.dice_selection = 1;
 				oRunManager.dice_selection_message = "Choose a die to gain +1 min roll";
+				oRunManager.dice_selection_filter = "min_room";
 				oRunManager.dice_selection_event = function(_die) {
 					_die.min_roll_bonus += 1;
-					
+
 					particle_emit(115, 1000, "rise", get_dice_color(_die.possible_type), 30);
 					spawn_floating_number("bag", 0, _die.name + " +1 min roll", _die.color, 0, -1, 0);
 				}
@@ -1196,6 +1197,7 @@
 				oRunManager.credits -= 40;
 				oRunManager.dice_selection = 1;
 				oRunManager.dice_selection_message = "Choose a die to gain +1 min roll";
+				oRunManager.dice_selection_filter = "min_room";
 				oRunManager.dice_selection_event = function(_die) {
 					_die.min_roll_bonus += 1;
 					particle_emit(115, 1000, "rise", get_dice_color(_die.possible_type), 30);

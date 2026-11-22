@@ -600,6 +600,37 @@ function gain_item(_consumable) {
 	return true;
 }
 
+/// @func pending_item_draw()
+/// @desc oRunManager Draw GUI End: an item you've found with no slot free (oRunManager.pending_item; the wreck, Jared
+///       2026-11-22: not turned into Calm water any more). Its card waits mid-screen until you delete an item to make room
+///       (it's then taken) or sail past it.
+function pending_item_draw() {
+	with (oRunManager) {
+		if (pending_item == undefined) return;
+		if (get_first_free_item_slot() != -1) {
+			gain_item(pending_item);
+			pending_item = undefined;
+			return;
+		}
+		var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+		var _w = 280, _h = item_card_layout(pending_item, _w).h;
+		var _cy = _gh / 2 - 20;
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_outline_text("Item slots full", c_black, c_white, 2, _gw / 2, _cy - _h / 2 - 40, 1, 1, 0);
+		draw_item_card(pending_item, _gw / 2, _cy, _w, _h, 1, false, false);
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_outline_text("Right-click an item to delete it.", c_black, c_white, 2, _gw / 2, _cy + _h / 2 + 30, 1, 1, 0);
+		var _b = ui_primary(_gw / 2, _cy + _h / 2 + 90, 220, 64, "Sail past", true);
+		if (_b.click) pending_item = undefined;
+		draw_set_halign(fa_left);
+		draw_set_valign(fa_top);
+	}
+}
+
 function get_first_free_item_slot() {
 	var free_slot = -1;
 	

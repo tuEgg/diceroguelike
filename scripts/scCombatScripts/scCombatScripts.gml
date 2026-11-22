@@ -711,6 +711,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 		var _added = slot.dice_list[| ds_list_size(slot.dice_list) - 1];
 		_added.played_turn = turn_count;
 		_added.play_locked = die_has_effect_trigger(die.struct, "on_dice_played_to_slot");
+		_added.built_slot = false; // played into a slot, not building one
 	}
 
     //-----------------------------------------
@@ -3575,6 +3576,8 @@ function combat_enemy_act(_e) {
 	with (oCombat) {
 		var e = _e;
 		var enemy = room_enemies[| e];
+		// its block lasts until it acts again, then goes; a new Block replaces it rather than stacking (Jared, 2026-11-22)
+		if (!enemy.turn_done && !enemy.keep_block_between_turns) enemy.block_amount = 0;
 		combat_trigger_effects("on_enemy_turn_start", { stunned_enemy: enemy });
 		if (enemy.turn_done || enemy.dead) return false;
 		var intent_array = string_split(enemy.intent.move.action_type, "/");
@@ -3958,14 +3961,20 @@ function ink_icon_button(_cx, _cy, _icon, _cost, _ok) {
 	var _hov = mouse_hovering(_cx, _cy, 44, 44, true, soSlotHover, noone, true, UI_LAYER.POPUP);
 	var _r = 20 * ((_hov && _ok) ? 1.1 : 1);
 	if (_ok) wet_ink_circle(_cx, _cy, _r + 2);
-	var _ink = global.color_intel;
-	draw_set_alpha(_ok ? 1 : 0.5);
-	draw_set_color(_ink);
-	draw_circle(_cx, _cy, _r + 2, false);
-	draw_set_color((_hov && _ok) ? global.ui_col.paper_hi : global.ui_col.paper);
+	// a solid ink disc with a pale icon, black-rimmed with a shadow, so it stands out over paper and enemy art (Jared,
+	// 2026-11-22: pale ones got lost under the intents). One you can't afford is grey.
+	var _disc = _ok ? (_hov ? merge_color(global.color_intel, c_white, 0.15) : global.color_intel) : make_color_rgb(96, 96, 104);
+	var _pale = global.ui_col.paper_hi;
+	draw_set_alpha(0.35);
+	draw_set_color(c_black);
+	draw_circle(_cx + 2, _cy + 3, _r + 3, false);
+	draw_set_alpha(_ok ? 1 : 0.85);
+	draw_circle(_cx, _cy, _r + 3, false);
+	draw_set_color(_disc);
 	draw_circle(_cx, _cy, _r, false);
-	// the icon, in ink
-	draw_set_color(_ink);
+	var _ink = _disc; // the icon's cut-outs are disc coloured
+	// the icon, pale on the disc
+	draw_set_color(_pale);
 	var _k = _r / 20;
 	if (_icon == "reroll") {
 		// a die, and an arrow turning round it
@@ -3976,16 +3985,16 @@ function ink_icon_button(_cx, _cy, _icon, _cost, _ok) {
 		draw_triangle(_hx + lengthdir_x(5 * _k, _a1), _hy + lengthdir_y(5 * _k, _a1), _hx - lengthdir_x(5 * _k, _a1), _hy - lengthdir_y(5 * _k, _a1), _hx + lengthdir_x(7 * _k, _a1 + 90), _hy + lengthdir_y(7 * _k, _a1 + 90), false); // the head, pointing on round
 	} else if (_icon == "reveal") {
 		// an eye
-		draw_set_color(_ink);
+		draw_set_color(_pale);
 		draw_ellipse(_cx - 12 * _k, _cy - 7 * _k, _cx + 12 * _k, _cy + 7 * _k, false);
-		draw_set_color((_hov && _ok) ? global.ui_col.paper_hi : global.ui_col.paper);
-		draw_ellipse(_cx - 9.5 * _k, _cy - 5 * _k, _cx + 9.5 * _k, _cy + 5 * _k, false);
 		draw_set_color(_ink);
 		draw_circle(_cx, _cy, 4.5 * _k, false);
+		draw_set_color(_pale);
+		draw_circle(_cx - 1.5 * _k, _cy - 1.5 * _k, 1.5 * _k, false); // a catch-light
 	} else if (_icon == "rewrite") {
 		// a quill, nib at the lower left
 		draw_quill(_cx - 9 * _k, _cy + 10 * _k, 24 * _k, 50);
-		draw_set_alpha(_ok ? 1 : 0.5);
+		draw_set_alpha(_ok ? 1 : 0.85);
 	} else {
 		// a die between two arrows going opposite ways (out for a new one)
 		draw_roundrect_ext(_cx - 5 * _k, _cy - 5 * _k, _cx + 5 * _k, _cy + 5 * _k, 3, 3, false);

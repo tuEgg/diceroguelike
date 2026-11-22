@@ -429,6 +429,14 @@ if (show_bag_contents) {
 								throw_error("Not a coin", "Choose a coin.");
 							}
 						break;
+						case "min_room":
+							// +1 min roll: not on a die whose lowest roll is already its highest (Jared, 2026-11-22)
+							if (1 + dice.min_roll_bonus < dice.dice_value) {
+								filter_pass = true;
+							} else {
+								throw_error("Can't go higher", "Its lowest roll is already its highest.");
+							}
+						break;
 					}
 					
 					if (filter_pass) {
@@ -631,6 +639,9 @@ global.damage_text_late = false;
 
 // the first voyage's map notes and the one-time tips, above every window
 tips_draw();
+
+// an item waiting for room (the wreck when your slots are full)
+pending_item_draw();
 
 // the insight panel while hovered, over the tutorial notes and tips
 insight_panel_draw();

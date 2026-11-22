@@ -988,7 +988,7 @@ if (state != CombatState.PLAYER_DEAD) {
 
 	// the inkwell: your insight as ink (draw_inkwell). Spent at the start of a turn, in the insight phase.
 	var _iw = combat_inkwell_pos(); // beside you, on the ground (UI rework)
-	var intel_hover = mouse_hovering(_iw.x, _iw.y, 70, 70, true);
+	var intel_hover = !show_rewards && mouse_hovering(_iw.x, _iw.y, 70, 70, true); // no hover under the rewards
 	intel_scale = intel_hover ? lerp(intel_scale, 1.1, 0.2) : lerp(intel_scale, 1.0, 0.2);
 	// the start-of-turn pulse (ink_pulse, oCombat Step): it swells and glows, so you know your ink can do something
 	var _ink_s = intel_scale;
@@ -1066,82 +1066,45 @@ if (show_rewards) {
 	
 	switch(reward_list[| rewards_stage - 1 ]) {
 		case "keepsakes":
+			// the keepsakes on offer as paper cards, like the dice and item rewards (draw_item_card; Jared, 2026-11-22):
+			// dealt face down, flipped in turn; a click takes one
+			var _kc_w = 280, _kc_gap = 40;
+			var _kc_n = ds_list_size(reward_keepsake_options);
+			var _kc_cards = [];
+			var _kc_h = 150;
+			for (var r = 0; r < _kc_n; r++) {
+				var _k = reward_keepsake_options[| r];
+				var _card = { name: _k.name, description: _k.desc, sprite: sKeepsake, index: _k.sub_image, rarity: "none" };
+				array_push(_kc_cards, _card);
+				_kc_h = max(_kc_h, item_card_layout(_card, _kc_w).h);
+			}
+			var _kc_cy = gui_h / 2 + 40;
 			draw_set_font(ftDefault);
-			draw_outline_text("Choose one keepsake", c_black, c_white, 2, gui_w/2, gui_h/2 - 100, 1, 1, 0);
-	
-			for (var r = 0; r < ds_list_size(reward_keepsake_options); r++) {
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_outline_text("Choose one keepsake", c_black, c_white, 2, gui_w/2, _kc_cy - _kc_h / 2 - 40, 1, 1, 0);
+			reward_keepsake_reveal_t++;
+
+			for (var r = 0; r < _kc_n; r++) {
 			    var keepsake = reward_keepsake_options[| r];
-
-			    // --- Layout ---
-			    var reward_w = 120;
-			    var reward_h = 70;
-			    var reward_padding = 120;
-			    var reward_total_w = (ds_list_size(reward_keepsake_options) * reward_w) + ((ds_list_size(reward_keepsake_options) - 1) * reward_padding);
-			    var reward_x = gui_w / 2 - (reward_total_w / 2);
-			    var base_x = reward_x + (r * (reward_w + reward_padding));
-			    var base_y = gui_h/2;
-			    var base_w = reward_w;
-			    var base_h = reward_h;
-				
-				// Draw background sprite
-				var btn_col = make_colour_rgb(52, 55, 73);
-				var wobble = sin(((current_time / 1000) + r) * 3) * 3;
-				draw_sprite_ext(sRewardFrame, 0, base_x + base_w/2, base_y + base_w/2 - 10, reward_scale[| r] * 0.95, reward_scale[| r] * 0.95, wobble, btn_col, 1.0);
-
-			    // --- Draw dice sprite using hoverable scaling ---
-			    var btn = draw_gui_button(
-			        base_x, base_y,
-			        base_w, base_h,
-			        reward_scale[| r],
-			        "", // no text (we’ll draw sprite manually)
-			        c_white,
-			        ftDefault,
-			        !rewards_keepsake_taken,         // active
-					false,
-					UI_LAYER.POPUP
-			    );
-
-			    // Update scale for animation
-			    reward_scale[| r] = btn.scale;
-
-			    // --- Choose sprite index based on dice value ---
-			    var spr_index = keepsake.sub_image;
-
-			    // --- Draw the keepsake sprite ---
-			    var alpha = rewards_keepsake_taken ? 0.2 : 1.0;
-			    draw_sprite_ext(
-			        sKeepsake,
-			        spr_index,
-			        btn.x + btn.w / 2,
-			        btn.y + btn.h / 2,
-			        btn.scale,
-			        btn.scale,
-			        0,
-			        c_white,
-			        alpha
-			    );
-
-			    // --- Draw name ---
-			    var label = string(keepsake.name);
-			    draw_set_color(c_white);
-			    draw_set_alpha(alpha);
-			    draw_set_halign(fa_center);
-			    draw_set_valign(fa_middle);
-			    draw_set_font(ftDefault);
-			    draw_text_ext(btn.x + btn.w / 2, btn.y + btn.h + 20 - 12 * (string_height_ext(label, -1, sprite_get_width(sRewardFrame) * 0.85) > string_height("A") * 1.5), label, -1, sprite_get_width(sRewardFrame) * 0.85); // long names wrap inside the frame
-		
-				if (btn.hover) {
-					queue_tooltip( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), keepsake.name, keepsake.desc, undefined, 0, undefined);
+				var _kc_cx = gui_w / 2 - ((_kc_n - 1) * (_kc_w + _kc_gap)) / 2 + r * (_kc_w + _kc_gap);
+				var _flip = reward_flip_state(reward_keepsake_reveal_t, r);
+				if (_flip.turned_now) sfx_play_layered(soCard, AUDIO_GROUP.SFX, 1 + random_range(-0.06, 0.06) + r * 0.04, 1);
+				if (!_flip.face_up) {
+					reward_card_back(_kc_cx, _kc_cy + 23, _kc_w * _flip.squash, _kc_h - 46, r + 6);
+					continue;
 				}
-
-			    // --- Click logic: Take reward ---
-			    if (!rewards_keepsake_taken && btn.click) {
+				var _kc_hover = !rewards_keepsake_taken && mouse_hovering(_kc_cx - _kc_w / 2, _kc_cy - _kc_h / 2, _kc_w, _kc_h, false, soSlotHover, noone, true, UI_LAYER.POPUP);
+				var alpha = rewards_keepsake_taken ? 0.35 : 1.0;
+				draw_item_card(_kc_cards[r], _kc_cx, _kc_cy - 14 * _flip.pop, _kc_w, _kc_h, alpha * _flip.fade_in, _kc_hover, false);
+				if (_kc_hover && mouse_check_button_pressed(mb_left)) {
+					sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
 			        gain_keepsake(keepsake, global.rollable_keepsake_list);
 					rewards_keepsake_taken = true;
 			    }
 			}
 		break;
-		
+
 		case "dice":
 			// the dice on offer as the same paper cards as the bag (draw_bag_card, UI rework), side by side, all as tall as
 			// the tallest needs; hover lifts one, a click takes it
