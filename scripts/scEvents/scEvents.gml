@@ -1113,7 +1113,7 @@
 		// cannons. 1 each at neutral, then 2 / 0 at 75, 3 / 0 at 90 (sirens_upgrade_count). The option says what you'd get.
 		event_sirens_opt_1 = {
 			title: "Sing a song of your own",
-			description: function() { return sirens_option_text("insight", sirens_upgrade_count(global.player_alignment - 50)); },
+			description: function() { return sirens_option_text("ink", sirens_upgrade_count(global.player_alignment - 50)); },
 			effect: function(_context) {
 				sirens_upgrade("INTEL", sirens_upgrade_count(global.player_alignment - 50), global.color_intel);
 				oEventManager.event_complete = 0;
@@ -1246,7 +1246,7 @@ function sirens_upgrade_count(_lean) {
 /// @func sirens_option_text(_type_word, _count)
 /// @desc What a Siren's Call option will do, with your alignment's count in it.
 function sirens_option_text(_type_word, _count) {
-	var _how = (_type_word == "insight") ? "merciful" : "ruthless";
+	var _how = (_type_word == "ink") ? "merciful" : "ruthless";
 	var _rule = "More with a " + _how + " compass.";
 	if (_count <= 0) return "Nothing at your alignment. " + _rule;
 	return "Upgrade " + string(_count) + " " + _type_word + ((_count == 1) ? " die" : " dice") + ". " + _rule;

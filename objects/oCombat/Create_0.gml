@@ -117,6 +117,7 @@ intel_level = 0;
 quill_menu_enemy = undefined; // the enemy whose intent shows the Quill's Reroll / Halve choice
 quill_btn_scales = [1, 1];
 insight_revealed = false; // bought this turn: exact enemy intents (combat_buy)
+ink_preview = 0;           // ink a hovered ink action would spend: its pips flicker (draw_ink_pips)
 insight_view = false;     // the insight phase is open: the log, before you play (combat_insight_view_set / combat_insight_view_draw)
 balance_next_turn = 0;      // Balance gained for next turn (Balanced die), applied as it starts (oCombat Step)
 insight_phase_done = false; // this turn's start-of-turn check has run (the inkwell pulses if ink can do something)

@@ -89,7 +89,7 @@ bounty_condition_intel = {
 	scale: 1,
 	color: global.color_intel,
 	text: "", // undefined or a text/number to draw on the slot
-	description: "without gaining insight after the first turn",
+	description: "without gaining ink after the first turn",
 	gold_reward: 55,
 	failed: false,
 	trigger: function(event, data) {

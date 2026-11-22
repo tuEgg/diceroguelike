@@ -148,7 +148,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					
 					// rolled twice: show both faces, then the one kept
 					if (is_array(_rolled_twice)) {
-						roll_popup(_slot_number, _dice_list_index, "Rolled " + string(_rolled_twice[0]) + " and " + string(_rolled_twice[1]) + ", kept " + string(max(_rolled_twice[0], _rolled_twice[1])), global.color_intel);
+						roll_popup(_slot_number, _dice_list_index, "Rolled " + string(_rolled_twice[0]) + " and " + string(_rolled_twice[1]) + ", kept " + string(max(_rolled_twice[0], _rolled_twice[1])), global.color_gold);
 					}
 
 					combat_trigger_effects("after_roll_die", ctx);
@@ -510,7 +510,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 			if (_source == "player") {
 				// insight counts next turn
 				apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
-				var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, _dice_list_index);
+				var num = spawn_floating_number("player", amount, -1, global.text_intel, 1, -1, _dice_list_index);
 				num.x += 20;
 				num.y -= 20;
 			} else {
@@ -982,7 +982,7 @@ function combat_try_build_slot() {
 		runmanager_trigger_keepsakes("on_sacrifice_die", sacrifice_data);
 		// given up to build the slot (F41): it bursts in its colour and embers rise off the new tile
 		particle_emit_later(_tx, _ty + 60, "burst", get_dice_color(_d.possible_type), 14);
-		particle_emit_later(_tx, _ty + 60, "rise", global.color_intel, 8);
+		particle_emit_later(_tx, _ty + 60, "rise", global.color_gold, 8);
 	}
 
 	screen_shake(3); // the new slot thuds into place
@@ -1378,7 +1378,7 @@ function get_action_name(_slot, _num) {
 		case "INTEL":
 		    switch (highest_value) {
 		        case 4: label = "Sleuth"; break;
-		        case 6: label = "Gather insight"; break;
+		        case 6: label = "Gather ink"; break;
 		        case 8: label = "Build a case"; break;
 		        default: label = "Sleuth"; break;
 		    }
@@ -1781,7 +1781,7 @@ function tutorial_steps() {
 		},
 		{
 			id: "rolled", target: "hand", allow: [], button: "Next", covers: "rolled_dice",
-			text: "Your dice have rolled. Colour is the action: red attacks, blue blocks, green heals, gold gives insight. White dice are generic.",
+			text: "Your dice have rolled. Colour is the action: red attacks, blue blocks, green heals, gold gives ink. White dice are generic.",
 		},
 		{
 			id: "claim", target: "slot0", allow: ["place"], die_types: ["ATK"], slot: 0,
@@ -1824,8 +1824,8 @@ function tutorial_steps() {
 		},
 		// turn 2: ink
 		{
-			id: "inkwell", target: "insight", allow: [], covers: "insight_spend",
-			text: "Your insight is ink. Click the inkwell to open it.",
+			id: "inkwell", target: "ink", allow: [], covers: "insight_spend",
+			text: "Your ink is ink. Click the inkwell to open it.",
 			enter: function() { oCombat.player_intel = max(oCombat.player_intel, 6); }, // enough to try it, whatever turn 1 gave
 			done: function() { return oCombat.insight_view; },
 		},
@@ -1978,7 +1978,7 @@ function tutorial_target_rect(_target) {
 				return variable_instance_exists(id, "tut_last_tile") ? tut_last_tile : undefined;
 			case "end_turn":
 				return variable_instance_exists(id, "tut_end_turn") ? tut_end_turn : undefined;
-			case "insight":
+			case "ink":
 				var _iw = combat_inkwell_pos(); return { x: _iw.x - 60, y: _iw.y - 65, w: 120, h: 120 };
 		}
 	}
@@ -2045,7 +2045,7 @@ function tutorial_draw_note(_text, _r, _button) {
 		// pulsing highlight round the target
 		var _grow = 8 + 4 * sin(_n.pulse);
 		draw_set_alpha(_a * (0.55 + 0.35 * sin(_n.pulse)));
-		draw_set_color(global.color_intel);
+		draw_set_color(global.color_gold);
 		for (var _w = 0; _w < 3; _w++) draw_roundrect(_r.x - _grow - _w, _r.y - _grow - _w, _r.x + _r.w + _grow + _w, _r.y + _r.h + _grow + _w, true);
 
 		// arrow from the note's edge to the target's edge
@@ -2200,13 +2200,13 @@ function tips_list() {
 		},
 		{
 			// the guided fight is off on this branch, so this teaches insight the first time you have some to spend
-			id: "insight_spend", room: rmCombat, target: "insight",
-			text: "Your insight is ink. Click the inkwell, then reroll or swap a die (" + string(INSIGHT_COST_REROLL) + " each), see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + "), or make it choose again (" + string(INSIGHT_COST_QUILL) + "). Unspent ink carries over.",
+			id: "insight_spend", room: rmCombat, target: "ink",
+			text: "Your ink is ink. Click the inkwell, then reroll or swap a die (" + string(INSIGHT_COST_REROLL) + " each), see an enemy's exact numbers (" + string(INSIGHT_COST_REVEAL) + "), or make it choose again (" + string(INSIGHT_COST_QUILL) + "). Unspent ink carries over.",
 			when: function() { return instance_exists(oCombat) && oCombat.ink_pulse > 0 && !oCombat.insight_view; }, // the first time the inkwell pulses
 		},
 		{
-			id: "blotted", room: rmCombat, target: "insight",
-			text: "Blotted: your insight is below 0, so enemy intents are hidden.",
+			id: "blotted", room: rmCombat, target: "ink",
+			text: "Blotted: your ink is below 0, so enemy intents are hidden.",
 			when: function() { return tips_combat_ready() && intel_is_blotted(); },
 		},
 		{
@@ -2262,7 +2262,7 @@ function tips_rect(_target) {
 		case "at_sea":
 			if (!instance_exists(oWorldManager) || !is_struct(oWorldManager.sea_buoy) || !variable_struct_exists(oWorldManager.sea_buoy, "x")) return undefined;
 			return { x: oWorldManager.sea_buoy.x - 40, y: oWorldManager.sea_buoy.y - 40, w: 80, h: 100 }; // the buoy
-		case "insight":
+		case "ink":
 			var _iw = combat_inkwell_pos(); return { x: _iw.x - 60, y: _iw.y - 65, w: 120, h: 120 };
 		case "wb_pick":
 			if (!instance_exists(oWorkbenchManager)) return undefined;
@@ -2358,7 +2358,7 @@ function insight_panel_draw() {
 		draw_set_valign(fa_middle);
 		draw_set_halign(fa_left);
 		draw_set_color(c_white);
-		draw_text(_x + _pad, _y + _pad + 10, "Insight");
+		draw_text(_x + _pad, _y + _pad + 10, "Ink");
 		draw_set_halign(fa_right);
 		draw_set_color(player_intel < 0 ? c_red : global.color_intel);
 		draw_text(_x + _w - _pad, _y + _pad + 10, string(player_intel));
@@ -2470,7 +2470,7 @@ function combat_item_drop(_item) {
 	var _context = { _slot: oCombat.action_queue[| _i], _ind: _i };
 	if (!_item.effects.flags(_context)) return false;
 	trigger_item_effects(_item, "on_item_played_to_slot", _context);
-	particle_emit(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", global.color_intel);
+	particle_emit(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", global.color_gold);
 	return true;
 }
 
@@ -2901,11 +2901,11 @@ function combat_insight_spend(_cost) {
 	with (oCombat) {
 		if (state != CombatState.PLAYER_INPUT || show_rewards) return false;
 		if (intel_is_blotted() || player_intel < _cost) {
-			throw_error("Not enough insight", "That costs " + string(_cost) + " insight. You have " + string(max(0, player_intel)) + ".");
+			throw_error("Not enough ink", "That costs " + string(_cost) + " ink. You have " + string(max(0, player_intel)) + ".");
 			return false;
 		}
 		player_intel -= _cost;
-		var _num = spawn_floating_number("player", _cost, -1, global.color_intel, -1, -1, 0);
+		var _num = spawn_floating_number("player", _cost, -1, global.text_intel, -1, -1, 0);
 		_num.x += 20;
 		_num.y -= 20;
 		sfx_play(soQuill, AUDIO_GROUP.SFX, 0.08, 1); // the pen at work: ink spent
@@ -2965,13 +2965,15 @@ function combat_reroll_die(_inst) {
 	if (state != CombatState.PLAYER_INPUT || show_rewards || !instance_exists(_inst) || !die_has_faces(_inst.struct)) return;
 	// a reroll costs 3 insight, paid as you right-click
 	if (!combat_insight_can(INSIGHT_COST_REROLL)) {
-		throw_error("Not enough insight", "Rerolling a die costs " + string(INSIGHT_COST_REROLL) + " insight. You have " + string(max(0, player_intel)) + ".");
+		throw_error("Not enough ink", "Rerolling a die costs " + string(INSIGHT_COST_REROLL) + " ink. You have " + string(max(0, player_intel)) + ".");
 		return;
 	}
 	if (!combat_insight_spend(INSIGHT_COST_REROLL)) return;
 	rerolls_used++;
 	if (tutorial_active()) global.tut.inked = true;
+	var _was = die_face_total(_inst.struct);
 	die_roll_faces(_inst.struct);
+	float_text(_inst.x, _inst.y - 70, string(_was) + " to " + string(die_face_total(_inst.struct)), c_white); // what changed (Jared, 2026-11-22)
 	trigger_die_effects_single(_inst.struct, "on_die_inked", { _die_struct: _inst.struct, redrawn: false });
 	_inst.roll_anim = 18; // it tumbles in place, then lands on the new roll
 	particle_emit(_inst.x, _inst.y, "burst", get_dice_color(_inst.struct.possible_type), 20);
@@ -2984,7 +2986,7 @@ function combat_reroll_die(_inst) {
 function combat_discard_and_redraw(_inst) {
 	if (state != CombatState.PLAYER_INPUT) return;
 	if (!combat_insight_can(INSIGHT_COST_REDRAW)) {
-		throw_error("Not enough insight", "Redrawing a die costs " + string(INSIGHT_COST_REDRAW) + " insight. You have " + string(max(0, player_intel)) + ".");
+		throw_error("Not enough ink", "Redrawing a die costs " + string(INSIGHT_COST_REDRAW) + " ink. You have " + string(max(0, player_intel)) + ".");
 		return;
 	}
 	if (!combat_insight_spend(INSIGHT_COST_REDRAW)) return;
@@ -3101,7 +3103,7 @@ function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
 		draw_set_color(global.color_intel);
 		for (var k = 0; k < 8; k++) draw_arc_thick_deg(_bx, _y, _br + 1, _br + 3, k * 45, k * 45 + 25, 4); // a dashed edge: not yours yet
 		if (_bhover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Buy a play", "Play one more die this turn.", undefined, 0, undefined, INSIGHT_COST_PLAY, "insight");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Buy a play", "Play one more die this turn.", undefined, 0, undefined, INSIGHT_COST_PLAY, "ink");
 			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && combat_no_die_dragged()) combat_buy("play");
 		}
 	}
@@ -3114,7 +3116,7 @@ function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
 		var _bx0 = clamp(_x0 + _w / 2 - _sz.w / 2, 10, display_get_gui_width() - _sz.w - 10);
 		var _by0 = _y - 52 - _sz.h;
 		draw_tooltip_box(_bx0, _by0, _name, _desc, undefined, 0, undefined, false, false);
-		tooltip_cost_badge(_bx0 + _sz.w, _by0, INSIGHT_COST_PLAY, "insight");
+		tooltip_cost_badge(_bx0 + _sz.w, _by0, INSIGHT_COST_PLAY, "ink");
 	}
 	draw_set_color(c_white);
 	draw_set_alpha(1);
@@ -3195,6 +3197,7 @@ function combat_insight_phase_worth() {
 /// @desc In the insight phase: for 3 ink, a die in hand is discarded and a new one dealt (it rolls as it comes).
 function combat_redraw_die(_inst) {
 	if (!instance_exists(_inst) || !combat_insight_spend(INSIGHT_COST_REDRAW)) return;
+	float_text(_inst.x, _inst.y - 70, "Redrawn", c_white); // what changed
 	if (tutorial_active()) global.tut.inked = true;
 	trigger_die_effects_single(_inst.struct, "on_die_inked", { _die_struct: _inst.struct, redrawn: true });
 	discard_dice(_inst);
@@ -3301,110 +3304,109 @@ function combat_insight_view_draw() {
 			draw_surface_part(insight_surf, 0, _top, _gw, _gh - _top, 0, _top); // the top bar stays as it is
 		}
 
-		// the inkwell, on top, with your ink beside it: clicking it closes the log (a toggle, like Confirm)
+		// the inkwell, on top: clicking it closes the log (a toggle, like Done). Your ink shows as pips under it (drawn last,
+		// so a hovered action can show what it would spend)
+		ink_preview = 0;
 		var _ex = combat_inkwell_pos().x, _ey = combat_inkwell_pos().y;
 		var _ink_hov = mouse_hovering(_ex, _ey, 70, 70, true, noone, noone, true, UI_LAYER.POPUP);
 		draw_inkwell(_ex, _ey, _ink_hov ? 1.25 : 1.15, player_intel / INSIGHT_MAX, false);
-		if (_ink_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Put your ink away", "Back to your dice.", undefined, 0, undefined, 0, "insight", { button: "left", text: "Done", col: global.color_intel });
+		if (_ink_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Put your ink away", "Back to your dice.");
 		var _ink_click = _ink_hov && mouse_check_button_pressed(mb_left);
-		draw_set_font(ftDefault);
-		draw_set_halign(fa_center);
-		draw_set_valign(fa_middle);
-		ui_numeral(string(player_intel), _ex, _ey + 46, 30, global.color_intel, 1, fa_center); // where the HUD draws it, so there's only ever one
 
-		// done writing: End Turn reads "Confirm" while the log is open (oCombat Draw GUI draws it in its place, under the
-		// bottom right, in full colour); the click is taken here, on the log's layer.
+		// done writing: End Turn reads "Done" while the log is open (oCombat Draw GUI draws it in its place); the click is
+		// taken here, on the log's layer
 		var _seal_click = false;
 		quill_over = false; // set below when the mouse is over something the quill can change (cursor_draw)
 		if (variable_instance_exists(id, "end_turn_draw")) {
 			var _et = end_turn_draw;
-			// End Turn's rectangle (bottom right, oCombat Draw GUI)
 			var _seal_hov = mouse_hovering(_et.x1, _et.y1, _et.x2 - _et.x1, _et.y2 - _et.y1, false, soSlotHover, noone, true, UI_LAYER.POPUP);
-			if (_seal_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Confirm", "Put your ink away. Unspent ink carries over.");
+			if (_seal_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Done", "Put your ink away. Unspent ink carries over.");
 			_seal_click = _seal_hov && mouse_check_button_pressed(mb_left);
 		}
 
-		var _pulse = 0.5 + 0.5 * sin(current_time / 200);
-
-		// each intent: the move (left, under its icon) rerolled for 6; the numbers (right) shown exactly
+		// each intent: labelled buttons under its tag (Jared, 2026-11-22: label everything): Reveal (its exact number) and
+		// Rewrite (it picks a different move)
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var _en = room_enemies[| e];
 			if (_en.dead || !variable_struct_exists(_en, "intent_rect")) continue;
 			var _ir = _en.intent_rect;
-			var _x1 = _ir.x - _ir.w / 2 - _pad, _y1 = _ir.y - _ir.h / 2 - _pad, _x2 = _ir.x + _ir.w / 2 + _pad, _y2 = _ir.y + _ir.h / 2 + _pad;
-			var _sx = variable_struct_exists(_ir, "split") ? _ir.split : _ir.x;
-
-			var _ok = enemy_can_rewrite_intent(_en);
-			var _afford = _ok && combat_insight_can(INSIGHT_COST_QUILL);
-			var _lhover = mouse_hovering(_x1, _y1, _sx - _x1, _y2 - _y1, false, noone, soClick4, true, UI_LAYER.POPUP);
-			if (_lhover && _ok) quill_over = true;
-			combat_insight_part_draw(_x1, _y1, _sx - 2, _y2, _afford, _lhover, _pulse, INSIGHT_COST_QUILL, "", true);
-			if (_lhover) {
-				if (_ok) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll intent", string(_en.data.name) + " picks a different move.", undefined, 0, undefined, INSIGHT_COST_QUILL, "insight");
-				else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't be rewritten", string(_en.data.name) + " can't change this move.");
-				if (mouse_check_button_pressed(mb_left) && _ok && combat_insight_spend(INSIGHT_COST_QUILL) && enemy_rewrite_intent(_en)) {
-					_en.intent.scale = _en.intent.start_scale * 1.4; // pop, so the change is noticed
-					add_feed_entry("You rewrote " + string(_en.data.name) + "'s intent: " + string(_en.intent.move.move_name));
-				}
-			}
-
-			if (!enemy_intent_revealed(_en) && intent_has_numbers(_en.intent.move)) {
+			var _by = _ir.y + _ir.h / 2 + 24;
+			var _can_reveal = !enemy_intent_revealed(_en) && intent_has_numbers(_en.intent.move);
+			var _can_rewrite = enemy_can_rewrite_intent(_en);
+			var _n = (_can_reveal ? 1 : 0) + (_can_rewrite ? 1 : 0);
+			var _bx = _ir.x - (_n - 1) * 54;
+			if (_can_reveal) {
 				var _rcost = combat_reveal_cost();
-				var _rafford = combat_insight_can(_rcost);
-				var _rhover = mouse_hovering(_sx, _y1, _x2 - _sx, _y2 - _y1, false, noone, soClick4, true, UI_LAYER.POPUP);
-				if (_rhover) quill_over = true;
-				combat_insight_part_draw(_sx + 2, _y1, _x2, _y2, _rafford, _rhover, _pulse, _rcost, "", false);
-				if (_rhover) {
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reveal exact numbers", "See exactly how much " + string(_en.data.name) + " will " + intent_verbs(_en.intent.move) + ".", undefined, 0, undefined, _rcost, "insight");
-					if (mouse_check_button_pressed(mb_left)) combat_reveal_enemy(_en);
+				var _rb = ink_button(_bx, _by, 100, 32, "Reveal", _rcost, combat_insight_can(_rcost));
+				if (_rb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reveal", "See exactly how much " + string(_en.data.name) + " will " + intent_verbs(_en.intent.move) + ".", undefined, 0, undefined, _rcost, "ink");
+				if (_rb.click) {
+					combat_reveal_enemy(_en);
+					_en.intent.scale = _en.intent.start_scale * 1.4; // pop, so the change is noticed
+					float_text(_ir.x, _ir.y - _ir.h / 2 - 20, "Exact: " + intent_number_text(_en, INTEL_LEGIBLE), c_white);
+				}
+				_bx += 108;
+			}
+			if (_can_rewrite) {
+				var _wb = ink_button(_bx, _by, 100, 32, "Rewrite", INSIGHT_COST_QUILL, combat_insight_can(INSIGHT_COST_QUILL));
+				if (_wb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rewrite", string(_en.data.name) + " picks a different move.", undefined, 0, undefined, INSIGHT_COST_QUILL, "ink");
+				if (_wb.click) {
+					var _was = string(_en.intent.move.move_name);
+					if (combat_insight_spend(INSIGHT_COST_QUILL) && enemy_rewrite_intent(_en)) {
+						_en.intent.scale = _en.intent.start_scale * 1.4;
+						add_feed_entry("You rewrote " + string(_en.data.name) + "'s intent: " + string(_en.intent.move.move_name));
+						float_text(_ir.x, _ir.y - _ir.h / 2 - 20, _was + " to " + string(_en.intent.move.move_name), c_white); // what changed
+					}
 				}
 			}
 		}
 
-		// your dice in hand, lit above the dark: left-click rerolls (3), right-click redraws (3). Hovered: mouse hints above
-		// it and a tooltip. (Not while it's still rolling in.)
+		// your dice in hand, lit above the log, each with two labelled buttons over it: Reroll and Redraw. (Left- and
+		// right-clicking the die still work.) Not while it's still rolling in.
 		var _rr_can = combat_insight_can(INSIGHT_COST_REROLL), _rd_can = combat_insight_can(INSIGHT_COST_REDRAW);
 		var _clicked = noone, _clicked_what = "";
-		var _over_die = false;
-		var _hint_at = undefined;
 		with (oDice) {
 			if (still || in_slot) continue;
 			var _r = 36 * scale * (1 + 0.22 * land_pop);
 			var _face = tumbling ? flick_face : (die_has_faces(struct) ? die_face_total(struct) : -1);
 			var _ready = !is_dragging && !tumbling && die_has_faces(struct);
 			var _hov = _ready && mouse_hovering(x, y, 84, 84, true, noone, noone, true, UI_LAYER.POPUP);
-			// a die made for ink (Deepdiver: does something when rerolled or redrawn) gets a wide white halo that breathes
-			// faster, and an ink drop on its corner, so it stands out from the rest of the hand here (Jared, 2026-11-20)
+			// a die made for ink (Deepdiver: does something when rerolled or redrawn) gets a wide halo that breathes
+			// faster, and an ink drop on its corner (Jared, 2026-11-20)
 			var _inky = !tumbling && die_has_trigger(struct, "on_die_inked");
 			var _ring_k = die_is_special(struct) ? 1.2 : 1; // edges sit outside its rarity ring
 			if (_inky) {
 				var _ip = 0.5 + 0.5 * sin(current_time / 110);
 				draw_die_shape(x, y, _r * _ring_k * (1.36 + 0.08 * _ip), dice_value, c_white, tumble_angle, 0.3 + 0.4 * _ip);
 			}
-			// a yellow edge (brighter when hovered), then the die itself, on top of the dark
-			var _glow = (_rr_can || _rd_can) ? (_hov ? 1 : 0.55 + 0.25 * sin(current_time / 200)) : 0.25;
+			// an ink edge (stronger when hovered), then the die itself, on top of the log
+			var _glow = (_rr_can || _rd_can) ? (_hov ? 1 : 0.7) : 0.3;
 			draw_die_shape(x, y, _r * _ring_k * (_hov ? 1.22 : 1.16), dice_value, global.color_intel, tumble_angle, _glow);
 			draw_die(x, y, _r * (_hov ? 1.08 : 1), dice_value, _face, die_colours(struct.possible_type), tumble_angle, 1, struct);
 			if (_inky) draw_ink_drop(x + _r * 0.85, y - _r * 0.85, 14 * scale);
 			if (!tumbling && die_is_mocked(struct)) draw_mock_mark(x, y - _r - 6, scale); // lit with it, so you see it before rerolling (B133)
+			if (_ready) {
+				// the two buttons, stacked over the die
+				var _top_y = y - _r * _ring_k - 30;
+				var _b1 = ink_button(x, _top_y - 34, 92, 30, "Reroll", INSIGHT_COST_REROLL, _rr_can);
+				var _b2 = ink_button(x, _top_y, 92, 30, "Redraw", INSIGHT_COST_REDRAW, _rd_can);
+				if (_b1.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll", "Roll this die again." + (die_is_mocked(struct) ? "\nMocked: it still rolls 1." : "") + (_inky ? "\n" + struct.name + ": " + struct.description : ""), undefined, 0, undefined, INSIGHT_COST_REROLL, "ink");
+				if (_b2.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Redraw", "Discard this die and draw a new one." + (_inky ? "\n" + struct.name + ": " + struct.description : ""), undefined, 0, undefined, INSIGHT_COST_REDRAW, "ink");
+				if (_b1.click) { _clicked = id; _clicked_what = "reroll"; }
+				if (_b2.click) { _clicked = id; _clicked_what = "redraw"; }
+			}
 			if (_hov) {
-				_over_die = true;
 				other.quill_over = true;
-				_hint_at = { x: x, y: y - _r - 46 }; // its mouse hints go on top of every die, after this loop
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll or redraw", "Left-click: reroll it (" + string(INSIGHT_COST_REROLL) + " insight).\nRight-click: swap it for a new die (" + string(INSIGHT_COST_REDRAW) + " insight)." + (die_is_mocked(struct) ? "\nMocked: a reroll still rolls 1." : "") + (_inky ? "\n" + struct.name + ": " + struct.description : ""), undefined, 0, undefined, INSIGHT_COST_REROLL, "insight");
 				if (mouse_check_button_pressed(mb_left) && _rr_can) { _clicked = id; _clicked_what = "reroll"; }
 				if (mouse_check_button_pressed(mb_right) && _rd_can) { _clicked = id; _clicked_what = "redraw"; }
 			}
-		}
-		// the hovered die's mouse hints, above every die
-		if (is_struct(_hint_at)) {
-			draw_mouse_hint(_hint_at.x - 78, _hint_at.y, "left", "Reroll", 0.6, _rr_can ? global.color_intel : make_color_rgb(90, 90, 100), _rr_can ? global.color_intel : make_color_rgb(150, 150, 160));
-			draw_mouse_hint(_hint_at.x + 22, _hint_at.y, "right", "Redraw", 0.6, _rd_can ? global.color_intel : make_color_rgb(90, 90, 100), _rd_can ? global.color_intel : make_color_rgb(150, 150, 160));
 		}
 		if (_clicked != noone) {
 			if (_clicked_what == "reroll") combat_reroll_die(_clicked);
 			else combat_redraw_die(_clicked);
 		}
+
+		// your ink as pips under the inkwell; the ones a hovered action would spend flicker
+		draw_ink_pips(_ex, _ey + 50, player_intel, ink_preview);
 
 		// closing: "Confirm", the inkwell (a toggle), or Enter (End Turn's key: oCombat Step). Right-click doesn't.
 		if (insight_view_age > 0 && (_seal_click || _ink_click)) combat_insight_view_set(false);
@@ -3414,4 +3416,81 @@ function combat_insight_view_draw() {
 		draw_set_halign(fa_left);
 		draw_set_valign(fa_top);
 	}
+}
+
+/// @func ink_button(_cx, _cy, _w, _h, _label, _cost, _ok)
+/// @desc A labelled ink action in the log (Jared, 2026-11-22: label everything): a parchment pill with an ink edge, its
+///       name on the left and its cost on the right as an ink drop and a number. Grows under the mouse (and its cost shows
+///       on the pips, ink_preview); faded when you can't afford it. Returns { hover, click }.
+function ink_button(_cx, _cy, _w, _h, _label, _cost, _ok) {
+	var _hov = mouse_hovering(_cx, _cy, _w, _h, true, soSlotHover, noone, true, UI_LAYER.POPUP);
+	var _s = (_hov && _ok) ? 1.08 : 1;
+	var _w2 = _w * _s / 2, _h2 = _h * _s / 2;
+	var _a = _ok ? 1 : 0.5;
+	draw_set_alpha(_a);
+	draw_set_color(global.color_intel);
+	draw_roundrect_ext(_cx - _w2 - 2, _cy - _h2 - 2, _cx + _w2 + 2, _cy + _h2 + 2, _h, _h, false);
+	draw_set_color(_hov && _ok ? global.ui_col.paper_hi : global.ui_col.paper);
+	draw_roundrect_ext(_cx - _w2, _cy - _h2, _cx + _w2, _cy + _h2, _h - 2, _h - 2, false);
+	draw_set_font(ftDescriptions);
+	draw_set_valign(fa_middle);
+	draw_set_halign(fa_left);
+	draw_set_color(global.color_intel);
+	draw_text(_cx - _w2 + 12, _cy + 1, _label);
+	// the cost: an ink drop and its number
+	var _dx = _cx + _w2 - 30;
+	draw_circle(_dx, _cy + 2, 6, false);
+	draw_triangle(_dx - 5, _cy, _dx + 5, _cy, _dx, _cy - 10, false);
+	draw_set_halign(fa_center);
+	draw_text(_cx + _w2 - 14, _cy + 1, string(_cost));
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	if (_hov) {
+		oCombat.quill_over = true;
+		oCombat.ink_preview = _cost;
+	}
+	var _click = _hov && _ok && mouse_check_button_pressed(mb_left);
+	if (_hov && !_ok && mouse_check_button_pressed(mb_left)) throw_error("Not enough ink", "This costs " + string(_cost) + " ink.");
+	return { hover: _hov, click: _click };
+}
+
+/// @func draw_ink_pips(_x, _y, _amount, _preview)
+/// @desc Your ink as pips centred under _x, _y (Jared, 2026-11-22): two rows of 6, up to INSIGHT_MAX; filled ones in ink
+///       with a pale rim, empty ones a faint ring. The last _preview filled pips flicker (what a hovered action spends).
+///       Below 0 (Blotted) it shows the number in red instead.
+function draw_ink_pips(_x, _y, _amount, _preview = 0) {
+	if (_amount < 0) {
+		ui_numeral(string(_amount), _x, _y + 4, 26, global.text_attack, 1, fa_center);
+		return;
+	}
+	var _per = 6, _gap = 15, _r = 5.5;
+	var _blink = 0.35 + 0.65 * (0.5 + 0.5 * sin(current_time / 90));
+	for (var i = 0; i < INSIGHT_MAX; i++) {
+		var _row = i div _per, _col = i mod _per;
+		var _px = _x - (_per - 1) * _gap / 2 + _col * _gap, _py = _y + _row * _gap;
+		var _full = (i < _amount);
+		var _spend = _full && (i >= _amount - _preview);
+		draw_set_alpha(_full ? (_spend ? _blink : 1) : 0.45);
+		draw_set_color(global.text_intel);
+		draw_circle(_px, _py, _r + 1.5, !_full);
+		if (_full) {
+			draw_set_color(global.color_intel);
+			draw_circle(_px, _py, _r, false);
+		}
+	}
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
+/// @func float_text(_x, _y, _text, _col)
+/// @desc A word or two rising from a point and fading (what an ink action changed: "2 to 5", "Exact: 7").
+function float_text(_x, _y, _text, _col) {
+	var _inst = instance_create_layer(_x, _y, "Instances", oDamageText);
+	_inst.txt = _text;
+	_inst.amount = 0;
+	_inst.color_main = _col;
+	_inst.num_sign = 0;
+	return _inst;
 }

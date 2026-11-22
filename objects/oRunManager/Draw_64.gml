@@ -384,7 +384,7 @@ for (var k = 0; k < ds_list_size(keepsakes); k++) {
 	if (variable_struct_exists(_keepsake, "is_armed") && _keepsake.is_armed()) {
 		var _ap = 0.5 + 0.5 * sin(current_time / 160);
 		draw_set_alpha(0.35 + 0.45 * _ap);
-		draw_set_color(global.color_intel);
+		draw_set_color(global.color_gold);
 		draw_circle(ks_x + xx + btn_size / 2, ks_y + btn_size / 2, btn_size / 2 + 4 + 3 * _ap, false);
 		draw_set_alpha(1);
 	}
@@ -399,7 +399,7 @@ for (var k = 0; k < ds_list_size(keepsakes); k++) {
 			draw_set_font(ftDefault);
 			draw_set_halign(fa_left); // left-aligned under the icon so names in the first column stay on screen
 			draw_set_valign(fa_top);
-			draw_outline_text(_keepsake.name + "!", c_black, global.color_intel, 2, ks_x + xx + 4, ks_y + btn_size + 4 - 14 * _ft, 1, 1 - _ft * _ft, 0);
+			draw_outline_text(_keepsake.name + "!", c_black, global.color_gold, 2, ks_x + xx + 4, ks_y + btn_size + 4 - 14 * _ft, 1, 1 - _ft * _ft, 0);
 		}
 	}
 	

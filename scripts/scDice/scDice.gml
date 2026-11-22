@@ -212,7 +212,7 @@ function generate_dice_bag() {
 	global.dice_d2_atk.keywords = ["Coin"];
 	global.dice_d2_blk = make_die_struct(1, 2,"BLK", "BLK", "", "Block.", "Coin. Blocks damage", "template");
 	global.dice_d2_blk.keywords = ["Coin"];
-	global.dice_d2_intel = make_die_struct(1, 2,"INTEL", "INTEL", "", "Insight.", "Coin. Provides insight", "template");
+	global.dice_d2_intel = make_die_struct(1, 2,"INTEL", "INTEL", "", "Ink.", "Coin. Provides ink", "template");
 	global.dice_d2_intel.keywords = ["Coin"];
 	global.dice_d2_heal = make_die_struct(1, 2,"HEAL", "HEAL", "", "Heal.", "Coin. Heals", "template");
 	global.dice_d2_heal.keywords = ["Coin"];
@@ -229,7 +229,7 @@ function generate_dice_bag() {
 	ds_list_add(global.starter_dice_list, clone_die(global.dice_d6_blk, ""));
 	global.dice_d4_blk = make_die_struct(1, 4,"BLK", "BLK", "", "Block", "Blocks damage", "starter");
 	ds_list_add(global.starter_dice_list, clone_die(global.dice_d4_blk, ""));
-	global.dice_d4_intel = make_die_struct(1, 4,"INTEL", "INTEL", "", "Insight", "Provides insight", "starter");
+	global.dice_d4_intel = make_die_struct(1, 4,"INTEL", "INTEL", "", "Ink", "Provides ink", "starter");
 	ds_list_add(global.starter_dice_list, clone_die(global.dice_d4_intel, ""));
 	global.dice_d4_heal = make_die_struct(1, 4,"HEAL", "HEAL", "", "Heal", "Heals", "starter");
 	
@@ -667,7 +667,7 @@ function generate_dice_bag() {
 	// Deflect Die
 	global.die_deflect = make_die_struct(
 	    1, 6, "BLK", "BLK INTEL", "", "Deflect Die",
-	    "Multitype. BLK or INSIGHT.",
+	    "Multitype. BLK or INK.",
 		"uncommon",
 		70,
 		[]
@@ -785,7 +785,7 @@ function generate_dice_bag() {
 	
 	global.die_lookout = make_die_struct(
 	    1, 6, "INTEL", "INTEL", "", "Lookout die",
-	    "Stowaway: Gain 3 insight next turn.",
+	    "Stowaway: Gain 3 ink next turn.",
 		"common",
 		40,
 	    [
@@ -794,7 +794,7 @@ function generate_dice_bag() {
 	            modify: function(_context) {
 					var amount = 3;
 	                apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
-					var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, 0);
+					var num = spawn_floating_number("player", amount, -1, global.text_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
 	            }
@@ -841,7 +841,7 @@ function generate_dice_bag() {
 	
 	global.die_guerrilla_coin = make_die_struct(
 	    1, 2, "INTEL", "INTEL", "", "Guerrilla Coin",
-	    "Coin. When it builds a slot: deal half your insight as damage to a random enemy.",
+	    "Coin. When it builds a slot: deal half your ink as damage to a random enemy.",
 		"common",
 		40,
 	    [
@@ -862,7 +862,7 @@ function generate_dice_bag() {
 	
 	global.die_radar = make_die_struct(
 	    1, 6, "INTEL", "INTEL", "", "Radar die",
-	    "When it builds a slot: gain 3 insight next turn and the turn after.",
+	    "When it builds a slot: gain 3 ink next turn and the turn after.",
 		"common",
 		40,
 	    [
@@ -871,7 +871,7 @@ function generate_dice_bag() {
 	            modify: function(_context) {
 					var amount = 3;
 	                apply_buff("player", oRunManager.buff_intel_lasting, 2, amount, oRunManager.buff_intel_lasting.remove_next_turn, { source: "player", index: -1 });
-					var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, 0);
+					var num = spawn_floating_number("player", amount, -1, global.text_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
 	            }
@@ -952,7 +952,7 @@ function generate_dice_bag() {
 	
 	global.die_ninja = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Ninja die",
-	    "Followthrough: +2 if the slot before is insight.",
+	    "Followthrough: +2 if the slot before is ink.",
 		"common",
 		40,
 	    [
@@ -991,7 +991,7 @@ function generate_dice_bag() {
 	
 	global.die_assassin = make_die_struct(
 	    1, 4, "ATK", "ATK INTEL", "", "Assassin Die",
-	    "Multitype. ATK or INSIGHT. +1 minimum roll per 3 insight.",
+	    "Multitype. ATK or INK. +1 minimum roll per 3 ink.",
 		"rare",
 		70,
 	    [
@@ -1932,7 +1932,7 @@ function die_size_changed(_die) {
 /// @func action_type_label(_type)
 /// @desc An action type as the player reads it. Intel is called Insight on screen; the code keeps "INTEL".
 function action_type_label(_type) {
-	return string_replace_all(string(_type), "INTEL", "INSIGHT");
+	return string_replace_all(string(_type), "INTEL", "INK");
 }
 
 /// @func core_preview_die()

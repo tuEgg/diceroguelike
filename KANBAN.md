@@ -31,10 +31,15 @@
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
 
-| 24: map click jump | B146 | `fix/map-click-jump` (off `dev`) | **Not yet play-tested.** |
+| 24: map click jump, ink view | B146, F188, F189, F190, F191, F192 | `feature/ink-view` (off `dev`, includes `fix/map-click-jump`) | **Not yet play-tested.** The map click jump; the ink view labelled, ink pips, inky black, what changed, one name: ink. |
 
-**Batch 24 test list (`fix/map-click-jump`)**
+**Batch 24 test list (`feature/ink-view`)**
 - B146 Click a stop on the map: the stop and its dotted courses stay put (they jumped down for a moment); the ship still sails to it and lands just below it.
+- F188 The ink view keeps its mode but every action is a labelled button: over each die in hand, "Reroll" and "Redraw" stacked, each with its cost (an ink drop and a number); under each enemy's intent, "Reveal" (if its number isn't shown) and "Rewrite" (if it can change its move). Click a button to do it; left/right-clicking a die still works too. A button you can't afford is faded and says "Not enough ink". End Turn reads "Done" while the log is open.
+- F189 Ink shows as pips under the inkwell, in and out of the log: two rows of 6, filled in ink; hover an ink button and the pips it would spend flicker. Below 0 (Blotted) it shows the red number.
+- F190 Ink is an inky black everywhere: ink dice (they were yellow), ink slots, the inkwell's ink, the ink view's edges and buttons. Ink numbers and words on dark backgrounds are a pale ink blue so they read; on paper they're near black. Things that only used the old yellow as a highlight (keepsake names when they fire, "Valley!", the armed keepsake ring, potion targets) stay gold. Check ink dice read on the felt (white pips on the dark die).
+- F191 What changed: a reroll floats "2 to 5" over the die, a redraw "Redrawn", a reveal "Exact: 7" over the intent, a rewrite "Old move to New move".
+- F192 One name: insight is now ink in all the game's text (tooltips, dice, keepsakes, the bag filter "Ink", slot type "INK", the run summary). The starter die is called "Ink"; old saves still load it.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -128,6 +133,8 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 **Juice**
 - F40 Individual Balatro-style trigger animations per die
 - F41 Room transitions, death animation, enemy sprites, particles for coins/potions/sacrifice
+- F188-F192 Ink view: labelled buttons, ink pips, inky black, what changed, one name (Jared, 2026-11-22). (Built, batch 24.)
+- F193 **The queue as a timeline** (Jared, 2026-11-22): enemy moves happen at a point in your queue ("after slot 2"), mixed into the left-to-right resolve; the queue fully resets each turn; new slots cost pips only (2, 4, 6...). Mockups: docs/mockups/queue-timeline.html. Waiting for Jared's pick of a look.
 - F42 **Unique sprite per die** (Jared, 2026-11-19): every die gets its own sprite, keeping roughly the same silhouette per size with different textures and details. Part of the art pass (F50). **Until then (Jared, 2026-11-20: Invisible and Generic look the same in hand):** dice are drawn in code by `draw_die` (scDice) in hand, slots, cards and the bag, so a per-die `look` field read there could give each die a cheap tell: opacity (Invisible at 50%), a dashed or double edge, a texture tint, numerals instead of pips, or a small corner glyph. Worth doing for the handful that get confused first (Invisible, Surge, Deepdiver), not all 37. Options mocked up in `docs/mockups/dice-tells.html` (2026-11-20); Jared picked B+D: a rarity ring on every non-starter die, and signature looks for Invisible, Echo, Deepdiver and Surge (`die_look` in scDice; add more there). Built and approved, batch 21. Jared is drawing visuals for some dice himself.
 
 **Art direction (parked, Jared wants to discuss later)**
