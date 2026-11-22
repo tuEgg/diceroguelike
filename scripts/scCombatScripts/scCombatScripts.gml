@@ -3743,3 +3743,24 @@ function combat_timeline_draw() {
 		draw_set_color(c_white);
 	}
 }
+
+/// @func combat_pick_debuffed_slots()
+/// @desc As your turn ends, Bind (locked_slot) and Rot (bound_slot) pick a random slot with dice in it, if they're
+///       waiting to (SLOT_PICK_AT_RESOLVE). Picking at turn start always hit slot 1, the only one then (the timeline resets
+///       the queue each turn).
+#macro SLOT_PICK_AT_RESOLVE -2
+function combat_pick_debuffed_slots() {
+	with (oCombat) {
+		var _full = [];
+		for (var i = 0; i < ds_list_size(action_queue); i++) if (ds_list_size(action_queue[| i].dice_list) > 0) array_push(_full, i);
+		var _pick = function(_full) { return (array_length(_full) > 0) ? _full[irandom(array_length(_full) - 1)] : -1; };
+		if (locked_slot == SLOT_PICK_AT_RESOLVE) locked_slot = _pick(_full);
+		if (bound_slot == SLOT_PICK_AT_RESOLVE) {
+			bound_slot = _pick(_full);
+			if (bound_slot >= 0 && bound_slot < ds_list_size(slot_positions)) {
+				var _sp = slot_positions[| bound_slot];
+				particle_emit(_sp.x + _sp.w / 2, _sp.y + _sp.h / 2, "burst", c_green);
+			}
+		}
+	}
+}

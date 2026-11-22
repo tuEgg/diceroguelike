@@ -160,6 +160,7 @@ switch (state) {
         // Wait for player input
         if (actions_submitted) {
 			
+			combat_pick_debuffed_slots(); // Bind and Rot pick their slot now, from the ones you built
             state = CombatState.RESOLVE_ROUND;
         }
 		

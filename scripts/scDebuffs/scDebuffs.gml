@@ -134,7 +134,7 @@ function define_buffs_and_debuffs() {
 	        {
 	            trigger: "on_turn_start",
 	            modify: function(_ctx) {
-				    oCombat.locked_slot = irandom( ds_list_size(oCombat.action_queue) - 1);
+				    oCombat.locked_slot = SLOT_PICK_AT_RESOLVE; // picked when your turn ends (combat_pick_debuffed_slots): you start with one slot now
 				}
 	        }
 	    ]
@@ -200,14 +200,7 @@ function define_buffs_and_debuffs() {
 	        {
 	            trigger: "on_turn_start",
 	            modify: function(_ctx) {
-				    oCombat.bound_slot = irandom( ds_list_size(oCombat.action_queue) - 1);
-					
-					var _slot_pos = oCombat.slot_positions[| oCombat.bound_slot];
-					
-					var start_x = _slot_pos.x + (_slot_pos.w / 2);
-					var start_y = _slot_pos.y + (_slot_pos.h / 2);
-					
-					particle_emit(start_x, start_y, "burst", c_green);
+				    oCombat.bound_slot = SLOT_PICK_AT_RESOLVE; // picked when your turn ends (combat_pick_debuffed_slots)
 				}
 	        }
 	    ]

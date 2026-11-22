@@ -41,7 +41,7 @@
 - F193 Fixed timings: Mock, Peck, Coil, buffs and most debuffs come after slot 1; Mimic, big hits (Heavy Swing, Crushing Slam, Volley Fire...) and Rest come last; Peg-leg's Escaping after slot 2. Everything else is rolled 1-4 each turn.
 - F193 The queue resets every turn: next turn you're back to one slot (a slot a Sticky die is in stays). Slot 2 costs 2 pips, slot 3 4, slot 4 6; one die can build a slot if it's enough. Enemy block is gone at the end of each round.
 - F193 Ink view: under each intent, Earlier and Later (4 ink each) move its marker a slot; "After slot N" floats up. Earlier stops at slot 1, Later stops at "last" moves.
-- Known: Bind and Rot pick a slot at the start of the turn, when you only have one, so they always hit slot 1. Want them to pick later?
+- F193 Bind and Rot pick their slot when you end your turn, from the slots with dice (Rot's slot flashes green). During your turn no slot shows as chained or rotten, and you can play into any of them.
 
 **Batch 24 test list (`feature/ink-view`)**
 - B146 Click a stop on the map: the stop and its dotted courses stay put (they jumped down for a moment); the ship still sails to it and lands just below it.
