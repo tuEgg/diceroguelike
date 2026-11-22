@@ -129,9 +129,9 @@ function gain_alignment(_amount, _x = device_mouse_x_to_gui(0), _y = device_mous
 		c.col = alignment_colour(global.player_alignment + _neg * (i + 1));
 	}
 
-	// "+5 merciful" / "-7 ruthless" under the compass (oRunManager Draw GUI)
+	// "+5 alignment" / "-7 alignment" under the compass (oRunManager Draw GUI)
 	with (oRunManager) {
-		alignment_popup_text = (_neg > 0 ? "+" : "-") + string(_num) + (_neg > 0 ? " merciful" : " ruthless");
+		alignment_popup_text = (_neg > 0 ? "+" : "-") + string(_num) + " alignment";
 		alignment_popup_col = alignment_colour(_neg > 0 ? 90 : 5);
 		alignment_popup_t = 0;
 	}

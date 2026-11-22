@@ -21,6 +21,7 @@ Room `rmMap`, object `oWorldManager` (persistent for the run). Logic in `oWorldM
 
 ## Pages and nodes
 
+- After rolling, `pages_ensure_fights()` makes sure one of the three pages has a fight (`node_is_fight`: combat, elite, crossroads, boss), and every page once `oRunManager.rooms_since_fight` (stops in a row without one, counted in `enter_node` once per node via `fight_counted`) reaches `FIGHT_DROUGHT_ROOMS` (4); `page_give_fight` turns the page's first non-treasure stop into a combat.
 - `generate_pages()` fills `pages_shown` with 3 candidate pages (1–2 nodes each) using the `*_chance` odds (retuned in Room End, `Other_5`). Drafting one clones it into `chosen_pages` and adds its nodes to `all_nodes`; the first pick locks one of the other two, which burns away (`page_burn_draw`: the page drawn into `burn_surf`, then through the `shBurn` shader with `u_t`, plus ember particles), and the last is taken for you after `auto_take_t` frames (`auto_take_page`, Draw GUI) (the map lock is a design pillar, keep it).
 - Page struct: `index, island_index, num_nodes, nodes (ds_list), layout, margin, x, y, chosen, locked, cleared, is_boss, passage, passage_done, harbour_done`. `draw_page` draws the island (masked with surfaces and shaders `shWhiteFill`, `shErode`; the erode and the copy back run over the page's own rect only, as they are heavy) and node icons, and handles node clicks.
 - Node templates `node_combat`, `node_event`, `node_shop`, `node_elite`, `node_boss`, `node_treasure`, `node_alignment`, `node_bounty`... copy with `clone_node_static`.

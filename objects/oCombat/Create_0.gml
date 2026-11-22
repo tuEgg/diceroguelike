@@ -198,6 +198,7 @@ reward_dice_options = undefined;
 reward_consumable_options = undefined;
 reward_keepsake_options = undefined;
 rewards_dice_taken = false;
+reward_auto_t = 0; // frames since this reward page's pick landed: it moves on by itself (oCombat Draw GUI)
 pending_reward_die = undefined; // a reward die waiting to fly to the bag (made in Step)
 player_hit_t = -100000;          // when you were last hit (a white flash on your ship)
 player_death_t = -1;             // when you went down (lose_run): the ship keels over and sinks

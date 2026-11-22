@@ -46,6 +46,10 @@ if (global.show_settings) {
 		}
 		
 		if (category_index == i) {
+			// the controls sit clear of the longest name in this category ("Action icons on dice" ran into its box)
+			draw_set_font(ftBig);
+			var _ctrl_dx = display_get_gui_width() / 8;
+			for (var s = 0; s < array_length(category.settings); s++) _ctrl_dx = max(_ctrl_dx, string_width(category.settings[s].name) + 28);
 			// draw category settings
 			for (var s = 0; s < array_length(category.settings); s++) {
 				var setting = category.settings[s];
@@ -56,15 +60,15 @@ if (global.show_settings) {
 			
 				switch (setting.type) {
 					case "slider":
-						draw_setting_slider(setting, set_x + (display_get_gui_width() / 8), set_y);
+						draw_setting_slider(setting, set_x + _ctrl_dx, set_y);
 					break;
 					
 					case "toggle":
-						draw_setting_toggle(setting, set_x + (display_get_gui_width() / 8), set_y);
+						draw_setting_toggle(setting, set_x + _ctrl_dx, set_y);
 					break;
 					
 					case "dropdown":
-						draw_setting_dropdown(setting, set_x + (display_get_gui_width() / 8), set_y);
+						draw_setting_dropdown(setting, set_x + _ctrl_dx, set_y);
 					break;
 				}
 			}

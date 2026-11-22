@@ -201,7 +201,50 @@ function generate_pages() {
 	
 		ds_list_add(pages_shown, _page);
 	}
+	pages_ensure_fights();
 	pages_assign_passages(); // each page brings the sea stop after its island (B+, 2026-11-21)
+}
+
+/// @func node_is_fight(_node)
+/// @desc A stop that's a fight: combat, elite, the crossroads fight or the boss.
+function node_is_fight(_node) {
+	return is_struct(_node) && (_node.type == NODE_TYPE.COMBAT || _node.type == NODE_TYPE.ELITE || _node.type == NODE_TYPE.ALIGNMENT || _node.type == NODE_TYPE.BOSS);
+}
+
+/// @func page_has_fight(_page)
+function page_has_fight(_page) {
+	for (var n = 0; n < ds_list_size(_page.nodes); n++) if (node_is_fight(_page.nodes[| n])) return true;
+	return false;
+}
+
+/// @func page_give_fight(_page)
+/// @desc Makes the page's first stop that isn't a treasure (or already a fight) a combat, so the page opens with a fight
+///       where it can.
+function page_give_fight(_page) {
+	for (var n = 0; n < ds_list_size(_page.nodes); n++) {
+		var _nd = _page.nodes[| n];
+		if (_nd.type == NODE_TYPE.TREASURE) continue;
+		_page.nodes[| n] = clone_node_static(node_combat);
+		return;
+	}
+}
+
+/// @func pages_ensure_fights()
+/// @desc After generate_pages rolls the three pages (Jared, 2026-11-22: there were long stretches with no fight and no
+///       choice in it): there's always a fight on at least one of them, and once you've gone
+///       FIGHT_DROUGHT_ROOMS stops without one (oRunManager.rooms_since_fight), every page has one.
+#macro FIGHT_DROUGHT_ROOMS 4
+function pages_ensure_fights() {
+	var _n = ds_list_size(pages_shown);
+	if (_n == 0) return;
+	var _drought = instance_exists(oRunManager) && oRunManager.rooms_since_fight >= FIGHT_DROUGHT_ROOMS;
+	var _any = false;
+	for (var p = 0; p < _n; p++) {
+		var _pg = pages_shown[| p];
+		if (_drought && !page_has_fight(_pg)) page_give_fight(_pg);
+		if (page_has_fight(_pg)) _any = true;
+	}
+	if (!_any) page_give_fight(pages_shown[| irandom(_n - 1)]);
 }
 
 /// @function node_find_by_id(_id)
@@ -244,6 +287,11 @@ function enter_node(_node) {
 	
 	get_combat_enemies(_node, _memory_node);
 	current_node_type = _node.type;
+	// stops since your last fight (pages_ensure_fights); counted once per stop, not again when a save reloads into it
+	if (!variable_struct_exists(_memory_node, "fight_counted")) {
+		_memory_node.fight_counted = true;
+		oRunManager.rooms_since_fight = node_is_fight(_node) ? 0 : oRunManager.rooms_since_fight + 1;
+	}
 	
 	// an event node picks its event now (the event room shows it), so it can be saved with the node
 	if (_node.type == NODE_TYPE.EVENT) {

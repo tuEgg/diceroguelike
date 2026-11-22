@@ -1245,11 +1245,25 @@ function sirens_upgrade_count(_lean) {
 	return 0;
 }
 
+/// @func event_terms(_text)
+/// @desc The game words an event choice uses, each { name, desc }, for its hover (oEventManager Draw GUI).
+function event_terms(_text) {
+	var _all = [
+		{ word: "shop keepsake", name: "Shop keepsake", desc: "A keepsake you bought at a shop." },
+		{ word: "alignment", name: "Alignment", desc: "0 to 100, starting at 50. Some dice, keepsakes and events change with it." },
+		{ word: "luck", name: "Luck", desc: "Better odds of potions after fights and of chances in events." },
+		{ word: "max health", name: "Max health", desc: "The most health you can have." },
+	];
+	var _low = string_lower(string(_text));
+	var _out = [];
+	for (var i = 0; i < array_length(_all); i++) if (string_pos(_all[i].word, _low) > 0) array_push(_out, _all[i]);
+	return _out;
+}
+
 /// @func sirens_option_text(_type_word, _count)
 /// @desc What a Siren's Call option will do, with your alignment's count in it.
 function sirens_option_text(_type_word, _count) {
-	var _how = (_type_word == "ink") ? "merciful" : "ruthless";
-	var _rule = "More with a " + _how + " compass.";
+	var _rule = (_type_word == "ink") ? "More the higher your alignment." : "More the lower your alignment.";
 	if (_count <= 0) return "Nothing at your alignment. " + _rule;
 	return "Upgrade " + string(_count) + " " + _type_word + ((_count == 1) ? " die" : " dice") + ". " + _rule;
 }

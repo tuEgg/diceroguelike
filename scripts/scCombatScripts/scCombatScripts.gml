@@ -929,9 +929,31 @@ function new_slot_total() {
 	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
 		var _d = global.sacrifice_list[| j];
 		var _f = die_face_total(_d);
-		_t += (_f != -1) ? _f : ceil(_d.dice_value / 2); // a die that wasn't dealt (and so never rolled) counts half its size
+		_t += (_f != -1) ? _f + die_tile_effect_amount(_d) : ceil(_d.dice_value / 2); // a die that wasn't dealt (and so never rolled) counts half its size
 	}
 	return _t;
+}
+
+/// @func die_tile_effect_amount(_die)
+/// @desc What a die's own effect adds on the new-slot tile, worked out as if it were already in the slot it builds (the
+///       last one), so a bonus counts the moment it's played (Jared, 2026-11-22: Kill coin's +2 counts toward the pips).
+///       Only its own on_roll_die effect, on a read-only stand-in slot; an effect that needs a real slot adds nothing.
+function die_tile_effect_amount(_die) {
+	if (!instance_exists(oCombat) || !die_has_effect_trigger(_die, "on_roll_die")) return 0;
+	var _n = ds_list_size(oCombat.action_queue);
+	var _slot = { current_action_type: _die.action_type, possible_type: _die.possible_type, bonuses: [], dice_list: undefined };
+	var _ctx = {
+		previous_slot_action_type: (_n > 0) ? oCombat.action_queue[| _n - 1].current_action_type : "",
+		action_type: _die.action_type, min_roll: 1 + _die.min_roll_bonus, max_roll: _die.dice_value,
+		_d_amount: 0, _die_struct: _die, _slot: _slot, slot_num: _n, die_index: 0, die: _die,
+		read_only: true, on_deal: false, roll_twice: false, repeat_followthrough: false, target: "player", weighting: ""
+	};
+	try {
+		trigger_die_effects_single(_die, "on_roll_die", _ctx);
+	} catch (_e) {
+		return 0;
+	}
+	return is_real(_ctx._d_amount) ? _ctx._d_amount : 0;
 }
 
 /// @func combat_try_build_slot()
@@ -1801,11 +1823,11 @@ function tutorial_steps() {
 			done: function() { return ds_list_size(oCombat.action_queue) >= 2; },
 		},
 		{
-			id: "place_bonus", target: "newest", allow: [], button: "Next",
+			id: "place_bonus", target: "newest", allow: ["sacrifice"], button: "Next",
 			text: "Later slots add more to their total: this one +1, the next +2. The next slot costs more dice.",
 		},
 		{
-			id: "end_turn", target: "end_turn", allow: ["place", "end_turn"],
+			id: "end_turn", target: "end_turn", allow: ["place", "sacrifice", "end_turn"], // sacrifice: a slot taken apart can be built again
 			text: "You can play 4 dice a turn; coins are free. At End Turn your slots act left to right, and each enemy acts at its point on the track above them. Block before a hit to stop it. End your turn.",
 			done: function() { return oCombat.turn_count >= 2; },
 		},
@@ -2215,12 +2237,12 @@ function tips_list() {
 		},
 		{
 			id: "alignment_fight", room: rmCombat, target: "",
-			text: "A crossroads fight. When the enemy falls, kill it or spare it. Killing swings your compass to ruthless; sparing swings it to merciful for less gold. Rewards are alignment dice.",
+			text: "A crossroads fight. When the enemy falls, kill it or spare it. Killing lowers your alignment; sparing raises it, for less gold. Rewards are alignment dice.",
 			when: function() { return tips_combat_ready() && oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT; },
 		},
 		{
 			id: "kill_or_spare", room: rmCombat, target: "spare_buttons",
-			text: "Kill: compass to ruthless, full gold. Spare: compass to merciful, a third of the gold.",
+			text: "Kill: lose 5 alignment, full gold. Spare: gain 5 alignment, a third of the gold.",
 			when: function() { return combat_spare_choice_enemy() != undefined; },
 		},
 		{
@@ -3052,6 +3074,10 @@ function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
 	var _dark = make_color_rgb(42, 29, 18);
 	var _brass = make_color_rgb(232, 196, 106);
 	var _spent = make_color_rgb(90, 69, 53);
+	// extra plays just for this turn (a stowaway, a keepsake...) are green, at the end of the row, so they're used first
+	// and you can see which ones won't come back (playtest, Jared 2026-11-22)
+	var _extra = clamp(dice_allowed_per_turn - plays_bought - dice_allowed_per_turn_original, 0, _total);
+	var _green = merge_colour(global.ui_col.bonus_ink, c_white, 0.25);
 
 	var _n = _total + _buyable;
 	var _w = _n * (_r * 2) + max(0, _n - 1) * _gap + ((_buyable > 0) ? 8 : 0); // a little space before the buyable ones
@@ -3070,7 +3096,8 @@ function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
 		var _tx = _x0 + _r + t * (_r * 2 + _gap);
 		var _on = (t < _left);
 		var _paid = (t >= _total - plays_bought); // bought with insight: the last ones
-		var _fill = _on ? (_paid ? global.color_intel : _brass) : _spent;
+		var _bonus_play = !_paid && t >= dice_allowed_per_turn - plays_bought - _extra && t < dice_allowed_per_turn - plays_bought;
+		var _fill = _on ? (_paid ? global.color_intel : (_bonus_play ? _green : _brass)) : _spent;
 		var _rr = _r * _s * (_hover ? 1.1 : 1);
 		draw_set_color(_ring);
 		draw_circle(_tx, _y, _rr + 3, false);
@@ -3081,7 +3108,7 @@ function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
 		draw_set_color(_fill);
 		draw_circle(_tx, _y - _rr * 0.15, _rr * 0.55, false);
 	}
-	if (_hover && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Plays", string(_left) + " left this turn. Coins are free.");
+	if (_hover && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Plays", string(_left) + " left this turn. Coins are free." + ((_extra > 0) ? "\nGreen ones are extra." : ""));
 
 	// the plays your insight could buy: faded yellow pips, click to buy one
 	for (var b = 0; b < _buyable; b++) {
@@ -3278,6 +3305,10 @@ function combat_insight_view_draw() {
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var _en = room_enemies[| e];
 			if (_en.dead || !variable_struct_exists(_en, "intent_rect")) continue;
+			// only what your ink can afford stays in colour (Jared, 2026-11-22); the rest is drawn in ink with the page
+			var _rc = !enemy_intent_revealed(_en) && intent_has_numbers(_en.intent.move) && combat_insight_can(combat_reveal_cost());
+			var _wc = enemy_can_rewrite_intent(_en) && combat_insight_can(INSIGHT_COST_QUILL);
+			if (!_rc && !_wc) continue;
 			var _ir = _en.intent_rect;
 			draw_roundrect_ext(_ir.x - _ir.w / 2 - _pad, _ir.y - _ir.h / 2 - _pad, _ir.x + _ir.w / 2 + _pad, _ir.y + _ir.h / 2 + _pad, 18, 18, false);
 		}
@@ -3400,6 +3431,8 @@ function combat_insight_view_draw() {
 			// faster, and an ink drop on its corner (Jared, 2026-11-20)
 			var _inky = !tumbling && die_has_trigger(struct, "on_die_inked");
 			var _ring_k = die_is_special(struct) ? 1.2 : 1; // edges sit outside its rarity ring
+			var _lit = _rr_can || _rd_can; // can't afford either: left in ink with the page (the frame under, through shInk)
+			if (_lit) {
 			if (_inky) {
 				var _ip = 0.5 + 0.5 * sin(current_time / 110);
 				draw_die_shape(x, y, _r * _ring_k * (1.36 + 0.08 * _ip), dice_value, c_white, tumble_angle, 0.3 + 0.4 * _ip);
@@ -3411,6 +3444,7 @@ function combat_insight_view_draw() {
 			draw_die(x, y, _r * (_hov ? 1.08 : 1), dice_value, _face, die_colours(struct.possible_type), tumble_angle, 1, struct);
 			if (_inky) draw_ink_drop(x + _r * 0.85, y - _r * 0.85, 14 * scale);
 			if (!tumbling && die_is_mocked(struct)) draw_mock_mark(x, y - _r - 6, scale); // lit with it, so you see it before rerolling (B133)
+			}
 			if (_ready) {
 				// two icon buttons over the die, side by side (Jared, 2026-11-22): reroll left, redraw right
 				var _top_y = y - _r * _ring_k - 30;
@@ -3765,6 +3799,7 @@ function combat_timeline_draw(_ink = false) {
 			// under it, which made stacks tall). It follows the mouse and snaps to the nearest gap; let go there to move
 			// the move for INK_COST_MOVE
 			var _movable = _ink && !_en.dead && !_en.turn_done;
+			var _can = _movable && combat_insight_can(INK_COST_MOVE);
 			var _dragging = _movable && ink_drag_enemy == _en;
 			var _eff = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : _p;
 			var _k = _eff;
@@ -3774,6 +3809,18 @@ function combat_timeline_draw(_ink = false) {
 				_gx = clamp(_mx, combat_point_x(1), combat_point_x(_last));
 				quill_over = true;
 				ink_preview = (_k != _eff) ? INK_COST_MOVE : 0;
+			}
+			if (_ink && !_can && !_dragging) {
+				// nothing your ink can do with it: left as the log draws it (the frame under, through shInk), so only what
+				// you can afford stays in colour (Jared, 2026-11-22). It still says what it is
+				draw_set_font(ftDescriptions);
+				var _num0 = intent_has_numbers(_en.intent.move) ? intent_number_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) : "";
+				var _w0 = 62 + ((_num0 != "") ? string_width(_num0) + 8 : 0);
+				if (ink_drag_enemy == undefined && mouse_hovering(_gx, _my, _w0, 34, true, noone, noone, true, _layer)) {
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), string(_en.data.name) + ": " + string(_en.intent.move.move_name), intent_hover_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) + "\n" + enemy_point_text(_en));
+					if (_movable && mouse_check_button_pressed(mb_left)) throw_error("Not enough ink", "Moving it costs " + string(INK_COST_MOVE) + " ink.");
+				}
+				continue;
 			}
 			// the line down from the marker to the gap (while dragged: from the track at the gap it would land in)
 			draw_set_alpha(_dragging ? 0.7 : _a);
@@ -3787,7 +3834,6 @@ function combat_timeline_draw(_ink = false) {
 			var _num = intent_has_numbers(_en.intent.move) ? intent_number_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) : "";
 			draw_set_font(ftDescriptions);
 			var _w = 62 + ((_num != "") ? string_width(_num) + 8 : 0) + (_movable ? 26 : 0); // room for the grip
-			var _can = _movable && combat_insight_can(INK_COST_MOVE);
 			if (_can) wet_ink_rect(_gx - _w / 2 - 3, _my - 20, _gx + _w / 2 + 3, _my + 20, 12); // the edge sloshes: it can be moved
 			draw_set_color(_col);
 			draw_roundrect_ext(_gx - _w / 2 - 3, _my - 17 - 3, _gx + _w / 2 + 3, _my + 17 + 3, 12, 12, false);
@@ -4107,13 +4153,21 @@ function ink_icon_button(_cx, _cy, _icon, _cost, _ok, _size = 1) {
 	if (_ok) wet_ink_circle(_cx, _cy, _r + 2);
 	// a solid ink disc with a pale icon, black-rimmed with a shadow, so it stands out over paper and enemy art (Jared,
 	// 2026-11-22: pale ones got lost under the intents). One you can't afford is grey.
-	var _disc = _ok ? (_hov ? merge_color(global.color_intel, c_white, 0.15) : global.color_intel) : make_color_rgb(96, 96, 104);
-	var _pale = global.ui_col.paper_hi;
-	draw_set_alpha(0.35);
-	draw_set_color(c_black);
-	draw_circle(_cx + 2, _cy + 3, _r + 3, false);
-	draw_set_alpha(_ok ? 1 : 0.85);
-	draw_circle(_cx, _cy, _r + 3, false);
+	// One you can't afford is drawn like the inked page around it: parchment, an ink rim and an ink icon (Jared,
+	// 2026-11-22: only what you can afford in colour)
+	var _disc = _ok ? (_hov ? merge_color(global.color_intel, c_white, 0.15) : global.color_intel) : global.ui_col.paper;
+	var _pale = _ok ? global.ui_col.paper_hi : global.color_intel;
+	if (_ok) {
+		draw_set_alpha(0.35);
+		draw_set_color(c_black);
+		draw_circle(_cx + 2, _cy + 3, _r + 3, false);
+		draw_set_alpha(1);
+		draw_circle(_cx, _cy, _r + 3, false);
+	} else {
+		draw_set_alpha(0.8);
+		draw_set_color(global.color_intel);
+		draw_circle(_cx, _cy, _r + 2, false);
+	}
 	draw_set_color(_disc);
 	draw_circle(_cx, _cy, _r, false);
 	var _ink = _disc; // the icon's cut-outs are disc coloured
@@ -4143,7 +4197,7 @@ function ink_icon_button(_cx, _cy, _icon, _cost, _ok, _size = 1) {
 	} else if (_icon == "rewrite") {
 		// a quill, nib at the lower left
 		draw_quill(_cx - 9 * _k, _cy + 10 * _k, 24 * _k, 50);
-		draw_set_alpha(_ok ? 1 : 0.85);
+		draw_set_alpha(_ok ? 1 : 0.8);
 	} else {
 		// a die between two arrows going opposite ways (out for a new one)
 		draw_roundrect_ext(_cx - 5 * _k, _cy - 5 * _k, _cx + 5 * _k, _cy + 5 * _k, 3, 3, false);

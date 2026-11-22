@@ -30,10 +30,26 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 30: playtester notes (itch, 2026-11-22) | B156, B157, B158, B159, F215, F216, F217, F218, F219, F220, F221, F222, F223 | `fix/playtest-11-22` | **Not yet play-tested.** Only what you can afford is in colour in the ink view, alignment named as alignment, a slot's bonus under its total, Kill coin counts on the tile, a fight on every draft, green extra plays, rewards close themselves, event words explained, take-back fixes. |
 | 29: ink cursor, room for three enemies, burning rewards | B155, F183, F184, F212, F213, F214 | `fix/playtest-11-22` | **Not yet play-tested.** Quill cursor by default in the ink view, no mouse hint, enemies clear of the four-place queue, drag the marker itself (grip at its end), ink take-back sound, ship's bell, torch on burns, the locked item reward burns. |
 | 28: queue and ink view | B152, B153, B154, F205, F206, F207, F208, F209, F210 | `fix/playtest-11-22` | **Not yet play-tested.** Four slots always in view, drag a move along the track, click intents in the ink view, dice dealt in an arc, sea stop odds, the settings not inked, d4 text centred, the track lifts over a hovered slot, an ink easter egg. |
 | 27: sounds | F204 | `fix/playtest-11-22` | **Not yet play-tested.** Jared's new sounds wired in. |
 | 26: playtest notes 2026-11-22 | B147, B148, B149, B150, B151, F196, F197, F198, F199, F200, F201, F202 | `fix/playtest-11-22` (off `dev`) | **Not yet play-tested.** Two crashes, the island flash on the page turn, a wrong padlock in slot 1, enemy block lasts until it acts again, ink buttons stand out, d6 ink slosh, linked stop badge, keepsake reward cards, min roll cap, the wreck with full slots. |
+
+**Batch 30 test list (an itch playtester's notes)**
+- F215 Ink view with little ink (say 2): dice you can't reroll or redraw, intents you can't reveal or rewrite and track markers you can't move are drawn in ink like the rest of the page; only what you can afford stays in colour. Buttons you can't afford are parchment with an ink outline instead of grey. Hovering an inked marker still says what it is (and pressing it says "Not enough ink").
+- F216 Alignment says alignment: Lodestone and Compass Core ("The lower your alignment..."), Medallion of the Sea ("while alignment is below 20 or above 80"), Kill / Spare ("Lose 5 alignment" / "Gain 5 alignment"), the crossroads tips and map node, the Siren's Call options, the compass tooltip, and the popup under the compass ("+5 alignment").
+- F217 A slot's place bonus sits small and centred under its total ("4" with "+1" beneath), not beside it. An empty slot still shows its bonus in the middle.
+- F218 Kill coin on the new-slot tile: its +2 counts toward the pips (rolled 2 shows 4 of the pips), because the tile becomes the last slot. In the last slot it's +2 as before.
+- F219 Drafting: at least one of the three pages always has a fight. After 4 stops in a row without a fight, every page offered has one (its first stop that isn't a treasure becomes a fight). Saved with the run.
+- F220 Plays above End Turn: extra plays (a stowaway, Shipwright's Draft, the event's extra play next fight...) are green tokens at the end of the row and get used first. Hover: "Green ones are extra."
+- F221 Fight rewards: take a die (or a keepsake) and the page moves on by itself once it has flown to the bag; on the last page it closes.
+- F222 Events: hovering a choice that mentions alignment, luck, a shop keepsake or max health explains those words.
+- F223 Dice text says Block / Attack / Heal / Ink, not BLK / ATK / HEAL / INK (Deflect Die and others).
+- B156 A die that built a slot alongside one whose "when sacrificed" effect fired (a coin) now says "It built this slot with <that die>, whose effect can't be undone." (it used to claim its own effect had fired). Every die on the tile when the slot builds counts as building it.
+- B157 Dice on the new-slot tile only say "Click to take it back." when they can come back. (A playtester's tile dice wouldn't come back; I couldn't find why in the code. If you can make it happen, tell me what was on the tile and how it got there.)
+- B158 Guided fight: take the Block die back out of slot 2 after building it, and you can drop it on the tile again to rebuild the slot.
+- B159 Settings > Display: "Action icons on dice" no longer runs into its checkbox (the controls sit clear of the longest name).
 
 **Batch 29 test list**
 - F212 Ink view: the cursor is the quill everywhere, and the normal pointer over anything you can click or drag (dice, intents, buttons, handles, the inkwell, Done). Drawing keeps the quill. The little mouse hint is gone.
@@ -142,6 +158,9 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 **From the 2026-11-22 playtest**
 - F203 Keepsake idea: rerolls can't roll the same value again.
+- F224 **Workbench rework (Jared, 2026-11-22), mockup at `docs/mockups/workbench-freeform.html`:** no slots, a table you place dice anywhere on; pull dice from the bag any time, no limit. Drill: die on the table, core into the drill head, drill it in. Hammer: two dice side by side, one swing on the gap, the new die appears under the hammer. Cutters: cut a die, a coin pops out beside it. Open questions on the mockup page (missed swings, once per visit, leftover dice, previews).
+- F225 Hotkeys (playtester): Space End Turn, Tab the ink view, B the bag, 1-9 pick a die in hand.
+- F226 A run log (playtester): a page in the book listing fights, picks and events.
 - F211 Keepsake ideas (Jared): keepsakes that change sea stops (pick a stop's type, see the next spread's stops, a stop counts twice...).
 - Sounds still to make: `docs/sound-recommendations.md` (tiers and suggestions; Jared makes them, Claude wires them in).
 - Q16 Sea stop odds: agreed 2026-11-22, built as F209 (batch 28).

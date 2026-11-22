@@ -284,7 +284,7 @@ function generate_dice_bag() {
 	// Defensive Die: Coin. Favourite. Multitype: Can create HEAL and BLK slo
 	global.die_defensive = make_die_struct(
 	    1, 2, "HEAL", "HEAL BLK", "", "Defensive coin",
-	    "Coin. Favourite. Multitype: HEAL or BLK.",
+	    "Coin. Favourite. Multitype: Heal or Block.",
 		"rare",
 		70,
 	    []
@@ -382,7 +382,8 @@ function generate_dice_bag() {
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
-					if (_context.slot_num >= 0) _context._d_amount = 2 * (ds_list_size(oCombat.action_queue) - 1 == _context.slot_num);
+					// the last slot, or the new-slot tile (which becomes the last slot: die_tile_effect_amount)
+					if (_context.slot_num >= 0) _context._d_amount = 2 * (_context.slot_num >= ds_list_size(oCombat.action_queue) - 1);
 	            }
 	        }
 	    ]
@@ -677,7 +678,7 @@ function generate_dice_bag() {
 	// Deflect Die
 	global.die_deflect = make_die_struct(
 	    1, 6, "BLK", "BLK INTEL", "", "Deflect Die",
-	    "Multitype. BLK or INK.",
+	    "Multitype. Block or Ink.",
 		"uncommon",
 		70,
 		[]
@@ -1001,7 +1002,7 @@ function generate_dice_bag() {
 	
 	global.die_assassin = make_die_struct(
 	    1, 4, "ATK", "ATK INTEL", "", "Assassin Die",
-	    "Multitype. ATK or INK. +1 minimum roll per 3 ink.",
+	    "Multitype. Attack or Ink. +1 minimum roll per 3 ink.",
 		"rare",
 		70,
 	    [

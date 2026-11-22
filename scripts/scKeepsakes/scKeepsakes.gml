@@ -936,7 +936,7 @@ function define_keepsakes() {
 	ks_medallion_of_the_deep = {
 	    _id: "medallion_of_the_deep",
 	    name: "Medallion of the Sea",
-	    desc: "+1 play each turn at extreme alignment.",
+	    desc: "+1 play each turn while alignment is below 20 or above 80.",
 		sub_image: 37,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {

@@ -389,7 +389,7 @@ for (var i = 0; i < aq_list_size; i++) {
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
 			if (mouse_hovering(_wx, _wy, sprite_get_width(sDiceIcon), sprite_get_height(sDiceIcon), true) && !show_rewards) {
-				queue_die_tip(_wd, _wx, _wy - 22, undefined, "Click to take it back.");
+				queue_die_tip(_wd, _wx, _wy - 22, undefined, die_can_take_back(_wd) ? "Click to take it back." : "");
 				if (mouse_check_button_pressed(mb_left) && state == CombatState.PLAYER_INPUT && global.ui_layer == UI_LAYER.BASE && !oRunManager.holding_item && combat_no_die_dragged()) {
 					take_back_request = { slot: -1, index: w };
 				}
@@ -469,7 +469,16 @@ for (var i = 0; i < aq_list_size; i++) {
 					if (_blocked != "") _back_hint = "\n\n" + _blocked;
 					else if (die_can_take_back(die_struct)) _back_hint = (variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot) ? "\n\nClick to take it back: this slot comes apart, and the other dice that built it wait on the new-slot tile." : "\n\nClick to take it back to your hand.";
 					else if (variable_struct_exists(die_struct, "played_turn") && die_struct.played_turn == turn_count) {
-						if (variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot) _back_hint = (i < ds_list_size(action_queue) - 1) ? "\n\nIt built this slot. Take the newer slot apart first." : "\n\nIt built this slot, and its 'when sacrificed' effect has happened, so it stays.";
+						if (variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot) {
+							if (i < ds_list_size(action_queue) - 1) _back_hint = "\n\nIt built this slot. Take the newer slot apart first.";
+							else {
+								// every die that built it stays once one of them fired something that can't be undone: say which
+								var _who = "";
+								var _bl = action_queue[| i].dice_list;
+								for (var b = 0; b < ds_list_size(_bl); b++) if (variable_struct_exists(_bl[| b], "built_slot") && _bl[| b].built_slot && die_has_effect_trigger(_bl[| b], "on_sacrifice_die")) _who = _bl[| b].name;
+								_back_hint = (_who != "" && _who != die_struct.name) ? "\n\nIt built this slot with " + _who + ", whose effect can't be undone." : "\n\nIt built this slot and its effect can't be undone.";
+							}
+						}
 						else if (variable_struct_exists(die_struct, "play_locked") && die_struct.play_locked) _back_hint = "\n\nIts 'when played' effect has happened, so it stays.";
 					}
 				}
@@ -794,7 +803,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		var btn_2_hover = _spare.hover;
 
 		if (btn_1_hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Kill", "Compass swings 5 toward ruthless. Gain its bounty in gold" + ((oWorldManager.current_node_type == NODE_TYPE.ELITE) ? ". Counts for a bounty contract." : "."));
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Kill", "Lose 5 alignment. Gain its bounty in gold" + ((oWorldManager.current_node_type == NODE_TYPE.ELITE) ? ". Counts for a bounty contract." : "."));
 			if (mouse_check_button_pressed(mb_left)) {
 				enemy.killed = true;
 				gain_alignment(-5);
@@ -804,7 +813,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		}
 		
 		if (btn_2_hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Spare", "Compass swings 5 toward merciful. Gain a third of its bounty in gold. Spare every enemy for a guaranteed item.");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Spare", "Gain 5 alignment and a third of its bounty in gold. Spare every enemy for a guaranteed item.");
 			if (mouse_check_button_pressed(mb_left)) {
 				enemy.spared = true;
 				enemy.alignment_choices_shown = false;
@@ -1312,7 +1321,13 @@ if (show_rewards) {
 	// Update animation
 	reward_next_hover = lerp(reward_next_hover, next_hover && !instance_exists(oDiceParticle) ? 1.2 : 1.0, 0.2);
 	
-	if (next_hover && mouse_check_button_pressed(mb_left) && instance_number(oDiceParticle) == 0) {
+	// a die or keepsake taken: the page moves on by itself once it has flown to the bag (playtest, Jared 2026-11-22)
+	var _stage_kind = reward_list[| rewards_stage - 1];
+	var _taken_here = (_stage_kind == "dice" && rewards_dice_taken) || (_stage_kind == "keepsakes" && rewards_keepsake_taken);
+	reward_auto_t = (_taken_here && instance_number(oDiceParticle) == 0) ? reward_auto_t + 1 : 0;
+	var _auto_next = reward_auto_t > game_get_speed(gamespeed_fps) * 0.5;
+	if (((next_hover && mouse_check_button_pressed(mb_left)) || _auto_next) && instance_number(oDiceParticle) == 0) {
+		reward_auto_t = 0;
 		if (rewards_stage < ds_list_size(reward_list)) {
 			if (reward_list[| rewards_stage-1 ] == "dice") {
 				rewards_dice_taken = true;

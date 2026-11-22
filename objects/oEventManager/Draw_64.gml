@@ -60,6 +60,15 @@ if (chosen_event != undefined) {
 		
 		var _picked_hover = !event_selected && options_hover[| i];
 		var option_alpha = event_selected ? 0.35 : 1.0;
+		// the words it uses that mean something in the game, explained before you pick (playtest, Jared 2026-11-22)
+		if (_picked_hover) {
+			var _terms = event_terms(_option_desc);
+			if (array_length(_terms) > 0) {
+				var _tdesc = _terms[0].desc;
+				for (var t = 1; t < array_length(_terms); t++) _tdesc += "\n" + _terms[t].name + ": " + _terms[t].desc;
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _terms[0].name, _tdesc);
+			}
+		}
 
 		// a choice: a slip of shaded paper with an ink rule down its left; hovered, it brightens with a brass rule
 		var _ox1 = xx, _oy1 = yy - _h, _ox2 = xx + _w + padding, _oy2 = yy - padding / 4;
