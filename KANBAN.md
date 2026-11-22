@@ -31,7 +31,10 @@
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
 
-Nothing waiting: v0.2.1 was approved on 2026-11-22 (see DONE).
+| 24: map click jump | B146 | `fix/map-click-jump` (off `dev`) | **Not yet play-tested.** |
+
+**Batch 24 test list (`fix/map-click-jump`)**
+- B146 Click a stop on the map: the stop and its dotted courses stay put (they jumped down for a moment); the ship still sails to it and lands just below it.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs

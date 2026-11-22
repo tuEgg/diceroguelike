@@ -767,8 +767,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 						if (_blocked != "") {
 							throw_error("Not yet", _blocked);
 						} else if (node == next_node) {
-							node_to_move_to = node;
-							node_to_move_to.y += 10;
+							node_to_move_to = node; // (it used to be nudged 10 px down here, which made the stop and its courses jump for a frame)
 						} else {
 							throw_error("Not yet", "Clear the next stop first.");
 						}
