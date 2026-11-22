@@ -1,6 +1,6 @@
 # Tides of Fortune: KANBAN
 
-> Repo: `C:\Users\Jared\Projects\TidesOfFortune`, pushed to GitHub. **Branches:** `main` = live on itch.io (tag `v0.2.0`, 2026-11-21; hotfixes become v0.2.1...), `dev` = v0.3 in progress (see CLAUDE.md). `file:line` references on open cards come from the 2026-11-15 audit and may have drifted by a few lines.
+> Repo: `C:\Users\Jared\Projects\TidesOfFortune`, pushed to GitHub. **Branches:** `main` = live on itch.io (tag `v0.2.1`, 2026-11-22; hotfixes become v0.2.2...), `dev` = v0.3 in progress (see CLAUDE.md). `file:line` references on open cards come from the 2026-11-15 audit and may have drifted by a few lines.
 > **Work order (agreed):** 1. bug-fix batches → 2. debug menu (done) → 3. finish the world-map rework → 4. revisit intel.
 > **Workflow:** Claude batches fixes into commits with a test checklist. Jared play-tests, gives feedback and approves. Nothing is merged or pushed without approval.
 > **Keeping this board current:** it is updated in the same commit as the work. A card stays in its bug or debt section while open, is listed in the IN TESTING table while its batch waits for a playtest, and moves to the DONE table once Jared approves the merge.
@@ -18,7 +18,7 @@
 | H11 | **Reminder for Jared:** the shop's exit door is drawn twice (it's in the room background and is also the exit object's sprite). Remove it from the background. | Jared, art |
 | H09 | **itch.io playtest build** live at https://tuegg.itch.io/tides-of-fortune (v0.2.0 tagged on main 2026-11-21; Jared exports and uploads the web build). Collecting feedback; fixes go out as hotfixes (v0.1.2...). | Jared, ongoing |
 
-**Next for v0.3 (Jared, 2026-11-21)**, while itch testers play v0.2.0:
+**Next for v0.3 (Jared, 2026-11-21)**, while itch testers play v0.2.1:
 1. Sound pass (Jared): sound effects across the game, including the page burn (F184).
 2. Art pass (Jared, his own art): keepsakes and cores (H13), unique dice (F42), sea stop icons, enemies (H12), the shop door (H11).
 3. Content: more dice, keepsakes, events and enemies (F20 to F25), shaped by the feedback.
@@ -31,7 +31,8 @@
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
 
-Nothing waiting: batches 22 and 23 were approved on 2026-11-21 (see DONE).
+Nothing waiting: v0.2.1 was approved on 2026-11-22 (see DONE).
+
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -152,6 +153,18 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 ---
 
 ## ✅ DONE
+
+**Hotfix approved by Jared (2026-11-22), released as v0.2.1 on `main`**
+
+| Batch | Cards | Branch / commit | Status |
+|---|---|---|---|
+| v0.2.1 hotfix | F185, F186, F187, B145 | `hotfix/v0.2.1`, merged into `main` | **Approved, released as v0.2.1.** Linked treasure and elites when drafting, 4 spreads a chapter, Cursed Heart -2 pips, the workbench picker's phantom pick. Version 0.2.1 in the menus. |
+
+**v0.2.1 test list (`hotfix/v0.2.1`)** Open this branch in GameMaker (it shows 0.2.1 in the menus) to test and export.
+- F185 Drafting: when two or more pages offer a treasure (or an elite), those stops get a breathing brass ring and a dashed brass line runs between them across the cards; hover one: "Only one page can keep this." Pick a page with the treasure: the page that burns goes, and on the page you're given, its treasure shows until the burn ends, then shrinks, puffs and pops into an Event (an elite into a Combat); you're given the page right after. With no treasure picked, nothing changes.
+- F186 A chapter is 4 spreads, then the boss: check the progress markers under the book, the chapter tabs' "N more spreads" and the pause menu's "spread N of 4". A save from before loads with a fresh book.
+- F187 Cursed Heart: "New slots cost 2 fewer pips." Slot 2 needs 1+, slot 3 4+ from 2 dice, slot 4 7+ (the tile shows it).
+- B145 Workbench: clicking "Open the bag" (or the tutorial's note) no longer picks the die under the mouse when the bag opens; nothing is picked until you click a die.
 
 **Play-tested and approved by Jared (2026-11-21), merged to `dev` (released as v0.2.0, 2026-11-21)**
 
