@@ -619,19 +619,29 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	draw_sprite_ext(sIslands, page.island_index, _icx, page_y, _is, _is, 0, c_white, island_alpha);
 
 	if (_alpha == 1) {
-		// apply mask across the whole surface
+		// apply the mask, over the page only: shErode reads ~80 pixels for each one, and run over the whole screen for
+		// every drafting card it slowed the game right down until the draft was done (Jared, 2026-11-22)
+		var _bx1, _by1, _bx2, _by2;
+		if (_land) { _bx1 = _cx1 - 16; _by1 = _cy1 - 16; _bx2 = _cx2 + 16; _by2 = _cy2 + 16; }
+		else {
+			_bx1 = page_x - sprite_get_xoffset(_sprite) * draw_scale - 16; _by1 = page_y - sprite_get_yoffset(_sprite) * draw_scale - 16;
+			_bx2 = _bx1 + sprite_get_width(_sprite) * draw_scale + 32; _by2 = _by1 + sprite_get_height(_sprite) * draw_scale + 32;
+		}
+		_bx1 = clamp(floor(_bx1), 0, surf_w); _by1 = clamp(floor(_by1), 0, surf_h);
+		_bx2 = clamp(ceil(_bx2), 0, surf_w); _by2 = clamp(ceil(_by2), 0, surf_h);
+		var _bw = max(1, _bx2 - _bx1), _bh = max(1, _by2 - _by1);
 		shader_set(shErode);
 		shader_set_uniform_f(u_erode_texel, 1 / surf_w, 1 / surf_h);
 		shader_set_uniform_f(u_erode_radius, 5);
 		gpu_set_blendmode_ext(bm_zero, bm_src_alpha);
-		draw_surface(island_mask_surf, 0, 0);
+		draw_surface_part(island_mask_surf, _bx1, _by1, _bw, _bh, _bx1, _by1);
 		shader_reset();
 		gpu_set_blendmode(bm_normal);
 		surface_reset_target();
-	
+
 		// draw out premultiplied
 		gpu_set_blendmode_ext(bm_one, bm_inv_src_alpha);
-		draw_surface(island_surf, 0, 0);
+		draw_surface_part(island_surf, _bx1, _by1, _bw, _bh, _bx1, _by1);
 		gpu_set_blendmode(bm_normal);
 	}
 	

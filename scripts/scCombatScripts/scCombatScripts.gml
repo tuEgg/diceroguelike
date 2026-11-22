@@ -3386,10 +3386,10 @@ function combat_insight_view_draw() {
 			if (_inky) draw_ink_drop(x + _r * 0.85, y - _r * 0.85, 14 * scale);
 			if (!tumbling && die_is_mocked(struct)) draw_mock_mark(x, y - _r - 6, scale); // lit with it, so you see it before rerolling (B133)
 			if (_ready) {
-				// the two buttons, stacked over the die
+				// two icon buttons over the die, side by side (Jared, 2026-11-22): reroll left, redraw right
 				var _top_y = y - _r * _ring_k - 30;
-				var _b1 = ink_button(x, _top_y - 34, 92, 30, "Reroll", INSIGHT_COST_REROLL, _rr_can);
-				var _b2 = ink_button(x, _top_y, 92, 30, "Redraw", INSIGHT_COST_REDRAW, _rd_can);
+				var _b1 = ink_icon_button(x - 25, _top_y, "reroll", INSIGHT_COST_REROLL, _rr_can);
+				var _b2 = ink_icon_button(x + 25, _top_y, "redraw", INSIGHT_COST_REDRAW, _rd_can);
 				if (_b1.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll", "Roll this die again." + (die_is_mocked(struct) ? "\nMocked: it still rolls 1." : "") + (_inky ? "\n" + struct.name + ": " + struct.description : ""), undefined, 0, undefined, INSIGHT_COST_REROLL, "ink");
 				if (_b2.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Redraw", "Discard this die and draw a new one." + (_inky ? "\n" + struct.name + ": " + struct.description : ""), undefined, 0, undefined, INSIGHT_COST_REDRAW, "ink");
 				if (_b1.click) { _clicked = id; _clicked_what = "reroll"; }
@@ -3697,15 +3697,27 @@ function combat_timeline_draw(_ink = false) {
 			draw_outline_text(_lbl, global.ui_col.ink, global.ui_col.paper_hi, 2, _cx, _ty - 8, 1, _built ? 1 : 0.6, 0);
 		}
 		draw_set_alpha(1);
-		// the markers, grouped by gap
+		// the markers, grouped by gap: where each sits first, then drawn top row first, so a lower marker covers the lines
+		// coming down from the ones stacked over it (Jared, 2026-11-22)
 		var _stack = array_create(_last + 2, 0);
+		var _rows = array_create(ds_list_size(room_enemies), -1);
+		var _top = 0;
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var _en = room_enemies[| e];
 			if (!variable_struct_exists(_en.intent, "after_slot") || _en.intent.alpha < 0.05) continue;
 			var _p = _en.intent.after_slot;
 			var _gap = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : min(_p, _last);
+			_rows[e] = _stack[_gap]; _stack[_gap]++;
+			_top = max(_top, _rows[e]);
+		}
+		for (var _draw_row = _top; _draw_row >= 0; _draw_row--)
+		for (var e = 0; e < ds_list_size(room_enemies); e++) {
+			if (_rows[e] != _draw_row) continue;
+			var _en = room_enemies[| e];
+			var _p = _en.intent.after_slot;
+			var _gap = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : min(_p, _last);
 			var _gx = combat_point_x(_gap);
-			var _row = _stack[_gap]; _stack[_gap]++;
+			var _row = _rows[e];
 			var _my = _ty - 40 - _row * 42;
 			var _grey = _en.dead || (_en.intent.move.move_name == "Stunned");
 			var _a = (_grey ? 0.35 : (_en.turn_done ? 0.55 : 1)) * _en.intent.alpha;
@@ -3930,4 +3942,58 @@ function ink_doodles_draw() {
 		draw_set_alpha(1);
 		draw_set_color(c_white);
 	}
+}
+
+/// @func ink_icon_button(_cx, _cy, _icon, _cost, _ok)
+/// @desc A round ink button with an icon, its cost on a small ink disc at its lower right: "reroll" (a die in a turning
+///       arrow) or "redraw" (a die between two swap arrows). Like ink_button: the pips it costs flicker on hover, faded
+///       when you can't afford it, its edge sloshes (wet_ink_circle). Returns { hover, click }.
+function ink_icon_button(_cx, _cy, _icon, _cost, _ok) {
+	var _hov = mouse_hovering(_cx, _cy, 44, 44, true, soSlotHover, noone, true, UI_LAYER.POPUP);
+	var _r = 20 * ((_hov && _ok) ? 1.1 : 1);
+	if (_ok) wet_ink_circle(_cx, _cy, _r + 2);
+	var _ink = global.color_intel;
+	draw_set_alpha(_ok ? 1 : 0.5);
+	draw_set_color(_ink);
+	draw_circle(_cx, _cy, _r + 2, false);
+	draw_set_color((_hov && _ok) ? global.ui_col.paper_hi : global.ui_col.paper);
+	draw_circle(_cx, _cy, _r, false);
+	// the icon, in ink
+	draw_set_color(_ink);
+	var _k = _r / 20;
+	if (_icon == "reroll") {
+		// a die, and an arrow turning round it
+		draw_roundrect_ext(_cx - 5 * _k, _cy - 5 * _k, _cx + 5 * _k, _cy + 5 * _k, 3, 3, false);
+		var _ar = 12 * _k, _a0 = 60, _a1 = 330;
+		for (var a = _a0; a < _a1; a += 15) draw_line_width(_cx + lengthdir_x(_ar, a), _cy + lengthdir_y(_ar, a), _cx + lengthdir_x(_ar, a + 15), _cy + lengthdir_y(_ar, a + 15), 2.5 * _k);
+		var _hx = _cx + lengthdir_x(_ar, _a1), _hy = _cy + lengthdir_y(_ar, _a1);
+		draw_triangle(_hx + lengthdir_x(5 * _k, _a1), _hy + lengthdir_y(5 * _k, _a1), _hx - lengthdir_x(5 * _k, _a1), _hy - lengthdir_y(5 * _k, _a1), _hx + lengthdir_x(7 * _k, _a1 + 90), _hy + lengthdir_y(7 * _k, _a1 + 90), false); // the head, pointing on round
+	} else {
+		// a die between two arrows going opposite ways (out for a new one)
+		draw_roundrect_ext(_cx - 5 * _k, _cy - 5 * _k, _cx + 5 * _k, _cy + 5 * _k, 3, 3, false);
+		draw_line_width(_cx - 12 * _k, _cy - 10 * _k, _cx + 9 * _k, _cy - 10 * _k, 2.5 * _k);
+		draw_triangle(_cx + 13 * _k, _cy - 10 * _k, _cx + 7 * _k, _cy - 14 * _k, _cx + 7 * _k, _cy - 6 * _k, false);
+		draw_line_width(_cx + 12 * _k, _cy + 10 * _k, _cx - 9 * _k, _cy + 10 * _k, 2.5 * _k);
+		draw_triangle(_cx - 13 * _k, _cy + 10 * _k, _cx - 7 * _k, _cy + 14 * _k, _cx - 7 * _k, _cy + 6 * _k, false);
+	}
+	// the cost
+	var _bx = _cx + _r * 0.72, _by = _cy + _r * 0.72;
+	draw_set_color(_ink);
+	draw_circle(_bx, _by, 9, false);
+	draw_set_font(ftDescriptions);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_color(global.text_intel);
+	draw_text_transformed(_bx, _by + 1, string(_cost), 0.8, 0.8, 0);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	if (_hov) {
+		oCombat.quill_over = true;
+		oCombat.ink_preview = _cost;
+	}
+	var _click = _hov && _ok && mouse_check_button_pressed(mb_left);
+	if (_hov && !_ok && mouse_check_button_pressed(mb_left)) throw_error("Not enough ink", "This costs " + string(_cost) + " ink.");
+	return { hover: _hov, click: _click };
 }

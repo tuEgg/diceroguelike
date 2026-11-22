@@ -2096,7 +2096,7 @@ function die_slosh(_die, _x, _y) {
 
 /// @func die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die)
 /// @desc An ink die's wet edge: an ink rim, rippling, bulging out behind as it moves (the ink sloshing), a few drops
-///       trailing when it's quick, and a shine. Drawn over the black outline, under the body.
+///       trailing when it's quick. Drawn over the black outline, under the body.
 function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
 	var _sl = die_slosh(_die, _x, _y);
 	var _sp = min(point_distance(0, 0, _sl.vx, _sl.vy), 40);
@@ -2146,12 +2146,6 @@ function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
 			draw_circle(_x + _dx * _dd - _dy * _wob, _y + _dy * _dd + _dx * _wob + _cyo, max(1.5, _r * (0.13 - d * 0.03)), false);
 		}
 	}
-	// the shine: a glint sliding along its top left edge
-	var _gi = floor((0.5 + 0.5 * sin(_t * 0.9 + _seed)) * (_m * 0.25)) + floor(_m * 0.55);
-	var _g = _ring[_gi mod _m];
-	draw_set_alpha(_alpha * 0.55);
-	draw_set_color(make_color_rgb(170, 184, 240));
-	draw_circle(lerp(_g[0], _cx, 0.08), lerp(_g[1], _cy, 0.08), max(1.2, _r * 0.07), false);
 	draw_set_alpha(1);
 	draw_set_color(c_white);
 }

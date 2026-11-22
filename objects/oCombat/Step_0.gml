@@ -249,20 +249,18 @@ switch (state) {
     // After player actions, handle enemy action once
     } else if (!enemies_turn_done) {
 		
-		if (!delayed_enemy_attack) {
-			delayed_enemy_attack = true;
-			action_timer = action_delay;
-		}
-		
+		// no extra wait here (the timeline): the rest act right after your last slot, as a move mid-queue does
+		delayed_enemy_attack = true;
+
 	    if (action_timer <= 0) {
-			
-			player_turn_done = true;
-			
-			var player_turn_end_data = {
-			};
-					
-			combat_trigger_effects("on_player_turn_end", player_turn_end_data);
-		
+
+			if (!player_turn_done) { // once, not once per enemy left
+				player_turn_done = true;
+				var player_turn_end_data = {
+				};
+				combat_trigger_effects("on_player_turn_end", player_turn_end_data);
+			}
+				
 			// the rest of the enemies (their point is your last slot or past it, or they waited): one at a time
 			for (var e = 0; e < ds_list_size(room_enemies); e++) {
 				var enemy = room_enemies[| e];
