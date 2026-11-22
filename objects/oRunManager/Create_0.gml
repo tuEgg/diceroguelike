@@ -113,7 +113,7 @@ global.COLOR_RULES = [
     { tag: "attack",		keyword: "attack",			type: "num_keyword" },
     { tag: "attack",		keyword: "ATK",				type: "num_keyword" },
     { tag: "intel",			keyword: "intel",			type: "num_keyword" },
-    { tag: "intel",			keyword: "insight",			type: "num_keyword" }, // "Insight" is what the player reads; the code still says intel
+    { tag: "intel",			keyword: "ink",			type: "num_keyword" }, // "Insight" is what the player reads; the code still says intel
     { tag: "followthrough",	keyword: "followthrough",	type: "num_keyword" },
     { tag: "multitype",		keyword: "multitype",		type: "num_keyword" },
     { tag: "coin",			keyword: "coin",			type: "num_keyword" },
@@ -175,19 +175,19 @@ show_consumables_chance = 30; // percentage chance to show consumables after any
 global.player_intel_data = ds_list_create();
 ds_list_add(global.player_intel_data, {
 	requirement: 0,
-	name: "Insight",
+	name: "Ink",
 	description: "Enemy intents show a range.",
 	index: 1,
 });
 ds_list_add(global.player_intel_data, {
 	requirement: 0,
-	name: "Insight",
+	name: "Ink",
 	description: "Enemy intents show exact numbers.",
 	index: 2,
 });
 global.intel_blotted = {
 	name: "Blotted",
-	description: "Below 0 insight, enemy intents are hidden.",
+	description: "Below 0 ink, enemy intents are hidden.",
 	index: 0,
 };
 

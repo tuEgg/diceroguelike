@@ -31,7 +31,40 @@
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
 
-Nothing waiting: v0.2.1 was approved on 2026-11-22 (see DONE).
+| 24: map click jump, ink view | B146, F188, F189, F190, F191, F192, F194, F195 | `feature/ink-view` (off `dev`, includes `fix/map-click-jump`) | **Not yet play-tested.** The map click jump; the ink view labelled, ink pips, inky black, what changed, one name: ink. |
+| 25: queue timeline | F193 | `feature/queue-timeline` (off `feature/ink-view`) | **Not yet play-tested.** Enemy moves act between your slots, shown on a track; the queue resets each turn; slots cost 2, 4, 6 pips; ink moves a move a slot for 4. |
+
+**Batch 25 test list (`feature/queue-timeline`, off `feature/ink-view`)**
+- F193 A track sits over the queue: numbers over your slots and the new-slot tile, nothing further. A move set past the tile shows at the tile, whose number reads "2+" (no long lines over the enemy). Each enemy has a letter in a coloured circle on its intent tag, and a marker with the same letter, icon and number riding the track at the gap after the slot where it acts. Two in one gap stack. Hover a marker: its move and "After your slot 2." / "After your last slot."
+- F193 End Turn: your slots act left to right and each enemy acts at its gap, between your slots. A marker past your last slot acts at the end. Block made before a hit stops it; a hit before your Block slot gets through.
+- F193 Kill or stun an enemy before its gap: it doesn't act and its marker greys. One you kill after it acted doesn't break the turn (watch for the next turn starting normally).
+- F193 Fixed timings: Mock, Peck, Coil, buffs and most debuffs come after slot 1; Mimic, big hits (Heavy Swing, Crushing Slam, Volley Fire...) and Rest come last; Peg-leg's Escaping after slot 2. Everything else is rolled 1-4 each turn.
+- F193 The queue resets every turn: next turn you're back to one slot (a slot a Sticky die is in stays). Slot 2 costs 2 pips, slot 3 4, slot 4 6; one die can build a slot if it's enough. Enemy block is gone at the end of each round.
+- F193 Ink view: an arrow either side of each marker on the track (4 ink each) moves it a slot earlier or later; "After your slot N." floats up. Hovering one flickers the 4 pips it costs. Earlier stops at slot 1, Later at "last" moves. Nothing extra under the intents any more.
+- Intent tags over enemies are their normal size again (the letter badge was shrinking the number).
+- d4s and d6s side by side sit level everywhere dice are drawn (hand, slots, bag, rewards): the triangle used to sit high. Check d4 pips are still centred in the triangle, and d10s too if any show.
+- Wet ink edge v3 (docs/mockups/wet-ink-edge.html): in the ink view the ink edge of everything you can afford sloshes, each on its own: Reroll and Redraw each have their own edge (no shared container round both), and so do Reveal, Rewrite, the track arrows and the ink edge round each die. The swell is about a third bigger than v2. Check it doesn't slow the game down.
+- Doodles: in the ink view, left-drag anywhere that isn't a button, a die, the inkwell or Done to draw in ink (thinner when you move fast). Each stroke fades out 6 s after you finish it; closing the log wipes them.
+- Dealing is quicker (a die every 0.1 s, a shorter tumble), and each die flies straight to its own spot in the row and lands on it: nothing shuffles along as the rest arrive. Same for dice taken back from a slot.
+- Ink view buttons are all round icons: over each die, Reroll (a die in a turning arrow) left and Redraw (a die between two arrows) right; under each intent, Reveal (an eye) and Rewrite (a quill). Point at a die or its buttons: a small mouse appears between the two, its left button lit for Reroll, right for Redraw; the tooltips say "Or left-click the die" / "Or right-click the die".
+- Ink costs are pips with the number in (like the pips under the inkwell), about 20% bigger, on every ink button and on the track's arrows, and always on top of the sloshing edge. The tooltip's cost tag uses a pip too, not the old eye/drop.
+- The ink buff under you (ink coming next turn) shows as a small inkwell, like the ink view's button.
+- Stacked markers on the track: the lower marker is drawn over the line coming down from the one above it.
+- No extra pause after your last slot: enemies left to act go straight away, as they do mid-queue. (Keepsakes on "your turn ends" fire once, not once per enemy left.)
+- Slowdown while drafting (quartermaster pick and the two pages) should be gone: the island mask on each draft card now only runs over the card, not the whole screen.
+- The discard bag sits a little further left.
+- Ink dice (pure ink, like the starter Ink die): an ink-blue rim over the black outline that swells and ripples all the time, out of the ink view too. When one moves the rim bulges out behind it; a fast move throws a couple of drops. No lighter dot running round the edge any more.
+- F193 Bind and Rot pick their slot when you end your turn, from the slots with dice (Rot's slot flashes green). During your turn no slot shows as chained or rotten, and you can play into any of them.
+
+**Batch 24 test list (`feature/ink-view`)**
+- B146 Click a stop on the map: the stop and its dotted courses stay put (they jumped down for a moment); the ship still sails to it and lands just below it.
+- F188 The ink view keeps its mode but every action is a labelled button: over each die in hand, "Reroll" and "Redraw" stacked, each with its cost (an ink drop and a number); under each enemy's intent, "Reveal" (if its number isn't shown) and "Rewrite" (if it can change its move). Click a button to do it; left/right-clicking a die still works too. A button you can't afford is faded and says "Not enough ink". End Turn reads "Done" while the log is open.
+- F189 Ink shows as pips under the inkwell, in and out of the log: two rows of 6, filled in ink; hover an ink button and the pips it would spend flicker. Below 0 (Blotted) it shows the red number.
+- F190 Ink is an inky black everywhere: ink dice (they were yellow), ink slots, the inkwell's ink, the ink view's edges and buttons. Ink numbers and words on dark backgrounds are a pale ink blue so they read; on paper they're near black. Things that only used the old yellow as a highlight (keepsake names when they fire, "Valley!", the armed keepsake ring, potion targets) stay gold. Check ink dice read on the felt (white pips on the dark die).
+- F191 What changed: a reroll floats "2 to 5" over the die, a redraw "Redrawn", a reveal "Exact: 7" over the intent, a rewrite "Old move to New move".
+- F194 Action glyphs on dice are off by default (Settings > Display > Action icons turns them on). Your saved setting is reset to off once.
+- F195 The hand is always one even row across the tray: dealt dice fly to its right end and the rest shift to make room; a die you drag and drop back slides into place. The ink view uses the same row.
+- F192 One name: insight is now ink in all the game's text (tooltips, dice, keepsakes, the bag filter "Ink", slot type "INK", the run summary). The starter die is called "Ink"; old saves still load it.
 
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
@@ -125,6 +158,8 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 **Juice**
 - F40 Individual Balatro-style trigger animations per die
 - F41 Room transitions, death animation, enemy sprites, particles for coins/potions/sacrifice
+- F188-F192 Ink view: labelled buttons, ink pips, inky black, what changed, one name (Jared, 2026-11-22). (Built, batch 24.)
+- F193 **The queue as a timeline** (Jared, 2026-11-22): enemy moves happen at a point in your queue ("after slot 2"), mixed into the left-to-right resolve; the queue fully resets each turn; new slots cost pips only (2, 4, 6...). Look: **option C** of docs/mockups/queue-timeline.html. Decisions below (DECISIONS, 2026-11-22). (Built, batch 25.)
 - F42 **Unique sprite per die** (Jared, 2026-11-19): every die gets its own sprite, keeping roughly the same silhouette per size with different textures and details. Part of the art pass (F50). **Until then (Jared, 2026-11-20: Invisible and Generic look the same in hand):** dice are drawn in code by `draw_die` (scDice) in hand, slots, cards and the bag, so a per-die `look` field read there could give each die a cheap tell: opacity (Invisible at 50%), a dashed or double edge, a texture tint, numerals instead of pips, or a small corner glyph. Worth doing for the handful that get confused first (Invisible, Surge, Deepdiver), not all 37. Options mocked up in `docs/mockups/dice-tells.html` (2026-11-20); Jared picked B+D: a rarity ring on every non-starter die, and signature looks for Invisible, Echo, Deepdiver and Surge (`die_look` in scDice; add more there). Built and approved, batch 21. Jared is drawing visuals for some dice himself.
 
 **Art direction (parked, Jared wants to discuss later)**
@@ -141,6 +176,8 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 ## 📌 DECISIONS
 
+- 2026-11-22 **The queue as a timeline (F193):** every enemy move happens after one of your slots, shown on a track over the queue (option C). A move after a slot you haven't built happens at the end. Block counts from the moment its slot resolves, so a hit before your Block slot gets through. An enemy killed or stunned before its point loses that move (its marker stays, greyed). Ink can move an enemy's move one slot earlier or later for 4. Where a move lands is rolled each turn, except moves that always come first (after slot 1) or last. The queue fully resets every turn: you start with one slot, new slots cost 2, 4, 6... pips (no dice minimum), and the dice that build a slot act in it that turn, then are discarded. Dice keep owning their action and number; colour still gates the action.
+- 2026-11-22 **Ink view:** keep the mode, label every action, ink as pips, ink is inky black, show what changed, call it ink everywhere.
 - 2026-11-21 **Map layout B+:** every page you draft brings a sea stop after its island; the buoy and the four-way strait go; one of the three offered pages always carries Calm water or the Shipwright; a harbour (rest or refit) before each boss. Sea pages (option D) stay an idea for later.
 - 2026-11-19 **Balance (Q11-Q14, after Molly's playtest):** start on 60 HP; every enemy attack hits about 20% harder from chapter 1 (`ENEMY_ATTACK_BOOST`). Sparing pays a third of the bounty, killing all of it. A chapter is 3 drafted spreads, then the boss. The strait no longer heals for free: Calm water (heal 30%) is always one of its stops. The intent reroll cost stays as it is for now.
 - 2026-11-15 **Action queue:** settled as "permanent dice eject on their second turn". Other ideas stay in the notes.

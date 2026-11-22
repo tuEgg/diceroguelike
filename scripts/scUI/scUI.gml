@@ -29,7 +29,9 @@ function ui_init() {
 	global.color_attack = make_color_rgb(179, 58, 34);
 	global.color_block  = make_color_rgb(111, 168, 232);
 	global.color_heal   = make_color_rgb(60, 154, 104);
-	global.color_intel  = make_color_rgb(242, 210, 74);
+	global.color_intel  = make_color_rgb(42, 46, 76);   // ink: inky black (Jared, 2026-11-22; was a yellow)
+	global.color_gold   = make_color_rgb(242, 210, 74); // the old yellow, now just a gold accent (keepsake names, popups)
+	global.text_intel   = make_color_rgb(172, 184, 234); // ink on dark surfaces (words, numbers), where black wouldn't show
 	// their text versions on dark surfaces (on paper, use the *_on_paper ones)
 	global.text_attack = make_color_rgb(226, 115, 95);
 	global.text_block  = make_color_rgb(143, 189, 240);
@@ -37,7 +39,7 @@ function ui_init() {
 	global.text_attack_on_paper = make_color_rgb(154, 46, 28);
 	global.text_block_on_paper  = make_color_rgb(31, 79, 143);
 	global.text_heal_on_paper   = make_color_rgb(44, 110, 74);
-	global.text_intel_on_paper  = make_color_rgb(110, 82, 10);
+	global.text_intel_on_paper  = make_color_rgb(30, 32, 56); // ink on paper: near black
 }
 
 /// @func ui_hash(_seed, _k)
@@ -324,7 +326,7 @@ function ui_text_on_paper(_col) {
 	if (_col == global.text_block || _col == global.color_block) return global.text_block_on_paper;
 	if (_col == global.text_heal || _col == global.color_heal || _col == c_lime) return global.text_heal_on_paper;
 	if (_col == global.text_attack || _col == global.color_attack || _col == c_red) return global.text_attack_on_paper;
-	if (_col == global.color_intel || _col == c_yellow) return global.text_intel_on_paper;
+	if (_col == global.color_intel || _col == global.text_intel || _col == c_yellow) return global.text_intel_on_paper;
 	if (_col == c_aqua || _col == c_teal) return make_color_rgb(18, 104, 104);
 	if (_col == c_orange) return make_color_rgb(150, 80, 12);
 	if (_col == c_ltgray || _col == c_silver || _col == c_gray) return global.ui_col.ink_soft;

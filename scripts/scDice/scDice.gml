@@ -105,9 +105,18 @@ function deal_single_die( _can_discard_this_turn = true) {
 	die_inst.can_discard = _can_discard_this_turn;
 
 	// rolled dice: it tumbles as it flies out of the bag, then lands on its roll (oDice Step)
-	if (room == rmCombat && die_has_faces(die_struct)) die_inst.roll_anim = 16;
+	if (room == rmCombat && die_has_faces(die_struct)) die_inst.roll_anim = 12;
 
     var target = generate_valid_targets(1, 100) [0];
+	// in a fight a dealt die flies to its own spot in the row as it will be once the whole deal is in (dice still to
+	// come counted), so it lands where it stays (combat_hand_row keeps the row)
+	if (room == rmCombat) {
+		var _in_hand = 0;
+		with (oDice) if (!still && !in_slot) _in_hand++;
+		var _coming = instance_exists(oCombat) ? max(0, oCombat.dice_to_deal - 1) : 0; // dice_to_deal counts this one until after
+		var _rp = combat_hand_row_pos(_in_hand - 1, _in_hand + _coming);
+		target = [_rp.x, _rp.y];
+	}
     die_inst.target_x = target[0];
     die_inst.target_y = target[1];
 
@@ -212,7 +221,7 @@ function generate_dice_bag() {
 	global.dice_d2_atk.keywords = ["Coin"];
 	global.dice_d2_blk = make_die_struct(1, 2,"BLK", "BLK", "", "Block.", "Coin. Blocks damage", "template");
 	global.dice_d2_blk.keywords = ["Coin"];
-	global.dice_d2_intel = make_die_struct(1, 2,"INTEL", "INTEL", "", "Insight.", "Coin. Provides insight", "template");
+	global.dice_d2_intel = make_die_struct(1, 2,"INTEL", "INTEL", "", "Ink.", "Coin. Provides ink", "template");
 	global.dice_d2_intel.keywords = ["Coin"];
 	global.dice_d2_heal = make_die_struct(1, 2,"HEAL", "HEAL", "", "Heal.", "Coin. Heals", "template");
 	global.dice_d2_heal.keywords = ["Coin"];
@@ -229,7 +238,7 @@ function generate_dice_bag() {
 	ds_list_add(global.starter_dice_list, clone_die(global.dice_d6_blk, ""));
 	global.dice_d4_blk = make_die_struct(1, 4,"BLK", "BLK", "", "Block", "Blocks damage", "starter");
 	ds_list_add(global.starter_dice_list, clone_die(global.dice_d4_blk, ""));
-	global.dice_d4_intel = make_die_struct(1, 4,"INTEL", "INTEL", "", "Insight", "Provides insight", "starter");
+	global.dice_d4_intel = make_die_struct(1, 4,"INTEL", "INTEL", "", "Ink", "Provides ink", "starter");
 	ds_list_add(global.starter_dice_list, clone_die(global.dice_d4_intel, ""));
 	global.dice_d4_heal = make_die_struct(1, 4,"HEAL", "HEAL", "", "Heal", "Heals", "starter");
 	
@@ -667,7 +676,7 @@ function generate_dice_bag() {
 	// Deflect Die
 	global.die_deflect = make_die_struct(
 	    1, 6, "BLK", "BLK INTEL", "", "Deflect Die",
-	    "Multitype. BLK or INSIGHT.",
+	    "Multitype. BLK or INK.",
 		"uncommon",
 		70,
 		[]
@@ -785,7 +794,7 @@ function generate_dice_bag() {
 	
 	global.die_lookout = make_die_struct(
 	    1, 6, "INTEL", "INTEL", "", "Lookout die",
-	    "Stowaway: Gain 3 insight next turn.",
+	    "Stowaway: Gain 3 ink next turn.",
 		"common",
 		40,
 	    [
@@ -794,7 +803,7 @@ function generate_dice_bag() {
 	            modify: function(_context) {
 					var amount = 3;
 	                apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
-					var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, 0);
+					var num = spawn_floating_number("player", amount, -1, global.text_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
 	            }
@@ -841,7 +850,7 @@ function generate_dice_bag() {
 	
 	global.die_guerrilla_coin = make_die_struct(
 	    1, 2, "INTEL", "INTEL", "", "Guerrilla Coin",
-	    "Coin. When it builds a slot: deal half your insight as damage to a random enemy.",
+	    "Coin. When it builds a slot: deal half your ink as damage to a random enemy.",
 		"common",
 		40,
 	    [
@@ -862,7 +871,7 @@ function generate_dice_bag() {
 	
 	global.die_radar = make_die_struct(
 	    1, 6, "INTEL", "INTEL", "", "Radar die",
-	    "When it builds a slot: gain 3 insight next turn and the turn after.",
+	    "When it builds a slot: gain 3 ink next turn and the turn after.",
 		"common",
 		40,
 	    [
@@ -871,7 +880,7 @@ function generate_dice_bag() {
 	            modify: function(_context) {
 					var amount = 3;
 	                apply_buff("player", oRunManager.buff_intel_lasting, 2, amount, oRunManager.buff_intel_lasting.remove_next_turn, { source: "player", index: -1 });
-					var num = spawn_floating_number("player", amount, -1, global.color_intel, 1, -1, 0);
+					var num = spawn_floating_number("player", amount, -1, global.text_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
 	            }
@@ -952,7 +961,7 @@ function generate_dice_bag() {
 	
 	global.die_ninja = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Ninja die",
-	    "Followthrough: +2 if the slot before is insight.",
+	    "Followthrough: +2 if the slot before is ink.",
 		"common",
 		40,
 	    [
@@ -991,7 +1000,7 @@ function generate_dice_bag() {
 	
 	global.die_assassin = make_die_struct(
 	    1, 4, "ATK", "ATK INTEL", "", "Assassin Die",
-	    "Multitype. ATK or INSIGHT. +1 minimum roll per 3 insight.",
+	    "Multitype. ATK or INK. +1 minimum roll per 3 ink.",
 		"rare",
 		70,
 	    [
@@ -1932,7 +1941,7 @@ function die_size_changed(_die) {
 /// @func action_type_label(_type)
 /// @desc An action type as the player reads it. Intel is called Insight on screen; the code keeps "INTEL".
 function action_type_label(_type) {
-	return string_replace_all(string(_type), "INTEL", "INSIGHT");
+	return string_replace_all(string(_type), "INTEL", "INK");
 }
 
 /// @func core_preview_die()
@@ -1968,7 +1977,21 @@ function die_shape_points(_sides, _r) {
 		var _a = _start + i * 360 / _n;
 		array_push(_pts, [lengthdir_x(_rr, -_a), lengthdir_y(_rr, -_a)]);
 	}
+	// centred on its own box, so a d4 (point up, flat base) sits level with a d6 beside it (Jared, 2026-11-22: d6s sat lower)
+	var _off = die_shape_yoff(_sides, _r);
+	for (var i = 0; i < _n; i++) _pts[i][1] += _off;
 	return _pts;
+}
+
+/// @func die_shape_yoff(_sides, _r)
+/// @desc How far down die_shape_points moves a shape to centre its box on the die's y. The shape's own centre (where
+///       its pips go) moves with it: a d4's is 0.3 of _r below the die's y.
+function die_shape_yoff(_sides, _r) {
+	switch (_sides) {
+		case 4:  return _r * 1.18 * 0.25;            // a triangle point up: from -1.18r to +0.59r
+		case 10: return _r * (1 - dcos(36)) / 2;     // a pentagon point up
+		default: return 0;                           // squares, diamonds, hexagons: already centred
+	}
 }
 
 /// @func draw_die_shape(_x, _y, _r, _sides, _col, _angle, _alpha)
@@ -2041,6 +2064,94 @@ function die_look(_d) {
 	return "";
 }
 
+/// @func die_style(_d)
+/// @desc A die's style, drawn round it by draw_die: "ink" for ink dice (Jared, 2026-11-22: all dice get one some day; ink
+///       first), "" for the rest.
+function die_style(_d) {
+	if (!is_struct(_d) || !variable_struct_exists(_d, "possible_type")) return "";
+	if (_d.possible_type == "INTEL") return "ink";
+	return "";
+}
+
+/// @func die_slosh(_die, _x, _y)
+/// @desc How an ink die's ink lags as it moves: { vx, vy }, smoothed, per die (by uid) in global.die_slosh. A die that
+///       jumps (not drawn for a while, or a big leap) starts still.
+function die_slosh(_die, _x, _y) {
+	if (!variable_global_exists("die_slosh")) global.die_slosh = {};
+	if (!is_struct(_die) || !variable_struct_exists(_die, "uid")) return { vx: 0, vy: 0 };
+	var _k = string(_die.uid);
+	var _s = global.die_slosh[$ _k];
+	var _t = current_time;
+	if (_s == undefined || _t - _s.t > 200 || point_distance(_s.x, _s.y, _x, _y) > 300) {
+		_s = { x: _x, y: _y, vx: 0, vy: 0, t: _t };
+		global.die_slosh[$ _k] = _s;
+		return _s;
+	}
+	if (_t - _s.t >= 8) { // once a frame, however many times it's drawn
+		var _f = 16 / max(1, _t - _s.t); // per 60fps frame
+		_s.vx = lerp(_s.vx, (_x - _s.x) * _f, 0.25);
+		_s.vy = lerp(_s.vy, (_y - _s.y) * _f, 0.25);
+		_s.x = _x; _s.y = _y; _s.t = _t;
+	}
+	return _s;
+}
+
+/// @func die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die)
+/// @desc An ink die's wet edge: an ink rim, rippling, bulging out behind as it moves (the ink sloshing), a few drops
+///       trailing when it's quick. Drawn over the black outline, under the body.
+function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
+	var _sl = die_slosh(_die, _x, _y);
+	var _sp = min(point_distance(0, 0, _sl.vx, _sl.vy), 40);
+	var _dx = (_sp > 0.01) ? -_sl.vx / _sp : 0, _dy = (_sp > 0.01) ? -_sl.vy / _sp : 0; // behind it
+	var _t = current_time / 1000;
+	var _seed = is_struct(_die) && variable_struct_exists(_die, "uid") ? _die.uid * 1.7 : 0;
+	// the outline, many points round it, each pushed out by a ripple and by the slosh
+	var _base = [];
+	if (_sides <= 2) { for (var i = 0; i < 24; i++) array_push(_base, [lengthdir_x(_r * 1.1, i * 15), lengthdir_y(_r * 1.1, i * 15)]); }
+	else {
+		var _pts = die_shape_points(_sides, _r * 1.12), _n = array_length(_pts);
+		for (var i = 0; i < _n; i++) {
+			var _p = _pts[i], _q = _pts[(i + 1) mod _n];
+			for (var k = 0; k < 6; k++) array_push(_base, [lerp(_p[0], _q[0], k / 6), lerp(_p[1], _q[1], k / 6)]);
+		}
+	}
+	var _cyo = die_shape_yoff(_sides, _r);
+	var _m = array_length(_base);
+	var _ring = array_create(_m);
+	for (var i = 0; i < _m; i++) {
+		var _px = _base[i][0], _py = _base[i][1];
+		var _len = max(0.001, point_distance(0, _cyo, _px, _py));
+		var _nx = _px / _len, _ny = (_py - _cyo) / _len;
+		var _rip = (sin(_t * 2.6 + i * 0.9 + _seed) * 0.6 + sin(_t * 4.1 - i * 0.5 + _seed) * 0.4) * _r * 0.06; // a slow swell round it
+		var _lag = max(0, _nx * _dx + _ny * _dy) * _sp * _r * 0.012; // the side away from where it's going
+		var _push = _r * 0.03 + _rip + _lag; // hugs its own edge (Jared: not a border)
+		var _ox = _px + _nx * _push, _oy = _py + _ny * _push;
+		_ring[i] = [die_rot_x(_x, _ox, _oy, _angle), die_rot_y(_y, _ox, _oy, _angle)];
+	}
+	var _cx = die_rot_x(_x, 0, _cyo, _angle), _cy = die_rot_y(_y, 0, _cyo, _angle);
+	draw_set_alpha(_alpha);
+	draw_set_color(make_color_rgb(62, 70, 124)); // ink, lit a little: it shows against the black outline
+	draw_primitive_begin(pr_trianglelist); // a list, not a fan: the web build is fussy about fans
+	for (var i = 0; i < _m; i++) {
+		var _q = _ring[(i + 1) mod _m];
+		draw_vertex(_cx, _cy);
+		draw_vertex(_ring[i][0], _ring[i][1]);
+		draw_vertex(_q[0], _q[1]);
+	}
+	draw_primitive_end();
+	// drops thrown off behind it when it's quick
+	if (_sp > 9) {
+		var _drops = min(3, floor(_sp / 6));
+		for (var d = 1; d <= _drops; d++) {
+			var _dd = _r * (1.15 + d * 0.28);
+			var _wob = sin(_t * 6 + d * 2.1 + _seed) * _r * 0.12;
+			draw_circle(_x + _dx * _dd - _dy * _wob, _y + _dy * _dd + _dx * _wob + _cyo, max(1.5, _r * (0.13 - d * 0.03)), false);
+		}
+	}
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
 /// @func die_rot_x(_x, _px, _py, _angle) / die_rot_y
 /// @desc A point on a die (offset _px, _py from its centre) turned by its angle, as draw_die turns its pips.
 function die_rot_x(_x, _px, _py, _angle) { return _x + _px * dcos(_angle) + _py * dsin(_angle); }
@@ -2070,6 +2181,8 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1, _die 
 		draw_die_shape(_x, _y, _r * 1.22, _sides, rarity_colour(_die.rarity), _angle, _a0);
 	}
 	draw_die_shape(_x, _y, _r * 1.07, _sides, make_color_rgb(20, 20, 26), _angle, (_look == "ghost") ? _a0 * 0.35 : _alpha);
+	// its style (die_style): over the outline, under the body, so it shows. Ink sloshes.
+	if (die_style(_die) == "ink") die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die);
 	draw_die_shape(_x, _y, _r, _sides, colours_merge(_col, c_black, 0.18), _angle, _alpha);
 	draw_die_shape(_x, _y - _r * 0.04, _r * 0.86, _sides, _col, _angle, _alpha);
 	if (_look != "") die_look_draw(_look, _x, _y, _r, _sides, _col, _angle, _a0);
@@ -2085,9 +2198,9 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1, _die 
 	var _spread = _r * 0.42, _cy = 0;
 	switch (_sides) {
 		case 2:  _spread = _r * 0.36; break;
-		case 4:  _spread = _r * 0.27; _cy = _r * 0.02; break; // the triangle's centre (its centroid)
+		case 4:  _spread = _r * 0.27; _cy = _r * 0.02 + die_shape_yoff(4, _r); break; // the triangle's centre (its centroid)
 		case 8:  _spread = _r * 0.34; break;
-		case 10: _spread = _r * 0.38; break;
+		case 10: _spread = _r * 0.38; _cy = die_shape_yoff(10, _r); break;
 	}
 	var _pips = die_pip_layout(_face);
 	if (array_length(_pips) > 0) {
@@ -2118,7 +2231,7 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1, _die 
 ///       circle (half the radius for a d4's triangle) so they fit every size.
 function die_look_draw(_look, _x, _y, _r, _sides, _col, _angle, _alpha) {
 	var _in = (_sides == 4) ? _r * 0.48 : _r * 0.72; // the room inside the shape
-	var _cy = (_sides == 4) ? _r * 0.02 : 0;
+	var _cy = ((_sides == 4) ? _r * 0.02 : 0) + die_shape_yoff(_sides, _r);
 	switch (_look) {
 		case "ghost":
 			// a dashed pale edge round it

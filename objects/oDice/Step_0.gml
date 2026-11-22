@@ -6,15 +6,16 @@ if (is_struct(struct)) {
 	possible_type = struct.possible_type;
 }
 
-if (!still) {
-	if distance_to_point(target_x, target_y) < 150 && !has_rolled {
-		speed = lerp(speed, 0, 0.15);
-		if abs(speed) < 1.0 {
-			has_rolled = true;
-			target_x = x;
-			target_y = y;
-			speed = 0;
-		}
+if (!still && !has_rolled && speed > 0) {
+	// flying in: steer at its spot, ease off near it, and land on it exactly (Jared, 2026-11-22: snap to their spot)
+	direction = point_direction(x, y, target_x, target_y);
+	var _left = distance_to_point(target_x, target_y);
+	if (_left < 150) speed = max(10, lerp(speed, 0, 0.12));
+	if (_left <= speed) {
+		x = target_x;
+		y = target_y;
+		speed = 0;
+		has_rolled = true;
 	}
 }
 

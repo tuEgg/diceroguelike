@@ -297,7 +297,7 @@ function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x,
 					case "block":												col = global.text_block;		break; // readable on dark surfaces
 					case "heal":												col = global.text_heal;			break;
 					case "attack":												col = global.text_attack;		break;
-					case "intel":												col = global.color_intel;		break;
+					case "intel":												col = global.text_intel;		break; // ink, readable on dark
 					case "subtext":												col = c_gray;					break;
 					default:													col = _fill_col;
 				}
@@ -428,7 +428,7 @@ function trigger_bounty(_event, _data) {
 /// @desc _cost (0: none) and _cost_kind ("insight" or "gold"): what doing this spends, shown as a "-3" badge on the
 ///       tooltip's top right corner (yellow for insight, gold for gold).
 ///       _hint: { button: "left"/"right", text, col }, a small mouse icon and words sitting just above the box's top right.
-function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dice = undefined, _cost = 0, _cost_kind = "insight", _hint = undefined) {
+function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dice = undefined, _cost = 0, _cost_kind = "ink", _hint = undefined) {
     if (!global.tooltip_active) {
         global.tooltip_active = true;
         var _caller_font = draw_get_font(); // measuring below sets fonts; the caller gets theirs back (B82)
@@ -776,7 +776,7 @@ function draw_die_tip(_tt) {
 /// @desc What a tooltip's action spends, as a small tag centred on its top right corner: "-3" in yellow with an eye-ish
 ///       dot for insight, or "-50" in gold with a coin for gold.
 function tooltip_cost_badge(_x, _y, _amount, _kind) {
-	var _col = (_kind == "gold") ? make_color_rgb(240, 190, 60) : global.color_intel;
+	var _col = (_kind == "gold") ? make_color_rgb(240, 190, 60) : global.text_intel;
 	var _txt = "-" + string(_amount);
 	draw_set_font(ftDefault);
 	var _w = string_width(_txt) + 40, _h = 30;
@@ -787,13 +787,13 @@ function tooltip_cost_badge(_x, _y, _amount, _kind) {
 	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 12, 12, false);
 	draw_set_color(_col);
 	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 12, 12, true);
-	// the currency: a coin, or a drop of insight ink
+	// the currency: a coin, or an ink pip (as under the inkwell)
 	var _ix = _x1 + 15, _iy = _y1 + _h / 2;
 	draw_set_color(c_black);
 	draw_circle(_ix, _iy, 8, false);
 	draw_set_color(_col);
 	draw_circle(_ix, _iy, 6, false);
-	if (_kind != "gold") { draw_set_color(c_black); draw_circle(_ix, _iy, 2.5, false); } // an eye's pupil
+	if (_kind != "gold") { draw_set_color(global.color_intel); draw_circle(_ix, _iy, 4.5, false); } // the pip's ink
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
 	draw_outline_text(_txt, c_black, _col, 2, _ix + 12, _iy, 1, 1, 0);
@@ -911,7 +911,7 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     draw_set_font(_compact ? ftDescriptions : ftDefault);
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
-	draw_outline_text(_name, c_black, _compact ? global.color_intel : c_white, 2, content_x, yy + padding, 1, 1, 0);
+	draw_outline_text(_name, c_black, _compact ? global.color_gold : c_white, 2, content_x, yy + padding, 1, 1, 0);
     draw_set_font(ftDescriptions);
     var _py = yy + padding + name_h + 2;
     for (var p = 0; p < array_length(_paras); p++) {
@@ -1412,10 +1412,10 @@ function get_tool_by_name(_name) {
 }
 
 function get_die_by_name(_name) {
-	// dice renamed when Intel became Insight (briefly Ink); saves from before still use the old names
+	// dice renamed: Intel, then Insight, now Ink (2026-11-22); saves from before still use the old names
 	switch (_name) {
-		case "Intel": case "Ink": _name = "Insight"; break;
-		case "Intel.": case "Ink.": _name = "Insight."; break;
+		case "Intel": case "Insight": _name = "Ink"; break;
+		case "Intel.": case "Insight.": _name = "Ink."; break;
 		case "Inteli Die": _name = "Inkwell Die"; break;
 	}
 
@@ -2259,7 +2259,7 @@ function bag_controls_draw(_list, _pad) {
 	if (!ds_safe_exists(_list, ds_type_list)) return;
 	var _gw = display_get_gui_width();
 	var _y = _pad - 34; // the title row, above the panel
-	var _types = [["All", "All"], ["ATK", "Attack"], ["BLK", "Block"], ["HEAL", "Heal"], ["INTEL", "Insight"], ["None", "Generic"]];
+	var _types = [["All", "All"], ["ATK", "Attack"], ["BLK", "Block"], ["HEAL", "Heal"], ["INTEL", "Ink"], ["None", "Generic"]];
 	var _sorts = ["Bag order", "Type", "Size", "Rarity", "Name"];
 	var _w = 118, _h = 40, _gap = 8;
 	// right to left: the filters, then Sort
@@ -2311,7 +2311,7 @@ function bag_type_label(_possible_type) {
 			case "ATK": _w = "Attack"; break;
 			case "BLK": _w = "Block"; break;
 			case "HEAL": _w = "Heal"; break;
-			case "INTEL": _w = "Insight"; break;
+			case "INTEL": _w = "Ink"; break;
 			case "All": _w = "Any"; break;
 			case "None": _w = "Generic"; break;
 		}

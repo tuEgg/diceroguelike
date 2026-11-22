@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wet ink edge</title>
+<style>
+:root { --bg: #15171d; --text: #e2d4b0; --muted: #b9ad92; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 Georgia, serif; }
+main { max-width: 980px; margin: 0 auto; padding: 24px 16px; }
+canvas { width: 100%; height: auto; display: block; border-radius: 10px; }
+.row { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; margin-top: 12px; }
+label { color: var(--muted); display: flex; gap: 8px; align-items: center; }
+button { font: inherit; padding: 6px 14px; border-radius: 6px; border: 2px solid #2A1D12; background: #F1E4C4; color: #2A1D12; cursor: pointer; }
+p { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+	<h1 style="font-size:22px;margin:0 0 6px">Wet ink edge (shader mockup)</h1>
+	<p>v3: each button and arrow sloshes on its own (Reroll and Redraw keep separate edges), and the swell is about a third bigger. This is the game's shader (shaders/shWetInk) running on a mask of the buttons and arrows.</p>
+	<canvas id="c" width="960" height="540"></canvas>
+	<div class="row">
+		<button id="toggle">Edge: on</button>
+		<label>Reach <input id="reach" type="range" min="2" max="12" value="7"></label>
+	</div>
+	<p id="err" style="color:#e08a7a"></p>
+</main>
+<script>
+const W = 960, H = 540;
+const scene = document.createElement('canvas'); scene.width = W; scene.height = H;
+const mask = document.createElement('canvas'); mask.width = W; mask.height = H;
+const S = scene.getContext('2d'), M = mask.getContext('2d');
+
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+const INK = '#2a2e4c', PAPER = '#e7d6b0', PAPER_HI = '#f1e4c4', DARK = '#2a1d12';
+
+// the parchment page (a stand-in for the ink view's look)
+S.fillStyle = PAPER; S.fillRect(0, 0, W, H);
+for (let i = 0; i < 9000; i++) { S.fillStyle = `rgba(80,60,30,${Math.random() * 0.06})`; S.fillRect(Math.random() * W, Math.random() * H, 2, 2); }
+S.strokeStyle = 'rgba(42,29,18,0.18)'; S.lineWidth = 1;
+for (let y = 0; y < H; y += 9) { S.beginPath(); for (let x = 0; x <= W; x += 20) S.lineTo(x, y + Math.sin(x * 0.02 + y) * 2); S.stroke(); }
+// the horizon lines of the inked scene
+S.strokeStyle = 'rgba(42,29,18,0.7)'; S.lineWidth = 2;
+S.beginPath(); for (let x = 0; x <= W; x += 10) S.lineTo(x, 300 + Math.sin(x * 0.006) * 14); S.stroke();
+S.beginPath(); S.moveTo(0, 400); S.lineTo(W, 400); S.stroke();
+
+// slots (kept in colour by the ink view, not ink things)
+function slot(x, title, col, num) {
+	S.fillStyle = '#6b5340'; rr(S, x - 8, 130, 176, 220, 8); S.fill();
+	S.fillStyle = PAPER_HI; rr(S, x, 168, 160, 150, 6); S.fill();
+	S.fillStyle = col; S.fillRect(x + 4, 172, 152, 32);
+	S.fillStyle = '#fff'; S.font = 'bold 20px Georgia'; S.textAlign = 'left'; S.fillText(title, x + 14, 195);
+	S.fillStyle = DARK; S.font = 'bold 54px Georgia'; S.textAlign = 'center'; S.fillText(num, x + 80, 285);
+}
+slot(150, 'Twin Strike', '#b8412f', '6');
+slot(340, 'Sleuth', '#2a2e4c', '6');
+// the track
+S.strokeStyle = PAPER_HI; S.lineWidth = 4; S.beginPath(); S.moveTo(140, 110); S.lineTo(560, 110); S.stroke();
+S.fillStyle = DARK; S.font = 'bold 18px Georgia'; S.textAlign = 'center'; S.fillText('1', 230, 100); S.fillText('2', 420, 100); S.fillText('3+', 610, 100);
+
+// ink things: drawn into the scene, and their shapes into the mask
+let chan = 0; const CH = ['#f00', '#0f0', '#00f'];
+M.globalCompositeOperation = 'lighter';
+function both(fn) { fn(S, false); fn(M, CH[chan++ % 3]); }
+function pill(cx, cy, label, cost) {
+	both((c, m) => {
+		c.font = '18px Georgia'; const w = Math.max(100, c.measureText(label).width + 62), h = 32;
+		c.fillStyle = m ? m : INK; rr(c, cx - w / 2 - 2, cy - h / 2 - 2, w + 4, h + 4, 18); c.fill();
+		if (m) return;
+		c.fillStyle = PAPER; rr(c, cx - w / 2, cy - h / 2, w, h, 16); c.fill();
+		c.fillStyle = INK; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(label, cx - w / 2 + 12, cy + 1);
+		c.textAlign = 'right'; c.fillText(String(cost), cx + w / 2 - 12, cy + 1);
+		const dx = cx + w / 2 - 34; c.beginPath(); c.arc(dx, cy + 3, 5, 0, 7); c.fill(); c.beginPath(); c.moveTo(dx - 4.5, cy + 1); c.lineTo(dx + 4.5, cy + 1); c.lineTo(dx, cy - 8); c.fill();
+		c.textBaseline = 'alphabetic';
+	});
+}
+function arrow(cx, cy, dir) {
+	both((c, m) => {
+		c.fillStyle = m ? m : INK; c.beginPath(); c.arc(cx, cy, 14, 0, 7); c.fill();
+		if (m) return;
+		c.fillStyle = PAPER; c.beginPath(); c.moveTo(cx + dir * 7, cy); c.lineTo(cx - dir * 5, cy - 8); c.lineTo(cx - dir * 5, cy + 8); c.fill();
+	});
+}
+function die(cx, cy, col) {
+	S.fillStyle = 'rgba(0,0,0,0.3)'; S.beginPath(); S.moveTo(cx + 3, cy - 38); S.lineTo(cx + 42, cy + 30); S.lineTo(cx - 36, cy + 30); S.fill();
+	S.fillStyle = '#14141a'; S.beginPath(); S.moveTo(cx, cy - 40); S.lineTo(cx + 40, cy + 26); S.lineTo(cx - 40, cy + 26); S.fill();
+	S.fillStyle = col; S.beginPath(); S.moveTo(cx, cy - 34); S.lineTo(cx + 34, cy + 22); S.lineTo(cx - 34, cy + 22); S.fill();
+	S.fillStyle = '#fff'; S.beginPath(); S.arc(cx, cy + 4, 6, 0, 7); S.fill();
+}
+// the marker on the track, with its arrows
+S.strokeStyle = '#d9534f'; S.lineWidth = 3; S.beginPath(); S.moveTo(515, 86); S.lineTo(515, 128); S.stroke();
+S.fillStyle = '#d9534f'; rr(S, 462, 46, 106, 40, 12); S.fill(); S.fillStyle = '#2a201a'; rr(S, 465, 49, 100, 34, 10); S.fill();
+S.fillStyle = '#d9534f'; S.beginPath(); S.arc(481, 66, 10, 0, 7); S.fill(); S.fillStyle = '#fff'; S.font = 'bold 14px Georgia'; S.textAlign = 'center'; S.fillText('A', 481, 71);
+S.fillStyle = '#5b9bd5'; rr(S, 497, 56, 14, 20, 4); S.fill(); S.fillStyle = PAPER_HI; S.font = '17px Georgia'; S.fillText('5-8', 540, 72);
+arrow(442, 66, -1); arrow(588, 66, 1);
+// the enemy's tag and its buttons
+S.fillStyle = PAPER_HI; rr(S, 760, 150, 140, 80, 6); S.fill(); S.fillStyle = '#5b9bd5'; rr(S, 790, 170, 30, 40, 6); S.fill(); S.fillStyle = DARK; S.font = '18px Georgia'; S.fillText('5-8', 850, 196);
+S.fillStyle = '#d9534f'; S.beginPath(); S.arc(760, 150, 12, 0, 7); S.fill(); S.fillStyle = '#fff'; S.font = 'bold 14px Georgia'; S.fillText('A', 760, 155);
+pill(770, 262, 'Reveal', 2); pill(888, 262, 'Rewrite', 6);
+// the hand
+die(330, 470, '#2a2e4c'); die(480, 470, '#5b9bd5');
+pill(330, 370, 'Reroll', 3); pill(330, 406, 'Redraw', 3);
+pill(480, 370, 'Reroll', 3); pill(480, 406, 'Redraw', 3);
+// the inkwell
+((c, m) => {
+	c.fillStyle = m ? m : INK; rr(c, 50, 200, 56, 48, 8); c.fill(); rr(c, 64, 186, 28, 18, 4); c.fill();
+	if (!m) { c.fillStyle = 'rgba(255,255,255,0.25)'; c.fillRect(58, 210, 8, 28); }
+})(S, false);
+
+// ---- the shader ----
+const VS = `attribute vec2 p; varying vec2 v_vTexcoord; void main(){ v_vTexcoord = p * 0.5 + 0.5; v_vTexcoord.y = 1.0 - v_vTexcoord.y; gl_Position = vec4(p, 0.0, 1.0); }`;
+// shWetInk: the frame, with ink bleeding out round every shape in u_mask
+const FS = `precision mediump float;
+uniform sampler2D gm_BaseTexture; // the frame
+uniform sampler2D u_mask;
+uniform float u_on;
+// The ink view's wet edge (Jared, 2026-11-22: the edge itself sloshing like liquid in a container, each button on its
+// own): the ink edge of everything you can spend ink on swells out and back in a slow travelling wave, with a quicker
+// ripple and a glint on top. Drawn over the view from oCombat.wet_surf, a mask that wet_ink_draw fills from the shapes
+// collected this frame, each in red, green or blue in turn so neighbours (Reroll over Redraw) keep separate edges.
+varying vec2 v_vTexcoord;
+
+uniform vec2 u_texel;     // 1 / the mask's size
+uniform float u_time;     // seconds, kept small
+uniform float u_reach;    // how far the edge moves, in pixels
+uniform vec3 u_col;       // the ink (global.color_intel)
+
+float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+float noise(vec2 p) {
+	vec2 i = floor(p), f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+vec3 mm(vec2 uv) { return texture2D(u_mask, uv).rgb; }
+// per shape channel: 0 well outside, 1 well inside, 0.5 on the edge (the mask blurred over u_reach)
+vec3 field(vec2 uv) {
+	vec3 s = mm(uv) * 2.0;
+	float w = 2.0;
+	for (int i = 0; i < 8; i++) {
+		float a = float(i) * 0.7854 + 0.39;
+		vec2 d = vec2(cos(a), sin(a)) * u_reach * u_texel;
+		s += mm(uv + d) + mm(uv + d * 0.5) * 1.5;
+		w += 2.5;
+	}
+	return s / w;
+}
+// the band of ink round each shape's moving edge
+vec3 band(vec3 f, float th) { return smoothstep(vec3(th - 0.05), vec3(th + 0.05), f) * (1.0 - smoothstep(vec3(0.7), vec3(0.8), f)); }
+
+vec4 wet() {
+	vec2 uv = v_vTexcoord;
+	vec3 f = field(uv);
+	if (max(f.r, max(f.g, f.b)) <= 0.002) { return vec4(0.0); } // away from every shape
+	vec2 px = uv / u_texel;
+	float t = u_time;
+	// the slosh: a slow swell running round the edges, a quicker ripple on it
+	float swell = sin(px.x * 0.05 + px.y * 0.03 + t * 2.1) * 0.6 + sin(px.x * 0.11 - px.y * 0.07 - t * 3.3) * 0.25;
+	float ripple = noise(px / 7.0 + vec2(t * 0.9, -t * 0.6)) - 0.5;
+	float th = 0.5 - 0.52 * (swell * 0.7 + ripple * 0.6); // where the ink's edge is now: past the shape when the swell's up
+	vec3 ink = band(f, th);
+	// inside one shape, its neighbours' edges don't reach in
+	vec3 raw = mm(uv);
+	ink *= 1.0 - step(0.5, vec3(max(raw.g, raw.b), max(raw.r, raw.b), max(raw.r, raw.g)));
+	float k = max(ink.r, max(ink.g, ink.b));
+	if (k <= 0.0) { return vec4(0.0); }
+	// a glint where the liquid's surface faces up and left (on the shape whose edge this is)
+	vec3 sel = step(vec3(k), ink);
+	float fc = dot(f, sel) / max(1.0, dot(sel, vec3(1.0)));
+	float gx = dot(field(uv + vec2(u_texel.x, 0.0)), sel) / max(1.0, dot(sel, vec3(1.0))) - fc;
+	float gy = dot(field(uv + vec2(0.0, u_texel.y)), sel) / max(1.0, dot(sel, vec3(1.0))) - fc;
+	float lit = clamp(dot(normalize(vec2(gx, gy) + 1e-5), normalize(vec2(0.6, 0.8))), 0.0, 1.0);
+	vec3 col = u_col + vec3(0.35, 0.38, 0.5) * pow(lit, 6.0) * (0.6 + 0.4 * sin(t * 1.3 + px.x * 0.02));
+	return vec4(col, k);
+}
+
+void main() {
+	vec4 base = texture2D(gm_BaseTexture, v_vTexcoord);
+	vec4 w = (u_on > 0.5) ? wet() : vec4(0.0);
+	gl_FragColor = vec4(mix(base.rgb, w.rgb, w.a), 1.0);
+}`;
+const c = document.getElementById('c');
+const gl = c.getContext('webgl');
+function sh(t, s) { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; }
+try {
+	const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(pr); gl.useProgram(pr);
+	const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+	const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+	function tex(unit, src) { const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); }
+	tex(0, scene); tex(1, mask);
+	const U = n => gl.getUniformLocation(pr, n);
+	gl.uniform1i(U('gm_BaseTexture'), 0); gl.uniform1i(U('u_mask'), 1); gl.uniform2f(U('u_texel'), 1 / W, 1 / H); gl.uniform3f(U('u_col'), 42 / 255, 46 / 255, 76 / 255);
+	let on = 1;
+	document.getElementById('toggle').onclick = e => { on = 1 - on; e.target.textContent = 'Edge: ' + (on ? 'on' : 'off'); };
+	const t0 = performance.now();
+	(function frame() {
+		gl.uniform1f(U('u_time'), (performance.now() - t0) / 1000);
+		gl.uniform1f(U('u_reach'), +document.getElementById('reach').value);
+		gl.uniform1f(U('u_on'), on);
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+		requestAnimationFrame(frame);
+	})();
+} catch (e) { document.getElementById('err').textContent = e.message; }
+</script>
+</body>
+</html>

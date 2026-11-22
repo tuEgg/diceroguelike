@@ -19,6 +19,7 @@ aq_start_x = min(aq_start_x, _q_right - aq_total_w);
 aq_start_x = max(aq_start_x, global.player_x + 230 * global.ui_scale);
 var aq_start_y = gui_h / 2 - 92; // the fight sits higher, leaving the bottom right to End Turn and the tray's edge clear
 aq_left = aq_start_x; aq_mid_y = aq_start_y + aq_tile_w / 2; // the inkwell sits just before the queue (combat_inkwell_pos)
+aq_x0 = aq_start_x; aq_y0 = aq_start_y; aq_step = aq_tile_w + aq_tile_padding; // for the timeline track (combat_timeline_draw)
 
 // Keep tile_scale list synced with action_queue size
 if (ds_list_size(tile_scale) < aq_list_size) {
@@ -40,7 +41,7 @@ var label_text = "Wait";
 var _et_frame = global.ui_col.brass;
 if (state == CombatState.PLAYER_INPUT) {
 	if (dice_to_deal > 0) label_text = "Dealing dice";
-	else if (insight_view) { label_text = "Confirm"; _et_frame = global.color_intel; } // the ink view is open: this puts it away (clicked in combat_insight_view_draw)
+	else if (insight_view) { label_text = "Done"; _et_frame = global.color_intel; } // the ink view is open: this puts it away (clicked in combat_insight_view_draw)
 	else label_text = "End turn";
 }
 var _et_active = (state == CombatState.PLAYER_INPUT) && !show_rewards && dice_to_deal <= 0;
@@ -274,7 +275,7 @@ for (var i = 0; i < aq_list_size; i++) {
 				tooltip = string(slot_amount) + "d" + string(slot_value) + _bonus + " Heal";
 				break;
 				case "INTEL":
-				tooltip = string(slot_amount) + "d" + string(slot_value) + _bonus + " Insight";
+				tooltip = string(slot_amount) + "d" + string(slot_value) + _bonus + " Ink";
 				break;
 				case "None":
 					if (slot_possible_type != "All") {
@@ -300,7 +301,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	if (combat_carrying_slot_item() && !show_rewards) {
 		var _pulse = 0.5 + 0.5 * sin(current_time / 180);
 		var _grow = 6 + 4 * _pulse;
-		draw_set_color(global.color_intel);
+		draw_set_color(global.color_gold);
 		draw_set_alpha(0.45 + 0.4 * _pulse);
 		for (var _w = 0; _w < 3; _w++) draw_roundrect(draw_x - _grow - _w, draw_y - _grow - _w, draw_x + draw_w + _grow + _w, draw_y + draw_h + _grow + _w, true);
 		draw_set_alpha(1);
@@ -645,6 +646,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 
 		// the intent on a paper tag hung over the enemy (ui_tag, scUI): its icons in their pigment and the number in ink
 		ui_tag(xx, yy, tag_w, tag_h, e * 11 + 5, enemy.intent.alpha);
+		combat_enemy_badge(xx - tag_w / 2, yy - tag_h / 2, enemy, 1, enemy.intent.alpha); // its letter, matching its timeline marker
 
 		// Draw enemy intent
 		for (var i = 0; i < array_length(intent_array); i++) {
@@ -691,7 +693,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			if (!enemy_can_quill(enemy)) {
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Quill: nothing to change", "This move is forced and has no numbers to halve.", undefined, 0, undefined);
 			} else {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Quill: rewrite intent (" + string(INSIGHT_COST_QUILL) + " insight)", "Reroll: the enemy picks a different move.\nHalve: this move's numbers are halved.", undefined, 0, undefined, INSIGHT_COST_QUILL, "insight");
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Quill: rewrite intent (" + string(INSIGHT_COST_QUILL) + " ink)", "Reroll: the enemy picks a different move.\nHalve: this move's numbers are halved.", undefined, 0, undefined, INSIGHT_COST_QUILL, "ink");
 				if (mouse_check_button_pressed(mb_left)) {
 					quill_menu_enemy = enemy;
 					quill_btn_scales = [1, 1];
@@ -709,8 +711,8 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var _halve = draw_gui_button(xx + 6, _qb_y, _qb_w, _qb_h, quill_btn_scales[1], "Halve", global.color_intel, ftDefault, _halve_ok, true);
 			quill_btn_scales[0] = _reroll.scale;
 			quill_btn_scales[1] = _halve.scale;
-			if (_reroll.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll", "Spend " + string(INSIGHT_COST_QUILL) + " insight: the enemy picks a different move.", undefined, 0, undefined, INSIGHT_COST_QUILL, "insight");
-			if (_halve.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Halve", "Spend " + string(INSIGHT_COST_QUILL) + " insight: halve this move's attack, block or heal this turn.", undefined, 0, undefined, INSIGHT_COST_QUILL, "insight");
+			if (_reroll.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll", "Spend " + string(INSIGHT_COST_QUILL) + " ink: the enemy picks a different move.", undefined, 0, undefined, INSIGHT_COST_QUILL, "ink");
+			if (_halve.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Halve", "Spend " + string(INSIGHT_COST_QUILL) + " ink: halve this move's attack, block or heal this turn.", undefined, 0, undefined, INSIGHT_COST_QUILL, "ink");
 			if (!_reroll_ok && mouse_hovering(xx - _qb_w - 6, _qb_y, _qb_w, _qb_h, false)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't reroll", "This move is forced, or the enemy has no other move.", undefined, 0, undefined);
 			if (!_halve_ok && mouse_hovering(xx + 6, _qb_y, _qb_w, _qb_h, false)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Can't halve", "This move has no attack, block or heal to halve.", undefined, 0, undefined);
 
@@ -749,9 +751,9 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "This enemy will escape.", undefined, 0, undefined);
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
 					// plain words: what it will do and how much (the range when Faded, the exact number from Legible)
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, intent_hover_text(enemy, enemy_intent_revealed(enemy) ? INTEL_LEGIBLE : INTEL_FADED), undefined, 0, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, intent_hover_text(enemy, enemy_intent_revealed(enemy) ? INTEL_LEGIBLE : INTEL_FADED) + "\n" + enemy_point_text(enemy), undefined, 0, undefined);
 				} else {
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 insight, enemy intents are hidden.", undefined, 0, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 ink, enemy intents are hidden.", undefined, 0, undefined);
 				}
 			}
 		}
@@ -946,7 +948,9 @@ var d_padding = 22;
 for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
 	var _debuff = global.player_debuffs[| d];
 	var col = _debuff.template.color;
-	draw_sprite_ext(sDebuffIcon, _debuff.template.icon_index, p_bar_x + d_x + sprite_get_width(sDebuffIcon)/2, d_y + sprite_get_height(sDebuffIcon)/2, 1, 1, 0, col, 1.0);
+	// ink coming: the inkwell, as you click for the ink view (Jared, 2026-11-22)
+	if (_debuff.template._id == "intel" || _debuff.template._id == "intel_lasting") draw_inkwell(p_bar_x + d_x + sprite_get_width(sDebuffIcon)/2, d_y + sprite_get_height(sDebuffIcon)/2, 0.7, 1, false);
+	else draw_sprite_ext(sDebuffIcon, _debuff.template.icon_index, p_bar_x + d_x + sprite_get_width(sDebuffIcon)/2, d_y + sprite_get_height(sDebuffIcon)/2, 1, 1, 0, col, 1.0);
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
@@ -993,21 +997,21 @@ if (state != CombatState.PLAYER_DEAD) {
 		var _fade = min(1, ink_pulse / 20);
 		_ink_s *= 1 + 0.14 * _beat * _fade;
 		draw_set_alpha(0.35 * _beat * _fade);
-		draw_set_color(global.color_intel);
+		draw_set_color(global.text_intel);
 		draw_circle(_iw.x, _iw.y, 40 + 10 * _beat, false);
 		draw_set_alpha(1);
 	}
 	draw_inkwell(_iw.x, _iw.y, _ink_s, player_intel / INSIGHT_MAX, intel_is_blotted());
 	if (intel_hover) {
-		if (intel_is_blotted()) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 insight, enemy intents are hidden and you can't use ink this turn.");
-		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Use your ink", "Spend insight to rewrite enemy intents, see their exact numbers, or reroll and redraw dice. Unspent insight carries over, up to " + string(INSIGHT_MAX) + ".", undefined, 0, undefined, 0, "insight", { button: "left", text: "Use", col: global.color_intel });
+		if (intel_is_blotted()) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 ink, enemy intents are hidden and you can't use ink this turn.");
+		else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Use your ink", "Spend ink to rewrite enemy intents, see their exact numbers, or reroll and redraw dice. Unspent ink carries over, up to " + string(INSIGHT_MAX) + ".", undefined, 0, undefined, 0, "ink", { button: "left", text: "Use", col: global.color_intel });
 		// a toggle: the inkwell opens the log any time on your turn
 		if (mouse_check_button_pressed(mb_left) && !intel_is_blotted() && state == CombatState.PLAYER_INPUT && !show_rewards && global.ui_layer == UI_LAYER.BASE) combat_insight_view_set(true);
 	}
 
 	// the number shows when it isn't zero, negative intel (from Overwhelm) included
-	if (player_intel != 0) {
-		ui_numeral(string(player_intel), _iw.x, _iw.y + 46, 30, player_intel < 0 ? global.text_attack : global.color_intel, 1, fa_center); // under the inkwell (beside it ran into the queue)
+	{ // always: empty pips show you have no ink
+		draw_ink_pips(_iw.x, _iw.y + 50, player_intel, 0); // your ink as pips under the inkwell (Jared, 2026-11-22)
 	}
 
 }
@@ -1377,4 +1381,7 @@ if (disc_bag_hover) {
 
 
 // the guided first fight's margin notes, on top of the combat UI
+// the timeline track over the queue (F193)
+if (!show_rewards) combat_timeline_draw();
+
 tutorial_draw();

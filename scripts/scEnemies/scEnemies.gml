@@ -43,8 +43,8 @@ function define_enemies() {
 	
 	// Weak enemy that always copies the players last intent
 	var parrot_moves = [
-	    { dice_amount: 3, dice_value: 2, action_type: "MIMIC", bonus_amount: 1, move_name: "Mimic" },
-	    { dice_amount: 3, dice_value: 2, action_type: "MIMIC", bonus_amount: 1, move_name: "Mimic" },
+	    { dice_amount: 3, dice_value: 2, action_type: "MIMIC", bonus_amount: 1, move_name: "Mimic", timing: "last" },
+	    { dice_amount: 3, dice_value: 2, action_type: "MIMIC", bonus_amount: 1, move_name: "Mimic", timing: "last" },
 	];
 	var parrot = enemy_create("Parrot", 7, 0.5, 8, 5, 0, parrot_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, parrot);
@@ -53,15 +53,15 @@ function define_enemies() {
 	var peg_leg_moves = [
 	    { dice_amount: 1, dice_value: 1, action_type: "NONE", bonus_amount: 0, move_name: "Stretching" },
 	    { dice_amount: 1, dice_value: 1, action_type: "NONE", bonus_amount: 0, move_name: "Removing Leg" },
-	    { dice_amount: 2, dice_value: 4, action_type: "ATK", bonus_amount: 14, move_name: "Throwing Leg" },
-	    { dice_amount: 1, dice_value: 2, action_type: "EXIT", bonus_amount: 2, move_name: "Escaping" },
+	    { dice_amount: 2, dice_value: 4, action_type: "ATK", bonus_amount: 14, move_name: "Throwing Leg", timing: "last" },
+	    { dice_amount: 1, dice_value: 2, action_type: "EXIT", bonus_amount: 2, move_name: "Escaping", timing: 2 },
 	];
 	var peg_leg = enemy_create("Peg-leg", 0, 1, 14, 20, 0, peg_leg_moves, "ordered");
 	ds_list_add(global.enemy_list, peg_leg);
 	
 	// Pack enemy that does attacks and defends
 	var seagull_moves = [
-	    { dice_amount: 2, dice_value: 2, action_type: "ATK", bonus_amount: -1, move_name: "Peck" },
+	    { dice_amount: 2, dice_value: 2, action_type: "ATK", bonus_amount: -1, move_name: "Peck", timing: "first" },
 	    { dice_amount: 1, dice_value: 2, action_type: "BLK", bonus_amount: 2, move_name: "Evade" },
 	];
 	var seagull = enemy_create("Seagull", 2, 0.5, 6, 8, 0, seagull_moves, "pseudo_random");
@@ -70,8 +70,8 @@ function define_enemies() {
 	// Basic enemy that has attack, defend and a disabling debuff
 	var baby_kraken_moves = [
 	    { dice_amount: 2, dice_value: 2, action_type: "ATK", bonus_amount: 2, move_name: "Tentacle Whip" },
-	    { dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 0, move_name: "Coil" },
-	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Bind", debuff: debuff_bind, amount: 1, duration: 1 },
+	    { dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 0, move_name: "Coil", timing: "first" },
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Bind", timing: "first", debuff: debuff_bind, amount: 1, duration: 1 },
 	];
 	var baby_kraken = enemy_create("Baby Kraken", 3, 1, 20, 16, 0, baby_kraken_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, baby_kraken);
@@ -86,8 +86,8 @@ function define_enemies() {
 
 	// Moderate enemy that has a debuff
 	var thug_moves = [
-	    { dice_amount: 2, dice_value: 4, action_type: "ATK", bonus_amount: 5, move_name: "Heavy Swing" }, // Heavy Swing
-	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Mock", debuff: debuff_mock, amount: 1, duration: 1 }, // Mock
+	    { dice_amount: 2, dice_value: 4, action_type: "ATK", bonus_amount: 5, move_name: "Heavy Swing", timing: "last" }, // Heavy Swing
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Mock", timing: "first", debuff: debuff_mock, amount: 1, duration: 1 }, // Mock
 	    { dice_amount: 1, dice_value: 4, action_type: "BLK", bonus_amount: 4, move_name: "Parry" }  // Duck
 	];
 	var thug = enemy_create("Thug", 1, 1, 28, 17, 0, thug_moves, "pseudo_random");
@@ -95,17 +95,17 @@ function define_enemies() {
 
 	// Comes in a pair with Bill, has a debuff, and a passive.
 	var elizabeak_moves = [
-	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Flutter", debuff: buff_might, amount: -2, duration: 1, weight: 30},
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Flutter", timing: "first", debuff: buff_might, amount: -2, duration: 1, weight: 30},
 	    { dice_amount: 2, dice_value: 2, action_type: "BLK/ATK", bonus_amount: 3, move_name: "Flap", weight: 70 },
-	    { dice_amount: 2, dice_value: 2, action_type: "HEAL", bonus_amount: 3, move_name: "Rest", use_trigger: "HEALTH 50", weight: 0 },
+	    { dice_amount: 2, dice_value: 2, action_type: "HEAL", bonus_amount: 3, move_name: "Rest", timing: "last", use_trigger: "HEALTH 50", weight: 0 },
 	];
 	var elizabeak = enemy_create("Elizabeak", 2, 1, 12, 8, 0, elizabeak_moves, "weighted", false, passive_heartache);
 	ds_list_add(global.enemy_list, elizabeak);
 	
 	// Comes in a pair with Elizabeak, has a buff, and a passive.
 	var bill_moves = [
-	    { dice_amount: 2, dice_value: 3, action_type: "ATK", bonus_amount: 2, move_name: "Heavy Swing" }, // Heavy Swing
-	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Sharpen Cutlass", debuff: buff_might, amount: 1, duration: -1 }, // Mock
+	    { dice_amount: 2, dice_value: 3, action_type: "ATK", bonus_amount: 2, move_name: "Heavy Swing", timing: "last" }, // Heavy Swing
+	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Sharpen Cutlass", timing: "first", debuff: buff_might, amount: 1, duration: -1 }, // Mock
 	    { dice_amount: 1, dice_value: 4, action_type: "BLK", bonus_amount: 4, move_name: "Parry" }  // Duck
 	];
 	var bill = enemy_create("Bill", 0, 1, 16, 17, 0, bill_moves, "pseudo_random", false, passive_heartache);
@@ -114,7 +114,7 @@ function define_enemies() {
 	// Moderate enemy with a first turn buff!
 	var pufferfish_moves = [
 	    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 5, move_name: "Eject Spines", weight: 50 }, // Heavy Swing
-	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Inflate Spines", weight: 0, use_trigger: "FIRST", debuff: buff_spines, amount: 1, duration: -1 }, // Mock
+	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Inflate Spines", timing: "first", weight: 0, use_trigger: "FIRST", debuff: buff_spines, amount: 1, duration: -1 }, // Mock
 	    { dice_amount: 2, dice_value: 4, action_type: "BLK", bonus_amount: 2, move_name: "Roll", weight: 50 }  // Duck
 	];
 	var pufferfish = enemy_create("Pufferfish", 0, 1, 28, 17, 0, pufferfish_moves, "weighted");
@@ -123,7 +123,7 @@ function define_enemies() {
 	// Moderate enemy that aims, fires, reloads on a cycle.
 	var gunner_moves = [
 	    { dice_amount: 2, dice_value: 4, action_type: "BLK", bonus_amount: 5, move_name: "Take Aim" }, // Aim
-	    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 6, move_name: "Volley Fire" }, // Volley Fire
+	    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 6, move_name: "Volley Fire", timing: "last" }, // Volley Fire
 	    { dice_amount: 0, dice_value: 0, action_type: "NONE", bonus_amount: 0, move_name: "Reload" } // Reload
 	];
 	var gunner = enemy_create("Corsair Gunner", 5, 1, 28, 19, 0, gunner_moves, "ordered");
@@ -131,7 +131,7 @@ function define_enemies() {
 
 	// Moderate enemy that builds up block over time, doesn't lose it between turns.
 	var turtle_moves = [
-	    { dice_amount: 2, dice_value: 2, action_type: "BLK", bonus_amount: 6, move_name: "Withdraw" }, // Aim
+	    { dice_amount: 2, dice_value: 2, action_type: "BLK", bonus_amount: 6, move_name: "Withdraw", timing: "first" }, // Aim
 	    { dice_amount: 4, dice_value: 2, action_type: "ATK", bonus_amount: 4, move_name: "Claw" }, // Volley Fire
 	    { dice_amount: 2, dice_value: 4, action_type: "BLK/ATK", bonus_amount: 1, move_name: "Rapid Spin" }, // Volley Fire
 	];
@@ -140,18 +140,18 @@ function define_enemies() {
 	
 	// Support enemy that heals others and debuffs the player.
 	var barrel_of_fish_moves = [
-	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Rot", debuff: debuff_rot, weight: 25, amount: 1, duration: 1  },
-	    { dice_amount: 2, dice_value: 2, action_type: "HEAL", bonus_amount: 4, move_name: "Feeding Frenzy", weight: 25, target: "other" },
-	    { dice_amount: 2, dice_value: 2, action_type: "ATK", bonus_amount: 0, move_name: "Snap", weight: 50 }
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Rot", timing: "first", debuff: debuff_rot, weight: 25, amount: 1, duration: 1  },
+	    { dice_amount: 2, dice_value: 2, action_type: "HEAL", bonus_amount: 4, move_name: "Feeding Frenzy", timing: "last", weight: 25, target: "other" },
+	    { dice_amount: 2, dice_value: 2, action_type: "ATK", bonus_amount: 0, move_name: "Snap", weight: 50, timing: "first" }
 	];
 	var barrel_of_fish = enemy_create("Barrel o' Fish", 4, 1, 12, 10, 0, barrel_of_fish_moves, "weighted");
 	ds_list_add(global.enemy_list, barrel_of_fish);
 
 	// Pack enemy that gets stronger when attacked, and messes with player focus.
 	var driftnet_fish_moves = [
-	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Shiny Scales", debuff: buff_shiny_scales, amount: 1, duration: -1, weight: 0, use_trigger: "FIRST" },
+	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Shiny Scales", timing: "first", debuff: buff_shiny_scales, amount: 1, duration: -1, weight: 0, use_trigger: "FIRST" },
 	    { dice_amount: 1, dice_value: 2, action_type: "ATK", bonus_amount: 3, move_name: "Snap", weight: 75 },
-	    { dice_amount: 2, dice_value: 2, action_type: "DEBUFF", bonus_amount: 1, move_name: "Overwhelm", debuff: debuff_overwhelm, weight: 25, amount: 3, duration: 1 }
+	    { dice_amount: 2, dice_value: 2, action_type: "DEBUFF", bonus_amount: 1, move_name: "Overwhelm", timing: "first", debuff: debuff_overwhelm, weight: 25, amount: 3, duration: 1 }
 	];
 	var driftnet_fish = enemy_create("Driftnet Fish", 6, 1, 14, 10, 0, driftnet_fish_moves, "weighted");
 	ds_list_add(global.enemy_list, driftnet_fish);
@@ -162,10 +162,10 @@ function define_enemies() {
 	
 	// Elite that buffs others and summons minions to the fight.
 	var pirate_captain_moves = [
-	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Command", debuff: buff_might, weight: 20, use_trigger: "FIRST", target: "other", amount: 1, duration: 1 }, // Command
+	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Command", timing: "first", debuff: buff_might, weight: 20, use_trigger: "FIRST", target: "other", amount: 1, duration: 1 }, // Command
 	    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 6, move_name: "Pistol Shot", weight: 40 }, // Take Cover
 	    { dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 8, move_name: "Take Cover", weight: 40 }, // Pistol Shot
-	    { dice_amount: 1, dice_value: 1, action_type: "SUMMON", bonus_amount: 0, move_name: "Open Barrel", weight: 0, summon: "Barrel o' Fish", use_trigger: "HEALTH 50" } // Pistol Shot
+	    { dice_amount: 1, dice_value: 1, action_type: "SUMMON", bonus_amount: 0, move_name: "Open Barrel", timing: "last", weight: 0, summon: "Barrel o' Fish", use_trigger: "HEALTH 50" } // Pistol Shot
 	];
 	var pirate_captain = enemy_create("Pirate Captain", 0, 1.2, 70, 45, 0, pirate_captain_moves, "weighted", true);
 	ds_list_add(global.enemy_list, pirate_captain);
@@ -174,11 +174,11 @@ function define_enemies() {
 	// (F20) its only move used to be Command, an ally buff, though it always fights alone: now it hums to blot your
 	// insight, echoes your last action back at you, slams and shelters behind its layers
 	var giant_conch_moves = [
-	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Siren Hum", debuff: debuff_overwhelm, weight: 0, amount: 3, duration: 1, use_trigger: "FIRST" },
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Siren Hum", timing: "first", debuff: debuff_overwhelm, weight: 0, amount: 3, duration: 1, use_trigger: "FIRST" },
 	    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 3, move_name: "Shell Slam", weight: 40 },
-	    { dice_amount: 2, dice_value: 4, action_type: "MIMIC", bonus_amount: 2, move_name: "Echo", weight: 30 },
+	    { dice_amount: 2, dice_value: 4, action_type: "MIMIC", bonus_amount: 2, move_name: "Echo", timing: "last", weight: 30 },
 	    { dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 5, move_name: "Retreat Inward", weight: 20 },
-	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Siren Hum", debuff: debuff_overwhelm, weight: 10, amount: 2, duration: 1 },
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Siren Hum", timing: "first", debuff: debuff_overwhelm, weight: 10, amount: 2, duration: 1 },
 	];
 	var giant_conch = enemy_create("Giant Conch", 0, 1.25, 55, 50, 0, giant_conch_moves, "weighted", true, passive_conch_layers);
 	ds_list_add(global.enemy_list, giant_conch);
@@ -199,9 +199,9 @@ function define_enemies() {
 	// -------------------------------
 
 	var titan_moves = [
-	    { dice_amount: 2, dice_value: 6, action_type: "ATK", bonus_amount: 6, move_name: "Crushing Slam" }, // Crushing Slam
-	    { dice_amount: 2, dice_value: 6, action_type: "BLK", bonus_amount: 6, move_name: "Harden Shell" }, // Harden Shell
-	    { dice_amount: 1, dice_value: 6, action_type: "DEBUFF", bonus_amount: 0, move_name: "Barnacle Bind", debuff: debuff_barnacle_bind, amount: 1, duration: 1 } // Barnacle Bind
+	    { dice_amount: 2, dice_value: 6, action_type: "ATK", bonus_amount: 6, move_name: "Crushing Slam", timing: "last" }, // Crushing Slam
+	    { dice_amount: 2, dice_value: 6, action_type: "BLK", bonus_amount: 6, move_name: "Harden Shell", timing: "first" }, // Harden Shell
+	    { dice_amount: 1, dice_value: 6, action_type: "DEBUFF", bonus_amount: 0, move_name: "Barnacle Bind", timing: "first", debuff: debuff_barnacle_bind, amount: 1, duration: 1 } // Barnacle Bind
 	];
 	var titan = enemy_create("Barnacle Titan", 0, 1.5, 125, 151, 0, titan_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, titan);
@@ -309,7 +309,7 @@ function intent_hover_text(_enemy, _intel_level) {
 			case "ATK": _line = "Attacks you for " + _number; break;
 			case "BLK": _line = "Blocks " + _number; break;
 			case "HEAL": _line = "Heals " + _number; break;
-			case "INTEL": _line = "Gains insight"; break;
+			case "INTEL": _line = "Gains ink"; break;
 			case "SUMMON": _line = "Summons " + ((variable_struct_exists(_move, "summon") && is_string(_move.summon)) ? _move.summon : "help"); break;
 			case "DEBUFF": case "BUFF": _line = intent_status_text(_move); break;
 			default: _line = "";
@@ -319,7 +319,7 @@ function intent_hover_text(_enemy, _intel_level) {
 	if (_text == "") _text = "Does something unusual";
 	if (string_char_at(_text, string_length(_text)) != ".") _text += ".";
 	if (intent_is_halved(_enemy)) _text += " Halved by your quill.";
-	if (intent_has_numbers(_move) && _intel_level < INTEL_LEGIBLE) _text += " Exact number: " + string(combat_reveal_cost()) + " insight.";
+	if (intent_has_numbers(_move) && _intel_level < INTEL_LEGIBLE) _text += " Exact number: " + string(combat_reveal_cost()) + " ink.";
 	return _text;
 }
 
@@ -546,4 +546,28 @@ function intel_is_blotted() {
 /// @desc The state to show (name, description, eye frame): Blotted below 0 intel, otherwise this level's.
 function intel_state(_level) {
 	return intel_is_blotted() ? global.intel_blotted : global.player_intel_data[| _level];
+}
+
+/// @func enemy_move_point(_move)
+/// @desc Where in your queue this move happens (the timeline, F193): after your slot N. A move's timing says "first"
+///       (after slot 1), "last" (after your last slot: ENEMY_POINT_LAST), or a slot number; otherwise it's rolled,
+///       after slot 1 to ENEMY_POINT_ROLL_MAX. A point past the slots you build happens at the end.
+#macro ENEMY_POINT_LAST 99
+#macro ENEMY_POINT_ROLL_MAX 4
+#macro INK_COST_MOVE 4
+function enemy_move_point(_move) {
+	if (variable_struct_exists(_move, "timing")) {
+		if (is_string(_move.timing) && _move.timing == "first") return 1;
+		if (is_string(_move.timing) && _move.timing == "last") return ENEMY_POINT_LAST;
+		if (is_real(_move.timing)) return _move.timing;
+	}
+	return irandom_range(1, ENEMY_POINT_ROLL_MAX);
+}
+
+/// @func enemy_point_text(_enemy)
+/// @desc "After your slot 2" / "After your last slot".
+function enemy_point_text(_enemy) {
+	var _p = variable_struct_exists(_enemy.intent, "after_slot") ? _enemy.intent.after_slot : ENEMY_POINT_LAST;
+	if (_p >= ENEMY_POINT_LAST) return "After your last slot.";
+	return "After your slot " + string(_p) + ".";
 }

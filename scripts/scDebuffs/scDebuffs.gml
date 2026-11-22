@@ -134,7 +134,7 @@ function define_buffs_and_debuffs() {
 	        {
 	            trigger: "on_turn_start",
 	            modify: function(_ctx) {
-				    oCombat.locked_slot = irandom( ds_list_size(oCombat.action_queue) - 1);
+				    oCombat.locked_slot = SLOT_PICK_AT_RESOLVE; // picked when your turn ends (combat_pick_debuffed_slots): you start with one slot now
 				}
 	        }
 	    ]
@@ -200,14 +200,7 @@ function define_buffs_and_debuffs() {
 	        {
 	            trigger: "on_turn_start",
 	            modify: function(_ctx) {
-				    oCombat.bound_slot = irandom( ds_list_size(oCombat.action_queue) - 1);
-					
-					var _slot_pos = oCombat.slot_positions[| oCombat.bound_slot];
-					
-					var start_x = _slot_pos.x + (_slot_pos.w / 2);
-					var start_y = _slot_pos.y + (_slot_pos.h / 2);
-					
-					particle_emit(start_x, start_y, "burst", c_green);
+				    oCombat.bound_slot = SLOT_PICK_AT_RESOLVE; // picked when your turn ends (combat_pick_debuffed_slots)
 				}
 	        }
 	    ]
@@ -218,7 +211,7 @@ function define_buffs_and_debuffs() {
 		name: "Overwhelm",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Lowers your insight. Your target is locked on this enemy this turn.",
+	    desc: "Lowers your ink. Your target is locked on this enemy this turn.",
 	    icon_index: 2,
 		debuff: true,
 		color: c_red,
@@ -324,10 +317,10 @@ function define_buffs_and_debuffs() {
 	
 	buff_intel = {
 	    _id: "intel",
-		name: "Queued insight",
+		name: "Queued ink",
 	    duration: 1,  // lasts 1 full turn
 		amount: 1,
-	    desc: "Insight carried into next turn.",
+	    desc: "Ink carried into next turn.",
 	    icon_index: 2,
 		debuff: false,
 		color: make_color_rgb(210, 210, 0),
@@ -348,10 +341,10 @@ function define_buffs_and_debuffs() {
 	// "Queued insight" it would either cut the 2 turns to 1 or make the whole queue last 2 (Jared, 2026-11-20)
 	buff_intel_lasting = {
 	    _id: "intel_lasting",
-		name: "Lasting insight",
+		name: "Lasting ink",
 	    duration: 2,
 		amount: 1,
-	    desc: "Gain insight at the start of each turn.",
+	    desc: "Gain ink at the start of each turn.",
 	    icon_index: 2,
 		debuff: false,
 		color: make_color_rgb(230, 190, 40),

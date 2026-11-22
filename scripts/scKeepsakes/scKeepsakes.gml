@@ -20,7 +20,7 @@ function define_keepsakes() {
 	ks_looking_glass = {
 	    _id: "looking_glass",
 	    name: "Looking Glass",
-	    desc: "Start each combat with 6 insight.",
+	    desc: "Start each combat with 6 ink.",
 		sub_image: 5,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
@@ -522,7 +522,7 @@ function define_keepsakes() {
 				if (self.state.turn != oCombat.turn_count) { self.state.turn = oCombat.turn_count; self.state.draws = 0; }
 				if (self.state.draws < 2) {
 					self.state.draws++;
-					die_effect_popup(data._die_struct, "Valley!", global.color_intel);
+					die_effect_popup(data._die_struct, "Valley!", global.color_gold);
 					oCombat.dice_to_deal += 1;
 					oCombat.is_dealing_dice = true;
 					trigger_keepsake_visual();
@@ -585,11 +585,11 @@ function define_keepsakes() {
 				// the max landing: say so over that die. (its min equals its max now, so it can't arm the compass again)
 				if (self.state.landing) {
 					self.state.landing = false;
-					die_effect_popup(data._die_struct, "Balanced: max!", global.color_intel);
+					die_effect_popup(data._die_struct, "Balanced: max!", global.color_gold);
 					trigger_keepsake_visual();
 				} else if (data.min_roll < data.max_roll && data.face <= data.min_roll && !self.state.next_max) {
 					self.state.next_max = true;
-					die_effect_popup(data._die_struct, "Compass: next die max", global.color_intel);
+					die_effect_popup(data._die_struct, "Compass: next die max", global.color_gold);
 					trigger_keepsake_visual();
 				}
 			}
@@ -726,7 +726,7 @@ function define_keepsakes() {
 	ks_book_of_secrets = {
 	    _id: "book_of_secrets",
 	    name: "Book of Secrets",
-	    desc: "+1 minimum roll on insight dice.",
+	    desc: "+1 minimum roll on ink dice.",
 	    sub_image: 42,
 		state: { },
 	    trigger: function(event, data) {			
@@ -850,7 +850,7 @@ function define_keepsakes() {
 	ks_eye_patch = {
 	    _id: "eye_patch",
 	    name: "Eye patch",
-	    desc: "Gain 1 insight next turn when you play a die.",
+	    desc: "Gain 1 ink next turn when you play a die.",
 	    sub_image: 2,
 
 	    trigger: function(event, data) {
@@ -860,10 +860,10 @@ function define_keepsakes() {
 	            case "on_dice_played_to_slot":
 					// insight gained during your turn arrives next turn, like an insight die's
 					apply_buff("player", oRunManager.buff_intel, 1, 1, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
-					var num = spawn_floating_number("player", 1, -1, global.color_intel, 1, -1, 0);
+					var num = spawn_floating_number("player", 1, -1, global.text_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
-					particle_emit( num.x, num.y, "rise", global.color_intel);
+					particle_emit( num.x, num.y, "rise", global.text_intel);
 					
 					trigger_keepsake_visual();
 				break;
@@ -897,7 +897,7 @@ function define_keepsakes() {
 	ks_deep_lens = {
 	    _id: "deep_lens",
 	    name: "Deep Lens",
-	    desc: "Start the first 2 turns of combat with 12 insight. Replaces the Looking Glass.",
+	    desc: "Start the first 2 turns of combat with 12 ink. Replaces the Looking Glass.",
 		replaces: "looking_glass", // takes the starting keepsake's place in the keepsake bar
 		sub_image: 35,
 	    trigger: function(event, data) {

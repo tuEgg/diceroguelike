@@ -69,6 +69,9 @@ switch (state) {
 			
 			// sets the move and rolls its dice now, so intel can reveal the exact result
 			enemy_set_intent(enemy, _intent_move);
+			// and where in your queue it happens (the timeline, F193); each enemy keeps a letter and colour all fight
+			enemy.intent.after_slot = enemy_move_point(_intent_move);
+			if (!variable_struct_exists(enemy, "mark")) { enemy.mark = mark_next; mark_next++; }
 
 			enemy_turns_remaining++;
 			
@@ -157,6 +160,7 @@ switch (state) {
         // Wait for player input
         if (actions_submitted) {
 			
+			combat_pick_debuffed_slots(); // Bind and Rot pick their slot now, from the ones you built
             state = CombatState.RESOLVE_ROUND;
         }
 		
@@ -189,8 +193,14 @@ switch (state) {
 		}
 			
         if (action_timer <= 0) {
-			
-			// Skip over locked slots 
+
+			// the timeline (F193): before slot N+1 starts, every enemy move set "after your slot N" happens
+			var _due = (dice_index == 0 && dice_timer <= 0 && action_index > 0) ? combat_enemy_due(action_index) : -1;
+			if (_due != -1) {
+				combat_enemy_act(_due);
+				action_timer = action_delay;
+			} else
+			// Skip over locked slots
 			if (action_index != locked_slot) {
 				var slot = action_queue[| action_index];
 	            var current_action = slot.current_action_type;
@@ -239,107 +249,25 @@ switch (state) {
     // After player actions, handle enemy action once
     } else if (!enemies_turn_done) {
 		
-		if (!delayed_enemy_attack) {
-			delayed_enemy_attack = true;
-			action_timer = action_delay;
-		}
-		
+		// no extra wait here (the timeline): the rest act right after your last slot, as a move mid-queue does
+		delayed_enemy_attack = true;
+
 	    if (action_timer <= 0) {
-			
-			player_turn_done = true;
-			
-			var player_turn_end_data = {
-			};
-					
-			combat_trigger_effects("on_player_turn_end", player_turn_end_data);
-		
-			for (var e = 0; e < ds_list_size(room_enemies); e++) {
-				var enemy_data = room_enemies[| e].data;
-				var enemy = room_enemies[| e];
-					
-				// Modify dice allowed this turn
-				var enemy_turn_start_data = {
-					stunned_enemy: enemy
+
+			if (!player_turn_done) { // once, not once per enemy left
+				player_turn_done = true;
+				var player_turn_end_data = {
 				};
-		
-				combat_trigger_effects("on_enemy_turn_start", enemy_turn_start_data);
-			
-				if (enemy.turn_done || enemy.dead) {
-					continue;
-					
-				} else {
-					
-					var intent_array = string_split(enemy.intent.move.action_type, "/");
-					
-					for (var i = 0; i < array_length(intent_array); i++) {
-						var _source = enemy;
-						var _target = "player";
-						
-						if (intent_array[i] == "MIMIC") {
-							intent_array[i] = player_last_action_type;
-						}
-					
-						if (variable_struct_exists(enemy.intent.move, "target")) {
-							_target = enemy.intent.move.target;
-						}
-					
-						if (_target == "other") {
-							// pick a living ally, or ourselves if there are none
-							var _others = [];
-							for (var o = 0; o < ds_list_size(room_enemies); o++) {
-								if (o != e && !room_enemies[| o].dead) array_push(_others, o);
-							}
-							
-							var _target_index = e;
-							if (array_length(_others) > 0) _target_index = _others[irandom(array_length(_others) - 1)];
-						
-							_target = room_enemies[| _target_index];
-						
-							//show_debug_message("current enemy index: " + string(e));
-							//show_debug_message("current other target index: " + string(_target_index));
-						} else if (intent_array[i] == "BLK" || intent_array[i] == "HEAL" || intent_array[i] == "BUFF") {
-							_target = _source;
-						}
+				combat_trigger_effects("on_player_turn_end", player_turn_end_data);
+			}
 				
-			            ds_list_add(enemy.move_history, enemy.intent.move);
-						
-						if (intent_array[i] == "EXIT") {
-							ds_list_delete(room_enemies, e);
-							particle_emit(enemy.pos_x, enemy.pos_y, "rise", make_color_rgb(20,20,20));
-							enemies_left_this_combat--;
-							
-						    // Remove any debuffs from the enemy
-							for (var d = ds_list_size(enemy.debuffs) - 1; d >= 0 ; d--) {
-						        var inst = enemy.debuffs[| d];
-									ds_list_delete(enemy.debuffs, d);
-						    }
-							
-							if (enemy_target_index == e) {
-								enemy_target_index = irandom(ds_list_size(room_enemies) - 1);
-							} else if (enemy_target_index > e) {
-								enemy_target_index--; // the list shifted down, keep pointing at the same enemy
-							}
-						} else {
-							process_action(_target, enemy.intent.move.dice_amount, enemy.intent.move.dice_value, enemy.intent.move.bonus_amount, _source, e, intent_array[i]);
-						}
-						
-			            action_timer = action_delay;
-						enemy.turn_done = true;
-					}
-					
-					enemy_turns_remaining--;
-				
-					// Trigger end of turn effects for keepsakes
-					var enemy_turn_end_data = {
-						target: enemy,
-					};
-					
-					combat_trigger_effects("on_enemy_turn_end", enemy_turn_end_data);
-					
-					// Force exit every time we run, so that we loop through enemies with delay between
-					break;
-				}
-	        }
+			// the rest of the enemies (their point is your last slot or past it, or they waited): one at a time
+			for (var e = 0; e < ds_list_size(room_enemies); e++) {
+				var enemy = room_enemies[| e];
+				if (enemy.turn_done || enemy.dead) continue;
+				combat_enemy_act(e);
+				break; // one per tick, with action_delay between
+			}
 		} else {
 	        action_timer -= 1;
 	    }
@@ -426,6 +354,8 @@ switch (state) {
 			
 			// dice left on the new-slot tile (not enough to build it) go to the discard pile too
 			combat_discard_slot_building();
+			// the queue resets every turn (F193): built slots go, unless a Sticky die is holding one
+			combat_queue_reset_built();
 
 			ejected_dice = true;
 		}
@@ -548,9 +478,8 @@ switch (state) {
 					
 						enemy.turn_done = false;
 						enemy.turns_since_last_block++;
-						if (enemy.turns_since_last_block > 1 && !enemy.keep_block_between_turns) {
-							enemy.block_amount = 0;
-						}
+						// block lasts the round it's made in (the timeline: an early Block soaks your later slots)
+						if (!enemy.keep_block_between_turns) enemy.block_amount = 0;
 					}
 					
 					var end_of_round_data = {
@@ -637,4 +566,7 @@ if (keyboard_check_pressed(vk_enter) && !_sealed_now && state == CombatState.PLA
 intel_level = insight_revealed ? INTEL_LEGIBLE : INTEL_FADED;
 
 // the guided first fight moves on as its steps are done
+// the hand is always one even row (combat_hand_row)
+if (!show_rewards) combat_hand_row();
+
 tutorial_step();
