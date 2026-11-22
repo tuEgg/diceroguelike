@@ -3339,22 +3339,6 @@ function combat_insight_view_draw() {
 				}
 				_bx += _rw + 12;
 			}
-			// second row: move when it happens, a slot earlier or later (the timeline, F193)
-			if (variable_struct_exists(_en.intent, "after_slot") && !_en.turn_done) {
-				var _p = _en.intent.after_slot, _nq = ds_list_size(action_queue);
-				var _eff = (_p >= ENEMY_POINT_LAST) ? max(1, _nq) : _p;
-				var _ew = ink_button_w("Earlier", INK_COST_MOVE, 100), _lw = ink_button_w("Later", INK_COST_MOVE, 100);
-				var _mx = _ir.x - (_ew + _lw + 12) / 2;
-				var _can = combat_insight_can(INK_COST_MOVE);
-				var _eb = ink_button(_mx + _ew / 2, _by + 40, 100, 32, "Earlier", INK_COST_MOVE, _can && _eff > 1);
-				var _lb = ink_button(_mx + _ew + 12 + _lw / 2, _by + 40, 100, 32, "Later", INK_COST_MOVE, _can && _p < ENEMY_POINT_LAST && _p < 7);
-				if (_eb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Earlier", string(_en.data.name) + " acts a slot earlier.\nNow: " + enemy_point_text(_en), undefined, 0, undefined, INK_COST_MOVE, "ink");
-				if (_lb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Later", string(_en.data.name) + " acts a slot later.\nNow: " + enemy_point_text(_en), undefined, 0, undefined, INK_COST_MOVE, "ink");
-				if ((_eb.click || _lb.click) && combat_insight_spend(INK_COST_MOVE)) {
-					_en.intent.after_slot = _eb.click ? max(1, _eff - 1) : _p + 1;
-					float_text(_ir.x, _ir.y - _ir.h / 2 - 20, enemy_point_text(_en), c_white); // what changed
-				}
-			}
 			if (_can_rewrite) {
 				var _wb = ink_button(_bx + _ww / 2, _by, 100, 32, "Rewrite", INSIGHT_COST_QUILL, combat_insight_can(INSIGHT_COST_QUILL));
 				if (_wb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rewrite", string(_en.data.name) + " picks a different move.", undefined, 0, undefined, INSIGHT_COST_QUILL, "ink");
@@ -3415,8 +3399,8 @@ function combat_insight_view_draw() {
 			else combat_redraw_die(_clicked);
 		}
 
-		// the timeline track, over the log too (it's what Earlier and Later change)
-		combat_timeline_draw();
+		// the timeline track, over the log too, with its ink arrows (Earlier, Later)
+		combat_timeline_draw(true);
 
 		// your ink as pips under the inkwell; the ones a hovered action would spend flicker
 		draw_ink_pips(_ex, _ey + 50, player_intel, ink_preview);
@@ -3638,6 +3622,7 @@ function combat_enemy_colour(_enemy) {
 /// @desc An enemy's letter in a circle of its colour (A, B, C...): on its intent tag and its timeline marker.
 function combat_enemy_badge(_x, _y, _enemy, _scale = 1, _alpha = 1) {
 	var _m = variable_struct_exists(_enemy, "mark") ? _enemy.mark : 0;
+	var _font = draw_get_font(), _ha = draw_get_halign(), _va = draw_get_valign(); // put back after: callers draw on in theirs
 	draw_set_alpha(_alpha);
 	draw_set_color(global.ui_col.ink);
 	draw_circle(_x, _y, 12 * _scale, false);
@@ -3649,6 +3634,9 @@ function combat_enemy_badge(_x, _y, _enemy, _scale = 1, _alpha = 1) {
 	draw_set_color(c_white);
 	draw_text_transformed(_x, _y + 1, chr(ord("A") + (_m mod 26)), _scale, _scale, 0);
 	draw_set_alpha(1);
+	draw_set_font(_font);
+	draw_set_halign(_ha);
+	draw_set_valign(_va);
 }
 
 /// @func combat_point_x(_k)
@@ -3657,47 +3645,51 @@ function combat_point_x(_k) {
 	return oCombat.aq_x0 + _k * oCombat.aq_step - (oCombat.aq_step - oCombat.aq_tile_w) / 2;
 }
 
-/// @func combat_timeline_draw()
+/// @func combat_timeline_draw([_ink])
 /// @desc The track over the queue (option C of docs/mockups/queue-timeline.html): a line with a numbered notch over each
-///       of your slots (faint past the ones you've built), and each enemy's marker riding it at the gap where its move
-///       happens: its letter, its move's icon and number, a line down to the gap. Moves in the same gap stack. Done moves
-///       dim; a move from an enemy that's dead or stunned greys out. Hover a marker for what and when.
-function combat_timeline_draw() {
+///       slot and the new-slot tile, and each enemy's marker riding it at the gap where its move happens: its letter, its
+///       move's icon and number, a line down to the gap. A point past the new-slot tile shows there, its notch reading
+///       "3+" (Jared, 2026-11-22: no long lines over the enemies). Moves in one gap stack. Done moves dim; a dead or
+///       Stunned enemy's greys. Hover a marker for what and when. _ink (the ink view): arrows either side of each
+///       marker move it a slot earlier or later for INK_COST_MOVE.
+function combat_timeline_draw(_ink = false) {
 	with (oCombat) {
 		if (!variable_instance_exists(id, "aq_step")) return;
+		var _layer = _ink ? UI_LAYER.POPUP : UI_LAYER.BASE;
 		var _n = ds_list_size(action_queue);
-		var _furthest = _n + 1;
+		var _last = _n + 1; // the new-slot tile's notch: the furthest the track goes
+		var _beyond = false;
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var _en = room_enemies[| e];
-			if (variable_struct_exists(_en.intent, "after_slot") && _en.intent.after_slot < ENEMY_POINT_LAST) _furthest = max(_furthest, _en.intent.after_slot);
+			if (variable_struct_exists(_en.intent, "after_slot") && _en.intent.after_slot > _last && _en.intent.after_slot < ENEMY_POINT_LAST) _beyond = true;
 		}
-		_furthest = min(_furthest, 7);
 		var _ty = aq_y0 - 44;
-		var _x_end = combat_point_x(_furthest) + 12;
+		var _x_end = combat_point_x(_last) + 12;
 		// the line
 		draw_set_alpha(0.9);
 		draw_set_color(global.ui_col.paper_hi);
 		draw_line_width(aq_x0 - 6, _ty, _x_end, _ty, 4);
-		// a notch and number over each slot (faint past your slots)
+		// a notch and number over each slot and the tile
 		draw_set_font(ftDescriptions);
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_bottom);
-		for (var k = 1; k <= _furthest; k++) {
+		for (var k = 1; k <= _last; k++) {
 			var _cx = aq_x0 + (k - 1) * aq_step + aq_tile_w / 2;
 			var _built = (k <= _n);
-			draw_set_alpha(_built ? 1 : 0.4);
+			draw_set_alpha(_built ? 1 : 0.5);
 			draw_set_color(global.ui_col.paper_hi);
 			draw_circle(_cx, _ty, 5, false);
-			draw_outline_text(string(k), global.ui_col.ink, global.ui_col.paper_hi, 2, _cx, _ty - 8, 1, _built ? 1 : 0.45, 0);
+			var _lbl = string(k) + ((k == _last && _beyond) ? "+" : "");
+			draw_outline_text(_lbl, global.ui_col.ink, global.ui_col.paper_hi, 2, _cx, _ty - 8, 1, _built ? 1 : 0.6, 0);
 		}
 		draw_set_alpha(1);
 		// the markers, grouped by gap
-		var _stack = array_create(10, 0);
+		var _stack = array_create(_last + 2, 0);
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var _en = room_enemies[| e];
 			if (!variable_struct_exists(_en.intent, "after_slot") || _en.intent.alpha < 0.05) continue;
 			var _p = _en.intent.after_slot;
-			var _gap = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : min(_p, 7);
+			var _gap = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : min(_p, _last);
 			var _gx = combat_point_x(_gap);
 			var _row = _stack[_gap]; _stack[_gap]++;
 			var _my = _ty - 40 - _row * 42;
@@ -3734,8 +3726,37 @@ function combat_timeline_draw() {
 				draw_text(_gx - _w / 2 + 58, _my + 1, _num);
 			}
 			draw_set_alpha(1);
-			if (mouse_hovering(_gx, _my, _w, 34, true, noone, noone, true, global.ui_layer)) {
+			if (mouse_hovering(_gx, _my, _w, 34, true, noone, noone, true, _layer)) {
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), string(_en.data.name) + ": " + string(_en.intent.move.move_name), intent_hover_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) + "\n" + enemy_point_text(_en));
+			}
+			// ink: an arrow either side moves it a slot (Jared, 2026-11-22: on the marker, not under the intent)
+			if (_ink && !_en.dead && !_en.turn_done) {
+				var _eff = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : _p;
+				var _can = combat_insight_can(INK_COST_MOVE);
+				for (var s = -1; s <= 1; s += 2) {
+					var _ok = _can && ((s < 0) ? (_eff > 1) : (_p < ENEMY_POINT_LAST && _p < 7));
+					var _axx = _gx + s * (_w / 2 + 20);
+					var _hov = mouse_hovering(_axx, _my, 30, 34, true, soSlotHover, noone, true, UI_LAYER.POPUP);
+					var _sc = (_hov && _ok) ? 1.15 : 1;
+					draw_set_alpha(_ok ? _a : _a * 0.45);
+					draw_set_color(global.color_intel);
+					draw_circle(_axx, _my, 14 * _sc, false);
+					draw_set_color((_hov && _ok) ? global.ui_col.paper_hi : global.ui_col.paper);
+					draw_triangle(_axx + s * 7 * _sc, _my, _axx - s * 5 * _sc, _my - 8 * _sc, _axx - s * 5 * _sc, _my + 8 * _sc, false);
+					draw_set_alpha(1);
+					if (_hov) {
+						ink_preview = INK_COST_MOVE;
+						quill_over = true;
+						queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), (s < 0) ? "Earlier" : "Later", string(_en.data.name) + " acts a slot " + ((s < 0) ? "earlier" : "later") + ".\nNow: " + enemy_point_text(_en), undefined, 0, undefined, INK_COST_MOVE, "ink");
+						if (mouse_check_button_pressed(mb_left)) {
+							if (!_ok && _can) throw_error("Can't move it", (s < 0) ? "It already acts after your first slot." : "It already acts last.");
+							else if (combat_insight_spend(INK_COST_MOVE)) {
+								_en.intent.after_slot = (s < 0) ? max(1, _eff - 1) : _p + 1;
+								float_text(_gx, _my - 30, enemy_point_text(_en), c_white); // what changed
+							}
+						}
+					}
+				}
 			}
 		}
 		draw_set_halign(fa_left);

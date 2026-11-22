@@ -1975,7 +1975,21 @@ function die_shape_points(_sides, _r) {
 		var _a = _start + i * 360 / _n;
 		array_push(_pts, [lengthdir_x(_rr, -_a), lengthdir_y(_rr, -_a)]);
 	}
+	// centred on its own box, so a d4 (point up, flat base) sits level with a d6 beside it (Jared, 2026-11-22: d6s sat lower)
+	var _off = die_shape_yoff(_sides, _r);
+	for (var i = 0; i < _n; i++) _pts[i][1] += _off;
 	return _pts;
+}
+
+/// @func die_shape_yoff(_sides, _r)
+/// @desc How far down die_shape_points moves a shape to centre its box on the die's y. The shape's own centre (where
+///       its pips go) moves with it: a d4's is 0.3 of _r below the die's y.
+function die_shape_yoff(_sides, _r) {
+	switch (_sides) {
+		case 4:  return _r * 1.18 * 0.25;            // a triangle point up: from -1.18r to +0.59r
+		case 10: return _r * (1 - dcos(36)) / 2;     // a pentagon point up
+		default: return 0;                           // squares, diamonds, hexagons: already centred
+	}
 }
 
 /// @func draw_die_shape(_x, _y, _r, _sides, _col, _angle, _alpha)
@@ -2092,9 +2106,9 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1, _die 
 	var _spread = _r * 0.42, _cy = 0;
 	switch (_sides) {
 		case 2:  _spread = _r * 0.36; break;
-		case 4:  _spread = _r * 0.27; _cy = _r * 0.02; break; // the triangle's centre (its centroid)
+		case 4:  _spread = _r * 0.27; _cy = _r * 0.02 + die_shape_yoff(4, _r); break; // the triangle's centre (its centroid)
 		case 8:  _spread = _r * 0.34; break;
-		case 10: _spread = _r * 0.38; break;
+		case 10: _spread = _r * 0.38; _cy = die_shape_yoff(10, _r); break;
 	}
 	var _pips = die_pip_layout(_face);
 	if (array_length(_pips) > 0) {
@@ -2125,7 +2139,7 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1, _die 
 ///       circle (half the radius for a d4's triangle) so they fit every size.
 function die_look_draw(_look, _x, _y, _r, _sides, _col, _angle, _alpha) {
 	var _in = (_sides == 4) ? _r * 0.48 : _r * 0.72; // the room inside the shape
-	var _cy = (_sides == 4) ? _r * 0.02 : 0;
+	var _cy = ((_sides == 4) ? _r * 0.02 : 0) + die_shape_yoff(_sides, _r);
 	switch (_look) {
 		case "ghost":
 			// a dashed pale edge round it

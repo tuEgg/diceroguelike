@@ -35,12 +35,15 @@
 | 25: queue timeline | F193 | `feature/queue-timeline` (off `feature/ink-view`) | **Not yet play-tested.** Enemy moves act between your slots, shown on a track; the queue resets each turn; slots cost 2, 4, 6 pips; ink moves a move a slot for 4. |
 
 **Batch 25 test list (`feature/queue-timeline`, off `feature/ink-view`)**
-- F193 A track sits over the queue: numbers over your slots (faint past the ones you've built). Each enemy has a letter in a coloured circle on its intent tag, and a marker with the same letter, icon and number riding the track at the gap after the slot where it acts. Two in one gap stack. Hover a marker: its move and "After your slot 2." / "After your last slot."
+- F193 A track sits over the queue: numbers over your slots and the new-slot tile, nothing further. A move set past the tile shows at the tile, whose number reads "2+" (no long lines over the enemy). Each enemy has a letter in a coloured circle on its intent tag, and a marker with the same letter, icon and number riding the track at the gap after the slot where it acts. Two in one gap stack. Hover a marker: its move and "After your slot 2." / "After your last slot."
 - F193 End Turn: your slots act left to right and each enemy acts at its gap, between your slots. A marker past your last slot acts at the end. Block made before a hit stops it; a hit before your Block slot gets through.
 - F193 Kill or stun an enemy before its gap: it doesn't act and its marker greys. One you kill after it acted doesn't break the turn (watch for the next turn starting normally).
 - F193 Fixed timings: Mock, Peck, Coil, buffs and most debuffs come after slot 1; Mimic, big hits (Heavy Swing, Crushing Slam, Volley Fire...) and Rest come last; Peg-leg's Escaping after slot 2. Everything else is rolled 1-4 each turn.
 - F193 The queue resets every turn: next turn you're back to one slot (a slot a Sticky die is in stays). Slot 2 costs 2 pips, slot 3 4, slot 4 6; one die can build a slot if it's enough. Enemy block is gone at the end of each round.
-- F193 Ink view: under each intent, Earlier and Later (4 ink each) move its marker a slot; "After slot N" floats up. Earlier stops at slot 1, Later stops at "last" moves.
+- F193 Ink view: an arrow either side of each marker on the track (4 ink each) moves it a slot earlier or later; "After your slot N." floats up. Hovering one flickers the 4 pips it costs. Earlier stops at slot 1, Later at "last" moves. Nothing extra under the intents any more.
+- Intent tags over enemies are their normal size again (the letter badge was shrinking the number).
+- d4s and d6s side by side sit level everywhere dice are drawn (hand, slots, bag, rewards): the triangle used to sit high. Check d4 pips are still centred in the triangle, and d10s too if any show.
+- Mockup to review, not in the game: docs/mockups/wet-ink-edge.html (a wet ink edge on everything you can spend ink on).
 - F193 Bind and Rot pick their slot when you end your turn, from the slots with dice (Rot's slot flashes green). During your turn no slot shows as chained or rotten, and you can play into any of them.
 
 **Batch 24 test list (`feature/ink-view`)**

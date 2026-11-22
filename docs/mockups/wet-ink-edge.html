@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wet ink edge</title>
+<style>
+:root { --bg: #15171d; --text: #e2d4b0; --muted: #b9ad92; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 Georgia, serif; }
+main { max-width: 980px; margin: 0 auto; padding: 24px 16px; }
+canvas { width: 100%; height: auto; display: block; border-radius: 10px; }
+.row { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; margin-top: 12px; }
+label { color: var(--muted); display: flex; gap: 8px; align-items: center; }
+button { font: inherit; padding: 6px 14px; border-radius: 6px; border: 2px solid #2A1D12; background: #F1E4C4; color: #2A1D12; cursor: pointer; }
+p { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+	<h1 style="font-size:22px;margin:0 0 6px">Wet ink edge (shader mockup)</h1>
+	<p>Anything you can spend ink on in the ink view gets a wet edge: ink bleeding out from it, darker where it pools at the rim, with a moving shine and a slow creep. Here it's on the Reroll/Redraw buttons, the timeline marker's arrows, Reveal/Rewrite and the inkwell. In the game it would be one extra step in the ink view's shader pass, drawn from a mask of those shapes.</p>
+	<canvas id="c" width="960" height="540"></canvas>
+	<div class="row">
+		<button id="toggle">Edge: on</button>
+		<label>Spread <input id="spread" type="range" min="4" max="26" value="14"></label>
+		<label>Wobble <input id="wob" type="range" min="0" max="100" value="55"></label>
+		<label>Shine <input id="shine" type="range" min="0" max="100" value="60"></label>
+	</div>
+	<p id="err" style="color:#e08a7a"></p>
+</main>
+<script>
+const W = 960, H = 540;
+const scene = document.createElement('canvas'); scene.width = W; scene.height = H;
+const mask = document.createElement('canvas'); mask.width = W; mask.height = H;
+const S = scene.getContext('2d'), M = mask.getContext('2d');
+
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+const INK = '#2a2e4c', PAPER = '#e7d6b0', PAPER_HI = '#f1e4c4', DARK = '#2a1d12';
+
+// the parchment page (a stand-in for the ink view's look)
+S.fillStyle = PAPER; S.fillRect(0, 0, W, H);
+for (let i = 0; i < 9000; i++) { S.fillStyle = `rgba(80,60,30,${Math.random() * 0.06})`; S.fillRect(Math.random() * W, Math.random() * H, 2, 2); }
+S.strokeStyle = 'rgba(42,29,18,0.18)'; S.lineWidth = 1;
+for (let y = 0; y < H; y += 9) { S.beginPath(); for (let x = 0; x <= W; x += 20) S.lineTo(x, y + Math.sin(x * 0.02 + y) * 2); S.stroke(); }
+// the horizon lines of the inked scene
+S.strokeStyle = 'rgba(42,29,18,0.7)'; S.lineWidth = 2;
+S.beginPath(); for (let x = 0; x <= W; x += 10) S.lineTo(x, 300 + Math.sin(x * 0.006) * 14); S.stroke();
+S.beginPath(); S.moveTo(0, 400); S.lineTo(W, 400); S.stroke();
+
+// slots (kept in colour by the ink view, not ink things)
+function slot(x, title, col, num) {
+	S.fillStyle = '#6b5340'; rr(S, x - 8, 130, 176, 220, 8); S.fill();
+	S.fillStyle = PAPER_HI; rr(S, x, 168, 160, 150, 6); S.fill();
+	S.fillStyle = col; S.fillRect(x + 4, 172, 152, 32);
+	S.fillStyle = '#fff'; S.font = 'bold 20px Georgia'; S.textAlign = 'left'; S.fillText(title, x + 14, 195);
+	S.fillStyle = DARK; S.font = 'bold 54px Georgia'; S.textAlign = 'center'; S.fillText(num, x + 80, 285);
+}
+slot(150, 'Twin Strike', '#b8412f', '6');
+slot(340, 'Sleuth', '#2a2e4c', '6');
+// the track
+S.strokeStyle = PAPER_HI; S.lineWidth = 4; S.beginPath(); S.moveTo(140, 110); S.lineTo(560, 110); S.stroke();
+S.fillStyle = DARK; S.font = 'bold 18px Georgia'; S.textAlign = 'center'; S.fillText('1', 230, 100); S.fillText('2', 420, 100); S.fillText('3+', 610, 100);
+
+// ink things: drawn into the scene, and their shapes into the mask
+function both(fn) { fn(S, false); fn(M, true); }
+function pill(cx, cy, label, cost) {
+	both((c, m) => {
+		c.font = '18px Georgia'; const w = Math.max(100, c.measureText(label).width + 62), h = 32;
+		c.fillStyle = m ? '#fff' : INK; rr(c, cx - w / 2 - 2, cy - h / 2 - 2, w + 4, h + 4, 18); c.fill();
+		if (m) return;
+		c.fillStyle = PAPER; rr(c, cx - w / 2, cy - h / 2, w, h, 16); c.fill();
+		c.fillStyle = INK; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(label, cx - w / 2 + 12, cy + 1);
+		c.textAlign = 'right'; c.fillText(String(cost), cx + w / 2 - 12, cy + 1);
+		const dx = cx + w / 2 - 34; c.beginPath(); c.arc(dx, cy + 3, 5, 0, 7); c.fill(); c.beginPath(); c.moveTo(dx - 4.5, cy + 1); c.lineTo(dx + 4.5, cy + 1); c.lineTo(dx, cy - 8); c.fill();
+		c.textBaseline = 'alphabetic';
+	});
+}
+function arrow(cx, cy, dir) {
+	both((c, m) => {
+		c.fillStyle = m ? '#fff' : INK; c.beginPath(); c.arc(cx, cy, 14, 0, 7); c.fill();
+		if (m) return;
+		c.fillStyle = PAPER; c.beginPath(); c.moveTo(cx + dir * 7, cy); c.lineTo(cx - dir * 5, cy - 8); c.lineTo(cx - dir * 5, cy + 8); c.fill();
+	});
+}
+function die(cx, cy, col) {
+	S.fillStyle = 'rgba(0,0,0,0.3)'; S.beginPath(); S.moveTo(cx + 3, cy - 38); S.lineTo(cx + 42, cy + 30); S.lineTo(cx - 36, cy + 30); S.fill();
+	S.fillStyle = '#14141a'; S.beginPath(); S.moveTo(cx, cy - 40); S.lineTo(cx + 40, cy + 26); S.lineTo(cx - 40, cy + 26); S.fill();
+	S.fillStyle = col; S.beginPath(); S.moveTo(cx, cy - 34); S.lineTo(cx + 34, cy + 22); S.lineTo(cx - 34, cy + 22); S.fill();
+	S.fillStyle = '#fff'; S.beginPath(); S.arc(cx, cy + 4, 6, 0, 7); S.fill();
+}
+// the marker on the track, with its arrows
+S.strokeStyle = '#d9534f'; S.lineWidth = 3; S.beginPath(); S.moveTo(515, 86); S.lineTo(515, 128); S.stroke();
+S.fillStyle = '#d9534f'; rr(S, 462, 46, 106, 40, 12); S.fill(); S.fillStyle = '#2a201a'; rr(S, 465, 49, 100, 34, 10); S.fill();
+S.fillStyle = '#d9534f'; S.beginPath(); S.arc(481, 66, 10, 0, 7); S.fill(); S.fillStyle = '#fff'; S.font = 'bold 14px Georgia'; S.textAlign = 'center'; S.fillText('A', 481, 71);
+S.fillStyle = '#5b9bd5'; rr(S, 497, 56, 14, 20, 4); S.fill(); S.fillStyle = PAPER_HI; S.font = '17px Georgia'; S.fillText('5-8', 540, 72);
+arrow(442, 66, -1); arrow(588, 66, 1);
+// the enemy's tag and its buttons
+S.fillStyle = PAPER_HI; rr(S, 760, 150, 140, 80, 6); S.fill(); S.fillStyle = '#5b9bd5'; rr(S, 790, 170, 30, 40, 6); S.fill(); S.fillStyle = DARK; S.font = '18px Georgia'; S.fillText('5-8', 850, 196);
+S.fillStyle = '#d9534f'; S.beginPath(); S.arc(760, 150, 12, 0, 7); S.fill(); S.fillStyle = '#fff'; S.font = 'bold 14px Georgia'; S.fillText('A', 760, 155);
+pill(770, 262, 'Reveal', 2); pill(888, 262, 'Rewrite', 6);
+// the hand
+die(330, 470, '#2a2e4c'); die(480, 470, '#5b9bd5');
+pill(330, 370, 'Reroll', 3); pill(330, 406, 'Redraw', 3);
+pill(480, 370, 'Reroll', 3); pill(480, 406, 'Redraw', 3);
+// the inkwell
+both((c, m) => {
+	c.fillStyle = m ? '#fff' : INK; rr(c, 50, 200, 56, 48, 8); c.fill(); rr(c, 64, 186, 28, 18, 4); c.fill();
+	if (!m) { c.fillStyle = 'rgba(255,255,255,0.25)'; c.fillRect(58, 210, 8, 28); }
+});
+
+// ---- the shader ----
+const VS = `attribute vec2 p; varying vec2 v_vTexcoord; void main(){ v_vTexcoord = p * 0.5 + 0.5; v_vTexcoord.y = 1.0 - v_vTexcoord.y; gl_Position = vec4(p, 0.0, 1.0); }`;
+// shWetInk: the frame, with ink bleeding out round every shape in u_mask
+const FS = `precision mediump float;
+varying vec2 v_vTexcoord;
+uniform sampler2D gm_BaseTexture; // the frame
+uniform sampler2D u_mask;         // white where an ink thing is
+uniform vec2 u_texel;
+uniform float u_time, u_spread, u_wobble, u_shine, u_on;
+float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+float noise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
+float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int k = 0; k < 4; k++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v; }
+// how much ink is near: the mask blurred over a disc of u_spread px (rings of taps)
+float field(vec2 uv) {
+	float s = 0.0, w = 0.0;
+	for (int i = 0; i < 12; i++) {
+		float a = float(i) * 0.5236;
+		for (int j = 1; j <= 3; j++) {
+			float r = float(j) / 3.0 * u_spread;
+			float ww = 1.25 - float(j) * 0.3;
+			s += texture2D(u_mask, uv + vec2(cos(a), sin(a)) * r * u_texel).a * ww;
+			w += ww;
+		}
+	}
+	return s / w;
+}
+void main() {
+	vec4 base = texture2D(gm_BaseTexture, v_vTexcoord);
+	float inside = texture2D(u_mask, v_vTexcoord).a;
+	if (u_on < 0.5 || inside > 0.5) { gl_FragColor = base; return; }
+	// the edge creeps: the place we sample from wanders with slow noise, and the threshold breathes
+	vec2 px = v_vTexcoord / u_texel;
+	vec2 drift = vec2(fbm(px / 38.0 + u_time * 0.12), fbm(px / 38.0 + 9.3 - u_time * 0.1)) - 0.5;
+	vec2 uv = v_vTexcoord + drift * u_wobble * 10.0 * u_texel;
+	// drips: here and there the ink runs down a little, swaying slowly
+	float dn = noise(vec2(px.x / 11.0, 3.0));
+	float drip = pow(dn, 4.0) * u_spread * (2.2 + 0.4 * sin(u_time * 0.6 + dn * 6.0));
+	float f = max(field(uv), field(uv - vec2(0.0, drip * u_texel.y)) * smoothstep(0.55, 0.8, dn));
+	float grain = fbm(px / 9.0 + u_time * 0.04); // fibres of the paper soaking it up unevenly: lobes
+	float th = 0.03 + 0.16 * grain * grain + 0.01 * sin(u_time * 1.7);
+	float wet = smoothstep(th, th + 0.025, f);
+	if (wet <= 0.0) { gl_FragColor = base; return; }
+	// solid near the shape, pooling darkest at the outer rim, a lighter wash between
+	float rim = 1.0 - smoothstep(th + 0.01, th + 0.09, f);
+	float a = wet * mix(0.72, 0.96, max(rim, smoothstep(0.35, 0.6, f)));
+	vec3 ink = vec3(0.05, 0.06, 0.13);
+	vec3 col = mix(base.rgb, ink, a);
+	// the shine: the wet surface as a dome (higher towards the shape), lit from the top left; crisp, sliding a little
+	float e = 3.0;
+	float fx = field(uv + vec2(u_texel.x * e, 0.0)) - field(uv - vec2(u_texel.x * e, 0.0));
+	float fy = field(uv + vec2(0.0, u_texel.y * e)) - field(uv - vec2(0.0, u_texel.y * e));
+	vec3 n = normalize(vec3(-fx * 9.0, -fy * 9.0, 1.0));
+	vec3 L = normalize(vec3(-0.5 + 0.3 * sin(u_time * 0.7), -0.7, 0.55));
+	vec3 Hh = normalize(L + vec3(0.0, 0.0, 1.0));
+	float spec = pow(max(dot(n, Hh), 0.0), 40.0) * wet;
+	float glint = pow(max(dot(n, Hh), 0.0), 160.0) * wet; // the bright point of the shine
+	col += vec3(0.62, 0.68, 0.9) * spec * u_shine * 0.55 + vec3(1.0) * glint * u_shine * 0.7;
+	gl_FragColor = vec4(col, 1.0);
+}`;
+const c = document.getElementById('c');
+const gl = c.getContext('webgl');
+function sh(t, s) { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; }
+try {
+	const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(pr); gl.useProgram(pr);
+	const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+	const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+	function tex(unit, src) { const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); }
+	tex(0, scene); tex(1, mask);
+	const U = n => gl.getUniformLocation(pr, n);
+	gl.uniform1i(U('gm_BaseTexture'), 0); gl.uniform1i(U('u_mask'), 1); gl.uniform2f(U('u_texel'), 1 / W, 1 / H);
+	let on = 1;
+	document.getElementById('toggle').onclick = e => { on = 1 - on; e.target.textContent = 'Edge: ' + (on ? 'on' : 'off'); };
+	const t0 = performance.now();
+	(function frame() {
+		gl.uniform1f(U('u_time'), (performance.now() - t0) / 1000);
+		gl.uniform1f(U('u_spread'), +document.getElementById('spread').value);
+		gl.uniform1f(U('u_wobble'), document.getElementById('wob').value / 100);
+		gl.uniform1f(U('u_shine'), document.getElementById('shine').value / 100);
+		gl.uniform1f(U('u_on'), on);
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+		requestAnimationFrame(frame);
+	})();
+} catch (e) { document.getElementById('err').textContent = e.message; }
+</script>
+</body>
+</html>
