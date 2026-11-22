@@ -30,12 +30,20 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 32: slot number, ink sound, more ink eggs | F227, F228, F229, F230, F231 | `feature/workbench-freeform` | **Not yet play-tested.** A slot's big number is its dice, the place bonus only on the die; ink dice resolving sound wet; the drawn die takes big-circle pips; "+1" and "neow" eggs. |
 | 31: the free workbench | F224 | `feature/workbench-freeform` (off batch 30) | **Not yet play-tested.** No slots: dice anywhere on a plank table, tools on a rack that work where they land, dice from the bag any time. |
 | 30: playtester notes (itch, 2026-11-22) | B156, B157, B158, B159, F215, F216, F217, F218, F219, F220, F221, F222, F223 | `fix/playtest-11-22` | **Not yet play-tested.** Only what you can afford is in colour in the ink view, alignment named as alignment, a slot's bonus under its total, Kill coin counts on the tile, a fight on every draft, green extra plays, rewards close themselves, event words explained, take-back fixes. |
 | 29: ink cursor, room for three enemies, burning rewards | B155, F183, F184, F212, F213, F214 | `fix/playtest-11-22` | **Not yet play-tested.** Quill cursor by default in the ink view, no mouse hint, enemies clear of the four-place queue, drag the marker itself (grip at its end), ink take-back sound, ship's bell, torch on burns, the locked item reward burns. |
 | 28: queue and ink view | B152, B153, B154, F205, F206, F207, F208, F209, F210 | `fix/playtest-11-22` | **Not yet play-tested.** Four slots always in view, drag a move along the track, click intents in the ink view, dice dealt in an arc, sea stop odds, the settings not inked, d4 text centred, the track lifts over a hovered slot, an ink easter egg. |
 | 27: sounds | F204 | `fix/playtest-11-22` | **Not yet play-tested.** Jared's new sounds wired in. |
 | 26: playtest notes 2026-11-22 | B147, B148, B149, B150, B151, F196, F197, F198, F199, F200, F201, F202 | `fix/playtest-11-22` (off `dev`) | **Not yet play-tested.** Two crashes, the island flash on the page turn, a wrong padlock in slot 1, enemy block lasts until it acts again, ink buttons stand out, d6 ink slosh, linked stop badge, keepsake reward cards, min roll cap, the wreck with full slots. |
+
+**Batch 32 test list**
+- F227 (replaces F217) A slot with dice: the big number is what its dice come to (a 3 in slot 2 reads 3, not 4); the place bonus is the small green badge on its first die. An empty slot still shows its green "+1" / "+2" in the middle.
+- F228 An ink die's slot resolving at End Turn plays soInk2 (the wet sound it makes when you move it).
+- F229 Ink easter egg (the drawn die): the four pips can be small circles as well as dots (up to about a third of the triangle's size, roughly round and closed).
+- F230 Ink view, once a run: write "+1" (a plus from two crossing strokes, then a 1 to its right, at least as tall as the plus). It lifts off as "+1 play" and you have one more play this turn.
+- F231 Ink view, once a run: write "neow" (print or joined up, on one line). It lifts off as "+100 gold". Tested on simulated writing only: plain letters pass almost always, a very narrow "n" about half the time; "now", "new", "wow", "neon" and scribbles don't. If yours doesn't take, tell me how you wrote it.
 
 **Batch 31 test list (the free workbench, `feature/workbench-freeform`)** Open the project from `C:\Users\Jared\Projects\TidesOfFortune-workbench` (a second checkout of this branch), or merge it in. F1: "Give all tools" (new, under "Complete this spread"), a core from the items list, then rooms > Workbench.
 - The room: a plank table with a pinned "Shipwright's bench" sheet, a pegboard rack on the right with your tools hanging on brass pegs, Continue bottom right. The toolbag no longer drops open here.

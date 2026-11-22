@@ -502,6 +502,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 		case "INTEL":
 			if (_source == "player") {
+				sfx_play(soInk2, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.8); // wet, as when it's moved (Jared, 2026-11-22)
 				// insight counts next turn
 				apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
 				var num = spawn_floating_number("player", amount, -1, global.text_intel, 1, -1, _dice_list_index);
@@ -4020,9 +4021,19 @@ function ink_doodle_step(_over_something) {
 }
 
 /// @func ink_egg_check()
-/// @desc An easter egg (Jared, 2026-11-22): draw a triangle in one stroke with four dots inside it (a d4 showing 4) and,
-///       once a run, the drawing comes off the page as a generic d4 that always rolls 4 (into your discard pile).
+/// @desc A stroke was finished in the ink view: the drawing easter eggs, each once a run (Jared, 2026-11-22): a d4
+///       showing 4 (ink_egg_drawn_die), "+1" (an extra play this turn, ink_egg_plus_one) and "neow" (100 gold,
+///       ink_egg_neow).
 function ink_egg_check() {
+	ink_egg_drawn_die();
+	ink_egg_plus_one();
+	ink_egg_neow();
+}
+
+/// @func ink_egg_drawn_die()
+/// @desc Draw a triangle in one stroke with four pips inside it (dots or small circles: a d4 showing 4) and the drawing
+///       comes off the page as a generic d4 that always rolls 4 (into your bag).
+function ink_egg_drawn_die() {
 	with (oCombat) {
 		if (oRunManager.ink_egg_found) return;
 		var _n = array_length(ink_strokes);
@@ -4030,10 +4041,11 @@ function ink_egg_check() {
 			var _tri = ink_stroke_triangle(ink_strokes[i].pts);
 			if (!is_array(_tri)) continue;
 			var _dots = 0;
+			var _tb = ink_stroke_bbox(ink_strokes[i].pts);
 			for (var j = 0; j < _n; j++) {
 				if (j == i) continue;
 				var _b = ink_stroke_bbox(ink_strokes[j].pts);
-				if (max(_b.w, _b.h) > 18) continue; // a dot, not a line
+				if (!ink_stroke_pip(ink_strokes[j].pts, max(_tb.w, _tb.h))) continue; // a dot or a small circle, not a line
 				if (point_in_triangle(_b.cx, _b.cy, _tri[0][0], _tri[0][1], _tri[1][0], _tri[1][1], _tri[2][0], _tri[2][1])) _dots++;
 			}
 			if (_dots != 4) continue;
@@ -4098,6 +4110,274 @@ function ink_stroke_triangle(_pts) {
 	}
 	if (_sum / _c > _s * 0.07 || _max > _s * 0.2) return undefined;
 	return [[_ax, _ay], [_bx, _by], [_cx, _cy]];
+}
+
+/// @func ink_stroke_pip(_pts, _size)
+/// @desc Is a stroke a pip, inside a drawing _size across? A dot (18 px or less), or a small closed, roundish loop
+///       (Jared, 2026-11-22: big circles count too).
+function ink_stroke_pip(_pts, _size) {
+	var _b = ink_stroke_bbox(_pts);
+	var _m = max(_b.w, _b.h);
+	if (_m <= 18) return true;
+	if (_m > min(55, _size * 0.32)) return false;
+	var _c = array_length(_pts);
+	var _closed = point_distance(_pts[0][0], _pts[0][1], _pts[_c - 1][0], _pts[_c - 1][1]) <= _m * 0.5;
+	var _round = _b.w >= _b.h * 0.5 && _b.h >= _b.w * 0.5;
+	return _closed && _round;
+}
+
+/// @func ink_stroke_line(_pts)
+/// @desc A stroke as a straight line: { dir ("h", "v" or "" if it isn't straight), len, w, h, cx, cy, x1, y1, x2, y2 }.
+function ink_stroke_line(_pts) {
+	var _c = array_length(_pts);
+	var _b = ink_stroke_bbox(_pts);
+	var _len = 0;
+	for (var i = 1; i < _c; i++) _len += point_distance(_pts[i - 1][0], _pts[i - 1][1], _pts[i][0], _pts[i][1]);
+	var _dx = _pts[_c - 1][0] - _pts[0][0], _dy = _pts[_c - 1][1] - _pts[0][1];
+	var _dir = "";
+	if (_len >= 20 && point_distance(0, 0, _dx, _dy) >= _len * 0.8) {
+		if (abs(_dy) <= abs(_dx) * 0.36) _dir = "h";
+		else if (abs(_dx) <= abs(_dy) * 0.36) _dir = "v";
+	}
+	return { dir: _dir, len: _len, w: _b.w, h: _b.h, cx: _b.cx, cy: _b.cy, x1: _b.cx - _b.w / 2, y1: _b.cy - _b.h / 2, x2: _b.cx + _b.w / 2, y2: _b.cy + _b.h / 2 };
+}
+
+/// @func ink_egg_plus_one()
+/// @desc Write "+1": a horizontal and a vertical line crossing in the middle (the plus), and a tall upright stroke to
+///       its right (the one). Once a run, it's an extra play this turn.
+function ink_egg_plus_one() {
+	with (oCombat) {
+		if (oRunManager.ink_plus_found || state != CombatState.PLAYER_INPUT) return;
+		var _n = array_length(ink_strokes);
+		var _lines = [];
+		for (var i = 0; i < _n; i++) _lines[i] = ink_stroke_line(ink_strokes[i].pts);
+		for (var a = 0; a < _n; a++) {
+			var _h = _lines[a];
+			if (_h.dir != "h") continue;
+			for (var b = 0; b < _n; b++) {
+				var _v = _lines[b];
+				if (b == a || _v.dir != "v") continue;
+				if (abs(_h.cx - _v.cx) > _h.w * 0.3 || abs(_v.cy - _h.cy) > _v.h * 0.3) continue; // they cross near the middle
+				if (_h.w < _v.h * 0.5 || _h.w > _v.h * 2) continue;
+				var _s = max(_h.w, _v.h), _pcx = _v.cx, _pcy = _h.cy;
+				for (var k = 0; k < _n; k++) {
+					if (k == a || k == b) continue;
+					var _o = _lines[k];
+					if (_o.cx < _pcx + _s * 0.4 || _o.cx > _pcx + _s * 2.5) continue; // to the right
+					if (_o.h < _s * 0.7 || _o.w > _o.h * 0.7) continue; // tall and upright
+					if (_o.y1 > _pcy || _o.y2 < _pcy) continue; // level with the plus
+					oRunManager.ink_plus_found = true;
+					dice_allowed_this_turn_bonus += 1;
+					var _cx = (_pcx + _o.cx) / 2, _cy = _pcy;
+					ink_egg_lift(_cx, _cy, "+1 play", "Your +1 became a play.");
+					return;
+				}
+			}
+		}
+	}
+}
+
+/// @func ink_egg_neow()
+/// @desc Write "neow" (in print or joined up). Once a run, 100 gold. Matched as a point cloud ($P recognizer,
+///       ink_pdollar_*), whole and a letter at a time; the writing must be wide (3 to 9
+///       times as wide as tall; ink_neow_reads). The last 1 to 8 strokes are tried, so older doodles don't spoil it.
+function ink_egg_neow() {
+	with (oCombat) {
+		if (oRunManager.ink_neow_found) return;
+		var _n = array_length(ink_strokes);
+		for (var _take = 1; _take <= min(8, _n); _take++) {
+			var _strokes = [];
+			var _x1 = infinity, _y1 = infinity, _x2 = -infinity, _y2 = -infinity;
+			for (var i = _n - _take; i < _n; i++) {
+				array_push(_strokes, ink_strokes[i].pts);
+				var _b = ink_stroke_bbox(ink_strokes[i].pts);
+				_x1 = min(_x1, _b.cx - _b.w / 2); _x2 = max(_x2, _b.cx + _b.w / 2);
+				_y1 = min(_y1, _b.cy - _b.h / 2); _y2 = max(_y2, _b.cy + _b.h / 2);
+			}
+			var _w = _x2 - _x1, _hh = max(1, _y2 - _y1);
+			if (_w < 120 || _w / _hh < 3 || _w / _hh > 9) continue;
+			if (!ink_neow_reads(_strokes)) continue;
+			oRunManager.ink_neow_found = true;
+			oRunManager.credits += 100;
+			ink_egg_lift((_x1 + _x2) / 2, (_y1 + _y2) / 2, "+100 gold", "Neow. 100 gold.");
+			return;
+		}
+	}
+}
+
+/// @func ink_egg_lift(_x, _y, _float, _feed)
+/// @desc An ink egg paid out: the writing lifts off the page in a burst, with a word over it.
+function ink_egg_lift(_x, _y, _float, _feed) {
+	with (oCombat) {
+		ink_strokes = [];
+		ink_drawing = false;
+		particle_emit_later(_x, _y, "burst", global.color_intel, 30);
+		particle_emit_later(_x, _y, "rise", global.color_gold, 12);
+		sfx_play(soCoins, AUDIO_GROUP.SFX, 0.05, 0.9);
+		float_text(_x, _y - 60, _float, c_white);
+		add_feed_entry(_feed);
+	}
+}
+
+// ---- $P point-cloud recognizer (Vatavu, Anthony, Wobbrock 2012), for written words in the ink view ----
+#macro INK_PDOLLAR_N 32
+
+/// @func ink_pdollar_cloud(_strokes)
+/// @desc Strokes (arrays of [x, y, ...]) as a normalized cloud of INK_PDOLLAR_N points [x, y]: resampled evenly along
+///       the strokes, scaled to a unit box (keeping its shape), centred on its middle.
+function ink_pdollar_cloud(_strokes) {
+	var _pts = [];
+	for (var s = 0; s < array_length(_strokes); s++) for (var i = 0; i < array_length(_strokes[s]); i++) array_push(_pts, [_strokes[s][i][0], _strokes[s][i][1], s]);
+	var _len = 0;
+	for (var i = 1; i < array_length(_pts); i++) if (_pts[i][2] == _pts[i - 1][2]) _len += point_distance(_pts[i - 1][0], _pts[i - 1][1], _pts[i][0], _pts[i][1]);
+	var _step = _len / (INK_PDOLLAR_N - 1);
+	var _out = [[_pts[0][0], _pts[0][1]]];
+	var _acc = 0;
+	var i = 1;
+	while (i < array_length(_pts) && _step > 0) {
+		if (_pts[i][2] == _pts[i - 1][2]) {
+			var _d = point_distance(_pts[i - 1][0], _pts[i - 1][1], _pts[i][0], _pts[i][1]);
+			if (_acc + _d >= _step && _d > 0) {
+				var _qx = _pts[i - 1][0] + ((_step - _acc) / _d) * (_pts[i][0] - _pts[i - 1][0]);
+				var _qy = _pts[i - 1][1] + ((_step - _acc) / _d) * (_pts[i][1] - _pts[i - 1][1]);
+				array_push(_out, [_qx, _qy]);
+				array_insert(_pts, i, [_qx, _qy, _pts[i][2]]);
+				_acc = 0;
+			} else _acc += _d;
+		}
+		i++;
+	}
+	while (array_length(_out) < INK_PDOLLAR_N) array_push(_out, [_pts[array_length(_pts) - 1][0], _pts[array_length(_pts) - 1][1]]);
+	if (array_length(_out) > INK_PDOLLAR_N) array_resize(_out, INK_PDOLLAR_N);
+	var _x1 = infinity, _y1 = infinity, _x2 = -infinity, _y2 = -infinity;
+	for (var k = 0; k < INK_PDOLLAR_N; k++) { _x1 = min(_x1, _out[k][0]); _x2 = max(_x2, _out[k][0]); _y1 = min(_y1, _out[k][1]); _y2 = max(_y2, _out[k][1]); }
+	var _size = max(1, max(_x2 - _x1, _y2 - _y1));
+	var _mx = 0, _my = 0;
+	for (var k = 0; k < INK_PDOLLAR_N; k++) { _out[k][0] = (_out[k][0] - _x1) / _size; _out[k][1] = (_out[k][1] - _y1) / _size; _mx += _out[k][0]; _my += _out[k][1]; }
+	_mx /= INK_PDOLLAR_N; _my /= INK_PDOLLAR_N;
+	for (var k = 0; k < INK_PDOLLAR_N; k++) { _out[k][0] -= _mx; _out[k][1] -= _my; }
+	return _out;
+}
+
+/// @func ink_pdollar_distance(_a, _b, _start)
+/// @desc $P's cloud distance: each point of _a, from _start round, takes its nearest unmatched point of _b; earlier
+///       matches weigh more.
+function ink_pdollar_distance(_a, _b, _start) {
+	var _n = INK_PDOLLAR_N;
+	var _used = array_create(_n, false);
+	var _sum = 0;
+	var i = _start;
+	do {
+		var _best = -1, _bd = infinity;
+		for (var j = 0; j < _n; j++) {
+			if (_used[j]) continue;
+			var _d = point_distance(_a[i][0], _a[i][1], _b[j][0], _b[j][1]);
+			if (_d < _bd) { _bd = _d; _best = j; }
+		}
+		_used[_best] = true;
+		_sum += (1 - ((i - _start + _n) mod _n) / _n) * _bd;
+		i = (i + 1) mod _n;
+	} until (i == _start);
+	return _sum;
+}
+
+/// @func ink_pdollar_match(_a, _b)
+/// @desc $P's greedy match between two clouds: the smallest distance over a spread of starting points, both ways.
+function ink_pdollar_match(_a, _b) {
+	var _step = floor(power(INK_PDOLLAR_N, 0.5));
+	var _min = infinity;
+	for (var i = 0; i < INK_PDOLLAR_N; i += _step) _min = min(_min, ink_pdollar_distance(_a, _b, i), ink_pdollar_distance(_b, _a, i));
+	return _min;
+}
+
+/// @func ink_pdollar_templates()
+/// @desc The shapes it knows, built once from letter strokes (x-height 1, letters 1 wide, 1.3 apart): "neow" in print
+///       and joined up (words), and single letters for reading a word one quarter at a time (letters: n e o w, and
+///       lookalikes l v c u). { words: [clouds], letters: [{ ch, cloud }] }.
+function ink_pdollar_templates() {
+	if (variable_global_exists("ink_pdollar_tpl")) return global.ink_pdollar_tpl;
+	var _arc = function(_cx, _cy, _r, _a0, _a1, _ox) {
+		var _s = [];
+		for (var k = 0; k <= 12; k++) { var _a = lerp(_a0, _a1, k / 12); array_push(_s, [_ox + _cx + lengthdir_x(_r, _a), _cy + lengthdir_y(_r, _a)]); }
+		return _s;
+	};
+	var _n = function(_ox) { return [[[_ox, 0], [_ox, 1]], [[_ox, 0.4], [_ox + 0.2, 0.05], [_ox + 0.5, 0], [_ox + 0.8, 0.05], [_ox + 1, 0.4], [_ox + 1, 1]]]; };
+	var _e = method({ arc: _arc }, function(_ox) { var _c = arc(0.5, 0.5, 0.5, 0, 315, _ox); array_insert(_c, 0, [_ox, 0.5]); return [_c]; });
+	var _o = method({ arc: _arc }, function(_ox) { return [arc(0.5, 0.5, 0.5, 0, 360, _ox)]; });
+	var _w = function(_ox) { return [[[_ox, 0], [_ox + 0.25, 1], [_ox + 0.5, 0.3], [_ox + 0.75, 1], [_ox + 1, 0]]]; };
+	var _word = function(_parts) {
+		var _all = [];
+		for (var p = 0; p < array_length(_parts); p++) for (var q = 0; q < array_length(_parts[p]); q++) array_push(_all, _parts[p][q]);
+		return _all;
+	};
+	global.ink_pdollar_tpl = {
+		words: [
+			ink_pdollar_cloud(_word([_n(0), _e(1.3), _o(2.6), _w(3.9)])),
+			ink_pdollar_cloud(_word([_n(0), [[[1, 1], [1.3, 0.5]]], _e(1.3), [[[2.15, 0.85], [2.6, 0.5]]], _o(2.6), [[[3.6, 0.5], [3.9, 0]]], _w(3.9)])),
+		],
+		letters: [
+			{ ch: "n", cloud: ink_pdollar_cloud(_n(0)) },
+			{ ch: "e", cloud: ink_pdollar_cloud(_e(0)) },
+			{ ch: "o", cloud: ink_pdollar_cloud(_o(0)) },
+			{ ch: "w", cloud: ink_pdollar_cloud(_w(0)) },
+			{ ch: "l", cloud: ink_pdollar_cloud([[[0, 0], [0, 1]]]) },
+			{ ch: "v", cloud: ink_pdollar_cloud([[[0, 0], [0.5, 1], [1, 0]]]) },
+			{ ch: "c", cloud: ink_pdollar_cloud([_arc(0.5, 0.5, 0.5, 45, 315, 0)]) },
+			{ ch: "u", cloud: ink_pdollar_cloud([[[0, 0], [0, 0.6], [0.2, 0.95], [0.5, 1], [0.8, 0.95], [1, 0.6], [1, 0]]]) },
+		],
+	};
+	return global.ink_pdollar_tpl;
+}
+
+/// @func ink_pdollar_letters(_strokes)
+/// @desc Reads writing as four letters, one per quarter of its width (each quarter's pieces of stroke matched against
+///       the letter templates). "?" for an empty quarter.
+function ink_pdollar_letters(_strokes) {
+	var _x1 = infinity, _x2 = -infinity;
+	for (var s = 0; s < array_length(_strokes); s++) for (var i = 0; i < array_length(_strokes[s]); i++) { _x1 = min(_x1, _strokes[s][i][0]); _x2 = max(_x2, _strokes[s][i][0]); }
+	var _qw = max(1, (_x2 - _x1) / 4);
+	var _cols = [[], [], [], []];
+	for (var s = 0; s < array_length(_strokes); s++) {
+		var _cur = [], _ci = -1;
+		for (var i = 0; i < array_length(_strokes[s]); i++) {
+			var _p = _strokes[s][i];
+			var _c = min(3, floor((_p[0] - _x1) / _qw));
+			if (_c != _ci) {
+				if (array_length(_cur) > 0) array_push(_cols[_ci], _cur);
+				_cur = [];
+				_ci = _c;
+			}
+			array_push(_cur, _p);
+		}
+		if (array_length(_cur) > 0) array_push(_cols[_ci], _cur);
+	}
+	var _tpl = ink_pdollar_templates().letters;
+	var _out = "";
+	for (var c = 0; c < 4; c++) {
+		if (array_length(_cols[c]) == 0) { _out += "?"; continue; }
+		var _cloud = ink_pdollar_cloud(_cols[c]);
+		var _best = "?", _bd = infinity;
+		for (var t = 0; t < array_length(_tpl); t++) {
+			var _d = ink_pdollar_match(_cloud, _tpl[t].cloud);
+			if (_d < _bd) { _bd = _d; _best = _tpl[t].ch; }
+		}
+		_out += _best;
+	}
+	return _out;
+}
+
+/// @func ink_neow_reads(_strokes)
+/// @desc Do these strokes say "neow"? The whole looks like the word (its $P distance to a "neow" template under 0.95),
+///       and read a quarter at a time it's n, then e or o (or c), twice, then w (or v). Calibrated on simulated
+///       handwriting (2026-11-22): "now", "new", "wow", "meow", "neon", zigzags and loops don't pass.
+function ink_neow_reads(_strokes) {
+	var _cloud = ink_pdollar_cloud(_strokes);
+	var _words = ink_pdollar_templates().words;
+	var _bd = infinity;
+	for (var t = 0; t < array_length(_words); t++) _bd = min(_bd, ink_pdollar_match(_cloud, _words[t]));
+	if (_bd >= 0.95) return false;
+	var _l = ink_pdollar_letters(_strokes);
+	return string_char_at(_l, 1) == "n" && string_pos(string_char_at(_l, 2), "eoc") > 0 && string_pos(string_char_at(_l, 3), "eoc") > 0 && string_pos(string_char_at(_l, 4), "wv") > 0;
 }
 
 /// @func ink_seg_dist(_px, _py, _ax, _ay, _bx, _by)

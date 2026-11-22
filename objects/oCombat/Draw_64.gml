@@ -178,11 +178,15 @@ for (var i = 0; i < aq_list_size; i++) {
 	// the slot as a paper ticket (ui_ticket, scUI): a band in its action's pigment with its glyph and name, the total
 	// huge in ink, and what its place adds (slot_set_position_bonus) inked beside it. Brass-edged while it acts.
 	var _pos_bonus = variable_struct_exists(action_queue[| i], "position_bonus") ? action_queue[| i].position_bonus : 0;
-	var _total_text = (label != "" && !(_low_roll == 0 && _high_roll == 0)) ? ((_low_roll == _high_roll) ? string(max(0, _low_roll)) : string(_low_roll) + "-" + string(_high_roll)) : "";
+	// the big number is what its dice come to; the place bonus shows on its first die, and in green only while it's
+	// empty (Jared, 2026-11-22: "4 +1" read as 5 when it was 3 + 1)
+	var _slot_has_dice = ds_list_size(action_queue[| i].dice_list) > 0;
+	var _show_low = _low_roll - (_slot_has_dice ? _pos_bonus : 0), _show_high = _high_roll - (_slot_has_dice ? _pos_bonus : 0);
+	var _total_text = (label != "" && !(_low_roll == 0 && _high_roll == 0)) ? ((_show_low == _show_high) ? string(max(0, _show_low)) : string(_show_low) + "-" + string(_show_high)) : "";
 	var _t_state = "";
 	if (state == CombatState.RESOLVE_ROUND && !enemies_turn_done && i == draw_action_index) _t_state = "acting";
 	if (locked_slot == i) _t_state = "locked";
-	ui_ticket(draw_x, draw_y, draw_w, draw_h, action_queue_type, label, _total_text, (_pos_bonus > 0) ? "+" + string(_pos_bonus) : "", i * 7 + 3, _t_state);
+	ui_ticket(draw_x, draw_y, draw_w, draw_h, action_queue_type, label, _total_text, (_pos_bonus > 0 && !_slot_has_dice) ? "+" + string(_pos_bonus) : "", i * 7 + 3, _t_state);
 
 	// If slot locked, draw the chain
 	if (locked_slot == i) {

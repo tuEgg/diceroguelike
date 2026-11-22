@@ -90,6 +90,8 @@ function save_game(_slot) {
 		shipwright_wait: oRunManager.shipwright_wait,
 		rooms_since_fight: oRunManager.rooms_since_fight,
 		ink_egg_found: oRunManager.ink_egg_found,
+		ink_plus_found: oRunManager.ink_plus_found,
+		ink_neow_found: oRunManager.ink_neow_found,
         items: _saved_items,
         tools: _saved_tools,
         keepsakes: _saved_keepsakes,
@@ -172,6 +174,8 @@ function load_game(_slot) {
 	oRunManager.shipwright_wait = variable_struct_exists(_save, "shipwright_wait") ? _save.shipwright_wait : 0;
 	oRunManager.rooms_since_fight = variable_struct_exists(_save, "rooms_since_fight") ? _save.rooms_since_fight : 0;
 	oRunManager.ink_egg_found = variable_struct_exists(_save, "ink_egg_found") ? _save.ink_egg_found : false;
+	oRunManager.ink_plus_found = variable_struct_exists(_save, "ink_plus_found") ? _save.ink_plus_found : false;
+	oRunManager.ink_neow_found = variable_struct_exists(_save, "ink_neow_found") ? _save.ink_neow_found : false;
 	oWorldManager.pages_drafted = _save.pages_drafted;
 	oRunManager.active_bounty = (_save.active_bounty != undefined) ? deserialise_bounty(_save.active_bounty) : undefined;
 	oWorldManager.choices_locked = _save.choices_locked;
