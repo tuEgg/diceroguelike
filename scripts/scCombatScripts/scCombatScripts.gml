@@ -327,7 +327,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 					//show_debug_message("Enemy target index: " + string(enemy_target_index));
 					
 					_target.dead = true;
-					enemy_turns_remaining--;
+					if (!_target.turn_done) enemy_turns_remaining--; // it may have acted already this turn (the timeline)
 					enemies_left_this_combat--;
 							
 					// Remove any debuffs from the enemy
@@ -872,15 +872,6 @@ function sacrifice_die(_die) {
 		throw_error("Fill your slots first", "Every slot needs an action first.");
 		return;
 	}
-	// a slot built from one die (the first you build) takes just that die, and it has to reach the number on its own
-	if (new_slot_min_dice() == 1) {
-		var _face = die_face_total(_die.struct);
-		if (_face == -1) _face = ceil(_die.struct.dice_value / 2);
-		if (_face < new_slot_threshold()) {
-			throw_error("Too low", "Needs a die of " + string(new_slot_threshold()) + " or more. This one rolled " + string(_face) + ".");
-			return;
-		}
-	}
 	if (dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(_die.struct, "coin")) {
 		dice_played_scale = 1.4;
 		dice_played_color = c_red;
@@ -925,13 +916,13 @@ function new_slot_has_coloured() {
 ///       slot_cost_modifier in pips (Cursed Heart: -2). Never below 1.
 function new_slot_threshold() {
 	var _slot_number = ds_list_size(oCombat.action_queue) + 1;
-	return max(1, 3 * (_slot_number - 1) + oCombat.slot_cost_modifier);
+	return max(1, 2 * (_slot_number - 1) + oCombat.slot_cost_modifier); // 2, 4, 6... pips (F193, Jared 2026-11-22)
 }
 
 /// @func new_slot_min_dice()
 /// @desc How many dice the new-slot tile needs at least: 1 for slot 2, 2 for slot 3, 3 for slot 4...
 function new_slot_min_dice() {
-	return max(1, ds_list_size(oCombat.action_queue));
+	return 1; // no dice minimum since the timeline (F193): just the pips
 }
 
 /// @func new_slot_total()
@@ -1810,7 +1801,7 @@ function tutorial_steps() {
 		},
 		{
 			id: "build", target: "sacrifice", allow: ["place", "sacrifice"], covers: "new_slot",
-			text: "Every slot has an action, so you can build another. Drop a die of 3 or more on the new-slot tile: your Block die will do. It becomes the new slot's first die.",
+			text: "Every slot has an action, so you can build another. Drop dice on the new-slot tile adding up to its pips: your Block die will do. It becomes the new slot's first die.",
 			done: function() { return ds_list_size(oCombat.action_queue) >= 2; },
 		},
 		{
@@ -1819,7 +1810,7 @@ function tutorial_steps() {
 		},
 		{
 			id: "end_turn", target: "end_turn", allow: ["place", "end_turn"],
-			text: "You can play 4 dice a turn; coins are free. At End Turn your slots act left to right, then the enemy moves and the rest is discarded. End your turn.",
+			text: "You can play 4 dice a turn; coins are free. At End Turn your slots act left to right, and each enemy acts at its point on the track above them. Block before a hit to stop it. End your turn.",
 			done: function() { return oCombat.turn_count >= 2; },
 		},
 		// turn 2: ink
@@ -2218,7 +2209,7 @@ function tips_list() {
 		{
 			// the second half: once every slot has something in it, building the next one
 			id: "new_slot", room: rmCombat, target: "",
-			text: "Every slot has an action, so you can build another: drop dice on the new-slot tile until they reach its number.",
+			text: "Build another slot: drop dice on the new-slot tile adding up to its pips. Slots reset every turn.",
 			when: function() { return tips_combat_ready() && tip_seen("rolled_dice") && combat_all_slots_have_action() && oCombat.state == CombatState.PLAYER_INPUT; },
 		},
 		{
@@ -3034,7 +3025,7 @@ function combat_enemies_flee(_leader) {
 		_en.dead = true;
 		_en.fled = true;
 		_en.looted = true; // no bounty
-		enemy_turns_remaining--;
+		if (!_en.turn_done) enemy_turns_remaining--;
 		enemies_left_this_combat--;
 		enemies_to_fade_out += 1;
 		ds_list_clear(_en.debuffs);
@@ -3348,6 +3339,22 @@ function combat_insight_view_draw() {
 				}
 				_bx += _rw + 12;
 			}
+			// second row: move when it happens, a slot earlier or later (the timeline, F193)
+			if (variable_struct_exists(_en.intent, "after_slot") && !_en.turn_done) {
+				var _p = _en.intent.after_slot, _nq = ds_list_size(action_queue);
+				var _eff = (_p >= ENEMY_POINT_LAST) ? max(1, _nq) : _p;
+				var _ew = ink_button_w("Earlier", INK_COST_MOVE, 100), _lw = ink_button_w("Later", INK_COST_MOVE, 100);
+				var _mx = _ir.x - (_ew + _lw + 12) / 2;
+				var _can = combat_insight_can(INK_COST_MOVE);
+				var _eb = ink_button(_mx + _ew / 2, _by + 40, 100, 32, "Earlier", INK_COST_MOVE, _can && _eff > 1);
+				var _lb = ink_button(_mx + _ew + 12 + _lw / 2, _by + 40, 100, 32, "Later", INK_COST_MOVE, _can && _p < ENEMY_POINT_LAST && _p < 7);
+				if (_eb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Earlier", string(_en.data.name) + " acts a slot earlier.\nNow: " + enemy_point_text(_en), undefined, 0, undefined, INK_COST_MOVE, "ink");
+				if (_lb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Later", string(_en.data.name) + " acts a slot later.\nNow: " + enemy_point_text(_en), undefined, 0, undefined, INK_COST_MOVE, "ink");
+				if ((_eb.click || _lb.click) && combat_insight_spend(INK_COST_MOVE)) {
+					_en.intent.after_slot = _eb.click ? max(1, _eff - 1) : _p + 1;
+					float_text(_ir.x, _ir.y - _ir.h / 2 - 20, enemy_point_text(_en), c_white); // what changed
+				}
+			}
 			if (_can_rewrite) {
 				var _wb = ink_button(_bx + _ww / 2, _by, 100, 32, "Rewrite", INSIGHT_COST_QUILL, combat_insight_can(INSIGHT_COST_QUILL));
 				if (_wb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rewrite", string(_en.data.name) + " picks a different move.", undefined, 0, undefined, INSIGHT_COST_QUILL, "ink");
@@ -3407,6 +3414,9 @@ function combat_insight_view_draw() {
 			if (_clicked_what == "reroll") combat_reroll_die(_clicked);
 			else combat_redraw_die(_clicked);
 		}
+
+		// the timeline track, over the log too (it's what Earlier and Later change)
+		combat_timeline_draw();
 
 		// your ink as pips under the inkwell; the ones a hovered action would spend flicker
 		draw_ink_pips(_ex, _ey + 50, player_intel, ink_preview);
@@ -3534,4 +3544,202 @@ function combat_hand_row_pos(_i, _n) {
 	var _gw = display_get_gui_width();
 	var _space = min(150, (_gw * 0.5) / max(1, _n - 1));
 	return { x: _gw / 2 - (_n - 1) * _space / 2 + _i * _space, y: (global.dice_safe_area_y1 + global.dice_safe_area_y2) / 2 + 20 };
+}
+
+// =====================================================================
+// THE TIMELINE (F193, Jared 2026-11-22): every enemy move happens after one of your slots. intent.after_slot is set when
+// the intent is (enemy_move_point); resolving runs your slots left to right and, before slot N+1, every move set after
+// slot N (combat_enemy_due, combat_enemy_act); the rest happen after your last slot. A track over the queue shows it
+// (combat_timeline_draw). The queue resets each turn (combat_queue_reset_built).
+// =====================================================================
+
+/// @func combat_enemy_due(_k)
+/// @desc The first enemy whose move is set after your slot _k and hasn't happened (not dead, not done), or -1.
+function combat_enemy_due(_k) {
+	with (oCombat) {
+		for (var e = 0; e < ds_list_size(room_enemies); e++) {
+			var _en = room_enemies[| e];
+			if (_en.dead || _en.turn_done) continue;
+			if (variable_struct_exists(_en.intent, "after_slot") && _en.intent.after_slot == _k) return e;
+		}
+	}
+	return -1;
+}
+
+/// @func combat_enemy_act(_e)
+/// @desc Enemy _e does its move now (what the old enemy turn did for each enemy, one at a time). Returns true if it acted.
+function combat_enemy_act(_e) {
+	with (oCombat) {
+		var e = _e;
+		var enemy = room_enemies[| e];
+		combat_trigger_effects("on_enemy_turn_start", { stunned_enemy: enemy });
+		if (enemy.turn_done || enemy.dead) return false;
+		var intent_array = string_split(enemy.intent.move.action_type, "/");
+		for (var i = 0; i < array_length(intent_array); i++) {
+			var _source = enemy;
+			var _target = "player";
+			if (intent_array[i] == "MIMIC") intent_array[i] = player_last_action_type;
+			if (variable_struct_exists(enemy.intent.move, "target")) _target = enemy.intent.move.target;
+			if (_target == "other") {
+				// pick a living ally, or ourselves if there are none
+				var _others = [];
+				for (var o = 0; o < ds_list_size(room_enemies); o++) if (o != e && !room_enemies[| o].dead) array_push(_others, o);
+				var _target_index = e;
+				if (array_length(_others) > 0) _target_index = _others[irandom(array_length(_others) - 1)];
+				_target = room_enemies[| _target_index];
+			} else if (intent_array[i] == "BLK" || intent_array[i] == "HEAL" || intent_array[i] == "BUFF") {
+				_target = _source;
+			}
+			ds_list_add(enemy.move_history, enemy.intent.move);
+			if (intent_array[i] == "EXIT") {
+				ds_list_delete(room_enemies, e);
+				particle_emit(enemy.pos_x, enemy.pos_y, "rise", make_color_rgb(20, 20, 20));
+				enemies_left_this_combat--;
+				for (var d = ds_list_size(enemy.debuffs) - 1; d >= 0; d--) ds_list_delete(enemy.debuffs, d);
+				if (enemy_target_index == e) enemy_target_index = irandom(max(0, ds_list_size(room_enemies) - 1));
+				else if (enemy_target_index > e) enemy_target_index--; // the list shifted down, keep pointing at the same enemy
+			} else {
+				process_action(_target, enemy.intent.move.dice_amount, enemy.intent.move.dice_value, enemy.intent.move.bonus_amount, _source, e, intent_array[i]);
+			}
+			action_timer = action_delay;
+			enemy.turn_done = true;
+		}
+		enemy_turns_remaining--;
+		combat_trigger_effects("on_enemy_turn_end", { target: enemy });
+		return true;
+	}
+	return false;
+}
+
+/// @func combat_queue_reset_built()
+/// @desc End of round: the slots you built go (the queue resets every turn), keeping the first, and any slot a Sticky die
+///       still holds. Their place bonuses are set again for where they now sit.
+function combat_queue_reset_built() {
+	with (oCombat) {
+		for (var i = ds_list_size(action_queue) - 1; i >= 1; i--) {
+			var _slot = action_queue[| i];
+			if (ds_list_size(_slot.dice_list) > 0) continue; // a Sticky die keeps it
+			ds_list_destroy(_slot.dice_list);
+			ds_list_delete(action_queue, i);
+		}
+		for (var i = 0; i < ds_list_size(action_queue); i++) slot_set_position_bonus(action_queue[| i], i);
+	}
+}
+
+/// @func combat_enemy_colour(_enemy)
+/// @desc An enemy's colour on the timeline, from its letter (enemy.mark).
+function combat_enemy_colour(_enemy) {
+	var _cols = [make_color_rgb(217, 83, 79), make_color_rgb(62, 142, 208), make_color_rgb(224, 164, 58), make_color_rgb(106, 180, 90), make_color_rgb(160, 110, 200)];
+	var _m = variable_struct_exists(_enemy, "mark") ? _enemy.mark : 0;
+	return _cols[_m mod array_length(_cols)];
+}
+
+/// @func combat_enemy_badge(_x, _y, _enemy, _scale, _alpha)
+/// @desc An enemy's letter in a circle of its colour (A, B, C...): on its intent tag and its timeline marker.
+function combat_enemy_badge(_x, _y, _enemy, _scale = 1, _alpha = 1) {
+	var _m = variable_struct_exists(_enemy, "mark") ? _enemy.mark : 0;
+	draw_set_alpha(_alpha);
+	draw_set_color(global.ui_col.ink);
+	draw_circle(_x, _y, 12 * _scale, false);
+	draw_set_color(combat_enemy_colour(_enemy));
+	draw_circle(_x, _y, 10 * _scale, false);
+	draw_set_font(ftDescriptions);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_color(c_white);
+	draw_text_transformed(_x, _y + 1, chr(ord("A") + (_m mod 26)), _scale, _scale, 0);
+	draw_set_alpha(1);
+}
+
+/// @func combat_point_x(_k)
+/// @desc Where the gap after your slot _k is on screen (past your slots it carries on at the same spacing).
+function combat_point_x(_k) {
+	return oCombat.aq_x0 + _k * oCombat.aq_step - (oCombat.aq_step - oCombat.aq_tile_w) / 2;
+}
+
+/// @func combat_timeline_draw()
+/// @desc The track over the queue (option C of docs/mockups/queue-timeline.html): a line with a numbered notch over each
+///       of your slots (faint past the ones you've built), and each enemy's marker riding it at the gap where its move
+///       happens: its letter, its move's icon and number, a line down to the gap. Moves in the same gap stack. Done moves
+///       dim; a move from an enemy that's dead or stunned greys out. Hover a marker for what and when.
+function combat_timeline_draw() {
+	with (oCombat) {
+		if (!variable_instance_exists(id, "aq_step")) return;
+		var _n = ds_list_size(action_queue);
+		var _furthest = _n + 1;
+		for (var e = 0; e < ds_list_size(room_enemies); e++) {
+			var _en = room_enemies[| e];
+			if (variable_struct_exists(_en.intent, "after_slot") && _en.intent.after_slot < ENEMY_POINT_LAST) _furthest = max(_furthest, _en.intent.after_slot);
+		}
+		_furthest = min(_furthest, 7);
+		var _ty = aq_y0 - 44;
+		var _x_end = combat_point_x(_furthest) + 12;
+		// the line
+		draw_set_alpha(0.9);
+		draw_set_color(global.ui_col.paper_hi);
+		draw_line_width(aq_x0 - 6, _ty, _x_end, _ty, 4);
+		// a notch and number over each slot (faint past your slots)
+		draw_set_font(ftDescriptions);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_bottom);
+		for (var k = 1; k <= _furthest; k++) {
+			var _cx = aq_x0 + (k - 1) * aq_step + aq_tile_w / 2;
+			var _built = (k <= _n);
+			draw_set_alpha(_built ? 1 : 0.4);
+			draw_set_color(global.ui_col.paper_hi);
+			draw_circle(_cx, _ty, 5, false);
+			draw_outline_text(string(k), global.ui_col.ink, global.ui_col.paper_hi, 2, _cx, _ty - 8, 1, _built ? 1 : 0.45, 0);
+		}
+		draw_set_alpha(1);
+		// the markers, grouped by gap
+		var _stack = array_create(10, 0);
+		for (var e = 0; e < ds_list_size(room_enemies); e++) {
+			var _en = room_enemies[| e];
+			if (!variable_struct_exists(_en.intent, "after_slot") || _en.intent.alpha < 0.05) continue;
+			var _p = _en.intent.after_slot;
+			var _gap = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : min(_p, 7);
+			var _gx = combat_point_x(_gap);
+			var _row = _stack[_gap]; _stack[_gap]++;
+			var _my = _ty - 40 - _row * 42;
+			var _grey = _en.dead || (_en.intent.move.move_name == "Stunned");
+			var _a = (_grey ? 0.35 : (_en.turn_done ? 0.55 : 1)) * _en.intent.alpha;
+			var _col = combat_enemy_colour(_en);
+			// the line down from the marker to the gap
+			draw_set_alpha(_a);
+			draw_set_color(_col);
+			draw_line_width(_gx, _my + 17, _gx, aq_y0 - 4, 3);
+			// the marker: dark, edged in its colour; letter, icon, number
+			var _num = intent_has_numbers(_en.intent.move) ? intent_number_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) : "";
+			draw_set_font(ftDescriptions);
+			var _w = 62 + ((_num != "") ? string_width(_num) + 8 : 0);
+			draw_set_color(_col);
+			draw_roundrect_ext(_gx - _w / 2 - 3, _my - 17 - 3, _gx + _w / 2 + 3, _my + 17 + 3, 12, 12, false);
+			draw_set_color(make_color_rgb(42, 32, 26));
+			draw_roundrect_ext(_gx - _w / 2, _my - 17, _gx + _w / 2, _my + 17, 10, 10, false);
+			combat_enemy_badge(_gx - _w / 2 + 16, _my, _en, 0.9, _a);
+			var _type = string_split(_en.intent.move.action_type, "/")[0];
+			var _ix = 3, _icol = c_white;
+			switch (_type) {
+				case "ATK": _ix = 0; _icol = global.color_attack; break;
+				case "BLK": _ix = 1; _icol = global.color_block; break;
+				case "HEAL": _ix = 2; _icol = global.color_heal; break;
+				case "EXIT": _ix = 5; _icol = c_orange; break;
+			}
+			draw_sprite_ext(sIntentIcons, _ix, _gx - _w / 2 + 42, _my, 0.36, 0.36, 0, _icol, _a);
+			if (_num != "") {
+				draw_set_halign(fa_left);
+				draw_set_valign(fa_middle);
+				draw_set_alpha(_a);
+				draw_set_color(global.ui_col.paper_hi);
+				draw_text(_gx - _w / 2 + 58, _my + 1, _num);
+			}
+			draw_set_alpha(1);
+			if (mouse_hovering(_gx, _my, _w, 34, true, noone, noone, true, global.ui_layer)) {
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), string(_en.data.name) + ": " + string(_en.intent.move.move_name), intent_hover_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) + "\n" + enemy_point_text(_en));
+			}
+		}
+		draw_set_halign(fa_left);
+		draw_set_valign(fa_top);
+		draw_set_color(c_white);
+	}
 }

@@ -32,6 +32,16 @@
 |---|---|---|---|
 
 | 24: map click jump, ink view | B146, F188, F189, F190, F191, F192, F194, F195 | `feature/ink-view` (off `dev`, includes `fix/map-click-jump`) | **Not yet play-tested.** The map click jump; the ink view labelled, ink pips, inky black, what changed, one name: ink. |
+| 25: queue timeline | F193 | `feature/queue-timeline` (off `feature/ink-view`) | **Not yet play-tested.** Enemy moves act between your slots, shown on a track; the queue resets each turn; slots cost 2, 4, 6 pips; ink moves a move a slot for 4. |
+
+**Batch 25 test list (`feature/queue-timeline`, off `feature/ink-view`)**
+- F193 A track sits over the queue: numbers over your slots (faint past the ones you've built). Each enemy has a letter in a coloured circle on its intent tag, and a marker with the same letter, icon and number riding the track at the gap after the slot where it acts. Two in one gap stack. Hover a marker: its move and "After your slot 2." / "After your last slot."
+- F193 End Turn: your slots act left to right and each enemy acts at its gap, between your slots. A marker past your last slot acts at the end. Block made before a hit stops it; a hit before your Block slot gets through.
+- F193 Kill or stun an enemy before its gap: it doesn't act and its marker greys. One you kill after it acted doesn't break the turn (watch for the next turn starting normally).
+- F193 Fixed timings: Mock, Peck, Coil, buffs and most debuffs come after slot 1; Mimic, big hits (Heavy Swing, Crushing Slam, Volley Fire...) and Rest come last; Peg-leg's Escaping after slot 2. Everything else is rolled 1-4 each turn.
+- F193 The queue resets every turn: next turn you're back to one slot (a slot a Sticky die is in stays). Slot 2 costs 2 pips, slot 3 4, slot 4 6; one die can build a slot if it's enough. Enemy block is gone at the end of each round.
+- F193 Ink view: under each intent, Earlier and Later (4 ink each) move its marker a slot; "After slot N" floats up. Earlier stops at slot 1, Later stops at "last" moves.
+- Known: Bind and Rot pick a slot at the start of the turn, when you only have one, so they always hit slot 1. Want them to pick later?
 
 **Batch 24 test list (`feature/ink-view`)**
 - B146 Click a stop on the map: the stop and its dotted courses stay put (they jumped down for a moment); the ship still sails to it and lands just below it.
@@ -136,7 +146,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F40 Individual Balatro-style trigger animations per die
 - F41 Room transitions, death animation, enemy sprites, particles for coins/potions/sacrifice
 - F188-F192 Ink view: labelled buttons, ink pips, inky black, what changed, one name (Jared, 2026-11-22). (Built, batch 24.)
-- F193 **The queue as a timeline** (Jared, 2026-11-22): enemy moves happen at a point in your queue ("after slot 2"), mixed into the left-to-right resolve; the queue fully resets each turn; new slots cost pips only (2, 4, 6...). Look: **option C** of docs/mockups/queue-timeline.html (a numbered track over the queue, enemy markers riding it). Decisions below (DECISIONS, 2026-11-22). Next: enemy move timings, then the build.
+- F193 **The queue as a timeline** (Jared, 2026-11-22): enemy moves happen at a point in your queue ("after slot 2"), mixed into the left-to-right resolve; the queue fully resets each turn; new slots cost pips only (2, 4, 6...). Look: **option C** of docs/mockups/queue-timeline.html. Decisions below (DECISIONS, 2026-11-22). (Built, batch 25.)
 - F42 **Unique sprite per die** (Jared, 2026-11-19): every die gets its own sprite, keeping roughly the same silhouette per size with different textures and details. Part of the art pass (F50). **Until then (Jared, 2026-11-20: Invisible and Generic look the same in hand):** dice are drawn in code by `draw_die` (scDice) in hand, slots, cards and the bag, so a per-die `look` field read there could give each die a cheap tell: opacity (Invisible at 50%), a dashed or double edge, a texture tint, numerals instead of pips, or a small corner glyph. Worth doing for the handful that get confused first (Invisible, Surge, Deepdiver), not all 37. Options mocked up in `docs/mockups/dice-tells.html` (2026-11-20); Jared picked B+D: a rarity ring on every non-starter die, and signature looks for Invisible, Echo, Deepdiver and Surge (`die_look` in scDice; add more there). Built and approved, batch 21. Jared is drawing visuals for some dice himself.
 
 **Art direction (parked, Jared wants to discuss later)**

@@ -19,6 +19,7 @@ aq_start_x = min(aq_start_x, _q_right - aq_total_w);
 aq_start_x = max(aq_start_x, global.player_x + 230 * global.ui_scale);
 var aq_start_y = gui_h / 2 - 92; // the fight sits higher, leaving the bottom right to End Turn and the tray's edge clear
 aq_left = aq_start_x; aq_mid_y = aq_start_y + aq_tile_w / 2; // the inkwell sits just before the queue (combat_inkwell_pos)
+aq_x0 = aq_start_x; aq_y0 = aq_start_y; aq_step = aq_tile_w + aq_tile_padding; // for the timeline track (combat_timeline_draw)
 
 // Keep tile_scale list synced with action_queue size
 if (ds_list_size(tile_scale) < aq_list_size) {
@@ -645,6 +646,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 
 		// the intent on a paper tag hung over the enemy (ui_tag, scUI): its icons in their pigment and the number in ink
 		ui_tag(xx, yy, tag_w, tag_h, e * 11 + 5, enemy.intent.alpha);
+		combat_enemy_badge(xx - tag_w / 2, yy - tag_h / 2, enemy, 1, enemy.intent.alpha); // its letter, matching its timeline marker
 
 		// Draw enemy intent
 		for (var i = 0; i < array_length(intent_array); i++) {
@@ -749,7 +751,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Exiting", "This enemy will escape.", undefined, 0, undefined);
 				} else if (reveal_intent_all || (reveal_intent_single && e == enemy_target_index)) {
 					// plain words: what it will do and how much (the range when Faded, the exact number from Legible)
-					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, intent_hover_text(enemy, enemy_intent_revealed(enemy) ? INTEL_LEGIBLE : INTEL_FADED), undefined, 0, undefined);
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), move_name, intent_hover_text(enemy, enemy_intent_revealed(enemy) ? INTEL_LEGIBLE : INTEL_FADED) + "\n" + enemy_point_text(enemy), undefined, 0, undefined);
 				} else {
 					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Blotted", "Below 0 ink, enemy intents are hidden.", undefined, 0, undefined);
 				}
@@ -1377,4 +1379,7 @@ if (disc_bag_hover) {
 
 
 // the guided first fight's margin notes, on top of the combat UI
+// the timeline track over the queue (F193)
+if (!show_rewards) combat_timeline_draw();
+
 tutorial_draw();

@@ -26,6 +26,7 @@ if (!ds_safe_exists(global.sacrifice_history, ds_type_list)) {
 action_queue = ds_list_create();
 locked_slot = -1;
 bound_slot = -1;
+mark_next = 0; // the next enemy letter and colour on the timeline (A, B, C...)
 rot_spare = 0; // Rot: the odd point carried between the rotten slot's dice (process_action)
 hovered_slot = -1;
 
