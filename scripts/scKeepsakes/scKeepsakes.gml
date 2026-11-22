@@ -954,11 +954,11 @@ function define_keepsakes() {
 	ks_cursed_heart = {
 	    _id: "cursed_heart",
 	    name: "Cursed Heart",
-	    desc: "New slots need 3 more to build.",
+	    desc: "New slots cost 2 fewer pips.",
 		sub_image: 38,
 	    trigger: function(event, data) {
 	        if (event == "on_combat_started") {
-				oCombat.slot_cost_modifier += 1;
+				oCombat.slot_cost_modifier -= 2; // pips (Jared, 2026-11-21: was +3)
 					
 				trigger_keepsake_visual();
 	        }

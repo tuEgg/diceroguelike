@@ -221,6 +221,7 @@ ds_list_add(tool_list, "hammer");
 dice_selection = false; // set to a number when you want to select a certain number of dice to process an event for
 dice_selection_message = "";
 dice_selection_scale = 1.0; // used for the button
+dice_selection_age = 0; // frames the dice picker has been open: its opening click can't pick a die (Draw GUI End)
 dice_selection_list = ds_list_create();
 dice_selection_num_selected = 0;
 dice_selection_event = undefined;

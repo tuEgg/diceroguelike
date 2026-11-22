@@ -921,10 +921,11 @@ function new_slot_has_coloured() {
 }
 
 /// @func new_slot_threshold()
-/// @desc What the dice on the new-slot tile must add up to: 3 for slot 2, 6 for slot 3, 9 for slot 4... (Cursed Heart: +3).
+/// @desc What the dice on the new-slot tile must add up to: 3 for slot 2, 6 for slot 3, 9 for slot 4..., plus
+///       slot_cost_modifier in pips (Cursed Heart: -2). Never below 1.
 function new_slot_threshold() {
 	var _slot_number = ds_list_size(oCombat.action_queue) + 1;
-	return max(3, 3 * (_slot_number - 1) + 3 * oCombat.slot_cost_modifier);
+	return max(1, 3 * (_slot_number - 1) + oCombat.slot_cost_modifier);
 }
 
 /// @func new_slot_min_dice()

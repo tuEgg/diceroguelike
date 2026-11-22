@@ -43,6 +43,7 @@ Room `rmCombat`, object `oCombat` (not persistent). Created with the enemies `oW
 - Templates are instance variables made by `define_buffs_and_debuffs()` on `oRunManager` (`oRunManager.buff_might` etc.).
 - `apply_buff(target, template, duration, amount, remove_next_turn, source, permanent)` clones the template into `{ template, remaining, permanent, amount, remove_next_turn, source_info }` in `global.player_debuffs` or `enemy.debuffs`. Merges only with the same id **and** same permanence (and, if stackable, same `remove_next_turn`).
 - `trigger_debuff_list(list, event, ctx)` fires effects, then counts down once per buff on its `removal_event`.
+- A new slot needs `new_slot_threshold()` pips: 3 x (slot number - 1) plus `oCombat.slot_cost_modifier`, in pips (Cursed Heart -2), never below 1.
 - Generic (neutral) dice can't start a slot (B36). On the new-slot tile they can join once a coloured die is there (`die_cant_build_slot_reason`, `new_slot_has_coloured`; Jared 2026-11-21), and a slot is only built with a coloured die on it. The tile shows what it needs: "N+ pips" inside, and above it a faded d6 outline for each die still to come (`new_slot_min_dice`), which dropped dice fill.
 - Might/Balance check `owner == target`.
 

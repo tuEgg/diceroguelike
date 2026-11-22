@@ -733,13 +733,13 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 					node.scale = lerp(node.scale, node_hover ? 1.5 : 1.0, 0.2);
 					
 					// show tooltip
-					if (node_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), node.name, node.text, sMapIcon, node.subimg, undefined);
+					if (node_hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), node.name, node.text + ((variable_struct_exists(node, "linked") && node.linked) ? "\nOnly one page can keep this." : ""), sMapIcon, node.subimg, undefined);
 					
 					// draw the node
-					map_icon_draw(sMapIcon, node.subimg, node.x, node.y, node.scale, _alph, node.cleared);
+					map_node_icon_draw(node, node.scale, _alph);
 				} else if _locked {
 					// if this page is locked, don't animate scale or show tooltip
-					map_icon_draw(sMapIcon, node.subimg, node.x, node.y, 1, _alph, node.cleared);
+					map_node_icon_draw(node, 1, _alph);
 				}
 			}
 			// if our page choices are locked
@@ -754,7 +754,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 			
 				// animate scale and draw node
 				node.scale = lerp(node.scale, node_hover ? 1.5 : 1.0, 0.2);
-				map_icon_draw(sMapIcon, node.subimg, node.x, node.y, node.scale, _alph, node.cleared);
+				map_node_icon_draw(node, node.scale, _alph);
 
 				// if we are hovering this node
 				if (node_hover) {
@@ -782,7 +782,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 			draw_set_font(ftDescriptions);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_top);
-			draw_outline_text(node.name, global.ui_col.paper_hi, global.ui_col.ink, 2, node.x, node.y + 24 + 6 * node.scale, 1, _alph, 0);
+			draw_outline_text((variable_struct_exists(node, "morph_t") && node.morph_t < 10) ? node.morph_name : node.name, global.ui_col.paper_hi, global.ui_col.ink, 2, node.x, node.y + 24 + 6 * node.scale, 1, _alph, 0);
 			draw_set_halign(fa_left);
 		}
 	}
@@ -959,7 +959,7 @@ function start_drafting() {
 // spreads followed by a boss spread, then the next chapter begins.
 // =====================================================================
 
-#macro CHAPTER_SPREADS 3				// drafted spreads before the boss spread (Q13: was 7)
+#macro CHAPTER_SPREADS 4				// drafted spreads before the boss spread (Q13: was 7, then 3; 4 since 2026-11-21)
 #macro CHAPTER_COUNT 3				// chapters in a voyage, beating the last boss wins the run
 #macro CHAPTER_ENEMY_HP_GROWTH 0.5		// each chapter after the first adds this fraction of an enemy's health
 #macro CHAPTER_ENEMY_BONUS_GROWTH 3		// each chapter after the first adds this to every enemy attack and block
@@ -2036,5 +2036,94 @@ function page_burn_draw(_page, _x, _y, _index) {
 	if (_f < 0.9) {
 		if (random(1) < 0.5) particle_emit_later(_x + random_range(-_hw, _hw), _y + random_range(-_hh, _hh), "rise", choose(make_color_rgb(255, 170, 60), make_color_rgb(255, 110, 30), make_color_rgb(255, 220, 120)), 1);
 		if (random(1) < 0.12) particle_emit_later(_x + random_range(-_hw, _hw), _y + random_range(-_hh, _hh), "rise", make_color_rgb(70, 64, 58), 1);
+	}
+}
+
+/// @func node_morph_into(_old, _template)
+/// @desc A drafting page's stop that has to change (only one page keeps its treasure or elite): the new node, which
+///       remembers what it was and shows the old icon until the lost page has burned, then turns into the new one
+///       (map_node_icon_draw). Jared, 2026-11-21.
+function node_morph_into(_old, _template) {
+	var _new = clone_node_static(_template);
+	_new.morph_from = _old.subimg;
+	_new.morph_name = _old.name;
+	_new.morph_t = -62; // about the burn's length, then the change
+	return _new;
+}
+
+/// @func page_has_morph(_page)
+function page_has_morph(_page) {
+	for (var i = 0; i < ds_list_size(_page.nodes); i++) if (variable_struct_exists(_page.nodes[| i], "morph_t")) return true;
+	return false;
+}
+
+/// @func map_node_icon_draw(_node, _scale, _alpha)
+/// @desc A map stop's icon (map_icon_draw), with its change if it's turning into something else (node_morph_into): the
+///       old icon until morph_t reaches 0, then it shrinks away, a puff, and the new one pops up.
+function map_node_icon_draw(_node, _scale, _alpha) {
+	if (variable_struct_exists(_node, "linked") && _node.linked) {
+		// linked to the same stop on another page: a gold ring that breathes
+		var _lp = 0.5 + 0.5 * sin(current_time / 260);
+		draw_set_alpha(_alpha * (0.5 + 0.4 * _lp));
+		draw_set_color(global.ui_col.brass);
+		for (var k = 0; k < 3; k++) draw_circle(_node.x, _node.y, (30 + 2 * _lp) * _scale + k, true);
+		draw_set_alpha(1);
+	}
+	if (variable_struct_exists(_node, "morph_t")) {
+		_node.morph_t++;
+		var _t = _node.morph_t;
+		if (_t < 0) { map_icon_draw(sMapIcon, _node.morph_from, _node.x, _node.y, _scale, _alpha, false); return; }
+		if (_t < 10) { map_icon_draw(sMapIcon, _node.morph_from, _node.x, _node.y, _scale * (1 - _t / 10), _alpha, false); return; }
+		if (_t == 10) particle_emit_later(_node.x, _node.y, "burst", global.ui_col.brass, 10);
+		if (_t < 26) { map_icon_draw(sMapIcon, _node.subimg, _node.x, _node.y, _scale * (1 + 0.45 * sin((_t - 10) / 16 * pi)), _alpha, false); return; }
+		variable_struct_remove(_node, "morph_t");
+	}
+	map_icon_draw(sMapIcon, _node.subimg, _node.x, _node.y, _scale, _alpha, _node.cleared);
+}
+
+/// @func draft_links_mark(_count)
+/// @desc oWorldManager Draw GUI, drafting: marks the treasure and elite stops that more than one offered page has
+///       (node.linked), since picking one page takes them off the others. Only before the first pick.
+function draft_links_mark(_count) {
+	var _types = [NODE_TYPE.TREASURE, NODE_TYPE.ELITE];
+	for (var t = 0; t < array_length(_types); t++) {
+		var _found = [];
+		for (var p = 0; p < _count; p++) {
+			var _pg = pages_shown[| p];
+			for (var n = 0; n < ds_list_size(_pg.nodes); n++) {
+				var _nd = _pg.nodes[| n];
+				_nd.linked = false;
+				if (_nd.type == _types[t] && !_pg.locked) array_push(_found, _nd);
+			}
+		}
+		if (array_length(_found) >= 2 && pages_drafted == 0) for (var i = 0; i < array_length(_found); i++) _found[i].linked = true;
+	}
+}
+
+/// @func draft_links_draw(_count)
+/// @desc Draws the links between linked stops (draft_links_mark): a dashed brass line from each to the next, across
+///       the cards, so it's plain that only one page keeps it.
+function draft_links_draw(_count) {
+	var _types = [NODE_TYPE.TREASURE, NODE_TYPE.ELITE];
+	for (var t = 0; t < array_length(_types); t++) {
+		var _pts = [];
+		for (var p = 0; p < _count; p++) {
+			var _pg = pages_shown[| p];
+			for (var n = 0; n < ds_list_size(_pg.nodes); n++) {
+				var _nd = _pg.nodes[| n];
+				if (_nd.type == _types[t] && variable_struct_exists(_nd, "linked") && _nd.linked) array_push(_pts, _nd);
+			}
+		}
+		for (var i = 1; i < array_length(_pts); i++) {
+			var _a = _pts[i - 1], _b = _pts[i];
+			var _len = point_distance(_a.x, _a.y, _b.x, _b.y), _dir = point_direction(_a.x, _a.y, _b.x, _b.y);
+			var _off = (current_time / 40) mod 22; // the dashes drift, so it reads as a live link
+			draw_set_alpha(0.75 * pages_alpha);
+			draw_set_color(global.ui_col.brass);
+			for (var d = 36 + _off; d < _len - 36; d += 22) {
+				draw_line_width(_a.x + lengthdir_x(d, _dir), _a.y + lengthdir_y(d, _dir), _a.x + lengthdir_x(min(d + 11, _len - 36), _dir), _a.y + lengthdir_y(min(d + 11, _len - 36), _dir), 3);
+			}
+			draw_set_alpha(1);
+		}
 	}
 }
