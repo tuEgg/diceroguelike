@@ -10,7 +10,7 @@
   "compression":1,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":0.4792517,
+  "duration":0.55804986,
   "exportDir":"",
   "name":"soPaper6",
   "parent":{
@@ -22,5 +22,5 @@
   "resourceVersion":"2.0",
   "sampleRate":44100,
   "soundFile":"soPaper6.wav",
-  "volume":1.0,
+  "volume":0.79,
 }

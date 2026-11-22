@@ -2045,6 +2045,7 @@ function page_burn_draw(_page, _x, _y, _index) {
 	if (!variable_struct_exists(_page, "burn_t")) {
 		_page.burn_t = 0;
 		particle_emit_later(_x, _y, "burst", make_color_rgb(255, 150, 50), 8); // it catches
+		sfx_play(soTorch, AUDIO_GROUP.SFX, 0.05, 0.8);
 	}
 	if (_page.burn_t >= 1) return;
 	_page.burn_t = min(1, _page.burn_t + 1 / 62); // about a second (Jared: a little quicker)

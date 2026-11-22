@@ -15,8 +15,9 @@ var aq_start_x = gui_w / 2 - (aq_total_w / 2);
 var _q_right = gui_w;
 for (var _qe = 0; _qe < ds_list_size(room_enemies); _qe++) {
 	var _qen = room_enemies[| _qe];
-	if (!_qen.dead && variable_struct_exists(_qen, "pos_x_start")) _q_right = min(_q_right, _qen.pos_x_start - 150 * global.ui_scale);
+	if (!_qen.dead && variable_struct_exists(_qen, "pos_x_start")) _q_right = min(_q_right, _qen.pos_x_start - 130 * global.ui_scale);
 }
+aq_min_right = global.player_x + 230 * global.ui_scale + aq_total_w; // the queue's right edge pushed as far left as it goes (enemy_layout_update)
 aq_start_x = min(aq_start_x, _q_right - aq_total_w);
 aq_start_x = max(aq_start_x, global.player_x + 230 * global.ui_scale);
 var aq_start_y = gui_h / 2 - 92; // the fight sits higher, leaving the bottom right to End Turn and the tray's edge clear
@@ -65,7 +66,7 @@ draw_set_font(ftBig);
 
 // Click handling
 if (play_btn.click && state == CombatState.PLAYER_INPUT && !is_dealing_dice && tutorial_allows("end_turn")) {
-	sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
+	sfx_play(soShipBell, AUDIO_GROUP.SFX, 0.03, 0.8);
     actions_submitted = true;
 }
 // the tutorial points here
@@ -1191,6 +1192,21 @@ if (show_rewards) {
 					continue;
 				}
 				var _ic_locked = (rewards_consumables_locked == r);
+				// locked away by the first pick: it burns (F183, Jared 2026-11-21), then is gone
+				if (_ic_locked) {
+					if (reward_item_burn[r] < 0) {
+						reward_item_burn[r] = 0;
+						particle_emit_later(_ic_cx, _ic_cy, "burst", make_color_rgb(255, 150, 50), 8); // it catches
+						sfx_play(soTorch, AUDIO_GROUP.SFX, 0.05, 0.8);
+					}
+					if (reward_item_burn[r] < 1) {
+						reward_item_burn[r] = min(1, reward_item_burn[r] + 1 / 62);
+						ui_burn_begin();
+						draw_item_card(consumable, _ic_cx, _ic_cy, _ic_w, _ic_h, _flip.fade_in, false, false);
+						ui_burn_end(reward_item_burn[r], r * 3.7 + 1.3, _ic_cx - _ic_w / 2, _ic_cy - _ic_h / 2, _ic_cx + _ic_w / 2, _ic_cy + _ic_h / 2);
+					}
+					continue;
+				}
 				var _ic_open = !consumable.taken && !_ic_locked && !rewards_consumables_second_taken;
 				var _ic_hover = mouse_hovering(_ic_cx - _ic_w / 2, _ic_cy - _ic_h / 2, _ic_w, _ic_h, false, _ic_open ? soSlotHover : noone, noone, true, UI_LAYER.POPUP);
 				var alpha = consumable.taken ? 0.35 : 1.0;

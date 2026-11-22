@@ -1954,8 +1954,9 @@ function draw_mouse_hint(_x, _y, _button, _text, _scale = 1, _lit = c_red, _text
 ///       hover or click, and dips while the button is held. The system cursor is hidden while it's on.
 function cursor_draw() {
 	var _on = global.custom_cursor;
-	// the log: the cursor is a quill (draw_quill) over something it can change, its nib at the mouse; otherwise the normal one
-	var _quill = instance_exists(oCombat) && oCombat.insight_view && oCombat.quill_over; // only over something it can change
+	// the log: the cursor is a quill (draw_quill), its nib at the mouse, except over something you can click or drag
+	// (quill_over), where it's the normal one (Jared, 2026-11-22). Drawing keeps the quill.
+	var _quill = instance_exists(oCombat) && oCombat.insight_view && !global.show_settings && (!oCombat.quill_over || oCombat.ink_drawing);
 	var _hide = _on || _quill;
 	if (_hide != global.cursor_hidden) {
 		window_set_cursor(_hide ? cr_none : cr_default);
@@ -3128,6 +3129,35 @@ function item_card_layout(_it, _w) {
 	var _desc_h = string_height_ext(string(_it.description), font_get_size(ftDefault) * 1.5, _w - 32);
 	var _bars = (variable_struct_exists(_it, "type") && _it.type == "core") ? (5 + 30 + 5 + 15) + 12 : 0;
 	return { icon_y: _icon_y, name_y: _name_y, desc_y: _desc_y, h: _desc_y + _desc_h + _bars + 20 };
+}
+
+/// @func ui_burn_begin() / ui_burn_end(_t, _seed, _x1, _y1, _x2, _y2)
+/// @desc Burns away whatever is drawn between them (F183, like the draft page's page_burn_draw): begin sends drawing to
+///       a screen-sized surface, end draws it through shBurn at _t (0 whole to 1 gone, eased) and sends up embers over
+///       the box. Draw GUI only.
+function ui_burn_begin() {
+	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+	if (!variable_global_exists("ui_burn_surf") || !surface_exists(global.ui_burn_surf) || surface_get_width(global.ui_burn_surf) != _gw || surface_get_height(global.ui_burn_surf) != _gh) {
+		if (variable_global_exists("ui_burn_surf") && surface_exists(global.ui_burn_surf)) surface_free(global.ui_burn_surf);
+		global.ui_burn_surf = surface_create(_gw, _gh);
+	}
+	surface_set_target(global.ui_burn_surf);
+	draw_clear_alpha(c_black, 0);
+}
+function ui_burn_end(_t, _seed, _x1, _y1, _x2, _y2) {
+	surface_reset_target();
+	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+	var _e = lerp(-0.15, 1.05, _t * _t * (3 - 2 * _t)); // slow to catch, then quicker
+	shader_set(shBurn);
+	shader_set_uniform_f(shader_get_uniform(shBurn, "u_t"), _e);
+	shader_set_uniform_f(shader_get_uniform(shBurn, "u_seed"), _seed);
+	shader_set_uniform_f(shader_get_uniform(shBurn, "u_scale"), _gw / 120, _gh / 120);
+	draw_surface(global.ui_burn_surf, 0, 0);
+	shader_reset();
+	if (_t < 0.9) {
+		if (random(1) < 0.5) particle_emit_later(random_range(_x1, _x2), random_range(_y1, _y2), "rise", choose(make_color_rgb(255, 170, 60), make_color_rgb(255, 110, 30), make_color_rgb(255, 220, 120)), 1);
+		if (random(1) < 0.12) particle_emit_later(random_range(_x1, _x2), random_range(_y1, _y2), "rise", make_color_rgb(70, 64, 58), 1);
+	}
 }
 
 /// @func draw_item_card(_it, _cx, _cy, _w, _h, _alpha, _hover, _locked)

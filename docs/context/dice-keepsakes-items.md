@@ -20,6 +20,7 @@ All three are structs with effects that hook named events. Definitions are built
 ## Keepsakes: scKeepsakes
 
 - Struct `{ _id, name, desc, sub_image, state, trigger: function(event, data) }`, optional `price`, `replaces` (id it swaps out in place, e.g. Deep Lens → Looking Glass).
+- The item the first pick locks away burns (`ui_burn_begin` / `ui_burn_end`, scHelpers, through shBurn; `oCombat.reward_item_burn[r]`).
 - Reward cards: dice use `draw_bag_card`, items and keepsakes `draw_item_card` (a keepsake passes `rarity: "none"`: no gem). The bag's dice picker (`oRunManager.dice_selection`) takes `dice_selection_filter`: "coin", or "min_room" (+1 min roll refuses a die whose min already equals its max).
 - Lists: `global.master_keepsake_list` (all), `rollable_keepsake_list` (rewards/elites/treasure), `shop_keepsake_list`, `boss_keepsake_list`. Owned: `oRunManager.keepsakes` (ds_list, order = bar order).
 - `gain_keepsake(ks, list_to_remove_from)` then fires `on_keepsake_acquired`. `get_keepsake_by_id` returns the master struct (shared).

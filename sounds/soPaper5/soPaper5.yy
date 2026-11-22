@@ -22,5 +22,5 @@
   "resourceVersion":"2.0",
   "sampleRate":44100,
   "soundFile":"soPaper5.wav",
-  "volume":1.0,
+  "volume":0.79,
 }
