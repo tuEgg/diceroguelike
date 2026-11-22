@@ -806,7 +806,7 @@ function combat_shuffle_effect(_n) {
 /// @desc Where the discard pile sits in a fight (its sprite's draw position): bottom left, beside the draw bag, so End
 ///       Turn has the bottom right to itself (UI rework). Spent dice fly here.
 function combat_discard_spot() {
-	return { x: 330, y: display_get_gui_height() - 40 };
+	return { x: 270, y: display_get_gui_height() - 40 }; // a little left (Jared, 2026-11-22)
 }
 
 function discard_dice(_die) {
@@ -3203,6 +3203,8 @@ function combat_insight_view_set(_open) {
 		if (insight_view == _open) return;
 		insight_view = _open;
 		insight_view_age = 0; // frames open (oCombat Step): the click that opened it can't also close it
+		ink_strokes = []; // doodles are only on the log while it's open
+		ink_drawing = false;
 		global.ui_layer = _open ? UI_LAYER.POPUP : UI_LAYER.BASE;
 		sfx_play(soQuill, AUDIO_GROUP.UI, 0.1, 0.5); // a light stroke of the pen, opening or closing the log
 	}
@@ -3295,6 +3297,9 @@ function combat_insight_view_draw() {
 			draw_surface_part(insight_surf, 0, _top, _gw, _gh - _top, 0, _top); // the top bar stays as it is
 		}
 
+		// your doodles, on the page under everything you can click (ink_doodle_step, below)
+		ink_doodles_draw();
+
 		// the inkwell, on top: clicking it closes the log (a toggle, like Done). Your ink shows as pips under it (drawn last,
 		// so a hovered action can show what it would spend)
 		ink_preview = 0;
@@ -3376,6 +3381,7 @@ function combat_insight_view_draw() {
 			// an ink edge (stronger when hovered), then the die itself, on top of the log
 			var _glow = (_rr_can || _rd_can) ? (_hov ? 1 : 0.7) : 0.3;
 			draw_die_shape(x, y, _r * _ring_k * (_hov ? 1.22 : 1.16), dice_value, global.color_intel, tumble_angle, _glow);
+			if (_rr_can || _rd_can) wet_ink_die(x, y, _r * _ring_k * (_hov ? 1.22 : 1.16), dice_value, tumble_angle); // the edge sloshes
 			draw_die(x, y, _r * (_hov ? 1.08 : 1), dice_value, _face, die_colours(struct.possible_type), tumble_angle, 1, struct);
 			if (_inky) draw_ink_drop(x + _r * 0.85, y - _r * 0.85, 14 * scale);
 			if (!tumbling && die_is_mocked(struct)) draw_mock_mark(x, y - _r - 6, scale); // lit with it, so you see it before rerolling (B133)
@@ -3408,6 +3414,9 @@ function combat_insight_view_draw() {
 
 		// your ink as pips under the inkwell; the ones a hovered action would spend flicker
 		draw_ink_pips(_ex, _ey + 50, player_intel, ink_preview);
+
+		// drawing on the page: a left click on nothing starts a stroke (Jared, 2026-11-22)
+		ink_doodle_step(quill_over || _ink_hov || _seal_hov || ink_preview > 0);
 
 		// closing: "Confirm", the inkwell (a toggle), or Enter (End Turn's key: oCombat Step). Right-click doesn't.
 		if (insight_view_age > 0 && (_seal_click || _ink_click)) combat_insight_view_set(false);
@@ -3824,20 +3833,101 @@ function wet_ink_draw() {
 		if (!surface_exists(wet_surf)) wet_surf = surface_create(_sw, _sh);
 		surface_set_target(wet_surf);
 		draw_clear_alpha(c_black, 0);
-		draw_set_color(c_white);
 		draw_set_alpha(1);
+		gpu_set_blendmode(bm_add);
+		var _chan = [c_red, c_lime, c_blue]; // each shape in the next channel, so the shader keeps neighbours' edges apart
 		for (var i = 0; i < array_length(wet_shapes); i++) {
 			var _s = wet_shapes[i];
+			draw_set_color(_chan[i mod 3]);
 			if (_s.k == 0) draw_roundrect_ext(_s.x1, _s.y1, _s.x2, _s.y2, _s.r, _s.r, false);
-			else draw_circle(_s.x, _s.y, _s.r, false);
+			else if (_s.k == 1) draw_circle(_s.x, _s.y, _s.r, false);
+			else {
+				var _p = _s.pts, _n = array_length(_p), _cx = 0, _cy = 0;
+				for (var j = 0; j < _n; j++) { _cx += _p[j][0] / _n; _cy += _p[j][1] / _n; }
+				draw_primitive_begin(pr_trianglelist);
+				for (var j = 0; j < _n; j++) { draw_vertex(_cx, _cy); draw_vertex(_p[j][0], _p[j][1]); draw_vertex(_p[(j + 1) mod _n][0], _p[(j + 1) mod _n][1]); }
+				draw_primitive_end();
+			}
 		}
+		gpu_set_blendmode(bm_normal);
+		draw_set_color(c_white);
 		surface_reset_target();
 		shader_set(shWetInk);
 		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_texel"), 1 / _sw, 1 / _sh);
 		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_time"), (current_time / 1000) mod 100);
-		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_reach"), 6);
+		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_reach"), 7);
 		shader_set_uniform_f(shader_get_uniform(shWetInk, "u_col"), colour_get_red(global.color_intel) / 255, colour_get_green(global.color_intel) / 255, colour_get_blue(global.color_intel) / 255);
 		draw_surface_ext(wet_surf, 0, 0, _gw / _sw, _gh / _sh, 0, c_white, 1);
 		shader_reset();
+	}
+}
+
+/// @func wet_ink_poly(_pts)
+/// @desc Gives this polygon ([[x, y]...], convex) a wet ink edge this frame (the ink view only).
+function wet_ink_poly(_pts) {
+	if (!instance_exists(oCombat) || !oCombat.insight_view) return;
+	array_push(oCombat.wet_shapes, { k: 2, pts: _pts });
+}
+
+/// @func wet_ink_die(_x, _y, _r, _sides, _angle)
+/// @desc A die's ink edge in the ink view sloshes: its shape (die_shape_points, turned) into the wet edge's mask.
+function wet_ink_die(_x, _y, _r, _sides, _angle) {
+	if (_sides <= 2) { wet_ink_circle(_x, _y, _r); return; }
+	var _pts = die_shape_points(_sides, _r);
+	for (var i = 0; i < array_length(_pts); i++) _pts[i] = [die_rot_x(_x, _pts[i][0], _pts[i][1], _angle), die_rot_y(_y, _pts[i][0], _pts[i][1], _angle)];
+	wet_ink_poly(_pts);
+}
+
+// =====================================================================
+// DOODLES (Jared, 2026-11-22): in the ink view, left-drag on anything that isn't a button draws in ink on the log. Each
+// stroke stays INK_DOODLE_LIFE ms after it's finished, fading over the last 2 s; closing the log wipes them.
+// =====================================================================
+#macro INK_DOODLE_LIFE 10000
+
+/// @func ink_doodle_step(_over_something)
+/// @desc Called last in the ink view, after every button: starts, extends and ends strokes; drops old ones.
+function ink_doodle_step(_over_something) {
+	with (oCombat) {
+		var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
+		if (!ink_drawing && mouse_check_button_pressed(mb_left) && !_over_something && insight_view_age > 0 && _my > ui_top_bar_h()) {
+			array_push(ink_strokes, { pts: [[_mx, _my, 4]], t: current_time });
+			ink_drawing = true;
+		}
+		if (ink_drawing) {
+			var _s = ink_strokes[array_length(ink_strokes) - 1];
+			if (mouse_check_button(mb_left)) {
+				var _l = _s.pts[array_length(_s.pts) - 1];
+				var _d = point_distance(_l[0], _l[1], _mx, _my);
+				if (_d >= 3 && array_length(_s.pts) < 2000) {
+					var _w = lerp(_l[2], clamp(5.5 - _d * 0.12, 2, 5.5), 0.35); // a nib: thinner when quick
+					array_push(_s.pts, [_mx, _my, _w]);
+				}
+				_s.t = current_time;
+				quill_over = true; // the quill cursor while you draw
+			} else ink_drawing = false;
+		}
+		for (var i = array_length(ink_strokes) - 1; i >= 0; i--) {
+			if (!(ink_drawing && i == array_length(ink_strokes) - 1) && current_time - ink_strokes[i].t > INK_DOODLE_LIFE) array_delete(ink_strokes, i, 1);
+		}
+	}
+}
+
+/// @func ink_doodles_draw()
+/// @desc The strokes, in the log's own ink, round-ended, fading out over their last 2 s.
+function ink_doodles_draw() {
+	with (oCombat) {
+		draw_set_color(make_color_rgb(43, 28, 18));
+		for (var i = 0; i < array_length(ink_strokes); i++) {
+			var _s = ink_strokes[i], _p = _s.pts;
+			var _age = current_time - _s.t;
+			draw_set_alpha(clamp((INK_DOODLE_LIFE - _age) / 2000, 0, 1) * 0.9);
+			draw_circle(_p[0][0], _p[0][1], _p[0][2] / 2, false);
+			for (var j = 1; j < array_length(_p); j++) {
+				draw_line_width(_p[j - 1][0], _p[j - 1][1], _p[j][0], _p[j][1], _p[j][2]);
+				draw_circle(_p[j][0], _p[j][1], _p[j][2] / 2, false);
+			}
+		}
+		draw_set_alpha(1);
+		draw_set_color(c_white);
 	}
 }

@@ -43,8 +43,10 @@
 - F193 Ink view: an arrow either side of each marker on the track (4 ink each) moves it a slot earlier or later; "After your slot N." floats up. Hovering one flickers the 4 pips it costs. Earlier stops at slot 1, Later at "last" moves. Nothing extra under the intents any more.
 - Intent tags over enemies are their normal size again (the letter badge was shrinking the number).
 - d4s and d6s side by side sit level everywhere dice are drawn (hand, slots, bag, rewards): the triangle used to sit high. Check d4 pips are still centred in the triangle, and d10s too if any show.
-- Wet ink edge v2 (docs/mockups/wet-ink-edge.html): in the ink view the ink edge of everything you can afford (Reroll, Redraw, Reveal, Rewrite, the track arrows) sloshes: it swells out and back in a slow wave running round it, with a ripple and a glint. No border, no drips. Buttons you can't afford stay still. Check it doesn't slow the game down.
-- Ink dice (pure ink, like the starter Ink die): their edge ripples gently all the time; when one moves, the ink bulges out behind it, and a fast move throws a couple of drops. Everywhere dice are drawn.
+- Wet ink edge v3 (docs/mockups/wet-ink-edge.html): in the ink view the ink edge of everything you can afford sloshes, each on its own: Reroll and Redraw each have their own edge (no shared container round both), and so do Reveal, Rewrite, the track arrows and the ink edge round each die. The swell is about a third bigger than v2. Check it doesn't slow the game down.
+- Doodles: in the ink view, left-drag anywhere that isn't a button, a die, the inkwell or Done to draw in ink (thinner when you move fast). Each stroke fades out 10 s after you finish it; closing the log wipes them.
+- The discard bag sits a little further left.
+- Ink dice (pure ink, like the starter Ink die): an ink-blue rim over the black outline that swells and ripples all the time, out of the ink view too. When one moves the rim bulges out behind it; a fast move throws a couple of drops. Everywhere dice are drawn.
 - F193 Bind and Rot pick their slot when you end your turn, from the slots with dice (Rot's slot flashes green). During your turn no slot shows as chained or rotten, and you can play into any of them.
 
 **Batch 24 test list (`feature/ink-view`)**

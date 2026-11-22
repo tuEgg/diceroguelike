@@ -2095,8 +2095,8 @@ function die_slosh(_die, _x, _y) {
 }
 
 /// @func die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die)
-/// @desc An ink die's wet edge: its outline in dark ink, rippling, bulging out behind as it moves (the ink sloshing), a
-///       few drops trailing when it's quick, and a shine. Drawn just before the body, so the body sits in it.
+/// @desc An ink die's wet edge: an ink rim, rippling, bulging out behind as it moves (the ink sloshing), a few drops
+///       trailing when it's quick, and a shine. Drawn over the black outline, under the body.
 function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
 	var _sl = die_slosh(_die, _x, _y);
 	var _sp = min(point_distance(0, 0, _sl.vx, _sl.vy), 40);
@@ -2120,15 +2120,15 @@ function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
 		var _px = _base[i][0], _py = _base[i][1];
 		var _len = max(0.001, point_distance(0, _cyo, _px, _py));
 		var _nx = _px / _len, _ny = (_py - _cyo) / _len;
-		var _rip = (sin(_t * 2.6 + i * 0.9 + _seed) * 0.6 + sin(_t * 4.1 - i * 0.5 + _seed) * 0.4) * _r * 0.035; // a slow swell round it
+		var _rip = (sin(_t * 2.6 + i * 0.9 + _seed) * 0.6 + sin(_t * 4.1 - i * 0.5 + _seed) * 0.4) * _r * 0.06; // a slow swell round it
 		var _lag = max(0, _nx * _dx + _ny * _dy) * _sp * _r * 0.012; // the side away from where it's going
-		var _push = _r * 0.01 + _rip + _lag; // hugs its own edge (Jared: not a border)
+		var _push = _r * 0.03 + _rip + _lag; // hugs its own edge (Jared: not a border)
 		var _ox = _px + _nx * _push, _oy = _py + _ny * _push;
 		_ring[i] = [die_rot_x(_x, _ox, _oy, _angle), die_rot_y(_y, _ox, _oy, _angle)];
 	}
 	var _cx = die_rot_x(_x, 0, _cyo, _angle), _cy = die_rot_y(_y, 0, _cyo, _angle);
-	draw_set_alpha(_alpha * 0.92);
-	draw_set_color(make_color_rgb(13, 15, 33));
+	draw_set_alpha(_alpha);
+	draw_set_color(make_color_rgb(62, 70, 124)); // ink, lit a little: it shows against the black outline
 	draw_primitive_begin(pr_trianglelist); // a list, not a fan: the web build is fussy about fans
 	for (var i = 0; i < _m; i++) {
 		var _q = _ring[(i + 1) mod _m];
@@ -2178,10 +2178,6 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1, _die 
 		draw_die_shape(_ex, _ey, _r * 0.95, _sides, _col, _angle, _alpha * 0.4);
 	}
 
-	// its style (die_style): drawn round it, before the body. Ink sloshes.
-	var _style = die_style(_die);
-	if (_style == "ink") die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die);
-
 	// shadow, (a rarity ring,) outline, body, and a lighter inner face for a little depth
 	draw_die_shape(_x + _r * 0.08, _y + _r * 0.12, _r * 1.06, _sides, c_black, _angle, _alpha * 0.35);
 	if (die_is_special(_die)) {
@@ -2189,6 +2185,8 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1, _die 
 		draw_die_shape(_x, _y, _r * 1.22, _sides, rarity_colour(_die.rarity), _angle, _a0);
 	}
 	draw_die_shape(_x, _y, _r * 1.07, _sides, make_color_rgb(20, 20, 26), _angle, (_look == "ghost") ? _a0 * 0.35 : _alpha);
+	// its style (die_style): over the outline, under the body, so it shows. Ink sloshes.
+	if (die_style(_die) == "ink") die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die);
 	draw_die_shape(_x, _y, _r, _sides, colours_merge(_col, c_black, 0.18), _angle, _alpha);
 	draw_die_shape(_x, _y - _r * 0.04, _r * 0.86, _sides, _col, _angle, _alpha);
 	if (_look != "") die_look_draw(_look, _x, _y, _r, _sides, _col, _angle, _a0);
