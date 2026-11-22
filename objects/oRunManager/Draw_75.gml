@@ -224,36 +224,8 @@ if (show_tools) {
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc);
 
 			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
-				if (room == rmWorkbench) {
-					if (instance_exists(oWorkbenchManager) && array_contains(oWorkbenchManager.tools_used, tool.object)) {
-						throw_error("Used this visit", "Each tool works once per visit.");
-					} else if (!instance_exists(tool.object)) {
-						var pos_x;
-						var pos_y;
-				
-						switch(i) {
-							case 0:
-							pos_x = gui_w - 150;
-							pos_y = gui_h/2 + 50;
-							break;
-					
-							case 1:
-							pos_x = 150;
-							pos_y = gui_h/2 + 50;
-							break;
-					
-							case 2:
-							pos_x = gui_w - 300;
-							pos_y = gui_h - 200;
-							break;
-						}
-						instance_create_layer(pos_x, pos_y, "Instances", tool.object);
-					} else {
-						throw_error("Already out", "This tool is already on the workbench.");
-					}
-				} else {
-					throw_error("Workbench only", "Tools work only at the workbench.");
-				}
+				// the workbench's tools hang on its rack (F224): the toolbag only says what you own
+				if (room != rmWorkbench) throw_error("Workbench only", "Tools work only at the workbench.");
 			}
 		}
 	}
@@ -299,8 +271,8 @@ draw_set_font(ftBig);
 draw_text(70, gui_h - 55, string(ds_list_size(global.dice_bag)));
 
 if (bag_hover) {
-	if (mouse_check_button_pressed(mb_left) && !global.all_input_disabled && instance_exists(oWorkbenchManager) && oWorkbenchManager.pick_pending) {
-		workbench_open_picker(); // at the workbench, opening the bag is how you choose your dice
+	if (mouse_check_button_pressed(mb_left) && !global.all_input_disabled && instance_exists(oWorkbenchManager) && dice_selection == false) {
+		workbench_open_picker(); // at the workbench the bag gives you dice for the bench, any time (F224)
 	} else if (mouse_check_button_pressed(mb_left) && !global.all_input_disabled) {
 		show_bag_contents = 1 - show_bag_contents;
 		bag_to_show = global.dice_bag;

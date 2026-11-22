@@ -2180,27 +2180,21 @@ function tips_list() {
 		},
 		{
 			id: "workbench_bag", room: rmWorkbench, target: "wb_pick",
-			text: "Take up to one die per tool you own from your bag.",
+			text: "Take dice from your bag, as many as you like. The bag works any time here.",
 			when: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.pick_pending; },
 			done: function() { return instance_exists(oWorkbenchManager) && !oWorkbenchManager.pick_pending && oRunManager.dice_selection == false; },
 		},
 		{
-			id: "workbench", room: rmWorkbench, target: "wb_slots",
-			text: "Put a die in the first slot and drag a core into the middle one. Each tool works once per visit.",
-			when: function() { return instance_exists(oWorkbenchManager) && !oWorkbenchManager.pick_pending && oRunManager.dice_selection == false; },
-			done: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined; },
-		},
-		{
-			id: "workbench_toolbag", room: rmWorkbench, target: "toolbag",
-			text: "Click the Drill in your toolbag.",
-			when: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined && !instance_exists(oDrill); },
-			done: function() { return instance_exists(oDrill); },
+			id: "workbench", room: rmWorkbench, target: "wb_rack",
+			text: "Drag a tool onto your dice. Each tool works once per visit.",
+			when: function() { return instance_exists(oWorkbenchManager) && array_length(oWorkbenchManager.wb_dice) > 0 && oRunManager.dice_selection == false; },
+			done: function() { return instance_exists(oWorkbenchManager) && array_length(oWorkbenchManager.tools_used) > 0; },
 		},
 		{
 			id: "workbench_drill", room: rmWorkbench, target: "drill",
-			text: "Click the Drill to pick it up, then hold left click on the Drill button until it bites. Right click puts it down.",
-			when: function() { return instance_exists(oDrill) && !oDrill.is_dragging; },
-			done: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.crafting_state != "waiting"; },
+			text: "Drag a core from your items into the drill, then drill it into a die.",
+			when: function() { return instance_exists(oWorkbenchManager) && workbench_drill_waits() && oRunManager.dice_selection == false; },
+			done: function() { return instance_exists(oWorkbenchManager) && !workbench_drill_waits(); },
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",
@@ -2275,11 +2269,11 @@ function tips_rect(_target) {
 			var _iw = combat_inkwell_pos(); return { x: _iw.x - 60, y: _iw.y - 65, w: 120, h: 120 };
 		case "wb_pick":
 			if (!instance_exists(oWorkbenchManager)) return undefined;
-			with (oWorkbenchManager) return { x: display_get_gui_width() / 2 - 280, y: max(start_y - wb_tile_size - 230, 200), w: 560, h: 170 };
+			with (oWorkbenchManager) return { x: (table.x1 + table.x2) / 2 - 260, y: (table.y1 + table.y2) / 2 - 80, w: 520, h: 160 }; // the note on the bench
 			break;
-		case "wb_slots":
+		case "wb_rack":
 			if (!instance_exists(oWorkbenchManager)) return undefined;
-			with (oWorkbenchManager) return { x: start_x - wb_tile_size / 2, y: start_y - wb_tile_size / 2, w: wb_tile_size * 2 + wb_tile_padding, h: wb_tile_size };
+			with (oWorkbenchManager) return { x: rack.x1, y: rack.y1, w: rack.x2 - rack.x1, h: rack.y2 - rack.y1 };
 			break;
 		case "toolbag":
 			// oRunManager Draw GUI draws the toolbag at gui width - 940, in the top bar
@@ -2293,8 +2287,14 @@ function tips_rect(_target) {
 			if (_se == undefined) return undefined;
 			return { x: _se.pos_x - 110, y: _se.pos_y + 20, w: 220, h: 60 };
 		case "drill":
-			if (!instance_exists(oDrill)) return undefined;
-			return { x: oDrill.x - 80, y: oDrill.y - 80, w: 160, h: 160 };
+			if (!instance_exists(oWorkbenchManager)) return undefined;
+			with (oWorkbenchManager) {
+				var _dt = wb_tool_of(oDrill);
+				if (_dt == undefined) return undefined;
+				var _db = wb_tool_box(_dt);
+				return { x: _db.x1, y: _db.y1, w: _db.x2 - _db.x1, h: _db.y2 - _db.y1 };
+			}
+			break;
 	}
 	return undefined;
 }
@@ -2563,83 +2563,68 @@ function workbench_useful() {
 	return false;
 }
 
-/// @func workbench_dice_allowance()
-/// @desc How many dice you may bring to the workbench (F02): one per tool you own, plus one with the Hammer.
-function workbench_dice_allowance() {
-	var _n = ds_list_size(oRunManager.tools);
-	for (var i = 0; i < ds_list_size(oRunManager.tools); i++) if (oRunManager.tools[| i].object == oHammer) _n++;
-	return max(1, _n);
-}
-
 /// @func workbench_take_die(_die)
-/// @desc The dice picker's event at the workbench: a chosen die leaves the bag and lands in your hand on the bench.
+/// @desc The dice picker's event at the workbench: a chosen die leaves the bag and flies onto the bench (F224), each
+///       a moment after the one before.
 function workbench_take_die(_die) {
 	var _i = ds_list_find_index(global.dice_bag, _die);
-	if (_i == -1) return;
+	if (_i == -1 || !instance_exists(oWorkbenchManager)) return;
 	var _struct = clone_die(_die, "");
 	_struct.selected = false;
 	ds_list_delete(global.dice_bag, _i);
-	var _inst = instance_create_depth(global.gui.bag_x_deal, global.gui.bag_y_deal, -8, oDice);
-	_inst.struct = _struct;
-	_inst.action_type = _struct.action_type;
-	_inst.dice_amount = _struct.dice_amount;
-	_inst.dice_value = _struct.dice_value;
-	_inst.possible_type = _struct.possible_type;
-	var _target = generate_valid_targets(1, 100)[0];
-	_inst.target_x = _target[0];
-	_inst.target_y = _target[1];
+	with (oWorkbenchManager) {
+		var _flying = 0;
+		for (var k = 0; k < array_length(wb_dice); k++) if (is_struct(wb_dice[k].fly)) _flying++;
+		var _spot = wb_free_spot();
+		var _sx = 70, _sy = gui_h - 90;
+		var _d = wb_add_die(_struct, _sx, _sy);
+		_d.fly = { sx: _sx, sy: _sy, tx: _spot[0], ty: _spot[1], t: -0.2 * _flying, dur: 26, arc: 140, spin: 360 };
+		_d.scale = 0.6;
+	}
+}
+
+/// @func workbench_drill_waits()
+/// @desc The drill is on the bench, unused and empty, and you have a core in your items to load it with (its tip).
+function workbench_drill_waits() {
+	if (!instance_exists(oWorkbenchManager)) return false;
+	var _t = oWorkbenchManager.wb_tool_of(oDrill);
+	if (_t == undefined || _t.used || _t.core != undefined) return false;
+	for (var i = 0; i < array_length(oRunManager.items); i++) {
+		var _it = oRunManager.items[i];
+		if (is_struct(_it) && variable_struct_exists(_it, "type") && _it.type == "core") return true;
+	}
+	return false;
 }
 
 /// @func workbench_tool_used(_object)
-/// @desc A tool has crafted: it's used up for this visit and goes back in the toolbag.
+/// @desc A tool has crafted: it's used for this visit (it hangs back on the rack with a "Used" tag).
 function workbench_tool_used(_object) {
 	if (!instance_exists(oWorkbenchManager)) return;
-	if (progress_get("workbench_hints_done") != true) progress_set("workbench_hints_done", true); // the tool mouse hints have done their job
-	array_push(oWorkbenchManager.tools_used, _object);
-	// it stays in hand for half a second (its last pose shows), then returns to the bench greyed out (the tool's Step)
-	with (_object) {
-		tool_used = true;
-		used_timer = ceil(game_get_speed(gamespeed_fps) * 0.5);
+	if (progress_get("workbench_hints_done") != true) progress_set("workbench_hints_done", true);
+	with (oWorkbenchManager) {
+		array_push(tools_used, _object);
+		var _t = wb_tool_of(_object);
+		if (_t != undefined) _t.used = true;
 	}
 }
 
 /// @func workbench_open_picker()
-/// @desc Opens the bag to choose the dice for this workbench visit (from the prompt or the bag icon).
+/// @desc Opens the bag to take dice to the bench, as many as you like (from the note on the bench or the bag icon).
 function workbench_open_picker() {
-	if (!instance_exists(oWorkbenchManager) || !oWorkbenchManager.pick_pending) return;
+	if (!instance_exists(oWorkbenchManager)) return;
+	if (ds_list_size(global.dice_bag) == 0) {
+		throw_error("Bag empty", "Every die is on the bench.");
+		return;
+	}
 	oWorkbenchManager.pick_pending = false;
 	with (oRunManager) {
-		dice_selection = workbench_dice_allowance();
+		dice_selection = ds_list_size(global.dice_bag);
 		dice_selection_up_to = true;
-		dice_selection_message = "Choose up to " + string(dice_selection) + ((dice_selection == 1) ? " die" : " dice") + " to work on";
+		dice_selection_message = "Take dice to the bench";
 		dice_selection_event = function(_die) { workbench_take_die(_die); };
 		bag_to_show = global.dice_bag;
 		show_bag_contents = true;
 	}
-}
-
-/// @func workbench_can_change_dice()
-/// @desc Before the first craft of a visit you may swap the dice you brought (B134): nothing crafted, nothing being picked.
-function workbench_can_change_dice() {
-	if (!instance_exists(oWorkbenchManager)) return false;
-	var _wb = instance_find(oWorkbenchManager, 0);
-	if (_wb.pick_pending || array_length(_wb.tools_used) > 0 || _wb.crafting_state != "waiting") return false;
-	return oRunManager.dice_selection == false && instance_exists(oDice);
-}
-
-/// @func workbench_change_dice()
-/// @desc The dice in your hand go back to the bag and the picker opens again (B134).
-function workbench_change_dice() {
-	if (!workbench_can_change_dice()) return;
-	with (oDice) {
-		ds_list_add(global.dice_bag, struct);
-		instance_destroy();
-	}
-	with (oWorkbenchManager) {
-		for (var s = 0; s < array_length(workbench_slot); s++) workbench_slot[s].dice = undefined;
-		pick_pending = true;
-	}
-	workbench_open_picker();
 }
 
 // =====================================================================

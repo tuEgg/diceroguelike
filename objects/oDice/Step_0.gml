@@ -98,17 +98,6 @@ if (!is_dragging && hovered && mouse_check_button_pressed(mb_left)) {
 		if (room == rmCombat && struct.action_type == "INTEL") sfx_play(soInk2, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.6);
 	    drag_offset_x = mx - x;
 	    drag_offset_y = my - y;
-	} else if (room == rmWorkbench) {
-		// a finished die (or the Cutters' coin) goes into your bag: it flies there and is added when it lands
-		with (oWorkbenchManager) {
-			for (var s = 1; s <= 2; s++) if (workbench_slot[s].dice == other.struct) workbench_slot[s].dice = undefined;
-		}
-		var _p = instance_create_depth(x, y, -13, oDiceParticle);
-		_p.die_struct = clone_die(struct, struct.permanence);
-		_p.color_main = get_dice_color(struct.possible_type);
-		_p.target_x = 60;
-		_p.target_y = 1040;
-		instance_destroy();
 	}
 }
 
@@ -154,55 +143,6 @@ if (is_dragging) {
 		}
     }
 	
-	var workbench = instance_find(oWorkbenchManager, 0);
-	if (workbench != noone) {
-
-	    // Stop dragging on release
-	    if (mouse_check_button_released(mb_left)) {
-	        is_dragging = false;
-		
-			with (oWorkbenchManager) {
-				var _die = other;
-
-				// Which slot is the mouse over right now? Worked out here rather than read from the hover flags,
-				// which are set in Draw GUI and so can be a frame behind.
-				var _mx = device_mouse_x_to_gui(0);
-				var _my = device_mouse_y_to_gui(0);
-				var _target = -1;
-				for (var s = 0; s < 2; s++) {
-					if (abs(_mx - workbench_slot[s].xx) <= wb_tile_size / 2 && abs(_my - workbench_slot[s].yy) <= wb_tile_size / 2) _target = s;
-				}
-
-				// Dropped back on its own slot: it stays where it was
-				if (_target != -1 && _die.in_slot == _target + 1) {
-					_die.x = workbench_slot[_target].xx;
-					_die.y = workbench_slot[_target].yy;
-				} else {
-					var _reason = "";
-					if (_target == -1) _reason = "none";
-					else if (workbench_slot[_target].dice != undefined) _reason = "full";
-					else if (_target == 0 && _die.struct.dice_value == 2) _reason = "coin";
-					else if (_target == 1 && workbench_slot[1].core != undefined) _reason = "core";
-
-					if (_reason == "coin") throw_error("Can't upgrade coins", "Coins can't take a core.");
-					if (_reason == "core") throw_error("Core already here", "Remove the core first.");
-
-					// leave the slot it was in (moving between slots is allowed)
-					if (_die.in_slot > 0) {
-						workbench_slot[_die.in_slot - 1].dice = undefined;
-						_die.in_slot = false;
-					}
-
-					if (_reason == "") {
-						workbench_slot[_target].dice = _die.struct;
-						_die.x = workbench_slot[_target].xx;
-						_die.y = workbench_slot[_target].yy;
-						_die.in_slot = _target + 1;
-					}
-				}
-			}
-	    }
-	}
 }
 
 // --- Safety net (B123): a die in hand that's off screen, or still drifting long after it was dealt, is placed in the hand area

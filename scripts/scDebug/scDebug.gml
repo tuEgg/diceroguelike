@@ -514,6 +514,16 @@ function debug_menu_draw() {
 			if (debug_button(cx + half_w, yy, half_w, row_h, "Complete this spread")) {
 				debug_complete_spread();
 			}
+			yy += row_h;
+			// every tool from the pool (the Hammer and Cutters are otherwise bought): for testing the workbench
+			if (debug_button(cx, yy, half_w, row_h, "Give all tools", false, ds_list_size(global.master_tool_list) > 0)) {
+				while (ds_list_size(global.master_tool_list) > 0) {
+					ds_list_add(oRunManager.tools, global.master_tool_list[| 0]);
+					ds_list_add(oRunManager.tools_scale, 0.5);
+					ds_list_delete(global.master_tool_list, 0);
+				}
+				debug_say("All tools in your toolbag (re-enter the workbench to see them on the rack)");
+			}
 			yy += row_h * 1.5;
 			
 			debug_label(cx, yy + 6, "Game speed  x" + string(dbg.speed_multiplier));

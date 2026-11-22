@@ -30,11 +30,21 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 31: the free workbench | F224 | `feature/workbench-freeform` (off batch 30) | **Not yet play-tested.** No slots: dice anywhere on a plank table, tools on a rack that work where they land, dice from the bag any time. |
 | 30: playtester notes (itch, 2026-11-22) | B156, B157, B158, B159, F215, F216, F217, F218, F219, F220, F221, F222, F223 | `fix/playtest-11-22` | **Not yet play-tested.** Only what you can afford is in colour in the ink view, alignment named as alignment, a slot's bonus under its total, Kill coin counts on the tile, a fight on every draft, green extra plays, rewards close themselves, event words explained, take-back fixes. |
 | 29: ink cursor, room for three enemies, burning rewards | B155, F183, F184, F212, F213, F214 | `fix/playtest-11-22` | **Not yet play-tested.** Quill cursor by default in the ink view, no mouse hint, enemies clear of the four-place queue, drag the marker itself (grip at its end), ink take-back sound, ship's bell, torch on burns, the locked item reward burns. |
 | 28: queue and ink view | B152, B153, B154, F205, F206, F207, F208, F209, F210 | `fix/playtest-11-22` | **Not yet play-tested.** Four slots always in view, drag a move along the track, click intents in the ink view, dice dealt in an arc, sea stop odds, the settings not inked, d4 text centred, the track lifts over a hovered slot, an ink easter egg. |
 | 27: sounds | F204 | `fix/playtest-11-22` | **Not yet play-tested.** Jared's new sounds wired in. |
 | 26: playtest notes 2026-11-22 | B147, B148, B149, B150, B151, F196, F197, F198, F199, F200, F201, F202 | `fix/playtest-11-22` (off `dev`) | **Not yet play-tested.** Two crashes, the island flash on the page turn, a wrong padlock in slot 1, enemy block lasts until it acts again, ink buttons stand out, d6 ink slosh, linked stop badge, keepsake reward cards, min roll cap, the wreck with full slots. |
+
+**Batch 31 test list (the free workbench, `feature/workbench-freeform`)** Open the project from `C:\Users\Jared\Projects\TidesOfFortune-workbench` (a second checkout of this branch), or merge it in. F1: "Give all tools" (new, under "Complete this spread"), a core from the items list, then rooms > Workbench.
+- The room: a plank table with a pinned "Shipwright's bench" sheet, a pegboard rack on the right with your tools hanging on brass pegs, Continue bottom right. The toolbag no longer drops open here.
+- Dice: a note on the bench opens the bag; take as many as you like (Confirm with any number). They fly out one after another onto free spots, land with a pop. The bag icon works any time for more. Drag dice anywhere; they push gently apart; hover one for its tip. Drop one on the bag icon to put it back.
+- Drill: drag a core from your items onto the drill: it sits glowing in the chuck (while you carry a core, the empty chuck has a pulsing brass ring). Pick up the drill, its tip under the mouse; over a die: "Add the ... to this die." with a brass ring. Let go: it plunges, spins with sparks, the die shakes, the core sinks in (flash, ring, its name floats up); the die has a small gem on its corner. Over a coin or with no core loaded it says why and goes back.
+- Hammer: two dice side by side (under 200 px apart). Hold the hammer over the gap: both get rings and a cross marks where the head lands, "Combine these dice into a dN." Let go: wind-up, slam, shake, wood chips, a scuff on the table, and the new die springs up under the head. Different types or over 12 sides: the text says so in red; swing anyway and they jump apart, nothing used. A swing at bare table thuds (a scuff); at one die it hops: "Needs two dice side by side." Misses never use the hammer.
+- Cutters: over a die bigger than a coin: "Cut it down to a dN and get a coin." Let go: a snip, paper bits, the die shrinks a size and a coin of its type hops out to the side. A d4 with a core warns that its core is lost.
+- Each tool works once: back on the rack it's greyed with a paper "Used" tag; hovering says so, clicking says "Each tool works once per visit." Right click puts a tool in hand back.
+- Continue: every die on the table flies back to the bag, a loaded but unused core goes back to your items, then the map.
 
 **Batch 30 test list (an itch playtester's notes)**
 - F215 Ink view with little ink (say 2): dice you can't reroll or redraw, intents you can't reveal or rewrite and track markers you can't move are drawn in ink like the rest of the page; only what you can afford stays in colour. Buttons you can't afford are parchment with an ink outline instead of grey. Hovering an inked marker still says what it is (and pressing it says "Not enough ink").
@@ -158,7 +168,6 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 **From the 2026-11-22 playtest**
 - F203 Keepsake idea: rerolls can't roll the same value again.
-- F224 **Workbench rework (Jared, 2026-11-22), mockup at `docs/mockups/workbench-freeform.html`:** no slots, a table you place dice anywhere on; pull dice from the bag any time, no limit. Drill: die on the table, core into the drill head, drill it in. Hammer: two dice side by side, one swing on the gap, the new die appears under the hammer. Cutters: cut a die, a coin pops out beside it. Open questions on the mockup page (missed swings, once per visit, leftover dice, previews).
 - F225 Hotkeys (playtester): Space End Turn, Tab the ink view, B the bag, 1-9 pick a die in hand.
 - F226 A run log (playtester): a page in the book listing fights, picks and events.
 - F211 Keepsake ideas (Jared): keepsakes that change sea stops (pick a stop's type, see the next spread's stops, a stop counts twice...).
@@ -214,6 +223,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 ## 📌 DECISIONS
 
+- 2026-11-22 **The free workbench (F224):** no slots; tools work where they land; each tool once per visit (a "Used" tag); misses cost nothing; hovering a tool over dice says what it will do instead of a faded preview; dice from the bag any time, no limit; Continue sends the table's dice back.
 - 2026-11-22 **The queue shows four places (F205):** your slots, the one to build, locked ones up to four; a move is moved by dragging its handle along the track for 4 ink (F206), not by arrows.
 - 2026-11-22 **Sea stop odds (Q16, F209):** Calm water 1 to 5 by missing health; Shipwright 3, +2 per core held up to +4; a core held two spreads without a Shipwright guarantees one; at full health the safe stop is the Shipwright when a tool has work.
 - 2026-11-22 **Enemy block (F196):** an enemy's block lasts until it acts again; a new Block replaces it rather than stacking (enemies built to keep block still do).

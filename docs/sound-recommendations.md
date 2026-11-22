@@ -57,9 +57,10 @@ What's still silent or using a placeholder, most important first within each gro
 ## Workbench (all placeholders now)
 | Tier | Moment | Now | Suggestion |
 |---|---|---|---|
-| 2 | Hammer | soShieldMedium | a mallet on wood |
-| 2 | Drill | rubble | a hand drill turning |
-| 2 | Scissors | sword sounds | a snip |
+| 2 | Hammer (the free bench: wind-up, then a slam on the table) | soShieldMedium; a miss soShieldLight2 | a mallet on wood, a duller thud for a miss |
+| 2 | Drill (about 0.7 s of turning, then the core sinks in) | rubble every 0.2 s, then soShieldLight1 | a hand drill turning, a click as the gem seats |
+| 2 | Cutters | sword sounds | a snip, and a coin's tink as it lands |
+| 3 | Picking up / putting down a die or tool on the bench | soSlotHover, soSlotPlace, soClick4 | a wooden tap |
 
 ## Menus
 | Tier | Moment | Now | Suggestion |
