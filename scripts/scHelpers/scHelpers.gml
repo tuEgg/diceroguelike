@@ -787,13 +787,13 @@ function tooltip_cost_badge(_x, _y, _amount, _kind) {
 	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 12, 12, false);
 	draw_set_color(_col);
 	draw_roundrect_ext(_x1, _y1, _x1 + _w, _y1 + _h, 12, 12, true);
-	// the currency: a coin, or a drop of insight ink
+	// the currency: a coin, or an ink pip (as under the inkwell)
 	var _ix = _x1 + 15, _iy = _y1 + _h / 2;
 	draw_set_color(c_black);
 	draw_circle(_ix, _iy, 8, false);
 	draw_set_color(_col);
 	draw_circle(_ix, _iy, 6, false);
-	if (_kind != "gold") { draw_set_color(c_black); draw_circle(_ix, _iy, 2.5, false); } // an eye's pupil
+	if (_kind != "gold") { draw_set_color(global.color_intel); draw_circle(_ix, _iy, 4.5, false); } // the pip's ink
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_middle);
 	draw_outline_text(_txt, c_black, _col, 2, _ix + 12, _iy, 1, 1, 0);

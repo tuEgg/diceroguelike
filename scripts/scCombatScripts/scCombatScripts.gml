@@ -3304,6 +3304,8 @@ function combat_insight_view_draw() {
 		// so a hovered action can show what it would spend)
 		ink_preview = 0;
 		wet_shapes = []; // what gets the wet edge this frame (wet_ink_draw, below)
+		ink_costs = []; // costs, drawn over it (ink_costs_draw)
+		ink_mouse_hint = undefined;
 		var _ex = combat_inkwell_pos().x, _ey = combat_inkwell_pos().y;
 		var _ink_hov = mouse_hovering(_ex, _ey, 70, 70, true, noone, noone, true, UI_LAYER.POPUP);
 		draw_inkwell(_ex, _ey, _ink_hov ? 1.25 : 1.15, player_intel / INSIGHT_MAX, false);
@@ -3321,8 +3323,8 @@ function combat_insight_view_draw() {
 			_seal_click = _seal_hov && mouse_check_button_pressed(mb_left);
 		}
 
-		// each intent: labelled buttons under its tag (Jared, 2026-11-22: label everything): Reveal (its exact number) and
-		// Rewrite (it picks a different move)
+		// each intent: icon buttons under its tag (Jared, 2026-11-22: icons, like the dice's): Reveal (an eye: its exact
+		// number) and Rewrite (a quill: it picks a different move), side by side
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var _en = room_enemies[| e];
 			if (_en.dead || !variable_struct_exists(_en, "intent_rect")) continue;
@@ -3331,22 +3333,20 @@ function combat_insight_view_draw() {
 			var _can_reveal = !enemy_intent_revealed(_en) && intent_has_numbers(_en.intent.move);
 			var _can_rewrite = enemy_can_rewrite_intent(_en);
 			var _n = (_can_reveal ? 1 : 0) + (_can_rewrite ? 1 : 0);
-			// laid out from their real widths, side by side with a gap, centred under the tag
 			var _rcost = combat_reveal_cost();
-			var _rw = _can_reveal ? ink_button_w("Reveal", _rcost, 100) : 0, _ww = _can_rewrite ? ink_button_w("Rewrite", INSIGHT_COST_QUILL, 100) : 0;
-			var _bx = _ir.x - (_rw + _ww + ((_n > 1) ? 12 : 0)) / 2;
+			var _bx = _ir.x - ((_n > 1) ? 30 : 0);
 			if (_can_reveal) {
-				var _rb = ink_button(_bx + _rw / 2, _by, 100, 32, "Reveal", _rcost, combat_insight_can(_rcost));
+				var _rb = ink_icon_button(_bx, _by, "reveal", _rcost, combat_insight_can(_rcost));
 				if (_rb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reveal", "See exactly how much " + string(_en.data.name) + " will " + intent_verbs(_en.intent.move) + ".", undefined, 0, undefined, _rcost, "ink");
 				if (_rb.click) {
 					combat_reveal_enemy(_en);
 					_en.intent.scale = _en.intent.start_scale * 1.4; // pop, so the change is noticed
 					float_text(_ir.x, _ir.y - _ir.h / 2 - 20, "Exact: " + intent_number_text(_en, INTEL_LEGIBLE), c_white);
 				}
-				_bx += _rw + 12;
+				_bx += 60;
 			}
 			if (_can_rewrite) {
-				var _wb = ink_button(_bx + _ww / 2, _by, 100, 32, "Rewrite", INSIGHT_COST_QUILL, combat_insight_can(INSIGHT_COST_QUILL));
+				var _wb = ink_icon_button(_bx, _by, "rewrite", INSIGHT_COST_QUILL, combat_insight_can(INSIGHT_COST_QUILL));
 				if (_wb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rewrite", string(_en.data.name) + " picks a different move.", undefined, 0, undefined, INSIGHT_COST_QUILL, "ink");
 				if (_wb.click) {
 					var _was = string(_en.intent.move.move_name);
@@ -3388,10 +3388,12 @@ function combat_insight_view_draw() {
 			if (_ready) {
 				// two icon buttons over the die, side by side (Jared, 2026-11-22): reroll left, redraw right
 				var _top_y = y - _r * _ring_k - 30;
-				var _b1 = ink_icon_button(x - 25, _top_y, "reroll", INSIGHT_COST_REROLL, _rr_can);
-				var _b2 = ink_icon_button(x + 25, _top_y, "redraw", INSIGHT_COST_REDRAW, _rd_can);
-				if (_b1.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll", "Roll this die again." + (die_is_mocked(struct) ? "\nMocked: it still rolls 1." : "") + (_inky ? "\n" + struct.name + ": " + struct.description : ""), undefined, 0, undefined, INSIGHT_COST_REROLL, "ink");
-				if (_b2.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Redraw", "Discard this die and draw a new one." + (_inky ? "\n" + struct.name + ": " + struct.description : ""), undefined, 0, undefined, INSIGHT_COST_REDRAW, "ink");
+				var _b1 = ink_icon_button(x - 30, _top_y, "reroll", INSIGHT_COST_REROLL, _rr_can);
+				var _b2 = ink_icon_button(x + 30, _top_y, "redraw", INSIGHT_COST_REDRAW, _rd_can);
+				// pointing at the die or a button: a small mouse between them says left-click rerolls, right-click redraws
+				if (_hov || _b1.hover || _b2.hover) other.ink_mouse_hint = { x: x, y: _top_y, side: _b1.hover ? -1 : (_b2.hover ? 1 : 0) };
+				if (_b1.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll", "Roll this die again.\nOr left-click the die." + (die_is_mocked(struct) ? "\nMocked: it still rolls 1." : "") + (_inky ? "\n" + struct.name + ": " + struct.description : ""), undefined, 0, undefined, INSIGHT_COST_REROLL, "ink");
+				if (_b2.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Redraw", "Discard this die and draw a new one.\nOr right-click the die." + (_inky ? "\n" + struct.name + ": " + struct.description : ""), undefined, 0, undefined, INSIGHT_COST_REDRAW, "ink");
 				if (_b1.click) { _clicked = id; _clicked_what = "reroll"; }
 				if (_b2.click) { _clicked = id; _clicked_what = "redraw"; }
 			}
@@ -3409,8 +3411,9 @@ function combat_insight_view_draw() {
 		// the timeline track, over the log too, with its ink arrows (Earlier, Later)
 		combat_timeline_draw(true);
 
-		// the wet edge round every ink thing drawn above (shWetInk)
+		// the wet edge round every ink thing drawn above (shWetInk), then the costs over it, so they always read
 		wet_ink_draw();
+		ink_costs_draw();
 
 		// your ink as pips under the inkwell; the ones a hovered action would spend flicker
 		draw_ink_pips(_ex, _ey + 50, player_intel, ink_preview);
@@ -3767,6 +3770,7 @@ function combat_timeline_draw(_ink = false) {
 					var _hov = mouse_hovering(_axx, _my, 30, 34, true, soSlotHover, noone, true, UI_LAYER.POPUP);
 					var _sc = (_hov && _ok) ? 1.15 : 1;
 					if (_ok) wet_ink_circle(_axx, _my, 14 * _sc);
+					ink_cost_pip(_axx + s * 12, _my + 13, INK_COST_MOVE, _ok);
 					draw_set_alpha(_ok ? _a : _a * 0.45);
 					draw_set_color(global.color_intel);
 					draw_circle(_axx, _my, 14 * _sc, false);
@@ -3947,8 +3951,8 @@ function ink_doodles_draw() {
 }
 
 /// @func ink_icon_button(_cx, _cy, _icon, _cost, _ok)
-/// @desc A round ink button with an icon, its cost on a small ink disc at its lower right: "reroll" (a die in a turning
-///       arrow) or "redraw" (a die between two swap arrows). Like ink_button: the pips it costs flicker on hover, faded
+/// @desc A round ink button with an icon, its cost as a pip at its lower right (ink_cost_pip): "reroll" (a die in a turning
+///       arrow), "redraw" (a die between two swap arrows), "reveal" (an eye) or "rewrite" (a quill). Like ink_button: the pips it costs flicker on hover, faded
 ///       when you can't afford it, its edge sloshes (wet_ink_circle). Returns { hover, click }.
 function ink_icon_button(_cx, _cy, _icon, _cost, _ok) {
 	var _hov = mouse_hovering(_cx, _cy, 44, 44, true, soSlotHover, noone, true, UI_LAYER.POPUP);
@@ -3970,6 +3974,18 @@ function ink_icon_button(_cx, _cy, _icon, _cost, _ok) {
 		for (var a = _a0; a < _a1; a += 15) draw_line_width(_cx + lengthdir_x(_ar, a), _cy + lengthdir_y(_ar, a), _cx + lengthdir_x(_ar, a + 15), _cy + lengthdir_y(_ar, a + 15), 2.5 * _k);
 		var _hx = _cx + lengthdir_x(_ar, _a1), _hy = _cy + lengthdir_y(_ar, _a1);
 		draw_triangle(_hx + lengthdir_x(5 * _k, _a1), _hy + lengthdir_y(5 * _k, _a1), _hx - lengthdir_x(5 * _k, _a1), _hy - lengthdir_y(5 * _k, _a1), _hx + lengthdir_x(7 * _k, _a1 + 90), _hy + lengthdir_y(7 * _k, _a1 + 90), false); // the head, pointing on round
+	} else if (_icon == "reveal") {
+		// an eye
+		draw_set_color(_ink);
+		draw_ellipse(_cx - 12 * _k, _cy - 7 * _k, _cx + 12 * _k, _cy + 7 * _k, false);
+		draw_set_color((_hov && _ok) ? global.ui_col.paper_hi : global.ui_col.paper);
+		draw_ellipse(_cx - 9.5 * _k, _cy - 5 * _k, _cx + 9.5 * _k, _cy + 5 * _k, false);
+		draw_set_color(_ink);
+		draw_circle(_cx, _cy, 4.5 * _k, false);
+	} else if (_icon == "rewrite") {
+		// a quill, nib at the lower left
+		draw_quill(_cx - 9 * _k, _cy + 10 * _k, 24 * _k, 50);
+		draw_set_alpha(_ok ? 1 : 0.5);
 	} else {
 		// a die between two arrows going opposite ways (out for a new one)
 		draw_roundrect_ext(_cx - 5 * _k, _cy - 5 * _k, _cx + 5 * _k, _cy + 5 * _k, 3, 3, false);
@@ -3978,15 +3994,8 @@ function ink_icon_button(_cx, _cy, _icon, _cost, _ok) {
 		draw_line_width(_cx + 12 * _k, _cy + 10 * _k, _cx - 9 * _k, _cy + 10 * _k, 2.5 * _k);
 		draw_triangle(_cx - 13 * _k, _cy + 10 * _k, _cx - 7 * _k, _cy + 14 * _k, _cx - 7 * _k, _cy + 6 * _k, false);
 	}
-	// the cost
-	var _bx = _cx + _r * 0.72, _by = _cy + _r * 0.72;
-	draw_set_color(_ink);
-	draw_circle(_bx, _by, 9, false);
-	draw_set_font(ftDescriptions);
-	draw_set_halign(fa_center);
-	draw_set_valign(fa_middle);
-	draw_set_color(global.text_intel);
-	draw_text_transformed(_bx, _by + 1, string(_cost), 0.8, 0.8, 0);
+	// the cost, as a pip, drawn over the wet edge (ink_costs_draw)
+	ink_cost_pip(_cx + _r * 0.74, _cy + _r * 0.74, _cost, _ok);
 	draw_set_alpha(1);
 	draw_set_color(c_white);
 	draw_set_halign(fa_left);
@@ -3998,4 +4007,57 @@ function ink_icon_button(_cx, _cy, _icon, _cost, _ok) {
 	var _click = _hov && _ok && mouse_check_button_pressed(mb_left);
 	if (_hov && !_ok && mouse_check_button_pressed(mb_left)) throw_error("Not enough ink", "This costs " + string(_cost) + " ink.");
 	return { hover: _hov, click: _click };
+}
+
+/// @func ink_cost_pip(_x, _y, _cost, _ok)
+/// @desc An ink cost, shown as one of your ink pips with the number in it (Jared, 2026-11-22: pips, not a drop). Queued
+///       and drawn last in the ink view (ink_costs_draw), over the wet edge, so it always reads.
+function ink_cost_pip(_x, _y, _cost, _ok) {
+	if (!instance_exists(oCombat)) return;
+	array_push(oCombat.ink_costs, { x: _x, y: _y, cost: _cost, ok: _ok });
+}
+
+/// @func ink_costs_draw()
+/// @desc The ink view's costs (ink_cost_pip), 20% bigger than before, and the hovered die's mouse hint.
+function ink_costs_draw() {
+	with (oCombat) {
+		draw_set_font(ftDescriptions);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		for (var i = 0; i < array_length(ink_costs); i++) {
+			var _c = ink_costs[i];
+			draw_set_alpha(_c.ok ? 1 : 0.55);
+			draw_set_color(global.text_intel);   // the pip's pale ring, as under the inkwell
+			draw_circle(_c.x, _c.y, 12.5, false);
+			draw_set_color(global.color_intel);
+			draw_circle(_c.x, _c.y, 10.5, false);
+			draw_set_color(global.text_intel);
+			draw_text_transformed(_c.x, _c.y + 1, string(_c.cost), 0.96, 0.96, 0);
+		}
+		// the mouse hint: between a die's two buttons, its left or right button lit for the one you're pointing at
+		if (is_struct(ink_mouse_hint)) {
+			var _h = ink_mouse_hint, _mx = _h.x, _my = _h.y, _w = 7, _hh = 10;
+			draw_set_alpha(1);
+			draw_set_color(global.color_intel);
+			draw_roundrect_ext(_mx - _w - 2, _my - _hh - 2, _mx + _w + 2, _my + _hh + 2, 9, 9, false);
+			draw_set_color(global.ui_col.paper);
+			draw_roundrect_ext(_mx - _w, _my - _hh, _mx + _w, _my + _hh, 7, 7, false);
+			// the buttons: the one for the hovered side lit; both half lit over the die
+			for (var s = -1; s <= 1; s += 2) {
+				var _lit = (_h.side == s) ? 1 : ((_h.side == 0) ? 0.55 : 0.15);
+				draw_set_alpha(_lit);
+				draw_set_color(global.color_intel);
+				if (s < 0) draw_rectangle(_mx - _w + 1, _my - _hh + 2, _mx - 1, _my - 1, false);
+				else draw_rectangle(_mx + 1, _my - _hh + 2, _mx + _w - 1, _my - 1, false);
+			}
+			draw_set_alpha(1);
+			draw_set_color(global.color_intel);
+			draw_line_width(_mx, _my - _hh, _mx, _my, 1.5);
+			draw_line_width(_mx - _w, _my, _mx + _w, _my, 1.5);
+		}
+		draw_set_alpha(1);
+		draw_set_color(c_white);
+		draw_set_halign(fa_left);
+		draw_set_valign(fa_top);
+	}
 }

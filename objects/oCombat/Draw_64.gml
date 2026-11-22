@@ -948,7 +948,9 @@ var d_padding = 22;
 for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
 	var _debuff = global.player_debuffs[| d];
 	var col = _debuff.template.color;
-	draw_sprite_ext(sDebuffIcon, _debuff.template.icon_index, p_bar_x + d_x + sprite_get_width(sDebuffIcon)/2, d_y + sprite_get_height(sDebuffIcon)/2, 1, 1, 0, col, 1.0);
+	// ink coming: the inkwell, as you click for the ink view (Jared, 2026-11-22)
+	if (_debuff.template._id == "intel" || _debuff.template._id == "intel_lasting") draw_inkwell(p_bar_x + d_x + sprite_get_width(sDebuffIcon)/2, d_y + sprite_get_height(sDebuffIcon)/2, 0.7, 1, false);
+	else draw_sprite_ext(sDebuffIcon, _debuff.template.icon_index, p_bar_x + d_x + sprite_get_width(sDebuffIcon)/2, d_y + sprite_get_height(sDebuffIcon)/2, 1, 1, 0, col, 1.0);
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
