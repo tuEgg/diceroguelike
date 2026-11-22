@@ -3716,8 +3716,7 @@ function combat_timeline_draw(_ink = false) {
 		for (var i = 0; i < ds_list_size(tile_scale); i++) _lift = max(_lift, tile_scale[| i] - 1);
 		_lift *= aq_tile_w / 2;
 		var _ty = aq_y0 - 44 - _lift;
-		var _row_h = _ink ? 88 : 42; // room for the drag handle under each marker in the ink view
-		var _drag_draw = undefined;
+		var _row_h = 42;
 		var _x_end = combat_point_x(_last) + 12;
 		// the line
 		draw_set_alpha(0.9);
@@ -3758,18 +3757,38 @@ function combat_timeline_draw(_ink = false) {
 			var _gap = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : min(_p, _last);
 			var _gx = combat_point_x(_gap);
 			var _row = _rows[e];
-			var _my = _ty - 40 - (_ink ? 34 : 0) - _row * _row_h; // raised in the ink view: the handle hangs below
+			var _my = _ty - 40 - _row * _row_h;
 			var _grey = _en.dead || (_en.intent.move.move_name == "Stunned");
 			var _a = (_grey ? 0.35 : (_en.turn_done ? 0.55 : 1)) * _en.intent.alpha;
 			var _col = combat_enemy_colour(_en);
-			// the line down from the marker to the gap
-			draw_set_alpha(_a);
+			// ink: the marker itself is dragged along the track (Jared, 2026-11-22: a grip at its right end, not a handle
+			// under it, which made stacks tall). It follows the mouse and snaps to the nearest gap; let go there to move
+			// the move for INK_COST_MOVE
+			var _movable = _ink && !_en.dead && !_en.turn_done;
+			var _dragging = _movable && ink_drag_enemy == _en;
+			var _eff = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : _p;
+			var _k = _eff;
+			if (_dragging) {
+				var _mx = device_mouse_x_to_gui(0);
+				_k = clamp(round((_mx - aq_x0 + (aq_step - aq_tile_w) / 2) / aq_step), 1, _last);
+				_gx = clamp(_mx, combat_point_x(1), combat_point_x(_last));
+				quill_over = true;
+				ink_preview = (_k != _eff) ? INK_COST_MOVE : 0;
+			}
+			// the line down from the marker to the gap (while dragged: from the track at the gap it would land in)
+			draw_set_alpha(_dragging ? 0.7 : _a);
 			draw_set_color(_col);
-			draw_line_width(_gx, _my + 17, _gx, aq_y0 - 4 - _lift, 3);
+			if (_dragging) {
+				draw_line_width(combat_point_x(_k), _ty - 6, combat_point_x(_k), aq_y0 - 4 - _lift, 3);
+				draw_circle(combat_point_x(_k), _ty, 8, false);
+				draw_set_alpha(_a);
+			} else draw_line_width(_gx, _my + 17, _gx, aq_y0 - 4 - _lift, 3);
 			// the marker: dark, edged in its colour; letter, icon, number
 			var _num = intent_has_numbers(_en.intent.move) ? intent_number_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) : "";
 			draw_set_font(ftDescriptions);
-			var _w = 62 + ((_num != "") ? string_width(_num) + 8 : 0);
+			var _w = 62 + ((_num != "") ? string_width(_num) + 8 : 0) + (_movable ? 26 : 0); // room for the grip
+			var _can = _movable && combat_insight_can(INK_COST_MOVE);
+			if (_can) wet_ink_rect(_gx - _w / 2 - 3, _my - 20, _gx + _w / 2 + 3, _my + 20, 12); // the edge sloshes: it can be moved
 			draw_set_color(_col);
 			draw_roundrect_ext(_gx - _w / 2 - 3, _my - 17 - 3, _gx + _w / 2 + 3, _my + 17 + 3, 12, 12, false);
 			draw_set_color(make_color_rgb(42, 32, 26));
@@ -3791,44 +3810,37 @@ function combat_timeline_draw(_ink = false) {
 				draw_set_color(global.ui_col.paper_hi);
 				draw_text(_gx - _w / 2 + 58, _my + 1, _num);
 			}
-			draw_set_alpha(1);
-			if (mouse_hovering(_gx, _my, _w, 34, true, noone, noone, true, _layer)) {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), string(_en.data.name) + ": " + string(_en.intent.move.move_name), intent_hover_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) + "\n" + enemy_point_text(_en));
+			if (_movable) {
+				// the grip: two pale arrows pointing apart at its right end, and the cost on its corner
+				var _gpx = _gx + _w / 2 - 14;
+				draw_set_color(global.ui_col.paper_hi);
+				draw_line_width(_gpx - 5, _my, _gpx + 5, _my, 2);
+				draw_triangle(_gpx - 10, _my, _gpx - 4, _my - 5, _gpx - 4, _my + 5, false);
+				draw_triangle(_gpx + 10, _my, _gpx + 4, _my - 5, _gpx + 4, _my + 5, false);
+				ink_cost_pip(_gx + _w / 2, _my - 17, INK_COST_MOVE, _can);
 			}
-			// ink: a handle under the marker; drag it to any gap on the track to move the move there, for INK_COST_MOVE
-			// (Jared, 2026-11-22: one handle, not arrows either side)
-			if (_ink && !_en.dead && !_en.turn_done) {
-				var _eff = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : _p;
-				var _can = combat_insight_can(INK_COST_MOVE);
-				if (ink_drag_enemy == _en) {
-					// being dragged: it snaps to the nearest gap; let go to move it there
-					var _mx = device_mouse_x_to_gui(0);
-					var _k = clamp(round((_mx - aq_x0 + (aq_step - aq_tile_w) / 2) / aq_step), 1, _last);
-					_drag_draw = { x: clamp(_mx, combat_point_x(1), combat_point_x(_last)), y: _my + 43, gx: combat_point_x(_k), col: _col, k: _k, eff: _eff };
+			draw_set_alpha(1);
+			var _mhov = !_dragging && (ink_drag_enemy == undefined || !_ink) && mouse_hovering(_gx, _my, _w, 34, true, _movable ? soSlotHover : noone, noone, true, _layer);
+			if (_mhov) {
+				var _tip = intent_hover_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) + "\n" + enemy_point_text(_en);
+				if (_movable) {
 					quill_over = true;
-					ink_preview = (_k != _eff) ? INK_COST_MOVE : 0;
-					if (!mouse_check_button(mb_left)) {
-						ink_drag_enemy = undefined;
-						if (_k != _eff && combat_insight_spend(INK_COST_MOVE)) {
-							_en.intent.after_slot = _k;
-							float_text(combat_point_x(_k), _my - 30, enemy_point_text(_en), c_white); // what changed
-						}
+					ink_preview = INK_COST_MOVE;
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), string(_en.data.name) + ": " + string(_en.intent.move.move_name), _tip + "\nDrag it to another slot.", undefined, 0, undefined, INK_COST_MOVE, "ink");
+					if (mouse_check_button_pressed(mb_left)) {
+						if (_can) ink_drag_enemy = _en;
+						else throw_error("Not enough ink", "This costs " + string(INK_COST_MOVE) + " ink.");
 					}
-				} else if (ink_drag_enemy == undefined) {
-					var _hb = ink_icon_button(_gx, _my + 43, "move", INK_COST_MOVE, _can, 0.91); // fully under the marker (Jared, 2026-11-22)
-					if (_hb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Move", "Drag it to another slot.\nNow: " + enemy_point_text(_en), undefined, 0, undefined, INK_COST_MOVE, "ink");
-					if (_hb.click) ink_drag_enemy = _en;
+				} else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), string(_en.data.name) + ": " + string(_en.intent.move.move_name), _tip);
+			}
+			// let go: it moves to the gap it was over (nothing spent if that's where it was)
+			if (_dragging && !mouse_check_button(mb_left)) {
+				ink_drag_enemy = undefined;
+				if (_k != _eff && combat_insight_spend(INK_COST_MOVE)) {
+					_en.intent.after_slot = _k;
+					float_text(combat_point_x(_k), _my - 30, enemy_point_text(_en), c_white); // what changed
 				}
 			}
-		}
-		// the move being dragged, over everything on the track: a line down to the gap it would land in, the handle at the mouse
-		if (is_struct(_drag_draw)) {
-			draw_set_alpha(0.7);
-			draw_set_color(_drag_draw.col);
-			draw_line_width(_drag_draw.gx, _ty - 6, _drag_draw.gx, aq_y0 - 4 - _lift, 3);
-			draw_circle(_drag_draw.gx, _ty, 8, false);
-			draw_set_alpha(1);
-			ink_icon_button(_drag_draw.x, _drag_draw.y, "move", INK_COST_MOVE, true, 1);
 		}
 		draw_set_halign(fa_left);
 		draw_set_valign(fa_top);

@@ -30,7 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 29: ink cursor, room for three enemies, burning rewards | B155, F183, F184, F212, F213, F214 | `fix/playtest-11-22` | **Not yet play-tested.** Quill cursor by default in the ink view, no mouse hint, enemies clear of the four-place queue, move handle under its marker, ink take-back sound, ship's bell, torch on burns, the locked item reward burns. |
+| 29: ink cursor, room for three enemies, burning rewards | B155, F183, F184, F212, F213, F214 | `fix/playtest-11-22` | **Not yet play-tested.** Quill cursor by default in the ink view, no mouse hint, enemies clear of the four-place queue, drag the marker itself (grip at its end), ink take-back sound, ship's bell, torch on burns, the locked item reward burns. |
 | 28: queue and ink view | B152, B153, B154, F205, F206, F207, F208, F209, F210 | `fix/playtest-11-22` | **Not yet play-tested.** Four slots always in view, drag a move along the track, click intents in the ink view, dice dealt in an arc, sea stop odds, the settings not inked, d4 text centred, the track lifts over a hovered slot, an ink easter egg. |
 | 27: sounds | F204 | `fix/playtest-11-22` | **Not yet play-tested.** Jared's new sounds wired in. |
 | 26: playtest notes 2026-11-22 | B147, B148, B149, B150, B151, F196, F197, F198, F199, F200, F201, F202 | `fix/playtest-11-22` (off `dev`) | **Not yet play-tested.** Two crashes, the island flash on the page turn, a wrong padlock in slot 1, enemy block lasts until it acts again, ink buttons stand out, d6 ink slosh, linked stop badge, keepsake reward cards, min roll cap, the wreck with full slots. |
@@ -38,7 +38,7 @@
 **Batch 29 test list**
 - F212 Ink view: the cursor is the quill everywhere, and the normal pointer over anything you can click or drag (dice, intents, buttons, handles, the inkwell, Done). Drawing keeps the quill. The little mouse hint is gone.
 - B155 A fight with three enemies: the queue (four places) and the enemies no longer overlap; the enemies stand to its right (closer together if needed).
-- F213 Ink view: each track marker's move handle hangs fully below the marker, 30% bigger. Markers sit a little higher in the ink view to make room; stacked ones are further apart.
+- F213 Ink view: no separate move handle. Each track marker is wider, with a small grip (two arrows) at its right end and the 4-ink pip on its corner, and its edge sloshes when you can afford it. Grab the marker anywhere and drag it: it follows the mouse and a line shows the gap it will land in; let go there to move it for 4 ink. Stacks are no taller than outside the ink view.
 - F214 Taking an ink die back out of a slot (or taking apart a slot it built): soInk2, not the rubble.
 - End Turn rings soShipBell.
 - F184 The draft page burning plays soTorch.
