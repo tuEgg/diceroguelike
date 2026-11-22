@@ -3334,20 +3334,22 @@ function combat_insight_view_draw() {
 			var _can_reveal = !enemy_intent_revealed(_en) && intent_has_numbers(_en.intent.move);
 			var _can_rewrite = enemy_can_rewrite_intent(_en);
 			var _n = (_can_reveal ? 1 : 0) + (_can_rewrite ? 1 : 0);
-			var _bx = _ir.x - (_n - 1) * 54;
+			// laid out from their real widths, side by side with a gap, centred under the tag
+			var _rcost = combat_reveal_cost();
+			var _rw = _can_reveal ? ink_button_w("Reveal", _rcost, 100) : 0, _ww = _can_rewrite ? ink_button_w("Rewrite", INSIGHT_COST_QUILL, 100) : 0;
+			var _bx = _ir.x - (_rw + _ww + ((_n > 1) ? 12 : 0)) / 2;
 			if (_can_reveal) {
-				var _rcost = combat_reveal_cost();
-				var _rb = ink_button(_bx, _by, 100, 32, "Reveal", _rcost, combat_insight_can(_rcost));
+				var _rb = ink_button(_bx + _rw / 2, _by, 100, 32, "Reveal", _rcost, combat_insight_can(_rcost));
 				if (_rb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reveal", "See exactly how much " + string(_en.data.name) + " will " + intent_verbs(_en.intent.move) + ".", undefined, 0, undefined, _rcost, "ink");
 				if (_rb.click) {
 					combat_reveal_enemy(_en);
 					_en.intent.scale = _en.intent.start_scale * 1.4; // pop, so the change is noticed
 					float_text(_ir.x, _ir.y - _ir.h / 2 - 20, "Exact: " + intent_number_text(_en, INTEL_LEGIBLE), c_white);
 				}
-				_bx += 108;
+				_bx += _rw + 12;
 			}
 			if (_can_rewrite) {
-				var _wb = ink_button(_bx, _by, 100, 32, "Rewrite", INSIGHT_COST_QUILL, combat_insight_can(INSIGHT_COST_QUILL));
+				var _wb = ink_button(_bx + _ww / 2, _by, 100, 32, "Rewrite", INSIGHT_COST_QUILL, combat_insight_can(INSIGHT_COST_QUILL));
 				if (_wb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rewrite", string(_en.data.name) + " picks a different move.", undefined, 0, undefined, INSIGHT_COST_QUILL, "ink");
 				if (_wb.click) {
 					var _was = string(_en.intent.move.move_name);
@@ -3364,6 +3366,7 @@ function combat_insight_view_draw() {
 		// right-clicking the die still work.) Not while it's still rolling in.
 		var _rr_can = combat_insight_can(INSIGHT_COST_REROLL), _rd_can = combat_insight_can(INSIGHT_COST_REDRAW);
 		var _clicked = noone, _clicked_what = "";
+		combat_ink_hand_row(); // the hand slides into an even row, so each die's buttons have room (Jared, 2026-11-22)
 		with (oDice) {
 			if (still || in_slot) continue;
 			var _r = 36 * scale * (1 + 0.22 * land_pop);
@@ -3422,7 +3425,16 @@ function combat_insight_view_draw() {
 /// @desc A labelled ink action in the log (Jared, 2026-11-22: label everything): a parchment pill with an ink edge, its
 ///       name on the left and its cost on the right as an ink drop and a number. Grows under the mouse (and its cost shows
 ///       on the pips, ink_preview); faded when you can't afford it. Returns { hover, click }.
+/// @func ink_button_w(_label, _cost, _min_w)
+/// @desc How wide ink_button draws: never narrower than its words, the drop and the number.
+function ink_button_w(_label, _cost, _min_w) {
+	draw_set_font(ftDescriptions);
+	return max(_min_w, string_width(_label) + string_width(string(_cost)) + 58);
+}
+
 function ink_button(_cx, _cy, _w, _h, _label, _cost, _ok) {
+	_w = ink_button_w(_label, _cost, _w); // they overlapped the drop when fixed width
+	draw_set_font(ftDescriptions);
 	var _hov = mouse_hovering(_cx, _cy, _w, _h, true, soSlotHover, noone, true, UI_LAYER.POPUP);
 	var _s = (_hov && _ok) ? 1.08 : 1;
 	var _w2 = _w * _s / 2, _h2 = _h * _s / 2;
@@ -3438,11 +3450,12 @@ function ink_button(_cx, _cy, _w, _h, _label, _cost, _ok) {
 	draw_set_color(global.color_intel);
 	draw_text(_cx - _w2 + 12, _cy + 1, _label);
 	// the cost: an ink drop and its number
-	var _dx = _cx + _w2 - 30;
-	draw_circle(_dx, _cy + 2, 6, false);
-	draw_triangle(_dx - 5, _cy, _dx + 5, _cy, _dx, _cy - 10, false);
-	draw_set_halign(fa_center);
-	draw_text(_cx + _w2 - 14, _cy + 1, string(_cost));
+	var _nw = string_width(string(_cost));
+	var _dx = _cx + _w2 - 14 - _nw - 12; // the drop, then the number, at the right end
+	draw_circle(_dx, _cy + 3, 5, false);
+	draw_triangle(_dx - 4.5, _cy + 1, _dx + 4.5, _cy + 1, _dx, _cy - 8, false);
+	draw_set_halign(fa_right);
+	draw_text(_cx + _w2 - 12, _cy + 1, string(_cost));
 	draw_set_alpha(1);
 	draw_set_color(c_white);
 	draw_set_halign(fa_left);
@@ -3493,4 +3506,26 @@ function float_text(_x, _y, _text, _col) {
 	_inst.color_main = _col;
 	_inst.num_sign = 0;
 	return _inst;
+}
+
+/// @func combat_ink_hand_row()
+/// @desc While the ink view is open: the dice in hand (in their left-to-right order) are given evenly spaced targets in one
+///       row across the middle of the tray, so their Reroll and Redraw buttons never overlap. Runs every frame, so a die
+///       drawn by a redraw joins the row. They stay put when the log closes.
+function combat_ink_hand_row() {
+	var _dice = [];
+	with (oDice) if (!still && !in_slot && !is_dragging && has_rolled) array_push(_dice, id); // (a die still flying in joins once it lands)
+	var _n = array_length(_dice);
+	if (_n == 0) return;
+	array_sort(_dice, function(_a, _b) { return _a.target_x - _b.target_x; });
+	var _gw = display_get_gui_width();
+	var _space = min(150, (_gw * 0.5) / max(1, _n - 1));
+	var _x0 = _gw / 2 - (_n - 1) * _space / 2;
+	var _y = (global.dice_safe_area_y1 + global.dice_safe_area_y2) / 2 + 20;
+	for (var i = 0; i < _n; i++) {
+		var _d = _dice[i];
+		_d.target_x = _x0 + i * _space; _d.target_y = _y; // where it rests (the hand only snaps dice back from outside its area)
+		_d.x = lerp(_d.x, _d.target_x, 0.25); // slides there
+		_d.y = lerp(_d.y, _d.target_y, 0.25);
+	}
 }
