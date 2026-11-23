@@ -28,36 +28,7 @@
 
 ## 🧪 IN TESTING: waiting for Jared's playtest
 
-| Batch | Cards | Branch / commit | Status |
-|---|---|---|---|
-| 35: design review rules and fixes | F236, F237, F238, F239, F240, F241, B163 | `dev` | **Not yet play-tested.** Hammer merges lose 2 sides, the Drill works any number of times, builders count as played, elites and bounties each chapter, a treasure stop opens spread 3, Overboard on heal dice, 17 content bug fixes. |
-| 34: sounds, neow speed, intents in place, item rewards | F234, B161, F235, B162 | `dev` | **Not yet play-tested.** Clacks, rubble on a build, paper on a type change, small rocks, a quill on errors; writing "neow" no longer freezes. |
-
-**Batch 35 test list (design review rules and fixes)** F1: Give all tools, add cores, jump rooms.
-- F236 Workbench: hammering two dice makes a die 2 sides smaller than their total (d4 + d4 = d6, d6 + d6 = d10); the hover says the size. d12 at most.
-- F237 The Drill isn't used up: load a core, drill, load another, drill again in the same visit. The Hammer and Cutters still get the "Used" tag.
-- F238 Building a slot counts as playing its dice: Protective Rigging's block, Eye patch's ink, Topographic Map, Harvest's gold, Invisible and Echo fire for builders too. A builder whose own "when played" effect fired can't be taken back (the slot stays). Lead Line fires that effect once more, in the new slot.
-- F239 Chapters 2 and 3 have their own elites (up to 3), bounty board and crossroads fight.
-- F240 Spread 3 of every chapter (drafting after the second spread): no treasure on the pages; a breathing "Treasure" stop sits in the sea before the left island. The islands say "Open the treasure first." until you click it; the ship sails there and the treasure room opens with a keepsake. Back on the map it's ticked and the islands are open. Quit inside the treasure room and Continue: the treasure is still waiting, with the same keepsake.
-- F241 Heal dice (Tidecaller, Tidepusher, Defensive coin, a heal coin from the Cutters) show the Overboard keyword (a curling wave). When their slot acts at End Turn they sink off the bottom of the screen with bubbles and aren't dealt again this fight (not in the discard pile). After the fight they're back in your bag. Taking one back before End Turn still works.
-- B163 Black Purse pays 3 gold per slot you had (most slots at a turn's end). Crescendo's minimum grows once per play (not twice) and doesn't wipe Whetstone bonuses. Chainmaster's Anchor reads "The first Followthrough bonus each turn counts twice." Artisan's Ember: the grown die re-rolls at its new size straight away. Rusty Rudder and Navigation Chart don't fire every roll on a die that can only roll one number; Rudder never hits for 0. Lodestone's text: "The lower your alignment, the more it rolls its lowest or highest. At high alignment, never them." Bell and Dome keep their shape on a die with a raised minimum. Rum, Weapon Polish, Shield Plating and Book of Secrets go by the die's own type; Rum never makes a die roll 0. Tidepusher: "If it rolls its max, heal 1 more." Polished Sextant goes by the die's size. Barrel's potion with full item slots says "Item slots full" (it can't be kept in a fight). A shop never offers the same die twice. Lantern of Patience pops once at End Turn, not all through the round. Assassin's minimum stays below its max. "Rigger's Tonic". Holy and Unholy cost 70.
-- Note: the type keepsakes now go by the die's own type, so a multitype die (the Defensive coin) only gets the bonus for its first type. Say if that feels wrong.
-- Not fixed yet: the Bouncing Die still changes your target for later dice (the fix needs checking in play).
-
-**Batch 34 test list**
-- F234 A die dropped in a slot or on the new-slot tile: a wooden clack (soClack1-4). An ink die still sounds wet.
-- F234 A slot being built: rubble. Taking a die back: unchanged.
-- F234 Right-click a slot to change its type: a paper rustle (instead of the slot-place sound).
-- F234 The discard pile shuffled back into the bag: small rocks (soSmallRocks1-5). Also at the workbench: with the hammer's chips, and as grit while the drill turns.
-- F234 Hovering a built slot (or a quartermaster's card): soPaper5, 30% quieter, with more pitch and volume spread, and not again within 70 ms when you flick across them. The new-slot tile has the old click (soSlotHover).
-- F234 The quartermaster's offer (start of a run): hovering a card plays the slots' paper sound (soPaper5).
-- F234 After a reshuffle, the dice dropping into the bag rattle softly (soDiceRolling, quiet).
-- F234 An ink die played (slot or tile): a quieter clack under its wet squelch.
-- F234 Any error message ("Not enough ink", "No plays left"...): a quiet quill scratch (soQuill), once per new error. Say if it's confusing with the ink view.
-- F235 The track: with four places always in view, every enemy marker sits at its own gap, even over slots you haven't built (a move after slot 3 shows after place 3). A move that comes last (big hits, Mimic, Rest...) sits at the very end of the track instead of after your last built slot, so it doesn't jump when you build. When things happen is unchanged: past your built slots, they act at the end in track order.
-- B162 Normal fights offer items again: the chance starts at 30%, each fight without an item reward adds 20% (more with luck over 50, less under), and an item reward takes 30% off (never below 10%). It used to add nothing at normal luck, so after the first item reward none came again.
-- B161 Writing "neow" in the ink view: no freeze. (The recognizer now gives up on a template as soon as it can't win, and only reads the letters when the whole already looks like the word.)
-- F231 Lowercase "neow" reads more easily: an "n" written in one stroke is known, and a big "w" is allowed for (on simulated writing, 18-20 in 20 for plain writing, most of the time for a big w; "now", "new", "meow", "neon" still never).
+Nothing waiting. (Batches 34 and 35 approved 2026-11-23: see DONE.)
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -196,6 +167,39 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 ---
 
 ## ✅ DONE
+
+**Play-tested and approved by Jared (2026-11-23), on `dev`**
+
+| Batch | Cards | Branch / commit | Status |
+|---|---|---|---|
+| 35: design review rules and fixes | F236, F237, F238, F239, F240, F241, B163 | `dev` (pushed) | **Approved (2026-11-23).** Hammer merges lose 2 sides, the Drill works any number of times, builders count as played, elites and bounties each chapter, a treasure stop opens spread 3, Overboard on heal dice, 17 content bug fixes. |
+| 34: sounds, neow speed, intents in place, item rewards | F234, B161, F235, B162 | `dev` (pushed) | **Approved (2026-11-23).** Clacks, rubble on a build, paper on a type change, small rocks, a quill on errors; writing "neow" no longer freezes. |
+
+**Batch 35 test list (design review rules and fixes)** F1: Give all tools, add cores, jump rooms.
+- F236 Workbench: hammering two dice makes a die 2 sides smaller than their total (d4 + d4 = d6, d6 + d6 = d10); the hover says the size. d12 at most.
+- F237 The Drill isn't used up: load a core, drill, load another, drill again in the same visit. The Hammer and Cutters still get the "Used" tag.
+- F238 Building a slot counts as playing its dice: Protective Rigging's block, Eye patch's ink, Topographic Map, Harvest's gold, Invisible and Echo fire for builders too. A builder whose own "when played" effect fired can't be taken back (the slot stays). Lead Line fires that effect once more, in the new slot.
+- F239 Chapters 2 and 3 have their own elites (up to 3), bounty board and crossroads fight.
+- F240 Spread 3 of every chapter (drafting after the second spread): no treasure on the pages; a breathing "Treasure" stop sits in the sea before the left island. The islands say "Open the treasure first." until you click it; the ship sails there and the treasure room opens with a keepsake. Back on the map it's ticked and the islands are open. Quit inside the treasure room and Continue: the treasure is still waiting, with the same keepsake.
+- F241 Heal dice (Tidecaller, Tidepusher, Defensive coin, a heal coin from the Cutters) show the Overboard keyword (a curling wave). When their slot acts at End Turn they sink off the bottom of the screen with bubbles and aren't dealt again this fight (not in the discard pile). After the fight they're back in your bag. Taking one back before End Turn still works.
+- B163 Black Purse pays 3 gold per slot you had (most slots at a turn's end). Crescendo's minimum grows once per play (not twice) and doesn't wipe Whetstone bonuses. Chainmaster's Anchor reads "The first Followthrough bonus each turn counts twice." Artisan's Ember: the grown die re-rolls at its new size straight away. Rusty Rudder and Navigation Chart don't fire every roll on a die that can only roll one number; Rudder never hits for 0. Lodestone's text: "The lower your alignment, the more it rolls its lowest or highest. At high alignment, never them." Bell and Dome keep their shape on a die with a raised minimum. Rum, Weapon Polish, Shield Plating and Book of Secrets go by the die's own type; Rum never makes a die roll 0. Tidepusher: "If it rolls its max, heal 1 more." Polished Sextant goes by the die's size. Barrel's potion with full item slots says "Item slots full" (it can't be kept in a fight). A shop never offers the same die twice. Lantern of Patience pops once at End Turn, not all through the round. Assassin's minimum stays below its max. "Rigger's Tonic". Holy and Unholy cost 70.
+- Note: the type keepsakes now go by the die's own type, so a multitype die (the Defensive coin) only gets the bonus for its first type. Say if that feels wrong.
+- Not fixed yet: the Bouncing Die still changes your target for later dice (the fix needs checking in play).
+
+**Batch 34 test list**
+- F234 A die dropped in a slot or on the new-slot tile: a wooden clack (soClack1-4). An ink die still sounds wet.
+- F234 A slot being built: rubble. Taking a die back: unchanged.
+- F234 Right-click a slot to change its type: a paper rustle (instead of the slot-place sound).
+- F234 The discard pile shuffled back into the bag: small rocks (soSmallRocks1-5). Also at the workbench: with the hammer's chips, and as grit while the drill turns.
+- F234 Hovering a built slot (or a quartermaster's card): soPaper5, 30% quieter, with more pitch and volume spread, and not again within 70 ms when you flick across them. The new-slot tile has the old click (soSlotHover).
+- F234 The quartermaster's offer (start of a run): hovering a card plays the slots' paper sound (soPaper5).
+- F234 After a reshuffle, the dice dropping into the bag rattle softly (soDiceRolling, quiet).
+- F234 An ink die played (slot or tile): a quieter clack under its wet squelch.
+- F234 Any error message ("Not enough ink", "No plays left"...): a quiet quill scratch (soQuill), once per new error. Say if it's confusing with the ink view.
+- F235 The track: with four places always in view, every enemy marker sits at its own gap, even over slots you haven't built (a move after slot 3 shows after place 3). A move that comes last (big hits, Mimic, Rest...) sits at the very end of the track instead of after your last built slot, so it doesn't jump when you build. When things happen is unchanged: past your built slots, they act at the end in track order.
+- B162 Normal fights offer items again: the chance starts at 30%, each fight without an item reward adds 20% (more with luck over 50, less under), and an item reward takes 30% off (never below 10%). It used to add nothing at normal luck, so after the first item reward none came again.
+- B161 Writing "neow" in the ink view: no freeze. (The recognizer now gives up on a template as soon as it can't win, and only reads the letters when the whole already looks like the word.)
+- F231 Lowercase "neow" reads more easily: an "n" written in one stroke is known, and a big "w" is allowed for (on simulated writing, 18-20 in 20 for plain writing, most of the time for a big w; "now", "new", "meow", "neon" still never).
 
 **Approved by Jared (2026-11-23), merged to `dev`**
 
