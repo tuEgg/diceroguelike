@@ -751,7 +751,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 		dice_played_color = c_green;
 
 		if (die.struct.action_type == "INTEL") sfx_play(soInk2, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.8);
-		else sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
+		else sfx_play(choose(soClack1, soClack2, soClack3, soClack4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.6); // a wooden clack (Jared, 2026-11-23)
 		
 		instance_destroy(die);
     }
@@ -794,7 +794,7 @@ function combat_shuffle_effect(_n) {
 		_p.die_struct = clone_die(global.discard_pile[| irandom(ds_list_size(global.discard_pile) - 1)], "");
 		_p.color_main = get_dice_color(_p.die_struct.possible_type);
 	}
-	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.35);
+	sfx_play(choose(soSmallRocks1, soSmallRocks2, soSmallRocks3, soSmallRocks4, soSmallRocks5), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.5); // small rocks (Jared, 2026-11-23)
 }
 
 /// @func combat_discard_spot()
@@ -886,7 +886,7 @@ function sacrifice_die(_die) {
 	var _ink = (_die.struct.action_type == "INTEL");
 	instance_destroy(_die);
 	if (_ink) sfx_play(soInk1, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.8);
-	else sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
+	else sfx_play(choose(soClack1, soClack2, soClack3, soClack4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.6); // a wooden clack (Jared, 2026-11-23)
 
 	update_sacrificed_type_array();
 	combat_try_build_slot();
@@ -996,6 +996,7 @@ function combat_try_build_slot() {
 	}
 
 	screen_shake(3); // the new slot thuds into place
+	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.35); // with rubble (Jared, 2026-11-23)
 	// untyped like every slot (it resets each turn); this turn its types come from the dice in it (slot_recompute_types)
 	var _new_slot = combat_new_slot("None");
 	slot_set_position_bonus(_new_slot, ds_list_size(action_queue));
@@ -4221,6 +4222,7 @@ function ink_egg_lift(_x, _y, _float, _feed) {
 
 // ---- $P point-cloud recognizer (Vatavu, Anthony, Wobbrock 2012), for written words in the ink view ----
 #macro INK_PDOLLAR_N 32
+#macro INK_NEOW_MAX 0.95 // how close the whole writing must be to a "neow" template ($P distance)
 
 /// @func ink_pdollar_cloud(_strokes)
 /// @desc Strokes (arrays of [x, y, ...]) as a normalized cloud of INK_PDOLLAR_N points [x, y]: resampled evenly along
@@ -4259,10 +4261,11 @@ function ink_pdollar_cloud(_strokes) {
 	return _out;
 }
 
-/// @func ink_pdollar_distance(_a, _b, _start)
+/// @func ink_pdollar_distance(_a, _b, _start, _limit)
 /// @desc $P's cloud distance: each point of _a, from _start round, takes its nearest unmatched point of _b; earlier
-///       matches weigh more.
-function ink_pdollar_distance(_a, _b, _start) {
+///       matches weigh more. Gives up as soon as it passes _limit (it can't win then): writing "neow" froze the game
+///       for a moment without this (Jared, 2026-11-23).
+function ink_pdollar_distance(_a, _b, _start, _limit = infinity) {
 	var _n = INK_PDOLLAR_N;
 	var _used = array_create(_n, false);
 	var _sum = 0;
@@ -4276,17 +4279,22 @@ function ink_pdollar_distance(_a, _b, _start) {
 		}
 		_used[_best] = true;
 		_sum += (1 - ((i - _start + _n) mod _n) / _n) * _bd;
+		if (_sum >= _limit) return _sum;
 		i = (i + 1) mod _n;
 	} until (i == _start);
 	return _sum;
 }
 
-/// @func ink_pdollar_match(_a, _b)
+/// @func ink_pdollar_match(_a, _b, _limit)
 /// @desc $P's greedy match between two clouds: the smallest distance over a spread of starting points, both ways.
-function ink_pdollar_match(_a, _b) {
+///       Each try gives up once it's no better than the best so far (or _limit).
+function ink_pdollar_match(_a, _b, _limit = infinity) {
 	var _step = floor(power(INK_PDOLLAR_N, 0.5));
-	var _min = infinity;
-	for (var i = 0; i < INK_PDOLLAR_N; i += _step) _min = min(_min, ink_pdollar_distance(_a, _b, i), ink_pdollar_distance(_b, _a, i));
+	var _min = _limit;
+	for (var i = 0; i < INK_PDOLLAR_N; i += _step) {
+		_min = min(_min, ink_pdollar_distance(_a, _b, i, _min));
+		_min = min(_min, ink_pdollar_distance(_b, _a, i, _min));
+	}
 	return _min;
 }
 
@@ -4306,6 +4314,7 @@ function ink_pdollar_templates() {
 	var _o = method({ arc: _arc }, function(_ox) { return [arc(0.5, 0.5, 0.5, 0, 360, _ox)]; });
 	var _w = function(_ox) { return [[[_ox, 0], [_ox + 0.25, 1], [_ox + 0.5, 0.3], [_ox + 0.75, 1], [_ox + 1, 0]]]; };
 	var _N = function(_ox) { return [[[_ox, 1], [_ox, -0.5], [_ox + 1, 1], [_ox + 1, -0.5]]]; }; // a capital: taller than the rest
+	var _n1 = function(_ox) { return [[[_ox, 0], [_ox, 1], [_ox, 0.45], [_ox + 0.2, 0.08], [_ox + 0.5, 0], [_ox + 0.8, 0.08], [_ox + 1, 0.45], [_ox + 1, 1]]]; }; // an n in one stroke: down, back up, over
 	var _word = function(_parts) {
 		var _all = [];
 		for (var p = 0; p < array_length(_parts); p++) for (var q = 0; q < array_length(_parts[p]); q++) array_push(_all, _parts[p][q]);
@@ -4316,10 +4325,12 @@ function ink_pdollar_templates() {
 			ink_pdollar_cloud(_word([_n(0), _e(1.3), _o(2.6), _w(3.9)])),
 			ink_pdollar_cloud(_word([_n(0), [[[1, 1], [1.3, 0.5]]], _e(1.3), [[[2.15, 0.85], [2.6, 0.5]]], _o(2.6), [[[3.6, 0.5], [3.9, 0]]], _w(3.9)])),
 			ink_pdollar_cloud(_word([_N(0), _e(1.3), _o(2.6), _w(3.9)])), // "Neow" (Jared, 2026-11-22)
+			ink_pdollar_cloud(_word([_n1(0), _e(1.3), _o(2.6), _w(3.9)])), // a one-stroke n (Jared, 2026-11-23: lowercase didn't read well)
 			ink_pdollar_cloud(_word([_N(0), [[[1, -0.5], [1.3, 0.5]]], _e(1.3), [[[2.15, 0.85], [2.6, 0.5]]], _o(2.6), [[[3.6, 0.5], [3.9, 0]]], _w(3.9)])),
 		],
 		letters: [
 			{ ch: "n", cloud: ink_pdollar_cloud(_n(0)) },
+			{ ch: "n", cloud: ink_pdollar_cloud(_n1(0)) },
 			{ ch: "e", cloud: ink_pdollar_cloud(_e(0)) },
 			{ ch: "o", cloud: ink_pdollar_cloud(_o(0)) },
 			{ ch: "w", cloud: ink_pdollar_cloud(_w(0)) },
@@ -4335,10 +4346,10 @@ function ink_pdollar_templates() {
 	return global.ink_pdollar_tpl;
 }
 
-/// @func ink_pdollar_letters(_strokes)
-/// @desc Reads writing as four letters, one per quarter of its width (each quarter's pieces of stroke matched against
-///       the letter templates). "?" for an empty quarter.
-function ink_pdollar_letters(_strokes) {
+/// @func ink_pdollar_letters(_strokes, _b1, _b2, _b3)
+/// @desc Reads writing as four letters, split at fractions _b1, _b2, _b3 of its width (each part's pieces of stroke
+///       matched against the letter templates). "?" for an empty part.
+function ink_pdollar_letters(_strokes, _b1 = 0.25, _b2 = 0.5, _b3 = 0.75) {
 	var _x1 = infinity, _x2 = -infinity;
 	for (var s = 0; s < array_length(_strokes); s++) for (var i = 0; i < array_length(_strokes[s]); i++) { _x1 = min(_x1, _strokes[s][i][0]); _x2 = max(_x2, _strokes[s][i][0]); }
 	var _qw = max(1, (_x2 - _x1) / 4);
@@ -4347,7 +4358,8 @@ function ink_pdollar_letters(_strokes) {
 		var _cur = [], _ci = -1;
 		for (var i = 0; i < array_length(_strokes[s]); i++) {
 			var _p = _strokes[s][i];
-			var _c = min(3, floor((_p[0] - _x1) / _qw));
+			var _f = (_p[0] - _x1) / (_qw * 4);
+			var _c = (_f > _b3) ? 3 : ((_f > _b2) ? 2 : ((_f > _b1) ? 1 : 0));
 			if (_c != _ci) {
 				if (array_length(_cur) > 0) array_push(_cols[_ci], _cur);
 				_cur = [];
@@ -4364,7 +4376,7 @@ function ink_pdollar_letters(_strokes) {
 		var _cloud = ink_pdollar_cloud(_cols[c]);
 		var _best = "?", _bd = infinity;
 		for (var t = 0; t < array_length(_tpl); t++) {
-			var _d = ink_pdollar_match(_cloud, _tpl[t].cloud);
+			var _d = ink_pdollar_match(_cloud, _tpl[t].cloud, _bd);
 			if (_d < _bd) { _bd = _d; _best = _tpl[t].ch; }
 		}
 		_out += _best;
@@ -4380,10 +4392,15 @@ function ink_neow_reads(_strokes) {
 	var _cloud = ink_pdollar_cloud(_strokes);
 	var _words = ink_pdollar_templates().words;
 	var _bd = infinity;
-	for (var t = 0; t < array_length(_words); t++) _bd = min(_bd, ink_pdollar_match(_cloud, _words[t]));
-	if (_bd >= 0.95) return false;
-	var _l = ink_pdollar_letters(_strokes);
-	return (string_char_at(_l, 1) == "n" || string_char_at(_l, 1) == "N") && string_pos(string_char_at(_l, 2), "eoc") > 0 && string_pos(string_char_at(_l, 3), "eoc") > 0 && string_pos(string_char_at(_l, 4), "wv") > 0;
+	for (var t = 0; t < array_length(_words); t++) _bd = min(_bd, ink_pdollar_match(_cloud, _words[t], min(_bd, INK_NEOW_MAX)));
+	if (_bd >= INK_NEOW_MAX) return false; // the letters are only read when the whole already looks like the word
+	// read in equal quarters, and again with a wider last part (a big w)
+	var _splits = [[0.25, 0.5, 0.75], [0.2, 0.4, 0.6]];
+	for (var s = 0; s < 2; s++) {
+		var _l = ink_pdollar_letters(_strokes, _splits[s][0], _splits[s][1], _splits[s][2]);
+		if ((string_char_at(_l, 1) == "n" || string_char_at(_l, 1) == "N") && string_pos(string_char_at(_l, 2), "eoc") > 0 && string_pos(string_char_at(_l, 3), "eoc") > 0 && string_pos(string_char_at(_l, 4), "wv") > 0) return true;
+	}
+	return false;
 }
 
 /// @func ink_seg_dist(_px, _py, _ax, _ay, _bx, _by)

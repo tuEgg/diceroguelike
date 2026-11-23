@@ -7,13 +7,14 @@ What's still silent or using a placeholder, most important first within each gro
 ## Combat: your turn
 | Tier | Moment | Now | Suggestion |
 |---|---|---|---|
-| 1 | Die dropped in a slot (attack, block, heal) | rubble | a wooden "clack" on a tabletop, a few takes |
-| 1 | A slot built (the new-slot tile becomes a slot) | silent (screen shake only) | a heavier thunk or rope creak, as a plank sets in place |
+| 1 | Die dropped in a slot or on the new-slot tile | soClack1-4 (done) | |
+| 1 | A slot built (the new-slot tile becomes a slot) | rubble (done) | |
 | 1 | End Turn pressed | soShipBell (done) | |
-| 1 | Your turn starts | silent | a short bell or a wave rolling in (marks the turn) |
+| - | Your turn starts | silent: not needed (Jared, 2026-11-23); the deal and the inkwell mark it | |
 | 2 | Die taken back out of a slot | silent | the place sound, played softer and higher |
-| 2 | Slot changes type (right-click) | soSlotPlace | a quick paper flick |
-| 2 | Bag reshuffled (discard pile back into the bag) | silent | dice poured into a cloth bag |
+| 2 | Slot changes type (right-click) | soPaper1-4 (done) | |
+| 2 | Bag reshuffled (discard pile back into the bag) | soSmallRocks1-5 (done; also the workbench hammer chips and drill grit) | |
+| 2 | An error ("Not enough ink", "No plays left"...) | soQuill, quiet (trying it) | if it gets confused with the ink view, a dull pencil tap |
 | 2 | Not allowed (can't place, not enough ink) | silent | a dull "thud" or quill scratch-out |
 | 3 | A die's "when played" effect fires | silent | a light chime |
 

@@ -28,7 +28,18 @@
 
 ## 🧪 IN TESTING: waiting for Jared's playtest
 
-Nothing waiting. (Batches 26 to 33 were approved on 2026-11-23: see DONE.)
+| Batch | Cards | Branch / commit | Status |
+|---|---|---|---|
+| 34: sounds, neow speed | F234, B161 | `dev` | **Not yet play-tested.** Clacks, rubble on a build, paper on a type change, small rocks, a quill on errors; writing "neow" no longer freezes. |
+
+**Batch 34 test list**
+- F234 A die dropped in a slot or on the new-slot tile: a wooden clack (soClack1-4). An ink die still sounds wet.
+- F234 A slot being built: rubble. Taking a die back: unchanged.
+- F234 Right-click a slot to change its type: a paper rustle (instead of the slot-place sound).
+- F234 The discard pile shuffled back into the bag: small rocks (soSmallRocks1-5). Also at the workbench: with the hammer's chips, and as grit while the drill turns.
+- F234 Any error message ("Not enough ink", "No plays left"...): a quiet quill scratch (soQuill), once per new error. Say if it's confusing with the ink view.
+- B161 Writing "neow" in the ink view: no freeze. (The recognizer now gives up on a template as soon as it can't win, and only reads the letters when the whole already looks like the word.)
+- F231 Lowercase "neow" reads more easily: an "n" written in one stroke is known, and a big "w" is allowed for (on simulated writing, 18-20 in 20 for plain writing, most of the time for a big w; "now", "new", "meow", "neon" still never).
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 

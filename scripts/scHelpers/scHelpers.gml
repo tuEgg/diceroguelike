@@ -1220,6 +1220,7 @@ function mouse_hovering_check(_x, _y, _width, _height, _centered, _hover_sound =
 }
 
 function throw_error(_error_msg, _error_desc) {
+	if (oRunManager.error_timer < 60 || oRunManager.error_message != _error_msg) sfx_play(soQuill, AUDIO_GROUP.UI, 0.08, 0.35); // a quick quill scratch (Jared, 2026-11-23: try it)
 	oRunManager.error_timer = 90;
 	oRunManager.error_message = _error_msg;
 	oRunManager.error_description = _error_desc;

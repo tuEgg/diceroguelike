@@ -245,7 +245,7 @@ if (is_struct(wb_job)) {
 				if (_jt mod 2 == 0) _t.frame = (_t.frame + 1) mod max(1, sprite_get_number(_t.sprite));
 				_d.rot = random_range(-6, 6);
 				if (_jt mod 3 == 0) particle_emit(_d.x + random_range(-8, 8), _d.y - 6, "burst", choose(c_white, global.color_gold, global.ui_col.brass), 3);
-				if (_jt mod 12 == 0) sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, 0.2, 0.35); // until there's a drill sound
+				if (_jt mod 12 == 0) sfx_play(choose(soSmallRocks1, soSmallRocks2, soSmallRocks3, soSmallRocks4, soSmallRocks5), AUDIO_GROUP.SFX, 0.2, 0.35); // grit off the drill (until there's a drill sound)
 				screen_shake(1.5);
 			} else if (_jt == 62) {
 				var _core = _t.core;
@@ -312,6 +312,7 @@ if (is_struct(wb_job)) {
 				particle_emit(_p.mx, _p.my + 12, "burst", make_color_rgb(200, 166, 118), 30);
 				particle_emit(_p.mx, _p.my + 12, "burst", make_color_rgb(138, 106, 68), 18);
 				sfx_play(soShieldMedium, AUDIO_GROUP.SFX, 0.1, 1); // until there's a hammer sound
+				sfx_play(choose(soSmallRocks1, soSmallRocks2, soSmallRocks3, soSmallRocks4, soSmallRocks5), AUDIO_GROUP.SFX, 0.1, 0.6); // the chips flying
 				if (_j.kind == "hammer") {
 					screen_shake(18);
 					// the die with a core is the one that carries on (a core at random if both have one; Jared, 2026-11-22)

@@ -223,10 +223,10 @@ for (var i = 0; i < aq_list_size; i++) {
 	    // Move to next option
 	    var next_index = (current_index + 1) mod array_length(opts);
 	    slot.current_action_type = opts[next_index];
+		if (next_index != current_index) sfx_play(choose(soPaper1, soPaper2, soPaper3, soPaper4), AUDIO_GROUP.SFX, 0.05, 0.8); // the ticket turns over (Jared, 2026-11-23)
 		if (tutorial_active() && next_index != current_index) global.tut.switched = true; // the tutorial's right-click step
 		
 		if (next_index != current_index) {
-			sfx_play(soSlotPlace, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
 			combat_trigger_effects("after_change_current_action", {});
 		}
 	}
