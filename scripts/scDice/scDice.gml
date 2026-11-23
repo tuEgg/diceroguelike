@@ -760,8 +760,8 @@ function generate_dice_bag() {
 			        }
 			        if (ds_list_size(consumable_options) > 0) {
 			            var picked = consumable_options[| irandom(ds_list_size(consumable_options) - 1)];
-			            // with full item slots it waits (pending_item) instead of vanishing (B163)
-			            if (get_first_free_item_slot() == -1) oRunManager.pending_item = clone_item(picked);
+			            // with full item slots it can't be kept in a fight: say so instead of losing it silently (B163)
+			            if (get_first_free_item_slot() == -1) throw_error("Item slots full", "The Barrel's potion was lost.");
 			            else gain_item(clone_item(picked));
 			        }
 			        ds_list_destroy(consumable_options);

@@ -1991,10 +1991,10 @@ function treasure_stop_draw(_lp) {
 			if (ds_list_size(_rolled) > 0) _lp.treasure_keepsake = _rolled[| 0]._id;
 			ds_list_destroy(_rolled);
 		}
-		_lp.treasure_done = true; // saved by enter_node, below
 		var _node = clone_node_static(node_treasure);
 		_node.treasure_keepsake = _lp.treasure_keepsake;
-		enter_node(_node);
+		enter_node(_node); // saves first, with the treasure still to open, so quitting in the room keeps it (room_goto waits a step)
+		_lp.treasure_done = true; // saved when the map room starts again
 	}
 }
 

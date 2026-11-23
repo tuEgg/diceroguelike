@@ -268,6 +268,7 @@ function define_keepsakes() {
 	    trigger: function(event, data) {
 			// the most slots you had at a turn's end this fight (built slots are taken down before the fight ends, so it
 			// always paid for 1: B163)
+			if (event == "on_turn_start" && data.turn_count <= 1) self.state.slots = 0; // a new fight (one left early mustn't carry over)
 			if (event == "on_player_turn_end") self.state.slots = max(self.state.slots, ds_list_size(oCombat.action_queue));
 	        if (event == "on_combat_end") {
 				var _n = max(self.state.slots, ds_list_size(oCombat.action_queue));
