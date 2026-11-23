@@ -1271,9 +1271,11 @@ function win_fight() {
 				
 				generate_item_rewards(reward_consumable_options, global.master_item_list, num_items);
 				ds_list_add(reward_list, "consumables");
-				oRunManager.show_consumables_chance -= 30;
+				oRunManager.show_consumables_chance = max(10, oRunManager.show_consumables_chance - 30);
 			} else {
-				oRunManager.show_consumables_chance += 20 * round((global.player_luck - 50)/2);
+				// each fight without an item reward makes one likelier: +20%, nudged by luck (B162: this read
+				// 20 * round((luck - 50) / 2), which is 0 at normal luck, so after the first item reward none came again)
+				oRunManager.show_consumables_chance = min(100, oRunManager.show_consumables_chance + 20 + round((global.player_luck - 50) / 2));
 			}
 		}
 			

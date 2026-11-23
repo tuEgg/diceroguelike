@@ -30,7 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 34: sounds, neow speed, intents in place | F234, B161, F235 | `dev` | **Not yet play-tested.** Clacks, rubble on a build, paper on a type change, small rocks, a quill on errors; writing "neow" no longer freezes. |
+| 34: sounds, neow speed, intents in place, item rewards | F234, B161, F235, B162 | `dev` | **Not yet play-tested.** Clacks, rubble on a build, paper on a type change, small rocks, a quill on errors; writing "neow" no longer freezes. |
 
 **Batch 34 test list**
 - F234 A die dropped in a slot or on the new-slot tile: a wooden clack (soClack1-4). An ink die still sounds wet.
@@ -43,6 +43,7 @@
 - F234 An ink die played (slot or tile): a quieter clack under its wet squelch.
 - F234 Any error message ("Not enough ink", "No plays left"...): a quiet quill scratch (soQuill), once per new error. Say if it's confusing with the ink view.
 - F235 The track: with four places always in view, every enemy marker sits at its own gap, even over slots you haven't built (a move after slot 3 shows after place 3). A move that comes last (big hits, Mimic, Rest...) sits at the very end of the track instead of after your last built slot, so it doesn't jump when you build. When things happen is unchanged: past your built slots, they act at the end in track order.
+- B162 Normal fights offer items again: the chance starts at 30%, each fight without an item reward adds 20% (more with luck over 50, less under), and an item reward takes 30% off (never below 10%). It used to add nothing at normal luck, so after the first item reward none came again.
 - B161 Writing "neow" in the ink view: no freeze. (The recognizer now gives up on a template as soon as it can't win, and only reads the letters when the whole already looks like the word.)
 - F231 Lowercase "neow" reads more easily: an "n" written in one stroke is known, and a big "w" is allowed for (on simulated writing, 18-20 in 20 for plain writing, most of the time for a big w; "now", "new", "meow", "neon" still never).
 
