@@ -13,6 +13,7 @@ What's still silent or using a placeholder, most important first within each gro
 | - | Your turn starts | silent: not needed (Jared, 2026-11-23); the deal and the inkwell mark it | |
 | 2 | Die taken back out of a slot | silent | the place sound, played softer and higher |
 | 2 | Slot changes type (right-click) | soPaper1-4 (done) | |
+| 2 | Shuffled dice landing in the bag | soDiceRolling, quiet (done) | |
 | 2 | Bag reshuffled (discard pile back into the bag) | soSmallRocks1-5 (done; also the workbench hammer chips and drill grit) | |
 | 2 | An error ("Not enough ink", "No plays left"...) | soQuill, quiet (trying it) | if it gets confused with the ink view, a dull pencil tap |
 | 2 | Not allowed (can't place, not enough ink) | silent | a dull "thud" or quill scratch-out |

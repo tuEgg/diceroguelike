@@ -750,8 +750,9 @@ function apply_dice_to_slot(_die, _slot_i) {
 		dice_played_scale = 1.2;
 		dice_played_color = c_green;
 
+		// a wooden clack, and an ink die's wet squelch over it (Jared, 2026-11-23)
+		sfx_play(choose(soClack1, soClack2, soClack3, soClack4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), (die.struct.action_type == "INTEL") ? 0.4 : 0.6);
 		if (die.struct.action_type == "INTEL") sfx_play(soInk2, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.8);
-		else sfx_play(choose(soClack1, soClack2, soClack3, soClack4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.6); // a wooden clack (Jared, 2026-11-23)
 		
 		instance_destroy(die);
     }
@@ -885,8 +886,9 @@ function sacrifice_die(_die) {
 	particle_emit(_die.x, _die.y, "burst", _die.struct.color);
 	var _ink = (_die.struct.action_type == "INTEL");
 	instance_destroy(_die);
+	// a wooden clack, and an ink die's wet squelch over it (Jared, 2026-11-23)
+	sfx_play(choose(soClack1, soClack2, soClack3, soClack4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), _ink ? 0.4 : 0.6);
 	if (_ink) sfx_play(soInk1, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.8);
-	else sfx_play(choose(soClack1, soClack2, soClack3, soClack4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.6); // a wooden clack (Jared, 2026-11-23)
 
 	update_sacrificed_type_array();
 	combat_try_build_slot();

@@ -37,6 +37,9 @@
 - F234 A slot being built: rubble. Taking a die back: unchanged.
 - F234 Right-click a slot to change its type: a paper rustle (instead of the slot-place sound).
 - F234 The discard pile shuffled back into the bag: small rocks (soSmallRocks1-5). Also at the workbench: with the hammer's chips, and as grit while the drill turns.
+- F234 The quartermaster's offer (start of a run): hovering a card plays the slots' paper sound (soPaper5/6).
+- F234 After a reshuffle, the dice dropping into the bag rattle softly (soDiceRolling, quiet).
+- F234 An ink die played (slot or tile): a quieter clack under its wet squelch.
 - F234 Any error message ("Not enough ink", "No plays left"...): a quiet quill scratch (soQuill), once per new error. Say if it's confusing with the ink view.
 - B161 Writing "neow" in the ink view: no freeze. (The recognizer now gives up on a template as soon as it can't win, and only reads the letters when the whole already looks like the word.)
 - F231 Lowercase "neow" reads more easily: an "n" written in one stroke is known, and a big "w" is allowed for (on simulated writing, 18-20 in 20 for plain writing, most of the time for a big w; "now", "new", "meow", "neon" still never).
