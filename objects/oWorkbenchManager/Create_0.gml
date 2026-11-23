@@ -33,15 +33,42 @@ for (var i = 0; i < ds_list_size(oRunManager.tools); i++) {
 	});
 }
 
-/// @func wb_tool_origin(_t)
-/// @desc Where a tool's sprite is drawn from (its origin), given its working point. The hammer swings round it.
-wb_tool_origin = function(_t) {
-	var _k = wb_tool_k;
-	switch (_t.kind) {
-		case "drill": return { x: _t.hx, y: _t.hy - 269 * _k };          // the tip is 269 px under the chuck
-		case "hammer": return { x: _t.hx + 3 * _k, y: _t.hy + 403 * _k }; // the end of the handle, 403 px under the head
-		default: return { x: _t.hx + 28 * _k, y: _t.hy + 178 * _k };     // where the blades cross
+/// @func wb_tool_vec(_kind)
+/// @desc Where a tool is held (its grip), in sprite pixels: { wx, wy } is its working point from the grip, { ox, oy }
+///       its sprite origin from the grip (Jared, 2026-11-22: the drill held by its handle, the hammer low on its handle,
+///       the cutters in the middle). Everything turns about the grip.
+wb_tool_vec = function(_kind) {
+	switch (_kind) {
+		case "drill": return { wx: 160, wy: 469, ox: 160, oy: 200 };
+		case "hammer": return { wx: 2, wy: -450, ox: 5, oy: -47 };
+		default: return { wx: 0, wy: 0, ox: 28, oy: 178 };
 	}
+}
+/// @func wb_rot_x(_x, _y, _a) / wb_rot_y: a vector turned by _a degrees (anticlockwise on screen, like image_angle)
+wb_rot_x = function(_x, _y, _a) { return _x * dcos(_a) + _y * dsin(_a); }
+wb_rot_y = function(_x, _y, _a) { return -_x * dsin(_a) + _y * dcos(_a); }
+
+/// @func wb_tool_grip(_t)
+/// @desc Where a tool is held, from its working point and angle.
+wb_tool_grip = function(_t) {
+	var _v = wb_tool_vec(_t.kind), _k = wb_tool_k;
+	return { x: _t.hx - wb_rot_x(_v.wx * _k, _v.wy * _k, _t.ang), y: _t.hy - wb_rot_y(_v.wx * _k, _v.wy * _k, _t.ang) };
+}
+
+/// @func wb_tool_place(_t, _gx, _gy)
+/// @desc Puts a tool's grip at a point (at its current angle).
+wb_tool_place = function(_t, _gx, _gy) {
+	var _v = wb_tool_vec(_t.kind), _k = wb_tool_k;
+	_t.hx = _gx + wb_rot_x(_v.wx * _k, _v.wy * _k, _t.ang);
+	_t.hy = _gy + wb_rot_y(_v.wx * _k, _v.wy * _k, _t.ang);
+}
+
+/// @func wb_tool_origin(_t)
+/// @desc Where a tool's sprite is drawn from (its origin), turned about the grip with the tool.
+wb_tool_origin = function(_t) {
+	var _v = wb_tool_vec(_t.kind), _k = wb_tool_k;
+	var _g = wb_tool_grip(_t);
+	return { x: _g.x + wb_rot_x(_v.ox * _k, _v.oy * _k, _t.ang), y: _g.y + wb_rot_y(_v.ox * _k, _v.oy * _k, _t.ang) };
 }
 
 /// @func wb_tool_box(_t)
@@ -81,10 +108,10 @@ wb_die_at = function(_x, _y, _except = undefined, _reach = 46) {
 /// @func wb_pair_at(_x, _y)
 /// @desc The two dice a hammer at this point would join: side by side (at most 200 px apart), their gap under it.
 wb_pair_at = function(_x, _y) {
-	var _best = undefined, _bd = 70;
+	var _best = undefined, _bd = 110;
 	for (var i = 0; i < array_length(wb_dice); i++) for (var j = i + 1; j < array_length(wb_dice); j++) {
 		var _a = wb_dice[i], _b = wb_dice[j];
-		if (point_distance(_a.x, _a.y, _b.x, _b.y) > 200) continue;
+		if (is_struct(_a.fly) || is_struct(_b.fly) || point_distance(_a.x, _a.y, _b.x, _b.y) > 240) continue;
 		var _mx = (_a.x + _b.x) / 2, _my = (_a.y + _b.y) / 2;
 		var _dd = point_distance(_x, _y, _mx, _my);
 		if (_dd < _bd) { _bd = _dd; _best = { a: _a, b: _b, mx: _mx, my: _my }; }
@@ -145,7 +172,7 @@ wb_tool_target = function(_t) {
 	if (_t.hx > rack.x1 - 20) return _r; // over the rack: putting it back
 	switch (_t.kind) {
 		case "drill":
-			var _d = wb_die_at(_t.hx, _t.hy);
+			var _d = wb_die_at(_t.hx, _t.hy, undefined, 80);
 			if (_d == undefined) return _r;
 			_r.die = _d;
 			if (_d.die.dice_value <= 2) _r.text = "Coins can't take a core.";
@@ -159,10 +186,16 @@ wb_tool_target = function(_t) {
 			var _sum = _p.a.die.dice_value + _p.b.die.dice_value;
 			if (_p.a.die.action_type != _p.b.die.action_type) _r.text = "Only dice of the same type combine.";
 			else if (_sum > 12) _r.text = "Too big: d12 at most.";
-			else { _r.ok = true; _r.text = "Combine these dice into a d" + string(_sum) + "."; }
+			else {
+				_r.ok = true;
+				_r.text = "Combine these dice into a d" + string(_sum) + ".";
+				var _ca = _p.a.die.distribution != "", _cb = _p.b.die.distribution != "";
+				if (_ca && _cb) _r.text += " It keeps one of their cores.";
+				else if (_ca || _cb) _r.text += " It keeps the core.";
+			}
 			break;
 		default:
-			var _d = wb_die_at(_t.hx, _t.hy);
+			var _d = wb_die_at(_t.hx, _t.hy, undefined, 80);
 			if (_d == undefined) return _r;
 			_r.die = _d;
 			var _v = _d.die.dice_value;
@@ -198,6 +231,7 @@ workbench_take_core = function(_core, _item_slot) {
 /// @desc A die on the table: its shadow, a ring when the tool in hand is over it (brass if it can work on it, red if
 ///       not), the die, a white flash after a craft, and a small gem on its corner when it has a core.
 wb_draw_die = function(_d, _hover, _ring, _ok) {
+	if (is_struct(_d.fly) && _d.fly.kind == "deal" && _d.fly.delay > 0) return; // still in the bag
 	var _r = 36 * _d.scale * (_hover ? 1.08 : 1);
 	var _y = _d.y - _d.hop;
 	var _v = _d.die.dice_value;

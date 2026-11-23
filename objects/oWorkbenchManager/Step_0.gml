@@ -33,8 +33,33 @@ for (var i = 0; i < array_length(wb_dice); i++) {
 	if (_held) {
 		_d.x = _mx + wb_held.ox;
 		_d.y = _my + wb_held.oy;
+	} else if (is_struct(_d.fly) && _d.fly.kind == "deal") {
+		// dealt from the bag as in a fight (oDice): a wait for its turn, then out with the roll sound, tumbling,
+		// slowing near its spot and landing on it with a small pop
+		var _f = _d.fly;
+		if (_f.delay > 0) _f.delay--;
+		else {
+			if (_f.spd == 0) {
+				_f.spd = max(30, point_distance(_d.x, _d.y, _f.tx, _f.ty) / 40);
+				sfx_play(choose(soDiceRolling1, soDiceRolling2, soDiceRolling3), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.4);
+			}
+			var _left = point_distance(_d.x, _d.y, _f.tx, _f.ty);
+			if (_left < 150) _f.spd = max(10, lerp(_f.spd, 0, 0.12));
+			if (_left <= _f.spd) {
+				_d.x = _f.tx;
+				_d.y = _f.ty;
+				_d.fly = undefined;
+				_d.scale = 1.22;
+				_d.sv = 0;
+			} else {
+				var _dir = point_direction(_d.x, _d.y, _f.tx, _f.ty);
+				_d.x += lengthdir_x(_f.spd, _dir);
+				_d.y += lengthdir_y(_f.spd, _dir);
+				_d.rot += 26;
+			}
+		}
 	} else if (is_struct(_d.fly)) {
-		// flying in (from the bag, or a coin hopping off the Cutters): eased, on an arc, landing with a pop
+		// a coin hopping off the Cutters: eased, on an arc, landing with a pop
 		var _f = _d.fly;
 		_f.t += 1 / _f.dur;
 		var _e = 1 - power(1 - clamp(_f.t, 0, 1), 3);
@@ -57,12 +82,12 @@ for (var i = 0; i < array_length(wb_dice); i++) {
 		}
 		_d.x += _d.vx;
 		_d.vx *= 0.86;
-		_d.rot = lerp(_d.rot, 0, 0.2);
+		_d.rot += angle_difference(0, _d.rot) * 0.35; // settles square, the short way round
 	}
-	// a springy scale: a landing or a craft sets it high, it settles back to 1 with a little wobble
+	// a springy scale: a landing or a craft sets it high, it settles back to 1 (Jared, 2026-11-22: less bouncy)
 	if (!variable_struct_exists(_d, "sv")) _d.sv = 0;
 	var _target = _held ? 1.15 : 1;
-	_d.sv = (_d.sv + (_target - _d.scale) * 0.3) * 0.68;
+	_d.sv = (_d.sv + (_target - _d.scale) * 0.25) * 0.55;
 	_d.scale += _d.sv;
 	_d.flash *= 0.9;
 }
@@ -91,9 +116,10 @@ for (var i = 0; i < array_length(wb_tools); i++) {
 	var _t = wb_tools[i];
 	var _held = is_struct(wb_held) && wb_held.ref == _t;
 	if (_held) {
-		// the working point comes under the mouse (the offset from where it was grabbed fades out), for aiming
-		wb_held.ox *= 0.75;
-		wb_held.oy *= 0.75;
+		// the grip comes under the mouse (from where it was grabbed), so the working point sits where the tool is held
+		var _v = wb_tool_vec(_t.kind);
+		wb_held.ox = lerp(wb_held.ox, wb_rot_x(_v.wx * wb_tool_k, _v.wy * wb_tool_k, _t.ang), 0.3);
+		wb_held.oy = lerp(wb_held.oy, wb_rot_y(_v.wx * wb_tool_k, _v.wy * wb_tool_k, _t.ang), 0.3);
 		_t.hx = _mx + wb_held.ox;
 		_t.hy = _my + wb_held.oy;
 		_t.lift = lerp(_t.lift, 1, 0.3);
@@ -177,9 +203,9 @@ if (is_struct(wb_held) && !mouse_check_button(mb_left)) {
 				break;
 			case "hammer":
 				if (_t.hx > rack.x1 - 20) break; // put back on the rack
-				if (_tg.ok) _job = { kind: "hammer", pair: _tg.pair };
-				else if (_tg.pair != undefined) _job = { kind: "hammer_fail", pair: _tg.pair, text: _tg.text };
-				else if (_t.hx > table.x1 && _t.hx < table.x2 && _t.hy > table.y1 && _t.hy < table.y2) _job = { kind: "miss", die: wb_die_at(_t.hx, _t.hy, undefined, 60) };
+				if (_tg.ok) _job = { kind: "hammer", pair: _tg.pair, die: undefined, text: "" };
+				else if (_tg.pair != undefined) _job = { kind: "hammer_fail", pair: _tg.pair, die: undefined, text: _tg.text };
+				else if (_t.hx > table.x1 && _t.hx < table.x2 && _t.hy > table.y1 && _t.hy < table.y2) _job = { kind: "miss", pair: undefined, die: wb_die_at(_t.hx, _t.hy, undefined, 70), text: "" };
 				break;
 			default:
 				if (_tg.ok) _job = { kind: "cut", die: _tg.die };
@@ -247,23 +273,53 @@ if (is_struct(wb_job)) {
 
 		case "hammer":
 		case "hammer_fail":
-			// wind up, slam on the gap; the two dice become one under the head (or, if they can't, jump apart)
-			var _p = _j.pair;
-			_t.hx = _p.mx;
-			_t.hy = _p.my;
-			if (_jt < 12) _t.ang = lerp(0, 38, 1 - power(1 - _jt / 12, 3));
-			else if (_jt < 16) _t.ang = 38;
-			else if (_jt < 21) _t.ang = lerp(38, 0, power((_jt - 16) / 5, 2));
-			else if (_jt == 21) {
-				_t.ang = 0;
-				array_push(wb_scuffs, { x: _p.mx, y: _p.my + 12, r: 30 + random(10), a: random(180) });
-				particle_emit(_p.mx, _p.my + 12, "burst", make_color_rgb(200, 166, 118), 24);
-				particle_emit(_p.mx, _p.my + 12, "burst", make_color_rgb(138, 106, 68), 14);
-				sfx_play(soShieldMedium, AUDIO_GROUP.SFX, 0.1, 0.9); // until there's a hammer sound
+		case "miss":
+			// a real swing (Jared, 2026-11-22: it was too gentle, and hit on the way up): raised high with the head tipped
+			// back, then brought down fast; the hit lands on the way down, the head on the gap (or wherever it was let go)
+			var _hx = is_struct(_j.pair) ? _j.pair.mx : _j.x0, _hy = is_struct(_j.pair) ? _j.pair.my : _j.y0;
+			var _ia = -14; // the angle at the hit: the head a little forward of the grip
+			var _hv = wb_tool_vec("hammer");
+			var _gx = _hx - wb_rot_x(_hv.wx * wb_tool_k, _hv.wy * wb_tool_k, _ia), _gy = _hy - wb_rot_y(_hv.wx * wb_tool_k, _hv.wy * wb_tool_k, _ia);
+			if (_jt == 0) { var _g0 = wb_tool_grip(_t); _j.sgx = _g0.x; _j.sgy = _g0.y; _j.sa = _t.ang; }
+			var _ang = _ia, _px = _gx, _py = _gy;
+			if (_jt < 10) {
+				var _e = 1 - power(1 - _jt / 10, 3);
+				_ang = lerp(_j.sa, 34, _e);
+				_px = lerp(_j.sgx, _gx, _e);
+				_py = lerp(_j.sgy, _gy - 80, _e);
+			} else if (_jt < 14) {
+				var _e = power((_jt - 10) / 4, 3); // faster and faster
+				_ang = lerp(34, _ia, _e);
+				_py = lerp(_gy - 80, _gy, _e);
+			} else if (_jt > 14) {
+				var _b = sin(min(1, (_jt - 14) / 10) * pi); // a little bounce off the table
+				_ang = _ia + 10 * _b;
+				_py = _gy - 16 * _b;
+			}
+			_t.ang = _ang;
+			wb_tool_place(_t, _px, _py);
+			if (_jt == 14 && _j.kind == "miss") {
+				screen_shake(8);
+				particle_emit(_hx, _hy + 10, "burst", make_color_rgb(138, 106, 68), 14);
+				sfx_play(soShieldLight2, AUDIO_GROUP.SFX, 0.1, 0.8);
+				if (is_struct(_j.die)) {
+					_j.die.vy = 7; _j.die.hop = 0.1; _j.die.scale = 1.3;
+					float_text(_hx, _hy - 90, "Needs two dice side by side.", c_white);
+				} else array_push(wb_scuffs, { x: _hx, y: _hy + 10, r: 16, a: random(180), t: current_time });
+			} else if (_jt == 14) {
+				var _p = _j.pair;
+				array_push(wb_scuffs, { x: _p.mx, y: _p.my + 12, r: 22, a: random(180), t: current_time });
+				particle_emit(_p.mx, _p.my + 12, "burst", make_color_rgb(200, 166, 118), 30);
+				particle_emit(_p.mx, _p.my + 12, "burst", make_color_rgb(138, 106, 68), 18);
+				sfx_play(soShieldMedium, AUDIO_GROUP.SFX, 0.1, 1); // until there's a hammer sound
 				if (_j.kind == "hammer") {
-					screen_shake(14);
-					var _nd = clone_die(_p.a.die, "");
-					_nd.dice_value += _p.b.die.dice_value;
+					screen_shake(18);
+					// the die with a core is the one that carries on (a core at random if both have one; Jared, 2026-11-22)
+					var _base = _p.a.die, _other = _p.b.die;
+					if (_base.distribution == "" && _other.distribution != "") { _base = _p.b.die; _other = _p.a.die; }
+					var _nd = clone_die(_base, "");
+					_nd.dice_value += _other.dice_value;
+					if (_base.distribution != "" && _other.distribution != "" && irandom(1) == 0) _nd.distribution = _other.distribution;
 					die_size_changed(_nd); // a hammered coin is no longer a coin
 					wb_remove_die(_p.a);
 					wb_remove_die(_p.b);
@@ -277,7 +333,7 @@ if (is_struct(wb_job)) {
 					float_text(_p.mx, _p.my - 90, "d" + string(_nd.dice_value), c_white);
 					workbench_tool_used(oHammer);
 				} else {
-					screen_shake(10);
+					screen_shake(12);
 					var _jump = [_p.a, _p.b];
 					for (var k = 0; k < 2; k++) {
 						var _jd = _jump[k];
@@ -286,29 +342,8 @@ if (is_struct(wb_job)) {
 					}
 					float_text(_p.mx, _p.my - 90, _j.text, c_white);
 				}
-			} else {
-				_t.ang = lerp(0, 14, min(1, (_jt - 21) / 10));
-				if (_jt >= 34) { _t.returning = true; wb_job = undefined; }
 			}
-			break;
-
-		case "miss":
-			// a swing at bare table (or one die): a thud, nothing used
-			if (_jt < 8) _t.ang = lerp(0, 28, _jt / 8);
-			else if (_jt < 12) _t.ang = lerp(28, 0, power((_jt - 8) / 4, 2));
-			else if (_jt == 12) {
-				_t.ang = 0;
-				screen_shake(6);
-				particle_emit(_t.hx, _t.hy + 10, "burst", make_color_rgb(138, 106, 68), 12);
-				sfx_play(soShieldLight2, AUDIO_GROUP.SFX, 0.1, 0.7);
-				if (is_struct(_j.die)) {
-					_j.die.vy = 6; _j.die.hop = 0.1; _j.die.scale = 1.3;
-					float_text(_t.hx, _t.hy - 90, "Needs two dice side by side.", c_white);
-				} else array_push(wb_scuffs, { x: _t.hx, y: _t.hy + 10, r: 18 + random(6), a: random(180) });
-			} else {
-				_t.ang = lerp(0, 10, min(1, (_jt - 12) / 8));
-				if (_jt >= 22) { _t.returning = true; wb_job = undefined; }
-			}
+			if (_jt >= 30) { _t.returning = true; wb_job = undefined; }
 			break;
 
 		case "cut":
@@ -346,7 +381,7 @@ if (is_struct(wb_job)) {
 				var _side = (_d.x > table.x2 - 200) ? -1 : 1;
 				var _c = wb_add_die(_coin, _d.x, _d.y);
 				_c.scale = 0.5;
-				_c.fly = { sx: _d.x, sy: _d.y, tx: _d.x + _side * 120, ty: _d.y + 10, t: 0, dur: 26, arc: 90, spin: 360 * _side };
+				_c.fly = { kind: "hop", sx: _d.x, sy: _d.y, tx: _d.x + _side * 120, ty: _d.y + 10, t: 0, dur: 26, arc: 90, spin: 360 * _side };
 				float_text(_d.x, _d.y - 80, (_nd.dice_value == 2) ? "Coin" : "d" + string(_nd.dice_value), c_white);
 				sfx_play(choose(soSwordLight1, soSwordLight2, soSwordLight3), AUDIO_GROUP.SFX, 0.15, 0.8); // until there's a snip sound
 				workbench_tool_used(oScissors);
@@ -358,6 +393,9 @@ if (is_struct(wb_job)) {
 	}
 	if (is_struct(wb_job)) wb_job.t++;
 }
+
+// the hammer's marks on the table fade out over 3 s
+for (var i = array_length(wb_scuffs) - 1; i >= 0; i--) if (current_time - wb_scuffs[i].t > 3000) array_delete(wb_scuffs, i, 1);
 
 // the expanding rings from a craft
 for (var i = array_length(wb_rings) - 1; i >= 0; i--) {

@@ -30,6 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 33: workbench feel, Neow | F232, F233, B160 | `fix/playtest-11-22` | **Not yet play-tested.** Dice dealt onto the bench as in a fight, tools held by their handles, a real hammer swing, a wider reach, cores kept when hammering, fading hammer marks, "Neow". |
 | 32: slot number, ink sound, more ink eggs | F227, F228, F229, F230, F231 | `fix/playtest-11-22` | **Not yet play-tested.** A slot's big number is its dice, the place bonus only on the die; ink dice resolving sound wet; the drawn die takes big-circle pips; "+1" and "neow" eggs. |
 | 31: the free workbench | F224 | `fix/playtest-11-22` | **Not yet play-tested.** No slots: dice anywhere on a plank table, tools on a rack that work where they land, dice from the bag any time. |
 | 30: playtester notes (itch, 2026-11-22) | B156, B157, B158, B159, F215, F216, F217, F218, F219, F220, F221, F222, F223 | `fix/playtest-11-22` | **Not yet play-tested.** Only what you can afford is in colour in the ink view, alignment named as alignment, a slot's bonus under its total, Kill coin counts on the tile, a fight on every draft, green extra plays, rewards close themselves, event words explained, take-back fixes. |
@@ -37,6 +38,15 @@
 | 28: queue and ink view | B152, B153, B154, F205, F206, F207, F208, F209, F210 | `fix/playtest-11-22` | **Not yet play-tested.** Four slots always in view, drag a move along the track, click intents in the ink view, dice dealt in an arc, sea stop odds, the settings not inked, d4 text centred, the track lifts over a hovered slot, an ink easter egg. |
 | 27: sounds | F204 | `fix/playtest-11-22` | **Not yet play-tested.** Jared's new sounds wired in. |
 | 26: playtest notes 2026-11-22 | B147, B148, B149, B150, B151, F196, F197, F198, F199, F200, F201, F202 | `fix/playtest-11-22` (off `dev`) | **Not yet play-tested.** Two crashes, the island flash on the page turn, a wrong padlock in slot 1, enemy block lasts until it acts again, ink buttons stand out, d6 ink slosh, linked stop badge, keepsake reward cards, min roll cap, the wreck with full slots. |
+
+**Batch 33 test list**
+- F232 Workbench: dice from the bag are dealt as in a fight: one every 0.1 s with the roll sound, tumbling, slowing in and landing on their spot with a small pop (no face). Landings and crafts bounce less.
+- F232 The drill is held by its wooden handle (its tip works below the cursor), the hammer low on its handle (its head works above it), the cutters in the middle. Aim with the rings.
+- F232 The hammer: it rises with its head tipped back, then comes down fast; the hit lands on the way down (harder shake, more chips), a small bounce, then back to the rack. Misses swing the same way.
+- F232 Every tool finds a die from further away (about a die's width either side); the hammer finds a pair whose gap is near the head, up to 240 px apart.
+- F233 Hammering a die with a core and one without: the new die keeps the core (the hover says "It keeps the core."). Both with cores: one of them at random ("It keeps one of their cores.").
+- B160 The dark marks left after hammering were the hammer's dents in the table, not dice shadows. They're lighter now and fade away in 3 s.
+- F231 "Neow" with a capital N pays out too (simulated writing: about 3 in 4 tries; "Meow", "Now", "New", "Neon" never).
 
 **Batch 32 test list**
 - F227 (replaces F217) A slot with dice: the big number is what its dice come to (a 3 in slot 2 reads 3, not 4); the place bonus is the small green badge on its first die. An empty slot still shows its green "+1" / "+2" in the middle.

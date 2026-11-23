@@ -32,7 +32,7 @@ for (var i = 0; i < 9; i++) {
 }
 for (var i = 0; i < array_length(wb_scuffs); i++) {
 	var _s = wb_scuffs[i];
-	draw_set_alpha(0.22);
+	draw_set_alpha(0.2 * clamp(1 - (current_time - _s.t) / 3000, 0, 1)); // the hammer's mark, fading
 	draw_set_color(make_color_rgb(25, 14, 6));
 	draw_ellipse(_s.x - _s.r, _s.y - _s.r * 0.5, _s.x + _s.r, _s.y + _s.r * 0.5, false);
 }
@@ -66,7 +66,7 @@ for (var _yy = rack.y1 + 30; _yy < rack.y2 - 10; _yy += 40) for (var _xx = rack.
 draw_set_alpha(1);
 for (var i = 0; i < array_length(wb_tools); i++) {
 	var _t = wb_tools[i];
-	var _hb = wb_tool_box({ kind: _t.kind, hx: _t.home_x, hy: _t.home_y });
+	var _hb = wb_tool_box({ kind: _t.kind, hx: _t.home_x, hy: _t.home_y, ang: 0 });
 	draw_set_color(global.ui_col.ink);
 	draw_circle((_hb.x1 + _hb.x2) / 2, _hb.y1 + 2, 9, false);
 	draw_set_color(global.ui_col.brass);

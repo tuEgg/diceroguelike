@@ -2576,11 +2576,11 @@ function workbench_take_die(_die) {
 	with (oWorkbenchManager) {
 		var _flying = 0;
 		for (var k = 0; k < array_length(wb_dice); k++) if (is_struct(wb_dice[k].fly)) _flying++;
+		// dealt as in a fight (Jared, 2026-11-22): out of the bag one after another (0.1 s apart), tumbling, easing
+		// in to land on its spot, with the roll sound
 		var _spot = wb_free_spot();
-		var _sx = 70, _sy = gui_h - 90;
-		var _d = wb_add_die(_struct, _sx, _sy);
-		_d.fly = { sx: _sx, sy: _sy, tx: _spot[0], ty: _spot[1], t: -0.2 * _flying, dur: 26, arc: 140, spin: 360 };
-		_d.scale = 0.6;
+		var _d = wb_add_die(_struct, global.gui.bag_x_deal, global.gui.bag_y_deal);
+		_d.fly = { kind: "deal", tx: _spot[0], ty: _spot[1], spd: 0, delay: _flying * 6 };
 	}
 }
 
@@ -4195,7 +4195,7 @@ function ink_egg_neow() {
 				_y1 = min(_y1, _b.cy - _b.h / 2); _y2 = max(_y2, _b.cy + _b.h / 2);
 			}
 			var _w = _x2 - _x1, _hh = max(1, _y2 - _y1);
-			if (_w < 120 || _w / _hh < 3 || _w / _hh > 9) continue;
+			if (_w < 120 || _w / _hh < 2.6 || _w / _hh > 9) continue; // a capital N makes it taller
 			if (!ink_neow_reads(_strokes)) continue;
 			oRunManager.ink_neow_found = true;
 			oRunManager.credits += 100;
@@ -4305,6 +4305,7 @@ function ink_pdollar_templates() {
 	var _e = method({ arc: _arc }, function(_ox) { var _c = arc(0.5, 0.5, 0.5, 0, 315, _ox); array_insert(_c, 0, [_ox, 0.5]); return [_c]; });
 	var _o = method({ arc: _arc }, function(_ox) { return [arc(0.5, 0.5, 0.5, 0, 360, _ox)]; });
 	var _w = function(_ox) { return [[[_ox, 0], [_ox + 0.25, 1], [_ox + 0.5, 0.3], [_ox + 0.75, 1], [_ox + 1, 0]]]; };
+	var _N = function(_ox) { return [[[_ox, 1], [_ox, -0.5], [_ox + 1, 1], [_ox + 1, -0.5]]]; }; // a capital: taller than the rest
 	var _word = function(_parts) {
 		var _all = [];
 		for (var p = 0; p < array_length(_parts); p++) for (var q = 0; q < array_length(_parts[p]); q++) array_push(_all, _parts[p][q]);
@@ -4314,6 +4315,8 @@ function ink_pdollar_templates() {
 		words: [
 			ink_pdollar_cloud(_word([_n(0), _e(1.3), _o(2.6), _w(3.9)])),
 			ink_pdollar_cloud(_word([_n(0), [[[1, 1], [1.3, 0.5]]], _e(1.3), [[[2.15, 0.85], [2.6, 0.5]]], _o(2.6), [[[3.6, 0.5], [3.9, 0]]], _w(3.9)])),
+			ink_pdollar_cloud(_word([_N(0), _e(1.3), _o(2.6), _w(3.9)])), // "Neow" (Jared, 2026-11-22)
+			ink_pdollar_cloud(_word([_N(0), [[[1, -0.5], [1.3, 0.5]]], _e(1.3), [[[2.15, 0.85], [2.6, 0.5]]], _o(2.6), [[[3.6, 0.5], [3.9, 0]]], _w(3.9)])),
 		],
 		letters: [
 			{ ch: "n", cloud: ink_pdollar_cloud(_n(0)) },
@@ -4324,6 +4327,9 @@ function ink_pdollar_templates() {
 			{ ch: "v", cloud: ink_pdollar_cloud([[[0, 0], [0.5, 1], [1, 0]]]) },
 			{ ch: "c", cloud: ink_pdollar_cloud([_arc(0.5, 0.5, 0.5, 45, 315, 0)]) },
 			{ ch: "u", cloud: ink_pdollar_cloud([[[0, 0], [0, 0.6], [0.2, 0.95], [0.5, 1], [0.8, 0.95], [1, 0.6], [1, 0]]]) },
+			{ ch: "N", cloud: ink_pdollar_cloud(_N(0)) },
+			{ ch: "M", cloud: ink_pdollar_cloud([[[0, 1], [0, -0.5], [0.5, 0.5], [1, -0.5], [1, 1]]]) }, // so "Meow" doesn't count
+			{ ch: "m", cloud: ink_pdollar_cloud([[[0, 0], [0, 1]], [[0, 0.4], [0.25, 0], [0.5, 0.4], [0.5, 1]], [[0.5, 0.4], [0.75, 0], [1, 0.4], [1, 1]]]) },
 		],
 	};
 	return global.ink_pdollar_tpl;
@@ -4367,8 +4373,8 @@ function ink_pdollar_letters(_strokes) {
 }
 
 /// @func ink_neow_reads(_strokes)
-/// @desc Do these strokes say "neow"? The whole looks like the word (its $P distance to a "neow" template under 0.95),
-///       and read a quarter at a time it's n, then e or o (or c), twice, then w (or v). Calibrated on simulated
+/// @desc Do these strokes say "neow" (or "Neow")? The whole looks like the word (its $P distance to a "neow" template under 0.95),
+///       and read a quarter at a time it's n or N, then e or o (or c), twice, then w (or v). Calibrated on simulated
 ///       handwriting (2026-11-22): "now", "new", "wow", "meow", "neon", zigzags and loops don't pass.
 function ink_neow_reads(_strokes) {
 	var _cloud = ink_pdollar_cloud(_strokes);
@@ -4377,7 +4383,7 @@ function ink_neow_reads(_strokes) {
 	for (var t = 0; t < array_length(_words); t++) _bd = min(_bd, ink_pdollar_match(_cloud, _words[t]));
 	if (_bd >= 0.95) return false;
 	var _l = ink_pdollar_letters(_strokes);
-	return string_char_at(_l, 1) == "n" && string_pos(string_char_at(_l, 2), "eoc") > 0 && string_pos(string_char_at(_l, 3), "eoc") > 0 && string_pos(string_char_at(_l, 4), "wv") > 0;
+	return (string_char_at(_l, 1) == "n" || string_char_at(_l, 1) == "N") && string_pos(string_char_at(_l, 2), "eoc") > 0 && string_pos(string_char_at(_l, 3), "eoc") > 0 && string_pos(string_char_at(_l, 4), "wv") > 0;
 }
 
 /// @func ink_seg_dist(_px, _py, _ax, _ay, _bx, _by)
