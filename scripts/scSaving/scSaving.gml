@@ -16,6 +16,7 @@ function save_game(_slot) {
 			min_roll_bonus: _die.min_roll_bonus,
 			keywords: _die.keywords,		// keywords gained from upgrades must survive a reload
 			description: _die.description,
+			base_desc: (get_die_by_name(_die.name) != undefined) ? get_die_by_name(_die.name).description : "", // the definition's text when saved (deserialise_die)
         });
     }
 	

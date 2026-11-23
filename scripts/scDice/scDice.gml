@@ -155,6 +155,7 @@ function die_roll_faces(_die) {
 	}
 	// "when rolled" effects (docs/design-port-dice-keepsakes.md): the die's own (on_die_rolled) and keepsakes'
 	if (room == rmCombat && instance_exists(oCombat)) {
+		if (_min < _max && die_face_total(_die) <= _min) oCombat.min_rolls_this_turn++; // Undertow die (F242)
 		combat_trigger_effects("on_die_rolled", { _die_struct: _die, face: die_face_total(_die), min_roll: _min, max_roll: _max });
 	}
 }
@@ -248,7 +249,7 @@ function generate_dice_bag() {
 	global.die_anchor = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Anchor die",
 	    "Stowaway: Gain 5 block.",
-		"common",
+		"uncommon", // free value is never common (F242)
 		30,
 	    [
 	        {
@@ -268,7 +269,7 @@ function generate_dice_bag() {
 	global.die_slipstream = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Slipstream die",
 	    "Stowaway: Play 1 extra die next turn.",
-		"common",
+		"uncommon", // F242
 		40,
 	    [
 	        {
@@ -284,13 +285,21 @@ function generate_dice_bag() {
 	
 	// Defensive Die: Coin. Favourite. Multitype: Can create HEAL and BLK slo
 	global.die_defensive = make_die_struct(
-	    1, 2, "HEAL", "HEAL BLK", "", "Defensive coin",
-	    "Coin. Favourite. Overboard. Multitype: Heal or Block.",
+	    1, 2, "BLK", "BLK", "", "Defensive coin",
+	    "Coin. Favourite. When played: your leftover Block carries into your next turn.",
 		"rare",
 		70,
-	    []
+	    [
+	        {
+	            trigger: "on_dice_played_to_slot",
+	            modify: function(_context) {
+					if (_context._d_struct.uid != _context._die_struct_source.uid) return;
+					oCombat.block_carries = true; // F242: START_TURN keeps what's left of your Block
+	            }
+	        }
+	    ]
 	);
-	global.die_defensive.keywords = ["Coin", "Favourite", "Multitype", "Overboard"];
+	global.die_defensive.keywords = ["Coin", "Favourite"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_defensive, ""));
 	
 	// Anchor Die: Gain +3 block if not used
@@ -317,7 +326,7 @@ function generate_dice_bag() {
 	global.die_power_penny = make_die_struct(
 	    1, 2, "BLK", "BLK", "", "Power penny",
 	    "Coin. +1 for each die in its slot.",
-		"common",
+		"uncommon", // a coin with an effect (F242)
 		50,
 	    [
 	        {
@@ -337,7 +346,7 @@ function generate_dice_bag() {
 	global.die_invisible = make_die_struct(
 	    1, 4, "None", "None", "", "Invisible die",
 	    "When played: draw 1 die and gain 1 play.",
-		"common",
+		"uncommon", // F242
 		30,
 	    [
 	        {
@@ -394,29 +403,28 @@ function generate_dice_bag() {
 	
 	// Tidepusher die
 	global.die_tidepusher = make_die_struct(
-	    1, 4, "HEAL", "HEAL", "", "Tidepusher die",
-	    "Exclusive. Overboard. If it rolls its max, heal 1 more.",
+	    1, 6, "BLK", "BLK", "", "Tidepusher die",
+	    "Overboard. This turn, heal 1 each time your Block fully stops a hit.",
 		"rare",
 		90,
 	    [
 	        {
-	            trigger: "after_roll_die",
+	            trigger: "after_roll_die", // as its slot resolves (F242: healing is rare and on a trigger)
 	            modify: function(_context) {
-					if (_context._d_amount >= _context.max_roll && _context.die.uid == _context._die_struct_source.uid) { // its max (B163: "exactly 4" broke when it grew)
-						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
-						_context._d_amount += 1;
-					}
+					if (_context.die.uid != _context._die_struct_source.uid) return;
+					oCombat.heal_on_full_block += 1;
+					roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white);
 	            }
 	        }
 	    ]
 	);
-	global.die_tidepusher.keywords = ["Exclusive", "Overboard"];
+	global.die_tidepusher.keywords = ["Overboard"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_tidepusher, ""));
 	
 	// Bulwark die
 	global.die_bulwark = make_die_struct(
 	    1, 8, "BLK", "BLK", "", "Bulwark die",
-	    "Followthrough: If the slot before is block, deal {min2} damage to all enemies.",
+	    "Followthrough: If the slot before is Block, deal your Block as damage to all enemies.",
 		"rare",
 		70,
 	    [
@@ -429,7 +437,7 @@ function generate_dice_bag() {
 							// Deal flat damage to all enemies, we have to run this backwards in case any enemies die during this roll
 							for (var i = ds_list_size(oCombat.room_enemies)-1; i >= 0 ; i--) {
 								if (oCombat.room_enemies[| i].dead) continue;
-								process_action(oCombat.room_enemies[| i], 0, _context.min_roll * 2, 0, "player", -1, "ATK", undefined, undefined, 0);
+								process_action(oCombat.room_enemies[| i], 0, max(0, player_block_amount), 0, "player", -1, "ATK", undefined, undefined, 0); // your Block (F242)
 								show_debug_message("Dealing damage to enemy index: " + string(i));
 							}
 							//show_debug_message("dealing damage to all enemies");
@@ -445,14 +453,14 @@ function generate_dice_bag() {
 	// Bulwark die
 	global.die_crescendo = make_die_struct(
 	    1, 8, "ATK", "ATK", "", "Crescendo die",
-	    "+1 minimum roll each time it's played this fight, up to {half}.",
+	    "+1 for each time it's been played this fight.",
 		"rare",
 		80,
 	    [
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
-	                _context.min_roll = max(_context.min_roll, min(_context.max_roll / 2, 1 + _context.die.statistics.times_played_this_combat)); // B163: it overwrote +1 min bonuses
+	                _context._d_amount += _context.die.statistics.times_played_this_combat; // F242: no cap, grows all fight
 	            }
 	        }
 	    ]
@@ -505,19 +513,17 @@ function generate_dice_bag() {
 	// Reed snap die
 	global.die_blood_reef = make_die_struct(
 	    1, 6, "ATK", "ATK", "", "Blood Reef die",
-	    "When attacking: +2 damage, lose 1 health.",
+	    "When it's dealt: gain 1 Might, lose 3 health.",
 		"rare",
 		80,
 	    [
 	        {
-	            trigger: "on_roll_die",
+	            trigger: "on_dice_dealt", // F242 (Jared): the first real Might engine piece
 	            modify: function(_context) {
-					if (_context.action_type == "ATK") {
-						if (!_context.read_only) {
-							global.player_hp--;
-						}
-						_context._d_amount += 2;
-					}
+					if (room != rmCombat) return;
+					global.player_hp = max(1, global.player_hp - 3);
+					apply_buff("player", oRunManager.buff_might, 1, 1, false, { source: "player", index: -1 });
+					spawn_floating_number("player", 3, -1, c_red, -1, -1, 0);
 	            }
 	        }
 	    ]
@@ -680,17 +686,24 @@ function generate_dice_bag() {
 	// Deflect Die
 	global.die_deflect = make_die_struct(
 	    1, 6, "BLK", "BLK INTEL", "", "Deflect Die",
-	    "Multitype. Block or Ink.",
+	    "Multitype. Block or Ink. +2 while you hold 6 or more ink.",
 		"uncommon",
 		70,
-		[]
+		[
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					if (instance_exists(oCombat) && oCombat.player_intel >= 6) _context._d_amount += 2; // F242
+	            }
+	        }
+		]
 	);
 	global.die_deflect.keywords = ["Multitype"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_deflect, ""));
 	
 	global.die_bolster = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Bolster Die",
-	    "When it builds a slot: gain {max2} block.",
+	    "When it builds a slot: gain {max} block.",
 		"common",
 		50,
 	    [
@@ -698,7 +711,7 @@ function generate_dice_bag() {
 	            trigger: "on_sacrifice_die",
 	            modify: function(_context) {
 					with (oCombat) {
-						process_action("player", 0, _context.die.struct.dice_value*2, 0, "player", undefined, "BLK");
+						process_action("player", 0, _context.die.struct.dice_value, 0, "player", undefined, "BLK"); // 1 x size (F242: it was 2 x, a top-five die as a common)
 					}
 	            }
 	        }
@@ -801,7 +814,7 @@ function generate_dice_bag() {
 	global.die_lookout = make_die_struct(
 	    1, 6, "INTEL", "INTEL", "", "Lookout die",
 	    "Stowaway: Gain 3 ink next turn.",
-		"common",
+		"uncommon", // F242
 		40,
 	    [
 	        {
@@ -821,32 +834,20 @@ function generate_dice_bag() {
 	
 	global.die_bouncing = make_die_struct(
 	    1, 4, "ATK", "ATK", "", "Bouncing Die",
-	    "When attacking: switch to a random target.",
+	    "When attacking: half its roll also hits another enemy.",
 		"common",
 		40,
 	    [
 	        {
-				trigger: "on_roll_die",
+	            trigger: "after_roll_die", // owner-only: its own roll (F242: it switched your target, for good)
 	            modify: function(_context) {
-					if (!_context.read_only && _context.action_type == "ATK") {
-						// Find random enemy target if there's more than 1 enemy
-						if (ds_list_size(oCombat.room_enemies) > 1) {
-							var possible_new_targets = ds_list_create();
-							var new_target = undefined;
-							var cur_index = oCombat.enemy_target_index;
-						
-							for (var ee = 0; ee < ds_list_size(oCombat.room_enemies); ee++) {
-								if (!oCombat.room_enemies[| ee].dead && ee != cur_index) {
-									ds_list_add(possible_new_targets, oCombat.room_enemies[| ee]);
-								}
-							}
-					
-							new_target = possible_new_targets[| irandom(ds_list_size(possible_new_targets) - 1)];
-					
-							oCombat.enemy_target_index = ds_list_find_index(oCombat.room_enemies, new_target);
-					
-							ds_list_destroy(possible_new_targets);
-						}
+					if (_context._c_slot_type != "ATK") return;
+					var _hit = floor(_context._d_amount / 2);
+					if (_hit <= 0) return;
+					with (oCombat) {
+						var _others = [];
+						for (var i = 0; i < ds_list_size(room_enemies); i++) if (i != enemy_target_index && !room_enemies[| i].dead) array_push(_others, room_enemies[| i]);
+						if (array_length(_others) > 0) process_action(_others[irandom(array_length(_others) - 1)], 0, _hit, 0, "player", -1, "ATK", undefined, undefined, 0);
 					}
 	            }
 	        }
@@ -857,7 +858,7 @@ function generate_dice_bag() {
 	global.die_guerrilla_coin = make_die_struct(
 	    1, 2, "INTEL", "INTEL", "", "Guerrilla Coin",
 	    "Coin. When it builds a slot: deal half your ink as damage to a random enemy.",
-		"common",
+		"uncommon", // a coin with an effect (F242)
 		40,
 	    [
 	        {
@@ -948,6 +949,7 @@ function generate_dice_bag() {
 	    ]
 	);
 	ds_list_add(global.alignment_dice_list, clone_die(global.die_holy, ""));
+	ds_list_add(global.master_dice_list, clone_die(global.die_holy, "")); // also in the rare pool (F242)
 	
 	global.die_unholy = make_die_struct(
 	    1, 6, "None", "None", "", "Unholy die",
@@ -964,6 +966,7 @@ function generate_dice_bag() {
 	    ]
 	);
 	ds_list_add(global.alignment_dice_list, clone_die(global.die_unholy, ""));
+	ds_list_add(global.master_dice_list, clone_die(global.die_unholy, "")); // also in the rare pool (F242)
 	
 	global.die_ninja = make_die_struct(
 	    1, 4, "BLK", "BLK", "", "Ninja die",
@@ -1005,8 +1008,8 @@ function generate_dice_bag() {
 	ds_list_add(global.master_dice_list, clone_die(global.die_warrior, ""));
 	
 	global.die_assassin = make_die_struct(
-	    1, 4, "ATK", "ATK INTEL", "", "Assassin Die",
-	    "Multitype. Attack or Ink. +1 minimum roll per 3 ink.",
+	    1, 6, "ATK", "ATK INTEL", "", "Assassin Die",
+	    "Multitype. Attack or Ink. +1 minimum roll per 2 ink.",
 		"rare",
 		70,
 	    [
@@ -1014,7 +1017,7 @@ function generate_dice_bag() {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
 					// only in a fight, this also runs when the die is shown in the bag or shop
-					if (instance_exists(oCombat)) _context.min_roll = min(_context.min_roll + floor(max(0, oCombat.player_intel) / 3), _context.max_roll - 1); // B163: never up to its max
+					if (instance_exists(oCombat)) _context.min_roll = min(_context.min_roll + floor(max(0, oCombat.player_intel) / 2), _context.max_roll - 1); // B163: never up to its max
 	            }
 	        }
 	    ]
@@ -1040,14 +1043,14 @@ function generate_dice_bag() {
 	
 	global.die_splash = make_die_struct(
 	    1, 10, "BLK", "BLK", "", "Splash Die",
-	    "-2 on every roll, minimum 0.",
+	    "-1 on every roll, never below 1.",
 		"common",
 		60,
 	    [
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
-					_context._d_amount = -2;
+					_context._d_amount = (die_face_total(_context.die) > 1) ? -1 : 0; // F242: was -2, minimum 0
 	            }
 	        }
 	    ]
@@ -1079,8 +1082,8 @@ function generate_dice_bag() {
 
 	// Tidecaller: a high heal also raises your guard
 	global.die_tidecaller = make_die_struct(
-	    1, 6, "HEAL", "HEAL", "", "Tidecaller die",
-	    "Overboard. If it rolls 5 or higher, also gain 3 block.",
+	    1, 6, "BLK", "BLK", "", "Tidecaller die",
+	    "Overboard. If it rolls 5 or higher, also heal 3.",
 		"uncommon",
 		50,
 	    [
@@ -1088,8 +1091,8 @@ function generate_dice_bag() {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
 					if (_context._d_amount >= 5) {
-						with (oCombat) process_action("player", 0, 3, 0, "player", undefined, "BLK");
-						roll_popup(_context.slot_num, _context.dice_index, "Tidecaller!", global.color_block);
+						with (oCombat) process_action("player", 0, 3, 0, "player", undefined, "HEAL"); // F242: healing on a trigger
+						roll_popup(_context.slot_num, _context.dice_index, "Tidecaller!", global.color_heal);
 					}
 	            }
 	        }
@@ -1097,6 +1100,259 @@ function generate_dice_bag() {
 	);
 	global.die_tidecaller.keywords = ["Overboard"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_tidecaller, ""));
+
+	// ===================================================================================================================
+	// F242 content pass (Jared, 2026-11-23): new dice for the seven archetypes and the core shapes (docs/design/content-pass.md)
+	// ===================================================================================================================
+
+	// --- core shapes (section 5)
+	global.die_plumb_line = make_die_struct(
+	    1, 6, "BLK", "BLK", "", "Plumb Line die",
+	    "+2 if it rolls a middle face.",
+		"common",
+		40,
+	    [
+	        {
+	            trigger: "on_roll_die", // Bell and Dome's payoff
+	            modify: function(_context) {
+					if (die_face_middle(die_face_total(_context.die), _context.min_roll, _context.max_roll)) _context._d_amount += 2;
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_plumb_line, ""));
+
+	global.die_grapnel = make_die_struct(
+	    1, 6, "ATK", "ATK", "", "Grapnel die",
+	    "If it rolls one below its max, it counts as its max +2.",
+		"uncommon",
+		50,
+	    [
+	        {
+	            trigger: "on_roll_die", // Dual and Tower's payoff
+	            modify: function(_context) {
+					if (_context.max_roll - 1 > _context.min_roll && die_face_total(_context.die) == _context.max_roll - 1) _context._d_amount += 3;
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_grapnel, ""));
+
+	// --- Full ink
+	global.die_inkpot = make_die_struct(
+	    1, 4, "INTEL", "INTEL", "", "Inkpot die",
+	    "When played: +2 max ink this fight.",
+		"common",
+		40,
+	    [
+	        {
+	            trigger: "on_dice_played_to_slot",
+	            modify: function(_context) {
+					if (_context._d_struct.uid != _context._die_struct_source.uid || !instance_exists(oCombat)) return;
+					oCombat.ink_max_bonus += 2; // intel_max
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_inkpot, ""));
+
+	global.die_calligrapher = make_die_struct(
+	    1, 6, "INTEL", "INTEL", "", "Calligrapher's die",
+	    "+1 for each ink you spent this turn.",
+		"uncommon",
+		50,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					if (instance_exists(oCombat)) _context._d_amount += oCombat.ink_spent_this_turn;
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_calligrapher, ""));
+
+	// --- Infinite might
+	global.die_grit = make_die_struct(
+	    1, 4, "ATK", "ATK", "", "Grit die",
+	    "If it rolls {max}, gain 1 Might.",
+		"common",
+		40,
+	    [
+	        {
+	            trigger: "on_die_rolled", // when rolled: the Might counts for this turn's queue (like Offhand)
+	            modify: function(_context) {
+					if (_context.min_roll < _context.max_roll && _context.face == _context.max_roll) {
+						die_effect_popup(_context._die_struct, "Might!", c_white);
+						apply_buff("player", oRunManager.buff_might, 1, 1, false, { source: "player", index: -1 });
+					}
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_grit, ""));
+
+	// --- Valleys
+	global.die_undertow = make_die_struct(
+	    1, 6, "ATK", "ATK", "", "Undertow die",
+	    "+1 for each die that rolled its minimum this turn.",
+		"uncommon",
+		50,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					if (instance_exists(oCombat)) _context._d_amount += oCombat.min_rolls_this_turn;
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_undertow, ""));
+
+	global.die_riptide = make_die_struct(
+	    1, 4, "ATK", "ATK", "", "Riptide die",
+	    "If it rolls {min}, it counts as double its max.",
+		"rare",
+		80,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					var _f = die_face_total(_context.die);
+					if (_context.min_roll < _context.max_roll && _f >= 0 && _f <= _context.min_roll) _context._d_amount += _context.max_roll * 2 - _f;
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_riptide, ""));
+
+	// --- Coin swarm: plain common coins (just "doesn't use a play"), and payoffs that count coins
+	global.die_cutlass_coin = make_die_struct(1, 2, "ATK", "ATK", "", "Cutlass coin", "Coin. ", "common", 20, []);
+	global.die_cutlass_coin.keywords = ["Coin"];
+	ds_list_add(global.master_dice_list, clone_die(global.die_cutlass_coin, ""));
+	global.die_buckler_coin = make_die_struct(1, 2, "BLK", "BLK", "", "Buckler coin", "Coin. ", "common", 20, []);
+	global.die_buckler_coin.keywords = ["Coin"];
+	ds_list_add(global.master_dice_list, clone_die(global.die_buckler_coin, ""));
+	global.die_inkblot_coin = make_die_struct(1, 2, "INTEL", "INTEL", "", "Inkblot coin", "Coin. ", "common", 20, []);
+	global.die_inkblot_coin.keywords = ["Coin"];
+	ds_list_add(global.master_dice_list, clone_die(global.die_inkblot_coin, ""));
+
+	global.die_purser = make_die_struct(
+	    1, 6, "BLK", "BLK", "", "Purser's die",
+	    "+1 for each coin played this turn.",
+		"uncommon",
+		50,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					if (instance_exists(oCombat)) _context._d_amount += oCombat.coins_played_this_turn;
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_purser, ""));
+
+	global.die_doubloon = make_die_struct(
+	    1, 4, "ATK", "ATK", "", "Doubloon",
+	    "Coin. +1 for each other coin in its slot.",
+		"rare",
+		70,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					if (!variable_struct_exists(_context, "_slot") || !is_struct(_context._slot)) return;
+					var _l = _context._slot.dice_list, _n = 0;
+					for (var i = 0; i < ds_list_size(_l); i++) if (_l[| i] != _context.die && die_has_keyword(_l[| i], "coin")) _n++;
+					_context._d_amount += _n;
+	            }
+	        }
+	    ]
+	);
+	global.die_doubloon.keywords = ["Coin"]; // a d4 that doesn't use a play
+	global.die_doubloon.always_coin = true;
+	ds_list_add(global.master_dice_list, clone_die(global.die_doubloon, ""));
+
+	// --- Heavy hitters
+	global.die_broadside = make_die_struct(
+	    1, 8, "ATK", "ATK", "", "Broadside die",
+	    "+2 in slot 3 or later.",
+		"uncommon",
+		60,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					if (_context.slot_num >= 2) _context._d_amount += 2;
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_broadside, ""));
+
+	global.die_carronade = make_die_struct(
+	    1, 12, "ATK", "ATK", "", "Carronade die",
+	    "Uses 2 plays.",
+		"rare",
+		80,
+	    []
+	);
+	global.die_carronade.heavy_play = true; // die_play_cost
+	ds_list_add(global.master_dice_list, clone_die(global.die_carronade, ""));
+
+	// --- Fortress
+	global.die_barnacle = make_die_struct(
+	    1, 4, "BLK", "BLK", "", "Barnacle die",
+	    "Followthrough: +2 if the slot before is Block.",
+		"common",
+		40,
+	    [
+	        {
+	            trigger: "on_roll_die",
+	            modify: function(_context) {
+					if (_context.previous_slot_action_type == "BLK" && _context.action_type == "BLK") _context._d_amount += 2;
+	            }
+	        }
+	    ]
+	);
+	global.die_barnacle.keywords = ["Followthrough"];
+	ds_list_add(global.master_dice_list, clone_die(global.die_barnacle, ""));
+
+	// --- Alignment extremes: a push you can repeat
+	global.die_mercy = make_die_struct(
+	    1, 4, "BLK", "BLK", "", "Mercy die",
+	    "When played: +1 alignment.",
+		"common",
+		30,
+	    [
+	        {
+	            trigger: "on_dice_played_to_slot",
+	            modify: function(_context) {
+					if (_context._d_struct.uid != _context._die_struct_source.uid) return;
+					gain_alignment(1);
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_mercy, ""));
+
+	global.die_cutthroat = make_die_struct(
+	    1, 4, "ATK", "ATK", "", "Cutthroat die",
+	    "When played: -1 alignment.",
+		"common",
+		30,
+	    [
+	        {
+	            trigger: "on_dice_played_to_slot",
+	            modify: function(_context) {
+					if (_context._d_struct.uid != _context._die_struct_source.uid) return;
+					gain_alignment(-1);
+	            }
+	        }
+	    ]
+	);
+	ds_list_add(global.master_dice_list, clone_die(global.die_cutthroat, ""));
 
 	// Ballast: a heavy die that never rolls low
 	global.die_ballast = make_die_struct(
@@ -1634,7 +1890,7 @@ function draw_dice_history(_die, _x, _y, _centered = false) {
 /// @func core_alignment_lean()
 /// @desc Where the compass leans, for the alignment cores: -1 fully ruthless (alignment 0), 0 even (50), +1 fully merciful (100).
 function core_alignment_lean() {
-	return clamp((global.player_alignment - 50) / 50, -1, 1);
+	return clamp((global.player_alignment - 50) / 20, -1, 1); // full lean at 30 and 70 (F242: it was 0 and 100, flat in a normal run)
 }
 
 /// @func	define_dice_distributions(_die_dist, _min_roll, _max_roll, _array)
@@ -1935,7 +2191,8 @@ function die_remove_keyword(_die, _keyword) {
 ///       A die is a coin exactly when it is a d2, so the Coin keyword (rules, icon, text) follows its size.
 ///       Its description's numbers need nothing: die_description reads the size when shown.
 function die_size_changed(_die) {
-	if (_die.dice_value == 2) die_add_keyword(_die, "Coin"); else die_remove_keyword(_die, "Coin");
+	if (_die.dice_value == 2) die_add_keyword(_die, "Coin");
+	else if (!(variable_struct_exists(_die, "always_coin") && _die.always_coin)) die_remove_keyword(_die, "Coin"); // a Doubloon stays a coin
 }
 
 /// @func action_type_label(_type)

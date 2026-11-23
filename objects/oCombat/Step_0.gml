@@ -89,7 +89,12 @@ switch (state) {
 		// Reset player stats every turn
 		dice_played_scale = 1.2;
 		dice_played = 0;
-		player_block_amount = 0;
+		if (!block_carries) player_block_amount = 0; // Defensive coin: leftover Block carries over (F242)
+		block_carries = false;
+		ink_spent_this_turn = 0;
+		min_rolls_this_turn = 0;
+		coins_played_this_turn = 0;
+		heal_on_full_block = 0;
 		dice_allowed_this_turn_bonus = 0;
 		ejected_dice = false;
 		played_uids = [];

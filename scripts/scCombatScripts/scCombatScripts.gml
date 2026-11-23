@@ -376,6 +376,12 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 	                var num = spawn_floating_number("player", block_used, -1, global.color_block, -1, -1, _dice_list_index);
 					num.x += 40;
 					num.y += 40;
+
+					// the whole hit stopped (F242): Spiked Hull hits back, a Tidepusher played this turn heals
+					if (block_used > 0 && final_damage <= 0) {
+						combat_trigger_effects("on_hit_fully_blocked", { enemy: _source, blocked: block_used }, "player");
+						if (heal_on_full_block > 0) process_action("player", 0, heal_on_full_block, 0, "player", undefined, "HEAL");
+					}
 	            }
 
 	            if (final_damage > 0) {
@@ -593,7 +599,8 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 	var _yes = function(_action) { return { ok: true, action: _action, reason: "" }; };
 
 	// coins are free to play; everything else needs a play left this turn
-	if (dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(_die_struct, "coin")) {
+	if (die_play_cost(_die_struct) > 0 && dice_played + die_play_cost(_die_struct) > dice_allowed_per_turn) {
+		if (die_play_cost(_die_struct) > 1 && dice_played < dice_allowed_per_turn) return _no("It needs 2 plays.");
 		return _no("No plays left this turn. Coins are still free.");
 	}
 
@@ -655,7 +662,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 	// a rejected drop says why, in the same words as the hover hint
 	if (!check.ok) throw_error("Can't place here", check.reason);
 
-	if (!check.ok && dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(die.struct, "coin")) {
+	if (!check.ok && die_play_cost(die.struct) > 0 && dice_played + die_play_cost(die.struct) > dice_allowed_per_turn) {
 		// out of plays: flash the dice-played counter
 		dice_played_scale = 1.4;
 		dice_played_color = c_red;
@@ -745,7 +752,8 @@ function apply_dice_to_slot(_die, _slot_i) {
 		}
 	
         add_feed_entry("You used a die!");
-		if (!die_has_keyword(die.struct, "coin")) dice_played += 1;
+		dice_played += die_play_cost(die.struct);
+		if (die_has_keyword(die.struct, "coin")) coins_played_this_turn++; // Purser's die (taken back: combat_die_to_hand)
 		dice_played_scale = 1.2;
 		dice_played_color = c_green;
 
@@ -867,13 +875,14 @@ function sacrifice_die(_die) {
 		throw_error("Fill your slots first", "Every slot needs an action first.");
 		return;
 	}
-	if (dice_played + 1 > dice_allowed_per_turn && !die_has_keyword(_die.struct, "coin")) {
+	if (die_play_cost(_die.struct) > 0 && dice_played + die_play_cost(_die.struct) > dice_allowed_per_turn) {
 		dice_played_scale = 1.4;
 		dice_played_color = c_red;
 		throw_error("No plays left", "Coins are still free to play.");
 		return;
 	}
-	if (!die_has_keyword(_die.struct, "coin")) dice_played += 1;
+	dice_played += die_play_cost(_die.struct);
+	if (die_has_keyword(_die.struct, "coin")) coins_played_this_turn++; // Purser's die
 	dice_played_scale = 1.2;
 	dice_played_color = c_green;
 
@@ -2773,6 +2782,38 @@ function die_can_take_back(_die) {
 	return !(variable_struct_exists(_die, "play_locked") && _die.play_locked);
 }
 
+/// @func die_play_cost(_die)
+/// @desc How many plays a die uses: a coin none, a Carronade (heavy_play) two, the rest one (F242).
+function die_play_cost(_die) {
+	if (!is_struct(_die)) return 1;
+	if (die_has_keyword(_die, "coin")) return 0;
+	if (variable_struct_exists(_die, "heavy_play") && _die.heavy_play) return 2;
+	return 1;
+}
+
+/// @func deck_size()
+/// @desc Every die you have this fight: the draw bag, the discard pile, your hand, the slots, the new-slot tile and any
+///       gone overboard (Iron Grip, War Drum). Outside a fight, the bag.
+function deck_size() {
+	var _n = ds_list_size(global.dice_bag);
+	if (room == rmCombat && instance_exists(oCombat)) {
+		if (ds_safe_exists(global.discard_pile, ds_type_list)) _n += ds_list_size(global.discard_pile);
+		if (ds_safe_exists(global.sacrifice_list, ds_type_list)) _n += ds_list_size(global.sacrifice_list);
+		_n += instance_number(oDice);
+		with (oCombat) {
+			for (var i = 0; i < ds_list_size(action_queue); i++) _n += ds_list_size(action_queue[| i].dice_list);
+			_n += array_length(overboard_dice);
+		}
+	}
+	return _n;
+}
+
+/// @func die_face_middle(_face, _min, _max)
+/// @desc Is this face one of the middle faces of the range (3-4 on a d6, 2-3 on a d4)? (Plumb Line, Spirit Level)
+function die_face_middle(_face, _min, _max) {
+	return _max - _min >= 2 && abs(_face - (_min + _max) / 2) <= 0.5;
+}
+
 /// @func combat_no_die_dragged()
 function combat_no_die_dragged() {
 	var _none = true;
@@ -2819,7 +2860,8 @@ function combat_die_to_hand(_die, _sx, _sy) {
 	var _target = generate_valid_targets(1, 100)[0];
 	_inst.target_x = _target[0];
 	_inst.target_y = _target[1];
-	if (!die_has_keyword(_die, "coin")) dice_played = max(0, dice_played - 1);
+	dice_played = max(0, dice_played - die_play_cost(_die));
+	if (die_has_keyword(_die, "coin")) coins_played_this_turn = max(0, coins_played_this_turn - 1); // Purser's die
 }
 
 /// @func combat_unbuild_slot(_slot_i, _index)
@@ -2959,6 +3001,7 @@ function combat_insight_spend(_cost) {
 			return false;
 		}
 		player_intel -= _cost;
+		ink_spent_this_turn += _cost; // Calligrapher's die (F242)
 		var _num = spawn_floating_number("player", _cost, -1, global.text_intel, -1, -1, 0);
 		_num.x += 20;
 		_num.y -= 20;
@@ -3585,7 +3628,7 @@ function draw_ink_pips(_x, _y, _amount, _preview = 0) {
 		ui_numeral(string(_amount), _x, _y + 4, 26, global.text_attack, 1, fa_center);
 		return;
 	}
-	var _per = 6, _gap = 15, _r = 5.5;
+	var _per = max(6, ceil(INSIGHT_MAX / 2)), _gap = 15, _r = 5.5; // two rows, even with Captain's Logbook (20)
 	var _blink = 0.35 + 0.65 * (0.5 + 0.5 * sin(current_time / 90));
 	for (var i = 0; i < INSIGHT_MAX; i++) {
 		var _row = i div _per, _col = i mod _per;

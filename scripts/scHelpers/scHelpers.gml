@@ -1398,9 +1398,19 @@ function deserialise_die(_data) {
 	_die.distribution = _data.distribution;
 	_die.min_roll_bonus = _data.min_roll_bonus;
 	
-	// keywords and description can change during a run (an upgrade adding Coin, say); older saves don't have them
-	if (variable_struct_exists(_data, "keywords") && is_array(_data.keywords)) _die.keywords = _data.keywords;
-	if (variable_struct_exists(_data, "description") && is_string(_data.description)) _die.description = _data.description;
+	// keywords and description can change during a run (an upgrade adding Coin, say); older saves don't have them.
+	// If the die's definition changed since the save (the F242 content pass reworked many), it takes the new keywords and
+	// text, then gets back the upgrades we know of: Favourite (Friendship Bracelet) and Coin by size
+	var _same_def = variable_struct_exists(_data, "base_desc") && _data.base_desc == _base.description;
+	if (_same_def) {
+		if (variable_struct_exists(_data, "keywords") && is_array(_data.keywords)) _die.keywords = _data.keywords;
+		if (variable_struct_exists(_data, "description") && is_string(_data.description)) _die.description = _data.description;
+	} else {
+		if (variable_struct_exists(_data, "keywords") && is_array(_data.keywords)) {
+			for (var k = 0; k < array_length(_data.keywords); k++) if (string_lower(_data.keywords[k]) == "favourite" && !die_has_keyword(_die, "Favourite")) die_add_keyword(_die, "Favourite");
+		}
+		die_size_changed(_die);
+	}
     
     return _die;
 }

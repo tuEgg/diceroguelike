@@ -32,6 +32,7 @@ All three are structs with effects that hook named events. Definitions are built
 - Struct `{ sprite, index, name, description, type: "consumable"|"core", distribution, rarity, price, effects: { trigger, flags(), modify(ctx) } }`.
 - Triggers: `on_clicked` (used from the item bar, `oRunManager/Draw_64`) or `on_item_played_to_slot` (dragged onto a slot, `oCombat/Draw_64`). `flags()` says whether it can be used right now.
 - Owned: `oRunManager.items` array (length = `max_items`, `undefined` = empty slot). `gain_item`, `get_first_free_item_slot`, `get_item_by_name`.
+- **The F242 content pass** (2026-11-23, `docs/design/content-pass.md`): free value repriced (never common), weak rares lifted, healing made rare and trigger-based, shop keepsakes worth their price, payoffs for every core shape (middle faces: `die_face_middle`; one below max), and new pieces for each archetype (search scDice for "F242 content pass" and scKeepsakes likewise). New keepsakes borrow other keepsakes' sub_image until the art pass.
 - Cores change a die's `distribution` at the workbench (Drill). The alignment pair ("compass", "lodestone", in Odd and Even's item slots and art) is shaped live by `core_alignment_lean()` (-1 ruthless to +1 merciful) inside `define_dice_distributions`; old "odd"/"even" dice still roll, and `get_item_by_name` maps the old core names. Any die made outside `deal_single_die` in a fight must call `die_roll_faces` itself (Message in a Bottle forgot, B132).
 
 ## Event names (ctx fields vary)

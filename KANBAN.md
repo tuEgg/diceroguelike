@@ -28,7 +28,25 @@
 
 ## 🧪 IN TESTING: waiting for Jared's playtest
 
-Nothing waiting. (Batches 34 and 35 approved 2026-11-23: see DONE.)
+| Batch | Cards | Branch / commit | Status |
+|---|---|---|---|
+| 36: content pass | F242 | `dev` | **Not yet play-tested.** Free value repriced, rares lifted, healing on triggers, shop keepsakes, core-shape payoffs, 22 new dice and keepsakes for the seven archetypes (\`docs/design/content-pass.md\`). |
+
+**Batch 36 test list (content pass)** F1 gives dice and keepsakes; every change is in \`docs/design/content-pass.md\`.
+- Rarity: Invisible, Power penny, Guerrilla Coin, Anchor, Slipstream and Lookout are uncommon (not in common rewards). New plain coins (Cutlass, Buckler, Inkblot) are common.
+- Protective Rigging 1 block a play; Lantern 1 block per unused die; Shipwright's Draft only your first build each turn.
+- Rares: Defensive coin (a Block coin: your leftover Block carries into next turn), Tidepusher (a Block die, Overboard: heal 1 each time your Block fully stops a hit this turn), Assassin (d6, +1 min per 2 ink), Crescendo (+1 for each time it's been played this fight), Blood Reef (dealt: 1 Might, -3 health), Bulwark (deals your Block to all enemies).
+- Bouncing: half its roll also hits another enemy (your target stays). Bolster: block equal to its size. Splash: -1, never below 1. Tidecaller: a Block die that heals 3 on 5+. Deflect: +2 at 6+ ink. Chainmaster's Anchor: every Followthrough bonus twice. Lucky Coin: 1 block per coin played. Small Sail: draw 1 more every turn. Medallion: below 30 or above 70.
+- Shop: Lime Juice +10 max health; Salted Pork +15% rest; Pickled Cucumber +1 play and a draw on turn 1; Rum +1 max on Attack dice; Rations heal 3 and draw a die; Water Barrel 50%.
+- Cores: Plumb Line die (+2 on a middle face), Spirit Level (middle faces +1), Grapnel die (one below max counts as max +2), Sounding Line (one below max draws a die). Compass and Lodestone lean fully at 30 / 70 alignment.
+- Full ink: Inkpot die (+2 max ink this fight), Calligrapher's die (+1 per ink spent this turn), Sharpened Quill (shop: rerolls and redraws cost 2, the buttons show it), Captain's Logbook (boss: max ink 20, rewrite 4; the pips grow to 20).
+- Infinite might: Grit die (max roll: 1 Might), Iron Grip (10 or fewer dice: Might carries turn to turn), War Drum (boss: 1 Might per die under 12 each turn).
+- Valleys: Undertow die (+1 per die that rolled its minimum this turn), Riptide die (min counts as double its max).
+- Coin swarm: Purser's die (+1 per coin played this turn), Doubloon (a d4 coin: +1 per other coin in its slot).
+- Heavy hitters: Broadside die (+2 in slot 3+), Heavy Rigging (d8+ get +1), Carronade die (d12, uses 2 plays: "No plays left" with only 1).
+- Fortress: Barnacle die (+2 after a Block slot), Spiked Hull (3 damage to an enemy whose hit your Block fully stops).
+- Alignment: Mercy die (+1 alignment when played), Cutthroat die (-1), Weathervane (below 30 / above 70: every die +1). Holy and Unholy also turn up as rare rewards (and cost 70).
+- New keepsakes use other keepsakes' pictures for now (art pass).
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -98,7 +116,6 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - Sounds still to make: `docs/sound-recommendations.md` (tiers and suggestions; Jared makes them, Claude wires them in).
 - Q16 Sea stop odds: agreed 2026-11-22, built as F209 (batch 28).
 - **Design review (Q17, 2026-11-23).** Rules and bug fixes built in batch 35 (IN TESTING). Principles and decisions: `docs/design/principles.md`; evidence: `docs/design/content-catalogue.md` and `analysis-*.md` (power curve, archetypes, Hammer simulation `docs/design/sim/sim.js`, conflicts).
-- F242 Content pass (Jared to propose): reprice free value (never common), lift the weak rares, give Bell/Dome/Dual/Tower shapes payoffs, fill the archetype gaps by the rarity ladder (Full ink, Infinite might, Fortress have no engine yet), fix the weak shop keepsakes and the Cutters.
 - Q17 Design chat: held 2026-11-23 (see the design review cards above). Was: after the timeline queue, go through every keepsake, die and potion and the build archetypes emerging. Shipwright's Draft needs rebalancing. Merge "when played" and "when sacrificed" into one trigger, as they're barely different now.
 
 **Core loop**

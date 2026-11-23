@@ -514,16 +514,31 @@ function enemy_rewrite_intent(_enemy) {
 #macro INTEL_LEGIBLE 1
 // what insight buys during your turn (combat_buy)
 #macro INSIGHT_COST_REVEAL 2 // see exact enemy intents this turn
-#macro INSIGHT_COST_REROLL 3 // one more reroll
-#macro INSIGHT_COST_REDRAW 3 // one more redraw
+#macro INSIGHT_COST_REROLL ink_cost_reroll() // a reroll: 3, 2 with Sharpened Quill (F242)
+#macro INSIGHT_COST_REDRAW ink_cost_reroll() // a redraw: the same
 #macro INSIGHT_COST_PLAY 4   // one more play
-#macro INSIGHT_COST_QUILL 6  // rewrite an intent (reroll or halve it)
-#macro INSIGHT_MAX 12        // the most you can hold (the gauge)
+#macro INSIGHT_COST_QUILL ink_cost_rewrite()  // rewrite an intent: 6, 4 with Captain's Logbook (F242)
+#macro INSIGHT_MAX intel_max()        // the most you can hold (the gauge)
+#macro INK_MAX_BASE 12
 
 /// @func intel_max()
-/// @desc The intel needed for the top state (Quill). Intel is capped here.
+/// @desc The most ink you can hold: 12, 20 with Captain's Logbook, plus this fight's Inkpot dice (oCombat.ink_max_bonus).
 function intel_max() {
-	return INSIGHT_MAX;
+	var _m = runmanager_has_keepsake_id("captains_logbook") ? 20 : INK_MAX_BASE;
+	if (instance_exists(oCombat) && variable_instance_exists(oCombat, "ink_max_bonus")) _m += oCombat.ink_max_bonus;
+	return _m;
+}
+
+/// @func ink_cost_reroll()
+/// @desc What a reroll or a redraw costs: 3 ink, 2 with Sharpened Quill.
+function ink_cost_reroll() {
+	return runmanager_has_keepsake_id("sharpened_quill") ? 2 : 3;
+}
+
+/// @func ink_cost_rewrite()
+/// @desc What rewriting an intent costs: 6 ink, 4 with Captain's Logbook.
+function ink_cost_rewrite() {
+	return runmanager_has_keepsake_id("captains_logbook") ? 4 : 6;
 }
 
 /// @func intel_level_for(_intel)

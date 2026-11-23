@@ -39,13 +39,12 @@ function define_keepsakes() {
 	ks_lime_juice = {
 	    _id: "lime_juice",
 	    name: "Lime Juice",
-	    desc: "Lose 5 health and gain 10 max health.",
+	    desc: "Gain 10 max health.",
 		sub_image: 28,
 		price: 80,
 	    trigger: function(event, data) {
 	        if (event == "on_keepsake_acquired" && data.keepsake_id == _id) { // make sure we only trigger when we acquire THIS keepsake, not all keepsakes
-	            global.player_hp -= 5;
-				global.player_max_hp += 10;
+				global.player_max_hp += 10; // F242: no health lost; the bar grows, you don't heal
 	        }
 	    }
 	};
@@ -55,12 +54,12 @@ function define_keepsakes() {
 	ks_salted_pork = {
 	    _id: "salted_pork",
 	    name: "Salted Pork",
-	    desc: "Heal 10% more when you rest.",
+	    desc: "Heal 15% more when you rest.",
 		sub_image: 29,
 		price: 90,
 	    trigger: function(event, data) {
 	        if (event == "on_rest") { // make sure we only trigger when we acquire THIS keepsake, not all keepsakes
-	            data.rest_amount += 0.10;
+	            data.rest_amount += 0.15; // F242: was 10%
 				
 				trigger_keepsake_visual();
 	        }
@@ -72,14 +71,15 @@ function define_keepsakes() {
 	ks_pickled_cucumber = {
 	    _id: "pickled_cucumber",
 	    name: "Pickled Cucumber",
-	    desc: "+1 play on the first turn of combat.",
+	    desc: "+1 play and draw 1 more on the first turn of combat.",
 		sub_image: 33,
 		price: 100,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
 	            if (oCombat.turn_count == 1) {
 					data.bonus_dice += 1;
-				
+					if (!oCombat.is_dealing_dice) oCombat.dice_to_deal += 1; // F242: and a draw
+								
 					trigger_keepsake_visual();
 				}
 	        }
@@ -111,14 +111,13 @@ function define_keepsakes() {
 	ks_rum = {
 	    _id: "rum",
 	    name: "Rum",
-	    desc: "Attack dice get +1 max roll and -1 min roll, never below 1.",
+	    desc: "Attack dice get +1 max roll.",
 	    sub_image: 30,
 		price: 110,
 	    trigger: function(event, data) {
 			if (event == "on_roll_die") {
 				if (data.die.action_type == "ATK") { // the die's own type, as dealt and as resolved (B163)
-					data.min_roll = max(1, data.min_roll - 1); // never 0 (B163: Rusty Rudder hit for 0, cores rolled 0)
-					data.max_roll += 1;
+					data.max_roll += 1; // F242: no minus any more (it was worth nothing on average)
 					
 					if (!data.read_only) {
 						trigger_keepsake_visual();
@@ -133,7 +132,7 @@ function define_keepsakes() {
 	ks_rations = {
 	    _id: "rations",
 	    name: "Rations",
-	    desc: "When you drink a potion, heal 3.",
+	    desc: "When you drink a potion, heal 3 and draw a die.",
 	    sub_image: 31,
 		price: 110,
 	    trigger: function(event, data) {			
@@ -144,6 +143,8 @@ function define_keepsakes() {
 					
 					trigger_keepsake_visual();
 				}
+				// F242: and a die, in a fight
+				if (room == rmCombat && instance_exists(oCombat)) { oCombat.dice_to_deal += 1; oCombat.is_dealing_dice = true; }
 	        }
 	    }
 	};
@@ -153,14 +154,14 @@ function define_keepsakes() {
 	ks_water_barrel = {
 	    _id: "water_barrel",
 	    name: "Water Barrel",
-	    desc: "Potions have a 30% chance not to be used up.",
+	    desc: "Potions have a 50% chance not to be used up.",
 	    sub_image: 32,
 		price: 120,
 	    trigger: function(event, data) {			
 			if (event == "on_consumable_used") {
 				var random_chance = irandom(9);
 				
-				if (random_chance <= 2) {
+				if (random_chance <= 4) { // 50% (F242: was 30%)
 					data.use_potion = false;
 					trigger_keepsake_visual();
 				}
@@ -178,17 +179,12 @@ function define_keepsakes() {
 	ks_small_sail = {
 	    _id: "small_sail",
 	    name: "Small Sail",
-	    desc: "Draw 2 more dice at the start of combat.",
+	    desc: "Draw 1 more die each turn.",
 		sub_image: 6,
 	    trigger: function(event, data) {
-	        if (event == "on_turn_start") {
-	            if (oCombat.turn_count == 1) {
-					if (!oCombat.is_dealing_dice) {
-						oCombat.dice_to_deal += 2;
-				
-						trigger_keepsake_visual();
-					}
-				}
+	        if (event == "on_turn_start" && !oCombat.is_dealing_dice) { // F242: was 2 more on turn 1 only
+				oCombat.dice_to_deal += 1;
+				trigger_keepsake_visual();
 	        }
 	    }
 	};
@@ -285,14 +281,16 @@ function define_keepsakes() {
 	ks_shipwrights_draft = {
 	    _id: "shipwrights_draft",
 	    name: "Shipwright's Draft",
-	    desc: "When you build a slot, gain 1 play this turn.",
+	    desc: "The first slot you build each turn gives 1 play.",
 		sub_image: 10,
+		state: { used: false },
 	    trigger: function(event, data) {
-	        if (event == "on_new_slot_created") {
+	        if (event == "on_new_slot_created" && !self.state.used) { // F242: every build was free
 	            oCombat.dice_allowed_this_turn_bonus++;
-				
+				self.state.used = true;
 				trigger_keepsake_visual();
 	        }
+			if (event == "on_turn_start") self.state.used = false;
 	    }
 	};
 	ds_list_add(global.master_keepsake_list, ks_shipwrights_draft);
@@ -401,14 +399,14 @@ function define_keepsakes() {
 	ks_chainmasters_anchor = {
 	    _id: "chainmasters_anchor",
 	    name: "Chainmaster's Anchor",
-	    desc: "The first Followthrough bonus each turn counts twice.",
+	    desc: "Followthrough bonuses count twice.",
 	    sub_image: 3,
 		state: { effect_used: false, first_die: undefined },
 	    trigger: function(event, data) {
 	        if (event == "on_roll_die") {
 				// only when a Followthrough die's effect actually fired this roll (its condition was met: it added to
 				// the roll), and only the first time each turn. Previews show the doubled bonus while it's unused.
-				if (!die_has_keyword(data.die, "Followthrough") || self.state.effect_used) return;
+				if (!die_has_keyword(data.die, "Followthrough")) return; // every one now (F242), not just the first each turn
 				var _fired = variable_struct_exists(data, "die_effects_added") && data.die_effects_added > 0;
 				if (!_fired) return;
 				data.repeat_followthrough = true;
@@ -429,13 +427,13 @@ function define_keepsakes() {
 	ks_lantern_of_patience = {
 	    _id: "lantern_of_patience",
 	    name: "Lantern of Patience",
-	    desc: "Each unused die gives 2 block at end of turn.",
+	    desc: "Each unused die gives 1 block at end of turn.",
 	    sub_image: 4,
 		state: { },
 	    trigger: function(event, data) {			
 			if (event == "on_not_used") {
 				repeat (instance_number(oDice)) {
-					with (oCombat) process_action("player", 0, 2, 0, "player", undefined, "BLK");
+					with (oCombat) process_action("player", 0, 1, 0, "player", undefined, "BLK"); // F242: was 2
 				}
 				
 				trigger_keepsake_visual();
@@ -744,18 +742,14 @@ function define_keepsakes() {
 	ks_lucky_coin = {
 	    _id: "lucky_coin",
 	    name: "Lucky Coin",
-	    desc: "Coins roll 2s twice as often as 1s.",
+	    desc: "Each coin you play gives 1 block.",
 	    sub_image: 0,
 		state: { },
-	    trigger: function(event, data) {			
-			if (event == "on_roll_die") {
-				if (data.die.dice_value == 2) {
-					data.weighting = "loaded";
-					
-					if (!data.read_only) {
-						trigger_keepsake_visual();
-					}
-				}
+	    trigger: function(event, data) {
+			// F242: a Coin swarm payoff (it only nudged coins' odds)
+			if (event == "on_dice_played_to_slot" && die_has_keyword(data._d_struct, "coin")) {
+				with (oCombat) process_action("player", 0, 1, 0, "player", undefined, "BLK");
+				trigger_keepsake_visual();
 	        }
 	    }
 	};
@@ -765,7 +759,7 @@ function define_keepsakes() {
 	ks_protective_rigging = {
 	    _id: "protective_rigging",
 	    name: "Protective Rigging",
-	    desc: "Gain 2 block when you play a die.",
+	    desc: "Gain 1 block when you play a die.",
 	    sub_image: 26,
 
 	    trigger: function(event, data) {
@@ -773,9 +767,9 @@ function define_keepsakes() {
 	        switch (event) {
 	            case "on_dice_played_to_slot":
 					with (oCombat) {
-						process_action("player", 0, 2, 0, "player", undefined, "BLK");
+						process_action("player", 0, 1, 0, "player", undefined, "BLK"); // F242: was 2, the strongest keepsake
 					}
-					
+
 					trigger_keepsake_visual();
 				break;
 	        }
@@ -933,11 +927,11 @@ function define_keepsakes() {
 	ks_medallion_of_the_deep = {
 	    _id: "medallion_of_the_deep",
 	    name: "Medallion of the Sea",
-	    desc: "+1 play each turn while alignment is below 20 or above 80.",
+	    desc: "+1 play each turn while alignment is below 30 or above 70.",
 		sub_image: 37,
 	    trigger: function(event, data) {
 	        if (event == "on_turn_start") {
-				if (global.player_alignment < 20 || global.player_alignment > 80) {
+				if (global.player_alignment < 30 || global.player_alignment > 70) { // F242: was 20 / 80
 					data.bonus_dice += 1;
 					
 					trigger_keepsake_visual();
@@ -947,6 +941,156 @@ function define_keepsakes() {
 	};
 	ds_list_add(global.master_keepsake_list, ks_medallion_of_the_deep);
 	ds_list_add(global.boss_keepsake_list, ks_medallion_of_the_deep);
+
+	// ===================================================================================================================
+	// F242 content pass (Jared, 2026-11-23): new keepsakes (docs/design/content-pass.md). sub_image: placeholder art
+	// borrowed from other keepsakes until Jared's art pass.
+	// ===================================================================================================================
+	ks_spirit_level = {
+	    _id: "spirit_level",
+	    name: "Spirit Level",
+	    desc: "Dice that roll a middle face get +1.",
+		sub_image: 21,
+	    trigger: function(event, data) {
+			if (event == "on_roll_die" && die_face_middle(die_face_total(data.die), data.min_roll, data.max_roll)) {
+				data._d_amount += 1;
+				if (!data.read_only) trigger_keepsake_visual();
+			}
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_spirit_level);
+	ds_list_add(global.rollable_keepsake_list, ks_spirit_level);
+
+	ks_sounding_line = {
+	    _id: "sounding_line",
+	    name: "Sounding Line",
+	    desc: "When a die rolls one below its max, draw a die.",
+		sub_image: 17,
+	    trigger: function(event, data) {
+			if (event == "on_die_rolled" && data.max_roll - 1 > data.min_roll && data.face == data.max_roll - 1 && instance_exists(oCombat)) {
+				oCombat.dice_to_deal += 1;
+				oCombat.is_dealing_dice = true;
+				trigger_keepsake_visual();
+			}
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_sounding_line);
+	ds_list_add(global.rollable_keepsake_list, ks_sounding_line);
+
+	ks_sharpened_quill = {
+	    _id: "sharpened_quill",
+	    name: "Sharpened Quill",
+	    desc: "Rerolls and redraws cost 2 ink.",
+		sub_image: 42,
+		price: 110,
+	    trigger: function(event, data) { } // ink_cost_reroll reads it
+	};
+	ds_list_add(global.master_keepsake_list, ks_sharpened_quill);
+	ds_list_add(global.shop_keepsake_list, ks_sharpened_quill);
+
+	ks_captains_logbook = {
+	    _id: "captains_logbook",
+	    name: "Captain's Logbook",
+	    desc: "Max ink 20. Rewriting an intent costs 4 ink.",
+		sub_image: 42,
+	    trigger: function(event, data) { } // intel_max and ink_cost_rewrite read it
+	};
+	ds_list_add(global.master_keepsake_list, ks_captains_logbook);
+	ds_list_add(global.boss_keepsake_list, ks_captains_logbook);
+
+	ks_iron_grip = {
+	    _id: "iron_grip",
+	    name: "Iron Grip",
+	    desc: "While you have 10 or fewer dice, Might lasts until the end of the fight.",
+		sub_image: 40,
+		state: { might: 0 },
+	    trigger: function(event, data) {
+			// at the end of your turn, note your Might; it wears off at the round's end as usual, and comes back next turn
+			if (event == "on_player_turn_end") {
+				self.state.might = 0;
+				for (var i = 0; i < ds_list_size(global.player_debuffs); i++) {
+					var _b = global.player_debuffs[| i];
+					if (_b.template._id == oRunManager.buff_might._id) self.state.might += _b.amount;
+				}
+			}
+			if (event == "on_turn_start") {
+				if (data.turn_count <= 1) self.state.might = 0; // a new fight
+				else if (self.state.might > 0 && deck_size() <= 10) {
+					apply_buff("player", oRunManager.buff_might, 1, self.state.might, false, { source: "player", index: -1 });
+					trigger_keepsake_visual();
+				}
+				self.state.might = 0;
+			}
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_iron_grip);
+	ds_list_add(global.rollable_keepsake_list, ks_iron_grip);
+
+	ks_war_drum = {
+	    _id: "war_drum",
+	    name: "War Drum",
+	    desc: "Each turn, gain 1 Might for every die you have under 12.",
+		sub_image: 11,
+	    trigger: function(event, data) {
+			if (event == "on_turn_start") {
+				var _n = max(0, 12 - deck_size());
+				if (_n > 0) {
+					apply_buff("player", oRunManager.buff_might, 1, _n, false, { source: "player", index: -1 });
+					trigger_keepsake_visual();
+				}
+			}
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_war_drum);
+	ds_list_add(global.boss_keepsake_list, ks_war_drum);
+
+	ks_heavy_rigging = {
+	    _id: "heavy_rigging",
+	    name: "Heavy Rigging",
+	    desc: "Dice d8 or bigger get +1.",
+		sub_image: 26,
+	    trigger: function(event, data) {
+			if (event == "on_roll_die" && data.die.dice_value >= 8) {
+				data._d_amount += 1;
+				if (!data.read_only) trigger_keepsake_visual();
+			}
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_heavy_rigging);
+	ds_list_add(global.rollable_keepsake_list, ks_heavy_rigging);
+
+	ks_spiked_hull = {
+	    _id: "spiked_hull",
+	    name: "Spiked Hull",
+	    desc: "When your Block fully stops an enemy's hit, deal 3 damage to it.",
+		sub_image: 39,
+		state: { busy: false },
+	    trigger: function(event, data) {
+			if (event == "on_hit_fully_blocked" && is_struct(data.enemy) && !data.enemy.dead && !self.state.busy) {
+				self.state.busy = true; // its own hit can't set off another (an enemy with Spines hits back, you block it...)
+				with (oCombat) process_action(data.enemy, 0, 3, 0, "player", -1, "ATK", undefined, undefined, 0);
+				self.state.busy = false;
+				trigger_keepsake_visual();
+			}
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_spiked_hull);
+	ds_list_add(global.rollable_keepsake_list, ks_spiked_hull);
+
+	ks_weathervane = {
+	    _id: "weathervane",
+	    name: "Weathervane",
+	    desc: "While alignment is below 30 or above 70, every die gets +1.",
+		sub_image: 37,
+	    trigger: function(event, data) {
+			if (event == "on_roll_die" && (global.player_alignment < 30 || global.player_alignment > 70)) {
+				data._d_amount += 1;
+				if (!data.read_only) trigger_keepsake_visual();
+			}
+	    }
+	};
+	ds_list_add(global.master_keepsake_list, ks_weathervane);
+	ds_list_add(global.rollable_keepsake_list, ks_weathervane);
 	
 	ks_cursed_heart = {
 	    _id: "cursed_heart",
