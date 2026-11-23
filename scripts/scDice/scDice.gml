@@ -106,6 +106,7 @@ function deal_single_die( _can_discard_this_turn = true) {
 
 	// rolled dice: it tumbles as it flies out of the bag, then lands on its roll (oDice Step)
 	if (room == rmCombat && die_has_faces(die_struct)) die_inst.roll_anim = 12;
+	if (room == rmCombat) sfx_play(choose(soDiceRolling1, soDiceRolling2, soDiceRolling3), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.4);
 
     var target = generate_valid_targets(1, 100) [0];
 	// in a fight a dealt die flies to its own spot in the row as it will be once the whole deal is in (dice still to
@@ -283,7 +284,7 @@ function generate_dice_bag() {
 	// Defensive Die: Coin. Favourite. Multitype: Can create HEAL and BLK slo
 	global.die_defensive = make_die_struct(
 	    1, 2, "HEAL", "HEAL BLK", "", "Defensive coin",
-	    "Coin. Favourite. Multitype: HEAL or BLK.",
+	    "Coin. Favourite. Multitype: Heal or Block.",
 		"rare",
 		70,
 	    []
@@ -381,7 +382,8 @@ function generate_dice_bag() {
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
-					if (_context.slot_num >= 0) _context._d_amount = 2 * (ds_list_size(oCombat.action_queue) - 1 == _context.slot_num);
+					// the last slot, or the new-slot tile (which becomes the last slot: die_tile_effect_amount)
+					if (_context.slot_num >= 0) _context._d_amount = 2 * (_context.slot_num >= ds_list_size(oCombat.action_queue) - 1);
 	            }
 	        }
 	    ]
@@ -676,7 +678,7 @@ function generate_dice_bag() {
 	// Deflect Die
 	global.die_deflect = make_die_struct(
 	    1, 6, "BLK", "BLK INTEL", "", "Deflect Die",
-	    "Multitype. BLK or INK.",
+	    "Multitype. Block or Ink.",
 		"uncommon",
 		70,
 		[]
@@ -1000,7 +1002,7 @@ function generate_dice_bag() {
 	
 	global.die_assassin = make_die_struct(
 	    1, 4, "ATK", "ATK INTEL", "", "Assassin Die",
-	    "Multitype. ATK or INK. +1 minimum roll per 3 ink.",
+	    "Multitype. Attack or Ink. +1 minimum roll per 3 ink.",
 		"rare",
 		70,
 	    [
@@ -1238,6 +1240,7 @@ function clone_die(_src, _perm)
 {
     // Shallow clone of base-level fields
     var c = variable_clone(_src);
+	c.built_slot = false; // only the copy that built a slot this turn carries it (it stayed on, so a die padlocked in slot 1 next turn)
 
     // --- Deep copy effects array (you already do this) ---
     if (variable_struct_exists(c, "effects")) {
@@ -1442,6 +1445,8 @@ function dice_trigger_effects(_event, _data) {
 /// @func trigger_die_effects_single(_die_struct, _event, _data)
 /// @desc Fire _event on one die (it is the die the event is about: rolling, sacrificing, dealt, not used).
 function trigger_die_effects_single(_die_struct, _event, _data) {
+	// a stowaway going off: a barrel rolls out of the hold
+	if (_event == "on_not_used" && room == rmCombat && die_has_effect_trigger(_die_struct, "on_not_used")) sfx_play(soBarrel, AUDIO_GROUP.SFX, 0.05, 0.8);
 	die_fire_effects(_die_struct, _event, _data, false);
 }
 
@@ -2116,6 +2121,7 @@ function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
 		}
 	}
 	var _cyo = die_shape_yoff(_sides, _r);
+	var _far = (_sides == 6) ? 2 : 1; // a d6's body covers most of the rim, so its slosh reaches further out (Jared, 2026-11-22)
 	var _m = array_length(_base);
 	var _ring = array_create(_m);
 	for (var i = 0; i < _m; i++) {
@@ -2124,7 +2130,7 @@ function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
 		var _nx = _px / _len, _ny = (_py - _cyo) / _len;
 		var _rip = (sin(_t * 2.6 + i * 0.9 + _seed) * 0.6 + sin(_t * 4.1 - i * 0.5 + _seed) * 0.4) * _r * 0.06; // a slow swell round it
 		var _lag = max(0, _nx * _dx + _ny * _dy) * _sp * _r * 0.012; // the side away from where it's going
-		var _push = _r * 0.03 + _rip + _lag; // hugs its own edge (Jared: not a border)
+		var _push = (_r * 0.03 + _rip) * _far + _lag; // hugs its own edge (Jared: not a border)
 		var _ox = _px + _nx * _push, _oy = _py + _ny * _push;
 		_ring[i] = [die_rot_x(_x, _ox, _oy, _angle), die_rot_y(_y, _ox, _oy, _angle)];
 	}
@@ -2221,7 +2227,10 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1, _die 
 		draw_set_font((_r >= 30) ? ftBig : ((_r >= 22) ? ftDefault : ftSmall));
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
-		draw_outline_text(_txt, _ring_col, _pip_col, 2, _x, _y + _cy, 1, _alpha, _angle);
+		// the offset to the shape's centre turns with the die (it was added straight down, so a tumbling d4's text
+		// drifted off it), and a touch lower: fa_middle centres the font's whole line, digits sit high in it
+		var _oy = _cy + string_height(_txt) * 0.07;
+		draw_outline_text(_txt, _ring_col, _pip_col, 2, _x + _oy * dsin(_angle), _y + _oy * dcos(_angle), 1, _alpha, _angle);
 	}
 	draw_set_color(c_white);
 }

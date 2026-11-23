@@ -85,6 +85,7 @@ if (room == rmMap) {
 	var tab_first_y0 = page_y + tab_y_offset - tab_h/2;
 
 	// which tab the mouse is over (it pulls out a little, and its tooltip says what it is, below)
+	if (!variable_instance_exists(id, "tab_pull")) tab_pull = array_create(CHAPTER_COUNT + 2, 0); // set before the hover check reads it
 	var tab_hover_c = -1;
 	for (var c = chapter + 1; c <= CHAPTER_COUNT && book_open_scale > 0.5; c++) {
 		var _tpi = chapter_pages + (c - chapter - 1) * future_pages_per_chapter;
@@ -92,7 +93,6 @@ if (room == rmMap) {
 		var _ty0 = tab_first_y0 + (c - chapter - 1) * (tab_h + tab_gap);
 		if (mouse_hovering(_tx1 - tab_out, _ty0, tab_out + ((c < array_length(tab_pull)) ? tab_pull[c] : 0), tab_h, false)) tab_hover_c = c;
 	}
-	if (!variable_instance_exists(id, "tab_pull")) tab_pull = array_create(CHAPTER_COUNT + 2, 0);
 
 	// draw right pages, back to front (the chapters still to come are at the back)
 	for (var i = last_page; i >= book_spread; i--) {

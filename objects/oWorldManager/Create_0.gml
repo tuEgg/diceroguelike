@@ -153,7 +153,7 @@ node_alignment = {
 	type: NODE_TYPE.ALIGNMENT,
 	subimg: 8,
 	name: "Alignment Fight",
-	text: "A fight that moves your compass.",
+	text: "A fight that changes your alignment.",
 	linked_room: rmCombat,
 	scale: 1.0,
 	cleared: false,

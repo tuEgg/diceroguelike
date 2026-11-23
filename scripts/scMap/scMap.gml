@@ -201,7 +201,50 @@ function generate_pages() {
 	
 		ds_list_add(pages_shown, _page);
 	}
+	pages_ensure_fights();
 	pages_assign_passages(); // each page brings the sea stop after its island (B+, 2026-11-21)
+}
+
+/// @func node_is_fight(_node)
+/// @desc A stop that's a fight: combat, elite, the crossroads fight or the boss.
+function node_is_fight(_node) {
+	return is_struct(_node) && (_node.type == NODE_TYPE.COMBAT || _node.type == NODE_TYPE.ELITE || _node.type == NODE_TYPE.ALIGNMENT || _node.type == NODE_TYPE.BOSS);
+}
+
+/// @func page_has_fight(_page)
+function page_has_fight(_page) {
+	for (var n = 0; n < ds_list_size(_page.nodes); n++) if (node_is_fight(_page.nodes[| n])) return true;
+	return false;
+}
+
+/// @func page_give_fight(_page)
+/// @desc Makes the page's first stop that isn't a treasure (or already a fight) a combat, so the page opens with a fight
+///       where it can.
+function page_give_fight(_page) {
+	for (var n = 0; n < ds_list_size(_page.nodes); n++) {
+		var _nd = _page.nodes[| n];
+		if (_nd.type == NODE_TYPE.TREASURE) continue;
+		_page.nodes[| n] = clone_node_static(node_combat);
+		return;
+	}
+}
+
+/// @func pages_ensure_fights()
+/// @desc After generate_pages rolls the three pages (Jared, 2026-11-22: there were long stretches with no fight and no
+///       choice in it): there's always a fight on at least one of them, and once you've gone
+///       FIGHT_DROUGHT_ROOMS stops without one (oRunManager.rooms_since_fight), every page has one.
+#macro FIGHT_DROUGHT_ROOMS 4
+function pages_ensure_fights() {
+	var _n = ds_list_size(pages_shown);
+	if (_n == 0) return;
+	var _drought = instance_exists(oRunManager) && oRunManager.rooms_since_fight >= FIGHT_DROUGHT_ROOMS;
+	var _any = false;
+	for (var p = 0; p < _n; p++) {
+		var _pg = pages_shown[| p];
+		if (_drought && !page_has_fight(_pg)) page_give_fight(_pg);
+		if (page_has_fight(_pg)) _any = true;
+	}
+	if (!_any) page_give_fight(pages_shown[| irandom(_n - 1)]);
 }
 
 /// @function node_find_by_id(_id)
@@ -244,6 +287,11 @@ function enter_node(_node) {
 	
 	get_combat_enemies(_node, _memory_node);
 	current_node_type = _node.type;
+	// stops since your last fight (pages_ensure_fights); counted once per stop, not again when a save reloads into it
+	if (!variable_struct_exists(_memory_node, "fight_counted")) {
+		_memory_node.fight_counted = true;
+		oRunManager.rooms_since_fight = node_is_fight(_node) ? 0 : oRunManager.rooms_since_fight + 1;
+	}
 	
 	// an event node picks its event now (the event room shows it), so it can be saved with the node
 	if (_node.type == NODE_TYPE.EVENT) {
@@ -1148,12 +1196,13 @@ function draw_page_turning(_page, _turn, _pivot_x, _cover_x, _page_w) {
 	if (_on_right && _turn <= 0) return;
 	var _xscale = _on_right ? _turn : 1;
 	
-	// left-hand page: the turned page sweeps from the spine outwards, hiding whatever it has passed over
-	var _cover_edge = (_turn < 0) ? _cover_x - abs(_turn) * _page_w : -infinity;
-	
+	// both pages fade out as the right page lifts, and stay gone (the left island used to vanish, then pop back as the
+	// turned page came over: Jared, 2026-11-22)
+	var _fade = clamp(_turn, 0, 1);
+
 	// island, with the same white glow draw_page gives it
 	var _island_x = _on_right ? _pivot_x + (_page.x - _pivot_x) * _xscale : _page.x;
-	var _island_alpha = _on_right ? 1 : page_turn_cover_alpha(_island_x, _cover_edge, 150);
+	var _island_alpha = _fade;
 	
 	if (_island_alpha > 0) {
 		shader_set(shWhiteFill);
@@ -1168,17 +1217,11 @@ function draw_page_turning(_page, _turn, _pivot_x, _cover_x, _page_w) {
 	for (var n = 0; n < ds_list_size(_page.nodes); n++) {
 		var _node = _page.nodes[| n];
 		var _node_x = _on_right ? _pivot_x + (_node.x - _pivot_x) * _xscale : _node.x;
-		var _node_alpha = _on_right ? 1 : page_turn_cover_alpha(_node_x, _cover_edge, 30);
+		var _node_alpha = _fade;
 		if (_node_alpha <= 0) continue;
 		
 		draw_sprite_ext(sMapIcon, _node.subimg, _node_x, _node.y, _xscale, 1, 0, c_white, _node_alpha);
 	}
-}
-
-/// @desc How visible something on the left-hand page is while the turned page covers it.
-///       Fades out over _fade_w pixels as the page edge passes over it.
-function page_turn_cover_alpha(_x, _cover_edge, _fade_w) {
-	return clamp((_cover_edge - _x) / _fade_w + 0.5, 0, 1);
 }
 
 /// @desc The encounter for a fight node. Rolled from _pool the first time the node is entered,
@@ -1318,7 +1361,7 @@ function spread_end_option_info(_id, _heal_amount, _can_heal) {
 		case "heal":
 			return { flavour: "Recover below deck", label: "Heal " + string(_heal_amount) + " HP", tip: "Heal " + string(_heal_amount) + " HP.", ok: _can_heal, reason: "You're at full health." };
 		case "core":
-			return { flavour: "Search the hold", label: "Gain a core", tip: "Gain a random core.", ok: get_first_free_item_slot() != -1, reason: "Your item slots are full." };
+			return { flavour: "Search the hold", label: "Gain a core", tip: "Gain a random core.", ok: true, reason: "" }; // full slots: delete an item for it, or sail past (pending_item_draw)
 		case "trim":
 			return { flavour: "Lighten the hold", label: "Remove a die", tip: "Remove a die from your bag.", ok: ds_list_size(global.dice_bag) > 6, reason: "Your bag has 6 dice or fewer." };
 		case "whet":
@@ -1341,7 +1384,10 @@ function spread_end_apply(_id, _heal_amount, _x = -1, _y = -1) {
 		case "core":
 			var _opts = ds_list_create();
 			generate_item_rewards(_opts, global.master_item_list, 1, "core");
-			if (ds_list_size(_opts) > 0) gain_item(_opts[| 0]);
+			if (ds_list_size(_opts) > 0) {
+				if (get_first_free_item_slot() != -1) gain_item(_opts[| 0]);
+				else oRunManager.pending_item = _opts[| 0]; // no room: it waits (pending_item_draw)
+			}
 			ds_list_destroy(_opts);
 			break;
 		case "trim":
@@ -1361,6 +1407,7 @@ function spread_end_apply(_id, _heal_amount, _x = -1, _y = -1) {
 			with (oRunManager) {
 				dice_selection = 1;
 				dice_selection_message = "Choose a die to gain +1 min roll";
+				dice_selection_filter = "min_room";
 				dice_selection_event = function(_die) {
 					_die.min_roll_bonus += 1;
 					particle_emit(115, 1000, "rise", get_dice_color(_die.possible_type), 30);
@@ -1428,7 +1475,7 @@ function strait_stop_info(_id, _heal) {
 	switch (_id) {
 		case "workbench": return { name: "Shipwright's buoy", tip: "Use your tools on your dice.", ok: workbench_useful(), reason: "No tool has work to do." };
 		case "calm":      return { name: "Calm water", tip: "Heal " + ((_heal > 0) ? string(_heal) + " HP." : string(round(oWorldManager.rest_amount * 100)) + "% of your health."), ok: true, reason: "" };
-		case "core":      return { name: "The wreck", tip: "Gain a core.", ok: get_first_free_item_slot() != -1, reason: "Your item slots are full." };
+		case "core":      return { name: "The wreck", tip: "Gain a core.", ok: true, reason: "" }; // full slots: delete an item for it, or sail past (pending_item_draw)
 		case "trim":      return { name: "Squall", tip: "Remove a die from your bag.", ok: ds_list_size(global.dice_bag) > 6, reason: "Your bag has 6 dice or fewer." };
 		case "whet":      return { name: "Whetstone reef", tip: "Give a die +1 minimum roll.", ok: ds_list_size(global.dice_bag) > 0, reason: "Your bag is empty." };
 		case "gold":      return { name: "Flotsam", tip: "Gain 50 gold.", ok: true, reason: "" };
@@ -1576,7 +1623,7 @@ function strait_draw(_ax, _ay) {
 
 	// once the stamp has faded (and any dice picker is closed), the ship sails out to the book's edge; then the page turns
 	if (strait.arrived) {
-		if (oRunManager.dice_selection == false) strait.stamp = max(0, strait.stamp - 1 / 70);
+		if (oRunManager.dice_selection == false && oRunManager.pending_item == undefined) strait.stamp = max(0, strait.stamp - 1 / 70);
 		if (strait.stamp <= 0) {
 			strait.leaving = true;
 			if (boat_sail_toward(book_right_x - 10, _ay)) {
@@ -1643,7 +1690,7 @@ function passage_left_draw(_bx, _by) {
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		draw_outline_text(_what, c_black, make_color_rgb(242, 210, 74), 3, _bx, _by - 56 - 20 * (1 - _b.stamp), 1, min(1, _b.stamp * 2), 0);
-		if (oRunManager.dice_selection == false) _b.stamp = max(0, _b.stamp - 1 / 70);
+		if (oRunManager.dice_selection == false && oRunManager.pending_item == undefined) _b.stamp = max(0, _b.stamp - 1 / 70);
 		draw_set_halign(fa_left);
 		draw_set_valign(fa_top);
 	}
@@ -1670,9 +1717,22 @@ function passage_arrive(_id, _b, _x = -1, _y = -1) {
 }
 
 /// @func passage_pool()
-/// @desc The sea stops a page can bring, with how often (B+). Calm water is the only heal (Q14).
+/// @desc The sea stops a page can bring, with how often (B+). Calm water is the only heal (Q14). Its odds follow your
+///       health: 1 at full, up to 5 near death. The Shipwright's go up 2 for each core you hold, up to +4 (Q16).
 function passage_pool() {
-	return [["calm", 3], ["workbench", 3], ["core", 2], ["whet", 2], ["gold", 2], ["trim", 1]];
+	var _calm = 1 + round(4 * (1 - clamp(global.player_hp / max(1, global.player_max_hp), 0, 1)));
+	return [["calm", _calm], ["workbench", 3 + min(4, 2 * passage_cores_held())], ["core", 2], ["whet", 2], ["gold", 2], ["trim", 1]];
+}
+
+/// @func passage_cores_held()
+/// @desc How many cores are in your item slots.
+function passage_cores_held() {
+	var _n = 0;
+	for (var i = 0; i < array_length(oRunManager.items); i++) {
+		var _it = oRunManager.items[i];
+		if (is_struct(_it) && variable_struct_exists(_it, "type") && _it.type == "core") _n++;
+	}
+	return _n;
 }
 
 /// @func pages_assign_passages()
@@ -1694,11 +1754,25 @@ function pages_assign_passages() {
 		pages_shown[| p].passage = _pick;
 		pages_shown[| p].passage_done = false;
 	}
-	// the guarantee: a safe stop on offer
-	if (!array_contains(_used, "calm") && !array_contains(_used, "workbench") && ds_list_size(pages_shown) > 0) {
-		var _pg = pages_shown[| irandom(ds_list_size(pages_shown) - 1)];
-		_pg.passage = workbench_useful() ? choose("calm", "workbench") : "calm";
+	// a core held through two spreads with no Shipwright offered: this spread has one (Q16)
+	if (passage_cores_held() > 0 && oRunManager.shipwright_wait >= 2 && !array_contains(_used, "workbench") && ds_list_size(pages_shown) > 0) {
+		var _swap = -1;
+		for (var p = 0; p < ds_list_size(pages_shown); p++) if (pages_shown[| p].passage != "calm") { _swap = p; break; } // keep a Calm water
+		if (_swap == -1) _swap = irandom(ds_list_size(pages_shown) - 1);
+		_used[_swap] = "workbench";
+		pages_shown[| _swap].passage = "workbench";
 	}
+	// the guarantee: a safe stop on offer. At full health it's the Shipwright, if a tool has work
+	if (!array_contains(_used, "calm") && !array_contains(_used, "workbench") && ds_list_size(pages_shown) > 0) {
+		var _i = irandom(ds_list_size(pages_shown) - 1);
+		var _full = global.player_hp >= global.player_max_hp;
+		var _pick = workbench_useful() ? (_full ? "workbench" : choose("calm", "workbench")) : "calm";
+		_used[_i] = _pick;
+		pages_shown[| _i].passage = _pick;
+	}
+	// spreads in a row offered with a core in hand and no Shipwright
+	if (passage_cores_held() > 0 && !array_contains(_used, "workbench")) oRunManager.shipwright_wait++;
+	else oRunManager.shipwright_wait = 0;
 }
 
 /// @func page_passage(_page) / page_passage_done(_page) / page_nodes_cleared(_page)
@@ -1711,7 +1785,7 @@ function page_nodes_cleared(_page) {
 
 /// @func passage_resolve(_id)
 /// @desc What a sea stop really is when you get there: itself, or Calm water if it can't be used now (no tool has work,
-///       item slots full, a bag of 6 or fewer).
+///       a bag of 6 or fewer). The wreck stays itself with full item slots (pending_item_draw).
 function passage_resolve(_id) {
 	if (_id == "calm" || _id == "") return "calm";
 	return strait_stop_info(_id, 0).ok ? _id : "calm";
@@ -2019,6 +2093,7 @@ function page_burn_draw(_page, _x, _y, _index) {
 	if (!variable_struct_exists(_page, "burn_t")) {
 		_page.burn_t = 0;
 		particle_emit_later(_x, _y, "burst", make_color_rgb(255, 150, 50), 8); // it catches
+		sfx_play(soTorch, AUDIO_GROUP.SFX, 0.05, 0.8);
 	}
 	if (_page.burn_t >= 1) return;
 	_page.burn_t = min(1, _page.burn_t + 1 / 62); // about a second (Jared: a little quicker)
@@ -2070,14 +2145,39 @@ function page_has_morph(_page) {
 /// @desc A map stop's icon (map_icon_draw), with its change if it's turning into something else (node_morph_into): the
 ///       old icon until morph_t reaches 0, then it shrinks away, a puff, and the new one pops up.
 function map_node_icon_draw(_node, _scale, _alpha) {
-	if (variable_struct_exists(_node, "linked") && _node.linked) {
-		// linked to the same stop on another page: a gold ring that breathes
+	var _linked = variable_struct_exists(_node, "linked") && _node.linked;
+	if (_linked) {
+		// linked to the same stop on another page: a gold ring that breathes (thicker: Jared, 2026-11-22)
 		var _lp = 0.5 + 0.5 * sin(current_time / 260);
-		draw_set_alpha(_alpha * (0.5 + 0.4 * _lp));
+		draw_set_alpha(_alpha * (0.6 + 0.4 * _lp));
 		draw_set_color(global.ui_col.brass);
-		for (var k = 0; k < 3; k++) draw_circle(_node.x, _node.y, (30 + 2 * _lp) * _scale + k, true);
+		for (var k = 0; k < 6; k++) draw_circle(_node.x, _node.y, (30 + 2 * _lp) * _scale + k, true);
 		draw_set_alpha(1);
 	}
+	map_node_icon_body(_node, _scale, _alpha);
+	if (_linked) map_link_badge(_node.x, _node.y + 33 * _scale, _scale, _alpha); // a chain link on the ring's bottom edge
+}
+
+/// @func map_link_badge(_x, _y, _scale, _alpha)
+/// @desc A small brass disc with two chain links on it: the mark of a linked stop (map_node_icon_draw).
+function map_link_badge(_x, _y, _scale, _alpha) {
+	var _r = 11 * _scale;
+	draw_set_alpha(_alpha);
+	draw_set_color(global.ui_col.ink);
+	draw_circle(_x, _y, _r + 2, false);
+	draw_set_color(global.ui_col.brass);
+	draw_circle(_x, _y, _r, false);
+	draw_set_color(global.ui_col.ink);
+	for (var s = -1; s <= 1; s += 2) {
+		var _lx = _x + s * 3.5 * _scale;
+		for (var t = 0; t < 2; t++) draw_ellipse(_lx - 5.5 * _scale - t, _y - 3.5 * _scale - t, _lx + 5.5 * _scale + t, _y + 3.5 * _scale + t, true);
+	}
+	draw_set_alpha(1);
+}
+
+/// @func map_node_icon_body(_node, _scale, _alpha)
+/// @desc The icon itself, mid-change or not (map_node_icon_draw).
+function map_node_icon_body(_node, _scale, _alpha) {
 	if (variable_struct_exists(_node, "morph_t")) {
 		_node.morph_t++;
 		var _t = _node.morph_t;

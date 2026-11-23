@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free-form Workbench</title>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+:root {
+	--ink: #2A1D12; --ink-soft: #5B4632; --paper: #E7D6B0; --paper-hi: #F1E4C4; --paper-shade: #C9B48A;
+	--slate: #1A1E28; --rule: #E2D4B0; --brass: #C9A060; --gold: #F2D24A;
+	--serif: "Source Serif 4", Charter, Georgia, serif;
+	--num: "Lato", "Arial Black", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #0f1015; color: var(--rule); font: 16px/1.5 var(--serif); }
+main { max-width: 1640px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { font-size: 34px; font-weight: 600; margin: 0; color: var(--paper-hi); }
+p.lede { color: #b9ad94; max-width: 900px; margin: 6px 0 18px; }
+.eyebrow { font: 900 12px var(--num); letter-spacing: 2px; text-transform: uppercase; color: var(--gold); }
+.strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
+.board { background: #1b1916; border: 1px solid #2c2620; border-radius: 10px; padding: 10px 12px 8px; }
+.board h3 { margin: 0 0 6px; font-size: 18px; font-weight: 600; color: var(--paper-hi); }
+.board canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
+.caps { display: grid; grid-template-columns: repeat(3, 1fr); font-size: 13px; color: #b9ad94; text-align: center; margin-top: 4px; }
+.stage { position: relative; }
+#bench { width: 100%; height: auto; display: block; border-radius: 10px; box-shadow: 0 14px 40px rgba(0,0,0,.6); touch-action: none; }
+.bar { display: flex; gap: 12px; align-items: center; margin: 10px 0 0; color: #8f877a; font-size: 14px; }
+button { font: 600 15px var(--serif); background: var(--paper); color: var(--ink); border: 2px solid var(--ink); border-radius: 6px; padding: 4px 14px; cursor: pointer; }
+button:hover { background: var(--paper-hi); }
+.notes { margin-top: 26px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; color: #b9ad94; font-size: 15px; }
+.notes h3 { color: var(--paper-hi); font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+.notes ul { margin: 0; padding-left: 18px; }
+@media (max-width: 900px) { .strip, .notes { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">Mockup · workbench</div>
+<h1>The free-form workbench</h1>
+<p class="lede">No slots. Dice go anywhere on the table, the bag can be dipped into any time, and each tool works where it lands. The strip shows each tool at a glance; the bench below is playable.</p>
+
+<div class="strip">
+	<div class="board"><h3>Drill</h3><canvas id="sbDrill" width="720" height="210"></canvas>
+		<div class="caps"><span>1 · a die on the table</span><span>2 · a core in the drill head</span><span>3 · drill it in</span></div></div>
+	<div class="board"><h3>Hammer</h3><canvas id="sbHammer" width="720" height="210"></canvas>
+		<div class="caps"><span>1 · two dice side by side</span><span>2 · strike the gap</span><span>3 · one die, where it struck</span></div></div>
+	<div class="board"><h3>Cutters</h3><canvas id="sbCut" width="720" height="210"></canvas>
+		<div class="caps"><span>1 · cutters on a die</span><span>2 · snip</span><span>3 · a smaller die and a coin</span></div></div>
+</div>
+
+<div class="stage"><canvas id="bench" width="1600" height="900"></canvas></div>
+<div class="bar"><button id="reset">Reset</button><span>Drag dice out of the bag, cores out of the item slots, tools off the rack.</span></div>
+
+<div class="notes">
+	<div><h3>How each tool reads</h3><ul>
+		<li><b>Drill:</b> drop a core on the drill (on the rack or the table) and its gem sits in the head. Drag the drill onto a die: it plunges, spins, throws sparks in the core's colour, and the gem sinks into the die.</li>
+		<li><b>Hammer:</b> drag it over the gap between two dice of the same type. A mark shows where it will land; let go and it swings once. Both dice jump in and one bigger die is left right under the head.</li>
+		<li><b>Cutters:</b> drag onto a die and let go. Snip: the die loses two faces and a coin of its type hops out beside it. A d4 cut becomes a coin itself.</li>
+		<li>Tools fly back to the rack after use. Dice dropped on the bag go back in.</li>
+	</ul></div>
+	<div><h3>Open questions for Jared</h3><ul>
+		<li><b>Misses:</b> here a hammer that hits bare table just thuds (shake, dust, nothing spent); on one die it bounces with "Needs two dice." Should a miss ever cost the swing?</li>
+		<li><b>Once per visit:</b> today each tool works once a visit. The mockup lets you repeat (Reset clears). Keep the limit? If so, the tool could hang greyed on the rack.</li>
+		<li><b>Unused dice:</b> with no limit on pulling from the bag, everything on the table simply goes back to the bag on leaving. OK?</li>
+		<li><b>Preview:</b> today the result shows faded in the output slot. Here: hovering a tool over a valid target could show the result faded on the spot (not built in this mockup).</li>
+	</ul></div>
+</div>
+</main>
+
+<script>
+"use strict";
+// ---------- palette (global.ui_col and the action pigments) ----------
+const C = {
+	ink: "#2A1D12", inkSoft: "#5B4632", paper: "#E7D6B0", paperHi: "#F1E4C4", paperShade: "#C9B48A",
+	brass: "#C9A060", bone: "#E9E0CC", gold: "#F2D24A",
+	atk: "#B33A22", blk: "#6FA8E8", heal: "#3C9A68", intel: "#2A2E4C", textIntel: "#ACB8EA",
+	wood: "#6b4a2e", wood2: "#5a3d25", woodHi: "#7d5836", iron: "#5d6168", ironHi: "#8a8f97", steel: "#b8bec6",
+};
+const TYPES = [
+	{ key: "ATK", col: C.atk }, { key: "BLK", col: C.blk }, { key: "HEAL", col: C.heal }, { key: "INK", col: C.intel },
+];
+const CORES = [
+	{ name: "Lodestone", col: "#3fd0c0" }, { name: "Ember", col: "#ff7a3a" }, { name: "Tide", col: "#5a8cff" },
+];
+
+// ---------- shapes ----------
+function polyPts(size, r) {
+	const pts = [];
+	const add = (n, rot, sx = 1, sy = 1, dy = 0) => { for (let i = 0; i < n; i++) { const a = rot + i * Math.PI * 2 / n; pts.push([Math.cos(a) * r * sx, Math.sin(a) * r * sy + dy]); } };
+	switch (size) {
+		case 4: add(3, -Math.PI / 2, 1.18, 1.18, r * 0.18); break;
+		case 6: add(4, Math.PI / 4, 1.12, 1.12); break;
+		case 8: add(4, -Math.PI / 2, 0.92, 1.2); break;
+		case 10: add(5, -Math.PI / 2, 1.08, 1.08, r * 0.06); break;
+		default: add(6, 0, 1.08, 1.0); break;
+	}
+	return pts;
+}
+function pathPts(ctx, pts) { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }
+function drawGem(ctx, x, y, s, col, glow = 0) {
+	ctx.save(); ctx.translate(x, y);
+	if (glow > 0) { ctx.shadowColor = col; ctx.shadowBlur = 18 * glow; }
+	const pts = [[0, -s], [s * 0.85, -s * 0.35], [s * 0.6, s * 0.75], [-s * 0.6, s * 0.75], [-s * 0.85, -s * 0.35]];
+	pathPts(ctx, pts); ctx.fillStyle = col; ctx.fill(); ctx.shadowBlur = 0;
+	ctx.lineWidth = Math.max(1.5, s * 0.16); ctx.strokeStyle = C.ink; ctx.stroke();
+	ctx.beginPath(); ctx.moveTo(0, -s); ctx.lineTo(-s * 0.25, -s * 0.2); ctx.lineTo(s * 0.25, -s * 0.2); ctx.closePath();
+	ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fill();
+	ctx.restore();
+}
+// a die drawn like the game: a flat shape in its type colour, an ink edge, "dN" across it
+function drawDie(ctx, d, o = {}) {
+	const r = 46 * (o.scale ?? d.scale ?? 1);
+	const sx = d.sx ?? 1, sy = d.sy ?? 1;
+	ctx.save(); ctx.translate(d.x, d.y + (o.lift ?? 0) * -6); ctx.rotate(d.rot || 0);
+	// shadow
+	ctx.save(); ctx.translate(4 + (o.lift ?? 0) * 4, 10 + (o.lift ?? 0) * 8); ctx.scale(sx, sy * 0.35);
+	ctx.beginPath(); ctx.ellipse(0, 0, r * 1.05, r * 1.05, 0, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.fill(); ctx.restore();
+	ctx.scale(sx, sy);
+	if (d.coin) {
+		ctx.beginPath(); ctx.arc(0, 0, r * 0.62, 0, Math.PI * 2); ctx.fillStyle = C.gold; ctx.fill();
+		ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.stroke();
+		ctx.beginPath(); ctx.arc(0, 0, r * 0.42, 0, Math.PI * 2); ctx.lineWidth = 5; ctx.strokeStyle = d.col; ctx.stroke();
+		ctx.restore(); return;
+	}
+	const pts = polyPts(d.size, r);
+	if (d.core) { ctx.save(); ctx.shadowColor = d.core.col; ctx.shadowBlur = 14 + Math.sin(T * 3 + d.x) * 5; pathPts(ctx, pts); ctx.fillStyle = d.col; ctx.fill(); ctx.restore(); }
+	pathPts(ctx, pts); ctx.fillStyle = d.col; ctx.fill();
+	ctx.lineJoin = "round"; ctx.lineWidth = 3.5; ctx.strokeStyle = d.core ? d.core.col : C.ink; ctx.stroke();
+	if (d.core) { ctx.lineWidth = 1.5; ctx.strokeStyle = C.ink; ctx.stroke(); }
+	if (o.flash) { pathPts(ctx, pts); ctx.fillStyle = `rgba(255,255,255,${o.flash})`; ctx.fill(); }
+	ctx.font = `900 ${Math.round(r * 0.5)}px Lato, Arial Black, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+	ctx.lineWidth = 4; ctx.strokeStyle = C.ink; const ty = d.size === 4 ? r * 0.22 : 2;
+	ctx.strokeText("d" + d.size, 0, ty); ctx.fillStyle = d.key === "INK" ? C.textIntel : C.paperHi; ctx.fillText("d" + d.size, 0, ty);
+	if (d.core) drawGem(ctx, r * 0.78, -r * 0.72, r * 0.26, d.core.col, 0.6);
+	ctx.restore();
+}
+
+// ---------- tools (drawn from their working tip) ----------
+function drawDrill(ctx, x, y, o = {}) {
+	ctx.save(); ctx.translate(x, y); ctx.rotate(o.rot || 0); ctx.scale(o.s || 1, o.s || 1);
+	const spin = o.spin || 0;
+	// bit
+	ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-9, -46); ctx.lineTo(9, -46); ctx.closePath(); ctx.fillStyle = C.steel; ctx.fill();
+	ctx.lineWidth = 2.5; ctx.strokeStyle = C.ink; ctx.stroke();
+	ctx.save(); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-9, -46); ctx.lineTo(9, -46); ctx.closePath(); ctx.clip();
+	ctx.strokeStyle = "rgba(42,29,18,.7)"; ctx.lineWidth = 2;
+	for (let i = -2; i < 7; i++) { const yy = -i * 9 - (spin * 9 % 9); ctx.beginPath(); ctx.moveTo(-12, yy); ctx.lineTo(12, yy - 7); ctx.stroke(); }
+	ctx.restore();
+	// chuck
+	roundRect(ctx, -15, -64, 30, 20, 4); ctx.fillStyle = C.iron; ctx.fill(); ctx.stroke();
+	// body
+	roundRect(ctx, -26, -150, 52, 88, 10); ctx.fillStyle = C.brass; ctx.fill(); ctx.lineWidth = 3; ctx.stroke();
+	ctx.fillStyle = "rgba(255,255,255,.18)"; roundRect(ctx, -20, -144, 12, 76, 5); ctx.fill();
+	// grip
+	ctx.beginPath(); ctx.moveTo(26, -138); ctx.lineTo(70, -126); ctx.lineTo(76, -90); ctx.lineTo(60, -86); ctx.lineTo(54, -112); ctx.lineTo(26, -112); ctx.closePath();
+	ctx.fillStyle = C.wood; ctx.fill(); ctx.stroke();
+	// the head: a socket for the core
+	ctx.beginPath(); ctx.arc(0, -112, 17, 0, Math.PI * 2); ctx.fillStyle = "#3a2a1c"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.stroke();
+	if (o.core) drawGem(ctx, 0, -110, 12, o.core.col, 0.8 + Math.sin(T * 5) * 0.3);
+	else if (o.want) { ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(0, -112, 24, 0, Math.PI * 2); ctx.strokeStyle = C.gold; ctx.lineWidth = 2.5; ctx.stroke(); ctx.setLineDash([]); }
+	ctx.restore();
+}
+function drawHammer(ctx, x, y, o = {}) {
+	// pivot at the grip; the head's striking face lands on (x, y) at angle 0
+	ctx.save(); ctx.translate(x + 120, y - 150); ctx.rotate(o.ang || 0); ctx.translate(-120, 150); ctx.scale(o.s || 1, o.s || 1);
+	ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.lineJoin = "round";
+	// handle
+	ctx.save(); ctx.translate(0, -34); ctx.rotate(-0.9);
+	roundRect(ctx, -6, -14, 200, 22, 8); ctx.fillStyle = C.woodHi; ctx.fill(); ctx.stroke();
+	ctx.fillStyle = C.wood2; roundRect(ctx, 140, -14, 60, 22, 8); ctx.fill(); ctx.stroke();
+	ctx.restore();
+	// head
+	roundRect(ctx, -52, -58, 104, 50, 7); ctx.fillStyle = C.iron; ctx.fill(); ctx.stroke();
+	ctx.fillStyle = C.ironHi; roundRect(ctx, -46, -54, 92, 10, 4); ctx.fill();
+	roundRect(ctx, -56, -14, 112, 14, 4); ctx.fillStyle = "#4a4d53"; ctx.fill(); ctx.stroke();
+	ctx.restore();
+}
+function drawCutters(ctx, x, y, o = {}) {
+	const open = o.open ?? 0.35;
+	ctx.save(); ctx.translate(x, y); ctx.rotate(o.rot || 0); ctx.scale(o.s || 1, o.s || 1);
+	ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.lineJoin = "round";
+	const half = (side) => {
+		ctx.save(); ctx.translate(0, -48); ctx.rotate(side * open);
+		// blade down to the tip
+		ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(side * 10, 20); ctx.lineTo(0, 50); ctx.lineTo(-side * 2, 10); ctx.closePath();
+		ctx.fillStyle = C.steel; ctx.fill(); ctx.stroke();
+		// handle up
+		ctx.beginPath(); ctx.moveTo(-side * 4, 0); ctx.lineTo(-side * 26, -70); ctx.lineWidth = 9; ctx.strokeStyle = C.ink; ctx.stroke();
+		ctx.lineWidth = 5; ctx.strokeStyle = C.atk; ctx.stroke();
+		ctx.beginPath(); ctx.ellipse(-side * 32, -92, 16, 22, side * 0.3, 0, Math.PI * 2); ctx.lineWidth = 9; ctx.strokeStyle = C.ink; ctx.stroke(); ctx.lineWidth = 5; ctx.strokeStyle = C.atk; ctx.stroke();
+		ctx.restore();
+	};
+	half(1); half(-1);
+	ctx.beginPath(); ctx.arc(0, -48, 6, 0, Math.PI * 2); ctx.fillStyle = C.brass; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = C.ink; ctx.stroke();
+	ctx.restore();
+}
+function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+// ---------- the table ----------
+const W = 1600, H = 900;
+const TABLE = { x: 50, y: 140, w: 1210, h: 710 };
+const BAG = { x: 150, y: 760, r: 78 };
+const RACK = { x: 1290, y: 140, w: 270, h: 710 };
+function drawTable(ctx) {
+	// room
+	ctx.fillStyle = "#1a1612"; ctx.fillRect(0, 0, W, H);
+	// planks
+	ctx.save(); roundRect(ctx, TABLE.x, TABLE.y, TABLE.w, TABLE.h, 18); ctx.clip();
+	for (let i = 0; i < 9; i++) {
+		const y = TABLE.y + i * 80;
+		ctx.fillStyle = i % 2 ? C.wood : "#64452b"; ctx.fillRect(TABLE.x, y, TABLE.w, 80);
+		ctx.strokeStyle = "rgba(30,18,10,.55)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(TABLE.x, y); ctx.lineTo(TABLE.x + TABLE.w, y); ctx.stroke();
+		ctx.strokeStyle = "rgba(255,230,190,.05)"; ctx.lineWidth = 1.5;
+		for (let k = 0; k < 4; k++) { ctx.beginPath(); const yy = y + 14 + k * 16; ctx.moveTo(TABLE.x, yy); ctx.bezierCurveTo(TABLE.x + 400, yy + 6, TABLE.x + 800, yy - 6, TABLE.x + TABLE.w, yy + 3); ctx.stroke(); }
+	}
+	// scuffs from earlier work
+	scuffs.forEach(s => { ctx.beginPath(); ctx.ellipse(s.x, s.y, s.r, s.r * 0.5, s.a, 0, Math.PI * 2); ctx.fillStyle = "rgba(25,14,6,.22)"; ctx.fill(); });
+	// a paper sheet pinned on the table, the logbook touch
+	ctx.save(); ctx.translate(990, 230); ctx.rotate(0.05);
+	roundRect(ctx, -160, -50, 320, 100, 4); ctx.fillStyle = C.paper; ctx.fill(); ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.stroke();
+	ctx.fillStyle = C.ink; ctx.font = "600 26px 'Source Serif 4', Georgia, serif"; ctx.textAlign = "center"; ctx.fillText("Shipwright's bench", 0, -8);
+	ctx.strokeStyle = C.inkSoft; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-120, 10); ctx.lineTo(120, 10); ctx.stroke();
+	ctx.font = "400 18px 'Source Serif 4', Georgia, serif"; ctx.fillText("Tools work where they land.", 0, 34);
+	ctx.restore();
+	ctx.restore();
+	ctx.lineWidth = 6; ctx.strokeStyle = "#2a1a0e"; roundRect(ctx, TABLE.x, TABLE.y, TABLE.w, TABLE.h, 18); ctx.stroke();
+	// rack: a pegboard
+	roundRect(ctx, RACK.x, RACK.y, RACK.w, RACK.h, 14); ctx.fillStyle = "#3b2a1b"; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = "#20140a"; ctx.stroke();
+	ctx.fillStyle = "rgba(0,0,0,.35)";
+	for (let yy = RACK.y + 30; yy < RACK.y + RACK.h; yy += 40) for (let xx = RACK.x + 25; xx < RACK.x + RACK.w; xx += 40) { ctx.beginPath(); ctx.arc(xx, yy, 4, 0, Math.PI * 2); ctx.fill(); }
+	tools.forEach(t => { ctx.beginPath(); ctx.arc(t.home.x, t.home.y - (t.kind === "hammer" ? 175 : 160), 7, 0, Math.PI * 2); ctx.fillStyle = C.brass; ctx.fill(); ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.stroke(); });
+	// item slots (where cores live in the game's top bar)
+	ctx.fillStyle = C.paperHi; ctx.font = "600 20px 'Source Serif 4', Georgia, serif"; ctx.textAlign = "left";
+	for (let i = 0; i < 3; i++) {
+		const sx = 70 + i * 92, sy = 30;
+		roundRect(ctx, sx, sy, 76, 76, 10); ctx.fillStyle = "#2a2219"; ctx.fill(); ctx.strokeStyle = C.brass; ctx.lineWidth = 3; ctx.stroke();
+	}
+}
+function drawBag(ctx, hover) {
+	const b = BAG, lift = hover ? 1 : 0, squash = bagSquash;
+	ctx.save(); ctx.translate(b.x, b.y); ctx.scale(1 + squash * 0.08, 1 - squash * 0.08);
+	ctx.beginPath(); ctx.ellipse(6, 58, 86, 22, 0, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.fill();
+	ctx.translate(0, -lift * 6);
+	ctx.beginPath(); ctx.moveTo(-40, -60); ctx.bezierCurveTo(-110, -20, -100, 60, -50, 62); ctx.lineTo(50, 62); ctx.bezierCurveTo(100, 60, 110, -20, 40, -60); ctx.closePath();
+	ctx.fillStyle = "#8a6a44"; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = C.ink; ctx.stroke();
+	ctx.beginPath(); ctx.ellipse(0, -62, 48, 14, 0, 0, Math.PI * 2); ctx.fillStyle = "#2a1d12"; ctx.fill(); ctx.stroke();
+	// dice peeking out
+	drawDie(ctx, { x: -16, y: -70, size: 4, col: C.atk, key: "ATK", rot: -0.3 }, { scale: 0.5 });
+	drawDie(ctx, { x: 18, y: -68, size: 6, col: C.blk, key: "BLK", rot: 0.2 }, { scale: 0.5 });
+	ctx.beginPath(); ctx.moveTo(-46, -46); ctx.quadraticCurveTo(0, -30, 46, -46); ctx.strokeStyle = C.brass; ctx.lineWidth = 6; ctx.stroke();
+	ctx.restore();
+	if (hover) { ctx.fillStyle = C.paperHi; ctx.font = "600 22px 'Source Serif 4', Georgia, serif"; ctx.textAlign = "center"; ctx.fillText("Bag", b.x, b.y + 104); }
+}
+
+// ---------- state ----------
+let dice = [], cores = [], tools = [], parts = [], floats = [], scuffs = [];
+let held = null, busy = false, shakeT = 0, shakeMag = 0, bagSquash = 0, T = 0;
+const mouse = { x: 0, y: 0, down: false };
+function reset() {
+	dice = []; parts = []; floats = []; scuffs = []; held = null; busy = false;
+	addDie(400, 470, 4, TYPES[0]); addDie(520, 480, 4, TYPES[0]);
+	addDie(760, 560, 6, TYPES[1]); addDie(480, 690, 8, TYPES[2]);
+	cores = CORES.map((c, i) => ({ ...c, x: 108 + i * 92, y: 68, home: { x: 108 + i * 92, y: 68 }, used: false, sq: 1 }));
+	tools = [
+		{ kind: "drill", x: 1350, y: 380, home: { x: 1350, y: 380 }, core: null },
+		{ kind: "hammer", x: 1425, y: 610, home: { x: 1425, y: 610 }, ang: 0 },
+		{ kind: "cutters", x: 1495, y: 380, home: { x: 1495, y: 380 }, open: 0.2 },
+	];
+	// hammer home: its head sits low on the board
+	tools[1].home = { x: 1395, y: 800 }; tools[1].x = 1395; tools[1].y = 800;
+	tools[0].home = { x: 1360, y: 470 }; tools[0].x = 1360; tools[0].y = 470;
+	tools[2].home = { x: 1490, y: 470 }; tools[2].x = 1490; tools[2].y = 470;
+}
+function addDie(x, y, size, type) { const d = { x, y, size, col: type.col, key: type.key, core: null, sx: 1, sy: 1, rot: (Math.random() - 0.5) * 0.3, vx: 0, vy: 0, scale: 1 }; dice.push(d); return d; }
+
+// ---------- juice ----------
+function burst(x, y, col, n, o = {}) {
+	for (let i = 0; i < n; i++) {
+		const a = (o.dir ?? -Math.PI / 2) + (Math.random() - 0.5) * (o.spread ?? Math.PI * 2), sp = (o.speed ?? 6) * (0.4 + Math.random());
+		parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, decay: 0.015 + Math.random() * 0.03, col: Array.isArray(col) ? col[i % col.length] : col, size: (o.size ?? 4) * (0.5 + Math.random()), g: o.g ?? 0.25, kind: o.kind || "dot", rot: Math.random() * 6 });
+	}
+}
+function shake(m, t = 0.3) { shakeMag = Math.max(shakeMag, m); shakeT = Math.max(shakeT, t); }
+function floatText(x, y, s, col = C.paperHi) { floats.push({ x, y, s, col, life: 1 }); }
+function squash(d, a = 0.35) { d.sx = 1 + a; d.sy = 1 - a; }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const ease = { out: t => 1 - Math.pow(1 - t, 3), in: t => t * t * t, back: t => { const c = 1.7; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); }, io: t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2 };
+function tween(o, to, ms, e = ease.out) {
+	const from = {}; for (const k in to) from[k] = o[k];
+	return new Promise(res => { const t0 = performance.now(); const step = () => { const t = Math.min(1, (performance.now() - t0) / ms); for (const k in to) o[k] = from[k] + (to[k] - from[k]) * e(t); t < 1 ? requestAnimationFrame(step) : res(); }; step(); });
+}
+const dist = (a, b, c, d) => Math.hypot(a - c, b - d);
+
+// ---------- hit tests ----------
+function dieAt(x, y, except) { for (let i = dice.length - 1; i >= 0; i--) { const d = dice[i]; if (d !== except && dist(x, y, d.x, d.y) < 52) return d; } return null; }
+function onTable(x, y) { return x > TABLE.x + 30 && x < TABLE.x + TABLE.w - 30 && y > TABLE.y + 30 && y < TABLE.y + TABLE.h - 30; }
+function toolAt(x, y) {
+	for (const t of tools) {
+		if (t.kind === "drill" && x > t.x - 30 && x < t.x + 80 && y > t.y - 155 && y < t.y + 5) return t;
+		if (t.kind === "hammer" && ((x > t.x - 58 && x < t.x + 58 && y > t.y - 62 && y < t.y + 4) || (dist(x, y, t.x + 70, t.y - 110) < 70))) return t;
+		if (t.kind === "cutters" && x > t.x - 55 && x < t.x + 55 && y > t.y - 120 && y < t.y + 5) return t;
+	}
+	return null;
+}
+// the pair a hammer over (x, y) would join: two dice whose gap is under the head
+function hammerPair(x, y) {
+	let best = null, bd = 1e9;
+	for (let i = 0; i < dice.length; i++) for (let j = i + 1; j < dice.length; j++) {
+		const a = dice[i], b = dice[j]; const gap = dist(a.x, a.y, b.x, b.y);
+		if (gap > 250 || a.coin || b.coin) continue;
+		const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, dd = dist(x, y, mx, my);
+		if (dd < 70 && dd < bd) { bd = dd; best = { a, b, mx, my }; }
+	}
+	return best;
+}
+
+// ---------- actions ----------
+async function useDrill(t, d) {
+	busy = true;
+	const core = t.core;
+	await tween(t, { x: d.x, y: d.y - 46 }, 220, ease.out);
+	await tween(t, { y: d.y - 8 }, 120, ease.in);
+	shake(4, 0.7);
+	const t0 = performance.now();
+	while (performance.now() - t0 < 750) {
+		t.spin = (t.spin || 0) + 0.9; d.rot = (Math.random() - 0.5) * 0.12; d.sx = 1 + Math.random() * 0.05; d.sy = 1 - Math.random() * 0.05;
+		burst(d.x, d.y - 10, [core.col, C.gold, "#fff"], 3, { speed: 7, size: 3, g: 0.3, kind: "spark" });
+		if (Math.random() < 0.3) burst(d.x, d.y, C.paperShade, 1, { speed: 2, size: 5, g: 0.05 });
+		await sleep(16);
+	}
+	// the gem sinks in
+	t.core = null; d.core = core; d.rot = 0; squash(d, 0.4); d.flash = 1;
+	burst(d.x, d.y, [core.col, "#fff"], 40, { speed: 9, size: 4, g: 0.12 });
+	ringFx(d.x, d.y, core.col); shake(9, 0.25);
+	floatText(d.x, d.y - 70, core.name, core.col);
+	await tween(t, { y: d.y - 80 }, 160, ease.out);
+	await returnTool(t);
+	busy = false;
+}
+async function useHammer(t, pair) {
+	busy = true;
+	const { a, b, mx, my } = pair;
+	t.x = mx; t.y = my - 6;
+	await tween(t, { ang: -0.9 }, 200, ease.out); // wind up
+	await sleep(60);
+	await tween(t, { ang: 0.04 }, 90, ease.in); // slam
+	shake(16, 0.35);
+	scuffs.push({ x: mx, y: my + 10, r: 34, a: Math.random() });
+	burst(mx, my + 14, ["#c8a676", "#8a6a44", C.paperShade], 34, { speed: 8, size: 5, g: 0.35, kind: "chip" });
+	if (a.key !== b.key) {
+		// different types: both dice jump and settle apart
+		[a, b].forEach(d => { squash(d, 0.5); d.vx = (d.x - mx) * 0.12; d.vy = -6; });
+		floatText(mx, my - 90, "Same type only.");
+		await tween(t, { ang: -0.3 }, 140, ease.out);
+		await returnTool(t); busy = false; return;
+	}
+	const size = Math.min(12, a.size + b.size);
+	const nd = { ...a, x: mx, y: my, size, core: a.core || b.core, sx: 1, sy: 1, rot: 0, scale: 0.4, flash: 1 };
+	dice = dice.filter(d => d !== a && d !== b); dice.push(nd);
+	squash(nd, 0.6);
+	tween(nd, { scale: 1 }, 380, ease.back);
+	burst(mx, my, [a.col, "#fff", C.gold], 30, { speed: 10, size: 4, g: 0.15 });
+	ringFx(mx, my, C.paperHi);
+	floatText(mx, my - 90, "d" + size, C.paperHi);
+	await tween(t, { ang: -0.35 }, 160, ease.out);
+	await returnTool(t);
+	busy = false;
+}
+async function hammerMiss(t, single) {
+	busy = true;
+	await tween(t, { ang: -0.7 }, 160, ease.out);
+	await tween(t, { ang: 0.04 }, 90, ease.in);
+	shake(single ? 8 : 6, 0.25);
+	burst(t.x, t.y, ["#8a6a44", "#c8a676"], 14, { speed: 5, size: 4, g: 0.3, kind: "chip" });
+	if (single) { squash(single, 0.5); single.vy = -4; floatText(t.x, t.y - 90, "Needs two dice."); }
+	else scuffs.push({ x: t.x, y: t.y + 8, r: 22, a: Math.random() });
+	await tween(t, { ang: -0.25 }, 120, ease.out);
+	await returnTool(t); busy = false;
+}
+async function useCutters(t, d) {
+	busy = true;
+	if (d.coin || d.size <= 2) { floatText(d.x, d.y - 70, "Too small."); await returnTool(t); busy = false; return; }
+	await tween(t, { x: d.x, y: d.y + 18, open: 0.6 }, 200, ease.out);
+	await sleep(80);
+	await tween(t, { open: -0.05 }, 90, ease.in);
+	shake(7, 0.2);
+	burst(d.x, d.y, [C.paper, C.paperHi, d.col], 22, { speed: 7, size: 5, g: 0.35, kind: "chip" });
+	const newSize = d.size - 2;
+	// the coin hops out to the side
+	const side = d.x > TABLE.x + TABLE.w - 160 ? -1 : 1;
+	const coin = { x: d.x, y: d.y, size: 2, coin: true, col: d.col, key: d.key, sx: 1, sy: 1, rot: 0, vx: 0, vy: 0, scale: 0.5 };
+	dice.push(coin);
+	if (newSize <= 2) { d.coin = true; d.size = 2; } else d.size = newSize;
+	squash(d, 0.45); d.flash = 0.8;
+	const cx = d.x + side * 115, cy = d.y + 10;
+	const hop = { t: 0 };
+	tween(coin, { scale: 1 }, 300, ease.back);
+	tween(hop, { t: 1 }, 420, ease.out).then(() => { squash(coin, 0.5); burst(cx, cy + 10, [C.gold, "#fff"], 12, { speed: 4, size: 3 }); });
+	(async () => { while (hop.t < 1) { coin.x = d.x + (cx - d.x) * hop.t; coin.y = d.y + (cy - d.y) * hop.t - Math.sin(hop.t * Math.PI) * 90; coin.rot = hop.t * 6; await sleep(16); } coin.rot = 0; })();
+	floatText(d.x, d.y - 70, d.coin ? "Coin" : "d" + d.size, C.paperHi);
+	await tween(t, { open: 0.35, y: t.y - 30 }, 160, ease.out);
+	await returnTool(t); busy = false;
+}
+async function returnTool(t) {
+	t.spin = 0;
+	await tween(t, { x: t.home.x, y: t.home.y, ...(t.kind === "hammer" ? { ang: 0 } : {}), ...(t.kind === "cutters" ? { open: 0.2 } : {}) }, 420, ease.io);
+	t.bob = 1;
+}
+const rings = [];
+function ringFx(x, y, col) { rings.push({ x, y, col, t: 0 }); }
+
+// ---------- input ----------
+const cv = document.getElementById("bench"), ctx = cv.getContext("2d");
+function toLocal(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height }; }
+cv.addEventListener("pointerdown", e => {
+	if (busy) return;
+	const p = toLocal(e); mouse.x = p.x; mouse.y = p.y; mouse.down = true; cv.setPointerCapture(e.pointerId);
+	const core = cores.find(c => !c.used && dist(p.x, p.y, c.x, c.y) < 34);
+	if (core) { held = { kind: "core", obj: core, ox: core.x - p.x, oy: core.y - p.y }; return; }
+	const t = toolAt(p.x, p.y);
+	if (t) { held = { kind: "tool", obj: t, ox: t.x - p.x, oy: t.y - p.y }; t.lifted = 1; return; }
+	const d = dieAt(p.x, p.y);
+	if (d) { dice.splice(dice.indexOf(d), 1); dice.push(d); held = { kind: "die", obj: d, ox: d.x - p.x, oy: d.y - p.y }; squash(d, -0.2); return; }
+	if (dist(p.x, p.y, BAG.x, BAG.y - 10) < BAG.r) {
+		// a die comes out of the bag, into your hand
+		const type = TYPES[Math.floor(Math.random() * TYPES.length)], size = [4, 4, 6, 6, 8][Math.floor(Math.random() * 5)];
+		const nd = addDie(BAG.x, BAG.y - 70, size, type); nd.scale = 0.5; tween(nd, { scale: 1 }, 260, ease.back);
+		bagSquash = 1; burst(BAG.x, BAG.y - 70, [C.paperShade, "#8a6a44"], 10, { speed: 4, size: 4 });
+		held = { kind: "die", obj: nd, ox: 0, oy: 0 };
+	}
+});
+cv.addEventListener("pointermove", e => { const p = toLocal(e); mouse.x = p.x; mouse.y = p.y; });
+cv.addEventListener("pointerup", e => {
+	mouse.down = false; if (!held) return;
+	const h = held; held = null; const o = h.obj;
+	if (h.kind === "die") {
+		if (dist(o.x, o.y, BAG.x, BAG.y - 10) < BAG.r) {
+			// back in the bag
+			bagSquash = 1; tween(o, { x: BAG.x, y: BAG.y - 50, scale: 0.2 }, 180, ease.in).then(() => { dice = dice.filter(d => d !== o); });
+			return;
+		}
+		if (!onTable(o.x, o.y)) { o.x = Math.max(TABLE.x + 50, Math.min(TABLE.x + TABLE.w - 50, o.x)); o.y = Math.max(TABLE.y + 50, Math.min(TABLE.y + TABLE.h - 50, o.y)); }
+		squash(o, 0.35); burst(o.x, o.y + 22, "rgba(200,170,120,.8)", 6, { speed: 2.5, size: 3, g: 0.05, spread: Math.PI, dir: -Math.PI / 2 });
+	} else if (h.kind === "core") {
+		const drill = tools[0];
+		if (!drill.core && dist(o.x, o.y, drill.x, drill.y - 112) < 50) {
+			drill.core = o; o.used = true; drill.sq = 1; shake(3, 0.15);
+			burst(drill.x, drill.y - 112, [o.col, "#fff"], 18, { speed: 5, size: 3, g: 0.08 });
+			ringFx(drill.x, drill.y - 112, o.col);
+		} else tween(o, { x: o.home.x, y: o.home.y }, 300, ease.back);
+	} else if (h.kind === "tool") {
+		o.lifted = 0;
+		if (o.kind === "drill") {
+			const d = dieAt(o.x, o.y - 10);
+			if (d && !d.coin && o.core) useDrill(o, d);
+			else if (d && !o.core) { floatText(o.x, o.y - 170, "Load a core."); o.wob = 1; returnTool(o); }
+			else returnTool(o);
+		} else if (o.kind === "hammer") {
+			if (o.x > RACK.x - 20) { returnTool(o); return; }
+			const pair = hammerPair(o.x, o.y);
+			if (pair) useHammer(o, pair);
+			else hammerMiss(o, dieAt(o.x, o.y + 10));
+		} else if (o.kind === "cutters") {
+			const d = dieAt(o.x, o.y - 10);
+			if (d) useCutters(o, d); else returnTool(o);
+		}
+	}
+});
+document.getElementById("reset").onclick = () => { if (!busy) reset(); };
+
+// ---------- loop ----------
+let last = performance.now();
+function frame(now) {
+	const dt = Math.min(0.05, (now - last) / 1000); last = now; T += dt;
+	// held thing follows the mouse
+	if (held) { held.obj.x = mouse.x + held.ox; held.obj.y = mouse.y + held.oy; }
+	// dice: springs back from squash, slide, and nudge apart so they never stack
+	for (const d of dice) {
+		d.sx += (1 - d.sx) * 0.2; d.sy += (1 - d.sy) * 0.2;
+		if (d.flash) d.flash = Math.max(0, d.flash - dt * 3);
+		if (held && held.obj === d) continue;
+		d.x += d.vx; d.y += d.vy; d.vx *= 0.85; d.vy *= 0.85;
+		for (const e of dice) { if (e === d || (held && held.obj === e)) continue; const dd = dist(d.x, d.y, e.x, e.y), min = d.coin || e.coin ? 76 : 98; if (dd < min && dd > 0.01) { const push = (min - dd) * 0.08; d.x += (d.x - e.x) / dd * push; d.y += (d.y - e.y) / dd * push; } }
+		if (!busy || true) { d.x = Math.max(TABLE.x + 40, Math.min(TABLE.x + TABLE.w - 40, d.x)); d.y = Math.max(TABLE.y + 40, Math.min(TABLE.y + TABLE.h - 40, d.y)); }
+	}
+	bagSquash *= 0.85;
+	parts.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += p.g; p.vx *= 0.98; p.life -= p.decay; p.rot += 0.2; });
+	parts = parts.filter(p => p.life > 0);
+	floats.forEach(f => { f.y -= 0.6; f.life -= dt * 0.7; }); floats = floats.filter(f => f.life > 0);
+	rings.forEach(r => r.t += dt * 2.2); for (let i = rings.length - 1; i >= 0; i--) if (rings[i].t > 1) rings.splice(i, 1);
+	if (shakeT > 0) shakeT -= dt; else shakeMag *= 0.8;
+
+	ctx.save();
+	if (shakeT > 0) ctx.translate((Math.random() - 0.5) * shakeMag, (Math.random() - 0.5) * shakeMag);
+	drawTable(ctx);
+	const hoverBag = !held && !busy && dist(mouse.x, mouse.y, BAG.x, BAG.y - 10) < BAG.r;
+	drawBag(ctx, hoverBag || (held && held.kind === "die" && dist(held.obj.x, held.obj.y, BAG.x, BAG.y - 10) < BAG.r));
+
+	// targets while a tool is held
+	let pair = null, target = null;
+	if (held && held.kind === "tool") {
+		const t = held.obj;
+		if (t.kind === "hammer") pair = hammerPair(t.x, t.y);
+		else { target = dieAt(t.x, t.y - 10); if (target && target.coin) target = null; }
+	}
+	for (const d of dice) {
+		const isHeld = held && held.obj === d;
+		const hov = !held && !busy && dieAt(mouse.x, mouse.y) === d;
+		const mark = target === d || (pair && (pair.a === d || pair.b === d));
+		if (mark) { ctx.save(); ctx.translate(d.x, d.y); ctx.setLineDash([7, 6]); ctx.lineDashOffset = -T * 30; ctx.beginPath(); ctx.arc(0, 0, 66, 0, Math.PI * 2); ctx.lineWidth = 3; ctx.strokeStyle = (pair && pair.a.key !== pair.b.key) ? "#e06a50" : C.gold; ctx.stroke(); ctx.restore(); }
+		drawDie(ctx, d, { lift: isHeld ? 2 : hov ? 0.6 : 0, flash: d.flash });
+	}
+	if (pair) {
+		// where the head will land
+		ctx.save(); ctx.translate(pair.mx, pair.my); ctx.strokeStyle = pair.a.key !== pair.b.key ? "#e06a50" : C.gold; ctx.lineWidth = 4;
+		ctx.beginPath(); ctx.moveTo(-14, -14); ctx.lineTo(14, 14); ctx.moveTo(14, -14); ctx.lineTo(-14, 14); ctx.stroke(); ctx.restore();
+	}
+	// cores in the item slots
+	for (const c of cores) if (!c.used || (held && held.obj === c)) { const hov = !held && dist(mouse.x, mouse.y, c.x, c.y) < 34; drawGem(ctx, c.x, c.y - (hov ? 4 : 0), 22, c.col, hov ? 1 : 0.4); }
+	// tools
+	const drill = tools[0], hammer = tools[1], cut = tools[2];
+	const wantCore = held && held.kind === "core" && !drill.core;
+	drawDrill(ctx, drill.x, drill.y, { core: drill.core, spin: drill.spin, want: wantCore, s: drill.lifted ? 1.06 : 1, rot: drill.wob ? Math.sin(T * 40) * 0.08 * drill.wob : 0 });
+	if (drill.wob) drill.wob = Math.max(0, drill.wob - dt * 2);
+	drawCutters(ctx, cut.x, cut.y, { open: cut.open, s: cut.lifted ? 1.06 : 1 });
+	drawHammer(ctx, hammer.x, hammer.y, { ang: hammer.ang, s: hammer.lifted ? 1.04 : 1 });
+	if (held && held.kind === "core") drawGem(ctx, held.obj.x, held.obj.y, 24, held.obj.col, 1);
+
+	// particles
+	for (const p of parts) {
+		ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.col;
+		if (p.kind === "spark") { ctx.strokeStyle = p.col; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 2, p.y - p.vy * 2); ctx.stroke(); }
+		else if (p.kind === "chip") { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillRect(-p.size, -p.size * 0.5, p.size * 2, p.size); ctx.restore(); }
+		else { ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); }
+	}
+	ctx.globalAlpha = 1;
+	for (const r of rings) { ctx.globalAlpha = 1 - r.t; ctx.beginPath(); ctx.arc(r.x, r.y, 20 + r.t * 70, 0, Math.PI * 2); ctx.lineWidth = 6 * (1 - r.t) + 1; ctx.strokeStyle = r.col; ctx.stroke(); }
+	ctx.globalAlpha = 1;
+	for (const f of floats) {
+		ctx.globalAlpha = Math.min(1, f.life * 2); ctx.font = "700 26px 'Source Serif 4', Georgia, serif"; ctx.textAlign = "center";
+		ctx.lineWidth = 5; ctx.strokeStyle = C.ink; ctx.strokeText(f.s, f.x, f.y); ctx.fillStyle = f.col; ctx.fillText(f.s, f.x, f.y);
+	}
+	ctx.globalAlpha = 1;
+	ctx.restore();
+	// cursor feedback
+	const grab = !busy && (held || toolAt(mouse.x, mouse.y) || dieAt(mouse.x, mouse.y) || cores.some(c => !c.used && dist(mouse.x, mouse.y, c.x, c.y) < 34) || dist(mouse.x, mouse.y, BAG.x, BAG.y - 10) < BAG.r);
+	cv.style.cursor = held ? "grabbing" : grab ? "grab" : "default";
+	requestAnimationFrame(frame);
+}
+
+// ---------- storyboards (static frames from the same drawing code) ----------
+function board(id, frames) {
+	const c = document.getElementById(id), g = c.getContext("2d"), fw = c.width / 3;
+	frames.forEach((fn, i) => {
+		g.save(); g.translate(i * fw, 0); g.beginPath(); g.rect(4, 4, fw - 8, c.height - 8); g.clip();
+		g.fillStyle = C.wood; g.fillRect(0, 0, fw, c.height);
+		g.strokeStyle = "rgba(30,18,10,.5)"; g.lineWidth = 2; for (let y = 50; y < c.height; y += 50) { g.beginPath(); g.moveTo(0, y); g.lineTo(fw, y); g.stroke(); }
+		g.translate(fw / 2, c.height - 10); g.scale(0.72, 0.72); g.translate(-fw / 2, -c.height + 10);
+		fn(g, fw / 2, c.height);
+		g.restore();
+		g.fillStyle = C.paperHi; g.font = "900 18px Lato, Arial Black, sans-serif"; g.textAlign = "left"; g.fillText(String(i + 1), i * fw + 14, 28);
+		if (i < 2) { g.fillStyle = C.brass; g.beginPath(); const ax = (i + 1) * fw, ay = c.height / 2; g.moveTo(ax - 8, ay - 10); g.lineTo(ax + 6, ay); g.lineTo(ax - 8, ay + 10); g.fill(); }
+	});
+}
+function sparks(g, x, y, col, n) { for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.6, l = 10 + Math.random() * 26; g.strokeStyle = i % 3 ? col : C.gold; g.lineWidth = 2; g.beginPath(); g.moveTo(x + Math.cos(a) * 14, y + Math.sin(a) * 14); g.lineTo(x + Math.cos(a) * (14 + l), y + Math.sin(a) * (14 + l)); g.stroke(); } }
+function drawStoryboards() {
+	const core = CORES[0];
+	const die = (x, y, s, t, o = {}) => ({ x, y, size: s, col: t.col, key: t.key, rot: 0, sx: 1, sy: 1, ...o });
+	board("sbDrill", [
+		(g, cx, h) => { drawDie(g, die(cx - 30, h - 60, 6, TYPES[1])); drawDrill(g, cx + 70, h - 40, { s: 0.75 }); drawGem(g, cx - 70, 50, 14, core.col, 0.6); },
+		(g, cx, h) => { drawDie(g, die(cx - 50, h - 60, 6, TYPES[1])); drawDrill(g, cx + 60, h - 30, { s: 0.75, core }); g.strokeStyle = C.gold; g.setLineDash([5, 5]); g.lineWidth = 2.5; g.beginPath(); g.moveTo(cx - 40, 40); g.quadraticCurveTo(cx + 10, 30, cx + 55, 90); g.stroke(); g.setLineDash([]); },
+		(g, cx, h) => { const d = die(cx, h - 60, 6, TYPES[1], { core }); sparks(g, cx, h - 70, core.col, 16); drawDie(g, d); drawDrill(g, cx, h - 92, { s: 0.6, spin: 3 }); },
+	]);
+	board("sbHammer", [
+		(g, cx, h) => { drawDie(g, die(cx - 55, h - 60, 4, TYPES[0])); drawDie(g, die(cx + 55, h - 60, 4, TYPES[0])); },
+		(g, cx, h) => { drawDie(g, die(cx - 58, h - 50, 4, TYPES[0])); drawDie(g, die(cx + 58, h - 50, 4, TYPES[0])); g.save(); g.translate(cx, h - 85); g.scale(0.6, 0.6); drawHammer(g, 0, 0, { ang: -0.6 }); g.restore(); g.strokeStyle = C.gold; g.lineWidth = 3; g.beginPath(); g.moveTo(cx - 9, h - 59); g.lineTo(cx + 9, h - 41); g.moveTo(cx + 9, h - 59); g.lineTo(cx - 9, h - 41); g.stroke(); },
+		(g, cx, h) => { for (let i = 0; i < 14; i++) { const a = Math.random() * 6.28, l = 40 + Math.random() * 30; g.fillStyle = i % 2 ? "#c8a676" : C.paperHi; g.fillRect(cx + Math.cos(a) * l, h - 60 + Math.sin(a) * l * 0.6, 5, 3); } drawDie(g, die(cx, h - 60, 8, TYPES[0]), { scale: 1.15 }); g.save(); g.translate(cx, h - 85); g.scale(0.6, 0.6); drawHammer(g, 0, 0, { ang: -0.3 }); g.restore(); },
+	]);
+	board("sbCut", [
+		(g, cx, h) => { drawDie(g, die(cx, h - 60, 6, TYPES[2])); drawCutters(g, cx, h - 40, { s: 0.8, open: 0.5 }); },
+		(g, cx, h) => { drawDie(g, die(cx, h - 60, 6, TYPES[2], { sx: 1.25, sy: 0.8 })); drawCutters(g, cx, h - 42, { s: 0.8, open: -0.05 }); for (let i = 0; i < 10; i++) { g.fillStyle = i % 2 ? C.paper : C.heal; g.fillRect(cx - 50 + Math.random() * 100, h - 110 + Math.random() * 60, 6, 3); } },
+		(g, cx, h) => { drawDie(g, die(cx - 40, h - 60, 4, TYPES[2])); drawDie(g, { x: cx + 55, y: h - 55, size: 2, coin: true, col: C.heal, rot: 0, sx: 1, sy: 1 }); g.strokeStyle = C.paperHi; g.setLineDash([4, 5]); g.lineWidth = 2; g.beginPath(); g.moveTo(cx - 20, h - 90); g.quadraticCurveTo(cx + 15, h - 150, cx + 50, h - 90); g.stroke(); g.setLineDash([]); },
+	]);
+}
+
+reset();
+drawStoryboards();
+document.fonts && document.fonts.ready.then(drawStoryboards);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

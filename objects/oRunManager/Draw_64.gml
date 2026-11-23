@@ -236,7 +236,7 @@ for (var i = 0; i < array_length(items); i++) {
 }
 
 // Draw tools
-if (room == rmWorkbench) show_tools = true;
+// (the workbench's tools hang on its rack, F224: the toolbag isn't opened for them)
 var num_tools = string(ds_list_size(tools));
 
 var toolbar_hover = mouse_hovering(gui_w - 940, bar_half, sprite_get_width(sToolbag) + 10, bar_height, true);
@@ -298,7 +298,7 @@ if (alignment_popup_t >= 0) {
 }
 
 var alignment_text = "Neutral";
-var alignment_description = "Your choices move the compass and change how the sea treats you.";
+var alignment_description = "Your choices raise or lower it and change how the sea treats you.";
 
 if (global.player_alignment >= 0 && global.player_alignment < 10) {
 	alignment_text = "Eldritch Horror";

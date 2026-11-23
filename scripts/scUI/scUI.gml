@@ -240,17 +240,14 @@ function ui_ticket(_x, _y, _w, _h, _type, _label, _total, _bonus, _seed, _state 
 	draw_text_transformed(_name_x, _by, _name, _sc, _sc, 0);
 	draw_set_alpha(1);
 	// an empty ticket still shows what its place adds (B138)
-	// the total, huge in ink, and its bonus in green: the pair centred on the ticket ("5 +1"); a bonus with no total
-	// (nothing in the slot yet) sits in the middle by itself
+	// the total, huge in ink (it already includes the bonus), and the bonus small in green centred under it, so "4 +1"
+	// doesn't read as 5 (playtest, Jared 2026-11-22); a bonus with no total (nothing in the slot yet) sits in the middle
 	var _has_total = !_empty && string(_total) != "";
 	var _ny = _y + _band_h + (_h - _band_h) * 0.52;
 	var _bsize = min(30, _h * 0.2);
-	var _tw = _has_total ? ui_numeral_width(_total, 44) : 0;
-	var _bw = (_bonus != "") ? ui_numeral_width(_bonus, _bsize) : 0;
-	var _gap = (_has_total && _bonus != "") ? 10 : 0;
-	var _left = _x + _w / 2 - (_tw + _gap + _bw) / 2;
-	if (_has_total) ui_numeral(_total, _left, _ny, 44, global.ui_col.ink, _alpha, fa_left);
-	if (_bonus != "") ui_numeral(_bonus, _left + _tw + _gap, _ny, _bsize, global.ui_col.bonus_ink, _alpha * (_has_total ? 1 : 0.85), fa_left);
+	var _under = _has_total && _bonus != "";
+	if (_has_total) ui_numeral(_total, _x + _w / 2, _ny - (_under ? 10 : 0), 44, global.ui_col.ink, _alpha, fa_center);
+	if (_bonus != "") ui_numeral(_bonus, _x + _w / 2, _under ? _ny + 30 : _ny, _under ? min(22, _bsize) : _bsize, global.ui_col.bonus_ink, _alpha * (_has_total ? 1 : 0.85), fa_center);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 	draw_set_color(c_white);

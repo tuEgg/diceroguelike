@@ -1954,8 +1954,9 @@ function draw_mouse_hint(_x, _y, _button, _text, _scale = 1, _lit = c_red, _text
 ///       hover or click, and dips while the button is held. The system cursor is hidden while it's on.
 function cursor_draw() {
 	var _on = global.custom_cursor;
-	// the log: the cursor is a quill (draw_quill) over something it can change, its nib at the mouse; otherwise the normal one
-	var _quill = instance_exists(oCombat) && oCombat.insight_view && oCombat.quill_over; // only over something it can change
+	// the log: the cursor is a quill (draw_quill), its nib at the mouse, except over something you can click or drag
+	// (quill_over), where it's the normal one (Jared, 2026-11-22). Drawing keeps the quill.
+	var _quill = instance_exists(oCombat) && oCombat.insight_view && !global.show_settings && (!oCombat.quill_over || oCombat.ink_drawing);
 	var _hide = _on || _quill;
 	if (_hide != global.cursor_hidden) {
 		window_set_cursor(_hide ? cr_none : cr_default);
@@ -3039,64 +3040,6 @@ function draw_quill(_nx, _ny, _len, _dir) {
 	draw_set_color(c_white);
 }
 
-/// @func workbench_preview()
-/// @desc What the workbench would make right now (Jared, 2026-11-20), worked out the same way each tool's craft does
-///       (oWorkbenchManager Draw GUI, "drilled", "hammered", "cut"): { out, coin, tool }, out/coin undefined when
-///       there's nothing to show. The tool in your hand decides; with none, a core on the bench means the Drill and two
-///       dice the Hammer (if you own it). Cached on the manager until the bench or the tool changes.
-function workbench_preview() {
-	with (oWorkbenchManager) {
-		var _d0 = workbench_slot[0].dice, _d1 = workbench_slot[1].dice, _core = workbench_slot[1].core;
-		var _tool = button_text;
-		if (_tool == "Craft") {
-			if (_d0 != undefined && _core != undefined) _tool = "Drill";
-			else if (_d0 != undefined && _d1 != undefined && workbench_owns_tool("The Hammer")) _tool = "Combine";
-		}
-		var _key = _tool + "|" + (is_struct(_d0) ? string(variable_struct_exists(_d0, "uid") ? _d0.uid : _d0.name) + string(_d0.dice_value) + _d0.distribution : "-")
-			+ "|" + (is_struct(_d1) ? string(variable_struct_exists(_d1, "uid") ? _d1.uid : _d1.name) + string(_d1.dice_value) : "-") + "|" + (is_struct(_core) ? _core.name : "-");
-		if (_key == wb_preview_key) return wb_preview;
-		wb_preview_key = _key;
-		wb_preview = { out: undefined, coin: undefined, tool: "" };
-		switch (_tool) {
-			case "Drill":
-				if (_d0 != undefined && _core != undefined) {
-					var _o = clone_die(_d0, "");
-					_o.distribution = _core.distribution;
-					wb_preview = { out: _o, coin: undefined, tool: "Drill" };
-				}
-				break;
-			case "Combine":
-				if (_d0 != undefined && _d1 != undefined) {
-					var _o = clone_die(_d0, "");
-					_o.dice_value += _d1.dice_value;
-					die_size_changed(_o);
-					wb_preview = { out: _o, coin: undefined, tool: "Hammer" };
-				}
-				break;
-			case "Cut":
-				if (_d0 != undefined && _d0.dice_value > 2) {
-					var _o = clone_die(_d0, "");
-					_o.dice_value = _d0.dice_value - 2;
-					die_size_changed(_o);
-					if (_o.dice_value == 2) _o.distribution = "";
-					var _base = global.dice_d2_none;
-					switch (_d0.action_type) {
-						case "ATK": _base = global.dice_d2_atk; break;
-						case "BLK": _base = global.dice_d2_blk; break;
-						case "INTEL": _base = global.dice_d2_intel; break;
-						case "HEAL": _base = global.dice_d2_heal; break;
-					}
-					var _c = clone_die(_base, "");
-					_c.dice_value = 2;
-					wb_preview = { out: _o, coin: _c, tool: "Cutters" };
-				}
-				break;
-		}
-		return wb_preview;
-	}
-	return { out: undefined, coin: undefined, tool: "" };
-}
-
 /// @func workbench_owns_tool(_name)
 /// @desc Does the player have this tool (by name, e.g. "The Hammer")?
 function workbench_owns_tool(_name) {
@@ -3130,6 +3073,35 @@ function item_card_layout(_it, _w) {
 	return { icon_y: _icon_y, name_y: _name_y, desc_y: _desc_y, h: _desc_y + _desc_h + _bars + 20 };
 }
 
+/// @func ui_burn_begin() / ui_burn_end(_t, _seed, _x1, _y1, _x2, _y2)
+/// @desc Burns away whatever is drawn between them (F183, like the draft page's page_burn_draw): begin sends drawing to
+///       a screen-sized surface, end draws it through shBurn at _t (0 whole to 1 gone, eased) and sends up embers over
+///       the box. Draw GUI only.
+function ui_burn_begin() {
+	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+	if (!variable_global_exists("ui_burn_surf") || !surface_exists(global.ui_burn_surf) || surface_get_width(global.ui_burn_surf) != _gw || surface_get_height(global.ui_burn_surf) != _gh) {
+		if (variable_global_exists("ui_burn_surf") && surface_exists(global.ui_burn_surf)) surface_free(global.ui_burn_surf);
+		global.ui_burn_surf = surface_create(_gw, _gh);
+	}
+	surface_set_target(global.ui_burn_surf);
+	draw_clear_alpha(c_black, 0);
+}
+function ui_burn_end(_t, _seed, _x1, _y1, _x2, _y2) {
+	surface_reset_target();
+	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+	var _e = lerp(-0.15, 1.05, _t * _t * (3 - 2 * _t)); // slow to catch, then quicker
+	shader_set(shBurn);
+	shader_set_uniform_f(shader_get_uniform(shBurn, "u_t"), _e);
+	shader_set_uniform_f(shader_get_uniform(shBurn, "u_seed"), _seed);
+	shader_set_uniform_f(shader_get_uniform(shBurn, "u_scale"), _gw / 120, _gh / 120);
+	draw_surface(global.ui_burn_surf, 0, 0);
+	shader_reset();
+	if (_t < 0.9) {
+		if (random(1) < 0.5) particle_emit_later(random_range(_x1, _x2), random_range(_y1, _y2), "rise", choose(make_color_rgb(255, 170, 60), make_color_rgb(255, 110, 30), make_color_rgb(255, 220, 120)), 1);
+		if (random(1) < 0.12) particle_emit_later(random_range(_x1, _x2), random_range(_y1, _y2), "rise", make_color_rgb(70, 64, 58), 1);
+	}
+}
+
 /// @func draw_item_card(_it, _cx, _cy, _w, _h, _alpha, _hover, _locked)
 /// @desc An item (potion, core, coins) as a reward card, the same design as the dice reward cards (Jared, 2026-11-21):
 ///       paper starting under the icon, which sits on its top edge; the rarity gem; the name; what it does, centred; a
@@ -3147,7 +3119,7 @@ function draw_item_card(_it, _cx, _cy, _w, _h, _alpha, _hover, _locked) {
 		draw_set_alpha(1);
 	}
 	ui_paper(_x1, _pt, _x2, _y2, round(_cx) * 7 + 3, global.ui_col.paper, _alpha);
-	draw_rarity_gem(_x2 - 20, _pt + 20, variable_struct_exists(_it, "rarity") ? _it.rarity : "common", 1, _alpha);
+	if (!variable_struct_exists(_it, "rarity") || _it.rarity != "none") draw_rarity_gem(_x2 - 20, _pt + 20, variable_struct_exists(_it, "rarity") ? _it.rarity : "common", 1, _alpha); // keepsakes have none
 
 	// the icon on the paper's edge, on a paper disc so it reads half on the card and half off
 	draw_set_alpha(_alpha);

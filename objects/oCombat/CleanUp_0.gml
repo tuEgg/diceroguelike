@@ -6,6 +6,7 @@ if (tutorial_active()) tutorial_finish();
 if (surface_exists(insight_surf)) surface_free(insight_surf);
 if (surface_exists(wet_surf)) surface_free(wet_surf);
 if (insight_view) global.ui_layer = UI_LAYER.BASE;
+if (ink_writing_snd != -1) audio_stop_sound(ink_writing_snd);
 
 // --- Destroy temporary lists ---
 if (ds_safe_exists(global.discard_pile, ds_type_list)) {

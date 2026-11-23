@@ -250,12 +250,6 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 
     var inst_color = c_red; // default color for damage
 	
-	// If it's actions from the player
-	if (_source == "player") {
-		var snd_roll = choose(soDiceRolling1, soDiceRolling2, soDiceRolling3);
-		sfx_play(snd_roll, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.4);
-	}
-
     // --- DAMAGE ---
     switch (_type) {
 		case "ATK":
@@ -508,6 +502,7 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 		
 		case "INTEL":
 			if (_source == "player") {
+				sfx_play(soInk2, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.8); // wet, as when it's moved (Jared, 2026-11-22)
 				// insight counts next turn
 				apply_buff("player", oRunManager.buff_intel, 1, amount, oRunManager.buff_intel.remove_next_turn, { source: _source, index: _source_index });
 				var num = spawn_floating_number("player", amount, -1, global.text_intel, 1, -1, _dice_list_index);
@@ -711,6 +706,7 @@ function apply_dice_to_slot(_die, _slot_i) {
 		var _added = slot.dice_list[| ds_list_size(slot.dice_list) - 1];
 		_added.played_turn = turn_count;
 		_added.play_locked = die_has_effect_trigger(die.struct, "on_dice_played_to_slot");
+		_added.built_slot = false; // played into a slot, not building one
 	}
 
     //-----------------------------------------
@@ -754,9 +750,8 @@ function apply_dice_to_slot(_die, _slot_i) {
 		dice_played_scale = 1.2;
 		dice_played_color = c_green;
 
-		var place_sound = choose(soRubble1, soRubble2, soRubble3, soRubble4);
-
-		sfx_play(place_sound, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
+		if (die.struct.action_type == "INTEL") sfx_play(soInk2, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.8);
+		else sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
 		
 		instance_destroy(die);
     }
@@ -888,8 +883,10 @@ function sacrifice_die(_die) {
 	ds_list_add(global.sacrifice_list, _copy);
 
 	particle_emit(_die.x, _die.y, "burst", _die.struct.color);
+	var _ink = (_die.struct.action_type == "INTEL");
 	instance_destroy(_die);
-	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
+	if (_ink) sfx_play(soInk1, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.8);
+	else sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
 
 	update_sacrificed_type_array();
 	combat_try_build_slot();
@@ -933,9 +930,31 @@ function new_slot_total() {
 	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
 		var _d = global.sacrifice_list[| j];
 		var _f = die_face_total(_d);
-		_t += (_f != -1) ? _f : ceil(_d.dice_value / 2); // a die that wasn't dealt (and so never rolled) counts half its size
+		_t += (_f != -1) ? _f + die_tile_effect_amount(_d) : ceil(_d.dice_value / 2); // a die that wasn't dealt (and so never rolled) counts half its size
 	}
 	return _t;
+}
+
+/// @func die_tile_effect_amount(_die)
+/// @desc What a die's own effect adds on the new-slot tile, worked out as if it were already in the slot it builds (the
+///       last one), so a bonus counts the moment it's played (Jared, 2026-11-22: Kill coin's +2 counts toward the pips).
+///       Only its own on_roll_die effect, on a read-only stand-in slot; an effect that needs a real slot adds nothing.
+function die_tile_effect_amount(_die) {
+	if (!instance_exists(oCombat) || !die_has_effect_trigger(_die, "on_roll_die")) return 0;
+	var _n = ds_list_size(oCombat.action_queue);
+	var _slot = { current_action_type: _die.action_type, possible_type: _die.possible_type, bonuses: [], dice_list: undefined };
+	var _ctx = {
+		previous_slot_action_type: (_n > 0) ? oCombat.action_queue[| _n - 1].current_action_type : "",
+		action_type: _die.action_type, min_roll: 1 + _die.min_roll_bonus, max_roll: _die.dice_value,
+		_d_amount: 0, _die_struct: _die, _slot: _slot, slot_num: _n, die_index: 0, die: _die,
+		read_only: true, on_deal: false, roll_twice: false, repeat_followthrough: false, target: "player", weighting: ""
+	};
+	try {
+		trigger_die_effects_single(_die, "on_roll_die", _ctx);
+	} catch (_e) {
+		return 0;
+	}
+	return is_real(_ctx._d_amount) ? _ctx._d_amount : 0;
 }
 
 /// @func combat_try_build_slot()
@@ -1805,11 +1824,11 @@ function tutorial_steps() {
 			done: function() { return ds_list_size(oCombat.action_queue) >= 2; },
 		},
 		{
-			id: "place_bonus", target: "newest", allow: [], button: "Next",
+			id: "place_bonus", target: "newest", allow: ["sacrifice"], button: "Next",
 			text: "Later slots add more to their total: this one +1, the next +2. The next slot costs more dice.",
 		},
 		{
-			id: "end_turn", target: "end_turn", allow: ["place", "end_turn"],
+			id: "end_turn", target: "end_turn", allow: ["place", "sacrifice", "end_turn"], // sacrifice: a slot taken apart can be built again
 			text: "You can play 4 dice a turn; coins are free. At End Turn your slots act left to right, and each enemy acts at its point on the track above them. Block before a hit to stop it. End your turn.",
 			done: function() { return oCombat.turn_count >= 2; },
 		},
@@ -2162,27 +2181,21 @@ function tips_list() {
 		},
 		{
 			id: "workbench_bag", room: rmWorkbench, target: "wb_pick",
-			text: "Take up to one die per tool you own from your bag.",
+			text: "Take dice from your bag, as many as you like. The bag works any time here.",
 			when: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.pick_pending; },
 			done: function() { return instance_exists(oWorkbenchManager) && !oWorkbenchManager.pick_pending && oRunManager.dice_selection == false; },
 		},
 		{
-			id: "workbench", room: rmWorkbench, target: "wb_slots",
-			text: "Put a die in the first slot and drag a core into the middle one. Each tool works once per visit.",
-			when: function() { return instance_exists(oWorkbenchManager) && !oWorkbenchManager.pick_pending && oRunManager.dice_selection == false; },
-			done: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined; },
-		},
-		{
-			id: "workbench_toolbag", room: rmWorkbench, target: "toolbag",
-			text: "Click the Drill in your toolbag.",
-			when: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.workbench_slot[0].dice != undefined && oWorkbenchManager.workbench_slot[1].core != undefined && !instance_exists(oDrill); },
-			done: function() { return instance_exists(oDrill); },
+			id: "workbench", room: rmWorkbench, target: "wb_rack",
+			text: "Drag a tool onto your dice. Each tool works once per visit.",
+			when: function() { return instance_exists(oWorkbenchManager) && array_length(oWorkbenchManager.wb_dice) > 0 && oRunManager.dice_selection == false; },
+			done: function() { return instance_exists(oWorkbenchManager) && array_length(oWorkbenchManager.tools_used) > 0; },
 		},
 		{
 			id: "workbench_drill", room: rmWorkbench, target: "drill",
-			text: "Click the Drill to pick it up, then hold left click on the Drill button until it bites. Right click puts it down.",
-			when: function() { return instance_exists(oDrill) && !oDrill.is_dragging; },
-			done: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.crafting_state != "waiting"; },
+			text: "Drag a core from your items into the drill, then drill it into a die.",
+			when: function() { return instance_exists(oWorkbenchManager) && workbench_drill_waits() && oRunManager.dice_selection == false; },
+			done: function() { return instance_exists(oWorkbenchManager) && !workbench_drill_waits(); },
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",
@@ -2219,12 +2232,12 @@ function tips_list() {
 		},
 		{
 			id: "alignment_fight", room: rmCombat, target: "",
-			text: "A crossroads fight. When the enemy falls, kill it or spare it. Killing swings your compass to ruthless; sparing swings it to merciful for less gold. Rewards are alignment dice.",
+			text: "A crossroads fight. When the enemy falls, kill it or spare it. Killing lowers your alignment; sparing raises it, for less gold. Rewards are alignment dice.",
 			when: function() { return tips_combat_ready() && oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT; },
 		},
 		{
 			id: "kill_or_spare", room: rmCombat, target: "spare_buttons",
-			text: "Kill: compass to ruthless, full gold. Spare: compass to merciful, a third of the gold.",
+			text: "Kill: lose 5 alignment, full gold. Spare: gain 5 alignment, a third of the gold.",
 			when: function() { return combat_spare_choice_enemy() != undefined; },
 		},
 		{
@@ -2257,11 +2270,11 @@ function tips_rect(_target) {
 			var _iw = combat_inkwell_pos(); return { x: _iw.x - 60, y: _iw.y - 65, w: 120, h: 120 };
 		case "wb_pick":
 			if (!instance_exists(oWorkbenchManager)) return undefined;
-			with (oWorkbenchManager) return { x: display_get_gui_width() / 2 - 280, y: max(start_y - wb_tile_size - 230, 200), w: 560, h: 170 };
+			with (oWorkbenchManager) return { x: (table.x1 + table.x2) / 2 - 260, y: (table.y1 + table.y2) / 2 - 80, w: 520, h: 160 }; // the note on the bench
 			break;
-		case "wb_slots":
+		case "wb_rack":
 			if (!instance_exists(oWorkbenchManager)) return undefined;
-			with (oWorkbenchManager) return { x: start_x - wb_tile_size / 2, y: start_y - wb_tile_size / 2, w: wb_tile_size * 2 + wb_tile_padding, h: wb_tile_size };
+			with (oWorkbenchManager) return { x: rack.x1, y: rack.y1, w: rack.x2 - rack.x1, h: rack.y2 - rack.y1 };
 			break;
 		case "toolbag":
 			// oRunManager Draw GUI draws the toolbag at gui width - 940, in the top bar
@@ -2275,8 +2288,14 @@ function tips_rect(_target) {
 			if (_se == undefined) return undefined;
 			return { x: _se.pos_x - 110, y: _se.pos_y + 20, w: 220, h: 60 };
 		case "drill":
-			if (!instance_exists(oDrill)) return undefined;
-			return { x: oDrill.x - 80, y: oDrill.y - 80, w: 160, h: 160 };
+			if (!instance_exists(oWorkbenchManager)) return undefined;
+			with (oWorkbenchManager) {
+				var _dt = wb_tool_of(oDrill);
+				if (_dt == undefined) return undefined;
+				var _db = wb_tool_box(_dt);
+				return { x: _db.x1, y: _db.y1, w: _db.x2 - _db.x1, h: _db.y2 - _db.y1 };
+			}
+			break;
 	}
 	return undefined;
 }
@@ -2481,6 +2500,10 @@ function enemy_layout_update() {
 	var _push = max(0, ds_list_size(action_queue) - 1) * aq_tile_w * _ui * 0.25;
 	var _left = _centre - _spacing * (_n - 1) / 2 + _push;
 	var _right = _centre + _spacing * (_n - 1) / 2 + _push;
+	// clear of the queue (four places always show, Jared 2026-11-22): the queue moves left as far as it can, the group
+	// starts past it
+	var _min_left = aq_min_right + 130 * _ui;
+	if (_left < _min_left) { _right += _min_left - _left; _left = _min_left; }
 	var _limit = _gw - 170 * _ui;
 	if (_right > _limit) { _right = _limit; _left = min(_left, _right); } // squeeze rather than run off screen
 
@@ -2541,83 +2564,68 @@ function workbench_useful() {
 	return false;
 }
 
-/// @func workbench_dice_allowance()
-/// @desc How many dice you may bring to the workbench (F02): one per tool you own, plus one with the Hammer.
-function workbench_dice_allowance() {
-	var _n = ds_list_size(oRunManager.tools);
-	for (var i = 0; i < ds_list_size(oRunManager.tools); i++) if (oRunManager.tools[| i].object == oHammer) _n++;
-	return max(1, _n);
-}
-
 /// @func workbench_take_die(_die)
-/// @desc The dice picker's event at the workbench: a chosen die leaves the bag and lands in your hand on the bench.
+/// @desc The dice picker's event at the workbench: a chosen die leaves the bag and flies onto the bench (F224), each
+///       a moment after the one before.
 function workbench_take_die(_die) {
 	var _i = ds_list_find_index(global.dice_bag, _die);
-	if (_i == -1) return;
+	if (_i == -1 || !instance_exists(oWorkbenchManager)) return;
 	var _struct = clone_die(_die, "");
 	_struct.selected = false;
 	ds_list_delete(global.dice_bag, _i);
-	var _inst = instance_create_depth(global.gui.bag_x_deal, global.gui.bag_y_deal, -8, oDice);
-	_inst.struct = _struct;
-	_inst.action_type = _struct.action_type;
-	_inst.dice_amount = _struct.dice_amount;
-	_inst.dice_value = _struct.dice_value;
-	_inst.possible_type = _struct.possible_type;
-	var _target = generate_valid_targets(1, 100)[0];
-	_inst.target_x = _target[0];
-	_inst.target_y = _target[1];
+	with (oWorkbenchManager) {
+		var _flying = 0;
+		for (var k = 0; k < array_length(wb_dice); k++) if (is_struct(wb_dice[k].fly)) _flying++;
+		// dealt as in a fight (Jared, 2026-11-22): out of the bag one after another (0.1 s apart), tumbling, easing
+		// in to land on its spot, with the roll sound
+		var _spot = wb_free_spot();
+		var _d = wb_add_die(_struct, global.gui.bag_x_deal, global.gui.bag_y_deal);
+		_d.fly = { kind: "deal", tx: _spot[0], ty: _spot[1], spd: 0, delay: _flying * 6 };
+	}
+}
+
+/// @func workbench_drill_waits()
+/// @desc The drill is on the bench, unused and empty, and you have a core in your items to load it with (its tip).
+function workbench_drill_waits() {
+	if (!instance_exists(oWorkbenchManager)) return false;
+	var _t = oWorkbenchManager.wb_tool_of(oDrill);
+	if (_t == undefined || _t.used || _t.core != undefined) return false;
+	for (var i = 0; i < array_length(oRunManager.items); i++) {
+		var _it = oRunManager.items[i];
+		if (is_struct(_it) && variable_struct_exists(_it, "type") && _it.type == "core") return true;
+	}
+	return false;
 }
 
 /// @func workbench_tool_used(_object)
-/// @desc A tool has crafted: it's used up for this visit and goes back in the toolbag.
+/// @desc A tool has crafted: it's used for this visit (it hangs back on the rack with a "Used" tag).
 function workbench_tool_used(_object) {
 	if (!instance_exists(oWorkbenchManager)) return;
-	if (progress_get("workbench_hints_done") != true) progress_set("workbench_hints_done", true); // the tool mouse hints have done their job
-	array_push(oWorkbenchManager.tools_used, _object);
-	// it stays in hand for half a second (its last pose shows), then returns to the bench greyed out (the tool's Step)
-	with (_object) {
-		tool_used = true;
-		used_timer = ceil(game_get_speed(gamespeed_fps) * 0.5);
+	if (progress_get("workbench_hints_done") != true) progress_set("workbench_hints_done", true);
+	with (oWorkbenchManager) {
+		array_push(tools_used, _object);
+		var _t = wb_tool_of(_object);
+		if (_t != undefined) _t.used = true;
 	}
 }
 
 /// @func workbench_open_picker()
-/// @desc Opens the bag to choose the dice for this workbench visit (from the prompt or the bag icon).
+/// @desc Opens the bag to take dice to the bench, as many as you like (from the note on the bench or the bag icon).
 function workbench_open_picker() {
-	if (!instance_exists(oWorkbenchManager) || !oWorkbenchManager.pick_pending) return;
+	if (!instance_exists(oWorkbenchManager)) return;
+	if (ds_list_size(global.dice_bag) == 0) {
+		throw_error("Bag empty", "Every die is on the bench.");
+		return;
+	}
 	oWorkbenchManager.pick_pending = false;
 	with (oRunManager) {
-		dice_selection = workbench_dice_allowance();
+		dice_selection = ds_list_size(global.dice_bag);
 		dice_selection_up_to = true;
-		dice_selection_message = "Choose up to " + string(dice_selection) + ((dice_selection == 1) ? " die" : " dice") + " to work on";
+		dice_selection_message = "Take dice to the bench";
 		dice_selection_event = function(_die) { workbench_take_die(_die); };
 		bag_to_show = global.dice_bag;
 		show_bag_contents = true;
 	}
-}
-
-/// @func workbench_can_change_dice()
-/// @desc Before the first craft of a visit you may swap the dice you brought (B134): nothing crafted, nothing being picked.
-function workbench_can_change_dice() {
-	if (!instance_exists(oWorkbenchManager)) return false;
-	var _wb = instance_find(oWorkbenchManager, 0);
-	if (_wb.pick_pending || array_length(_wb.tools_used) > 0 || _wb.crafting_state != "waiting") return false;
-	return oRunManager.dice_selection == false && instance_exists(oDice);
-}
-
-/// @func workbench_change_dice()
-/// @desc The dice in your hand go back to the bag and the picker opens again (B134).
-function workbench_change_dice() {
-	if (!workbench_can_change_dice()) return;
-	with (oDice) {
-		ds_list_add(global.dice_bag, struct);
-		instance_destroy();
-	}
-	with (oWorkbenchManager) {
-		for (var s = 0; s < array_length(workbench_slot); s++) workbench_slot[s].dice = undefined;
-		pick_pending = true;
-	}
-	workbench_open_picker();
 }
 
 // =====================================================================
@@ -2768,6 +2776,7 @@ function combat_die_to_hand(_die, _sx, _sy) {
 ///       a Shipwright's Draft play is taken back. The slot is gone; the tile is where it was.
 function combat_unbuild_slot(_slot_i, _index) {
 	var _slot = action_queue[| _slot_i];
+	var _ink_out = (_index >= 0 && _index < ds_list_size(_slot.dice_list)) && _slot.dice_list[| _index].action_type == "INTEL";
 	var _pos = (_slot_i < ds_list_size(slot_positions)) ? slot_positions[| _slot_i] : undefined;
 	var _sx = is_struct(_pos) ? _pos.x + _pos.w / 2 : display_get_gui_width() / 2;
 	var _sy = is_struct(_pos) ? _pos.y : display_get_gui_height() / 2;
@@ -2792,7 +2801,8 @@ function combat_unbuild_slot(_slot_i, _index) {
 	particle_emit(_sx, _sy + 60, "burst", c_white, 20);
 	dice_played_scale = 1.2;
 	dice_played_color = c_green;
-	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
+	if (_ink_out) sfx_play(soInk2, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.8);
+	else sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
 	add_feed_entry("You took the new slot apart.");
 	runmanager_trigger_keepsakes("after_change_current_action", {});
 }
@@ -2850,7 +2860,8 @@ function combat_take_back(_slot_i, _index) {
 	combat_die_to_hand(_die, _sx, _sy);
 	dice_played_scale = 1.2;
 	dice_played_color = c_green;
-	sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
+	if (_die.action_type == "INTEL") sfx_play(soInk2, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.8);
+	else sfx_play(choose(soRubble1, soRubble2, soRubble3, soRubble4), AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.2);
 
 	if (_slot != undefined) {
 		slot_recompute_types(_slot);
@@ -2899,7 +2910,7 @@ function combat_insight_spend(_cost) {
 		var _num = spawn_floating_number("player", _cost, -1, global.text_intel, -1, -1, 0);
 		_num.x += 20;
 		_num.y -= 20;
-		sfx_play(soQuill, AUDIO_GROUP.SFX, 0.08, 1); // the pen at work: ink spent
+		sfx_play(choose(soPaper1, soPaper2, soPaper3, soPaper4), AUDIO_GROUP.SFX, 0.05, 1); // ink spent: a rustle of paper
 		return true;
 	}
 	return false;
@@ -3049,6 +3060,10 @@ function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
 	var _dark = make_color_rgb(42, 29, 18);
 	var _brass = make_color_rgb(232, 196, 106);
 	var _spent = make_color_rgb(90, 69, 53);
+	// extra plays just for this turn (a stowaway, a keepsake...) are green, at the end of the row, so they're used first
+	// and you can see which ones won't come back (playtest, Jared 2026-11-22)
+	var _extra = clamp(dice_allowed_per_turn - plays_bought - dice_allowed_per_turn_original, 0, _total);
+	var _green = merge_colour(global.ui_col.bonus_ink, c_white, 0.25);
 
 	var _n = _total + _buyable;
 	var _w = _n * (_r * 2) + max(0, _n - 1) * _gap + ((_buyable > 0) ? 8 : 0); // a little space before the buyable ones
@@ -3067,7 +3082,8 @@ function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
 		var _tx = _x0 + _r + t * (_r * 2 + _gap);
 		var _on = (t < _left);
 		var _paid = (t >= _total - plays_bought); // bought with insight: the last ones
-		var _fill = _on ? (_paid ? global.color_intel : _brass) : _spent;
+		var _bonus_play = !_paid && t >= dice_allowed_per_turn - plays_bought - _extra && t < dice_allowed_per_turn - plays_bought;
+		var _fill = _on ? (_paid ? global.color_intel : (_bonus_play ? _green : _brass)) : _spent;
 		var _rr = _r * _s * (_hover ? 1.1 : 1);
 		draw_set_color(_ring);
 		draw_circle(_tx, _y, _rr + 3, false);
@@ -3078,7 +3094,7 @@ function combat_turn_tokens_draw(_cx, _right_max, _y, _view = false) {
 		draw_set_color(_fill);
 		draw_circle(_tx, _y - _rr * 0.15, _rr * 0.55, false);
 	}
-	if (_hover && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Plays", string(_left) + " left this turn. Coins are free.");
+	if (_hover && !show_rewards) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Plays", string(_left) + " left this turn. Coins are free." + ((_extra > 0) ? "\nGreen ones are extra." : ""));
 
 	// the plays your insight could buy: faded yellow pips, click to buy one
 	for (var b = 0; b < _buyable; b++) {
@@ -3204,9 +3220,12 @@ function combat_insight_view_set(_open) {
 		insight_view = _open;
 		insight_view_age = 0; // frames open (oCombat Step): the click that opened it can't also close it
 		ink_strokes = []; // doodles are only on the log while it's open
+		ink_drag_enemy = undefined;
 		ink_drawing = false;
 		global.ui_layer = _open ? UI_LAYER.POPUP : UI_LAYER.BASE;
-		sfx_play(soQuill, AUDIO_GROUP.UI, 0.1, 0.5); // a light stroke of the pen, opening or closing the log
+		if (_open) sfx_play(soQuillStart, AUDIO_GROUP.UI, 0.05, 0.8); // the quill takes up the log
+		else sfx_play(soQuill, AUDIO_GROUP.UI, 0.1, 0.5);
+		ink_writing_snd = sfx_loop(ink_writing_snd, false, soWriting, AUDIO_GROUP.SFX);
 	}
 }
 
@@ -3272,6 +3291,10 @@ function combat_insight_view_draw() {
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var _en = room_enemies[| e];
 			if (_en.dead || !variable_struct_exists(_en, "intent_rect")) continue;
+			// only what your ink can afford stays in colour (Jared, 2026-11-22); the rest is drawn in ink with the page
+			var _rc = !enemy_intent_revealed(_en) && intent_has_numbers(_en.intent.move) && combat_insight_can(combat_reveal_cost());
+			var _wc = enemy_can_rewrite_intent(_en) && combat_insight_can(INSIGHT_COST_QUILL);
+			if (!_rc && !_wc) continue;
 			var _ir = _en.intent_rect;
 			draw_roundrect_ext(_ir.x - _ir.w / 2 - _pad, _ir.y - _ir.h / 2 - _pad, _ir.x + _ir.w / 2 + _pad, _ir.y + _ir.h / 2 + _pad, 18, 18, false);
 		}
@@ -3305,7 +3328,6 @@ function combat_insight_view_draw() {
 		ink_preview = 0;
 		wet_shapes = []; // what gets the wet edge this frame (wet_ink_draw, below)
 		ink_costs = []; // costs, drawn over it (ink_costs_draw)
-		ink_mouse_hint = undefined;
 		var _ex = combat_inkwell_pos().x, _ey = combat_inkwell_pos().y;
 		var _ink_hov = mouse_hovering(_ex, _ey, 70, 70, true, noone, noone, true, UI_LAYER.POPUP);
 		draw_inkwell(_ex, _ey, _ink_hov ? 1.25 : 1.15, player_intel / INSIGHT_MAX, false);
@@ -3322,6 +3344,7 @@ function combat_insight_view_draw() {
 			if (_seal_hov) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Done", "Put your ink away. Unspent ink carries over.");
 			_seal_click = _seal_hov && mouse_check_button_pressed(mb_left);
 		}
+		if (_ink_hov || _seal_hov) quill_over = true; // clickable: the normal pointer (cursor_draw)
 
 		// each intent: icon buttons under its tag (Jared, 2026-11-22: icons, like the dice's): Reveal (an eye: its exact
 		// number) and Rewrite (a quill: it picks a different move), side by side
@@ -3329,26 +3352,46 @@ function combat_insight_view_draw() {
 			var _en = room_enemies[| e];
 			if (_en.dead || !variable_struct_exists(_en, "intent_rect")) continue;
 			var _ir = _en.intent_rect;
-			var _by = _ir.y + _ir.h / 2 + 24;
+			var _by = _ir.y + _ir.h / 2 + 10; // overlapping the tag's bottom edge a little (Jared, 2026-11-22)
 			var _can_reveal = !enemy_intent_revealed(_en) && intent_has_numbers(_en.intent.move);
 			var _can_rewrite = enemy_can_rewrite_intent(_en);
 			var _n = (_can_reveal ? 1 : 0) + (_can_rewrite ? 1 : 0);
 			var _rcost = combat_reveal_cost();
 			var _bx = _ir.x - ((_n > 1) ? 30 : 0);
+			var _rb_hov = false, _wb_hov = false, _do_reveal = false, _do_rewrite = false;
 			if (_can_reveal) {
 				var _rb = ink_icon_button(_bx, _by, "reveal", _rcost, combat_insight_can(_rcost));
-				if (_rb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reveal", "See exactly how much " + string(_en.data.name) + " will " + intent_verbs(_en.intent.move) + ".", undefined, 0, undefined, _rcost, "ink");
-				if (_rb.click) {
-					combat_reveal_enemy(_en);
-					_en.intent.scale = _en.intent.start_scale * 1.4; // pop, so the change is noticed
-					float_text(_ir.x, _ir.y - _ir.h / 2 - 20, "Exact: " + intent_number_text(_en, INTEL_LEGIBLE), c_white);
-				}
+				_rb_hov = _rb.hover;
+				if (_rb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reveal", "See exactly how much " + string(_en.data.name) + " will " + intent_verbs(_en.intent.move) + ".\nOr left-click the intent.", undefined, 0, undefined, _rcost, "ink");
+				if (_rb.click) _do_reveal = true;
 				_bx += 60;
 			}
 			if (_can_rewrite) {
 				var _wb = ink_icon_button(_bx, _by, "rewrite", INSIGHT_COST_QUILL, combat_insight_can(INSIGHT_COST_QUILL));
-				if (_wb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rewrite", string(_en.data.name) + " picks a different move.", undefined, 0, undefined, INSIGHT_COST_QUILL, "ink");
-				if (_wb.click) {
+				_wb_hov = _wb.hover;
+				if (_wb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rewrite", string(_en.data.name) + " picks a different move.\nOr right-click the intent.", undefined, 0, undefined, INSIGHT_COST_QUILL, "ink");
+				if (_wb.click) _do_rewrite = true;
+			}
+			// the intent itself: left-click reveals, right-click rewrites, as a die's left and right clicks reroll and redraw
+			var _ihov = !_rb_hov && !_wb_hov && _n > 0 && mouse_hovering(_ir.x, _ir.y, _ir.w, _ir.h, true, noone, noone, true, UI_LAYER.POPUP);
+			if (_ihov) {
+				quill_over = true;
+				if (mouse_check_button_pressed(mb_left) && _can_reveal) {
+					if (combat_insight_can(_rcost)) _do_reveal = true;
+					else throw_error("Not enough ink", "This costs " + string(_rcost) + " ink.");
+				}
+				if (mouse_check_button_pressed(mb_right) && _can_rewrite) {
+					if (combat_insight_can(INSIGHT_COST_QUILL)) _do_rewrite = true;
+					else throw_error("Not enough ink", "This costs " + string(INSIGHT_COST_QUILL) + " ink.");
+				}
+			}
+			if (_do_reveal) {
+				combat_reveal_enemy(_en);
+				_en.intent.scale = _en.intent.start_scale * 1.4; // pop, so the change is noticed
+				float_text(_ir.x, _ir.y - _ir.h / 2 - 20, "Exact: " + intent_number_text(_en, INTEL_LEGIBLE), c_white);
+			}
+			if (_can_rewrite) {
+				if (_do_rewrite) {
 					var _was = string(_en.intent.move.move_name);
 					if (combat_insight_spend(INSIGHT_COST_QUILL) && enemy_rewrite_intent(_en)) {
 						_en.intent.scale = _en.intent.start_scale * 1.4;
@@ -3374,6 +3417,8 @@ function combat_insight_view_draw() {
 			// faster, and an ink drop on its corner (Jared, 2026-11-20)
 			var _inky = !tumbling && die_has_trigger(struct, "on_die_inked");
 			var _ring_k = die_is_special(struct) ? 1.2 : 1; // edges sit outside its rarity ring
+			var _lit = _rr_can || _rd_can; // can't afford either: left in ink with the page (the frame under, through shInk)
+			if (_lit) {
 			if (_inky) {
 				var _ip = 0.5 + 0.5 * sin(current_time / 110);
 				draw_die_shape(x, y, _r * _ring_k * (1.36 + 0.08 * _ip), dice_value, c_white, tumble_angle, 0.3 + 0.4 * _ip);
@@ -3385,13 +3430,12 @@ function combat_insight_view_draw() {
 			draw_die(x, y, _r * (_hov ? 1.08 : 1), dice_value, _face, die_colours(struct.possible_type), tumble_angle, 1, struct);
 			if (_inky) draw_ink_drop(x + _r * 0.85, y - _r * 0.85, 14 * scale);
 			if (!tumbling && die_is_mocked(struct)) draw_mock_mark(x, y - _r - 6, scale); // lit with it, so you see it before rerolling (B133)
+			}
 			if (_ready) {
 				// two icon buttons over the die, side by side (Jared, 2026-11-22): reroll left, redraw right
 				var _top_y = y - _r * _ring_k - 30;
 				var _b1 = ink_icon_button(x - 30, _top_y, "reroll", INSIGHT_COST_REROLL, _rr_can);
 				var _b2 = ink_icon_button(x + 30, _top_y, "redraw", INSIGHT_COST_REDRAW, _rd_can);
-				// pointing at the die or a button: a small mouse between them says left-click rerolls, right-click redraws
-				if (_hov || _b1.hover || _b2.hover) other.ink_mouse_hint = { x: x, y: _top_y, side: _b1.hover ? -1 : (_b2.hover ? 1 : 0) };
 				if (_b1.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reroll", "Roll this die again.\nOr left-click the die." + (die_is_mocked(struct) ? "\nMocked: it still rolls 1." : "") + (_inky ? "\n" + struct.name + ": " + struct.description : ""), undefined, 0, undefined, INSIGHT_COST_REROLL, "ink");
 				if (_b2.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Redraw", "Discard this die and draw a new one.\nOr right-click the die." + (_inky ? "\n" + struct.name + ": " + struct.description : ""), undefined, 0, undefined, INSIGHT_COST_REDRAW, "ink");
 				if (_b1.click) { _clicked = id; _clicked_what = "reroll"; }
@@ -3542,11 +3586,14 @@ function combat_hand_row() {
 }
 
 /// @func combat_hand_row_pos(_i, _n)
-/// @desc Spot _i of _n in the hand's row: centred, up to 150 px apart, across at most half the screen.
+/// @desc Spot _i of _n in the hand's row: centred, up to 150 px apart, across at most half the screen, on a gentle arc
+///       (Jared, 2026-11-22): the two ends level, the middle highest, rising up to 32 px as the hand grows.
 function combat_hand_row_pos(_i, _n) {
 	var _gw = display_get_gui_width();
 	var _space = min(150, (_gw * 0.5) / max(1, _n - 1));
-	return { x: _gw / 2 - (_n - 1) * _space / 2 + _i * _space, y: (global.dice_safe_area_y1 + global.dice_safe_area_y2) / 2 + 20 };
+	var _t = (_n > 1) ? (_i - (_n - 1) / 2) / ((_n - 1) / 2) : 0; // -1 at the left end, 0 in the middle, 1 at the right
+	var _h = min(32, (_n - 1) * 8);
+	return { x: _gw / 2 - (_n - 1) * _space / 2 + _i * _space, y: (global.dice_safe_area_y1 + global.dice_safe_area_y2) / 2 + 20 + _h * (_t * _t) - _h / 2 };
 }
 
 // =====================================================================
@@ -3575,6 +3622,8 @@ function combat_enemy_act(_e) {
 	with (oCombat) {
 		var e = _e;
 		var enemy = room_enemies[| e];
+		// its block lasts until it acts again, then goes; a new Block replaces it rather than stacking (Jared, 2026-11-22)
+		if (!enemy.turn_done && !enemy.keep_block_between_turns) enemy.block_amount = 0;
 		combat_trigger_effects("on_enemy_turn_start", { stunned_enemy: enemy });
 		if (enemy.turn_done || enemy.dead) return false;
 		var intent_array = string_split(enemy.intent.move.action_type, "/");
@@ -3676,13 +3725,18 @@ function combat_timeline_draw(_ink = false) {
 		if (!variable_instance_exists(id, "aq_step")) return;
 		var _layer = _ink ? UI_LAYER.POPUP : UI_LAYER.BASE;
 		var _n = ds_list_size(action_queue);
-		var _last = _n + 1; // the new-slot tile's notch: the furthest the track goes
+		var _last = max(_n + 1, aq_vis); // the last place in view (four at least): the furthest the track goes
 		var _beyond = false;
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var _en = room_enemies[| e];
 			if (variable_struct_exists(_en.intent, "after_slot") && _en.intent.after_slot > _last && _en.intent.after_slot < ENEMY_POINT_LAST) _beyond = true;
 		}
-		var _ty = aq_y0 - 44;
+		// a hovered slot grows: the track lifts with it so it never covers the line
+		var _lift = max(0, last_action_scale - 1);
+		for (var i = 0; i < ds_list_size(tile_scale); i++) _lift = max(_lift, tile_scale[| i] - 1);
+		_lift *= aq_tile_w / 2;
+		var _ty = aq_y0 - 44 - _lift;
+		var _row_h = 42;
 		var _x_end = combat_point_x(_last) + 12;
 		// the line
 		draw_set_alpha(0.9);
@@ -3723,18 +3777,50 @@ function combat_timeline_draw(_ink = false) {
 			var _gap = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : min(_p, _last);
 			var _gx = combat_point_x(_gap);
 			var _row = _rows[e];
-			var _my = _ty - 40 - _row * 42;
+			var _my = _ty - 40 - _row * _row_h;
 			var _grey = _en.dead || (_en.intent.move.move_name == "Stunned");
 			var _a = (_grey ? 0.35 : (_en.turn_done ? 0.55 : 1)) * _en.intent.alpha;
 			var _col = combat_enemy_colour(_en);
-			// the line down from the marker to the gap
-			draw_set_alpha(_a);
+			// ink: the marker itself is dragged along the track (Jared, 2026-11-22: a grip at its right end, not a handle
+			// under it, which made stacks tall). It follows the mouse and snaps to the nearest gap; let go there to move
+			// the move for INK_COST_MOVE
+			var _movable = _ink && !_en.dead && !_en.turn_done;
+			var _can = _movable && combat_insight_can(INK_COST_MOVE);
+			var _dragging = _movable && ink_drag_enemy == _en;
+			var _eff = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : _p;
+			var _k = _eff;
+			if (_dragging) {
+				var _mx = device_mouse_x_to_gui(0);
+				_k = clamp(round((_mx - aq_x0 + (aq_step - aq_tile_w) / 2) / aq_step), 1, _last);
+				_gx = clamp(_mx, combat_point_x(1), combat_point_x(_last));
+				quill_over = true;
+				ink_preview = (_k != _eff) ? INK_COST_MOVE : 0;
+			}
+			if (_ink && !_can && !_dragging) {
+				// nothing your ink can do with it: left as the log draws it (the frame under, through shInk), so only what
+				// you can afford stays in colour (Jared, 2026-11-22). It still says what it is
+				draw_set_font(ftDescriptions);
+				var _num0 = intent_has_numbers(_en.intent.move) ? intent_number_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) : "";
+				var _w0 = 62 + ((_num0 != "") ? string_width(_num0) + 8 : 0);
+				if (ink_drag_enemy == undefined && mouse_hovering(_gx, _my, _w0, 34, true, noone, noone, true, _layer)) {
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), string(_en.data.name) + ": " + string(_en.intent.move.move_name), intent_hover_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) + "\n" + enemy_point_text(_en));
+					if (_movable && mouse_check_button_pressed(mb_left)) throw_error("Not enough ink", "Moving it costs " + string(INK_COST_MOVE) + " ink.");
+				}
+				continue;
+			}
+			// the line down from the marker to the gap (while dragged: from the track at the gap it would land in)
+			draw_set_alpha(_dragging ? 0.7 : _a);
 			draw_set_color(_col);
-			draw_line_width(_gx, _my + 17, _gx, aq_y0 - 4, 3);
+			if (_dragging) {
+				draw_line_width(combat_point_x(_k), _ty - 6, combat_point_x(_k), aq_y0 - 4 - _lift, 3);
+				draw_circle(combat_point_x(_k), _ty, 8, false);
+				draw_set_alpha(_a);
+			} else draw_line_width(_gx, _my + 17, _gx, aq_y0 - 4 - _lift, 3);
 			// the marker: dark, edged in its colour; letter, icon, number
 			var _num = intent_has_numbers(_en.intent.move) ? intent_number_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) : "";
 			draw_set_font(ftDescriptions);
-			var _w = 62 + ((_num != "") ? string_width(_num) + 8 : 0);
+			var _w = 62 + ((_num != "") ? string_width(_num) + 8 : 0) + (_movable ? 26 : 0); // room for the grip
+			if (_can) wet_ink_rect(_gx - _w / 2 - 3, _my - 20, _gx + _w / 2 + 3, _my + 20, 12); // the edge sloshes: it can be moved
 			draw_set_color(_col);
 			draw_roundrect_ext(_gx - _w / 2 - 3, _my - 17 - 3, _gx + _w / 2 + 3, _my + 17 + 3, 12, 12, false);
 			draw_set_color(make_color_rgb(42, 32, 26));
@@ -3756,39 +3842,35 @@ function combat_timeline_draw(_ink = false) {
 				draw_set_color(global.ui_col.paper_hi);
 				draw_text(_gx - _w / 2 + 58, _my + 1, _num);
 			}
-			draw_set_alpha(1);
-			if (mouse_hovering(_gx, _my, _w, 34, true, noone, noone, true, _layer)) {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), string(_en.data.name) + ": " + string(_en.intent.move.move_name), intent_hover_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) + "\n" + enemy_point_text(_en));
+			if (_movable) {
+				// the grip: two pale arrows pointing apart at its right end, and the cost on its corner
+				var _gpx = _gx + _w / 2 - 14;
+				draw_set_color(global.ui_col.paper_hi);
+				draw_line_width(_gpx - 5, _my, _gpx + 5, _my, 2);
+				draw_triangle(_gpx - 10, _my, _gpx - 4, _my - 5, _gpx - 4, _my + 5, false);
+				draw_triangle(_gpx + 10, _my, _gpx + 4, _my - 5, _gpx + 4, _my + 5, false);
+				ink_cost_pip(_gx + _w / 2, _my - 17, INK_COST_MOVE, _can);
 			}
-			// ink: an arrow either side moves it a slot (Jared, 2026-11-22: on the marker, not under the intent)
-			if (_ink && !_en.dead && !_en.turn_done) {
-				var _eff = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : _p;
-				var _can = combat_insight_can(INK_COST_MOVE);
-				for (var s = -1; s <= 1; s += 2) {
-					var _ok = _can && ((s < 0) ? (_eff > 1) : (_p < ENEMY_POINT_LAST && _p < 7));
-					var _axx = _gx + s * (_w / 2 + 20);
-					var _hov = mouse_hovering(_axx, _my, 30, 34, true, soSlotHover, noone, true, UI_LAYER.POPUP);
-					var _sc = (_hov && _ok) ? 1.15 : 1;
-					if (_ok) wet_ink_circle(_axx, _my, 14 * _sc);
-					ink_cost_pip(_axx + s * 12, _my + 13, INK_COST_MOVE, _ok);
-					draw_set_alpha(_ok ? _a : _a * 0.45);
-					draw_set_color(global.color_intel);
-					draw_circle(_axx, _my, 14 * _sc, false);
-					draw_set_color((_hov && _ok) ? global.ui_col.paper_hi : global.ui_col.paper);
-					draw_triangle(_axx + s * 7 * _sc, _my, _axx - s * 5 * _sc, _my - 8 * _sc, _axx - s * 5 * _sc, _my + 8 * _sc, false);
-					draw_set_alpha(1);
-					if (_hov) {
-						ink_preview = INK_COST_MOVE;
-						quill_over = true;
-						queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), (s < 0) ? "Earlier" : "Later", string(_en.data.name) + " acts a slot " + ((s < 0) ? "earlier" : "later") + ".\nNow: " + enemy_point_text(_en), undefined, 0, undefined, INK_COST_MOVE, "ink");
-						if (mouse_check_button_pressed(mb_left)) {
-							if (!_ok && _can) throw_error("Can't move it", (s < 0) ? "It already acts after your first slot." : "It already acts last.");
-							else if (combat_insight_spend(INK_COST_MOVE)) {
-								_en.intent.after_slot = (s < 0) ? max(1, _eff - 1) : _p + 1;
-								float_text(_gx, _my - 30, enemy_point_text(_en), c_white); // what changed
-							}
-						}
+			draw_set_alpha(1);
+			var _mhov = !_dragging && (ink_drag_enemy == undefined || !_ink) && mouse_hovering(_gx, _my, _w, 34, true, _movable ? soSlotHover : noone, noone, true, _layer);
+			if (_mhov) {
+				var _tip = intent_hover_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) + "\n" + enemy_point_text(_en);
+				if (_movable) {
+					quill_over = true;
+					ink_preview = INK_COST_MOVE;
+					queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), string(_en.data.name) + ": " + string(_en.intent.move.move_name), _tip + "\nDrag it to another slot.", undefined, 0, undefined, INK_COST_MOVE, "ink");
+					if (mouse_check_button_pressed(mb_left)) {
+						if (_can) ink_drag_enemy = _en;
+						else throw_error("Not enough ink", "This costs " + string(INK_COST_MOVE) + " ink.");
 					}
+				} else queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), string(_en.data.name) + ": " + string(_en.intent.move.move_name), _tip);
+			}
+			// let go: it moves to the gap it was over (nothing spent if that's where it was)
+			if (_dragging && !mouse_check_button(mb_left)) {
+				ink_drag_enemy = undefined;
+				if (_k != _eff && combat_insight_spend(INK_COST_MOVE)) {
+					_en.intent.after_slot = _k;
+					float_text(combat_point_x(_k), _my - 30, enemy_point_text(_en), c_white); // what changed
 				}
 			}
 		}
@@ -3922,12 +4004,394 @@ function ink_doodle_step(_over_something) {
 				}
 				_s.t = current_time;
 				quill_over = true; // the quill cursor while you draw
-			} else ink_drawing = false;
+			} else {
+				ink_drawing = false;
+				ink_egg_check(); // a stroke finished: is it the drawing?
+			}
 		}
+		// the quill scratches while the pen moves (soWriting, looped), and goes quiet when it stops
+		if (ink_drawing && point_distance(_mx, _my, ink_pen_last[0], ink_pen_last[1]) > 1) ink_pen_still = 0;
+		else ink_pen_still++;
+		ink_pen_last = [_mx, _my];
+		ink_writing_snd = sfx_loop(ink_writing_snd, ink_drawing && ink_pen_still < 6, soWriting, AUDIO_GROUP.SFX, 0.7);
 		for (var i = array_length(ink_strokes) - 1; i >= 0; i--) {
 			if (!(ink_drawing && i == array_length(ink_strokes) - 1) && current_time - ink_strokes[i].t > INK_DOODLE_LIFE) array_delete(ink_strokes, i, 1);
 		}
 	}
+}
+
+/// @func ink_egg_check()
+/// @desc A stroke was finished in the ink view: the drawing easter eggs, each once a run (Jared, 2026-11-22): a d4
+///       showing 4 (ink_egg_drawn_die), "+1" (an extra play this turn, ink_egg_plus_one) and "neow" (100 gold,
+///       ink_egg_neow).
+function ink_egg_check() {
+	ink_egg_drawn_die();
+	ink_egg_plus_one();
+	ink_egg_neow();
+}
+
+/// @func ink_egg_drawn_die()
+/// @desc Draw a triangle in one stroke with four pips inside it (dots or small circles: a d4 showing 4) and the drawing
+///       comes off the page as a generic d4 that always rolls 4 (into your bag).
+function ink_egg_drawn_die() {
+	with (oCombat) {
+		if (oRunManager.ink_egg_found) return;
+		var _n = array_length(ink_strokes);
+		for (var i = 0; i < _n; i++) {
+			var _tri = ink_stroke_triangle(ink_strokes[i].pts);
+			if (!is_array(_tri)) continue;
+			var _dots = 0;
+			var _tb = ink_stroke_bbox(ink_strokes[i].pts);
+			for (var j = 0; j < _n; j++) {
+				if (j == i) continue;
+				var _b = ink_stroke_bbox(ink_strokes[j].pts);
+				if (!ink_stroke_pip(ink_strokes[j].pts, max(_tb.w, _tb.h))) continue; // a dot or a small circle, not a line
+				if (point_in_triangle(_b.cx, _b.cy, _tri[0][0], _tri[0][1], _tri[1][0], _tri[1][1], _tri[2][0], _tri[2][1])) _dots++;
+			}
+			if (_dots != 4) continue;
+			oRunManager.ink_egg_found = true;
+			var _cx = (_tri[0][0] + _tri[1][0] + _tri[2][0]) / 3, _cy = (_tri[0][1] + _tri[1][1] + _tri[2][1]) / 3;
+			var _die = clone_die(global.dice_d4_none, "");
+			_die.uid = global._die_uid_counter++;
+			_die.min_roll_bonus = 3; // always a 4
+			_die.name = "Drawn die";
+			_die.description = "Always rolls 4.";
+			pending_reward_die = { x: _cx, y: _cy, tx: global.gui.bag_x + global.gui.bag_w / 2, ty: global.gui.bag_y + global.gui.bag_h / 2, die: _die }; // made next Step (B108)
+			ink_strokes = []; // the drawing lifts off the page as the die
+			ink_drawing = false;
+			particle_emit_later(_cx, _cy, "burst", global.color_intel, 30);
+			particle_emit_later(_cx, _cy, "rise", global.color_gold, 12);
+			sfx_play(soCoins, AUDIO_GROUP.SFX, 0.05, 0.9);
+			float_text(_cx, _cy - 60, "Well drawn", c_white);
+			add_feed_entry("Your drawing became a die.");
+			return;
+		}
+	}
+}
+
+/// @func ink_stroke_bbox(_pts)
+/// @desc A stroke's box: { w, h, cx, cy }.
+function ink_stroke_bbox(_pts) {
+	var _x1 = infinity, _y1 = infinity, _x2 = -infinity, _y2 = -infinity;
+	for (var i = 0; i < array_length(_pts); i++) {
+		_x1 = min(_x1, _pts[i][0]); _x2 = max(_x2, _pts[i][0]);
+		_y1 = min(_y1, _pts[i][1]); _y2 = max(_y2, _pts[i][1]);
+	}
+	return { w: _x2 - _x1, h: _y2 - _y1, cx: (_x1 + _x2) / 2, cy: (_y1 + _y2) / 2 };
+}
+
+/// @func ink_stroke_triangle(_pts)
+/// @desc If a stroke is a closed triangle, its three corners [[x, y] x3]; otherwise undefined. Corners: the point farthest
+///       from the middle, the point farthest from that, then the point farthest from the line between them. It counts if
+///       the ends meet, the triangle isn't thin, and every point lies close to one of its sides (a circle or a square
+///       doesn't).
+function ink_stroke_triangle(_pts) {
+	var _c = array_length(_pts);
+	if (_c < 12) return undefined;
+	var _b = ink_stroke_bbox(_pts);
+	var _s = max(_b.w, _b.h);
+	if (_s < 60) return undefined;
+	if (point_distance(_pts[0][0], _pts[0][1], _pts[_c - 1][0], _pts[_c - 1][1]) > _s * 0.3) return undefined; // not closed
+	var _ia = 0, _ib = 0, _ic = 0, _best = -1;
+	for (var i = 0; i < _c; i++) { var _d = point_distance(_b.cx, _b.cy, _pts[i][0], _pts[i][1]); if (_d > _best) { _best = _d; _ia = i; } }
+	_best = -1;
+	for (var i = 0; i < _c; i++) { var _d = point_distance(_pts[_ia][0], _pts[_ia][1], _pts[i][0], _pts[i][1]); if (_d > _best) { _best = _d; _ib = i; } }
+	var _ax = _pts[_ia][0], _ay = _pts[_ia][1], _bx = _pts[_ib][0], _by = _pts[_ib][1];
+	_best = -1;
+	for (var i = 0; i < _c; i++) { var _d = abs((_bx - _ax) * (_pts[i][1] - _ay) - (_by - _ay) * (_pts[i][0] - _ax)); if (_d > _best) { _best = _d; _ic = i; } }
+	var _cx = _pts[_ic][0], _cy = _pts[_ic][1];
+	if (abs((_bx - _ax) * (_cy - _ay) - (_by - _ay) * (_cx - _ax)) / 2 < _s * _s * 0.2) return undefined; // too thin
+	var _sum = 0, _max = 0;
+	for (var i = 0; i < _c; i++) {
+		var _px = _pts[i][0], _py = _pts[i][1];
+		var _d = min(ink_seg_dist(_px, _py, _ax, _ay, _bx, _by), ink_seg_dist(_px, _py, _bx, _by, _cx, _cy), ink_seg_dist(_px, _py, _cx, _cy, _ax, _ay));
+		_sum += _d;
+		_max = max(_max, _d);
+	}
+	if (_sum / _c > _s * 0.07 || _max > _s * 0.2) return undefined;
+	return [[_ax, _ay], [_bx, _by], [_cx, _cy]];
+}
+
+/// @func ink_stroke_pip(_pts, _size)
+/// @desc Is a stroke a pip, inside a drawing _size across? A dot (18 px or less), or a small closed, roundish loop
+///       (Jared, 2026-11-22: big circles count too).
+function ink_stroke_pip(_pts, _size) {
+	var _b = ink_stroke_bbox(_pts);
+	var _m = max(_b.w, _b.h);
+	if (_m <= 18) return true;
+	if (_m > min(55, _size * 0.32)) return false;
+	var _c = array_length(_pts);
+	var _closed = point_distance(_pts[0][0], _pts[0][1], _pts[_c - 1][0], _pts[_c - 1][1]) <= _m * 0.5;
+	var _round = _b.w >= _b.h * 0.5 && _b.h >= _b.w * 0.5;
+	return _closed && _round;
+}
+
+/// @func ink_stroke_line(_pts)
+/// @desc A stroke as a straight line: { dir ("h", "v" or "" if it isn't straight), len, w, h, cx, cy, x1, y1, x2, y2 }.
+function ink_stroke_line(_pts) {
+	var _c = array_length(_pts);
+	var _b = ink_stroke_bbox(_pts);
+	var _len = 0;
+	for (var i = 1; i < _c; i++) _len += point_distance(_pts[i - 1][0], _pts[i - 1][1], _pts[i][0], _pts[i][1]);
+	var _dx = _pts[_c - 1][0] - _pts[0][0], _dy = _pts[_c - 1][1] - _pts[0][1];
+	var _dir = "";
+	if (_len >= 20 && point_distance(0, 0, _dx, _dy) >= _len * 0.8) {
+		if (abs(_dy) <= abs(_dx) * 0.36) _dir = "h";
+		else if (abs(_dx) <= abs(_dy) * 0.36) _dir = "v";
+	}
+	return { dir: _dir, len: _len, w: _b.w, h: _b.h, cx: _b.cx, cy: _b.cy, x1: _b.cx - _b.w / 2, y1: _b.cy - _b.h / 2, x2: _b.cx + _b.w / 2, y2: _b.cy + _b.h / 2 };
+}
+
+/// @func ink_egg_plus_one()
+/// @desc Write "+1": a horizontal and a vertical line crossing in the middle (the plus), and a tall upright stroke to
+///       its right (the one). Once a run, it's an extra play this turn.
+function ink_egg_plus_one() {
+	with (oCombat) {
+		if (oRunManager.ink_plus_found || state != CombatState.PLAYER_INPUT) return;
+		var _n = array_length(ink_strokes);
+		var _lines = [];
+		for (var i = 0; i < _n; i++) _lines[i] = ink_stroke_line(ink_strokes[i].pts);
+		for (var a = 0; a < _n; a++) {
+			var _h = _lines[a];
+			if (_h.dir != "h") continue;
+			for (var b = 0; b < _n; b++) {
+				var _v = _lines[b];
+				if (b == a || _v.dir != "v") continue;
+				if (abs(_h.cx - _v.cx) > _h.w * 0.3 || abs(_v.cy - _h.cy) > _v.h * 0.3) continue; // they cross near the middle
+				if (_h.w < _v.h * 0.5 || _h.w > _v.h * 2) continue;
+				var _s = max(_h.w, _v.h), _pcx = _v.cx, _pcy = _h.cy;
+				for (var k = 0; k < _n; k++) {
+					if (k == a || k == b) continue;
+					var _o = _lines[k];
+					if (_o.cx < _pcx + _s * 0.4 || _o.cx > _pcx + _s * 2.5) continue; // to the right
+					if (_o.h < _s * 0.7 || _o.w > _o.h * 0.7) continue; // tall and upright
+					if (_o.y1 > _pcy || _o.y2 < _pcy) continue; // level with the plus
+					oRunManager.ink_plus_found = true;
+					dice_allowed_this_turn_bonus += 1;
+					var _cx = (_pcx + _o.cx) / 2, _cy = _pcy;
+					ink_egg_lift(_cx, _cy, "+1 play", "Your +1 became a play.");
+					return;
+				}
+			}
+		}
+	}
+}
+
+/// @func ink_egg_neow()
+/// @desc Write "neow" (in print or joined up). Once a run, 100 gold. Matched as a point cloud ($P recognizer,
+///       ink_pdollar_*), whole and a letter at a time; the writing must be wide (3 to 9
+///       times as wide as tall; ink_neow_reads). The last 1 to 8 strokes are tried, so older doodles don't spoil it.
+function ink_egg_neow() {
+	with (oCombat) {
+		if (oRunManager.ink_neow_found) return;
+		var _n = array_length(ink_strokes);
+		for (var _take = 1; _take <= min(8, _n); _take++) {
+			var _strokes = [];
+			var _x1 = infinity, _y1 = infinity, _x2 = -infinity, _y2 = -infinity;
+			for (var i = _n - _take; i < _n; i++) {
+				array_push(_strokes, ink_strokes[i].pts);
+				var _b = ink_stroke_bbox(ink_strokes[i].pts);
+				_x1 = min(_x1, _b.cx - _b.w / 2); _x2 = max(_x2, _b.cx + _b.w / 2);
+				_y1 = min(_y1, _b.cy - _b.h / 2); _y2 = max(_y2, _b.cy + _b.h / 2);
+			}
+			var _w = _x2 - _x1, _hh = max(1, _y2 - _y1);
+			if (_w < 120 || _w / _hh < 2.6 || _w / _hh > 9) continue; // a capital N makes it taller
+			if (!ink_neow_reads(_strokes)) continue;
+			oRunManager.ink_neow_found = true;
+			oRunManager.credits += 100;
+			ink_egg_lift((_x1 + _x2) / 2, (_y1 + _y2) / 2, "+100 gold", "Neow. 100 gold.");
+			return;
+		}
+	}
+}
+
+/// @func ink_egg_lift(_x, _y, _float, _feed)
+/// @desc An ink egg paid out: the writing lifts off the page in a burst, with a word over it.
+function ink_egg_lift(_x, _y, _float, _feed) {
+	with (oCombat) {
+		ink_strokes = [];
+		ink_drawing = false;
+		particle_emit_later(_x, _y, "burst", global.color_intel, 30);
+		particle_emit_later(_x, _y, "rise", global.color_gold, 12);
+		sfx_play(soCoins, AUDIO_GROUP.SFX, 0.05, 0.9);
+		float_text(_x, _y - 60, _float, c_white);
+		add_feed_entry(_feed);
+	}
+}
+
+// ---- $P point-cloud recognizer (Vatavu, Anthony, Wobbrock 2012), for written words in the ink view ----
+#macro INK_PDOLLAR_N 32
+
+/// @func ink_pdollar_cloud(_strokes)
+/// @desc Strokes (arrays of [x, y, ...]) as a normalized cloud of INK_PDOLLAR_N points [x, y]: resampled evenly along
+///       the strokes, scaled to a unit box (keeping its shape), centred on its middle.
+function ink_pdollar_cloud(_strokes) {
+	var _pts = [];
+	for (var s = 0; s < array_length(_strokes); s++) for (var i = 0; i < array_length(_strokes[s]); i++) array_push(_pts, [_strokes[s][i][0], _strokes[s][i][1], s]);
+	var _len = 0;
+	for (var i = 1; i < array_length(_pts); i++) if (_pts[i][2] == _pts[i - 1][2]) _len += point_distance(_pts[i - 1][0], _pts[i - 1][1], _pts[i][0], _pts[i][1]);
+	var _step = _len / (INK_PDOLLAR_N - 1);
+	var _out = [[_pts[0][0], _pts[0][1]]];
+	var _acc = 0;
+	var i = 1;
+	while (i < array_length(_pts) && _step > 0) {
+		if (_pts[i][2] == _pts[i - 1][2]) {
+			var _d = point_distance(_pts[i - 1][0], _pts[i - 1][1], _pts[i][0], _pts[i][1]);
+			if (_acc + _d >= _step && _d > 0) {
+				var _qx = _pts[i - 1][0] + ((_step - _acc) / _d) * (_pts[i][0] - _pts[i - 1][0]);
+				var _qy = _pts[i - 1][1] + ((_step - _acc) / _d) * (_pts[i][1] - _pts[i - 1][1]);
+				array_push(_out, [_qx, _qy]);
+				array_insert(_pts, i, [_qx, _qy, _pts[i][2]]);
+				_acc = 0;
+			} else _acc += _d;
+		}
+		i++;
+	}
+	while (array_length(_out) < INK_PDOLLAR_N) array_push(_out, [_pts[array_length(_pts) - 1][0], _pts[array_length(_pts) - 1][1]]);
+	if (array_length(_out) > INK_PDOLLAR_N) array_resize(_out, INK_PDOLLAR_N);
+	var _x1 = infinity, _y1 = infinity, _x2 = -infinity, _y2 = -infinity;
+	for (var k = 0; k < INK_PDOLLAR_N; k++) { _x1 = min(_x1, _out[k][0]); _x2 = max(_x2, _out[k][0]); _y1 = min(_y1, _out[k][1]); _y2 = max(_y2, _out[k][1]); }
+	var _size = max(1, max(_x2 - _x1, _y2 - _y1));
+	var _mx = 0, _my = 0;
+	for (var k = 0; k < INK_PDOLLAR_N; k++) { _out[k][0] = (_out[k][0] - _x1) / _size; _out[k][1] = (_out[k][1] - _y1) / _size; _mx += _out[k][0]; _my += _out[k][1]; }
+	_mx /= INK_PDOLLAR_N; _my /= INK_PDOLLAR_N;
+	for (var k = 0; k < INK_PDOLLAR_N; k++) { _out[k][0] -= _mx; _out[k][1] -= _my; }
+	return _out;
+}
+
+/// @func ink_pdollar_distance(_a, _b, _start)
+/// @desc $P's cloud distance: each point of _a, from _start round, takes its nearest unmatched point of _b; earlier
+///       matches weigh more.
+function ink_pdollar_distance(_a, _b, _start) {
+	var _n = INK_PDOLLAR_N;
+	var _used = array_create(_n, false);
+	var _sum = 0;
+	var i = _start;
+	do {
+		var _best = -1, _bd = infinity;
+		for (var j = 0; j < _n; j++) {
+			if (_used[j]) continue;
+			var _d = point_distance(_a[i][0], _a[i][1], _b[j][0], _b[j][1]);
+			if (_d < _bd) { _bd = _d; _best = j; }
+		}
+		_used[_best] = true;
+		_sum += (1 - ((i - _start + _n) mod _n) / _n) * _bd;
+		i = (i + 1) mod _n;
+	} until (i == _start);
+	return _sum;
+}
+
+/// @func ink_pdollar_match(_a, _b)
+/// @desc $P's greedy match between two clouds: the smallest distance over a spread of starting points, both ways.
+function ink_pdollar_match(_a, _b) {
+	var _step = floor(power(INK_PDOLLAR_N, 0.5));
+	var _min = infinity;
+	for (var i = 0; i < INK_PDOLLAR_N; i += _step) _min = min(_min, ink_pdollar_distance(_a, _b, i), ink_pdollar_distance(_b, _a, i));
+	return _min;
+}
+
+/// @func ink_pdollar_templates()
+/// @desc The shapes it knows, built once from letter strokes (x-height 1, letters 1 wide, 1.3 apart): "neow" in print
+///       and joined up (words), and single letters for reading a word one quarter at a time (letters: n e o w, and
+///       lookalikes l v c u). { words: [clouds], letters: [{ ch, cloud }] }.
+function ink_pdollar_templates() {
+	if (variable_global_exists("ink_pdollar_tpl")) return global.ink_pdollar_tpl;
+	var _arc = function(_cx, _cy, _r, _a0, _a1, _ox) {
+		var _s = [];
+		for (var k = 0; k <= 12; k++) { var _a = lerp(_a0, _a1, k / 12); array_push(_s, [_ox + _cx + lengthdir_x(_r, _a), _cy + lengthdir_y(_r, _a)]); }
+		return _s;
+	};
+	var _n = function(_ox) { return [[[_ox, 0], [_ox, 1]], [[_ox, 0.4], [_ox + 0.2, 0.05], [_ox + 0.5, 0], [_ox + 0.8, 0.05], [_ox + 1, 0.4], [_ox + 1, 1]]]; };
+	var _e = method({ arc: _arc }, function(_ox) { var _c = arc(0.5, 0.5, 0.5, 0, 315, _ox); array_insert(_c, 0, [_ox, 0.5]); return [_c]; });
+	var _o = method({ arc: _arc }, function(_ox) { return [arc(0.5, 0.5, 0.5, 0, 360, _ox)]; });
+	var _w = function(_ox) { return [[[_ox, 0], [_ox + 0.25, 1], [_ox + 0.5, 0.3], [_ox + 0.75, 1], [_ox + 1, 0]]]; };
+	var _N = function(_ox) { return [[[_ox, 1], [_ox, -0.5], [_ox + 1, 1], [_ox + 1, -0.5]]]; }; // a capital: taller than the rest
+	var _word = function(_parts) {
+		var _all = [];
+		for (var p = 0; p < array_length(_parts); p++) for (var q = 0; q < array_length(_parts[p]); q++) array_push(_all, _parts[p][q]);
+		return _all;
+	};
+	global.ink_pdollar_tpl = {
+		words: [
+			ink_pdollar_cloud(_word([_n(0), _e(1.3), _o(2.6), _w(3.9)])),
+			ink_pdollar_cloud(_word([_n(0), [[[1, 1], [1.3, 0.5]]], _e(1.3), [[[2.15, 0.85], [2.6, 0.5]]], _o(2.6), [[[3.6, 0.5], [3.9, 0]]], _w(3.9)])),
+			ink_pdollar_cloud(_word([_N(0), _e(1.3), _o(2.6), _w(3.9)])), // "Neow" (Jared, 2026-11-22)
+			ink_pdollar_cloud(_word([_N(0), [[[1, -0.5], [1.3, 0.5]]], _e(1.3), [[[2.15, 0.85], [2.6, 0.5]]], _o(2.6), [[[3.6, 0.5], [3.9, 0]]], _w(3.9)])),
+		],
+		letters: [
+			{ ch: "n", cloud: ink_pdollar_cloud(_n(0)) },
+			{ ch: "e", cloud: ink_pdollar_cloud(_e(0)) },
+			{ ch: "o", cloud: ink_pdollar_cloud(_o(0)) },
+			{ ch: "w", cloud: ink_pdollar_cloud(_w(0)) },
+			{ ch: "l", cloud: ink_pdollar_cloud([[[0, 0], [0, 1]]]) },
+			{ ch: "v", cloud: ink_pdollar_cloud([[[0, 0], [0.5, 1], [1, 0]]]) },
+			{ ch: "c", cloud: ink_pdollar_cloud([_arc(0.5, 0.5, 0.5, 45, 315, 0)]) },
+			{ ch: "u", cloud: ink_pdollar_cloud([[[0, 0], [0, 0.6], [0.2, 0.95], [0.5, 1], [0.8, 0.95], [1, 0.6], [1, 0]]]) },
+			{ ch: "N", cloud: ink_pdollar_cloud(_N(0)) },
+			{ ch: "M", cloud: ink_pdollar_cloud([[[0, 1], [0, -0.5], [0.5, 0.5], [1, -0.5], [1, 1]]]) }, // so "Meow" doesn't count
+			{ ch: "m", cloud: ink_pdollar_cloud([[[0, 0], [0, 1]], [[0, 0.4], [0.25, 0], [0.5, 0.4], [0.5, 1]], [[0.5, 0.4], [0.75, 0], [1, 0.4], [1, 1]]]) },
+		],
+	};
+	return global.ink_pdollar_tpl;
+}
+
+/// @func ink_pdollar_letters(_strokes)
+/// @desc Reads writing as four letters, one per quarter of its width (each quarter's pieces of stroke matched against
+///       the letter templates). "?" for an empty quarter.
+function ink_pdollar_letters(_strokes) {
+	var _x1 = infinity, _x2 = -infinity;
+	for (var s = 0; s < array_length(_strokes); s++) for (var i = 0; i < array_length(_strokes[s]); i++) { _x1 = min(_x1, _strokes[s][i][0]); _x2 = max(_x2, _strokes[s][i][0]); }
+	var _qw = max(1, (_x2 - _x1) / 4);
+	var _cols = [[], [], [], []];
+	for (var s = 0; s < array_length(_strokes); s++) {
+		var _cur = [], _ci = -1;
+		for (var i = 0; i < array_length(_strokes[s]); i++) {
+			var _p = _strokes[s][i];
+			var _c = min(3, floor((_p[0] - _x1) / _qw));
+			if (_c != _ci) {
+				if (array_length(_cur) > 0) array_push(_cols[_ci], _cur);
+				_cur = [];
+				_ci = _c;
+			}
+			array_push(_cur, _p);
+		}
+		if (array_length(_cur) > 0) array_push(_cols[_ci], _cur);
+	}
+	var _tpl = ink_pdollar_templates().letters;
+	var _out = "";
+	for (var c = 0; c < 4; c++) {
+		if (array_length(_cols[c]) == 0) { _out += "?"; continue; }
+		var _cloud = ink_pdollar_cloud(_cols[c]);
+		var _best = "?", _bd = infinity;
+		for (var t = 0; t < array_length(_tpl); t++) {
+			var _d = ink_pdollar_match(_cloud, _tpl[t].cloud);
+			if (_d < _bd) { _bd = _d; _best = _tpl[t].ch; }
+		}
+		_out += _best;
+	}
+	return _out;
+}
+
+/// @func ink_neow_reads(_strokes)
+/// @desc Do these strokes say "neow" (or "Neow")? The whole looks like the word (its $P distance to a "neow" template under 0.95),
+///       and read a quarter at a time it's n or N, then e or o (or c), twice, then w (or v). Calibrated on simulated
+///       handwriting (2026-11-22): "now", "new", "wow", "meow", "neon", zigzags and loops don't pass.
+function ink_neow_reads(_strokes) {
+	var _cloud = ink_pdollar_cloud(_strokes);
+	var _words = ink_pdollar_templates().words;
+	var _bd = infinity;
+	for (var t = 0; t < array_length(_words); t++) _bd = min(_bd, ink_pdollar_match(_cloud, _words[t]));
+	if (_bd >= 0.95) return false;
+	var _l = ink_pdollar_letters(_strokes);
+	return (string_char_at(_l, 1) == "n" || string_char_at(_l, 1) == "N") && string_pos(string_char_at(_l, 2), "eoc") > 0 && string_pos(string_char_at(_l, 3), "eoc") > 0 && string_pos(string_char_at(_l, 4), "wv") > 0;
+}
+
+/// @func ink_seg_dist(_px, _py, _ax, _ay, _bx, _by)
+/// @desc How far a point is from the line segment a-b.
+function ink_seg_dist(_px, _py, _ax, _ay, _bx, _by) {
+	var _dx = _bx - _ax, _dy = _by - _ay, _l = _dx * _dx + _dy * _dy;
+	var _t = (_l > 0) ? clamp(((_px - _ax) * _dx + (_py - _ay) * _dy) / _l, 0, 1) : 0;
+	return point_distance(_px, _py, _ax + _t * _dx, _ay + _t * _dy);
 }
 
 /// @func ink_doodles_draw()
@@ -3954,18 +4418,32 @@ function ink_doodles_draw() {
 /// @desc A round ink button with an icon, its cost as a pip at its lower right (ink_cost_pip): "reroll" (a die in a turning
 ///       arrow), "redraw" (a die between two swap arrows), "reveal" (an eye) or "rewrite" (a quill). Like ink_button: the pips it costs flicker on hover, faded
 ///       when you can't afford it, its edge sloshes (wet_ink_circle). Returns { hover, click }.
-function ink_icon_button(_cx, _cy, _icon, _cost, _ok) {
-	var _hov = mouse_hovering(_cx, _cy, 44, 44, true, soSlotHover, noone, true, UI_LAYER.POPUP);
-	var _r = 20 * ((_hov && _ok) ? 1.1 : 1);
+function ink_icon_button(_cx, _cy, _icon, _cost, _ok, _size = 1) {
+	var _hov = mouse_hovering(_cx, _cy, 44 * _size, 44 * _size, true, soSlotHover, noone, true, UI_LAYER.POPUP);
+	var _r = 20 * _size * ((_hov && _ok) ? 1.1 : 1);
 	if (_ok) wet_ink_circle(_cx, _cy, _r + 2);
-	var _ink = global.color_intel;
-	draw_set_alpha(_ok ? 1 : 0.5);
-	draw_set_color(_ink);
-	draw_circle(_cx, _cy, _r + 2, false);
-	draw_set_color((_hov && _ok) ? global.ui_col.paper_hi : global.ui_col.paper);
+	// a solid ink disc with a pale icon, black-rimmed with a shadow, so it stands out over paper and enemy art (Jared,
+	// 2026-11-22: pale ones got lost under the intents). One you can't afford is grey.
+	// One you can't afford is drawn like the inked page around it: parchment, an ink rim and an ink icon (Jared,
+	// 2026-11-22: only what you can afford in colour)
+	var _disc = _ok ? (_hov ? merge_color(global.color_intel, c_white, 0.15) : global.color_intel) : global.ui_col.paper;
+	var _pale = _ok ? global.ui_col.paper_hi : global.color_intel;
+	if (_ok) {
+		draw_set_alpha(0.35);
+		draw_set_color(c_black);
+		draw_circle(_cx + 2, _cy + 3, _r + 3, false);
+		draw_set_alpha(1);
+		draw_circle(_cx, _cy, _r + 3, false);
+	} else {
+		draw_set_alpha(0.8);
+		draw_set_color(global.color_intel);
+		draw_circle(_cx, _cy, _r + 2, false);
+	}
+	draw_set_color(_disc);
 	draw_circle(_cx, _cy, _r, false);
-	// the icon, in ink
-	draw_set_color(_ink);
+	var _ink = _disc; // the icon's cut-outs are disc coloured
+	// the icon, pale on the disc
+	draw_set_color(_pale);
 	var _k = _r / 20;
 	if (_icon == "reroll") {
 		// a die, and an arrow turning round it
@@ -3976,16 +4454,21 @@ function ink_icon_button(_cx, _cy, _icon, _cost, _ok) {
 		draw_triangle(_hx + lengthdir_x(5 * _k, _a1), _hy + lengthdir_y(5 * _k, _a1), _hx - lengthdir_x(5 * _k, _a1), _hy - lengthdir_y(5 * _k, _a1), _hx + lengthdir_x(7 * _k, _a1 + 90), _hy + lengthdir_y(7 * _k, _a1 + 90), false); // the head, pointing on round
 	} else if (_icon == "reveal") {
 		// an eye
-		draw_set_color(_ink);
+		draw_set_color(_pale);
 		draw_ellipse(_cx - 12 * _k, _cy - 7 * _k, _cx + 12 * _k, _cy + 7 * _k, false);
-		draw_set_color((_hov && _ok) ? global.ui_col.paper_hi : global.ui_col.paper);
-		draw_ellipse(_cx - 9.5 * _k, _cy - 5 * _k, _cx + 9.5 * _k, _cy + 5 * _k, false);
 		draw_set_color(_ink);
 		draw_circle(_cx, _cy, 4.5 * _k, false);
+		draw_set_color(_pale);
+		draw_circle(_cx - 1.5 * _k, _cy - 1.5 * _k, 1.5 * _k, false); // a catch-light
+	} else if (_icon == "move") {
+		// two arrows pointing apart: drag it either way
+		draw_line_width(_cx - 8 * _k, _cy, _cx + 8 * _k, _cy, 3 * _k);
+		draw_triangle(_cx - 14 * _k, _cy, _cx - 6 * _k, _cy - 7 * _k, _cx - 6 * _k, _cy + 7 * _k, false);
+		draw_triangle(_cx + 14 * _k, _cy, _cx + 6 * _k, _cy - 7 * _k, _cx + 6 * _k, _cy + 7 * _k, false);
 	} else if (_icon == "rewrite") {
 		// a quill, nib at the lower left
 		draw_quill(_cx - 9 * _k, _cy + 10 * _k, 24 * _k, 50);
-		draw_set_alpha(_ok ? 1 : 0.5);
+		draw_set_alpha(_ok ? 1 : 0.8);
 	} else {
 		// a die between two arrows going opposite ways (out for a new one)
 		draw_roundrect_ext(_cx - 5 * _k, _cy - 5 * _k, _cx + 5 * _k, _cy + 5 * _k, 3, 3, false);
@@ -4018,7 +4501,7 @@ function ink_cost_pip(_x, _y, _cost, _ok) {
 }
 
 /// @func ink_costs_draw()
-/// @desc The ink view's costs (ink_cost_pip), 20% bigger than before, and the hovered die's mouse hint.
+/// @desc The ink view's costs (ink_cost_pip), 20% bigger than before.
 function ink_costs_draw() {
 	with (oCombat) {
 		draw_set_font(ftDescriptions);
@@ -4033,27 +4516,6 @@ function ink_costs_draw() {
 			draw_circle(_c.x, _c.y, 10.5, false);
 			draw_set_color(global.text_intel);
 			draw_text_transformed(_c.x, _c.y + 1, string(_c.cost), 0.96, 0.96, 0);
-		}
-		// the mouse hint: between a die's two buttons, its left or right button lit for the one you're pointing at
-		if (is_struct(ink_mouse_hint)) {
-			var _h = ink_mouse_hint, _mx = _h.x, _my = _h.y, _w = 7, _hh = 10;
-			draw_set_alpha(1);
-			draw_set_color(global.color_intel);
-			draw_roundrect_ext(_mx - _w - 2, _my - _hh - 2, _mx + _w + 2, _my + _hh + 2, 9, 9, false);
-			draw_set_color(global.ui_col.paper);
-			draw_roundrect_ext(_mx - _w, _my - _hh, _mx + _w, _my + _hh, 7, 7, false);
-			// the buttons: the one for the hovered side lit; both half lit over the die
-			for (var s = -1; s <= 1; s += 2) {
-				var _lit = (_h.side == s) ? 1 : ((_h.side == 0) ? 0.55 : 0.15);
-				draw_set_alpha(_lit);
-				draw_set_color(global.color_intel);
-				if (s < 0) draw_rectangle(_mx - _w + 1, _my - _hh + 2, _mx - 1, _my - 1, false);
-				else draw_rectangle(_mx + 1, _my - _hh + 2, _mx + _w - 1, _my - 1, false);
-			}
-			draw_set_alpha(1);
-			draw_set_color(global.color_intel);
-			draw_line_width(_mx, _my - _hh, _mx, _my, 1.5);
-			draw_line_width(_mx - _w, _my, _mx + _w, _my, 1.5);
 		}
 		draw_set_alpha(1);
 		draw_set_color(c_white);

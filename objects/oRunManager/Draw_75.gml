@@ -224,36 +224,8 @@ if (show_tools) {
 			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc);
 
 			if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE) {
-				if (room == rmWorkbench) {
-					if (instance_exists(oWorkbenchManager) && array_contains(oWorkbenchManager.tools_used, tool.object)) {
-						throw_error("Used this visit", "Each tool works once per visit.");
-					} else if (!instance_exists(tool.object)) {
-						var pos_x;
-						var pos_y;
-				
-						switch(i) {
-							case 0:
-							pos_x = gui_w - 150;
-							pos_y = gui_h/2 + 50;
-							break;
-					
-							case 1:
-							pos_x = 150;
-							pos_y = gui_h/2 + 50;
-							break;
-					
-							case 2:
-							pos_x = gui_w - 300;
-							pos_y = gui_h - 200;
-							break;
-						}
-						instance_create_layer(pos_x, pos_y, "Instances", tool.object);
-					} else {
-						throw_error("Already out", "This tool is already on the workbench.");
-					}
-				} else {
-					throw_error("Workbench only", "Tools work only at the workbench.");
-				}
+				// the workbench's tools hang on its rack (F224): the toolbag only says what you own
+				if (room != rmWorkbench) throw_error("Workbench only", "Tools work only at the workbench.");
 			}
 		}
 	}
@@ -267,8 +239,9 @@ if (show_tools) {
 
 
 
-// insight view (the eye in a fight): darkens everything but what insight can buy, drawn over the whole Draw GUI
-combat_insight_view_draw();
+// insight view (the eye in a fight): darkens everything but what insight can buy, drawn over the whole Draw GUI. Not
+// while the settings or the bag cover the screen: they'd be inked over too
+if (!global.show_settings && !show_dice_list) combat_insight_view_draw();
 
 // the bag icon (bottom left), above the map and every room window
 // Draw bag preview
@@ -298,8 +271,8 @@ draw_set_font(ftBig);
 draw_text(70, gui_h - 55, string(ds_list_size(global.dice_bag)));
 
 if (bag_hover) {
-	if (mouse_check_button_pressed(mb_left) && !global.all_input_disabled && instance_exists(oWorkbenchManager) && oWorkbenchManager.pick_pending) {
-		workbench_open_picker(); // at the workbench, opening the bag is how you choose your dice
+	if (mouse_check_button_pressed(mb_left) && !global.all_input_disabled && instance_exists(oWorkbenchManager) && dice_selection == false && !oWorkbenchManager.exiting) {
+		workbench_open_picker(); // at the workbench the bag gives you dice for the bench, any time (F224)
 	} else if (mouse_check_button_pressed(mb_left) && !global.all_input_disabled) {
 		show_bag_contents = 1 - show_bag_contents;
 		bag_to_show = global.dice_bag;
@@ -427,6 +400,14 @@ if (show_bag_contents) {
 								filter_pass = true;
 							} else {
 								throw_error("Not a coin", "Choose a coin.");
+							}
+						break;
+						case "min_room":
+							// +1 min roll: not on a die whose lowest roll is already its highest (Jared, 2026-11-22)
+							if (1 + dice.min_roll_bonus < dice.dice_value) {
+								filter_pass = true;
+							} else {
+								throw_error("Can't go higher", "Its lowest roll is already its highest.");
 							}
 						break;
 					}
@@ -631,6 +612,9 @@ global.damage_text_late = false;
 
 // the first voyage's map notes and the one-time tips, above every window
 tips_draw();
+
+// an item waiting for room (the wreck when your slots are full)
+pending_item_draw();
 
 // the insight panel while hovered, over the tutorial notes and tips
 insight_panel_draw();

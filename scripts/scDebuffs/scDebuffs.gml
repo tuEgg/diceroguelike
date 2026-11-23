@@ -2,6 +2,10 @@
 // https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
 /// @function apply_buff(_target, _template, _duration, _amount, _remove_next_turn, _source, [_permanent])
 function apply_buff(_target, _template, _duration, _amount, _remove_next_turn, _source, _permanent = false) {
+	switch (_template._id) {
+		case "bind": case "barnacle_bind": sfx_play(soRope, AUDIO_GROUP.SFX, 0.05, 0.9); break;
+		case "spines": sfx_play(soThorns, AUDIO_GROUP.SFX, 0.05, 0.9); break;
+	}
 
     var inst = {
         template: clone_buff(_template),   // <-- reference, NOT a clone
@@ -223,10 +227,14 @@ function define_buffs_and_debuffs() {
 	            trigger: "on_turn_start",
 	            modify: function(_ctx) {
 				    oCombat.player_intel -= _ctx.debuff.amount;
-					oCombat.enemy_target_index = _ctx.debuff.source_info.index;
+					// find the enemy that cast it now: its old index goes stale once an enemy dies or flees (crash, 2026-11-22)
+					var _src = _ctx.debuff.source_info.source;
+					var _i = is_struct(_src) ? ds_list_find_index(oCombat.room_enemies, _src) : -1;
+					if (_i == -1) return; // it's gone: nothing to lock onto
+					oCombat.enemy_target_index = _i;
 					oCombat.target_locked = true; // can't change target this turn
-					
-					particle_emit( oCombat.room_enemies[| oCombat.enemy_target_index].pos_x, oCombat.room_enemies[| oCombat.enemy_target_index].pos_y, "rise", global.color_intel, 42);
+
+					particle_emit(_src.pos_x, _src.pos_y, "rise", global.color_intel, 42);
 				}
 	        }
 	    ]

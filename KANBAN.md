@@ -28,44 +28,7 @@
 
 ## 🧪 IN TESTING: waiting for Jared's playtest
 
-| Batch | Cards | Branch / commit | Status |
-|---|---|---|---|
-
-| 24: map click jump, ink view | B146, F188, F189, F190, F191, F192, F194, F195 | `feature/ink-view` (off `dev`, includes `fix/map-click-jump`) | **Not yet play-tested.** The map click jump; the ink view labelled, ink pips, inky black, what changed, one name: ink. |
-| 25: queue timeline | F193 | `feature/queue-timeline` (off `feature/ink-view`) | **Not yet play-tested.** Enemy moves act between your slots, shown on a track; the queue resets each turn; slots cost 2, 4, 6 pips; ink moves a move a slot for 4. |
-
-**Batch 25 test list (`feature/queue-timeline`, off `feature/ink-view`)**
-- F193 A track sits over the queue: numbers over your slots and the new-slot tile, nothing further. A move set past the tile shows at the tile, whose number reads "2+" (no long lines over the enemy). Each enemy has a letter in a coloured circle on its intent tag, and a marker with the same letter, icon and number riding the track at the gap after the slot where it acts. Two in one gap stack. Hover a marker: its move and "After your slot 2." / "After your last slot."
-- F193 End Turn: your slots act left to right and each enemy acts at its gap, between your slots. A marker past your last slot acts at the end. Block made before a hit stops it; a hit before your Block slot gets through.
-- F193 Kill or stun an enemy before its gap: it doesn't act and its marker greys. One you kill after it acted doesn't break the turn (watch for the next turn starting normally).
-- F193 Fixed timings: Mock, Peck, Coil, buffs and most debuffs come after slot 1; Mimic, big hits (Heavy Swing, Crushing Slam, Volley Fire...) and Rest come last; Peg-leg's Escaping after slot 2. Everything else is rolled 1-4 each turn.
-- F193 The queue resets every turn: next turn you're back to one slot (a slot a Sticky die is in stays). Slot 2 costs 2 pips, slot 3 4, slot 4 6; one die can build a slot if it's enough. Enemy block is gone at the end of each round.
-- F193 Ink view: an arrow either side of each marker on the track (4 ink each) moves it a slot earlier or later; "After your slot N." floats up. Hovering one flickers the 4 pips it costs. Earlier stops at slot 1, Later at "last" moves. Nothing extra under the intents any more.
-- Intent tags over enemies are their normal size again (the letter badge was shrinking the number).
-- d4s and d6s side by side sit level everywhere dice are drawn (hand, slots, bag, rewards): the triangle used to sit high. Check d4 pips are still centred in the triangle, and d10s too if any show.
-- Wet ink edge v3 (docs/mockups/wet-ink-edge.html): in the ink view the ink edge of everything you can afford sloshes, each on its own: Reroll and Redraw each have their own edge (no shared container round both), and so do Reveal, Rewrite, the track arrows and the ink edge round each die. The swell is about a third bigger than v2. Check it doesn't slow the game down.
-- Doodles: in the ink view, left-drag anywhere that isn't a button, a die, the inkwell or Done to draw in ink (thinner when you move fast). Each stroke fades out 6 s after you finish it; closing the log wipes them.
-- Dealing is quicker (a die every 0.1 s, a shorter tumble), and each die flies straight to its own spot in the row and lands on it: nothing shuffles along as the rest arrive. Same for dice taken back from a slot.
-- Ink view buttons are all round icons: over each die, Reroll (a die in a turning arrow) left and Redraw (a die between two arrows) right; under each intent, Reveal (an eye) and Rewrite (a quill). Point at a die or its buttons: a small mouse appears between the two, its left button lit for Reroll, right for Redraw; the tooltips say "Or left-click the die" / "Or right-click the die".
-- Ink costs are pips with the number in (like the pips under the inkwell), about 20% bigger, on every ink button and on the track's arrows, and always on top of the sloshing edge. The tooltip's cost tag uses a pip too, not the old eye/drop.
-- The ink buff under you (ink coming next turn) shows as a small inkwell, like the ink view's button.
-- Stacked markers on the track: the lower marker is drawn over the line coming down from the one above it.
-- No extra pause after your last slot: enemies left to act go straight away, as they do mid-queue. (Keepsakes on "your turn ends" fire once, not once per enemy left.)
-- Slowdown while drafting (quartermaster pick and the two pages) should be gone: the island mask on each draft card now only runs over the card, not the whole screen.
-- The discard bag sits a little further left.
-- Ink dice (pure ink, like the starter Ink die): an ink-blue rim over the black outline that swells and ripples all the time, out of the ink view too. When one moves the rim bulges out behind it; a fast move throws a couple of drops. No lighter dot running round the edge any more.
-- F193 Bind and Rot pick their slot when you end your turn, from the slots with dice (Rot's slot flashes green). During your turn no slot shows as chained or rotten, and you can play into any of them.
-
-**Batch 24 test list (`feature/ink-view`)**
-- B146 Click a stop on the map: the stop and its dotted courses stay put (they jumped down for a moment); the ship still sails to it and lands just below it.
-- F188 The ink view keeps its mode but every action is a labelled button: over each die in hand, "Reroll" and "Redraw" stacked, each with its cost (an ink drop and a number); under each enemy's intent, "Reveal" (if its number isn't shown) and "Rewrite" (if it can change its move). Click a button to do it; left/right-clicking a die still works too. A button you can't afford is faded and says "Not enough ink". End Turn reads "Done" while the log is open.
-- F189 Ink shows as pips under the inkwell, in and out of the log: two rows of 6, filled in ink; hover an ink button and the pips it would spend flicker. Below 0 (Blotted) it shows the red number.
-- F190 Ink is an inky black everywhere: ink dice (they were yellow), ink slots, the inkwell's ink, the ink view's edges and buttons. Ink numbers and words on dark backgrounds are a pale ink blue so they read; on paper they're near black. Things that only used the old yellow as a highlight (keepsake names when they fire, "Valley!", the armed keepsake ring, potion targets) stay gold. Check ink dice read on the felt (white pips on the dark die).
-- F191 What changed: a reroll floats "2 to 5" over the die, a redraw "Redrawn", a reveal "Exact: 7" over the intent, a rewrite "Old move to New move".
-- F194 Action glyphs on dice are off by default (Settings > Display > Action icons turns them on). Your saved setting is reset to off once.
-- F195 The hand is always one even row across the tray: dealt dice fly to its right end and the rest shift to make room; a die you drag and drop back slides into place. The ink view uses the same row.
-- F192 One name: insight is now ink in all the game's text (tooltips, dice, keepsakes, the bag filter "Ink", slot type "INK", the run summary). The starter die is called "Ink"; old saves still load it.
-
+Nothing waiting. (Batches 26 to 33 were approved on 2026-11-23: see DONE.)
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
@@ -122,12 +85,19 @@ All known P0 bugs are fixed, see DONE.
 Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discussion.
 
 **Open from the playtests (2026-11-19 and 2026-11-20)**
-- F183 Reward screens: anywhere an option is locked away (the item rewards' second pick), it burns away like the drafting page (page_burn_draw, shBurn) instead of chains (Jared, 2026-11-21).
-- F184 A sound for the burn (drafting page, and F183). Needs a sound from Jared (a soft whoosh and crackle), then one sfx_play where the burn starts.
 - F139 Giant Conch (parked by Jared, 2026-11-19; the summon intent icon is done): its echo attack uses the normal attack icon, no separate normal attack, less damage reduction (discuss numbers).
 - F151 (alignment cores done, batch 20) Cores beyond weighted/loaded: every core should be worth taking (no reason to take weighted or loaded otherwise). Alignment cores (chaotic rolls the lower your alignment, central rolls the higher).
 - F152 Alignment in combat: e.g. start with a d4 shaped by alignment.
 - H12 Reminder for Jared: more enemy art. (Pen and coin sounds added by Jared: soQuill, soCoins.)
+
+**From the 2026-11-22 playtest**
+- F203 Keepsake idea: rerolls can't roll the same value again.
+- F225 Hotkeys (playtester): Space End Turn, Tab the ink view, B the bag, 1-9 pick a die in hand.
+- F226 A run log (playtester): a page in the book listing fights, picks and events.
+- F211 Keepsake ideas (Jared): keepsakes that change sea stops (pick a stop's type, see the next spread's stops, a stop counts twice...).
+- Sounds still to make: `docs/sound-recommendations.md` (tiers and suggestions; Jared makes them, Claude wires them in).
+- Q16 Sea stop odds: agreed 2026-11-22, built as F209 (batch 28).
+- Q17 Design chat (soon): after the timeline queue, go through every keepsake, die and potion and the build archetypes emerging. Shipwright's Draft needs rebalancing. Merge "when played" and "when sacrificed" into one trigger, as they're barely different now.
 
 **Core loop**
 - F02 **Rethink what happens between pages (Jared, 2026-11-17).** (Superseded by F166's layout.) Workbench part done in batch 12 (At sea). Still open: the spread-end choices themselves. Built version (2026-11-17): the workbench becomes an "At sea" step between pages (after a page's island is done, before the next), replacing the map button. You choose which dice to take from your bag (not dealt at random), up to one per tool you own (plus a core for the Drill); each tool can be used once per visit and goes back in the toolbag after. "Sail on" skips it. Like FTL's ship upgrades between jumps, or the Slay the Spire campfire, but more often and smaller. Today a finished spread offers "heal 25% or gain a core" (the design doc says 20% heal), and the workbench can be visited after every node from a map button. Jared wants to improve the between-page choices and decide whether the always-available workbench should stay as it is. Design not started.
@@ -172,10 +142,15 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - Q10 UI rework direction (branch `feature/ui-rework`): `docs/design-ui-rework.md` and the mockup `docs/mockups/ui-style-tile.html` (combat before/after, palette, type, components). Waiting for Jared's approval before any screen changes.
 - Q1 What is "done" for the friends-and-family build? Leaning towards 1 act + boss, but deck evolution over 3 acts (like Slay the Spire) matters to the feel. Scope may grow now that Claude is helping. *Open.*
 - Q7 Resolution targets: settled by B83 (batch 12): the game is laid out at 1920x1080 and scaled to any 16:9 window, so new resolutions only need adding to the list.
+- Q16, Q17: see FEATURES, "From the 2026-11-22 playtest".
 - Q8 Between pages: answered by the strait and buoy (F112, F125, F126): the spread ends in sea stops on the map.
 
 ## 📌 DECISIONS
 
+- 2026-11-22 **The free workbench (F224):** no slots; tools work where they land; each tool once per visit (a "Used" tag); misses cost nothing; hovering a tool over dice says what it will do instead of a faded preview; dice from the bag any time, no limit; Continue sends the table's dice back.
+- 2026-11-22 **The queue shows four places (F205):** your slots, the one to build, locked ones up to four; a move is moved by dragging its handle along the track for 4 ink (F206), not by arrows.
+- 2026-11-22 **Sea stop odds (Q16, F209):** Calm water 1 to 5 by missing health; Shipwright 3, +2 per core held up to +4; a core held two spreads without a Shipwright guarantees one; at full health the safe stop is the Shipwright when a tool has work.
+- 2026-11-22 **Enemy block (F196):** an enemy's block lasts until it acts again; a new Block replaces it rather than stacking (enemies built to keep block still do).
 - 2026-11-22 **The queue as a timeline (F193):** every enemy move happens after one of your slots, shown on a track over the queue (option C). A move after a slot you haven't built happens at the end. Block counts from the moment its slot resolves, so a hit before your Block slot gets through. An enemy killed or stunned before its point loses that move (its marker stays, greyed). Ink can move an enemy's move one slot earlier or later for 4. Where a move lands is rolled each turn, except moves that always come first (after slot 1) or last. The queue fully resets every turn: you start with one slot, new slots cost 2, 4, 6... pips (no dice minimum), and the dice that build a slot act in it that turn, then are discarded. Dice keep owning their action and number; colour still gates the action.
 - 2026-11-22 **Ink view:** keep the mode, label every action, ink as pips, ink is inky black, show what changed, call it ink everywhere.
 - 2026-11-21 **Map layout B+:** every page you draft brings a sea stop after its island; the buoy and the four-way strait go; one of the three offered pages always carries Calm water or the Shipwright; a harbour (rest or refit) before each boss. Sea pages (option D) stay an idea for later.
@@ -191,6 +166,104 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 
 ## ✅ DONE
 
+**Approved by Jared (2026-11-23), merged to `dev`**
+
+| Batch | Cards | Branch / commit | Status |
+|---|---|---|---|
+| 33: workbench feel, Neow | F232, F233, B160 | `fix/playtest-11-22`, merged into `dev` | **Approved (2026-11-23).** Dice dealt onto the bench as in a fight, tools held by their handles, a real hammer swing, a wider reach, cores kept when hammering, fading hammer marks, "Neow". |
+| 32: slot number, ink sound, more ink eggs | F227, F228, F229, F230, F231 | `fix/playtest-11-22`, merged into `dev` | **Approved (2026-11-23).** A slot's big number is its dice, the place bonus only on the die; ink dice resolving sound wet; the drawn die takes big-circle pips; "+1" and "neow" eggs. |
+| 31: the free workbench | F224 | `fix/playtest-11-22`, merged into `dev` | **Approved (2026-11-23).** No slots: dice anywhere on a plank table, tools on a rack that work where they land, dice from the bag any time. |
+| 30: playtester notes (itch, 2026-11-22) | B156, B157, B158, B159, F215, F216, F217, F218, F219, F220, F221, F222, F223 | `fix/playtest-11-22`, merged into `dev` | **Approved (2026-11-23).** Only what you can afford is in colour in the ink view, alignment named as alignment, a slot's bonus under its total, Kill coin counts on the tile, a fight on every draft, green extra plays, rewards close themselves, event words explained, take-back fixes. |
+| 29: ink cursor, room for three enemies, burning rewards | B155, F183, F184, F212, F213, F214 | `fix/playtest-11-22`, merged into `dev` | **Approved (2026-11-23).** Quill cursor by default in the ink view, no mouse hint, enemies clear of the four-place queue, drag the marker itself (grip at its end), ink take-back sound, ship's bell, torch on burns, the locked item reward burns. |
+| 28: queue and ink view | B152, B153, B154, F205, F206, F207, F208, F209, F210 | `fix/playtest-11-22`, merged into `dev` | **Approved (2026-11-23).** Four slots always in view, drag a move along the track, click intents in the ink view, dice dealt in an arc, sea stop odds, the settings not inked, d4 text centred, the track lifts over a hovered slot, an ink easter egg. |
+| 27: sounds | F204 | `fix/playtest-11-22`, merged into `dev` | **Approved (2026-11-23).** Jared's new sounds wired in. |
+| 26: playtest notes 2026-11-22 | B147, B148, B149, B150, B151, F196, F197, F198, F199, F200, F201, F202 | `fix/playtest-11-22`, merged into `dev` | **Approved (2026-11-23).** Two crashes, the island flash on the page turn, a wrong padlock in slot 1, enemy block lasts until it acts again, ink buttons stand out, d6 ink slosh, linked stop badge, keepsake reward cards, min roll cap, the wreck with full slots. |
+
+**Batch 33 test list**
+- F232 Workbench: dice from the bag are dealt as in a fight: one every 0.1 s with the roll sound, tumbling, slowing in and landing on their spot with a small pop (no face). Landings and crafts bounce less.
+- F232 The drill is held just above its chuck (where the core sits; its tip works below the cursor), the hammer low on its handle (its head works above it), the cutters in the middle. Aim with the rings.
+- F232 The hammer, like the old one: its head tips back to the right, then it thwacks down to the left, turning anticlockwise; the hit lands on the way down with the head on the gap (harder shake, more chips), a small bounce, then back to the rack. Misses swing the same way.
+- F232 Every tool finds a die from further away (about a die's width either side); the hammer finds a pair whose gap is near the head, up to 240 px apart.
+- F233 Hammering a die with a core and one without: the new die keeps the core (the hover says "It keeps the core."). Both with cores: one of them at random ("It keeps one of their cores.").
+- B160 The dark marks left after hammering were the hammer's dents in the table, not dice shadows. They're lighter now and fade away in 3 s.
+- F231 "Neow" with a capital N pays out too (simulated writing: about 3 in 4 tries; "Meow", "Now", "New", "Neon" never).
+
+**Batch 32 test list**
+- F227 (replaces F217) A slot with dice: the big number is what its dice come to (a 3 in slot 2 reads 3, not 4); the place bonus is the small green badge on its first die. An empty slot still shows its green "+1" / "+2" in the middle.
+- F228 An ink die's slot resolving at End Turn plays soInk2 (the wet sound it makes when you move it).
+- F229 Ink easter egg (the drawn die): the four pips can be small circles as well as dots (up to about a third of the triangle's size, roughly round and closed).
+- F230 Ink view, once a run: write "+1" (a plus from two crossing strokes, then a 1 to its right, at least as tall as the plus). It lifts off as "+1 play" and you have one more play this turn.
+- F231 Ink view, once a run: write "neow" (print or joined up, on one line). It lifts off as "+100 gold". Tested on simulated writing only: plain letters pass almost always, a very narrow "n" about half the time; "now", "new", "wow", "neon" and scribbles don't. If yours doesn't take, tell me how you wrote it.
+
+**Batch 31 test list (the free workbench, `fix/playtest-11-22`)** F1: "Give all tools" (new, under "Complete this spread"), a core from the items list, then rooms > Workbench.
+- The room: a plank table with a pinned "Shipwright's bench" sheet, a pegboard rack on the right with your tools hanging on brass pegs, Continue bottom right. The toolbag no longer drops open here.
+- Dice: a note on the bench opens the bag; take as many as you like (Confirm with any number). They fly out one after another onto free spots, land with a pop. The bag icon works any time for more. Drag dice anywhere; they push gently apart; hover one for its tip. Drop one on the bag icon to put it back.
+- Drill: drag a core from your items onto the drill: it sits glowing in the chuck (while you carry a core, the empty chuck has a pulsing brass ring). Pick up the drill, its tip under the mouse; over a die: "Add the ... to this die." with a brass ring. Let go: it plunges, spins with sparks, the die shakes, the core sinks in (flash, ring, its name floats up); the die has a small gem on its corner. Over a coin or with no core loaded it says why and goes back.
+- Hammer: two dice side by side (under 200 px apart). Hold the hammer over the gap: both get rings and a cross marks where the head lands, "Combine these dice into a dN." Let go: wind-up, slam, shake, wood chips, a scuff on the table, and the new die springs up under the head. Different types or over 12 sides: the text says so in red; swing anyway and they jump apart, nothing used. A swing at bare table thuds (a scuff); at one die it hops: "Needs two dice side by side." Misses never use the hammer.
+- Cutters: over a die bigger than a coin: "Cut it down to a dN and get a coin." Let go: a snip, paper bits, the die shrinks a size and a coin of its type hops out to the side. A d4 with a core warns that its core is lost.
+- Each tool works once: back on the rack it's greyed with a paper "Used" tag; hovering says so, clicking says "Each tool works once per visit." Right click puts a tool in hand back.
+- Continue: every die on the table flies back to the bag, a loaded but unused core goes back to your items, then the map.
+
+**Batch 30 test list (an itch playtester's notes)**
+- F215 Ink view with little ink (say 2): dice you can't reroll or redraw, intents you can't reveal or rewrite and track markers you can't move are drawn in ink like the rest of the page; only what you can afford stays in colour. Buttons you can't afford are parchment with an ink outline instead of grey. Hovering an inked marker still says what it is (and pressing it says "Not enough ink").
+- F216 Alignment says alignment: Lodestone and Compass Core ("The lower your alignment..."), Medallion of the Sea ("while alignment is below 20 or above 80"), Kill / Spare ("Lose 5 alignment" / "Gain 5 alignment"), the crossroads tips and map node, the Siren's Call options, the compass tooltip, and the popup under the compass ("+5 alignment").
+- F217 A slot's place bonus sits small and centred under its total ("4" with "+1" beneath), not beside it. An empty slot still shows its bonus in the middle.
+- F218 Kill coin on the new-slot tile: its +2 counts toward the pips (rolled 2 shows 4 of the pips), because the tile becomes the last slot. In the last slot it's +2 as before.
+- F219 Drafting: at least one of the three pages always has a fight. After 4 stops in a row without a fight, every page offered has one (its first stop that isn't a treasure becomes a fight). Saved with the run.
+- F220 Plays above End Turn: extra plays (a stowaway, Shipwright's Draft, the event's extra play next fight...) are green tokens at the end of the row and get used first. Hover: "Green ones are extra."
+- F221 Fight rewards: take a die (or a keepsake) and the page moves on by itself once it has flown to the bag; on the last page it closes.
+- F222 Events: hovering a choice that mentions alignment, luck, a shop keepsake or max health explains those words.
+- F223 Dice text says Block / Attack / Heal / Ink, not BLK / ATK / HEAL / INK (Deflect Die and others).
+- B156 A die that built a slot alongside one whose "when sacrificed" effect fired (a coin) now says "It built this slot with <that die>, whose effect can't be undone." (it used to claim its own effect had fired). Every die on the tile when the slot builds counts as building it.
+- B157 Dice on the new-slot tile only say "Click to take it back." when they can come back. (A playtester's tile dice wouldn't come back; I couldn't find why in the code. If you can make it happen, tell me what was on the tile and how it got there.)
+- B158 Guided fight: take the Block die back out of slot 2 after building it, and you can drop it on the tile again to rebuild the slot.
+- B159 Settings > Display: "Action icons on dice" no longer runs into its checkbox (the controls sit clear of the longest name).
+
+**Batch 29 test list**
+- F212 Ink view: the cursor is the quill everywhere, and the normal pointer over anything you can click or drag (dice, intents, buttons, handles, the inkwell, Done). Drawing keeps the quill. The little mouse hint is gone.
+- B155 A fight with three enemies: the queue (four places) and the enemies no longer overlap; the enemies stand to its right (closer together if needed).
+- F213 Ink view: no separate move handle. Each track marker is wider, with a small grip (two arrows) at its right end and the 4-ink pip on its corner, and its edge sloshes when you can afford it. Grab the marker anywhere and drag it: it follows the mouse and a line shows the gap it will land in; let go there to move it for 4 ink. Stacks are no taller than outside the ink view.
+- F214 Taking an ink die back out of a slot (or taking apart a slot it built): soInk2, not the rubble.
+- End Turn rings soShipBell.
+- F184 The draft page burning plays soTorch.
+- F183 Item rewards: the card your first pick locks away burns up (like the draft page, with soTorch) and is gone, instead of chains.
+
+**Batch 28 test list (queue and ink view)**
+- F205 The queue always shows four places: your slots, the new-slot tile, then faint locked ones with the pips each will need (4+, 6+). Build past four and the tile appears after them as before. The track's notches run over all four. Enemies whose move is past your last slot now act in their order on the track (an earlier point first), not in list order.
+- F206 Ink view: the Earlier/Later arrows are gone. Each marker on the track has one small handle (two arrows) hanging under it. Drag it along the track: a line shows the slot it will land after; let go there and it moves for 4 ink. Letting go where it started costs nothing. Can't afford it: "Not enough ink" when you press it.
+- F207 Ink view: the eye and quill overlap the bottom of the intent tag. Left-click the intent itself to Reveal, right-click to Rewrite (like a die's reroll and redraw). The little mouse now sits just below-left of the cursor instead of between the buttons, for dice and intents; a button that does nothing there is faint.
+- F208 Dice are dealt in a slight arc: the two ends level, the middle ones highest (up to 32 px with a full hand).
+- F209 Sea stop odds: Calm water is rarer at full health (weight 1) and commoner when hurt (up to 5). The Shipwright is commoner with cores in your item slots (+2 each, up to +4). Hold a core through two spreads with no Shipwright offered and the next spread has one. At full health, the spread's safe stop is the Shipwright when a tool has work.
+- F210 Easter egg, once a run: in the ink view draw a triangle in one stroke, then tap four dots inside it. The drawing lifts off as a generic d4, "Drawn die", that always rolls 4, and flies to your bag. (Big enough: at least 60 px across.)
+- B152 Open the settings (or the bag) while the ink view is open: the menu is drawn normally, not inked over.
+- B153 A die with no number showing (an ejected die, the reward fly-in): its "d4" sits in the middle of the shape, even while it turns.
+- B154 Hover a slot (it grows): the track line and its notches lift with it instead of being covered.
+
+**Batch 27 test list (sounds, F204)**
+- Dice rattle as they're dealt; a slot resolving no longer plays the dice roll.
+- Alignment: each mote chimes as it lands on the compass, rising through a gain; a loss falls in pitch instead (GameMaker can't play a sound backwards: export a reversed soAlignment and I'll swap it in).
+- An enemy's Bind (and the barnacle bind): rope. An enemy's Spines: thorns.
+- Ink view: opening it plays soQuillStart; drawing loops soWriting while the pen moves and stops when it rests or lifts; spending ink plays one of soPaper1 to 4.
+- Any potion: one of the three bubbles.
+- A stowaway going off at End Turn (Anchor, Slipstream, Lookout; or played, with Windbound Charm): the barrel.
+- An ink die onto the new-slot tile: soInk1 (other dice keep the old sound). An ink die picked up, or placed in a slot: soInk2.
+- Hovering a slot or the new-slot tile: soPaper5 or 6.
+
+**Batch 26 test list (`fix/playtest-11-22`, off `dev`)**
+- B147 Map: no crash from the chapter tabs (tab_pull read before it was set).
+- B148 An enemy's Overwhelm when that enemy has died or fled: no crash at the start of your turn; the target just isn't locked.
+- B149 End a spread: as the page turns, both pages' islands and stops fade out and stay gone (the left island used to vanish, then pop back).
+- B150 A die that built a slot last turn, played into slot 1 this turn: no padlock, and you can take it back.
+- F196 Enemy block lasts until that enemy acts again, then goes. A new Block replaces the old amount, it doesn't add (enemies that keep their block, like Harden Shell, still do). An enemy that blocks after your last slot still has that block through your next turn, until it acts.
+- F197 Ink view: Reveal, Rewrite, Reroll and Redraw are solid ink discs with pale icons, a black rim and a shadow; one you can't afford is grey. They should stand out under the intents now.
+- B151 The inkwell doesn't grow or show its tooltip while the rewards are up.
+- F198 Ink d6s: the sloshing rim reaches about twice as far out as before (other sizes unchanged).
+- F199 Linked stops (drafting): the brass ring is twice as thick, with a small brass chain-link badge on its bottom edge.
+- F200 Keepsake rewards (elites, bosses) are paper cards like the dice and item rewards: dealt face down, flipped in turn, the keepsake on the card's top edge, its name and what it does; hover lifts one, click takes it. No rarity gem (keepsakes have none). The treasure chest is unchanged.
+- F201 +1 min roll (Chainshot, the tattooist's anchor, Whetstone reef): picking a die whose lowest roll already equals its highest says "Can't go higher" and doesn't take it.
+- F202 The wreck with full item slots: it stays the wreck (no longer Calm water). Reach it: its core waits mid-screen with "Item slots full", "Right-click an item to delete it." and Sail past. Delete an item and the core goes into the free slot; or Sail past to skip it. The ship sails on once it's settled.
+
+
 **Hotfix approved by Jared (2026-11-22), released as v0.2.1 on `main`**
 
 | Batch | Cards | Branch / commit | Status |
@@ -202,6 +275,45 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F186 A chapter is 4 spreads, then the boss: check the progress markers under the book, the chapter tabs' "N more spreads" and the pause menu's "spread N of 4". A save from before loads with a fresh book.
 - F187 Cursed Heart: "New slots cost 2 fewer pips." Slot 2 needs 1+, slot 3 4+ from 2 dice, slot 4 7+ (the tile shows it).
 - B145 Workbench: clicking "Open the bag" (or the tutorial's note) no longer picks the die under the mouse when the bag opens; nothing is picked until you click a die.
+
+**Play-tested and approved by Jared (2026-11-22), merged to `dev`**
+
+| Batch | Cards | Branch / commit | Status |
+|---|---|---|---|
+| 25: queue timeline | F193 | `feature/queue-timeline`, merged into `dev` | **Approved.** Enemy moves act between your slots, shown on a track; the queue resets each turn; slots cost 2, 4, 6 pips; ink moves a move a slot for 4. |
+| 24: map click jump, ink view | B146, F188, F189, F190, F191, F192, F194, F195 | `feature/ink-view` and `fix/map-click-jump`, merged into `dev` | **Approved.** The map click jump; the ink view labelled, ink pips, inky black, what changed, one name: ink. |
+
+**Batch 25 test list (`feature/queue-timeline`, off `feature/ink-view`)**
+- F193 A track sits over the queue: numbers over your slots and the new-slot tile, nothing further. A move set past the tile shows at the tile, whose number reads "2+" (no long lines over the enemy). Each enemy has a letter in a coloured circle on its intent tag, and a marker with the same letter, icon and number riding the track at the gap after the slot where it acts. Two in one gap stack. Hover a marker: its move and "After your slot 2." / "After your last slot."
+- F193 End Turn: your slots act left to right and each enemy acts at its gap, between your slots. A marker past your last slot acts at the end. Block made before a hit stops it; a hit before your Block slot gets through.
+- F193 Kill or stun an enemy before its gap: it doesn't act and its marker greys. One you kill after it acted doesn't break the turn (watch for the next turn starting normally).
+- F193 Fixed timings: Mock, Peck, Coil, buffs and most debuffs come after slot 1; Mimic, big hits (Heavy Swing, Crushing Slam, Volley Fire...) and Rest come last; Peg-leg's Escaping after slot 2. Everything else is rolled 1-4 each turn.
+- F193 The queue resets every turn: next turn you're back to one slot (a slot a Sticky die is in stays). Slot 2 costs 2 pips, slot 3 4, slot 4 6; one die can build a slot if it's enough. Enemy block is gone at the end of each round.
+- F193 Ink view: an arrow either side of each marker on the track (4 ink each) moves it a slot earlier or later; "After your slot N." floats up. Hovering one flickers the 4 pips it costs. Earlier stops at slot 1, Later at "last" moves. Nothing extra under the intents any more.
+- Intent tags over enemies are their normal size again (the letter badge was shrinking the number).
+- d4s and d6s side by side sit level everywhere dice are drawn (hand, slots, bag, rewards): the triangle used to sit high. Check d4 pips are still centred in the triangle, and d10s too if any show.
+- Wet ink edge v3 (docs/mockups/wet-ink-edge.html): in the ink view the ink edge of everything you can afford sloshes, each on its own: Reroll and Redraw each have their own edge (no shared container round both), and so do Reveal, Rewrite, the track arrows and the ink edge round each die. The swell is about a third bigger than v2. Check it doesn't slow the game down.
+- Doodles: in the ink view, left-drag anywhere that isn't a button, a die, the inkwell or Done to draw in ink (thinner when you move fast). Each stroke fades out 6 s after you finish it; closing the log wipes them.
+- Dealing is quicker (a die every 0.1 s, a shorter tumble), and each die flies straight to its own spot in the row and lands on it: nothing shuffles along as the rest arrive. Same for dice taken back from a slot.
+- Ink view buttons are all round icons: over each die, Reroll (a die in a turning arrow) left and Redraw (a die between two arrows) right; under each intent, Reveal (an eye) and Rewrite (a quill). Point at a die or its buttons: a small mouse appears between the two, its left button lit for Reroll, right for Redraw; the tooltips say "Or left-click the die" / "Or right-click the die".
+- Ink costs are pips with the number in (like the pips under the inkwell), about 20% bigger, on every ink button and on the track's arrows, and always on top of the sloshing edge. The tooltip's cost tag uses a pip too, not the old eye/drop.
+- The ink buff under you (ink coming next turn) shows as a small inkwell, like the ink view's button.
+- Stacked markers on the track: the lower marker is drawn over the line coming down from the one above it.
+- No extra pause after your last slot: enemies left to act go straight away, as they do mid-queue. (Keepsakes on "your turn ends" fire once, not once per enemy left.)
+- Slowdown while drafting (quartermaster pick and the two pages) should be gone: the island mask on each draft card now only runs over the card, not the whole screen.
+- The discard bag sits a little further left.
+- Ink dice (pure ink, like the starter Ink die): an ink-blue rim over the black outline that swells and ripples all the time, out of the ink view too. When one moves the rim bulges out behind it; a fast move throws a couple of drops. No lighter dot running round the edge any more.
+- F193 Bind and Rot pick their slot when you end your turn, from the slots with dice (Rot's slot flashes green). During your turn no slot shows as chained or rotten, and you can play into any of them.
+
+**Batch 24 test list (`feature/ink-view`)**
+- B146 Click a stop on the map: the stop and its dotted courses stay put (they jumped down for a moment); the ship still sails to it and lands just below it.
+- F188 The ink view keeps its mode but every action is a labelled button: over each die in hand, "Reroll" and "Redraw" stacked, each with its cost (an ink drop and a number); under each enemy's intent, "Reveal" (if its number isn't shown) and "Rewrite" (if it can change its move). Click a button to do it; left/right-clicking a die still works too. A button you can't afford is faded and says "Not enough ink". End Turn reads "Done" while the log is open.
+- F189 Ink shows as pips under the inkwell, in and out of the log: two rows of 6, filled in ink; hover an ink button and the pips it would spend flicker. Below 0 (Blotted) it shows the red number.
+- F190 Ink is an inky black everywhere: ink dice (they were yellow), ink slots, the inkwell's ink, the ink view's edges and buttons. Ink numbers and words on dark backgrounds are a pale ink blue so they read; on paper they're near black. Things that only used the old yellow as a highlight (keepsake names when they fire, "Valley!", the armed keepsake ring, potion targets) stay gold. Check ink dice read on the felt (white pips on the dark die).
+- F191 What changed: a reroll floats "2 to 5" over the die, a redraw "Redrawn", a reveal "Exact: 7" over the intent, a rewrite "Old move to New move".
+- F194 Action glyphs on dice are off by default (Settings > Display > Action icons turns them on). Your saved setting is reset to off once.
+- F195 The hand is always one even row across the tray: dealt dice fly to its right end and the rest shift to make room; a die you drag and drop back slides into place. The ink view uses the same row.
+- F192 One name: insight is now ink in all the game's text (tooltips, dice, keepsakes, the bag filter "Ink", slot type "INK", the run summary). The starter die is called "Ink"; old saves still load it.
 
 **Play-tested and approved by Jared (2026-11-21), merged to `dev` (released as v0.2.0, 2026-11-21)**
 

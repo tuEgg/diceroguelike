@@ -2,19 +2,22 @@ var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
 
 var tooltip = "";
+slot_hover_sound = choose(soPaper5, soPaper6); // a slot under the mouse rustles, one of two (picked as the hover starts)
 
 aq_tile_w = 62.48177 * power(1.000414, gui_w) * 1.12; // (UI rework: tickets 12% bigger, so names and totals read) // using desmos graphic calculator, expontential regression at these values: 1600 = 120, 1920 = 140, 2560 = 180
 
 var aq_list_size = ds_list_size(action_queue);
 var aq_tile_padding = aq_tile_w / 7;
-var aq_total_w = ((aq_list_size + 1) * aq_tile_w) + ((aq_list_size) * aq_tile_padding);
+aq_vis = max(4, aq_list_size + 1); // four slots always show (Jared, 2026-11-22): yours, the one to build, the rest locked
+var aq_total_w = (aq_vis * aq_tile_w) + ((aq_vis - 1) * aq_tile_padding);
 var aq_start_x = gui_w / 2 - (aq_total_w / 2);
 // the queue keeps clear of the enemies (a crowd pushes it left), but stays right of you and the inkwell before it
 var _q_right = gui_w;
 for (var _qe = 0; _qe < ds_list_size(room_enemies); _qe++) {
 	var _qen = room_enemies[| _qe];
-	if (!_qen.dead && variable_struct_exists(_qen, "pos_x_start")) _q_right = min(_q_right, _qen.pos_x_start - 150 * global.ui_scale);
+	if (!_qen.dead && variable_struct_exists(_qen, "pos_x_start")) _q_right = min(_q_right, _qen.pos_x_start - 130 * global.ui_scale);
 }
+aq_min_right = global.player_x + 230 * global.ui_scale + aq_total_w; // the queue's right edge pushed as far left as it goes (enemy_layout_update)
 aq_start_x = min(aq_start_x, _q_right - aq_total_w);
 aq_start_x = max(aq_start_x, global.player_x + 230 * global.ui_scale);
 var aq_start_y = gui_h / 2 - 92; // the fight sits higher, leaving the bottom right to End Turn and the tray's edge clear
@@ -63,7 +66,7 @@ draw_set_font(ftBig);
 
 // Click handling
 if (play_btn.click && state == CombatState.PLAYER_INPUT && !is_dealing_dice && tutorial_allows("end_turn")) {
-	sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
+	sfx_play(soShipBell, AUDIO_GROUP.SFX, 0.03, 0.8);
     actions_submitted = true;
 }
 // the tutorial points here
@@ -85,7 +88,7 @@ for (var i = 0; i < aq_list_size; i++) {
     var draw_y = base_y + (base_h - draw_h) / 2;
 
     // Hover check based on *scaled* rectangle
-	var hover = mouse_hovering(draw_x, draw_y, draw_w, draw_h, false, soSlotHover, noone, !show_rewards, UI_LAYER.BASE, string(base_x) + "," + string(base_y));
+	var hover = mouse_hovering(draw_x, draw_y, draw_w, draw_h, false, slot_hover_sound, noone, !show_rewards, UI_LAYER.BASE, string(base_x) + "," + string(base_y));
     //var hover = (mx > draw_x && mx < draw_x + draw_w && my > draw_y && my < draw_y + draw_h && !show_rewards);
 	
 	if (hover) {
@@ -175,11 +178,15 @@ for (var i = 0; i < aq_list_size; i++) {
 	// the slot as a paper ticket (ui_ticket, scUI): a band in its action's pigment with its glyph and name, the total
 	// huge in ink, and what its place adds (slot_set_position_bonus) inked beside it. Brass-edged while it acts.
 	var _pos_bonus = variable_struct_exists(action_queue[| i], "position_bonus") ? action_queue[| i].position_bonus : 0;
-	var _total_text = (label != "" && !(_low_roll == 0 && _high_roll == 0)) ? ((_low_roll == _high_roll) ? string(max(0, _low_roll)) : string(_low_roll) + "-" + string(_high_roll)) : "";
+	// the big number is what its dice come to; the place bonus shows on its first die, and in green only while it's
+	// empty (Jared, 2026-11-22: "4 +1" read as 5 when it was 3 + 1)
+	var _slot_has_dice = ds_list_size(action_queue[| i].dice_list) > 0;
+	var _show_low = _low_roll - (_slot_has_dice ? _pos_bonus : 0), _show_high = _high_roll - (_slot_has_dice ? _pos_bonus : 0);
+	var _total_text = (label != "" && !(_low_roll == 0 && _high_roll == 0)) ? ((_show_low == _show_high) ? string(max(0, _show_low)) : string(_show_low) + "-" + string(_show_high)) : "";
 	var _t_state = "";
 	if (state == CombatState.RESOLVE_ROUND && !enemies_turn_done && i == draw_action_index) _t_state = "acting";
 	if (locked_slot == i) _t_state = "locked";
-	ui_ticket(draw_x, draw_y, draw_w, draw_h, action_queue_type, label, _total_text, (_pos_bonus > 0) ? "+" + string(_pos_bonus) : "", i * 7 + 3, _t_state);
+	ui_ticket(draw_x, draw_y, draw_w, draw_h, action_queue_type, label, _total_text, (_pos_bonus > 0 && !_slot_has_dice) ? "+" + string(_pos_bonus) : "", i * 7 + 3, _t_state);
 
 	// If slot locked, draw the chain
 	if (locked_slot == i) {
@@ -318,7 +325,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	    var last_y = base_y + ((base_h - last_h) / 2);
 
 	    // Hover check basesd on *scaled* rectangle
-		last_hover = mouse_hovering(last_x, last_y, last_w, last_h, false, soSlotHover, noone, !show_rewards, UI_LAYER.BASE, string(lx));
+		last_hover = mouse_hovering(last_x, last_y, last_w, last_h, false, slot_hover_sound, noone, !show_rewards, UI_LAYER.BASE, string(lx));
 		tut_last_tile = { x: last_x, y: last_y, w: last_w, h: last_h }; // the tutorial points here
 	    //last_hover = (mx > last_x && mx < last_x + last_w && my > last_y && my < last_y + last_h && !show_rewards);
 
@@ -386,7 +393,7 @@ for (var i = 0; i < aq_list_size; i++) {
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
 			if (mouse_hovering(_wx, _wy, sprite_get_width(sDiceIcon), sprite_get_height(sDiceIcon), true) && !show_rewards) {
-				queue_die_tip(_wd, _wx, _wy - 22, undefined, "Click to take it back.");
+				queue_die_tip(_wd, _wx, _wy - 22, undefined, die_can_take_back(_wd) ? "Click to take it back." : "");
 				if (mouse_check_button_pressed(mb_left) && state == CombatState.PLAYER_INPUT && global.ui_layer == UI_LAYER.BASE && !oRunManager.holding_item && combat_no_die_dragged()) {
 					take_back_request = { slot: -1, index: w };
 				}
@@ -394,6 +401,17 @@ for (var i = 0; i < aq_list_size; i++) {
 		}
 
 		draw_action_type_bars(last_x, last_y + last_h + 30, last_w, type_array, "None");
+
+		// the slots still to come, up to four in all (Jared, 2026-11-22): the turn's whole sequence shows from the start,
+		// faint and locked, each with the pips it will need
+		for (var k = aq_list_size + 1; k < aq_vis; k++) {
+			var _px = aq_start_x + k * (aq_tile_w + aq_tile_padding);
+			ui_dashed_box(_px, base_y, _px + base_w, base_y + base_h, global.ui_col.rule, 0.45);
+			ui_numeral(string(max(1, 2 * k + slot_cost_modifier)) + "+", _px + base_w / 2, base_y + base_h * 0.40, 40, make_color_rgb(150, 140, 120), 0.45, fa_center);
+			draw_set_alpha(0.5);
+			draw_padlock(_px + base_w / 2, base_y + base_h * 0.78, 0.9, make_color_rgb(190, 180, 160));
+			draw_set_alpha(1);
+		}
 	}
 	
 	// === Draw icons ABOVE each slot for number of dice loaded ===
@@ -455,7 +473,16 @@ for (var i = 0; i < aq_list_size; i++) {
 					if (_blocked != "") _back_hint = "\n\n" + _blocked;
 					else if (die_can_take_back(die_struct)) _back_hint = (variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot) ? "\n\nClick to take it back: this slot comes apart, and the other dice that built it wait on the new-slot tile." : "\n\nClick to take it back to your hand.";
 					else if (variable_struct_exists(die_struct, "played_turn") && die_struct.played_turn == turn_count) {
-						if (variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot) _back_hint = (i < ds_list_size(action_queue) - 1) ? "\n\nIt built this slot. Take the newer slot apart first." : "\n\nIt built this slot, and its 'when sacrificed' effect has happened, so it stays.";
+						if (variable_struct_exists(die_struct, "built_slot") && die_struct.built_slot) {
+							if (i < ds_list_size(action_queue) - 1) _back_hint = "\n\nIt built this slot. Take the newer slot apart first.";
+							else {
+								// every die that built it stays once one of them fired something that can't be undone: say which
+								var _who = "";
+								var _bl = action_queue[| i].dice_list;
+								for (var b = 0; b < ds_list_size(_bl); b++) if (variable_struct_exists(_bl[| b], "built_slot") && _bl[| b].built_slot && die_has_effect_trigger(_bl[| b], "on_sacrifice_die")) _who = _bl[| b].name;
+								_back_hint = (_who != "" && _who != die_struct.name) ? "\n\nIt built this slot with " + _who + ", whose effect can't be undone." : "\n\nIt built this slot and its effect can't be undone.";
+							}
+						}
 						else if (variable_struct_exists(die_struct, "play_locked") && die_struct.play_locked) _back_hint = "\n\nIts 'when played' effect has happened, so it stays.";
 					}
 				}
@@ -780,7 +807,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		var btn_2_hover = _spare.hover;
 
 		if (btn_1_hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Kill", "Compass swings 5 toward ruthless. Gain its bounty in gold" + ((oWorldManager.current_node_type == NODE_TYPE.ELITE) ? ". Counts for a bounty contract." : "."));
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Kill", "Lose 5 alignment. Gain its bounty in gold" + ((oWorldManager.current_node_type == NODE_TYPE.ELITE) ? ". Counts for a bounty contract." : "."));
 			if (mouse_check_button_pressed(mb_left)) {
 				enemy.killed = true;
 				gain_alignment(-5);
@@ -790,7 +817,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		}
 		
 		if (btn_2_hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Spare", "Compass swings 5 toward merciful. Gain a third of its bounty in gold. Spare every enemy for a guaranteed item.");
+			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Spare", "Gain 5 alignment and a third of its bounty in gold. Spare every enemy for a guaranteed item.");
 			if (mouse_check_button_pressed(mb_left)) {
 				enemy.spared = true;
 				enemy.alignment_choices_shown = false;
@@ -988,7 +1015,7 @@ if (state != CombatState.PLAYER_DEAD) {
 
 	// the inkwell: your insight as ink (draw_inkwell). Spent at the start of a turn, in the insight phase.
 	var _iw = combat_inkwell_pos(); // beside you, on the ground (UI rework)
-	var intel_hover = mouse_hovering(_iw.x, _iw.y, 70, 70, true);
+	var intel_hover = !show_rewards && mouse_hovering(_iw.x, _iw.y, 70, 70, true); // no hover under the rewards
 	intel_scale = intel_hover ? lerp(intel_scale, 1.1, 0.2) : lerp(intel_scale, 1.0, 0.2);
 	// the start-of-turn pulse (ink_pulse, oCombat Step): it swells and glows, so you know your ink can do something
 	var _ink_s = intel_scale;
@@ -1066,82 +1093,45 @@ if (show_rewards) {
 	
 	switch(reward_list[| rewards_stage - 1 ]) {
 		case "keepsakes":
+			// the keepsakes on offer as paper cards, like the dice and item rewards (draw_item_card; Jared, 2026-11-22):
+			// dealt face down, flipped in turn; a click takes one
+			var _kc_w = 280, _kc_gap = 40;
+			var _kc_n = ds_list_size(reward_keepsake_options);
+			var _kc_cards = [];
+			var _kc_h = 150;
+			for (var r = 0; r < _kc_n; r++) {
+				var _k = reward_keepsake_options[| r];
+				var _card = { name: _k.name, description: _k.desc, sprite: sKeepsake, index: _k.sub_image, rarity: "none" };
+				array_push(_kc_cards, _card);
+				_kc_h = max(_kc_h, item_card_layout(_card, _kc_w).h);
+			}
+			var _kc_cy = gui_h / 2 + 40;
 			draw_set_font(ftDefault);
-			draw_outline_text("Choose one keepsake", c_black, c_white, 2, gui_w/2, gui_h/2 - 100, 1, 1, 0);
-	
-			for (var r = 0; r < ds_list_size(reward_keepsake_options); r++) {
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_outline_text("Choose one keepsake", c_black, c_white, 2, gui_w/2, _kc_cy - _kc_h / 2 - 40, 1, 1, 0);
+			reward_keepsake_reveal_t++;
+
+			for (var r = 0; r < _kc_n; r++) {
 			    var keepsake = reward_keepsake_options[| r];
-
-			    // --- Layout ---
-			    var reward_w = 120;
-			    var reward_h = 70;
-			    var reward_padding = 120;
-			    var reward_total_w = (ds_list_size(reward_keepsake_options) * reward_w) + ((ds_list_size(reward_keepsake_options) - 1) * reward_padding);
-			    var reward_x = gui_w / 2 - (reward_total_w / 2);
-			    var base_x = reward_x + (r * (reward_w + reward_padding));
-			    var base_y = gui_h/2;
-			    var base_w = reward_w;
-			    var base_h = reward_h;
-				
-				// Draw background sprite
-				var btn_col = make_colour_rgb(52, 55, 73);
-				var wobble = sin(((current_time / 1000) + r) * 3) * 3;
-				draw_sprite_ext(sRewardFrame, 0, base_x + base_w/2, base_y + base_w/2 - 10, reward_scale[| r] * 0.95, reward_scale[| r] * 0.95, wobble, btn_col, 1.0);
-
-			    // --- Draw dice sprite using hoverable scaling ---
-			    var btn = draw_gui_button(
-			        base_x, base_y,
-			        base_w, base_h,
-			        reward_scale[| r],
-			        "", // no text (we’ll draw sprite manually)
-			        c_white,
-			        ftDefault,
-			        !rewards_keepsake_taken,         // active
-					false,
-					UI_LAYER.POPUP
-			    );
-
-			    // Update scale for animation
-			    reward_scale[| r] = btn.scale;
-
-			    // --- Choose sprite index based on dice value ---
-			    var spr_index = keepsake.sub_image;
-
-			    // --- Draw the keepsake sprite ---
-			    var alpha = rewards_keepsake_taken ? 0.2 : 1.0;
-			    draw_sprite_ext(
-			        sKeepsake,
-			        spr_index,
-			        btn.x + btn.w / 2,
-			        btn.y + btn.h / 2,
-			        btn.scale,
-			        btn.scale,
-			        0,
-			        c_white,
-			        alpha
-			    );
-
-			    // --- Draw name ---
-			    var label = string(keepsake.name);
-			    draw_set_color(c_white);
-			    draw_set_alpha(alpha);
-			    draw_set_halign(fa_center);
-			    draw_set_valign(fa_middle);
-			    draw_set_font(ftDefault);
-			    draw_text_ext(btn.x + btn.w / 2, btn.y + btn.h + 20 - 12 * (string_height_ext(label, -1, sprite_get_width(sRewardFrame) * 0.85) > string_height("A") * 1.5), label, -1, sprite_get_width(sRewardFrame) * 0.85); // long names wrap inside the frame
-		
-				if (btn.hover) {
-					queue_tooltip( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), keepsake.name, keepsake.desc, undefined, 0, undefined);
+				var _kc_cx = gui_w / 2 - ((_kc_n - 1) * (_kc_w + _kc_gap)) / 2 + r * (_kc_w + _kc_gap);
+				var _flip = reward_flip_state(reward_keepsake_reveal_t, r);
+				if (_flip.turned_now) sfx_play_layered(soCard, AUDIO_GROUP.SFX, 1 + random_range(-0.06, 0.06) + r * 0.04, 1);
+				if (!_flip.face_up) {
+					reward_card_back(_kc_cx, _kc_cy + 23, _kc_w * _flip.squash, _kc_h - 46, r + 6);
+					continue;
 				}
-
-			    // --- Click logic: Take reward ---
-			    if (!rewards_keepsake_taken && btn.click) {
+				var _kc_hover = !rewards_keepsake_taken && mouse_hovering(_kc_cx - _kc_w / 2, _kc_cy - _kc_h / 2, _kc_w, _kc_h, false, soSlotHover, noone, true, UI_LAYER.POPUP);
+				var alpha = rewards_keepsake_taken ? 0.35 : 1.0;
+				draw_item_card(_kc_cards[r], _kc_cx, _kc_cy - 14 * _flip.pop, _kc_w, _kc_h, alpha * _flip.fade_in, _kc_hover, false);
+				if (_kc_hover && mouse_check_button_pressed(mb_left)) {
+					sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
 			        gain_keepsake(keepsake, global.rollable_keepsake_list);
 					rewards_keepsake_taken = true;
 			    }
 			}
 		break;
-		
+
 		case "dice":
 			// the dice on offer as the same paper cards as the bag (draw_bag_card, UI rework), side by side, all as tall as
 			// the tallest needs; hover lifts one, a click takes it
@@ -1215,6 +1205,21 @@ if (show_rewards) {
 					continue;
 				}
 				var _ic_locked = (rewards_consumables_locked == r);
+				// locked away by the first pick: it burns (F183, Jared 2026-11-21), then is gone
+				if (_ic_locked) {
+					if (reward_item_burn[r] < 0) {
+						reward_item_burn[r] = 0;
+						particle_emit_later(_ic_cx, _ic_cy, "burst", make_color_rgb(255, 150, 50), 8); // it catches
+						sfx_play(soTorch, AUDIO_GROUP.SFX, 0.05, 0.8);
+					}
+					if (reward_item_burn[r] < 1) {
+						reward_item_burn[r] = min(1, reward_item_burn[r] + 1 / 62);
+						ui_burn_begin();
+						draw_item_card(consumable, _ic_cx, _ic_cy, _ic_w, _ic_h, _flip.fade_in, false, false);
+						ui_burn_end(reward_item_burn[r], r * 3.7 + 1.3, _ic_cx - _ic_w / 2, _ic_cy - _ic_h / 2, _ic_cx + _ic_w / 2, _ic_cy + _ic_h / 2);
+					}
+					continue;
+				}
 				var _ic_open = !consumable.taken && !_ic_locked && !rewards_consumables_second_taken;
 				var _ic_hover = mouse_hovering(_ic_cx - _ic_w / 2, _ic_cy - _ic_h / 2, _ic_w, _ic_h, false, _ic_open ? soSlotHover : noone, noone, true, UI_LAYER.POPUP);
 				var alpha = consumable.taken ? 0.35 : 1.0;
@@ -1320,7 +1325,13 @@ if (show_rewards) {
 	// Update animation
 	reward_next_hover = lerp(reward_next_hover, next_hover && !instance_exists(oDiceParticle) ? 1.2 : 1.0, 0.2);
 	
-	if (next_hover && mouse_check_button_pressed(mb_left) && instance_number(oDiceParticle) == 0) {
+	// a die or keepsake taken: the page moves on by itself once it has flown to the bag (playtest, Jared 2026-11-22)
+	var _stage_kind = reward_list[| rewards_stage - 1];
+	var _taken_here = (_stage_kind == "dice" && rewards_dice_taken) || (_stage_kind == "keepsakes" && rewards_keepsake_taken);
+	reward_auto_t = (_taken_here && instance_number(oDiceParticle) == 0) ? reward_auto_t + 1 : 0;
+	var _auto_next = reward_auto_t > game_get_speed(gamespeed_fps) * 0.5;
+	if (((next_hover && mouse_check_button_pressed(mb_left)) || _auto_next) && instance_number(oDiceParticle) == 0) {
+		reward_auto_t = 0;
 		if (rewards_stage < ds_list_size(reward_list)) {
 			if (reward_list[| rewards_stage-1 ] == "dice") {
 				rewards_dice_taken = true;

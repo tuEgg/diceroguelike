@@ -226,6 +226,12 @@ dice_selection_list = ds_list_create();
 dice_selection_num_selected = 0;
 dice_selection_event = undefined;
 dice_selection_filter = "none";
+pending_item = undefined; // an item waiting for a free slot (the wreck with full slots: pending_item_draw)
+rooms_since_fight = 0;    // island stops in a row with no fight (enter_node; pages_ensure_fights; saved)
+shipwright_wait = 0;      // spreads in a row offered with a core held and no Shipwright (pages_assign_passages; saved)
+ink_plus_found = false;   // "+1" drawn in ink has paid out this run (ink_egg_plus_one; saved)
+ink_neow_found = false;   // "neow" written in ink has paid out this run (ink_egg_neow; saved)
+ink_egg_found = false;    // the triangle drawn in ink has paid out this run (ink_egg_check; saved)
 dice_selection_up_to = false; // true: Confirm works with any number up to dice_selection (the workbench)
 
 tools = ds_list_create();
