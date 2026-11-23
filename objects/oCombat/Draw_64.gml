@@ -2,7 +2,7 @@ var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
 
 var tooltip = "";
-slot_hover_sound = choose(soPaper5, soPaper6); // a slot under the mouse rustles, one of two (picked as the hover starts)
+slot_hover_sound = soPaper5; // a slot under the mouse rustles (Jared, 2026-11-23: soPaper5 only)
 
 aq_tile_w = 62.48177 * power(1.000414, gui_w) * 1.12; // (UI rework: tickets 12% bigger, so names and totals read) // using desmos graphic calculator, expontential regression at these values: 1600 = 120, 1920 = 140, 2560 = 180
 

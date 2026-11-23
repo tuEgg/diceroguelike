@@ -2756,7 +2756,7 @@ function offering_draw() {
 	for (var r = 0; r < _n; r++) {
 		var _off = oRunManager.offering[r];
 		var _cx = _cx0 + r * (_cw + _gap);
-		var _hover = mouse_hovering(_cx - _cw / 2, _ctop, _cw, _ch, false, choose(soPaper5, soPaper6), soClick4, true, UI_LAYER.POPUP); // the slots' paper (Jared, 2026-11-23)
+		var _hover = mouse_hovering(_cx - _cw / 2, _ctop, _cw, _ch, false, soPaper5, soClick4, true, UI_LAYER.POPUP); // the slots' paper (Jared, 2026-11-23)
 		var _chosen = (oRunManager.offer_selected == r);
 		_off.lift = lerp(_off.lift, _chosen ? 12 : (_hover ? 6 : 0), 0.25);
 		offering_card_draw(_off, _cx, _ctop - _off.lift, _cw, _ch, _hover, _chosen);

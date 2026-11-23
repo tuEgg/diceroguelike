@@ -37,7 +37,7 @@
 - F234 A slot being built: rubble. Taking a die back: unchanged.
 - F234 Right-click a slot to change its type: a paper rustle (instead of the slot-place sound).
 - F234 The discard pile shuffled back into the bag: small rocks (soSmallRocks1-5). Also at the workbench: with the hammer's chips, and as grit while the drill turns.
-- F234 The quartermaster's offer (start of a run): hovering a card plays the slots' paper sound (soPaper5/6).
+- F234 The quartermaster's offer (start of a run): hovering a card plays the slots' paper sound (soPaper5).
 - F234 After a reshuffle, the dice dropping into the bag rattle softly (soDiceRolling, quiet).
 - F234 An ink die played (slot or tile): a quieter clack under its wet squelch.
 - F234 Any error message ("Not enough ink", "No plays left"...): a quiet quill scratch (soQuill), once per new error. Say if it's confusing with the ink view.
@@ -261,7 +261,7 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - Any potion: one of the three bubbles.
 - A stowaway going off at End Turn (Anchor, Slipstream, Lookout; or played, with Windbound Charm): the barrel.
 - An ink die onto the new-slot tile: soInk1 (other dice keep the old sound). An ink die picked up, or placed in a slot: soInk2.
-- Hovering a slot or the new-slot tile: soPaper5 or 6.
+- Hovering a slot or the new-slot tile: soPaper5.
 
 **Batch 26 test list (`fix/playtest-11-22`, off `dev`)**
 - B147 Map: no crash from the chapter tabs (tab_pull read before it was set).
