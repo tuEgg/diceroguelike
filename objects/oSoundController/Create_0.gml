@@ -10,7 +10,8 @@ audio_group_load(audiogroup_sfx);
 
 global.was_hovering = noone;
 global.is_hovering = noone;
-global.hovering_sound = noone; //change to other sounds for certain objects
+global.hovering_sound = noone;
+paper_hover_last = 0; // when the slots' paper hover last played (Draw GUI End: not again within 70 ms) //change to other sounds for certain objects
 global.clicking_sound = noone;
 
 enum AUDIO_GROUP {

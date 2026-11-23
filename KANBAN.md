@@ -37,6 +37,7 @@
 - F234 A slot being built: rubble. Taking a die back: unchanged.
 - F234 Right-click a slot to change its type: a paper rustle (instead of the slot-place sound).
 - F234 The discard pile shuffled back into the bag: small rocks (soSmallRocks1-5). Also at the workbench: with the hammer's chips, and as grit while the drill turns.
+- F234 Hovering a built slot (or a quartermaster's card): soPaper5, 30% quieter, with more pitch and volume spread, and not again within 70 ms when you flick across them. The new-slot tile has the old click (soSlotHover).
 - F234 The quartermaster's offer (start of a run): hovering a card plays the slots' paper sound (soPaper5).
 - F234 After a reshuffle, the dice dropping into the bag rattle softly (soDiceRolling, quiet).
 - F234 An ink die played (slot or tile): a quieter clack under its wet squelch.

@@ -325,7 +325,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	    var last_y = base_y + ((base_h - last_h) / 2);
 
 	    // Hover check basesd on *scaled* rectangle
-		last_hover = mouse_hovering(last_x, last_y, last_w, last_h, false, slot_hover_sound, noone, !show_rewards, UI_LAYER.BASE, string(lx));
+		last_hover = mouse_hovering(last_x, last_y, last_w, last_h, false, soSlotHover, noone, !show_rewards, UI_LAYER.BASE, string(lx)); // the slot to build: the old click (Jared, 2026-11-23); built slots rustle
 		tut_last_tile = { x: last_x, y: last_y, w: last_w, h: last_h }; // the tutorial points here
 	    //last_hover = (mx > last_x && mx < last_x + last_w && my > last_y && my < last_y + last_h && !show_rewards);
 
