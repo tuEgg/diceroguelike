@@ -100,10 +100,8 @@ function generate_pages() {
 			
 			var rand = irandom_range(1,100);
 			
-			// after 4, 12, 20 pages etc.
-			if ((oWorldManager.pages_cleared + 4) mod 8 == 0) && (ds_list_size(_page.nodes) == 0) {
-				chosen_node = node_treasure; // add a treasure node
-			} else {
+			// (treasures aren't forced onto pages any more: a fixed treasure stop opens spread 3, F240 / treasure_stop_draw)
+			{
 				if (rand <= combat_chance) {
 					if (num_combat < 5) {
 						num_combat++;
@@ -865,6 +863,9 @@ function clone_page(_src) {
 		passage: variable_struct_exists(_src, "passage") ? _src.passage : "", // the sea stop after its island (B+)
 		passage_done: false,
 		harbour_done: false,
+		treasure_stop: false, // F240: a treasure stop before this spread's islands (the left page of spread 3)
+		treasure_done: false,
+		treasure_keepsake: "",
         num_nodes: _src.num_nodes,
         nodes: ds_list_create(),
         layout: _src.layout,
@@ -943,6 +944,9 @@ function serialise_page(_page) {
         passage: variable_struct_exists(_page, "passage") ? _page.passage : "",
         passage_done: variable_struct_exists(_page, "passage_done") ? _page.passage_done : true,
         harbour_done: variable_struct_exists(_page, "harbour_done") ? _page.harbour_done : false,
+        treasure_stop: variable_struct_exists(_page, "treasure_stop") ? _page.treasure_stop : false,
+        treasure_done: variable_struct_exists(_page, "treasure_done") ? _page.treasure_done : false,
+        treasure_keepsake: variable_struct_exists(_page, "treasure_keepsake") ? _page.treasure_keepsake : "",
         num_nodes: _page.num_nodes,
         layout: _page.layout,
         map_connection_in: _page.map_connection_in,
@@ -967,6 +971,9 @@ function deserialise_page(_data) {
         passage: variable_struct_exists(_data, "passage") ? _data.passage : "",
         passage_done: variable_struct_exists(_data, "passage_done") ? _data.passage_done : true,
         harbour_done: variable_struct_exists(_data, "harbour_done") ? _data.harbour_done : false,
+        treasure_stop: variable_struct_exists(_data, "treasure_stop") ? _data.treasure_stop : false,
+        treasure_done: variable_struct_exists(_data, "treasure_done") ? _data.treasure_done : false,
+        treasure_keepsake: variable_struct_exists(_data, "treasure_keepsake") ? _data.treasure_keepsake : "",
         num_nodes: _data.num_nodes,
         nodes: ds_list_create(),
         layout: _data.layout,
@@ -1127,6 +1134,15 @@ function start_new_chapter() {
 	for (var i = 1; i <= 7; i++) ds_list_add(possible_encounters, "Encounter " + string(i));
 	ds_list_clear(possible_elites);
 	for (var i = 1; i <= 3; i++) ds_list_add(possible_elites, "Elite " + string(i));
+
+	// elites, the bounty board and the crossroads fight come back each chapter (F239, Jared 2026-11-23: they were once
+	// a run, so chapter 3 could have no elites and keepsakes dried up)
+	elite_nodes_this_voyage = 0;
+	bounty_nodes_this_voyage = 0;
+	alignment_nodes_this_voyage = 0;
+	elite_chance = 0;
+	bounty_chance = 0;
+	alignment_chance = 0;
 	
 	// a new book opens
 	generate_book_pages();
@@ -1821,6 +1837,9 @@ function map_node_blocked_reason(_node) {
 			if (!(variable_struct_exists(_last, "harbour_done") && _last.harbour_done)) return "Stop at the harbour first.";
 			return "";
 		}
+		// the treasure stop opening spread 3 comes before both islands (F240)
+		var _tl = (_n mod 2 == 0) ? chosen_pages[| _n - 2] : _last;
+		if (page_treasure_waits(_tl)) return "Open the treasure first.";
 		if (_n >= 2 && ds_list_find_index(_last.nodes, _node) != -1) {
 			var _l = chosen_pages[| _n - 2];
 			if (page_passage(_l) != "" && !page_passage_done(_l) && page_nodes_cleared(_l)) return "Sail through " + strait_stop_info(page_passage(_l), 0).name + " first.";
@@ -1911,6 +1930,74 @@ function harbour_draw(_bp) {
 	}
 }
 
+/// @func page_treasure_waits(_page)
+/// @desc Does this (left) page have a treasure stop still to open? (F240)
+function page_treasure_waits(_page) {
+	return is_struct(_page) && variable_struct_exists(_page, "treasure_stop") && _page.treasure_stop && !(variable_struct_exists(_page, "treasure_done") && _page.treasure_done);
+}
+
+/// @func treasure_stop_pos(_lp)
+/// @desc Where the treasure stop sits: in the sea between the book's left edge and the left island's first stop.
+function treasure_stop_pos(_lp) {
+	var _gh = display_get_gui_height();
+	var _fx = (ds_list_size(_lp.nodes) > 0) ? _lp.nodes[| 0].x : display_get_gui_width() * 0.3;
+	return { x: lerp(book_left_x, _fx, 0.5), y: _gh / 2 - 90 };
+}
+
+/// @func treasure_stop_draw(_lp)
+/// @desc Spread 3 of every chapter opens with a treasure stop before the two drafted islands (F240, Jared 2026-11-23:
+///       instead of forcing a treasure onto the pages and linking them). Click it, the ship sails there, and the
+///       treasure room opens (enter_node with a treasure node; its keepsake is rolled here and kept on the page, so a
+///       save brings back the same one). The islands wait for it (map_node_blocked_reason).
+function treasure_stop_draw(_lp) {
+	if (!is_struct(_lp) || !variable_struct_exists(_lp, "treasure_stop") || !_lp.treasure_stop) return;
+	var _p = treasure_stop_pos(_lp);
+	if (!is_struct(treasure_stop) || treasure_stop.page != _lp) treasure_stop = { page: _lp, node: clone_node_static(node_treasure), scale: 1, sailing: false };
+	var _ts = treasure_stop;
+	_ts.node.x = _p.x;
+	_ts.node.y = _p.y;
+	var _done = _lp.treasure_done;
+	var _can = !_done && !_ts.sailing && world_state == WORLD_STATE.EXPLORING && node_to_move_to == undefined;
+	var _hov = !_done && mouse_hovering(_p.x, _p.y, 64, 64, true, soSlotHover, noone);
+	_ts.scale = lerp(_ts.scale, _hov ? 1.25 : 1, 0.2);
+	if (!_done) {
+		// it breathes until it's opened
+		var _br = 0.5 + 0.5 * sin(current_time / 260);
+		draw_set_alpha(0.6 + 0.4 * _br);
+		draw_set_color(global.ui_col.brass);
+		for (var k = 0; k < 4; k++) draw_circle(_p.x, _p.y, (30 + 2 * _br) * _ts.scale + k, true);
+		draw_set_alpha(1);
+	}
+	map_node_icon_draw(_ts.node, _ts.scale, 1);
+	if (_done) map_done_ring(_p.x, _p.y, 31, 1);
+	draw_set_font(ftDescriptions);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_top);
+	draw_outline_text("Treasure", global.ui_col.paper_hi, global.ui_col.ink, 2, _p.x, _p.y + 36 * _ts.scale, 1, 1, 0);
+	draw_set_halign(fa_left);
+	if (_hov) {
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Treasure", "Gain a keepsake.");
+		if (mouse_check_button_pressed(mb_left) && _can && global.ui_layer == UI_LAYER.BASE) {
+			_ts.sailing = true;
+			boat_data.entering = false; // it takes over from sailing in from the book's edge
+			boat_data.voyage = undefined;
+		}
+	}
+	if (_ts.sailing && boat_sail_toward(_p.x - 48, _p.y + 24)) { // moored beside it, so the tick shows
+		_ts.sailing = false;
+		if (_lp.treasure_keepsake == "") {
+			var _rolled = ds_list_create();
+			generate_keepsake_rewards(_rolled, global.rollable_keepsake_list, 1);
+			if (ds_list_size(_rolled) > 0) _lp.treasure_keepsake = _rolled[| 0]._id;
+			ds_list_destroy(_rolled);
+		}
+		_lp.treasure_done = true; // saved by enter_node, below
+		var _node = clone_node_static(node_treasure);
+		_node.treasure_keepsake = _lp.treasure_keepsake;
+		enter_node(_node);
+	}
+}
+
 /// @func route_draw(_x1, _y1, _x2, _y2, _alpha)
 /// @desc A dotted S-curve course between two map stops (a cubic Bezier leaving and arriving level), its dots stopping
 ///       short of both ends so they don't run under the icons. Ink brown; _alpha says taken (strong) or possible (faint).
@@ -1950,8 +2037,14 @@ function spread_routes_draw(_spots) {
 	var _taken = 0.85, _poss = 0.38, _gone = 0.12;
 	var _L = _spots.left.nodes, _R = _spots.right.nodes;
 	var _ln = ds_list_size(_L), _rn = ds_list_size(_R);
-	// in from the book's left edge to the first island
-	if (_ln > 0) route_draw(book_left_x, display_get_gui_height() / 2, _L[| 0].x, _L[| 0].y, _L[| 0].cleared ? _taken : _poss);
+	// in from the book's left edge to the first island (by the treasure stop on spread 3, F240)
+	if (_ln > 0) {
+		if (variable_struct_exists(_spots.left, "treasure_stop") && _spots.left.treasure_stop) {
+			var _tp = treasure_stop_pos(_spots.left);
+			route_draw(book_left_x, display_get_gui_height() / 2, _tp.x, _tp.y, _spots.left.treasure_done ? _taken : _poss);
+			route_draw(_tp.x, _tp.y, _L[| 0].x, _L[| 0].y, _L[| 0].cleared ? _taken : _poss);
+		} else route_draw(book_left_x, display_get_gui_height() / 2, _L[| 0].x, _L[| 0].y, _L[| 0].cleared ? _taken : _poss);
+	}
 	for (var i = 0; i < _ln - 1; i++) route_draw(_L[| i].x, _L[| i].y, _L[| i + 1].x, _L[| i + 1].y, _L[| i + 1].cleared ? _taken : _poss);
 	for (var i = 0; i < _rn - 1; i++) route_draw(_R[| i].x, _R[| i].y, _R[| i + 1].x, _R[| i + 1].y, _R[| i + 1].cleared ? _taken : _poss);
 	if (_ln > 0 && _rn > 0) {

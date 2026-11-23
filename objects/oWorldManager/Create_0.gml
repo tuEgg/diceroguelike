@@ -217,6 +217,7 @@ rest_amount = 0.30; // Calm water at the strait heals this share of your health 
 strait = undefined;    // this spread end's sea stops (strait_build), while world_state is STRAIT
 sea_buoy = undefined;  // the left page's sea stop between a spread's pages: its look and stamp (passage_left_draw, B+)
 harbour = undefined;
+treasure_stop = undefined; // the treasure stop opening spread 3 (treasure_stop_draw): { page, node, scale, sailing }
 map_waves = [];
 burn_surf = -1;          // the lost draft page, drawn here to burn it away through shBurn (page_burn_draw)
 auto_take_page = undefined; // the page given to you after the first pick (Draw GUI), and when

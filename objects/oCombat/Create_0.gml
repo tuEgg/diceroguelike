@@ -40,6 +40,7 @@ slot_set_position_bonus(action_queue[| 0], 0);
 played_uids = [];              // dice played this turn (uid): "when played" effects fire once per die per turn, even if it's taken back and played again
 rerolls_used = 0;              // rerolls this turn (right-click a die in hand, 3 insight each: combat_reroll_die)
 redraws_used = 0;              // unused now: a redraw is paid as you discard (combat_discard_and_redraw)
+overboard_dice = []; // dice gone overboard this fight (F241): back in the bag when it's won (win_fight) or left (CleanUp)
 take_back_request = undefined; // a played die clicked in Draw GUI, taken back in Step: { slot, index } (slot -1 = the new-slot tile)
 new_tile_pos = undefined;      // where the new-slot tile is drawn (Draw GUI), for dice taken back from it
 

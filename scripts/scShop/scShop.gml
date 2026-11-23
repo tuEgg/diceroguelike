@@ -130,8 +130,7 @@ function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", 
 	var num_rewards = _num;
 			
 	// used for deduping and storing what dice we used
-	var die_1 = clone_die(global.dice_all, "");
-	var die_2 = clone_die(global.dice_all, "");
+	var _picked = []; // every die offered so far (B163: only the first two were checked, so a 4th could repeat the 3rd)
 
 	var _attempts = 0; // safety net so an impossible filter can never freeze the game
 	do {
@@ -174,22 +173,20 @@ function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", 
 			var die_struct = indices_dice_rare[| rare_index ];
 			if (die_struct == undefined) continue; // that rarity pool is empty
 				
-			if (die_struct != die_1 && die_struct != die_2) {
+			if (!array_contains(_picked, die_struct)) {
 				switch (_filter) {
 					case "coin":
 						if (die_struct.dice_value != 2) {
 							continue;
 						} else {
-							if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
-							if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
+							array_push(_picked, die_struct);
 				
 							ds_list_add(_reward_list, clone_die(die_struct, ""));
 						}
 					break;
 					
 					default:
-						if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
-						if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
+						array_push(_picked, die_struct);
 				
 						ds_list_add(_reward_list, clone_die(die_struct, ""));
 					break;
@@ -201,22 +198,20 @@ function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", 
 			var die_struct = indices_dice_uncommon[| uncommon_index ];
 			if (die_struct == undefined) continue; // that rarity pool is empty
 				
-			if (die_struct != die_1 && die_struct != die_2) {
+			if (!array_contains(_picked, die_struct)) {
 				switch (_filter) {
 					case "coin":
 						if (die_struct.dice_value != 2) {
 							continue;
 						} else {
-							if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
-							if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
+							array_push(_picked, die_struct);
 				
 							ds_list_add(_reward_list, clone_die(die_struct, ""));
 						}
 					break;
 					
 					default:
-						if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
-						if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
+						array_push(_picked, die_struct);
 				
 						ds_list_add(_reward_list, clone_die(die_struct, ""));
 					break;
@@ -229,22 +224,20 @@ function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", 
 			var die_struct = indices_dice_common[| common_index ];
 			if (die_struct == undefined) continue; // that rarity pool is empty
 				
-			if (die_struct != die_1 && die_struct != die_2) {
+			if (!array_contains(_picked, die_struct)) {
 				switch (_filter) {
 					case "coin":
 						if (die_struct.dice_value != 2) {
 							continue;
 						} else {
-							if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
-							if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
+							array_push(_picked, die_struct);
 				
 							ds_list_add(_reward_list, clone_die(die_struct, ""));
 						}
 					break;
 					
 					default:
-						if (ds_list_size(_reward_list) == 0) die_1 = die_struct;
-						if (ds_list_size(_reward_list) == 1) die_2 = die_struct;
+						array_push(_picked, die_struct);
 				
 						ds_list_add(_reward_list, clone_die(die_struct, ""));
 					break;

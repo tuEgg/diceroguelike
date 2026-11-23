@@ -263,7 +263,7 @@ if (is_struct(wb_job)) {
 				sfx_play(soShieldLight1, AUDIO_GROUP.SFX, 0.1, 0.8);
 				_t.core = undefined;
 				_t.core_slot = -1;
-				workbench_tool_used(oDrill);
+				array_push(tools_used, oDrill); // the Drill works again, as long as you have cores (F237): it's never marked used
 			} else {
 				_t.hy -= 4; // lifts off
 				_t.frame = 0;
@@ -319,7 +319,7 @@ if (is_struct(wb_job)) {
 					var _base = _p.a.die, _other = _p.b.die;
 					if (_base.distribution == "" && _other.distribution != "") { _base = _p.b.die; _other = _p.a.die; }
 					var _nd = clone_die(_base, "");
-					_nd.dice_value += _other.dice_value;
+					_nd.dice_value += _other.dice_value - 2; // a merge loses 2 sides (F236, Jared 2026-11-23: the Hammer was too strong)
 					if (_base.distribution != "" && _other.distribution != "" && irandom(1) == 0) _nd.distribution = _other.distribution;
 					die_size_changed(_nd); // a hammered coin is no longer a coin
 					wb_remove_die(_p.a);

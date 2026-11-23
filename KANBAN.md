@@ -30,7 +30,11 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 35: design review rules and fixes | F236, F237, F238, F239, F240, F241, B163 | `dev` | **Not yet play-tested.** Hammer merges lose 2 sides, the Drill works any number of times, builders count as played, elites and bounties each chapter, a treasure stop opens spread 3, Overboard on heal dice, 17 content bug fixes. |
 | 34: sounds, neow speed, intents in place, item rewards | F234, B161, F235, B162 | `dev` | **Not yet play-tested.** Clacks, rubble on a build, paper on a type change, small rocks, a quill on errors; writing "neow" no longer freezes. |
+
+**Batch 35 test list (design review rules and fixes)** F1: Give all tools, add cores, jump rooms.
+- Not fixed yet: the Bouncing Die still changes your target for later dice (the fix needs checking in play).
 
 **Batch 34 test list**
 - F234 A die dropped in a slot or on the new-slot tile: a wooden clack (soClack1-4). An ink die still sounds wet.
@@ -114,15 +118,8 @@ Pulled from the GDD's 0.1 goals plus the playtest notes. To be cut down in discu
 - F211 Keepsake ideas (Jared): keepsakes that change sea stops (pick a stop's type, see the next spread's stops, a stop counts twice...).
 - Sounds still to make: `docs/sound-recommendations.md` (tiers and suggestions; Jared makes them, Claude wires them in).
 - Q16 Sea stop odds: agreed 2026-11-22, built as F209 (batch 28).
-- **Design review (Q17, 2026-11-23), to build.** Principles and decisions: `docs/design/principles.md`; evidence: `docs/design/content-catalogue.md` and `analysis-*.md` (power curve, archetypes, Hammer simulation `docs/design/sim/sim.js`, conflicts).
-- F236 Hammer: a merge loses 2 sides (d4+d4 = d6, d6+d6 = d10). Hover text shows the result.
-- F237 Drill: as many uses as you like per workbench visit.
-- F238 Dice that build a slot count as played (keepsakes and their own "when played" effects).
-- F239 Elite, bounty and crossroads counters reset each chapter.
-- F240 A fixed treasure stop opens spread 3 of every chapter; treasures no longer forced onto drafted pages (drop the linking for treasure).
-- F241 Overboard keyword: gone for the rest of the fight once its slot resolves; all heal dice get it (no other change); some strong dice too. No safety net.
+- **Design review (Q17, 2026-11-23).** Rules and bug fixes built in batch 35 (IN TESTING). Principles and decisions: `docs/design/principles.md`; evidence: `docs/design/content-catalogue.md` and `analysis-*.md` (power curve, archetypes, Hammer simulation `docs/design/sim/sim.js`, conflicts).
 - F242 Content pass (Jared to propose): reprice free value (never common), lift the weak rares, give Bell/Dome/Dual/Tower shapes payoffs, fill the archetype gaps by the rarity ladder (Full ink, Infinite might, Fortress have no engine yet), fix the weak shop keepsakes and the Cutters.
-- B163 Confirmed content bugs (`docs/design/analysis-conflicts.md`, section 4): Black Purse pays 3, Crescendo counts twice and wipes min bonuses, Chainmaster's Anchor, Lead Line, Artisan's Ember, Rusty Rudder and Navigation Chart missing the min < max guard, Lodestone text, Bell/Dome on raised minimums, type keepsakes reading the die's own type, Tidepusher after a resize, Polished Sextant bar order, Barrel's potion lost when full, Bouncing keeps the target, a shop's 4th die can repeat, Lantern fires every frame, Assassin's min passing its max, "Rigger's Tonic" name, Holy/Unholy priced 30.
 - Q17 Design chat: held 2026-11-23 (see the design review cards above). Was: after the timeline queue, go through every keepsake, die and potion and the build archetypes emerging. Shipwright's Draft needs rebalancing. Merge "when played" and "when sacrificed" into one trigger, as they're barely different now.
 
 **Core loop**

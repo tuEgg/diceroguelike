@@ -167,9 +167,8 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 						first_die_bonus_used = true;
 					}
 					
-					// die statistics
-					_slot_die.statistics.times_played_this_combat++;
-					
+					// die statistics (times_played_this_combat is counted when it's played, not again here: B163)
+										
 					array_push(_slot_die.statistics.roll_history, final_roll);
 					
 					break;
@@ -968,12 +967,11 @@ function combat_try_build_slot() {
 	if (!new_slot_has_coloured()) return; // only generic dice left on it (the coloured one was taken back): it waits for one
 
 	// it can be taken apart again this turn (combat_unbuild_slot) unless something that can't be undone fires: a die's
-	// "when sacrificed" effect (or its "when played" one, which Lead Line fires on sacrifice)
+	// "when sacrificed" effect, or its "when played" one (builders count as played, F238)
 	var _undo_ok = true;
-	var _lead_line = runmanager_has_keepsake_id("lead_line");
 	for (var j = 0; j < ds_list_size(global.sacrifice_list); j++) {
 		var _sd = global.sacrifice_list[| j];
-		if (die_has_effect_trigger(_sd, "on_sacrifice_die") || (_lead_line && die_has_effect_trigger(_sd, "on_dice_played_to_slot"))) _undo_ok = false;
+		if (die_has_effect_trigger(_sd, "on_sacrifice_die") || die_has_effect_trigger(_sd, "on_dice_played_to_slot")) _undo_ok = false;
 	}
 	var _bonus_before = dice_allowed_this_turn_bonus; // Shipwright's Draft adds a play: given back if it's taken apart
 
@@ -1023,6 +1021,37 @@ function combat_try_build_slot() {
 	ds_list_clear(global.sacrifice_list);
 	update_sacrificed_type_array();
 	ds_list_add(action_queue, _new_slot);
+
+	// the dice that built it count as played (F238, Jared 2026-11-23): building uses a play, so "when played" effects
+	// fire for each, keepsakes and their own (once a turn per die, as for any play). Lead Line fires a die's own once more.
+	var _builders = ds_list_size(_new_slot.dice_list);
+	var _slot_num = ds_list_size(action_queue) - 1;
+	for (var j = 0; j < _builders; j++) {
+		var _b = _new_slot.dice_list[| j];
+		if (array_contains(played_uids, _b.uid)) continue;
+		array_push(played_uids, _b.uid);
+		var _bd = {
+			_slot: _new_slot,
+			_slot_num: _slot_num,
+			_d_struct: _b,
+			_slot_die: _b,
+			dice_object: { struct: _b, x: _tx, y: _ty, can_discard: false }, // a stand-in at the new slot (the die has no instance now)
+			duplicate_die: false
+		};
+		combat_trigger_effects("on_dice_played_to_slot", _bd);
+		runmanager_trigger_keepsakes("on_builder_played", _bd); // Lead Line
+		run_stat_add("dice_played", 1);
+		_b.statistics.times_played_this_combat++;
+		if (_bd.duplicate_die) {
+			var _copy = clone_die(_b, "temporary");
+			_copy.uid = global._die_uid_counter++;
+			_copy.built_slot = false;
+			_copy.reset_at_end_combat = function(_dice) {
+				ds_list_delete(global.dice_bag, ds_list_find_index(global.dice_bag, _dice));
+			}
+			ds_list_add(_new_slot.dice_list, _copy);
+		}
+	}
 
 	combat_trigger_effects("after_new_slot_created", sacrifice_data);
 	particle_emit(_tx, _ty + 60, "burst", c_white, 30); // the new slot takes the tile's place
@@ -1191,6 +1220,9 @@ function win_fight() {
 		discard_dice_in_play(true);
 		
 		// --- Return discarded dice to bag ---
+		// dice that went overboard this fight come back (F241)
+		for (var i = 0; i < array_length(overboard_dice); i++) ds_list_add(global.dice_bag, overboard_dice[i]);
+		overboard_dice = [];
 		if (ds_safe_exists(global.discard_pile, ds_type_list)) {
 		    for (var i = 0; i < ds_list_size(global.discard_pile); i++) {
 		        var discard_die = global.discard_pile[| i];
@@ -1409,7 +1441,8 @@ function get_action_name(_slot, _num) {
 
 function discard_dice_in_play(_all = false) {
 	
-	runmanager_trigger_keepsakes("on_not_used", {});
+	// only when there are dice to leave unused: it runs every Step while the round resolves (B163: Lantern fired every frame)
+	if (instance_number(oDice) > 0) runmanager_trigger_keepsakes("on_not_used", {});
 	
 	with (oDice) {
 		if (can_discard || _all) {
@@ -1550,6 +1583,20 @@ function eject_dice_in_slot(_slot, _slot_pos, _all) {
 
 			// Clone the die struct so the particle has its own independent copy
 			p.die_struct = clone_die(die, "");
+
+			// Overboard (F241): when its slot resolves at the end of the round (not when a slot is emptied by an effect,
+			// _all), the die goes over the side for the rest of the fight: it sinks off the bottom of the screen with a
+			// splash of bubbles instead of going to the discard pile, and comes back to the bag after the fight
+			if (!_all && room == rmCombat && instance_exists(oCombat) && die_has_keyword(die, "Overboard")) {
+				var _gone = clone_die(die, "");
+				die_clear_faces(_gone);
+				array_push(oCombat.overboard_dice, _gone);
+				p.visual_only = true;
+				p.target_x = start_x + irandom_range(-40, 40);
+				p.target_y = display_get_gui_height() + 120;
+				sfx_play(choose(soBubbles1, soBubbles2, soBubbles3), AUDIO_GROUP.SFX, 0.1, 0.6);
+				add_feed_entry(string(die.name) + " went overboard.");
+			}
 		
 			var _context = {
 				_ejected_die: die,
@@ -2192,7 +2239,7 @@ function tips_list() {
 		},
 		{
 			id: "workbench", room: rmWorkbench, target: "wb_rack",
-			text: "Drag a tool onto your dice. Each tool works once per visit.",
+			text: "Drag a tool onto your dice. The Hammer and Cutters work once per visit.",
 			when: function() { return instance_exists(oWorkbenchManager) && array_length(oWorkbenchManager.wb_dice) > 0 && oRunManager.dice_selection == false; },
 			done: function() { return instance_exists(oWorkbenchManager) && array_length(oWorkbenchManager.tools_used) > 0; },
 		},

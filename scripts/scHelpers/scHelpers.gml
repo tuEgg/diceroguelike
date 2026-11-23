@@ -2349,7 +2349,7 @@ function draw_header_band(_x1, _y1, _x2, _h, _r, _cols, _darken = 0.5) {
 /// @func keyword_from_index(_index)
 /// @desc The dice keyword with this sKeywordIcons index, or "" (Might and Balance are buffs: they keep their sprite).
 function keyword_from_index(_index) {
-	var _names = ["Stowaway", "Favourite", "Coin", "Multitype", "Followthrough", "Exclusive", "Loose", "Sticky"];
+	var _names = ["Stowaway", "Favourite", "Coin", "Multitype", "Followthrough", "Exclusive", "Loose", "Sticky", "", "", "Overboard"]; // 8, 9: Might and Balance keep their sprites
 	return (_index >= 0 && _index < array_length(_names)) ? _names[_index] : "";
 }
 
@@ -2392,6 +2392,11 @@ function draw_keyword_icon(_key, _x, _y, _scale = 1, _alpha = 1) {
 		case "Exclusive": // a pennant on a pole: it claims the slot
 			draw_line_width(_x - 4.5 * _s, _y - 8 * _s, _x - 4.5 * _s, _y + 8 * _s, _w);
 			draw_triangle(_x - 4 * _s, _y - 8 * _s, _x + 7 * _s, _y - 4.5 * _s, _x - 4 * _s, _y - 1 * _s, false);
+			break;
+		case "Overboard": // a wave curling over: gone over the side
+			draw_arc_thick_deg(_x - 1 * _s, _y + 1 * _s, 3 * _s, 6.5 * _s, 0, 200, 14);
+			draw_triangle(_x + 5.5 * _s, _y + 1 * _s, _x + 8.5 * _s, _y + 1 * _s, _x + 6 * _s, _y + 5 * _s, false);
+			draw_line_width(_x - 8 * _s, _y + 6.5 * _s, _x + 8 * _s, _y + 6.5 * _s, _w);
 			break;
 		case "Sticky": // a drip of tar
 			draw_circle(_x, _y + 2.5 * _s, 5 * _s, false);

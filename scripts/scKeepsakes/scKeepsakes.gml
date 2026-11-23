@@ -111,13 +111,13 @@ function define_keepsakes() {
 	ks_rum = {
 	    _id: "rum",
 	    name: "Rum",
-	    desc: "Attacks get +1 max roll and -1 min roll.",
+	    desc: "Attack dice get +1 max roll and -1 min roll, never below 1.",
 	    sub_image: 30,
 		price: 110,
-	    trigger: function(event, data) {			
+	    trigger: function(event, data) {
 			if (event == "on_roll_die") {
-				if (data.action_type == "ATK") {
-					data.min_roll -= 1;
+				if (data.die.action_type == "ATK") { // the die's own type, as dealt and as resolved (B163)
+					data.min_roll = max(1, data.min_roll - 1); // never 0 (B163: Rusty Rudder hit for 0, cores rolled 0)
 					data.max_roll += 1;
 					
 					if (!data.read_only) {
@@ -264,13 +264,17 @@ function define_keepsakes() {
 	    name: "Black Purse",
 	    desc: "After combat, gain 3 gold per slot.",
 		sub_image: 9,
+		state: { slots: 0 },
 	    trigger: function(event, data) {
+			// the most slots you had at a turn's end this fight (built slots are taken down before the fight ends, so it
+			// always paid for 1: B163)
+			if (event == "on_player_turn_end") self.state.slots = max(self.state.slots, ds_list_size(oCombat.action_queue));
 	        if (event == "on_combat_end") {
-	            for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
-					gain_coins(oCombat.slot_positions[| i].x, oCombat.slot_positions[| i].y, 3);
-				
-					trigger_keepsake_visual();
-				}
+				var _n = max(self.state.slots, ds_list_size(oCombat.action_queue));
+				var _sp = (ds_list_size(oCombat.slot_positions) > 0) ? oCombat.slot_positions[| 0] : { x: display_get_gui_width() / 2, y: display_get_gui_height() / 2 };
+	            for (var i = 0; i < _n; i++) gain_coins(_sp.x + i * 40, _sp.y, 3);
+				if (_n > 0) trigger_keepsake_visual();
+				self.state.slots = 0;
 	        }
 	    }
 	};
@@ -396,7 +400,7 @@ function define_keepsakes() {
 	ks_chainmasters_anchor = {
 	    _id: "chainmasters_anchor",
 	    name: "Chainmaster's Anchor",
-	    desc: "First Followthrough effect each turn triggers twice.",
+	    desc: "The first Followthrough bonus each turn counts twice.",
 	    sub_image: 3,
 		state: { effect_used: false, first_die: undefined },
 	    trigger: function(event, data) {
@@ -463,19 +467,11 @@ function define_keepsakes() {
 	    desc: "When a die builds a slot, its 'When played' effect triggers twice.",
 	    sub_image: 17,
 		state: { },
-	    trigger: function(event, data) {			
-			if (event == "on_sacrifice_die") {
-				data._slot = -1;
-				data._slot_num = -1;
-				data._d_struct = data.die.struct;
-				data.dice_object = data.die;
-				data._die_struct = data.die.struct;
-				
-				// fire only the sacrificed die's own "when played" effect, not every keepsake and debuff as well
-				repeat (2) {
-					trigger_die_effects_single(data.die.struct, "on_dice_played_to_slot", data);
-				}
-				
+	    trigger: function(event, data) {
+			// builders count as played now (F238), so their "when played" effect fires once anyway; Lead Line fires the
+			// die's own once more, in the slot it built (it used to fire before the slot existed, so most dice did nothing)
+			if (event == "on_builder_played" && die_has_effect_trigger(data._d_struct, "on_dice_played_to_slot")) {
+				trigger_die_effects_single(data._d_struct, "on_dice_played_to_slot", data);
 				trigger_keepsake_visual();
 	        }
 	    }
@@ -550,7 +546,7 @@ function define_keepsakes() {
 		is_armed: function() { return self.state.next_twice; }, // lit in the keepsake bar while waiting
 	    trigger: function(event, data) {
 			// rolled dice: a die rolls as it's dealt, so the minimum marks the next one dealt
-			if (event == "on_die_rolled" && data.face <= data.min_roll) {
+			if (event == "on_die_rolled" && data.min_roll < data.max_roll && data.face <= data.min_roll) { // B163: guard as Balancing Compass has
 				self.state.next_twice = true;
 				trigger_keepsake_visual();
 			}
@@ -647,7 +643,7 @@ function define_keepsakes() {
 		state: { },
 	    trigger: function(event, data) {			
 			if (event == "on_roll_die") {
-				if (data.max_roll == 4) {
+				if (data.die.dice_value == 4) { // the die's size (B163: it read the max after other keepsakes, so bar order mattered)
 					data.min_roll += 1;
 					
 					if (!data.read_only) {
@@ -668,7 +664,7 @@ function define_keepsakes() {
 		state: { },
 	    trigger: function(event, data) {			
 			if (event == "on_roll_die") {
-				if (data.action_type == "BLK") {
+				if (data.die.action_type == "BLK") { // the die's own type (B163)
 					data.min_roll += 1;
 					
 					if (!data.read_only) {
@@ -689,7 +685,7 @@ function define_keepsakes() {
 		state: { },
 	    trigger: function(event, data) {			
 			if (event == "on_roll_die") {
-				if (data.action_type == "ATK") {
+				if (data.die.action_type == "ATK") { // the die's own type (B163)
 					data.min_roll += 1;
 					
 					if (!data.read_only) {
@@ -731,7 +727,7 @@ function define_keepsakes() {
 		state: { },
 	    trigger: function(event, data) {			
 			if (event == "on_roll_die") {
-				if (data.action_type == "INTEL") {
+				if (data.die.action_type == "INTEL") { // the die's own type (B163)
 					data.min_roll += 1;
 					
 					if (!data.read_only) {
@@ -821,7 +817,7 @@ function define_keepsakes() {
 	        // IMPORTANT: `self` here is the keepsake struct itself — no need for `var that`
 	        switch (event) {
 	            case "on_die_rolled": // when rolled: it hits as the die lands
-					if (data.face <= data.min_roll) {
+					if (data.min_roll < data.max_roll && data.face > 0 && data.face <= data.min_roll) { // B163: a one-number die fired every roll
 						data._d_amount = data.face; data.slot_bonus = 0; data.keepsake_bonus = 0; // the damage is the face
 						// a random enemy still standing (B93: it could pick one already dead)
 						var _alive = [];

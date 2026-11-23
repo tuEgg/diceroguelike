@@ -8,6 +8,10 @@ if (surface_exists(wet_surf)) surface_free(wet_surf);
 if (insight_view) global.ui_layer = UI_LAYER.BASE;
 if (ink_writing_snd != -1) audio_stop_sound(ink_writing_snd);
 
+// dice still overboard (the fight was left some other way than winning it) go back to the bag
+for (var i = 0; i < array_length(overboard_dice); i++) ds_list_add(global.dice_bag, overboard_dice[i]);
+overboard_dice = [];
+
 // --- Destroy temporary lists ---
 if (ds_safe_exists(global.discard_pile, ds_type_list)) {
 	ds_list_destroy(global.discard_pile); 

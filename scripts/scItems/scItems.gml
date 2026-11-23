@@ -129,7 +129,7 @@ function define_items() {
 		sprite: sCores,
 		index: 7,
 		name: "Lodestone Core",
-		description: "At the lowest alignment it only rolls its lowest or highest. At the highest, only its middle.",
+		description: "The lower your alignment, the more it rolls its lowest or highest. At high alignment, never them.",
 		type: "core",
 		dragging: false,
 		distribution: "lodestone",
@@ -173,7 +173,7 @@ function define_items() {
 	item_consumable_riggers_tonic = {
 		sprite: sConsumables,
 		index: 0,
-		name: "Riggers Tonic",
+		name: "Rigger's Tonic",
 		description: "Every die in a slot gets +2 this turn.",
 		type: "consumable",
 		dragging: false,
@@ -271,6 +271,8 @@ function define_items() {
 						dice.struct.dice_value += 4;
 						dice.dice_value += 4;
 						die_size_changed(dice.struct);
+						die_roll_faces(dice.struct); // it rolls again at its new size (B163: it kept its old face this turn)
+						dice.roll_anim = 12;
 						dice.struct.reset_at_end_combat = function(_dice) {
 							_dice.dice_value -= 4;
 							die_size_changed(_dice);

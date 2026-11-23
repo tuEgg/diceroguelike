@@ -89,6 +89,13 @@ global.keywords = {
 		icon_on: ["hand", "slot"]
     },
 
+    "Overboard": {
+        colour: make_color_rgb(70, 130, 180),
+        desc: "Gone for the rest of the fight after its slot acts.",
+		index: 10, // drawn in code (draw_keyword_icon), like the others
+		icon_on: ["hand", "slot"]
+    },
+
     "Might": {
         colour: c_white,
         desc: "Attacks get +1 per Might.",

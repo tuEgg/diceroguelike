@@ -333,6 +333,9 @@ if (room == rmMap) {
 						_page_clone.x = drawn_page_x;
 						_page_clone.y = drawn_page_y;
 				
+						// spread 3 of every chapter opens with a treasure stop before its islands (F240), on its left page
+						if (left_or_right_page == 0 && spreads_cleared == 2) _page_clone.treasure_stop = true;
+
 						// Add this locked in page to chosen_pages
 						ds_list_add(chosen_pages, _page_clone);
 					
@@ -450,6 +453,7 @@ if (room == rmMap) {
 	}
 	if (_spots.left != undefined && (world_state == WORLD_STATE.EXPLORING || world_state == WORLD_STATE.STRAIT)) {
 		spread_routes_draw(_spots);
+		treasure_stop_draw(_spots.left); // spread 3: the treasure before the islands (F240)
 		passage_left_draw(_spots.buoy.x, _spots.buoy.y);
 		strait_draw(_spots.strait.x, _spots.strait.y);
 	}

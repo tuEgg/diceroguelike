@@ -224,8 +224,8 @@ function generate_dice_bag() {
 	global.dice_d2_blk.keywords = ["Coin"];
 	global.dice_d2_intel = make_die_struct(1, 2,"INTEL", "INTEL", "", "Ink.", "Coin. Provides ink", "template");
 	global.dice_d2_intel.keywords = ["Coin"];
-	global.dice_d2_heal = make_die_struct(1, 2,"HEAL", "HEAL", "", "Heal.", "Coin. Heals", "template");
-	global.dice_d2_heal.keywords = ["Coin"];
+	global.dice_d2_heal = make_die_struct(1, 2,"HEAL", "HEAL", "", "Heal.", "Coin. Overboard. Heals", "template");
+	global.dice_d2_heal.keywords = ["Coin", "Overboard"];
 	
 	global.dice_d4_none = make_die_struct(1, 4,"None", "None", "", "Generic die", "Upgrades any action type", "starter");
 	ds_list_add(global.starter_dice_list, clone_die(global.dice_d4_none, ""));
@@ -241,7 +241,8 @@ function generate_dice_bag() {
 	ds_list_add(global.starter_dice_list, clone_die(global.dice_d4_blk, ""));
 	global.dice_d4_intel = make_die_struct(1, 4,"INTEL", "INTEL", "", "Ink", "Provides ink", "starter");
 	ds_list_add(global.starter_dice_list, clone_die(global.dice_d4_intel, ""));
-	global.dice_d4_heal = make_die_struct(1, 4,"HEAL", "HEAL", "", "Heal", "Heals", "starter");
+	global.dice_d4_heal = make_die_struct(1, 4,"HEAL", "HEAL", "", "Heal", "Overboard. Heals", "starter");
+	global.dice_d4_heal.keywords = ["Overboard"];
 	
 	// Anchor Die: Gain +3 block if not used
 	global.die_anchor = make_die_struct(
@@ -284,12 +285,12 @@ function generate_dice_bag() {
 	// Defensive Die: Coin. Favourite. Multitype: Can create HEAL and BLK slo
 	global.die_defensive = make_die_struct(
 	    1, 2, "HEAL", "HEAL BLK", "", "Defensive coin",
-	    "Coin. Favourite. Multitype: Heal or Block.",
+	    "Coin. Favourite. Overboard. Multitype: Heal or Block.",
 		"rare",
 		70,
 	    []
 	);
-	global.die_defensive.keywords = ["Coin", "Favourite", "Multitype"];
+	global.die_defensive.keywords = ["Coin", "Favourite", "Multitype", "Overboard"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_defensive, ""));
 	
 	// Anchor Die: Gain +3 block if not used
@@ -394,22 +395,22 @@ function generate_dice_bag() {
 	// Tidepusher die
 	global.die_tidepusher = make_die_struct(
 	    1, 4, "HEAL", "HEAL", "", "Tidepusher die",
-	    "Exclusive. If it rolls 4, heal 1 more.",
+	    "Exclusive. Overboard. If it rolls its max, heal 1 more.",
 		"rare",
 		90,
 	    [
 	        {
 	            trigger: "after_roll_die",
 	            modify: function(_context) {
-					if (_context._d_amount == 4 && _context.die.uid == _context._die_struct_source.uid) {
+					if (_context._d_amount >= _context.max_roll && _context.die.uid == _context._die_struct_source.uid) { // its max (B163: "exactly 4" broke when it grew)
 						roll_popup(_context.slot_num, _context.dice_index, string(_context._die_struct_source.name) + "!", c_white); // F40: show the effect firing
-						_context._d_amount = 5;
+						_context._d_amount += 1;
 					}
 	            }
 	        }
 	    ]
 	);
-	global.die_tidepusher.keywords = ["Exclusive"];
+	global.die_tidepusher.keywords = ["Exclusive", "Overboard"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_tidepusher, ""));
 	
 	// Bulwark die
@@ -444,14 +445,14 @@ function generate_dice_bag() {
 	// Bulwark die
 	global.die_crescendo = make_die_struct(
 	    1, 8, "ATK", "ATK", "", "Crescendo die",
-	    "+1 minimum roll each time it rolls this combat, up to {half}.",
+	    "+1 minimum roll each time it's played this fight, up to {half}.",
 		"rare",
 		80,
 	    [
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
-	                _context.min_roll = min(_context.max_roll / 2, 1 + _context.die.statistics.times_played_this_combat);
+	                _context.min_roll = max(_context.min_roll, min(_context.max_roll / 2, 1 + _context.die.statistics.times_played_this_combat)); // B163: it overwrote +1 min bonuses
 	            }
 	        }
 	    ]
@@ -659,8 +660,9 @@ function generate_dice_bag() {
 					
 					var type_str = "";
 					for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
-						slot = oCombat.action_queue[| i];
-						
+						var slot = oCombat.action_queue[| i];
+						if (slot.current_action_type == "None") continue; // an empty slot has no type yet
+
 						if (string_pos(slot.current_action_type, type_str) == 0) {
 							if (type_str != "") type_str += ",";
 							type_str += string(slot.current_action_type);
@@ -758,7 +760,9 @@ function generate_dice_bag() {
 			        }
 			        if (ds_list_size(consumable_options) > 0) {
 			            var picked = consumable_options[| irandom(ds_list_size(consumable_options) - 1)];
-			            gain_item(clone_item(picked));
+			            // with full item slots it waits (pending_item) instead of vanishing (B163)
+			            if (get_first_free_item_slot() == -1) oRunManager.pending_item = clone_item(picked);
+			            else gain_item(clone_item(picked));
 			        }
 			        ds_list_destroy(consumable_options);
 			    }
@@ -933,7 +937,7 @@ function generate_dice_bag() {
 	    1, 8, "None", "None", "", "Holy die",
 	    "Alignment: The higher your alignment, the higher its minimum roll.",
 		"rare",
-		30,
+		70,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -949,7 +953,7 @@ function generate_dice_bag() {
 	    1, 6, "None", "None", "", "Unholy die",
 	    "Alignment: The lower your alignment, the higher its maximum roll.",
 		"rare",
-		30,
+		70,
 	    [
 	        {
 	            trigger: "on_roll_die",
@@ -1010,7 +1014,7 @@ function generate_dice_bag() {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
 					// only in a fight, this also runs when the die is shown in the bag or shop
-					if (instance_exists(oCombat)) _context.min_roll += floor(max(0, oCombat.player_intel) / 3);
+					if (instance_exists(oCombat)) _context.min_roll = min(_context.min_roll + floor(max(0, oCombat.player_intel) / 3), _context.max_roll - 1); // B163: never up to its max
 	            }
 	        }
 	    ]
@@ -1076,7 +1080,7 @@ function generate_dice_bag() {
 	// Tidecaller: a high heal also raises your guard
 	global.die_tidecaller = make_die_struct(
 	    1, 6, "HEAL", "HEAL", "", "Tidecaller die",
-	    "If it rolls 5 or higher, also gain 3 block.",
+	    "Overboard. If it rolls 5 or higher, also gain 3 block.",
 		"uncommon",
 		50,
 	    [
@@ -1091,6 +1095,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
+	global.die_tidecaller.keywords = ["Overboard"];
 	ds_list_add(global.master_dice_list, clone_die(global.die_tidecaller, ""));
 
 	// Ballast: a heavy die that never rolls low
@@ -1692,31 +1697,21 @@ function define_dice_distributions(_die_dist, _min_roll, _max_roll, _array) {
 		break;
 				
 		case "bell":		
-		// array is [1, 2, 4, 8, 8, 4, 2, 1] for a d8
+		// array is [1, 2, 4, 8, 8, 4, 2, 1] for a d8; shaped over the die's own range (B163: a raised min tipped it low)
 		for (var d = _min_roll; d <= _max_roll; d++) {
-			var val;
-			if (d <= _max_roll/2) {
-				val = power(2, d - 1);
-			} else {
-				val = power(2, _max_roll - d);
-			}
+			var _k = d - _min_roll, _rn = _max_roll - _min_roll;
+			var val = (_k <= _rn / 2) ? power(2, _k) : power(2, _rn - _k);
 			array_push(_array, val);
 		}
 		break;
 				
 		case "dome":		
-		// array is [0, 1, 3, 9, 9, 3, 1, 0] for a d8
+		// array is [0, 1, 3, 9, 9, 3, 1, 0] for a d8; shaped over the die's own range (B163)
 		for (var d = _min_roll; d <= _max_roll; d++) {
+			var _k = d - _min_roll, _rn = _max_roll - _min_roll;
 			var val;
-			if (d == _min_roll || d == _max_roll) {
-				val = 0;
-			} else {
-				if (d <= _max_roll/2) {
-					val = power(3, d - 2);
-				} else {
-					val = power(3, _max_roll - d - 1);
-				}
-			}
+			if (_k == 0 || _k == _rn) val = 0;
+			else val = (_k <= _rn / 2) ? power(3, _k - 1) : power(3, _rn - _k - 1);
 			array_push(_array, val);
 		}
 		break;		

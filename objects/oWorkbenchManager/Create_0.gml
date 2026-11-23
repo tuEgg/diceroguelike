@@ -1,7 +1,7 @@
 // The workbench as a free bench (F224, Jared 2026-11-22; docs/mockups/workbench-freeform.html): no slots. Dice sit
 // anywhere on the table; the tools hang on a rack and work wherever they land. The Drill takes a core in its chuck and
 // drills it into a die; the Hammer swung on the gap between two dice joins them; the Cutters trim a die and a coin
-// hops out. Each tool once per visit. Dice come from the bag any time (the bag icon opens the picker, no limit) and
+// hops out. The Hammer and Cutters work once per visit, the Drill as often as you have cores (F237). Dice come from the bag any time (the bag icon opens the picker, no limit) and
 // go back to it by being dropped on the bag, or all at once on Continue.
 gui_w = display_get_gui_width();
 gui_h = display_get_gui_height();
@@ -15,7 +15,7 @@ wb_job = undefined;      // a tool at work (an animation that ends in the craft)
 wb_scuffs = [];          // marks the hammer left on the table: { x, y, r, a }
 wb_rings = [];           // rings that spread from a craft: { x, y, col, t }
 wb_tool_k = 0.42;        // the tools' sprites are big; drawn at this scale
-tools_used = [];         // tool objects used this visit (each tool works once per visit)
+tools_used = [];         // tool objects used this visit (the Hammer and Cutters work once per visit; the Drill any number of times)
 exiting = false;
 wb_target = undefined;   // what the tool in hand would do where it is (wb_tool_target), for the hover text and rings
 
@@ -183,7 +183,7 @@ wb_tool_target = function(_t) {
 			var _p = wb_pair_at(_t.hx, _t.hy);
 			if (_p == undefined) return _r;
 			_r.pair = _p;
-			var _sum = _p.a.die.dice_value + _p.b.die.dice_value;
+			var _sum = _p.a.die.dice_value + _p.b.die.dice_value - 2; // a merge loses 2 sides (F236: d4 + d4 = d6)
 			if (_p.a.die.action_type != _p.b.die.action_type) _r.text = "Only dice of the same type combine.";
 			else if (_sum > 12) _r.text = "Too big: d12 at most.";
 			else {
