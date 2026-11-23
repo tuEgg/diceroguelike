@@ -9,7 +9,7 @@ What's still silent or using a placeholder, most important first within each gro
 |---|---|---|---|
 | 1 | Die dropped in a slot (attack, block, heal) | rubble | a wooden "clack" on a tabletop, a few takes |
 | 1 | A slot built (the new-slot tile becomes a slot) | silent (screen shake only) | a heavier thunk or rope creak, as a plank sets in place |
-| 1 | End Turn pressed | soClick4 | a ship's bell, or a heavy page slap |
+| 1 | End Turn pressed | soShipBell (done) | |
 | 1 | Your turn starts | silent | a short bell or a wave rolling in (marks the turn) |
 | 2 | Die taken back out of a slot | silent | the place sound, played softer and higher |
 | 2 | Slot changes type (right-click) | soSlotPlace | a quick paper flick |
