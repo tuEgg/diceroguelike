@@ -10,7 +10,7 @@
   "compression":1,
   "compressionQuality":4,
   "conversionMode":0,
-  "duration":1.8870068,
+  "duration":2.0,
   "exportDir":"",
   "name":"soTorch",
   "parent":{
