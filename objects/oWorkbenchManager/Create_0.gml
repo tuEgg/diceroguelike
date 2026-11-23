@@ -35,11 +35,11 @@ for (var i = 0; i < ds_list_size(oRunManager.tools); i++) {
 
 /// @func wb_tool_vec(_kind)
 /// @desc Where a tool is held (its grip), in sprite pixels: { wx, wy } is its working point from the grip, { ox, oy }
-///       its sprite origin from the grip (Jared, 2026-11-22: the drill held by its handle, the hammer low on its handle,
+///       its sprite origin from the grip (Jared: the drill held just above its chuck, the hammer low on its handle,
 ///       the cutters in the middle). Everything turns about the grip.
 wb_tool_vec = function(_kind) {
 	switch (_kind) {
-		case "drill": return { wx: 160, wy: 469, ox: 160, oy: 200 };
+		case "drill": return { wx: 0, wy: 309, ox: 0, oy: 40 }; // just above the chuck (Jared, 2026-11-23)
 		case "hammer": return { wx: 2, wy: -450, ox: 5, oy: -47 };
 		default: return { wx: 0, wy: 0, ox: 28, oy: 178 };
 	}

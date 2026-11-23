@@ -274,26 +274,26 @@ if (is_struct(wb_job)) {
 		case "hammer":
 		case "hammer_fail":
 		case "miss":
-			// a real swing (Jared, 2026-11-22: it was too gentle, and hit on the way up): raised high with the head tipped
-			// back, then brought down fast; the hit lands on the way down, the head on the gap (or wherever it was let go)
+			// a real swing, as the old hammer did (Jared, 2026-11-23): the head tips back to the right, then thwacks down
+			// to the left, turning anticlockwise; the hit lands on the way down, the head on the gap (or where it was let go)
 			var _hx = is_struct(_j.pair) ? _j.pair.mx : _j.x0, _hy = is_struct(_j.pair) ? _j.pair.my : _j.y0;
-			var _ia = -14; // the angle at the hit: the head a little forward of the grip
+			var _ia = 65; // the angle at the hit: the head down to the left of the grip
 			var _hv = wb_tool_vec("hammer");
 			var _gx = _hx - wb_rot_x(_hv.wx * wb_tool_k, _hv.wy * wb_tool_k, _ia), _gy = _hy - wb_rot_y(_hv.wx * wb_tool_k, _hv.wy * wb_tool_k, _ia);
 			if (_jt == 0) { var _g0 = wb_tool_grip(_t); _j.sgx = _g0.x; _j.sgy = _g0.y; _j.sa = _t.ang; }
 			var _ang = _ia, _px = _gx, _py = _gy;
 			if (_jt < 10) {
 				var _e = 1 - power(1 - _jt / 10, 3);
-				_ang = lerp(_j.sa, 34, _e);
+				_ang = lerp(_j.sa, -22, _e);
 				_px = lerp(_j.sgx, _gx, _e);
-				_py = lerp(_j.sgy, _gy - 80, _e);
+				_py = lerp(_j.sgy, _gy - 20, _e);
 			} else if (_jt < 14) {
 				var _e = power((_jt - 10) / 4, 3); // faster and faster
-				_ang = lerp(34, _ia, _e);
-				_py = lerp(_gy - 80, _gy, _e);
+				_ang = lerp(-22, _ia, _e);
+				_py = lerp(_gy - 20, _gy, _e);
 			} else if (_jt > 14) {
 				var _b = sin(min(1, (_jt - 14) / 10) * pi); // a little bounce off the table
-				_ang = _ia + 10 * _b;
+				_ang = _ia - 12 * _b;
 				_py = _gy - 16 * _b;
 			}
 			_t.ang = _ang;

@@ -41,8 +41,8 @@
 
 **Batch 33 test list**
 - F232 Workbench: dice from the bag are dealt as in a fight: one every 0.1 s with the roll sound, tumbling, slowing in and landing on their spot with a small pop (no face). Landings and crafts bounce less.
-- F232 The drill is held by its wooden handle (its tip works below the cursor), the hammer low on its handle (its head works above it), the cutters in the middle. Aim with the rings.
-- F232 The hammer: it rises with its head tipped back, then comes down fast; the hit lands on the way down (harder shake, more chips), a small bounce, then back to the rack. Misses swing the same way.
+- F232 The drill is held just above its chuck (where the core sits; its tip works below the cursor), the hammer low on its handle (its head works above it), the cutters in the middle. Aim with the rings.
+- F232 The hammer, like the old one: its head tips back to the right, then it thwacks down to the left, turning anticlockwise; the hit lands on the way down with the head on the gap (harder shake, more chips), a small bounce, then back to the rack. Misses swing the same way.
 - F232 Every tool finds a die from further away (about a die's width either side); the hammer finds a pair whose gap is near the head, up to 240 px apart.
 - F233 Hammering a die with a core and one without: the new die keeps the core (the hover says "It keeps the core."). Both with cores: one of them at random ("It keeps one of their cores.").
 - B160 The dark marks left after hammering were the hammer's dents in the table, not dice shadows. They're lighter now and fade away in 3 s.
