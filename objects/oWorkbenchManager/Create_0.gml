@@ -229,7 +229,7 @@ workbench_take_core = function(_core, _item_slot) {
 
 /// @func wb_draw_die(_d, _hover, _ring, _ok)
 /// @desc A die on the table: its shadow, a ring when the tool in hand is over it (brass if it can work on it, red if
-///       not), the die, a white flash after a craft, and a small gem on its corner when it has a core.
+///       not), the die, a white flash after a craft, and its distribution underneath when it has a core.
 wb_draw_die = function(_d, _hover, _ring, _ok) {
 	if (is_struct(_d.fly) && _d.fly.kind == "deal" && _d.fly.delay > 0) return; // still in the bag
 	var _r = 36 * _d.scale * (_hover ? 1.08 : 1);
@@ -245,7 +245,8 @@ wb_draw_die = function(_d, _hover, _ring, _ok) {
 	}
 	draw_die(_d.x, _y, _r, _v, -1, die_colours(_d.die.possible_type), _d.rot, 1, _d.die);
 	if (_d.flash > 0.02) draw_die_shape(_d.x, _y, _r * 1.02, _v, c_white, _d.rot, _d.flash * 0.8);
-	if (_d.die.distribution != "" && get_core_index(_d.die) >= 0) draw_sprite_ext(sCores, get_core_index(_d.die), _d.x + _r * 0.8, _y - _r * 0.8, 0.4, 0.4, 0, c_white, 1);
+	// a die with a core shows its distribution under it, not the core's icon (Jared, 2026-11-23)
+	if (_d.die.distribution != "" && _d.die.dice_value > 2) draw_dice_distribution(_d.die, _d.x, _d.y + 36 * _d.scale + 44, true, 0.6);
 }
 
 // the bag doesn't open by itself: a note on the bench (and the bag icon) open it to choose dice (workbench_open_picker)
