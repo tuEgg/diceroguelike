@@ -3719,8 +3719,9 @@ function combat_point_x(_k) {
 /// @func combat_timeline_draw([_ink])
 /// @desc The track over the queue (option C of docs/mockups/queue-timeline.html): a line with a numbered notch over each
 ///       slot and the new-slot tile, and each enemy's marker riding it at the gap where its move happens: its letter, its
-///       move's icon and number, a line down to the gap. A point past the new-slot tile shows there, its notch reading
-///       "3+" (Jared, 2026-11-22: no long lines over the enemies). Moves in one gap stack. Done moves dim; a dead or
+///       move's icon and number, a line down to the gap. With four places always in view every marker sits at its own
+///       gap, and a move that comes last sits at the end of the track, past every place (Jared, 2026-11-23); a point
+///       past the last place in view would show there, its notch reading "N+". Moves in one gap stack. Done moves dim; a dead or
 ///       Stunned enemy's greys. Hover a marker for what and when. _ink (the ink view): arrows either side of each
 ///       marker move it a slot earlier or later for INK_COST_MOVE.
 function combat_timeline_draw(_ink = false) {
@@ -3768,7 +3769,7 @@ function combat_timeline_draw(_ink = false) {
 			var _en = room_enemies[| e];
 			if (!variable_struct_exists(_en.intent, "after_slot") || _en.intent.alpha < 0.05) continue;
 			var _p = _en.intent.after_slot;
-			var _gap = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : min(_p, _last);
+			var _gap = (_p >= ENEMY_POINT_LAST) ? _last : min(_p, _last); // "last" sits at the end of the track (Jared, 2026-11-23)
 			_rows[e] = _stack[_gap]; _stack[_gap]++;
 			_top = max(_top, _rows[e]);
 		}
@@ -3777,7 +3778,7 @@ function combat_timeline_draw(_ink = false) {
 			if (_rows[e] != _draw_row) continue;
 			var _en = room_enemies[| e];
 			var _p = _en.intent.after_slot;
-			var _gap = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : min(_p, _last);
+			var _gap = (_p >= ENEMY_POINT_LAST) ? _last : min(_p, _last); // "last" sits at the end of the track (Jared, 2026-11-23)
 			var _gx = combat_point_x(_gap);
 			var _row = _rows[e];
 			var _my = _ty - 40 - _row * _row_h;
@@ -3790,7 +3791,7 @@ function combat_timeline_draw(_ink = false) {
 			var _movable = _ink && !_en.dead && !_en.turn_done;
 			var _can = _movable && combat_insight_can(INK_COST_MOVE);
 			var _dragging = _movable && ink_drag_enemy == _en;
-			var _eff = (_p >= ENEMY_POINT_LAST) ? max(1, _n) : _p;
+			var _eff = (_p >= ENEMY_POINT_LAST) ? _last : _p;
 			var _k = _eff;
 			if (_dragging) {
 				var _mx = device_mouse_x_to_gui(0);
