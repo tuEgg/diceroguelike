@@ -305,7 +305,7 @@ function generate_dice_bag() {
 	// Anchor Die: Gain +3 block if not used
 	global.die_tidebreaker = make_die_struct(
 	    1, 6, "ATK", "ATK", "", "Tidebreaker die",
-	    "Followthrough: +2 damage if the slot before is BLK.",
+	    "Followthrough: +2 damage if the slot before is Block.",
 		"common",
 		50,
 	    [
@@ -2198,7 +2198,23 @@ function die_size_changed(_die) {
 /// @func action_type_label(_type)
 /// @desc An action type as the player reads it. Intel is called Insight on screen; the code keeps "INTEL".
 function action_type_label(_type) {
-	return string_replace_all(string(_type), "INTEL", "INK");
+	// full words, never the code's short names (Jared, 2026-11-23: no BLK or ATK in front of players); a multitype
+	// die's types read "Attack or Ink"
+	var _parts = string_split(string(_type), " ");
+	var _out = "";
+	for (var i = 0; i < array_length(_parts); i++) {
+		var _w = _parts[i];
+		switch (_w) {
+			case "ATK": _w = "Attack"; break;
+			case "BLK": _w = "Block"; break;
+			case "HEAL": _w = "Heal"; break;
+			case "INTEL": case "INK": _w = "Ink"; break;
+			case "None": _w = "Generic"; break;
+		}
+		if (_w == "") continue;
+		_out += ((_out == "") ? "" : " or ") + _w;
+	}
+	return _out;
 }
 
 /// @func core_preview_die()

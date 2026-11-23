@@ -47,6 +47,7 @@
 - Fortress: Barnacle die (+2 after a Block slot), Spiked Hull (3 damage to an enemy whose hit your Block fully stops).
 - Alignment: Mercy die (+1 alignment when played), Cutthroat die (-1), Weathervane (below 30 / above 70: every die +1). Holy and Unholy also turn up as rare rewards (and cost 70).
 - New keepsakes use other keepsakes' pictures for now (art pass).
+- Text: no BLK / ATK / INK left in front of players. Tidebreaker says "Block"; anywhere a die is named by size and type it reads "1d6 Attack", and a multitype die "Attack or Ink".
 
 ## 🐞 BUGS: P0 crashes, softlocks, lost runs
 
