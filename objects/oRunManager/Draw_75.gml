@@ -403,6 +403,13 @@ if (show_bag_contents) {
 								throw_error("Not a coin", "Choose a coin.");
 							}
 						break;
+						case "upgrade":
+							if (dice.dice_value != 2 && dice.dice_value < 12) {
+								filter_pass = true;
+							} else {
+								throw_error("Can't upgrade", (dice.dice_value == 2) ? "Coins can't be upgraded." : "It's already a d12.");
+							}
+						break;
 						case "min_room":
 							// +1 min roll: not on a die whose lowest roll is already its highest (Jared, 2026-11-22)
 							if (1 + dice.min_roll_bonus < dice.dice_value) {

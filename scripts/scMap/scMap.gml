@@ -375,9 +375,24 @@ function enter_node(_node) {
 			if (ds_list_size(global.master_event_list) == 0) define_events();
 			// island events on islands, sea events at sea (2026-11-24); any event if that pool has run dry
 			var _sea = variable_struct_exists(_memory_node, "sea") && _memory_node.sea;
+			// each chapter has its own events (event_chapter, 2026-11-24): this chapter's first, then an earlier chapter's,
+			// then island/sea is let go, then anything left
 			var _fit = [];
-			for (var e = 0; e < ds_list_size(global.master_event_list); e++) if (event_is_sea(global.master_event_list[| e].name) == _sea) array_push(_fit, global.master_event_list[| e].name);
-			_memory_node.event_name = (array_length(_fit) > 0) ? _fit[irandom(array_length(_fit) - 1)] : global.master_event_list[| irandom(ds_list_size(global.master_event_list) - 1)].name;
+			for (var _pass = 0; _pass < 4 && array_length(_fit) == 0; _pass++) {
+				for (var e = 0; e < ds_list_size(global.master_event_list); e++) {
+					var _nm = global.master_event_list[| e].name;
+					var _ch = event_chapter(_nm);
+					var _ok = false;
+					switch (_pass) {
+						case 0: _ok = (_ch == chapter && event_is_sea(_nm) == _sea); break;
+						case 1: _ok = (_ch <= chapter && event_is_sea(_nm) == _sea); break;
+						case 2: _ok = (_ch <= chapter); break;
+						case 3: _ok = true; break;
+					}
+					if (_ok) array_push(_fit, _nm);
+				}
+			}
+			_memory_node.event_name = _fit[irandom(array_length(_fit) - 1)];
 		}
 	}
 	

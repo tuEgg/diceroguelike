@@ -42,7 +42,13 @@ function debug_menu_init() {
 		// Events
 		event_names: ["Pirate Prisoner", "A Great Storm", "Clear skies", "Broken sails", "Dividing up the bounty", "A Hidden Trunk",
 			"Some old loot", "Spare Ammunition", "A bird flies aboard", "The Wishing Well", "An island dream", "The Flying Dutchman",
-			"Rough tides", "The constellation", "A precious ingot", "The Siren's Call", "A floating crate", "The tattooist"],
+			"Rough tides", "The constellation", "A precious ingot", "The Siren's Call", "A floating crate", "The tattooist",
+			// chapter 2 (event_chapter)
+			"The smugglers' cove", "The master shipwright", "The governor's ball", "The old fortress",
+			"A ghost ship", "The whirlpool", "A merchant convoy", "The lighthouse keeper",
+			// chapter 3
+			"The Pirate King's hoard", "The volcano forge", "A duel at dawn", "The cartographers' guild",
+			"The kraken", "Calypso's bargain", "The edge of the map", "Davy Jones' locker"],
 		forced_event: "",			// name of the event the next event room must show
 
 		// Dice
@@ -515,6 +521,13 @@ function debug_menu_draw() {
 				debug_complete_spread();
 			}
 			yy += row_h;
+			if (debug_button(cx, yy, half_w, row_h, "Jump to the next chapter", false, room == rmMap && oWorldManager.chapter < CHAPTER_COUNT)) {
+				debug_next_chapter();
+			}
+			if (debug_button(cx + half_w, yy, half_w, row_h, "Show the one-time tips again")) {
+				debug_reset_tips();
+			}
+			yy += row_h;
 			// every tool from the pool (the Hammer and Cutters are otherwise bought): for testing the workbench
 			if (debug_button(cx, yy, half_w, row_h, "Give all tools", false, ds_list_size(global.master_tool_list) > 0)) {
 				while (ds_list_size(global.master_tool_list) > 0) {
@@ -802,11 +815,13 @@ function debug_menu_draw() {
 
 			var yy = cy;
 
-			debug_label(cx, yy + 6, "Click an event to play it now.");
+			debug_label(cx, yy + 6, "Click an event to play it now. Highlighted: this chapter's pool.");
 			yy += row_h * 1.5;
 
 			for (var i = 0; i < array_length(dbg.event_names); i++) {
-				if (debug_button(cx + half_w * (i mod 2), yy + (i div 2) * row_h, half_w, row_h, dbg.event_names[i])) {
+				var _ev_ch = event_chapter(dbg.event_names[i]);
+				var _ev_label = "Ch " + string(_ev_ch) + "  " + dbg.event_names[i] + (event_is_sea(dbg.event_names[i]) ? "  (sea)" : "");
+				if (debug_button(cx + half_w * (i mod 2), yy + (i div 2) * row_h, half_w, row_h, _ev_label, instance_exists(oWorldManager) && _ev_ch == oWorldManager.chapter)) {
 					dbg.forced_event = dbg.event_names[i];
 					debug_goto_room(rmEvent);
 				}
@@ -847,9 +862,21 @@ function debug_menu_draw() {
 				if (is_struct(stop_pool)) {
 					var _keys = ["combat", "event", "shop", "elite", "alignment", "bounty"];
 					for (var o = 0; o < array_length(_keys); o++) {
-						debug_label(cx + half_w * (o mod 2), odds_y + (o div 2) * row_h, _keys[o] + "  " + string(stop_pool[$ _keys[o]]) + ((_keys[o] == "elite") ? "  (" + string(elites_fought_chapter) + " fought)" : ""));
+						var _tok_text = _keys[o] + "  " + string(stop_pool[$ _keys[o]]) + ((_keys[o] == "elite") ? "  (" + string(elites_fought_chapter) + " fought)" : "");
+						// crossroads and the bounty are recounted at every draft (pool_refresh), so only the rest take a +1
+						if (o < 4) {
+							if (debug_button(cx + half_w * (o mod 2), odds_y + (o div 2) * row_h, half_w, row_h, _tok_text + "   (+1)")) {
+								stop_pool[$ _keys[o]] += 1;
+								debug_say("+1 " + _keys[o] + " token");
+							}
+						} else debug_label(cx + half_w * (o mod 2), odds_y + (o div 2) * row_h + 6, _tok_text);
 					}
 				} else debug_label(cx, odds_y, "(made at the next draft)");
+			}
+			odds_y += row_h * 4;
+			if (debug_button(cx, odds_y, half_w, row_h, "Workbench: +2 actions", false, instance_exists(oWorkbenchManager))) {
+				oWorkbenchManager.actions_left += 2;
+				debug_say("+2 workbench actions");
 			}
 
 		break;
@@ -975,6 +1002,32 @@ function debug_complete_spread() {
 	
 	debug_menu_close(true);
 	debug_say("Spread completed");
+}
+
+/// @func debug_next_chapter()
+/// @desc Starts the next chapter now, as its "Turn the page" button would (map only). The chapter's pool, events and
+///       enemy scaling all follow oWorldManager.chapter.
+function debug_next_chapter() {
+	if (!debug_in_run()) exit;
+	if (room != rmMap) { debug_say("Go to the map first"); exit; }
+	if (oWorldManager.chapter >= CHAPTER_COUNT) { debug_say("Already in the last chapter"); exit; }
+	with (oWorldManager) start_new_chapter();
+	debug_menu_close(true);
+	debug_say("Chapter " + string(oWorldManager.chapter));
+}
+
+/// @func debug_reset_tips()
+/// @desc Forgets which one-time tips were seen (tips_list), so each shows again the next time it comes up.
+function debug_reset_tips() {
+	if (!variable_global_exists("progress") || !is_struct(global.progress)) exit;
+	var _ids = tips_list();
+	for (var i = array_length(global.progress.tips_seen) - 1; i >= 0; i--) {
+		for (var t = 0; t < array_length(_ids); t++) {
+			if (global.progress.tips_seen[i] == _ids[t].id) { array_delete(global.progress.tips_seen, i, 1); break; }
+		}
+	}
+	progress_save();
+	debug_say("Tips will show again");
 }
 
 /// Run the game at a multiple of its normal speed (everything, animations included).
