@@ -51,7 +51,7 @@ if (chosen_event != undefined) {
 		draw_set_font(ftDefault);
 		var _title_h = string_height_ext(option.title, font_get_size(draw_get_font()) * 1.2, _w);
 		
-		draw_set_font(font_tip());
+		draw_set_font(ftTipBold);
 		var _desc_h = string_height_ext(_option_desc, font_get_size(draw_get_font()) * 1.2, _w);
 		var _h = _title_h + _desc_h + padding;
 		
@@ -75,7 +75,7 @@ if (chosen_event != undefined) {
 		draw_set_font(ftDefault);
 		draw_outline_text(option.title, global.ui_col.paper_hi, global.ui_col.ink, 1, xx + padding/2, yy - _h + padding/2 - 1, 1, option_alpha, 0, _w);
 
-		draw_set_font(font_tip());
+		draw_set_font(ftTipBold);
 		var colored_desc = colorcode_text(_option_desc);
 		global.ui_on_paper = true; // coloured words in their dark inks
 		draw_outline_text(colored_desc, global.ui_col.paper_hi, global.ui_col.ink, 1, xx + padding/2, yy - _h + padding/2 - 1 + _title_h, 1, option_alpha, 0, _w);

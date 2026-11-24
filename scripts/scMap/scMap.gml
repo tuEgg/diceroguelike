@@ -842,8 +842,9 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 	}
 
 	// while drafting, each page's course between its stops (once sailing, spread_routes_draw inks them)
-	if (!choices_locked) {
-		for (var n = 1; n < ds_list_size(page.nodes); n++) route_draw(node_x[n], node_y[n], node_x[n + 1], node_y[n + 1], 0.55 * (_locked ? 0.4 : 1) * ((_index == -1) ? 1 : pages_alpha));
+	// (a chosen page keeps its courses through the fade after Embark, until the chart's routes take over)
+	if (!choices_locked || (_index == -1 && world_state == WORLD_STATE.DRAFTING)) {
+		for (var n = 1; n < ds_list_size(page.nodes); n++) route_draw(node_x[n], node_y[n], node_x[n + 1], node_y[n + 1], (_index == -1) ? 0.38 : 0.55 * (_locked ? 0.4 : 1) * pages_alpha); // a chosen page's courses match the chart's (spread_routes_draw)
 	}
 
 	// Draw icons on top
@@ -2358,13 +2359,17 @@ function map_done_ring(_x, _y, _r, _alpha = 1) {
 ///       2026-11-21: previews that look like the real layout). _px, _py: the page's centre; _scale: its drawn scale.
 function page_passage_preview(_page, _px, _py, _scale, _alpha, _inside = false) {
 	if (page_passage(_page) == "") return;
-	var _sx = _px + (sprite_get_width(sMapParchment) / 2 + 66) * _scale, _sy = _py;
+	// a chosen page's stop sits exactly where spread_sea_spots will put it (left page 70, right page 80 past the page's
+	// edge), so nothing shifts when you embark (Jared, 2026-11-24)
+	var _ci = ds_list_find_index(chosen_pages, _page);
+	var _past = (_ci >= 0) ? ((_ci mod 2 == 0) ? 70 : 80) : 66;
+	var _sx = _px + (sprite_get_width(sMapParchment) / 2 + _past) * _scale, _sy = _py;
 	// on a drafting card (_inside): in its right part, with room round it (the whole card is sea, so no box behind it)
 	if (_inside) _sx = _px + DRAFT_CARD_W * _scale * 0.29;
 	var _n = ds_list_size(_page.nodes);
 	if (_n > 0) {
 		var _last = _page.nodes[| _n - 1];
-		route_draw(_last.x, _last.y, _sx, _sy, 0.55 * _alpha);
+		route_draw(_last.x, _last.y, _sx, _sy, ((_ci >= 0) ? 0.38 : 0.55) * _alpha); // a chosen page's course is inked as it will be on the chart
 	}
 	page_passage_badge(_page, _sx, _sy, _scale, _alpha);
 }

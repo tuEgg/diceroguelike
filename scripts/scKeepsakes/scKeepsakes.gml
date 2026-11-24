@@ -507,27 +507,18 @@ function define_keepsakes() {
 	ks_topographic_map = {
 	    _id: "topographic_map",
 	    name: "Topographic Map",
-	    desc: "When you play a max roll, its slot gets +2 this turn. When a die rolls its minimum, draw a die, at most twice a turn.",
+	    desc: "When a die rolls its max, it gains +1.",
 	    sub_image: 20,
-		state: { draws: 0, turn: -1 },
 	    trigger: function(event, data) {
-			// a valley: a die that rolls its lowest face draws you another (Q15), at most twice a turn so a run of 1s can't
-			// chain on and on
-			if (event == "on_die_rolled" && room == rmCombat && instance_exists(oCombat) && data.min_roll < data.max_roll && data.face <= data.min_roll) {
-				if (self.state.turn != oCombat.turn_count) { self.state.turn = oCombat.turn_count; self.state.draws = 0; }
-				if (self.state.draws < 2) {
-					self.state.draws++;
-					die_effect_popup(data._die_struct, "Valley!", global.color_gold);
-					oCombat.dice_to_deal += 1;
-					oCombat.is_dealing_dice = true;
-					trigger_keepsake_visual();
+			// a peak: a die that lands on its highest face climbs one higher as it's dealt (Jared, 2026-11-24: it was a slot
+			// bonus and a valley draw, too much to follow). The face itself rises, so the slot shows it.
+			if (event == "on_die_rolled" && room == rmCombat && instance_exists(oCombat) && data.min_roll < data.max_roll) {
+				var _d = data._die_struct, _peak = false;
+				for (var f = 0; f < array_length(_d.faces); f++) {
+					if (_d.faces[f] >= data.max_roll) { _d.faces[f] += 1; _peak = true; }
 				}
-			}
-			// rolled dice: the roll is known as it's played, so the bonus goes on its slot (live in the total)
-			if (event == "on_dice_played_to_slot" && is_struct(data._d_struct) && is_struct(data._slot)) {
-				var _out = get_dice_output(data._d_struct, -1, -1, true, "player");
-				if (die_has_faces(data._d_struct) && die_face_total(data._d_struct) >= _out.max_roll) {
-					slot_add_bonus(data._slot, "Topographic Map", 2, 1);
+				if (_peak) {
+					die_effect_popup(_d, "Peak! +1", global.color_gold);
 					trigger_keepsake_visual();
 				}
 	        }

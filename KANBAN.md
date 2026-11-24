@@ -30,6 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 55: map glitch, Topographic Map, event font | F313-F315 | `dev` | **Not yet play-tested.** Nothing should shift when you embark; Topographic Map is "when a die rolls its max, it gains +1"; event options in ftTipBold. |
 | 54: playtest feedback 5 and v0.3 (version 0.3.0) | F306-F312 | `dev` | **Not yet play-tested.** Workbench Bin area and 2-action Hammer/Bin, Kraken 28 HP, Bind/Rot on slot 1-2, debuff moves last, Lodestone, Eye patch, Bilge-Purge, one Drop Anchor before the boss, boss item rewards a level up. |
 | 53: buffs and debuffs (T02) | T02, F304, F305 | `dev` | **Not yet play-tested.** The agreed model (docs/design/buffs-plan.md): amount buffs vs effects, numbers on every icon for you and enemies, totals in tooltips and glossary boxes. |
 | 52: playtest feedback 4 (pre-0.3) | F293-F303 | `dev` | **Not yet play-tested.** The total on a die's face with roll+bonus in the corner, the Dutchman's ghosts, items by chapter, a Drop Anchor in every draft, and small fixes. |
@@ -74,6 +75,9 @@
 - F310 Bilge-Purge Flask: "Switch off a slot this turn. Gain 2 plays." The slot shows as bound and doesn't act; it can't take an already-off slot.
 - F311 The boss: one standard Drop Anchor before it (Rest or Workbench). A chapter's boss pays item rewards like the next chapter's fights: after chapter 1's boss, 3 options.
 - F312 The map's bottom row of circles and diamonds: a spread's marker fills in only after its sea stop is done (until then it still pulses as the one you're on). War Drum now reads "Each turn, gain Might equal to 12 minus the dice you own."
+- F313 Embark: the chosen pages' dotted courses and sea-stop badges stay where they are through the fade (the badge sat 4 px / 14 px off the real stop, and the courses were fainter and vanished for a moment). Check nothing jumps or flickers when the ship sails in, on a left and a right page.
+- F314 Topographic Map: "When a die rolls its max, it gains +1." The face itself rises past the max as it's dealt (a d6 rolling 6 shows 7), "Peak! +1" over it. The slot bonus and the draw on a minimum are gone.
+- F315 Event option descriptions use the bold tip font (ftTipBold). docs/keepsakes.md lists every keepsake's text for reading through.
 - F303 Hover a die that has a core (bag, hand, queue, workbench): the core is the first box under its tip, with its icon, name and what it does. Check an alignment core at neutral.
 
 **Batch 51 test list (playtest feedback 3)**
