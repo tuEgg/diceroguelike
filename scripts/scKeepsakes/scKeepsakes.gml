@@ -742,14 +742,19 @@ function define_keepsakes() {
 	ks_lucky_coin = {
 	    _id: "lucky_coin",
 	    name: "Lucky Coin",
-	    desc: "Each coin you play gives 1 block.",
+	    desc: "Coins roll 2s twice as often as 1s.",
 	    sub_image: 0,
 		state: { },
 	    trigger: function(event, data) {
-			// F242: a Coin swarm payoff (it only nudged coins' odds)
-			if (event == "on_dice_played_to_slot" && die_has_keyword(data._d_struct, "coin")) {
-				with (oCombat) process_action("player", 0, 1, 0, "player", undefined, "BLK");
-				trigger_keepsake_visual();
+			// back to the original (Jared, 2026-11-24; F242 had turned it into 1 block per coin played)
+			if (event == "on_roll_die") {
+				if (data.die.dice_value == 2) {
+					data.weighting = "loaded";
+					
+					if (!data.read_only) {
+						trigger_keepsake_visual();
+					}
+				}
 	        }
 	    }
 	};

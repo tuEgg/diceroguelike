@@ -5,9 +5,15 @@ var gui_h = display_get_gui_height();
 
 if (room == rmMap || peek_now) {		
 	
-	// Rock the boat
-	boat_data.y += sin(time * 0.05) * 0.4;
-	boat_data.angle += cos(time * 0.05) * 0.2;
+	// Rock the boat: by the change in a swing (±8 px, ±4 degrees), so it always returns to where it was. (Not in the map
+	// shown over a fight.)
+	if (room == rmMap) {
+		var _rock_y = -cos(time * 0.05) * 8, _rock_a = sin(time * 0.05) * 4;
+		boat_data.y += _rock_y - rock_prev_y;
+		boat_data.angle += _rock_a - rock_prev_a;
+		rock_prev_y = _rock_y;
+		rock_prev_a = _rock_a;
+	}
 	
 	var page_w = sprite_get_width(sWorldBookWater);
 	var page_xscale = 0.9;

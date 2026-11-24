@@ -444,7 +444,7 @@ function define_buffs_and_debuffs() {
 		name: "Conch Layer",
 	    duration: 3,  // lasts 1 full turn
 		amount: 10,
-	    desc: "3 layers: each hit deals 2 less damage. A layer breaks at 10, 15 and 20 total damage, stunning the Conch.",
+	    desc: "Each hit deals as much less damage as it has layers left. A layer breaks at 10, 15 and 20 total damage, stunning the Conch.",
 	    icon_index: 8,
 		debuff: false,
 		color: make_colour_rgb(60, 180, 240),
@@ -455,22 +455,26 @@ function define_buffs_and_debuffs() {
 	        {
 				trigger: "before_enemy_take_damage",
 	            modify: function(_ctx) {
-					_ctx.amount -= 2;
+					// each hit loses as many points as there are layers left: 3, then 2, then 1 (2026-11-24; it was a flat 2)
+					_ctx.amount = max(0, _ctx.amount - _ctx.debuff.remaining);
 				}
 	        },
 			{
-				state: {
-					layers_broken: 0,
-				},
 	            trigger: "on_enemy_take_damage",
 	            modify: function(_ctx) {
 					_ctx.debuff.amount -= _ctx.amount;
 					
 					if (_ctx.debuff.amount <= 0) {
 						apply_buff(_ctx.target, oRunManager.debuff_stunned, 1, 1, oRunManager.debuff_stunned.remove_next_turn, { source: "player", index: -1 }, false);
-						self.state.layers_broken += 1;
 						_ctx.debuff.remaining -= 1;
-						_ctx.debuff.amount = ((self.state.layers_broken * 5) + 10);
+						if (_ctx.debuff.remaining <= 0) {
+							// the last layer is gone: the shell goes. (It is a permanent buff, which the usual countdown
+							// never removes, so it stayed on, still blunting hits and stunning, 2026-11-24.)
+							var _at = ds_list_find_index(_ctx.target.debuffs, _ctx.debuff);
+							if (_at != -1) ds_list_delete(_ctx.target.debuffs, _at);
+						} else {
+							_ctx.debuff.amount = 10 + 5 * (3 - _ctx.debuff.remaining); // the next layer: 15, then 20 (kept on the buff, not a struct shared between fights)
+						}
 					}
 				}
 	        },
@@ -510,7 +514,7 @@ function define_buffs_and_debuffs() {
 	};
 
 	// the ones a player meets by name, explained wherever their name is written (glossary_terms, F137)
-	global.status_glossary = [debuff_mock, debuff_barnacle_bind, debuff_bind, debuff_stunned, debuff_rot, debuff_overwhelm, buff_reserve, buff_might, buff_balance];
+	global.status_glossary = [debuff_mock, debuff_barnacle_bind, debuff_bind, debuff_stunned, debuff_rot, buff_reserve, buff_might, buff_balance];
 }
 
 /// @func die_is_mocked(_die)

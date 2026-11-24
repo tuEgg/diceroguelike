@@ -1806,7 +1806,7 @@ function draw_dice_keywords(_die_struct, _x, _y, _scale, _alpha = 1.0, _where = 
 ///       whatever is below it; _x its left edge, or its centre with _centered. _scale makes it bigger (1: 14px bars).
 ///       A core's preview (core_preview) shows the core's own shape on a plain d6: keepsakes don't touch it.
 ///       _fit_w > 0: the bars widen to fill that width (bag cards, F156), whatever the die's size.
-function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _paper = false, _fit_w = -1) {
+function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _paper = false, _fit_w = -1, _plate = false) {
 	var _min_roll = 1;
 	var _max_roll = _die.dice_value;
 	if (!variable_struct_exists(_die, "core_preview")) {
@@ -1823,7 +1823,7 @@ function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _pa
 	if (_top <= 0) _top = 1; // all zero (a squeezed range, B125): flat stubs, not 0/0
 
 	// on paper (the cards) the numbers get more room under the line (Jared, 2026-11-24)
-	var _bw = 14 * _scale, _gap = 3 * _scale, _bh = 30 * _scale, _num_h = (_paper ? 22 : 15) * _scale, _pad = 5 * _scale;
+	var _bw = 14 * _scale, _gap = 3 * _scale, _bh = 30 * _scale, _num_h = _paper ? max(22 * _scale, 19) : 15 * _scale, _pad = 5 * _scale; // (paper: the Charter numbers keep a readable strip even on a small graphic)
 	// fitted to a width: bars fill it, but never fatter than 36 px (a standard bar, so a d4 and a d6 read the same and
 	// a coin's two aren't huge); a d10 or d12 simply gets thinner to stay inside it
 	if (_fit_w > 0) { _gap = 4 * _scale; _bw = min((_fit_w - (_n - 1) * _gap) / _n, 36 * _scale); }
@@ -1832,6 +1832,8 @@ function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _pa
 	var _base = _y - _pad - _num_h; // the line the bars stand on
 	var _bar_col = _paper ? global.ui_col.ink_soft : make_color_rgb(242, 210, 74);
 
+	// on paper, _plate lays a small paper chip under it (the workbench: dice stand on wood, not on a card)
+	if (_paper && _plate) ui_paper(_x0 - 10, _base - _bh - 10, _x0 + _w + 10, _y + 6, round(_x * 0.37) + 11, global.ui_col.paper, draw_get_alpha());
 	// the plate (on paper there's none: the bars are inked straight onto it)
 	if (!_paper) {
 		draw_set_alpha(0.85);
@@ -2511,7 +2513,7 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1, _die 
 		case 8:  _spread = _r * 0.34; break;
 		case 10: _spread = _r * 0.38; _cy = die_shape_yoff(10, _r); break;
 	}
-	var _pips = die_pip_layout(_face);
+	var _pips = (_face >= 1 && _face <= 6) ? die_pip_layout(_face) : []; // pips up to 6, a digit above (Jared, 2026-11-24)
 	if (array_length(_pips) > 0) {
 		var _pr = max(2, _r * ((_face > 6) ? 0.125 : 0.165) * ((_sides == 4) ? 0.85 : 1)); // chunky enough to count at a glance
 		draw_set_alpha(_alpha);

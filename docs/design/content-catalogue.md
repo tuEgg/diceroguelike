@@ -150,7 +150,7 @@ d6 Generic / Attack / Block (in `starter_dice_list`, used to load saves by name,
 | Weapon Polish | rollable | +1 min on Attack | on_roll_die | min-up |
 | Crossword Puzzle | rollable | +1 min on generic dice | on_roll_die | min-up |
 | Book of Secrets | rollable | +1 min on ink | on_roll_die | min-up, ink |
-| Lucky Coin | rollable | Coins roll 2 twice as often as 1 ("loaded") | on_roll_die | coin, shape |
+| Lucky Coin | rollable | Coins roll 2s twice as often as 1s ("loaded"; reverted 2026-11-24 from 1 block per coin) | on_roll_die | coin, shape |
 | Protective Rigging | rollable | Play a die: 2 block (also skips the Sirens' damage) | on_dice_played_to_slot | played, block |
 | Captain's Ledger | rollable | Bag runs out: 5 damage to all, 3 gold | on_bag_empty | aoe, gold |
 | Rusty Rudder | rollable | A min roll: that much damage to a random enemy | on_die_rolled | min-roll, aoe, dmg |

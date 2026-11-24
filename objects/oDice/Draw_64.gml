@@ -12,11 +12,16 @@ if (_coded) {
 	var _wobble = over_discard ? sin(current_time / 70) * 9 : 0;
 	var _cols = die_colours(struct.possible_type); // a multitype die is split diagonally in its colours
 	var _jig = die_jiggle_pose(struct); // its effect firing: a punch and a wobble (F40)
-	draw_die(x, y, _die_r * _jig.scale, dice_value, _face, over_discard ? colours_merge(_cols, c_black, 0.25) : _cols, tumble_angle + _wobble + _jig.angle, image_alpha, struct);
 	// in hand, what it gets on top of its roll wherever it's played (its own effect, keepsakes, Might...), as the queue's
-	// badge shows it (Jared, 2026-11-24: Calligrapher's ink bonus); slot bonuses only count once it's in a slot
+	// badge shows it (Jared, 2026-11-24: Calligrapher's ink bonus); slot bonuses only count once it's in a slot. A bonus
+	// that takes the roll past 6 shows as the total digit instead
+	var _hand_bonus = 0;
 	if (room == rmCombat && !tumbling && instance_exists(oCombat) && !oCombat.show_rewards) {
-		var _hand_bonus = get_dice_output(struct, -1, -1, true, "player").keepsake_dice_bonus_amount; // read only
+		_hand_bonus = get_dice_output(struct, -1, -1, true, "player").keepsake_dice_bonus_amount; // read only
+		if (_face >= 1 && _hand_bonus > 0 && _face + _hand_bonus > 6) { _face += _hand_bonus; _hand_bonus = 0; }
+	}
+	draw_die(x, y, _die_r * _jig.scale, dice_value, _face, over_discard ? colours_merge(_cols, c_black, 0.25) : _cols, tumble_angle + _wobble + _jig.angle, image_alpha, struct);
+	if (room == rmCombat && !tumbling && instance_exists(oCombat) && !oCombat.show_rewards) {
 		if (_hand_bonus != 0) {
 			draw_set_font(ftSmall);
 			draw_set_halign(fa_center);

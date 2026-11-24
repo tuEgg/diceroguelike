@@ -262,7 +262,8 @@ wb_draw_die = function(_d, _hover, _ring, _ok) {
 	draw_die(_d.x, _y, _r, _v, -1, die_colours(_d.die.possible_type), _d.rot, 1, _d.die);
 	if (_d.flash > 0.02) draw_die_shape(_d.x, _y, _r * 1.02, _v, c_white, _d.rot, _d.flash * 0.8);
 	// a die with a core shows its distribution under it, not the core's icon (Jared, 2026-11-23)
-	if (_d.die.distribution != "" && _d.die.dice_value > 2) draw_dice_distribution(_d.die, _d.x, _d.y + 36 * _d.scale + 44, true, 0.6);
+	// drawn as the bag view's cards draw it: ink bars and Charter numbers on a paper chip, standard bar width, room above the numbers
+	if (_d.die.distribution != "" && _d.die.dice_value > 2) draw_dice_distribution(_d.die, _d.x, _d.y + 36 * _d.scale + 62, true, 0.6, true, 999, true);
 }
 
 // the bag doesn't open by itself: a note on the bench (and the bag icon) open it to choose dice (workbench_open_picker)

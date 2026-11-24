@@ -506,6 +506,9 @@ for (var i = 0; i < aq_list_size; i++) {
 			if (die_struct.rolled_value != -1) _shown_face = die_struct.rolled_value;
 			else if (die_struct.forced_roll != -1) _shown_face = clamp(die_struct.forced_roll, _out.min_roll, _out.max_roll);
 			else if (die_has_faces(die_struct)) _shown_face = die_face_total(die_struct, _out.min_roll, _out.max_roll);
+			var _die_bonus = (die_struct.rolled_value != -1) ? 0 : slot.bonus_amount + (d == 0 ? slot.first_die_bonus : 0) + _out.keepsake_dice_bonus_amount;
+			// a bonus that takes the roll past 6 shows as the total digit (Riptide: an 8, not a 1 and a small +7), no badge
+			if (_shown_face >= 1 && _die_bonus > 0 && _shown_face + _die_bonus > 6) { _shown_face += _die_bonus; _die_bonus = 0; }
 			var _jig = die_jiggle_pose(die_struct); // its effect firing: a punch and a wobble (F40)
 			draw_die(xx_top, yy_top, 17 * this_dice_scale * _jig.scale, die_struct.dice_value, _shown_face, _col, _jig.angle, _acted ? 0.5 : 1, die_struct);
 			
@@ -518,7 +521,6 @@ for (var i = 0; i < aq_list_size; i++) {
 			// Bonus badge in the die's bottom-right corner: every-die bonuses, first-die ones on the first die, and what
 			// keepsakes and its own effects add (until it has resolved: then the pips already show what it did).
 			// The keyword icons sit above the die and the pips in its middle, so the corner is free.
-			var _die_bonus = (die_struct.rolled_value != -1) ? 0 : slot.bonus_amount + (d == 0 ? slot.first_die_bonus : 0) + _out.keepsake_dice_bonus_amount;
 			if (_die_bonus != 0) {
 				var _old_halign = draw_get_halign(); // put the alignment back after, the rolled number below relies on it
 				var _old_valign = draw_get_valign();
@@ -691,6 +693,8 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 					case "EXIT": col = c_orange; index = 5; enemy_exiting = true; break;
 					case "DEBUFF": case "NONE": case "BUFF": col = c_white; index = 3; break;
 					case "SUMMON": col = make_color_rgb(230, 150, 60); index = 3; break; // calls for help: its own icon (ui_summon_icon, F139)
+					case "MIMIC": col = global.color_attack; index = 0; break; // an echo: the red sword (Jared, 2026-11-24: it was grey)
+					case "DRAIN": col = global.color_attack; index = 0; break; // Overwhelm: drawn as the red ink pot just below
 					default: 
 					col = c_dkgray; 
 					index = 0;
@@ -710,6 +714,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			
 			if (col == c_white) col = global.ui_col.ink; // a white icon would vanish on the paper
 			if (intent_array[i] == "SUMMON" && (reveal_intent_all || (reveal_intent_single && e == enemy_target_index))) ui_summon_icon(xx, yy, enemy.intent.scale, enemy.intent.alpha);
+			else if (intent_array[i] == "DRAIN" && (reveal_intent_all || (reveal_intent_single && e == enemy_target_index))) ui_drain_icon(icon_x, yy, enemy.intent.scale * 1.05, enemy.intent.alpha);
 			else draw_sprite_ext(sprite, index, icon_x, yy, enemy.intent.scale * bonus_scale,  enemy.intent.scale * bonus_scale, 0, col, enemy.intent.alpha);
 			
 		}

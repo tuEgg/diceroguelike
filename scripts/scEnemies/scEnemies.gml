@@ -151,7 +151,7 @@ function define_enemies() {
 	var driftnet_fish_moves = [
 	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Shiny Scales", timing: "first", debuff: buff_shiny_scales, amount: 1, duration: -1, weight: 0, use_trigger: "FIRST" },
 	    { dice_amount: 1, dice_value: 2, action_type: "ATK", bonus_amount: 3, move_name: "Snap", weight: 75 },
-	    { dice_amount: 2, dice_value: 2, action_type: "DEBUFF", bonus_amount: 1, move_name: "Overwhelm", timing: "first", debuff: debuff_overwhelm, weight: 25, amount: 3, duration: 1 }
+	    { dice_amount: 0, dice_value: 6, action_type: "DRAIN", bonus_amount: 0, move_name: "Overwhelm", timing: "first", weight: 25 }
 	];
 	var driftnet_fish = enemy_create("Driftnet Fish", 6, 1, 14, 10, 0, driftnet_fish_moves, "weighted");
 	ds_list_add(global.enemy_list, driftnet_fish);
@@ -174,11 +174,11 @@ function define_enemies() {
 	// (F20) its only move used to be Command, an ally buff, though it always fights alone: now it hums to blot your
 	// insight, echoes your last action back at you, slams and shelters behind its layers
 	var giant_conch_moves = [
-	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Siren Hum", timing: "first", debuff: debuff_overwhelm, weight: 0, amount: 3, duration: 1, use_trigger: "FIRST" },
+	    { dice_amount: 0, dice_value: 6, action_type: "DRAIN", bonus_amount: 0, move_name: "Siren Hum", timing: "first", weight: 0, use_trigger: "FIRST" },
 	    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 3, move_name: "Shell Slam", weight: 40 },
 	    { dice_amount: 2, dice_value: 4, action_type: "MIMIC", bonus_amount: 2, move_name: "Echo", timing: "last", weight: 30 },
 	    { dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 5, move_name: "Retreat Inward", weight: 20 },
-	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Siren Hum", timing: "first", debuff: debuff_overwhelm, weight: 10, amount: 2, duration: 1 },
+	    { dice_amount: 0, dice_value: 6, action_type: "DRAIN", bonus_amount: 0, move_name: "Siren Hum", timing: "first", weight: 10 },
 	];
 	var giant_conch = enemy_create("Giant Conch", 0, 1.25, 55, 50, 0, giant_conch_moves, "weighted", true, passive_conch_layers);
 	ds_list_add(global.enemy_list, giant_conch);
@@ -245,7 +245,9 @@ function enemy_set_intent(_enemy, _move) {
 	}
 
 	// the range shown when Faded (and the name shown for moves with no numbers)
-	if (_move.action_type == "DEBUFF" || _move.action_type == "BUFF" || _move.action_type == "SUMMON") {
+	if (_move.action_type == "DRAIN") {
+		_enemy.intent.text = string(_move.dice_value); // the ink it takes, fixed: shown at once, nothing to reveal
+	} else if (_move.action_type == "DEBUFF" || _move.action_type == "BUFF" || _move.action_type == "SUMMON") {
 		_enemy.intent.text = ""; // just its icon (a summon has no number, F139)
 	} else if (_move.action_type == "NONE" || _move.action_type == "EXIT") {
 		_enemy.intent.text = _move.move_name;
@@ -257,7 +259,7 @@ function enemy_set_intent(_enemy, _move) {
 /// @func intent_has_numbers(_move)
 /// @desc Attacks, blocks and heals have numbers to reveal; buffs, debuffs, waiting and fleeing don't.
 function intent_has_numbers(_move) {
-	return !(_move.action_type == "DEBUFF" || _move.action_type == "BUFF" || _move.action_type == "NONE" || _move.action_type == "EXIT" || _move.action_type == "SUMMON");
+	return !(_move.action_type == "DEBUFF" || _move.action_type == "BUFF" || _move.action_type == "NONE" || _move.action_type == "EXIT" || _move.action_type == "SUMMON" || _move.action_type == "DRAIN");
 }
 
 /// @func intent_exact_value(_enemy)
@@ -310,6 +312,7 @@ function intent_hover_text(_enemy, _intel_level) {
 			case "BLK": _line = "Blocks " + _number; break;
 			case "HEAL": _line = "Heals " + _number; break;
 			case "INTEL": _line = "Gains ink"; break;
+			case "DRAIN": _line = "Drains " + string(_move.dice_value) + " of your ink"; break;
 			case "SUMMON": _line = "Summons " + ((variable_struct_exists(_move, "summon") && is_string(_move.summon)) ? _move.summon : "help"); break;
 			case "DEBUFF": case "BUFF": _line = intent_status_text(_move); break;
 			default: _line = "";

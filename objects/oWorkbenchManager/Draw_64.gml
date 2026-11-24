@@ -193,6 +193,27 @@ if (is_struct(wb_target) && wb_target.text != "") {
 	draw_text(_bx + 15, _by + 1, wb_target.text);
 }
 
+// and how to use it, while it is in your hand (Jared, 2026-11-24)
+if (is_struct(wb_held) && wb_held.kind == "tool" && wb_job == undefined) {
+	var _ht = wb_held.ref;
+	var _how = "";
+	switch (_ht.kind) {
+		case "drill": _how = (_ht.core != undefined) ? "Release over a die to drill the core into it." : "Load a core first: drag one from the top bar onto the drill."; break;
+		case "hammer": _how = "Release between two dice of the same type to join them."; break;
+		case "scissors": case "cutters": _how = "Release over a die to cut 2 sides off it. You get a coin."; break;
+		case "bin": _how = "Release over a die to throw it away."; break;
+		default: _how = "Release over a die to use it.";
+	}
+	draw_set_font(font_tip());
+	var _hw = string_width(_how) + 36;
+	var _hx = clamp(_mx - _hw / 2, 20, gui_w - _hw - 20), _hy = _my + 84;
+	ui_paper(_hx, _hy - 22, _hx + _hw, _hy + 22, 9, global.ui_col.paper_hi);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_middle);
+	draw_set_color(global.ui_col.ink);
+	draw_text(_hx + 18, _hy + 1, _how);
+}
+
 // the die in hand, over everything on the bench
 if (_held_die != undefined) wb_draw_die(_held_die, false, false, false);
 

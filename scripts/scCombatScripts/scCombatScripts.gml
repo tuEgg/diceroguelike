@@ -519,6 +519,18 @@ function process_action(_target, _dice_amount, _dice_value, _bonus_amount, _sour
 			}
 		break;
 		
+		case "DRAIN":
+			// an enemy drains your ink as the move is played (Overwhelm, 2026-11-24): it can take you below 0 (Blotted)
+			if (_source != "player") {
+				oCombat.player_intel -= amount;
+				var _dn = spawn_floating_number("player", amount, -1, global.text_attack, 1, -1, 0);
+				_dn.x += 20;
+				_dn.y -= 20;
+				sfx_play(soInk2, AUDIO_GROUP.SFX, random_range(0.01, 0.05), 0.8);
+				particle_emit(global.player_x, global.player_y, "burst", make_color_rgb(205, 54, 40));
+			}
+		break;
+
 		case "SUMMON":
 			add_enemy_to_fight(enemy_find_by_name(_source.intent.move.summon));
 			enemies_left_this_combat++;
@@ -2591,7 +2603,9 @@ function enemy_layout_update() {
 
 	var _centre = 1480 * _ui;
 	var _spacing = ((_n == 2) ? 300 : 240) * _ui;
-	var _push = max(0, ds_list_size(action_queue) - 1) * aq_tile_w * _ui * 0.25;
+	// the queue is laid out for four places from the start (slots plus the one to build), so the enemies only step right
+	// once a fifth place is needed, and the queue stays put as slots are built until then (Jared, 2026-11-24)
+	var _push = max(0, ds_list_size(action_queue) + 1 - 4) * aq_tile_w * _ui * 0.25;
 	var _left = _centre - _spacing * (_n - 1) / 2 + _push;
 	var _right = _centre + _spacing * (_n - 1) / 2 + _push;
 	// clear of the queue (four places always show, Jared 2026-11-22): the queue moves left as far as it can, the group
@@ -3623,6 +3637,8 @@ function combat_insight_view_draw() {
 			draw_die_shape(x, y, _r * _ring_k * (_hov ? 1.22 : 1.16), dice_value, global.color_intel, tumble_angle, _glow);
 			if (_rr_can || _rd_can) wet_ink_die(x, y, _r * _ring_k * (_hov ? 1.22 : 1.16), dice_value, tumble_angle); // the edge sloshes
 			draw_die(x, y, _r * (_hov ? 1.08 : 1), dice_value, _face, die_colours(struct.possible_type), tumble_angle, 1, struct);
+			// its keyword icons over the redrawn die, as in hand (oDice Draw GUI): they were hidden under it (Jared, 2026-11-24)
+			if (!tumbling) draw_dice_keywords(struct, x, y + die_bottom_edge(dice_value, _r), 1.15 * scale, 1, "hand");
 			if (_inky) draw_ink_drop(x + _r * 0.85, y - _r * 0.85, 14 * scale);
 			if (!tumbling && die_is_mocked(struct)) draw_mock_mark(x, y - _r - 6, scale); // lit with it, so you see it before rerolling (B133)
 			}
@@ -4048,8 +4064,10 @@ function combat_timeline_draw(_ink = false) {
 				case "BLK": _ix = 1; _icol = global.color_block; break;
 				case "HEAL": _ix = 2; _icol = global.color_heal; break;
 				case "EXIT": _ix = 5; _icol = c_orange; break;
+				case "MIMIC": _ix = 0; _icol = global.color_attack; break; // the echo: the red sword
 			}
-			draw_sprite_ext(sIntentIcons, _ix, _gx - _w / 2 + 42, _my, 0.36, 0.36, 0, _icol, _a);
+			if (_type == "DRAIN") ui_drain_icon(_gx - _w / 2 + 42, _my, 0.5, _a); // the red ink pot
+			else draw_sprite_ext(sIntentIcons, _ix, _gx - _w / 2 + 42, _my, 0.36, 0.36, 0, _icol, _a);
 			if (_num != "") {
 				draw_set_halign(fa_left);
 				draw_set_valign(fa_middle);

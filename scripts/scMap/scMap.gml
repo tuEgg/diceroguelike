@@ -2495,6 +2495,7 @@ function draft_links_mark(_count) {
 /// @desc Draws the links between linked stops (draft_links_mark): a dashed brass line from each to the next, across
 ///       the cards, so it's plain that only one page keeps it.
 function draft_links_draw(_count) {
+	return; // the dashed lines between linked stops are gone (Jared, 2026-11-24): the ring and chain badge say it
 	var _types = [NODE_TYPE.TREASURE, NODE_TYPE.ELITE];
 	for (var t = 0; t < array_length(_types); t++) {
 		var _pts = [];

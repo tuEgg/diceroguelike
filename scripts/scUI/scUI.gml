@@ -267,6 +267,26 @@ function ui_corner_bonus(_x, _y, _text, _alpha = 1) {
 	draw_set_valign(fa_top);
 }
 
+/// @func ui_drain_icon(_cx, _cy, [_scale], [_alpha])
+/// @desc The intent icon for a move that drains your ink (Overwhelm): the ink pot, in red. Ink-edged, drawn in code.
+function ui_drain_icon(_cx, _cy, _scale = 1, _alpha = 1) {
+	var _s = _scale, _ink = global.ui_col.ink, _red = make_color_rgb(205, 54, 40);
+	draw_set_alpha(_alpha);
+	for (var _pass = 0; _pass < 2; _pass++) {
+		var _g = (_pass == 0) ? 2.5 * _s : 0;
+		draw_set_color((_pass == 0) ? _ink : _red);
+		draw_circle(_cx, _cy + 6 * _s, 15 * _s + _g, false);                                              // the belly
+		draw_roundrect_ext(_cx - 7 * _s - _g, _cy - 15 * _s - _g, _cx + 7 * _s + _g, _cy - 1 * _s, 4, 4, false); // the neck
+		draw_roundrect_ext(_cx - 11 * _s - _g, _cy - 19 * _s - _g, _cx + 11 * _s + _g, _cy - 12 * _s + _g, 4, 4, false); // the rim
+	}
+	draw_set_color(make_color_rgb(240, 150, 135));
+	draw_circle(_cx - 6 * _s, _cy + 2 * _s, 3.2 * _s, false); // a glint
+	draw_set_color(_ink);
+	draw_rectangle(_cx - 8 * _s, _cy - 17 * _s, _cx + 8 * _s, _cy - 15 * _s, false); // the mouth
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
 /// @func ui_tag(_cx, _cy, _w, _h, _seed, [_alpha])
 /// @desc An intent's paper tag hung over an enemy: a short string up to a nail, then the paper (the icons and number go on
 ///       top, drawn by the caller in ink).

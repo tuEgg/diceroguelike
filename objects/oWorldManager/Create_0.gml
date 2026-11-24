@@ -6,6 +6,8 @@ bounty_nodes_this_voyage = 0;
 elite_nodes_this_voyage = 0;
 alignment_nodes_this_voyage = 0;
 
+rock_prev_y = 0; // the boat's rocking so far (oWorldManager Draw GUI): only the change is applied each frame
+rock_prev_a = 0;
 peek_now = false; // the map drawn over a fight for viewing only (map_peek_draw performs the Draw GUI event with this on)
 nodes_cleared = 0; // how many nodes in the captains logbook have we cleared
 pages_cleared = 0; // how many pages have we cleared

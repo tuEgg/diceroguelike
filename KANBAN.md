@@ -30,6 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 50: playtest feedback 2 (Mac, 2026-11-24) | B175-B178, F279-F286 | `dev` | **Not yet play-tested.** Overwhelm drains 6 ink as a move, digits above 6 on dice, Conch shell fixed, steadier queue, workbench look and tool hints, map icon toggles, ship rocking fixed, Lucky Coin reverted, touch and controller plan. |
 | 49: seeded fights, cheaper ink | F277, F278 | `dev` | **Not yet play-tested.** A fight is seeded from its node, so quitting and continuing replays the same hand and the same rolls; moving a marker costs 3; Reveal always costs 1. |
 | 48: playtest feedback (Mac, 2026-11-24) | B172-B174, F266-F276 | `dev` | **Not yet play-tested.** Dice and keepsake tweaks, the Rot hand bug, ink ring, Tab ink view, rewards Back and Next delay and pick pips, map button in fights, no duplicate cores, "leg" for spread, a voyage score and timer, the click sound bug. |
 | 47: card polish | B171, F265 | `dev` | **Not yet play-tested.** The quartermaster's core text has proper line spacing; distribution numbers are Charter with more room; bars share one standard width (cored and plain) and get thinner on d10/d12. |
@@ -44,6 +45,19 @@
 | 38: fixes after batch 37 | B164, B165, F250 | `dev` | **Not yet play-tested.** Anchor icon the right way up; slot number is the full total; Tattooist anchor +2 min roll. |
 | 37: map and economy (design brief 2026-11-24) | F244, F245, F246, F247, F248, F249 | `dev` | **Not yet play-tested.** Sea stops are Drop Anchor, sea events, the wreck or Flotsam; island and sea events split; workbench actions and the Bin; tools in every shop; 2-of-4 drafting; a chapter pool for stops; bounty help. |
 | 36: content pass | F242 | `dev` | **Not yet play-tested.** Free value repriced, rares lifted, healing on triggers, shop keepsakes, core-shape payoffs, 22 new dice and keepsakes for the seven archetypes (\`docs/design/content-pass.md\`). |
+
+**Batch 50 test list (playtest feedback 2)**
+- F279 Drafting: no dashed lines between linked stops (the ring and chain badge stay). The map icon in a fight now closes the map when clicked again.
+- B175 The ship's rocking: go map, fight, map, a few times, through a chapter: its height and angle stay as they were (it used to drift a little more each visit).
+- F280 Overwhelm (Driftnet Fish "Overwhelm", the Giant Conch's "Siren Hum"): a move that takes 6 ink as it is played (it can drop you below 0, Blotted). No debuff, no locked target. Its intent shows a red ink pot and a 6, and the hover says "Drains 6 of your ink."
+- F281 A die shows pips for 1 to 6 and a digit above (a d8 rolling 7, a d12). A bonus that takes a die's roll past 6 shows the total as a digit with no badge: Riptide's 1 and +7 is an 8, in a slot and in hand.
+- B176 The Conch's Echo and the timeline marker for it: the red sword, not grey. The Overwhelm marker is the red ink pot.
+- B177 Giant Conch: each hit loses as many points as it has shell layers left (3, then 2, then 1); a layer breaks at 10, 15, then 20 total damage and stuns it; the last layer breaking removes the shell for good, so no more stuns and full damage after. (It was a permanent buff the usual countdown never removed, so it kept stunning; its layer count was also shared between fights.) Check a second Conch fight starts with all three.
+- F282 Workbench dice with a core show the distribution like the bag cards: ink bars and Charter numbers on a paper chip, standard bar width, more room above the numbers. Holding any tool shows how to use it under the cursor (drill: release over a die to drill the core in; hammer; cutters; bin).
+- F283 Ink view: a die's keyword icons are drawn over the die, not under it.
+- F284 Build slots 2, 3 and 4: the queue stays exactly where it is; it only moves once a fifth place is needed.
+- F285 Lucky Coin is back to "Coins roll 2s twice as often as 1s".
+- F286 docs/design/touch-and-controller.md: the plan and estimate for touch and controller support (nothing built).
 
 **Batch 49 test list (seeded fights, cheaper ink)**
 - F277 Start a fight, note your first hand and the enemies' moves, Save and quit, Continue and go into the same stop: the same hand, the same enemy moves. Play the same dice into the same slots and end the turn: the next hand and the enemy results come out the same. (Cosmetic randomness no longer matters; each deal, reroll, rewrite, action and turn restarts the generator from the fight's seed.) A new fight on a different stop rolls differently; the F1 debug fights get a fresh seed.
