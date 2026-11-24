@@ -1407,6 +1407,13 @@ function chapter_tab_colour(_chapter) {
 ///       Done spreads are filled, the current one pulses, the rest are hollow. Hover any marker for detail.
 function draw_voyage_progress(_cx, _y, _alpha) {
 	if (_alpha <= 0) return;
+	// a spread's marker fills in only once its sea stop is done too (Jared, 2026-11-24): until then it's still the one you're on
+	var _stop_pending = false;
+	for (var p = 0; p < ds_list_size(pages_shown); p++) {
+		var _pg = pages_shown[| p];
+		if (page_passage(_pg) != "" && !page_passage_done(_pg) && page_nodes_cleared(_pg)) _stop_pending = true;
+	}
+	var _marks = spreads_cleared - ((_stop_pending && spreads_cleared > 0) ? 1 : 0);
 	
 	var _spacing = 22;		// between markers
 	var _chapter_gap = 34;	// between chapters
@@ -1426,8 +1433,8 @@ function draw_voyage_progress(_cx, _y, _alpha) {
 			var _is_boss = (s == _per_chapter - 1);
 			
 			// how far along is this marker?
-			var _done = (c < chapter) || (c == chapter && (s < spreads_cleared || world_state == WORLD_STATE.CHAPTER_END));
-			var _current = (c == chapter && s == spreads_cleared && world_state != WORLD_STATE.CHAPTER_END);
+			var _done = (c < chapter) || (c == chapter && (s < _marks || world_state == WORLD_STATE.CHAPTER_END));
+			var _current = (c == chapter && s == _marks && world_state != WORLD_STATE.CHAPTER_END);
 			
 			var _r = _is_boss ? _radius + 4 : _radius;
 			if (_current) _r *= _pulse;

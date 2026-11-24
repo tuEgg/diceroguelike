@@ -1616,7 +1616,7 @@ function tool_price() {
 /// @func draw_bin_icon(_x, _y, _scale, _alpha, _col)
 /// @desc The Bin, drawn in code until Jared's sprite: a tapered bucket, its lid line, ribs and a handle. Centred on _x, _y,
 ///       about 90 x 100 px at scale 1.
-function draw_bin_icon(_x, _y, _scale = 1, _alpha = 1, _col = c_white) {
+function draw_bin_icon(_x, _y, _scale = 1, _alpha = 1, _col = c_white, _full = false) {
 	var _s = _scale;
 	var _ink = global.ui_col.ink;
 	var _body = merge_colour(make_color_rgb(150, 112, 74), _col, (_col == c_white) ? 0 : 0.5);
@@ -1634,6 +1634,16 @@ function draw_bin_icon(_x, _y, _scale = 1, _alpha = 1, _col = c_white) {
 	// the rim and the handle
 	draw_roundrect_ext(_x - 46 * _s, _y - 44 * _s, _x + 46 * _s, _y - 32 * _s, 6, 6, false);
 	draw_arc_thick_deg(_x, _y - 44 * _s, 10 * _s, 14 * _s, 0, 180, 10);
+	if (_full) {
+		// heaped over the rim: the Bin has taken its die
+		var _hp = [[-26, -52, 13], [-6, -62, 15], [17, -54, 14], [32, -46, 10], [-38, -44, 9]];
+		for (var h = 0; h < array_length(_hp); h++) {
+			draw_set_color(_ink);
+			draw_circle(_x + _hp[h][0] * _s, _y + _hp[h][1] * _s, (_hp[h][2] + 2) * _s, false);
+			draw_set_color(merge_colour(global.ui_col.paper_hi, global.ui_col.paper_shade, 0.15 * h));
+			draw_circle(_x + _hp[h][0] * _s, _y + _hp[h][1] * _s, _hp[h][2] * _s, false);
+		}
+	}
 	draw_set_alpha(1);
 	draw_set_color(c_white);
 }

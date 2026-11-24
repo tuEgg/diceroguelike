@@ -1034,7 +1034,7 @@ function define_keepsakes() {
 	ks_war_drum = {
 	    _id: "war_drum",
 	    name: "War Drum",
-	    desc: "Each turn, gain 1 Might for every die you have under 12.",
+	    desc: "Each turn, gain Might equal to 12 minus the dice you own.",
 		sub_image: 11,
 	    trigger: function(event, data) {
 			if (event == "on_turn_start") {

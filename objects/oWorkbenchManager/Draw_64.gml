@@ -101,9 +101,10 @@ for (var i = 0; i < array_length(wb_tools); i++) {
 }
 
 // ---------------------------------------------------------------- the Bin: a fixed area; drop a die on it to throw it away
+if (wb_has_bin) {
 var _drag_die = is_struct(wb_held) && wb_held.kind == "die";
-var _bin_hot = _input && _drag_die && wb_in_bin(_mx, _my);
-var _bin_lit = _drag_die && wb_job == undefined;
+var _bin_hot = _input && _drag_die && !bin_used && wb_in_bin(_mx, _my);
+var _bin_lit = _drag_die && wb_job == undefined && !bin_used;
 var _bin_pulse = _bin_lit ? 0.5 + 0.5 * sin(current_time / 140) : 0;
 ui_paper(bin_area.x1, bin_area.y1, bin_area.x2, bin_area.y2, 7, _bin_hot ? global.ui_col.paper_hi : global.ui_col.paper_shade);
 if (_bin_lit) {
@@ -112,19 +113,21 @@ if (_bin_lit) {
 	for (var k = 0; k < 3; k++) draw_roundrect_ext(bin_area.x1 - k, bin_area.y1 - k, bin_area.x2 + k, bin_area.y2 + k, 14, 14, true);
 	draw_set_alpha(1);
 }
-draw_bin_icon(bin_area.x1 + 66, (bin_area.y1 + bin_area.y2) / 2 + 4, _bin_hot ? 1.15 : 1, 1, c_white);
+draw_bin_icon(bin_area.x1 + 66, (bin_area.y1 + bin_area.y2) / 2 + 4, _bin_hot ? 1.15 : 1, 1, c_white, bin_used);
 draw_set_font(font_tip());
 draw_set_halign(fa_left);
 draw_set_valign(fa_middle);
 draw_set_color(global.ui_col.ink);
 draw_text(bin_area.x1 + 130, (bin_area.y1 + bin_area.y2) / 2 - 16, "Bin");
 draw_set_color(merge_colour(global.ui_col.ink, global.ui_col.paper_shade, 0.35));
-draw_text(bin_area.x1 + 130, (bin_area.y1 + bin_area.y2) / 2 + 12, wb_cost_text("bin"));
+draw_text(bin_area.x1 + 130, (bin_area.y1 + bin_area.y2) / 2 + 12, bin_used ? "Full" : wb_cost_text("bin"));
 if (_input && ((_drag_die && _bin_hot) || (!_drag_die && wb_held == undefined && wb_in_bin(_mx, _my)))) {
-	var _bin_txt = "Remove a die from your bag.";
-	if (_drag_die && ds_list_size(global.dice_bag) + array_length(wb_dice) <= 6) _bin_txt = "Your bag can't go below 6 dice.";
+	var _bin_txt = "Remove a die from your bag. One die per visit.";
+	if (bin_used) _bin_txt = "Full. It takes one die per visit.";
+	else if (_drag_die && ds_list_size(global.dice_bag) + array_length(wb_dice) <= 6) _bin_txt = "Your bag can't go below 6 dice.";
 	else if (_drag_die && actions_left < wb_cost("bin")) _bin_txt = "Not enough actions.";
-	queue_tooltip(_mx, _my, "Bin", _bin_txt + "\n" + wb_cost_text("bin"));
+	queue_tooltip(_mx, _my, "Bin", _bin_txt + (bin_used ? "" : "\n" + wb_cost_text("bin")));
+}
 }
 
 // ---------------------------------------------------------------- the dice

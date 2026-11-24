@@ -184,7 +184,10 @@ if (is_struct(wb_held) && !mouse_check_button(mb_left)) {
 		var _d = _h.ref;
 		var _gb = global.gui;
 		var _in_bin = wb_in_bin(_mx, _my);
-		if (_in_bin && actions_left < wb_cost("bin")) {
+		if (_in_bin && bin_used) {
+			throw_error("The Bin is full", "It takes one die per visit.");
+			_in_bin = false;
+		} else if (_in_bin && actions_left < wb_cost("bin")) {
 			throw_error("Not enough actions", wb_cost_text("bin") + " You have " + string(actions_left) + ".");
 			_in_bin = false;
 		} else if (_in_bin && ds_list_size(global.dice_bag) + array_length(wb_dice) <= 6) {
@@ -348,7 +351,7 @@ if (is_struct(wb_job)) {
 					particle_emit(_p.mx, _p.my, "burst", c_white, 14);
 					array_push(wb_rings, { x: _p.mx, y: _p.my, col: global.ui_col.paper_hi, t: 0 });
 					float_text(_p.mx, _p.my - 90, "d" + string(_nd.dice_value), c_white);
-					workbench_tool_used(oHammer, 2);
+					workbench_tool_used(oHammer);
 				} else {
 					screen_shake(12);
 					var _jump = [_p.a, _p.b];
@@ -380,6 +383,7 @@ if (is_struct(wb_job)) {
 				float_text(_bx, _by - 70, "Gone", c_white);
 				wb_remove_die(_d); // it was taken out of the bag when it came to the bench: it's gone for good
 				workbench_tool_used(noone, wb_cost("bin"));
+				bin_used = true;
 			} else if (_jt >= 22) wb_job = undefined;
 			break;
 

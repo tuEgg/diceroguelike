@@ -30,7 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 54: playtest feedback 5 (pre-0.3) | F306-F318 | `dev` | **Not yet play-tested.** Workbench Bin area and 2-action Hammer/Bin, Kraken 28 HP, Bind/Rot on slot 1-2, debuff moves last, Lodestone, Eye patch, Bilge-Purge, one Drop Anchor before the boss, boss item rewards a level up. |
+| 54: playtest feedback 5 and v0.3 (version 0.3.0) | F306-F312 | `dev` | **Not yet play-tested.** Workbench Bin area and 2-action Hammer/Bin, Kraken 28 HP, Bind/Rot on slot 1-2, debuff moves last, Lodestone, Eye patch, Bilge-Purge, one Drop Anchor before the boss, boss item rewards a level up. |
 | 53: buffs and debuffs (T02) | T02, F304, F305 | `dev` | **Not yet play-tested.** The agreed model (docs/design/buffs-plan.md): amount buffs vs effects, numbers on every icon for you and enemies, totals in tooltips and glossary boxes. |
 | 52: playtest feedback 4 (pre-0.3) | F293-F303 | `dev` | **Not yet play-tested.** The total on a die's face with roll+bonus in the corner, the Dutchman's ghosts, items by chapter, a Drop Anchor in every draft, and small fixes. |
 | 51: playtest feedback 3 (pre-0.3) | F287-F292 | `dev` | **Not yet play-tested.** Simpler alignment cores, Bind and Rot shown on the place itself, a stone sound for gaining a core, tidier shop tools, link badge at the top, the drill's notes stacked. |
@@ -67,12 +67,13 @@
 - F300 The draft: the title banner and the 2 x 2 pages sit higher, about 70 px of space under the top bar and about the same above the progress dots, the banner clear of the cards (cards at y 410 and 775, title at 192). Check the burn of the lost page, the chosen-page shrink and the Embark button still line up.
 - F301 "Upgrade" is gone from player text: events, floating numbers and pickers say "+2 max roll" (the forge's three steps are "+6 max roll"; the Siren: "1 random ink die gets +2 max roll"). The glossary word is "Max roll".
 - F302 The rewards close by themselves: once every pick on the last page is made (the items page too, after about half a second) the screen ends and the room finishes, as dice and keepsakes already did. Next/Exit still works if you skip picks.
-- F306 Workbench: the Bin is a fixed area under the rack, above Continue. Drag a die onto it (it lights up, tooltip says what it does and "Uses 2 actions."); it spins down and is gone. Refused with under 2 actions or at 6 dice. The Hammer also uses 2 actions; Drill and Cutters 1. The two action bars fill the rack's width and the ones the thing in hand would spend pulse. Every tool tooltip and hold hint says how many actions it uses.
+- F306 Workbench: the Bin is a fixed area under the rack, above Continue. It only shows once the Bin is bought in a shop. Drag a die onto it (it lights up, tooltip says what it does and "Uses 1 action."); it spins down and is gone, then the Bin shows full for the rest of the visit. Refused with no actions, when full, or at 6 dice. Every tool, the Hammer too, uses 1 action. The two action bars fill the rack's width and the ones the thing in hand would spend pulse. Every tool tooltip and hold hint says how many actions it uses.
 - F307 Baby Kraken has 28 HP. Bind and Rot pick slot 1 or 2 evenly. Bind, Mock, Flutter, Rot and Barnacle Bind act after all your slots.
 - F308 Lodestone: mostly low rolls at neutral alignment, sliding to mostly high at 0 or 100 (check the distribution in the bag). Eye patch: +1 ink at once each time you play a die. Alignment-fight enemies have at least 30 HP.
 - F309 Tooltips wrap at the box's width (check a long glossary stack, the die tip and a keepsake). A die's "+bonus" note draws in front of its keyword icons. A die whose max roll is raised by effects (Unholy etc.) shows the raised size in rewards and the bag.
 - F310 Bilge-Purge Flask: "Switch off a slot this turn. Gain 2 plays." The slot shows as bound and doesn't act; it can't take an already-off slot.
 - F311 The boss: one standard Drop Anchor before it (Rest or Workbench). A chapter's boss pays item rewards like the next chapter's fights: after chapter 1's boss, 3 options.
+- F312 The map's bottom row of circles and diamonds: a spread's marker fills in only after its sea stop is done (until then it still pulses as the one you're on). War Drum now reads "Each turn, gain Might equal to 12 minus the dice you own."
 - F303 Hover a die that has a core (bag, hand, queue, workbench): the core is the first box under its tip, with its icon, name and what it does. Check an alignment core at neutral.
 
 **Batch 51 test list (playtest feedback 3)**
