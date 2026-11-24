@@ -83,7 +83,7 @@
 	}
 		event_storm_opt_1 = {
 			title: "Share your personal stores",
-			description: "Gain 5 alignment, lose 7 health, upgrade a random block or heal die.",
+			description: "Gain 5 alignment, lose 7 health. A random block or heal die gets +2 max roll.",
 			effect: function(_context) {
 				global.player_hp -= 7;
 				gain_alignment(5);
@@ -115,7 +115,7 @@
 				die_size_changed(rand_die);
 				
 				particle_emit( 115, 1000, "rise", rand_die.color);
-				spawn_floating_number("bag", 0, rand_die.name + " upgraded", rand_die.color, 0, -1, 0);
+				spawn_floating_number("bag", 0, rand_die.name + " +2 max roll", rand_die.color, 0, -1, 0);
 				
 				ds_list_destroy(heal_block_list);
 				
@@ -182,10 +182,10 @@
 		}
 		event_upgrade_opt_2 = {
 			title: "Take this opportunity to sharpen your blades",
-			description: "Upgrade a die of your choice.",
+			description: "A die of your choice gets +2 max roll.",
 			effect: function(_context) {
 				// (Jared, 2026-11-24: one of your choosing, not 2 random attack dice)
-				ev_pick(1, "Choose a die to upgrade", "upgrade", function(_die) { ev_upgrade_die(_die, 1); });
+				ev_pick(1, "Choose a die to gain +2 max roll", "upgrade", function(_die) { ev_upgrade_die(_die, 1); });
 				ev_done(1);
 			},
 			result: "Blades sharpened, ready for the long trip ahead."
@@ -1229,9 +1229,9 @@
 	_ev = { name: "The master shipwright", description: "A shipwright famous in every port offers you a day's work. One job, she says.", options: ds_list_create() };
 	ds_list_add(_ev.options, {
 		title: "Rebuild your dice",
-		description: "Upgrade 2 dice of your choice.",
+		description: "2 dice of your choice get +2 max roll.",
 		effect: function(_context) {
-			ev_pick(2, "Choose 2 dice to upgrade", "upgrade", function(_die) { ev_upgrade_die(_die, 1); });
+			ev_pick(2, "Choose 2 dice to gain +2 max roll", "upgrade", function(_die) { ev_upgrade_die(_die, 1); });
 			ev_done(0);
 		},
 		result: "She works through the night. Two dice come back bigger.",
@@ -1388,7 +1388,7 @@
 	_ev = { name: "The volcano forge", description: "A forge built into the mouth of a volcano, hot enough to melt anchors.", options: ds_list_create() };
 	ds_list_add(_ev.options, {
 		title: "Temper every blade",
-		description: "Lose 10 max health. Upgrade every attack die in your bag.",
+		description: "Lose 10 max health. Every attack die in your bag gets +2 max roll.",
 		effect: function(_context) {
 			ev_max_hp(-10);
 			for (var d = 0; d < ds_list_size(global.dice_bag); d++) if (global.dice_bag[| d].action_type == "ATK") ev_upgrade_die(global.dice_bag[| d], 1);
@@ -1398,9 +1398,9 @@
 	});
 	ds_list_add(_ev.options, {
 		title: "Temper one",
-		description: "Upgrade a die of your choice 3 times.",
+		description: "A die of your choice gets +6 max roll.",
 		effect: function(_context) {
-			ev_pick(1, "Choose a die to upgrade 3 times", "upgrade", function(_die) { ev_upgrade_die(_die, 3); });
+			ev_pick(1, "Choose a die to gain +6 max roll", "upgrade", function(_die) { ev_upgrade_die(_die, 3); });
 			ev_done(1);
 		},
 		result: "Three days at the anvil, on one die.",
@@ -1699,7 +1699,7 @@ function ev_upgrade_die(_die, _times) {
 	if (_done == 0) return;
 	die_size_changed(_die);
 	particle_emit(115, 1000, "rise", get_dice_color(_die.possible_type), 30);
-	spawn_floating_number("bag", 0, _die.name + " upgraded" + ((_done > 1) ? " x" + string(_done) : ""), _die.color, 0, -1, 0);
+	spawn_floating_number("bag", 0, _die.name + " +" + string(_done * 2) + " max roll", _die.color, 0, -1, 0);
 }
 
 /// @func ev_min_roll(_die, _amount, [_show]) - raises its lowest roll, never past its highest
@@ -1731,7 +1731,7 @@ function event_is_sea(_name) {
 function sirens_option_text(_type_word, _count) {
 	var _rule = (_type_word == "ink") ? "More the higher your alignment." : "More the lower your alignment.";
 	if (_count <= 0) return "Nothing at your alignment. " + _rule;
-	return "Upgrade " + string(_count) + " " + _type_word + ((_count == 1) ? " die" : " dice") + " at random. " + _rule;
+	return string(_count) + " random " + _type_word + ((_count == 1) ? " die gets" : " dice get") + " +2 max roll. " + _rule;
 }
 
 /// @func sirens_upgrade(_type, _count, _col)
@@ -1756,7 +1756,7 @@ function sirens_upgrade(_type, _count, _col) {
 		array_delete(_pool, _i, 1);
 		_up.dice_value += 2;
 		die_size_changed(_up);
-		spawn_floating_number("bag", 0, _up.name + " upgraded", _up.color, 0, -1, 0);
+		spawn_floating_number("bag", 0, _up.name + " +2 max roll", _up.color, 0, -1, 0);
 		_done++;
 	}
 	if (_done > 0) particle_emit(115, 1000, "rise", _col);

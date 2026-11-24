@@ -1382,7 +1382,8 @@ if (show_rewards) {
 	
 	// a die or keepsake taken: the page moves on by itself once it has flown to the bag (playtest, Jared 2026-11-22)
 	var _stage_kind = reward_list[| rewards_stage - 1];
-	var _taken_here = (_stage_kind == "dice" && rewards_dice_taken) || (_stage_kind == "keepsakes" && rewards_keepsake_taken);
+	// (the items page too, once every pick is made: on the last page that ends the rewards and the room, Jared 2026-11-24)
+	var _taken_here = (_stage_kind == "dice" && rewards_dice_taken) || (_stage_kind == "keepsakes" && rewards_keepsake_taken) || (_stage_kind == "consumables" && rewards_consumables_second_taken);
 	reward_auto_t = (_taken_here && instance_number(oDiceParticle) == 0 && rewards_stage == rewards_max_stage) ? reward_auto_t + 1 : 0; // not on a page you went back to
 	var _auto_next = reward_auto_t > game_get_speed(gamespeed_fps) * 0.5;
 	if (((next_hover && _next_ready && mouse_check_button_pressed(mb_left)) || _auto_next) && instance_number(oDiceParticle) == 0) {

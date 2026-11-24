@@ -30,7 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 52: playtest feedback 4 (pre-0.3) | F293-F300 | `dev` | **Not yet play-tested.** The total on a die's face with roll+bonus in the corner, the Dutchman's ghosts, items by chapter, a Drop Anchor in every draft, and small fixes. |
+| 52: playtest feedback 4 (pre-0.3) | F293-F303 | `dev` | **Not yet play-tested.** The total on a die's face with roll+bonus in the corner, the Dutchman's ghosts, items by chapter, a Drop Anchor in every draft, and small fixes. |
 | 51: playtest feedback 3 (pre-0.3) | F287-F292 | `dev` | **Not yet play-tested.** Simpler alignment cores, Bind and Rot shown on the place itself, a stone sound for gaining a core, tidier shop tools, link badge at the top, the drill's notes stacked. |
 | 50: playtest feedback 2 (Mac, 2026-11-24) | B175-B178, F279-F286 | `dev` | **Not yet play-tested.** Overwhelm drains 6 ink as a move, digits above 6 on dice, Conch shell fixed, steadier queue, workbench look and tool hints, map icon toggles, ship rocking fixed, Lucky Coin reverted, touch and controller plan. |
 | 49: seeded fights, cheaper ink | F277, F278 | `dev` | **Not yet play-tested.** A fight is seeded from its node, so quitting and continuing replays the same hand and the same rolls; moving a marker costs 3; Reveal always costs 1. |
@@ -57,6 +57,9 @@
 - F298 Right-click an item in the top bar during the rewards: the "Delete this item?" popup is above the dark rewards screen (it now draws in Draw GUI End). Check it still deletes after holding Delete, and closes on a click elsewhere, in a shop, the workbench and a fight.
 - F299 Every draft of four pages offers at least one Drop Anchor. Event option text is darker (ink, not soft ink).
 - F300 The draft: the title banner and the 2 x 2 pages sit higher, about 70 px of space under the top bar and about the same above the progress dots, the banner clear of the cards (cards at y 410 and 775, title at 192). Check the burn of the lost page, the chosen-page shrink and the Embark button still line up.
+- F301 "Upgrade" is gone from player text: events, floating numbers and pickers say "+2 max roll" (the forge's three steps are "+6 max roll"; the Siren: "1 random ink die gets +2 max roll"). The glossary word is "Max roll".
+- F302 The rewards close by themselves: once every pick on the last page is made (the items page too, after about half a second) the screen ends and the room finishes, as dice and keepsakes already did. Next/Exit still works if you skip picks.
+- F303 Hover a die that has a core (bag, hand, queue, workbench): the core is the first box under its tip, with its icon, name and what it does. Check an alignment core at neutral.
 
 **Batch 51 test list (playtest feedback 3)**
 - F287 The two alignment cores, the same in each direction (distance from neutral 50). **Compass Core**: "The further your alignment is from neutral, the more it rolls its lowest and highest." Even at neutral, full strength at 25 and 75. **Lodestone Core**: "Neutral alignment: only its lowest. Either extreme: only its highest. Even at 25 and 75." Test with the F1 alignment buttons: 50 (all 1s), 25 and 75 (even), 0 and 100 (all max), 38 in between. The bars on the card and the workbench follow live. (Cores you already hold keep their names; descriptions are new.)

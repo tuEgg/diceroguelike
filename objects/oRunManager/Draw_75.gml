@@ -411,7 +411,7 @@ if (show_bag_contents) {
 							if (dice.dice_value != 2 && dice.dice_value < 12) {
 								filter_pass = true;
 							} else {
-								throw_error("Can't upgrade", (dice.dice_value == 2) ? "Coins can't be upgraded." : "It's already a d12.");
+								throw_error("Can't go higher", (dice.dice_value == 2) ? "A coin can't gain max roll." : "It's already a d12.");
 							}
 						break;
 						case "min_room":

@@ -93,7 +93,7 @@ node_workbench = {
 	type: NODE_TYPE.WORKBENCH,
 	subimg: 3,
 	name: "Workbench",
-	text: "Upgrade dice.",
+	text: "Change your dice.",
 	linked_room: rmWorkbench,
 	scale: 1.0,
 	cleared: false,

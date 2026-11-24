@@ -639,7 +639,7 @@ function mechanics_glossary() {
 		{ name: "Alignment", desc: "0 to 100, starting at 50. Some dice, keepsakes and events change with it." },
 		{ name: "Max health", desc: "The most health you can have." },
 		{ name: "Shop keepsake", desc: "A keepsake you bought at a shop." },
-		{ name: "Upgrade", desc: "One size bigger: +2 sides. Not coins or d12s." },
+		{ name: "Max roll", desc: "The highest it can roll. +2 max roll is a die one size bigger (d4 to d6), up to a d12. Not coins." },
 		{ name: "Min roll", desc: "The lowest it can roll." },
 		{ name: "Extra play", desc: "One more die you can play each turn." },
 	];
@@ -705,6 +705,16 @@ function glossary_terms(_text) {
 /// @desc The terms a die tip explains: its own keywords first, then anything else its effect names (Might, Mock...).
 function die_glossary(_die) {
 	var _out = [];
+	// the core in it, by its own box first (Jared, 2026-11-24: an alignment core at neutral couldn't be told apart)
+	if (variable_struct_exists(_die, "distribution") && is_string(_die.distribution) && _die.distribution != "") {
+		for (var c = 0; c < ds_list_size(global.master_item_list); c++) {
+			var _ci = global.master_item_list[| c];
+			if (_ci.type == "core" && _ci.distribution == _die.distribution) {
+				array_push(_out, { name: _ci.name, desc: _ci.description, key: "", sprite: sCores, index: _ci.index });
+				break;
+			}
+		}
+	}
 	if (variable_struct_exists(_die, "keywords")) {
 		for (var i = 0; i < array_length(_die.keywords); i++) {
 			var _k = _die.keywords[i];
@@ -813,6 +823,7 @@ function draw_die_tip(_tt) {
 	for (var i = 0; i < array_length(_terms); i++) {
 		var _icon = (_terms[i].key != "") ? sKeywordIcons : undefined;
 		var _index = (_terms[i].key != "") ? global.keywords[$ _terms[i].key].index : 0;
+		if (variable_struct_exists(_terms[i], "sprite")) { _icon = _terms[i].sprite; _index = _terms[i].index; } // a core
 		var _s = draw_tooltip_box(0, 0, _terms[i].name, _terms[i].desc, _icon, _index, undefined, false, true);
 		array_push(_ts, { w: _s.w, h: _s.h, icon: _icon, index: _index });
 		_w = max(_w, _s.w);
@@ -1033,7 +1044,11 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     if (icon_sprite != undefined) {
         var _kw = (icon_sprite == sKeywordIcons) ? keyword_from_index(icon_idx) : "";
         if (_kw != "") draw_keyword_icon(_kw, content_x + (_compact ? 10 : 16), yy + (_height / 2), icon_scale * 0.9, 1); // drawn in code (draw_keyword_icon)
-        else draw_sprite_ext(icon_sprite, icon_idx, content_x + (_compact ? 10 : 16), yy + (_height / 2), icon_scale, icon_scale, 0, c_white, 1);
+        else {
+			// a core's picture is big: fitted to the box (keepsake and other icons are drawn as before)
+			var _isc = (icon_sprite == sCores) ? icon_scale * 34 / max(1, max(sprite_get_width(icon_sprite), sprite_get_height(icon_sprite))) : icon_scale;
+			draw_sprite_ext(icon_sprite, icon_idx, content_x + (_compact ? 10 : 16), yy + (_height / 2), _isc, _isc, 0, c_white, 1);
+		}
         content_x += icon_space;
     }
 
