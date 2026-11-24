@@ -56,7 +56,7 @@ function particle_emit( _x, _y, _type, _col, _amount = 30) {
 			p.direction = random_range(-10, 10);
 			p.size = random_range(2.2, 4.2);
 			p.life = 95;
-			p.image_alpha = random_range(0.25, 0.5);
+			p.base_alpha = random_range(0.25, 0.5); // oParticle Step fades from this, not from 1
 		}
 
 		if (_type == "constant") {

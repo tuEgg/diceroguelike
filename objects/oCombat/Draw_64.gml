@@ -1321,8 +1321,9 @@ if (show_rewards) {
 						}
 					}
 					
-					// and choosing a random one
-					rewards_consumables_locked = available_items[irandom(array_length(available_items) -1 )];
+					// and choosing a random one (none when it was the only card on offer)
+					if (array_length(available_items) > 0) rewards_consumables_locked = available_items[irandom(array_length(available_items) -1 )];
+					else rewards_consumables_locked = -2; // nothing to lock: stops it asking again
 				}
 			}
 		break;

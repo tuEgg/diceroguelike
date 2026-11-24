@@ -1318,16 +1318,6 @@ function win_fight() {
 
 			// Show rewards if we meet the chance, and always show if we have the dutchman event taken, or we spared all enemies
 			if (con_chance <= oRunManager.show_consumables_chance || oRunManager.dutchman_taken || all_enemies_spared) {
-				var num_items = 3;
-				if (all_enemies_spared) {
-					if (oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT) {
-						num_items = 2;
-					}
-					if (oWorldManager.current_node_type == NODE_TYPE.BOSS || oWorldManager.current_node_type == NODE_TYPE.ELITE) {
-						num_items = 3;
-					}
-				}
-				
 				generate_item_rewards(reward_consumable_options, global.master_item_list, _item_n);
 				ds_list_add(reward_list, "consumables");
 				oRunManager.show_consumables_chance = max(10, oRunManager.show_consumables_chance - 30);

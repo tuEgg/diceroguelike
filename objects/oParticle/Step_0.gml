@@ -8,7 +8,7 @@ if (life <= 0) {
 
 if (life < 30) {
 	if (fade) {
-		image_alpha = clamp(life / 20, 0, 1);
+		image_alpha = (variable_instance_exists(id, "base_alpha") ? base_alpha : 1) * clamp(life / 20, 0, 1);
 		if (image_alpha < 1) {
 			image_xscale *= 0.94;
 			image_yscale *= 0.94;
