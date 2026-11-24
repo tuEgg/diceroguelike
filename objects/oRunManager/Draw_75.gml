@@ -461,6 +461,7 @@ if (show_bag_contents) {
 	draw_surface_ext(bag_clip_surf, _clip_x1, _clip_y1, 1 / _bk, 1 / _bk, 0, c_white, 1);
 	gpu_set_blendmode(bm_normal);
 
+	if (dice_hover != undefined) queue_die_glossary(dice_hover); // its keywords, buffs and game words (2026-11-24)
 	if (show_bag_dice_info && dice_hover != undefined) {
 		//var info_x = bag_inner_padding + inner_padding + 30 + col_spacing * 12 + 20;
 		//var info_y = bag_inner_padding + inner_padding/2;

@@ -1165,11 +1165,7 @@ if (show_rewards) {
 				var _rc_hover = !rewards_dice_taken && mouse_hovering(_rc_cx - _rc_w / 2, _rc_cy - _rc_h / 2, _rc_w, _rc_h, false, soPaper5, noone, true, UI_LAYER.POPUP);
 				var alpha = rewards_dice_taken ? 0.35 : 1.0;
 				draw_bag_card(die, _rc_cx, _rc_cy - 14 * _flip.pop, _rc_w, _rc_h, alpha * _flip.fade_in, _rc_hover, false, "reward");
-				if (_rc_hover) { // its keywords, buffs and debuffs explained beside it (2026-11-24)
-					var _rc_text = die_description(die);
-					if (variable_struct_exists(die, "keywords")) for (var _kw = 0; _kw < array_length(die.keywords); _kw++) _rc_text += " " + string(die.keywords[_kw]);
-					queue_glossary_tooltip(_rc_text);
-				}
+				if (_rc_hover) queue_die_glossary(die); // its keywords, buffs and debuffs explained beside it (2026-11-24)
 				reward_rarity_flash(die.rarity, _rc_cx, _rc_cy, _rc_w, _rc_h, _flip.since, alpha);
 				var btn = { x: _rc_cx - _rc_w / 2, y: _rc_cy - _rc_h / 2, w: _rc_w, h: _rc_h, hover: _rc_hover, click: _rc_hover && mouse_check_button_pressed(mb_left) };
 				if (btn.click) sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);

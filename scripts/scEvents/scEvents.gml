@@ -1728,21 +1728,6 @@ function event_is_sea(_name) {
 	return false;
 }
 
-/// @func event_terms(_text)
-/// @desc The game words an event choice uses, each { name, desc }, for its hover (oEventManager Draw GUI).
-function event_terms(_text) {
-	var _all = [
-		{ word: "shop keepsake", name: "Shop keepsake", desc: "A keepsake you bought at a shop." },
-		{ word: "alignment", name: "Alignment", desc: "0 to 100, starting at 50. Some dice, keepsakes and events change with it." },
-		{ word: "luck", name: "Luck", desc: "Better odds of potions after fights and of chances in events." },
-		{ word: "max health", name: "Max health", desc: "The most health you can have." },
-	];
-	var _low = string_lower(string(_text));
-	var _out = [];
-	for (var i = 0; i < array_length(_all); i++) if (string_pos(_all[i].word, _low) > 0) array_push(_out, _all[i]);
-	return _out;
-}
-
 /// @func sirens_option_text(_type_word, _count)
 /// @desc What a Siren's Call option will do, with your alignment's count in it.
 function sirens_option_text(_type_word, _count) {

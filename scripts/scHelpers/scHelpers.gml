@@ -617,6 +617,32 @@ function draw_all_tooltips() {
     global.tooltip_keywords = [];
 }
 
+/// @func mechanics_glossary()
+/// @desc Game words a tooltip explains when a text names them (glossary_terms), beside keywords, buffs and debuffs.
+function mechanics_glossary() {
+	static _list = [
+		{ name: "Core", desc: "Changes which faces a die rolls most. Drill it into a die at the workbench." },
+		{ name: "Ink", desc: "Spend it in a fight to reroll or redraw dice, or to read and change enemy moves." },
+		{ name: "Luck", desc: "Better odds of potions after fights and of chances in events." },
+		{ name: "Alignment", desc: "0 to 100, starting at 50. Some dice, keepsakes and events change with it." },
+		{ name: "Max health", desc: "The most health you can have." },
+		{ name: "Shop keepsake", desc: "A keepsake you bought at a shop." },
+		{ name: "Upgrade", desc: "One size bigger: +2 sides. Not coins or d12s." },
+		{ name: "Min roll", desc: "The lowest it can roll." },
+		{ name: "Extra play", desc: "One more die you can play each turn." },
+	];
+	return _list;
+}
+
+/// @func queue_die_glossary(_die)
+/// @desc A die's keywords, and the buffs, debuffs and game words its text names, as a tooltip (cards that aren't a die
+///       tip: rewards, the quartermaster, the bag view).
+function queue_die_glossary(_die, _extra = "") {
+	var _text = die_description(_die) + " " + _extra;
+	if (variable_struct_exists(_die, "keywords")) for (var k = 0; k < array_length(_die.keywords); k++) _text += " " + string(_die.keywords[k]);
+	queue_glossary_tooltip(_text);
+}
+
 /// @func glossary_terms(_text)
 /// @desc The keywords, buffs and debuffs a piece of text names (whole words, any case), each once: an array of
 ///       { name, desc, key } (key is the keyword for draw_keyword_icon, "" for a buff or debuff). A name inside a
@@ -643,6 +669,9 @@ function glossary_terms(_text) {
 			array_push(_found, { name: _b.name, desc: _b.desc, key: "" });
 		}
 	}
+	// the game's own words that aren't obvious (2026-11-24: explained wherever they're hovered, not just in events)
+	var _mech = mechanics_glossary();
+	for (var m = 0; m < array_length(_mech); m++) array_push(_found, { name: _mech[m].name, desc: _mech[m].desc, key: "" });
 	for (var f = 0; f < array_length(_found); f++) {
 		var _t = _found[f];
 		if (string_pos(" " + string_upper(_t.name) + " ", _clean) == 0) continue;
@@ -2862,6 +2891,7 @@ function offering_draw() {
 		var _chosen = (oRunManager.offer_selected == r);
 		_off.lift = lerp(_off.lift, _chosen ? 12 : (_hover ? 6 : 0), 0.25);
 		offering_card_draw(_off, _cx, _ctop - _off.lift, _cw, _ch, _hover, _chosen);
+		if (_hover) queue_die_glossary(_off.dice, "Core " + string(_off.core.description)); // after the card: its die's own tip wins over the die
 		if (_hover && mouse_check_button_pressed(mb_left)) oRunManager.offer_selected = r;
 	}
 
