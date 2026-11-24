@@ -448,8 +448,8 @@ function define_buffs_and_debuffs() {
 		_id: "conch_layers",
 		name: "Conch Layer",
 	    duration: 3,  // lasts 1 full turn
-		amount: 10,
-	    desc: "Each hit deals as much less damage as it has layers left. A layer breaks at 10, 15 and 20 total damage, stunning the Conch.",
+		amount: 8,
+	    desc: "Blocks 2 damage from each hit. A layer breaks at 8, 10 and 12 total damage, stunning the Conch.",
 	    icon_index: 8,
 		debuff: false,
 		color: make_colour_rgb(60, 180, 240),
@@ -460,8 +460,8 @@ function define_buffs_and_debuffs() {
 	        {
 				trigger: "before_enemy_take_damage",
 	            modify: function(_ctx) {
-					// each hit loses as many points as there are layers left: 3, then 2, then 1 (2026-11-24; it was a flat 2)
-					_ctx.amount = max(0, _ctx.amount - _ctx.debuff.remaining);
+					// each hit loses 2 points while 2 or 3 layers are left, 1 on the last (Jared, 2026-11-25: the first layer took 3)
+					_ctx.amount = max(0, _ctx.amount - min(2, _ctx.debuff.remaining));
 				}
 	        },
 			{
@@ -478,7 +478,7 @@ function define_buffs_and_debuffs() {
 							var _at = ds_list_find_index(_ctx.target.debuffs, _ctx.debuff);
 							if (_at != -1) ds_list_delete(_ctx.target.debuffs, _at);
 						} else {
-							_ctx.debuff.amount = 10 + 5 * (3 - _ctx.debuff.remaining); // the next layer: 15, then 20 (kept on the buff, not a struct shared between fights)
+							_ctx.debuff.amount = 8 + 2 * (3 - _ctx.debuff.remaining); // the next layer: 10, then 12 (kept on the buff, not a struct shared between fights)
 						}
 					}
 				}
@@ -605,6 +605,13 @@ function buff_icon_draw(_x, _y, _inst, _list, _is_player) {
 		draw_set_alpha(1);
 		draw_set_color(c_white);
 	}
+	// a Conch shell: the damage left before this layer breaks, bottom left (its layers left are the number on the right)
+	if (_inst.template._id == "conch_layers") {
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_outline_text(string(max(0, _inst.amount)), c_black, make_colour_rgb(255, 214, 110), 2, _x, _y + _h / 1.2, 1, 1, 0);
+	}
 	var _t = buff_icon_text(_inst);
 	if (_t.text != "") {
 		draw_set_font(ftDefault);
@@ -653,7 +660,7 @@ function buff_tooltip_text(_inst, _list = undefined) {
 			if (_t.permanent != 0 && _t.temporary != 0) array_push(_bits, "Total " + string(_t.total) + ": " + string(_t.permanent) + " permanent, " + string(_t.temporary) + " this turn");
 		}
 	} else {
-		if (_inst.template._id == "conch_layers") array_push(_bits, string(max(0, _inst.remaining)) + ((_inst.remaining == 1) ? " layer left" : " layers left"));
+		if (_inst.template._id == "conch_layers") array_push(_bits, string(max(0, _inst.remaining)) + ((_inst.remaining == 1) ? " layer left" : " layers left") + ", " + string(max(0, _inst.amount)) + " damage to break this one");
 		else if (_inst.permanent) array_push(_bits, "Lasts all fight");
 		else if (_inst.remaining == 1) array_push(_bits, "1 turn left");
 		else if (_inst.remaining > 1) array_push(_bits, string(_inst.remaining) + " turns left");

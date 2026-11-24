@@ -170,7 +170,7 @@ function define_enemies() {
 	var pirate_captain = enemy_create("Pirate Captain", 0, 1.2, 70, 45, 0, pirate_captain_moves, "weighted", true);
 	ds_list_add(global.enemy_list, pirate_captain);
 	
-	// Elite that disrupts intel, echoes attacks, and has 3 protective layers that block damage. The layers block 2/3/4 flat damage per attack but once the conch takes 10/12/14 damage in a single turn a layer is broken.
+	// Elite that disrupts intel, echoes attacks, and has 3 protective layers that block damage. Each hit loses 2 damage (1 on the last layer); a layer breaks at 8/10/12 total damage.
 	// (F20) its only move used to be Command, an ally buff, though it always fights alone: now it hums to blot your
 	// insight, echoes your last action back at you, slams and shelters behind its layers
 	var giant_conch_moves = [

@@ -30,6 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 57: Giant Conch update (still v0.3.0) | F320 | `dev` | **Not yet play-tested.** The Conch shows the damage left on this layer; layers break at 8 / 10 / 12; hits lose 2 (1 on the last layer). |
 | 56: keepsake changes (Jared, 2026-11-24) | F316-F327 | `dev` | **Not yet play-tested.** Twelve keepsakes reworked (see docs/keepsakes.md). |
 | 55: map glitch, Topographic Map, event font | F313-F315 | `dev` | **Not yet play-tested.** Nothing should shift when you embark; Topographic Map is "when a die rolls its max, it gains +1"; event options in ftTipBold. |
 | 54: playtest feedback 5 and v0.3 (version 0.3.0) | F306-F312 | `dev` | **Not yet play-tested.** Workbench Bin area and 2-action Hammer/Bin, Kraken 28 HP, Bind/Rot on slot 1-2, debuff moves last, Lodestone, Eye patch, Bilge-Purge, one Drop Anchor before the boss, boss item rewards a level up. |
@@ -83,6 +84,7 @@
 - F317 Shipwright's Draft: building the third slot gives 1 play (taking the slot apart gives it back). Repeater Rail: back to the first die of each slot getting +1 per same-type slot directly before it.
 - F318 Navigation Chart: a die that rolls its minimum gets +2 (a d6 rolling 1 shows 3). Spirit Level: +2 on a middle face. Sounding Line: a die one below its max gives 1 ink and 1 block.
 - F319 Lantern of Patience: plays left unused carry to the next turn (they stack if you keep leaving them; a new fight starts clean). Iron Grip: each potion drunk in a fight gives 3 Might this turn. War Drum: each slot with 4+ dice at the end of your turn gives 3 Might next turn. Weathervane: alignment below 30 or above 70 starts a combat with 3 Might and 3 Balance for turn 1.
+- F320 Giant Conch: its shell icon shows the damage left before the current layer breaks (bottom left, gold) and the layers left (bottom right). Layers break at 8, 10 and 12 total damage; each hit loses 2 damage (1 on the last layer), where the first layer used to take 3. The tooltip says both numbers.
 - F303 Hover a die that has a core (bag, hand, queue, workbench): the core is the first box under its tip, with its icon, name and what it does. Check an alignment core at neutral.
 
 **Batch 51 test list (playtest feedback 3)**
