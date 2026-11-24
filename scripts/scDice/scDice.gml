@@ -1813,8 +1813,11 @@ function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _pa
 	for (var i = 0; i < _n; i++) _top = max(_top, _dist[i]);
 	if (_top <= 0) _top = 1; // all zero (a squeezed range, B125): flat stubs, not 0/0
 
-	var _bw = 14 * _scale, _gap = 3 * _scale, _bh = 30 * _scale, _num_h = 15 * _scale, _pad = 5 * _scale;
-	if (_fit_w > 0) { _gap = 4 * _scale; _bw = (_fit_w - (_n - 1) * _gap) / _n; }
+	// on paper (the cards) the numbers get more room under the line (Jared, 2026-11-24)
+	var _bw = 14 * _scale, _gap = 3 * _scale, _bh = 30 * _scale, _num_h = (_paper ? 22 : 15) * _scale, _pad = 5 * _scale;
+	// fitted to a width: bars fill it, but never fatter than 36 px (a standard bar, so a d4 and a d6 read the same and
+	// a coin's two aren't huge); a d10 or d12 simply gets thinner to stay inside it
+	if (_fit_w > 0) { _gap = 4 * _scale; _bw = min((_fit_w - (_n - 1) * _gap) / _n, 36 * _scale); }
 	var _w = _n * _bw + (_n - 1) * _gap;
 	var _x0 = _centered ? _x - _w / 2 : _x;
 	var _base = _y - _pad - _num_h; // the line the bars stand on
@@ -1828,7 +1831,7 @@ function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _pa
 		draw_set_alpha(1);
 	}
 
-	draw_set_font((_scale >= 1.4) ? font_tip() : ftTiny);
+	draw_set_font((_scale >= 1.4 || _paper) ? ftDescriptions : ftTiny); // the numbers in Charter on paper
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
 	for (var i = 0; i < _n; i++) {
@@ -1837,7 +1840,7 @@ function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _pa
 		draw_set_color((_dist[i] > 0) ? _bar_col : (_paper ? global.ui_col.paper_shade : make_color_rgb(90, 90, 100)));
 		draw_rectangle(_bx, _base - _h, _bx + _bw - 1, _base, false);
 		draw_set_color(_paper ? ((_dist[i] > 0) ? global.ui_col.ink : global.ui_col.paper_shade) : ((_dist[i] > 0) ? c_white : make_color_rgb(110, 110, 120)));
-		draw_text(_bx + _bw / 2, _base + _num_h / 2 + 1, string(i + _min_roll));
+		draw_text(_bx + _bw / 2, _base + _num_h * (_paper ? 0.58 : 0.5) + 1, string(i + _min_roll));
 	}
 	// the baseline
 	draw_set_color(_paper ? global.ui_col.ink : make_color_rgb(150, 150, 160));

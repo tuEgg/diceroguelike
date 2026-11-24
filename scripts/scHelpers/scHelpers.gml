@@ -2741,7 +2741,7 @@ function bag_card_layout(_d, _w) {
 	var _line = font_get_size(font_tip()) * 1.5; // the line height coloured text wraps at (draw_outline_text)
 	var _desc_h = max(string_height_ext(die_description(_d), _line, _text_w), 3 * _line); // room for three lines, more if it needs
 	var _info_bottom = _text_y + _desc_h + 14;
-	var _bars_h = (5 + 30 + 5 + 15) + 12; // draw_dice_distribution at scale 1, and a gap: every die shows how it rolls
+	var _bars_h = (5 + 30 + 5 + 22) + 20; // draw_dice_distribution at scale 1 on paper, and a gap: every die shows how it rolls
 	return { die_y: _die_y, name_y: _name_y, text_x: _text_x, text_w: _text_w, text_y: _text_y, bars_bottom: _info_bottom + _bars_h, h: _info_bottom + _bars_h };
 }
 
@@ -2797,7 +2797,7 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected, _style =
 	// (2026-11-24: every die has them, so every card is one height)
 	var _has_core = (_d.distribution != "");
 	draw_set_alpha(_alpha * (_has_core ? 1 : 0.4));
-	draw_dice_distribution(_d, _cx, _y1 + _lay.bars_bottom - 12, true, 1, true, _has_core ? _w - 28 : min(_w - 28, _d.dice_value * 40));
+	draw_dice_distribution(_d, _cx, _y1 + _lay.bars_bottom - 12, true, 1, true, _w - 28);
 	draw_set_alpha(1);
 
 	// picked (dice picker): a green tick stamped on the corner
@@ -3006,11 +3006,11 @@ function offering_card_layout(_off, _w) {
 	draw_set_font(font_tip());
 	var _desc_h = string_height_ext(die_description(_off.dice), font_get_size(font_tip()) * 1.5, _text_w);
 	draw_set_font(font_tip());
-	var _line = font_get_size(font_tip()) * 1.2;
+	var _line = font_get_size(font_tip()) * 1.5; // as the words are drawn (draw_outline_text's coloured text)
 	var _core_desc_h = string_height_ext(_off.core.description, _line, _core_w);
 	var _core_y = _text_y + _desc_h + 18;
 	var _bars_top = _core_y + 44 + _core_desc_h + 18;
-	var _bars_h = (5 + 30 + 5 + 15) * 1.4; // draw_dice_distribution at scale 1.4
+	var _bars_h = (5 + 30 + 5 + 22) * 1.4; // draw_dice_distribution at scale 1.4
 	return { die_y: _die_y, name_y: _name_y, text_y: _text_y, text_w: _text_w, core_w: _core_w, core_y: _core_y, bars_bottom: _bars_top + _bars_h, h: _bars_top + _bars_h + 20 };
 }
 
@@ -3057,7 +3057,7 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	draw_set_valign(fa_top);
 	draw_outline_text(_core.name, global.ui_col.paper_hi, global.ui_col.ink, 1, _x1 + 80, _cy + 16, 1, 1, 0);
 	draw_set_font(font_tip());
-	ui_paper_text(_core.description, _x1 + 80, _cy + 44, _lay.core_w);
+	ui_paper_text(colorcode_text(_core.description), _x1 + 80, _cy + 44, _lay.core_w); // coloured text spaces its lines at 1.5, not the plain 1.2 that was crowding Aleo
 
 	// how this core shapes this die's faces, across the foot of the card (cards share a height, so the bars line up)
 	var _preview = clone_die(_d, "");
@@ -3250,7 +3250,7 @@ function item_card_layout(_it, _w) {
 	var _desc_y = _name_y + _name_h + 8;
 	draw_set_font(font_tip());
 	var _desc_h = string_height_ext(string(_it.description), font_get_size(font_tip()) * 1.5, _w - 32);
-	var _bars = (variable_struct_exists(_it, "type") && _it.type == "core") ? (5 + 30 + 5 + 15) + 12 : 0;
+	var _bars = (variable_struct_exists(_it, "type") && _it.type == "core") ? (5 + 30 + 5 + 22) + 20 : 0;
 	return { icon_y: _icon_y, name_y: _name_y, desc_y: _desc_y, h: _desc_y + _desc_h + _bars + 20 };
 }
 

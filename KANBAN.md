@@ -30,6 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 47: card polish | B171, F265 | `dev` | **Not yet play-tested.** The quartermaster's core text has proper line spacing; distribution numbers are Charter with more room; bars share one standard width (cored and plain) and get thinner on d10/d12. |
 | 46: Aleo for small text, standard dice cards | F263, F264, B170 | `dev` | **Not yet play-tested.** Small text everywhere is Aleo (ftTip); card descriptions too; dice cards share a height, every die shows its distribution (faint with no core); the abandon-voyage text is bigger. |
 | 45: place bonus in the corner | F262 | `dev` | **Not yet play-tested.** An empty slot, and the new-slot tile, show their place bonus as a small green +N at the bottom right; it clears once a die is in. |
 | 44: stacked die tips, one length, sans font | F261 | `dev` | **Not yet play-tested.** Die tips stack their keyword/buff boxes like every tooltip; every box in a stack is as wide as the widest; tooltip descriptions use a new sans font (ftTip). |
@@ -41,6 +42,10 @@
 | 38: fixes after batch 37 | B164, B165, F250 | `dev` | **Not yet play-tested.** Anchor icon the right way up; slot number is the full total; Tattooist anchor +2 min roll. |
 | 37: map and economy (design brief 2026-11-24) | F244, F245, F246, F247, F248, F249 | `dev` | **Not yet play-tested.** Sea stops are Drop Anchor, sea events, the wreck or Flotsam; island and sea events split; workbench actions and the Bin; tools in every shop; 2-of-4 drafting; a chapter pool for stops; bounty help. |
 | 36: content pass | F242 | `dev` | **Not yet play-tested.** Free value repriced, rares lifted, healing on triggers, shop keepsakes, core-shape payoffs, 22 new dice and keepsakes for the seven archetypes (\`docs/design/content-pass.md\`). |
+
+**Batch 47 test list (card polish)**
+- B171 Quartermaster card: the core's description has the same roomy line spacing as the die's words.
+- F265 Distribution bars on every card (bag, rewards, quartermaster, core items): numbers under them in Charter with more air above and below, more space between the words and the chart; every bar the same standard width whether the die has a core or not (a coin's two, a d4's four, a d6's six...), a d10 or d12 simply thinner to fit.
 
 **Batch 46 test list (Aleo for small text, standard dice cards)**
 - F263 Small text is Aleo everywhere ftDescriptions was (tooltips, map labels, event options, bounty, workbench, ink and timeline labels...) and the descriptions on bag, reward, quartermaster, item and keepsake cards. Names, headings, numerals and the event story stay Charter. Look for text that no longer fits its box (Aleo is wider): intent tags, map stop names, the timeline.
