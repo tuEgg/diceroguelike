@@ -207,7 +207,7 @@ switch (state) {
 				action_timer = action_delay;
 			} else
 			// Skip over locked slots
-			if (action_index != locked_slot) {
+			if (!slot_is_locked(action_index)) {
 				var slot = action_queue[| action_index];
 	            var current_action = slot.current_action_type;
 			
@@ -461,6 +461,7 @@ switch (state) {
 				} else {
 					// END OF TURN VARIABLES TO SET
 					locked_slot = -1;
+					disabled_slots = [];
 					bound_slot = -1;
 					
 					for (var i = 0; i < ds_list_size(action_queue); i++) {

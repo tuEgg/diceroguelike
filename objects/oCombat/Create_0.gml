@@ -31,6 +31,7 @@ if (!ds_safe_exists(global.sacrifice_history, ds_type_list)) {
 // Create action queue, which is a list of structs, each containing a list of dice and other info
 action_queue = ds_list_create();
 locked_slot = -1;
+disabled_slots = [];       // places a Bilge-Purge Flask switched off this turn (slot_is_locked)
 bound_slot = -1;
 mark_next = 0; // the next enemy letter and colour on the timeline (A, B, C...)
 rot_spare = 0; // Rot: the odd point carried between the rotten slot's dice (process_action)

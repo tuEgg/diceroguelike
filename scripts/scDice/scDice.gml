@@ -1927,20 +1927,13 @@ function define_dice_distributions(_die_dist, _min_roll, _max_roll, _array) {
 		break;
 
 		case "lodestone":
-		// only its lowest at neutral, every face even at 25 and 75, only its highest at 0 and 100, and a blend between
+		// from "inverse loaded" at neutral (mostly low: [4, 3, 2, 1] on a d4) through even at 25 and 75 to "loaded" at 0 and
+		// 100 (mostly high: [1, 2, 3, 4]): a blend of the two by how far your alignment is from neutral (Jared, 2026-11-24)
 		var _t = core_alignment_distance();
 		var _n_faces = _max_roll - _min_roll + 1;
 		for (var d = _min_roll; d <= _max_roll; d++) {
 			var _i = d - _min_roll;
-			var _w;
-			if (_t <= 0.5) {
-				var _s = _t / 0.5; // 0: all on the lowest, 1: even
-				_w = _s / _n_faces + ((_i == 0) ? (1 - _s) : 0);
-			} else {
-				var _s2 = (_t - 0.5) / 0.5; // 0: even, 1: all on the highest
-				_w = (1 - _s2) / _n_faces + ((_i == _n_faces - 1) ? _s2 : 0);
-			}
-			array_push(_array, round(_w * 100));
+			array_push(_array, max(0, round(10 * ((1 - _t) * (_n_faces - _i) + _t * (_i + 1)))));
 		}
 		break;
 

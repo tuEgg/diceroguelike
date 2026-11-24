@@ -106,6 +106,7 @@ for (var i = 0; i < array_length(wb_dice); i++) for (var j = i + 1; j < array_le
 for (var i = 0; i < array_length(wb_dice); i++) {
 	var _d = wb_dice[i];
 	if (is_struct(_d.fly) || (is_struct(wb_held) && wb_held.ref == _d)) continue;
+	if (is_struct(wb_job) && wb_job.kind == "bin" && wb_job.die == _d) continue; // on its way into the Bin
 	_d.x = clamp(_d.x, table.x1 + 50, table.x2 - 50);
 	_d.y = clamp(_d.y, table.y1 + 50, table.y2 - 50);
 	if (wb_near_bag(_d.x, _d.y)) _d.y = global.gui.bag_y - 70; // out of the bag's corner
@@ -146,10 +147,11 @@ if (_input && wb_held == undefined && mouse_check_button_pressed(mb_left)) {
 	// a tool first (they hang over the table's edge), then the topmost die
 	for (var i = array_length(wb_tools) - 1; i >= 0; i--) {
 		var _t = wb_tools[i];
+		if (_t.kind == "bin") continue; // a fixed area, not a tool
 		var _b = wb_tool_box(_t);
 		if (_mx < _b.x1 || _mx > _b.x2 || _my < _b.y1 || _my > _b.y2) continue;
-		if (actions_left <= 0) {
-			throw_error("No actions left", "Each visit gives 2.");
+		if (actions_left < wb_cost(_t.kind)) {
+			throw_error((actions_left <= 0) ? "No actions left" : "Not enough actions", wb_cost_text(_t.kind) + " Each visit gives 2.");
 		} else {
 			wb_held = { kind: "tool", ref: _t, ox: _t.hx - _mx, oy: _t.hy - _my };
 			_t.returning = false;
@@ -181,7 +183,18 @@ if (is_struct(wb_held) && !mouse_check_button(mb_left)) {
 	if (_h.kind == "die") {
 		var _d = _h.ref;
 		var _gb = global.gui;
-		if (_mx > _gb.bag_x - 20 && _mx < _gb.bag_x + _gb.bag_w + 20 && _my > _gb.bag_y - 20 && _my < _gb.bag_y + _gb.bag_h + 20) {
+		var _in_bin = wb_in_bin(_mx, _my);
+		if (_in_bin && actions_left < wb_cost("bin")) {
+			throw_error("Not enough actions", wb_cost_text("bin") + " You have " + string(actions_left) + ".");
+			_in_bin = false;
+		} else if (_in_bin && ds_list_size(global.dice_bag) + array_length(wb_dice) <= 6) {
+			throw_error("Bag too small", "Your bag can't go below 6 dice.");
+			_in_bin = false;
+		}
+		if (_in_bin) {
+			// thrown away: it spins down into the Bin (the job below)
+			wb_job = { kind: "bin", tool: undefined, die: _d, t: 0, x0: _d.x, y0: _d.y };
+		} else if (_mx > _gb.bag_x - 20 && _mx < _gb.bag_x + _gb.bag_w + 20 && _my > _gb.bag_y - 20 && _my < _gb.bag_y + _gb.bag_h + 20) {
 			// dropped on the bag: back in it
 			wb_to_bag(_d);
 			sfx_play(soClick4, AUDIO_GROUP.UI, 0.05, 0.7);
@@ -335,7 +348,7 @@ if (is_struct(wb_job)) {
 					particle_emit(_p.mx, _p.my, "burst", c_white, 14);
 					array_push(wb_rings, { x: _p.mx, y: _p.my, col: global.ui_col.paper_hi, t: 0 });
 					float_text(_p.mx, _p.my - 90, "d" + string(_nd.dice_value), c_white);
-					workbench_tool_used(oHammer);
+					workbench_tool_used(oHammer, 2);
 				} else {
 					screen_shake(12);
 					var _jump = [_p.a, _p.b];
@@ -351,26 +364,23 @@ if (is_struct(wb_job)) {
 			break;
 
 		case "bin":
-			// over the die; it shrinks into the bin with a clang and a puff, and it's gone for good
+			// the die let go over the Bin spins down into it, with a clang and a puff, and it's gone for good
 			var _d = _j.die;
-			if (_jt < 10) {
-				var _e = 1 - power(1 - _jt / 10, 3);
-				_t.hx = lerp(_j.x0, _d.x, _e);
-				_t.hy = lerp(_j.y0, _d.y, _e);
-			} else if (_jt < 22) {
-				_t.hx = _d.x; _t.hy = _d.y;
-				_d.scale = lerp(_d.scale, 0, 0.3);
+			var _bx = (bin_area.x1 + bin_area.x2) / 2, _by = (bin_area.y1 + bin_area.y2) / 2;
+			if (_jt < 14) {
+				_d.x = lerp(_d.x, _bx, 0.25);
+				_d.y = lerp(_d.y, _by, 0.25);
+				_d.scale = lerp(_d.scale, 0, 0.22);
 				_d.sv = 0;
 				_d.rot += 25;
-			} else if (_jt == 22) {
-				particle_emit(_d.x, _d.y, "burst", global.ui_col.paper_shade, 16);
+			} else if (_jt == 14) {
+				particle_emit(_bx, _by, "burst", global.ui_col.paper_shade, 16);
 				screen_shake(5);
 				sfx_play(soShieldLight2, AUDIO_GROUP.SFX, 0.1, 0.8); // until there's a bin sound
-				float_text(_d.x, _d.y - 80, "Gone", c_white);
+				float_text(_bx, _by - 70, "Gone", c_white);
 				wb_remove_die(_d); // it was taken out of the bag when it came to the bench: it's gone for good
-				workbench_tool_used(noone);
-				_t.wob = 1;
-			} else if (_jt >= 30) { _t.returning = true; wb_job = undefined; }
+				workbench_tool_used(noone, wb_cost("bin"));
+			} else if (_jt >= 22) wb_job = undefined;
 			break;
 
 		case "cut":

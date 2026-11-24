@@ -7,7 +7,8 @@ gui_w = display_get_gui_width();
 gui_h = display_get_gui_height();
 
 table = { x1: 90, y1: 210, x2: 1540, y2: 960 };
-rack = { x1: 1590, y1: 210, x2: 1870, y2: 880 };
+rack = { x1: 1590, y1: 210, x2: 1870, y2: 790 };
+bin_area = { x1: 1590, y1: 806, x2: 1870, y2: 926 }; // the Bin: a fixed area under the rack; a die dropped on it is thrown away (2026-11-24)
 
 wb_dice = [];            // dice on the table: { die (struct), x, y, scale, rot, flash, hop, vx, vy }
 wb_held = undefined;     // what the mouse carries: { kind: "die" | "tool", ref, ox, oy }
@@ -29,7 +30,7 @@ for (var i = 0; i < ds_list_size(oRunManager.tools); i++) {
 	var _home = [1660, 560];
 	switch (_kind) {
 		case "hammer": _home = [1800, 330]; break;
-		case "cutters": _home = [1770, 760]; break;
+		case "cutters": _home = [1770, 690]; break;
 		case "bin": _home = [1640, 800]; break;
 	}
 	array_push(wb_tools, {
@@ -38,6 +39,14 @@ for (var i = 0; i < ds_list_size(oRunManager.tools); i++) {
 		ang: 0, frame: 0, used: false, lift: 0, wob: 0, core: undefined, core_slot: -1, returning: false, grab_t: 0,
 	});
 }
+
+/// @func wb_cost(_kind)
+/// @desc How many of a visit's 2 actions a tool (or the Bin, "bin") uses: the Hammer and the Bin take both.
+wb_cost = function(_kind) { return (_kind == "hammer" || _kind == "bin") ? 2 : 1; }
+/// @func wb_cost_text(_kind)
+wb_cost_text = function(_kind) { var _c = wb_cost(_kind); return "Uses " + string(_c) + ((_c == 1) ? " action." : " actions."); }
+/// @func wb_in_bin(_x, _y)
+wb_in_bin = function(_x, _y) { return _x > bin_area.x1 && _x < bin_area.x2 && _y > bin_area.y1 && _y < bin_area.y2; }
 
 /// @func wb_tool_vec(_kind)
 /// @desc Where a tool is held (its grip), in sprite pixels: { wx, wy } is its working point from the grip, { ox, oy }

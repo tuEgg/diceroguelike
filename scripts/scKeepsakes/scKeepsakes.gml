@@ -846,7 +846,7 @@ function define_keepsakes() {
 	ks_eye_patch = {
 	    _id: "eye_patch",
 	    name: "Eye patch",
-	    desc: "Gain 1 ink next turn when you play a die.",
+	    desc: "Gain 1 ink when you play a die.",
 	    sub_image: 2,
 
 	    trigger: function(event, data) {
@@ -854,13 +854,13 @@ function define_keepsakes() {
 	        switch (event) {
 
 	            case "on_dice_played_to_slot":
-					// insight gained during your turn arrives next turn, like an insight die's
-					apply_buff("player", oRunManager.buff_intel, 1, 1, oRunManager.buff_intel.remove_next_turn, { source: "player", index: -1 });
+					// the ink arrives at once now (Jared, 2026-11-24), up to your most; it used to wait for next turn
+					if (instance_exists(oCombat) && oCombat.player_intel < intel_max()) oCombat.player_intel += 1;
 					var num = spawn_floating_number("player", 1, -1, global.text_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
-					particle_emit( num.x, num.y, "rise", global.text_intel);
-					
+					particle_emit_later(num.x, num.y, "rise", global.text_intel);
+
 					trigger_keepsake_visual();
 				break;
 	        }

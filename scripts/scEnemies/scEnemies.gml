@@ -71,9 +71,9 @@ function define_enemies() {
 	var baby_kraken_moves = [
 	    { dice_amount: 2, dice_value: 2, action_type: "ATK", bonus_amount: 2, move_name: "Tentacle Whip" },
 	    { dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 0, move_name: "Coil", timing: "first" },
-	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Bind", timing: "first", debuff: debuff_bind, amount: 1, duration: 1 },
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Bind", timing: "last", debuff: debuff_bind, amount: 1, duration: 1 },
 	];
-	var baby_kraken = enemy_create("Baby Kraken", 3, 1, 20, 16, 0, baby_kraken_moves, "pseudo_random");
+	var baby_kraken = enemy_create("Baby Kraken", 3, 1, 28, 16, 0, baby_kraken_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, baby_kraken);
 	
 	// Basic enemy that has attack and defend.
@@ -87,7 +87,7 @@ function define_enemies() {
 	// Moderate enemy that has a debuff
 	var thug_moves = [
 	    { dice_amount: 2, dice_value: 4, action_type: "ATK", bonus_amount: 5, move_name: "Heavy Swing", timing: "last" }, // Heavy Swing
-	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Mock", timing: "first", debuff: debuff_mock, amount: 1, duration: 1 }, // Mock
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Mock", timing: "last", debuff: debuff_mock, amount: 1, duration: 1 }, // Mock
 	    { dice_amount: 1, dice_value: 4, action_type: "BLK", bonus_amount: 4, move_name: "Parry" }  // Duck
 	];
 	var thug = enemy_create("Thug", 1, 1, 28, 17, 0, thug_moves, "pseudo_random");
@@ -95,7 +95,7 @@ function define_enemies() {
 
 	// Comes in a pair with Bill, has a debuff, and a passive.
 	var elizabeak_moves = [
-	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Flutter", timing: "first", debuff: buff_might, amount: -2, duration: 1, weight: 30},
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Flutter", timing: "last", debuff: buff_might, amount: -2, duration: 1, weight: 30},
 	    { dice_amount: 2, dice_value: 2, action_type: "BLK/ATK", bonus_amount: 3, move_name: "Flap", weight: 70 },
 	    { dice_amount: 2, dice_value: 2, action_type: "HEAL", bonus_amount: 3, move_name: "Rest", timing: "last", use_trigger: "HEALTH 50", weight: 0 },
 	];
@@ -140,7 +140,7 @@ function define_enemies() {
 	
 	// Support enemy that heals others and debuffs the player.
 	var barrel_of_fish_moves = [
-	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Rot", timing: "first", debuff: debuff_rot, weight: 25, amount: 1, duration: 1  },
+	    { dice_amount: 1, dice_value: 1, action_type: "DEBUFF", bonus_amount: 0, move_name: "Rot", timing: "last", debuff: debuff_rot, weight: 25, amount: 1, duration: 1  },
 	    { dice_amount: 2, dice_value: 2, action_type: "HEAL", bonus_amount: 4, move_name: "Feeding Frenzy", timing: "last", weight: 25, target: "other" },
 	    { dice_amount: 2, dice_value: 2, action_type: "ATK", bonus_amount: 0, move_name: "Snap", weight: 50, timing: "first" }
 	];
@@ -201,7 +201,7 @@ function define_enemies() {
 	var titan_moves = [
 	    { dice_amount: 2, dice_value: 6, action_type: "ATK", bonus_amount: 6, move_name: "Crushing Slam", timing: "last" }, // Crushing Slam
 	    { dice_amount: 2, dice_value: 6, action_type: "BLK", bonus_amount: 6, move_name: "Harden Shell", timing: "first" }, // Harden Shell
-	    { dice_amount: 1, dice_value: 6, action_type: "DEBUFF", bonus_amount: 0, move_name: "Barnacle Bind", timing: "first", debuff: debuff_barnacle_bind, amount: 1, duration: 1 } // Barnacle Bind
+	    { dice_amount: 1, dice_value: 6, action_type: "DEBUFF", bonus_amount: 0, move_name: "Barnacle Bind", timing: "last", debuff: debuff_barnacle_bind, amount: 1, duration: 1 } // Barnacle Bind
 	];
 	var titan = enemy_create("Barnacle Titan", 0, 1.5, 125, 151, 0, titan_moves, "pseudo_random");
 	ds_list_add(global.enemy_list, titan);

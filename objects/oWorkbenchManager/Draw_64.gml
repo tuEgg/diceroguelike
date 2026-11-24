@@ -65,30 +65,66 @@ draw_set_alpha(0.35);
 for (var _yy = rack.y1 + 30; _yy < rack.y2 - 10; _yy += 40) for (var _xx = rack.x1 + 25; _xx < rack.x2 - 10; _xx += 40) draw_circle(_xx, _yy, 4, false);
 draw_set_alpha(1);
 // the visit's actions: 2 pips over the rack, filled while left (2026-11-24)
-var _pcx = (rack.x1 + rack.x2) / 2, _pcy = rack.y1 - 34;
+// two rounded bars across the rack's width, brass while left; the ones the thing in hand would spend pulse
+var _prev = 0;
+if (is_struct(wb_held)) {
+	if (wb_held.kind == "tool") _prev = wb_cost(wb_held.ref.kind);
+	else if (wb_in_bin(_mx, _my)) _prev = wb_cost("bin");
+}
+var _pw2 = (rack.x2 - rack.x1 - 8) / 2;
 draw_set_font(font_tip());
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
-draw_outline_text("Actions", global.ui_col.paper_hi, global.ui_col.ink, 2, _pcx - 70, _pcy, 1, 1, 0);
 for (var p = 0; p < 2; p++) {
-	var _px = _pcx + 10 + p * 40;
+	var _px1 = rack.x1 + p * (_pw2 + 8), _py1 = rack.y1 - 50;
 	var _full = p < actions_left;
+	var _spend = _full && p >= actions_left - _prev;
 	draw_set_color(global.ui_col.ink);
-	draw_circle(_px, _pcy, 14, false);
+	draw_roundrect_ext(_px1 - 3, _py1 - 3, _px1 + _pw2 + 3, _py1 + 33, 16, 16, false);
 	draw_set_color(_full ? global.ui_col.brass : make_color_rgb(70, 52, 36));
-	draw_circle(_px, _pcy, 11, false);
+	draw_roundrect_ext(_px1, _py1, _px1 + _pw2, _py1 + 30, 14, 14, false);
 	if (_full) {
-		draw_set_color(merge_colour(global.ui_col.brass, c_white, 0.4));
-		draw_circle(_px - 3, _pcy - 3, 4, false);
+		draw_set_color(merge_colour(global.ui_col.brass, c_white, _spend ? 0.35 + 0.35 * sin(current_time / 110) : 0.3));
+		draw_roundrect_ext(_px1 + 5, _py1 + 4, _px1 + _pw2 - 5, _py1 + 12, 4, 4, false);
 	}
+	draw_set_color(_full ? global.ui_col.ink : make_color_rgb(130, 108, 84));
+	draw_text(_px1 + _pw2 / 2, _py1 + 19, _full ? "Action" : "Used");
 }
 for (var i = 0; i < array_length(wb_tools); i++) {
 	var _t = wb_tools[i];
+	if (_t.kind == "bin") continue; // the Bin isn't on the rack
 	var _hb = wb_tool_box({ kind: _t.kind, hx: _t.home_x, hy: _t.home_y, ang: 0 });
 	draw_set_color(global.ui_col.ink);
 	draw_circle((_hb.x1 + _hb.x2) / 2, _hb.y1 + 2, 9, false);
 	draw_set_color(global.ui_col.brass);
 	draw_circle((_hb.x1 + _hb.x2) / 2, _hb.y1 + 2, 7, false);
+}
+
+// ---------------------------------------------------------------- the Bin: a fixed area; drop a die on it to throw it away
+var _drag_die = is_struct(wb_held) && wb_held.kind == "die";
+var _bin_hot = _input && _drag_die && wb_in_bin(_mx, _my);
+var _bin_lit = _drag_die && wb_job == undefined;
+var _bin_pulse = _bin_lit ? 0.5 + 0.5 * sin(current_time / 140) : 0;
+ui_paper(bin_area.x1, bin_area.y1, bin_area.x2, bin_area.y2, 7, _bin_hot ? global.ui_col.paper_hi : global.ui_col.paper_shade);
+if (_bin_lit) {
+	draw_set_color(global.ui_col.brass);
+	draw_set_alpha(_bin_hot ? 1 : 0.4 + 0.4 * _bin_pulse);
+	for (var k = 0; k < 3; k++) draw_roundrect_ext(bin_area.x1 - k, bin_area.y1 - k, bin_area.x2 + k, bin_area.y2 + k, 14, 14, true);
+	draw_set_alpha(1);
+}
+draw_bin_icon(bin_area.x1 + 66, (bin_area.y1 + bin_area.y2) / 2 + 4, _bin_hot ? 1.15 : 1, 1, c_white);
+draw_set_font(font_tip());
+draw_set_halign(fa_left);
+draw_set_valign(fa_middle);
+draw_set_color(global.ui_col.ink);
+draw_text(bin_area.x1 + 130, (bin_area.y1 + bin_area.y2) / 2 - 16, "Bin");
+draw_set_color(merge_colour(global.ui_col.ink, global.ui_col.paper_shade, 0.35));
+draw_text(bin_area.x1 + 130, (bin_area.y1 + bin_area.y2) / 2 + 12, wb_cost_text("bin"));
+if (_input && ((_drag_die && _bin_hot) || (!_drag_die && wb_held == undefined && wb_in_bin(_mx, _my)))) {
+	var _bin_txt = "Remove a die from your bag.";
+	if (_drag_die && ds_list_size(global.dice_bag) + array_length(wb_dice) <= 6) _bin_txt = "Your bag can't go below 6 dice.";
+	else if (_drag_die && actions_left < wb_cost("bin")) _bin_txt = "Not enough actions.";
+	queue_tooltip(_mx, _my, "Bin", _bin_txt + "\n" + wb_cost_text("bin"));
 }
 
 // ---------------------------------------------------------------- the dice
@@ -135,6 +171,7 @@ for (var i = 0; i < array_length(oRunManager.items); i++) {
 }
 for (var i = 0; i < array_length(wb_tools); i++) {
 	var _t = wb_tools[i];
+	if (_t.kind == "bin") continue; // drawn above as a fixed area
 	var _o = wb_tool_origin(_t);
 	var _k = wb_tool_k * (1 + 0.06 * _t.lift);
 	var _ang = _t.ang + sin(current_time / 90) * 6 * _t.wob;
@@ -145,7 +182,7 @@ for (var i = 0; i < array_length(wb_tools); i++) {
 		draw_ellipse(_t.hx - 46, _t.hy + 18 - 10, _t.hx + 46, _t.hy + 18 + 10, false);
 		draw_set_alpha(1);
 	}
-	var _rest = actions_left <= 0 && !is_struct(wb_job); // out of actions: the tools rest, greyed
+	var _rest = actions_left < wb_cost(_t.kind) && !is_struct(wb_job); // too few actions left for it: it rests, greyed
 	if (_t.sprite >= 0) draw_sprite_ext(_t.sprite, _t.frame, _o.x, _o.y, _k, _k, _ang, _rest ? c_gray : c_white, _rest ? 0.6 : 1);
 	else draw_bin_icon(_o.x, _o.y, (1 + 0.06 * _t.lift), _rest ? 0.6 : 1, _rest ? c_gray : c_white);
 	// the drill's chuck: a loaded core glows in it; while you carry a core, an empty chuck shows where it goes
@@ -175,9 +212,8 @@ for (var i = 0; i < array_length(wb_tools); i++) {
 			switch (_t.kind) {
 				case "drill": _what = (_t.core != undefined) ? "Loaded: " + string(_t.core.name) + ".\nDrill it into a die." : "Drill a core into a die."; break;
 				case "hammer": _what = "Combine two dice of the same type."; break;
-				case "bin": _what = "Remove a die from your bag."; break;
 			}
-			queue_tooltip(_mx, _my, _t.name, (actions_left <= 0) ? "No actions left." : _what);
+			queue_tooltip(_mx, _my, _t.name, _what + "\n" + wb_cost_text(_t.kind) + ((actions_left < wb_cost(_t.kind)) ? " You have " + string(actions_left) + "." : ""));
 		}
 	}
 }
@@ -191,7 +227,6 @@ if (is_struct(wb_held) && wb_held.kind == "tool" && wb_job == undefined) {
 		case "drill": _how = (_ht.core != undefined) ? "Release over a die to drill the core into it." : "Load a core first: drag one from the top bar onto the drill."; break;
 		case "hammer": _how = "Release between two dice of the same type to join them."; break;
 		case "scissors": case "cutters": _how = "Release over a die to cut 2 sides off it. You get a coin."; break;
-		case "bin": _how = "Release over a die to throw it away."; break;
 		default: _how = "Release over a die to use it.";
 	}
 	// two notes in a column under the cursor, left edges together (Jared, 2026-11-24): what it would do where it is,
@@ -199,6 +234,7 @@ if (is_struct(wb_held) && wb_held.kind == "tool" && wb_job == undefined) {
 	var _notes = [];
 	if (is_struct(wb_target) && wb_target.text != "") array_push(_notes, { text: wb_target.text, ok: wb_target.ok });
 	array_push(_notes, { text: _how, ok: true });
+	array_push(_notes, { text: wb_cost_text(_ht.kind), ok: true });
 	draw_set_font(font_tip());
 	var _col_w = 0;
 	for (var _ni = 0; _ni < array_length(_notes); _ni++) _col_w = max(_col_w, string_width(_notes[_ni].text) + 34);

@@ -20,15 +20,7 @@ if (_coded) {
 		if (_face >= 1 && _hand_bonus != 0) _face = max(0, _face + _hand_bonus);
 	}
 	draw_die(x, y, _die_r * _jig.scale, dice_value, _face, over_discard ? colours_merge(_cols, c_black, 0.25) : _cols, tumble_angle + _wobble + _jig.angle, image_alpha, struct);
-	if (room == rmCombat && !tumbling && instance_exists(oCombat) && !oCombat.show_rewards) {
-		if (_hand_bonus != 0) {
-			draw_set_font(ftSmall);
-			draw_set_halign(fa_right);
-			draw_set_valign(fa_middle);
-			var _hb_txt = ((_roll_only >= 1) ? string(_roll_only) : "") + ((_hand_bonus > 0) ? "+" : "") + string(_hand_bonus);
-			draw_outline_text(_hb_txt, c_black, (_hand_bonus > 0) ? c_lime : c_red, 2, x + _die_r * 1.1, y + _die_r * 0.85, 1.6 * scale, image_alpha, 0);
-		}
-	}
+	// (its roll+bonus corner note is drawn after the keyword icons below, so it sits in front of them)
 	// over the discard pile: letting go discards it (redraws are bought in the insight phase)
 	if (over_discard && instance_exists(oCombat)) {
 		var _can = true;
@@ -61,6 +53,14 @@ if (struct.rarity != "starter" && room != rmCombat) {
 // keyword icons only on dice you're about to play (a fight); elsewhere the tooltip's words say it
 var _kw_icons = [];
 if (_coded && room == rmCombat) _kw_icons = draw_dice_keywords(struct, x, y + die_bottom_edge(dice_value, _die_r), 1.15 * scale, 1, "hand"); // big, centred on its bottom edge
+// the bonus note in front of them (Jared, 2026-11-24)
+if (_coded && _hand_bonus != 0 && room == rmCombat && !tumbling) {
+	draw_set_font(ftSmall);
+	draw_set_halign(fa_right);
+	draw_set_valign(fa_middle);
+	var _hb_txt = ((_roll_only >= 1) ? string(_roll_only) : "") + ((_hand_bonus > 0) ? "+" : "") + string(_hand_bonus);
+	draw_outline_text(_hb_txt, c_black, (_hand_bonus > 0) ? c_lime : c_red, 2, x + _die_r * 1.1, y + _die_r * 0.85, 1.6 * scale, image_alpha, 0);
+}
 // hovering a keyword's icon explains the keyword (the die's own tip leaves it out)
 var _kw_hover = false;
 if (global.ui_layer == UI_LAYER.BASE && !is_dragging) {

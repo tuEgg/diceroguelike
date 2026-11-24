@@ -586,6 +586,17 @@ function draw_all_tooltips() {
 			_total_h += _gap + _s.h;
 			_max_w = max(_max_w, _s.w);
 		}
+		// every box is drawn at the stack's width and wraps at it, so each is re-measured at that width: its height is
+		// the height of that wrap (2026-11-24)
+		if (array_length(global.tooltip_keywords) > 0) {
+			_main = draw_tooltip_box(0, 0, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, true, _max_w);
+			_total_h = _main.h;
+			for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
+				var kw = global.tooltip_keywords[i];
+				_kw_sizes[i] = draw_tooltip_box(0, 0, kw.name, kw.desc, kw.icon, kw.index, undefined, false, true, _max_w);
+				_total_h += _gap + _kw_sizes[i].h;
+			}
+		}
 
 		var xx = tt.x, yy = tt.y; // beside the hovered thing (queue_tooltip)
 		// a stack too tall for the screen splits: the main box stays, the rest stand in a column beside it
@@ -593,7 +604,13 @@ function draw_all_tooltips() {
 		var _split = (_total_h > _gui_h - 20) && array_length(global.tooltip_keywords) > 0;
 		var _kw_w = 0, _kw_h = 0;
 		if (_split) {
-			for (var i = 0; i < array_length(_kw_sizes); i++) { _kw_w = max(_kw_w, _kw_sizes[i].w); _kw_h += _kw_sizes[i].h + _gap; }
+			for (var i = 0; i < array_length(_kw_sizes); i++) _kw_w = max(_kw_w, _kw_sizes[i].w);
+			_main = draw_tooltip_box(0, 0, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, true); // back to its own width
+			for (var i = 0; i < array_length(_kw_sizes); i++) {
+				var kw = global.tooltip_keywords[i];
+				_kw_sizes[i] = draw_tooltip_box(0, 0, kw.name, kw.desc, kw.icon, kw.index, undefined, false, true, _kw_w);
+				_kw_h += _kw_sizes[i].h + _gap;
+			}
 			_total_h = _main.h;
 			_max_w = _main.w + _gap * 3 + _kw_w;
 		}
@@ -831,6 +848,13 @@ function draw_die_tip(_tt) {
 		_terms_h += _gap + _s.h;
 		_col_h += _s.h + _gap;
 	}
+	// each box wraps at the stack's width, so it is measured at that width
+	_terms_h = 0;
+	for (var i = 0; i < array_length(_terms); i++) {
+		var _s2 = draw_tooltip_box(0, 0, _terms[i].name, _terms[i].desc, _ts[i].icon, _ts[i].index, undefined, false, true, _w);
+		_ts[i].h = _s2.h;
+		_terms_h += _gap + _s2.h;
+	}
 	var _gui_w = display_get_gui_width(), _gui_h = display_get_gui_height();
 	var _top = ui_top_bar_h() + 6;
 	var _bottom = _tt.bottom - 10; // room for the pointer
@@ -948,6 +972,37 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
 	draw_tooltip_box(xx, yy, _name, _desc, _icon, _index, _dice, _is_keyword, false);
 }
 
+/// @func strip_color_tags(_s)
+/// @desc A string without its "[tag]" colour markers: the words as they show.
+function strip_color_tags(_s) {
+	var _out = "", _in = false;
+	for (var i = 1; i <= string_length(_s); i++) {
+		var _c = string_char_at(_s, i);
+		if (_c == "[") _in = true;
+		else if (_c == "]") _in = false;
+		else if (!_in) _out += _c;
+	}
+	return _out;
+}
+
+/// @func tooltip_paras_measure(_paras, _wrap_w, _line_sep, _para_gap)
+/// @desc { longest, h } of paragraphs wrapped at _wrap_w in the current font: the widest line, and the total height.
+function tooltip_paras_measure(_paras, _wrap_w, _line_sep, _para_gap) {
+	var _longest = 0, _h = 0;
+	for (var p = 0; p < array_length(_paras); p++) {
+		var _words = string_split(_paras[p], " ");
+		var _cur = "";
+		for (var i = 0; i < array_length(_words); i++) {
+			var _test = (_cur == "") ? _words[i] : (_cur + " " + _words[i]);
+			if (string_width(_test) <= _wrap_w) _cur = _test;
+			else { _longest = max(_longest, string_width(_cur)); _cur = _words[i]; }
+		}
+		_longest = max(_longest, string_width(_cur));
+		_h += string_height_ext(_paras[p], _line_sep, _wrap_w) + ((p > 0) ? _para_gap : 0);
+	}
+	return { longest: _longest, h: _h };
+}
+
 /// @func draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, _measure_only, [_force_w])
 /// @desc Draws one tooltip box at its top-left, or only measures it. Returns { w, h }. _compact is the smaller box used
 ///       for keywords under a main tooltip (tighter padding, narrower text). _force_w: at least this wide (a stack
@@ -972,37 +1027,29 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     var line_sep = font_get_size(font_tip()) * 1.5;
     var para_gap = line_sep * 0.5;
 
-    // the longest line the description wraps to, and its height
-    var longest_line_px = 0;
-    var desc_h = 0;
-    for (var p = 0; p < array_length(_paras); p++) {
-	    var words = string_split(_paras[p], " ");
-	    var current_line_str = "";
-	    for (var i = 0; i < array_length(words); i++) {
-	        var test_string = (current_line_str == "") ? words[i] : (current_line_str + " " + words[i]);
-	        if (string_width(test_string) <= max_desc_w) {
-	            current_line_str = test_string;
-	        } else {
-	            longest_line_px = max(longest_line_px, string_width(current_line_str));
-	            current_line_str = words[i];
-	        }
-	    }
-	    longest_line_px = max(longest_line_px, string_width(current_line_str));
-	    desc_h += string_height_ext(_paras[p], line_sep, max_desc_w) + ((p > 0) ? para_gap : 0);
-    }
+    // measured on the words as they are drawn (the colour tags stripped: "[subtext]" is not text), wrapped at the width
+    // they are drawn at. A box forced wider than its words need (a stack all runs one length) wraps at that wider width,
+    // so the words fill it and its height is the height of that wrap (2026-11-24: they wrapped at 300 in a wider box).
+    var _plain = [];
+    for (var p = 0; p < array_length(_paras); p++) array_push(_plain, strip_color_tags(_paras[p]));
+    var _mm = tooltip_paras_measure(_plain, max_desc_w, line_sep, para_gap);
+    var longest_line_px = _mm.longest;
+    var desc_h = _mm.h;
 
     var has_core = (_dice != undefined && variable_struct_exists(_dice, "distribution") && _dice.distribution != "");
     var icon_space = (_icon != undefined) ? (_compact ? 36 : 50) : 0; // a core's icon sits beside its bars at the foot instead
     var _width  = padding * 2 + max(name_w, longest_line_px) + icon_space;
-    var _height = padding * (_compact ? 1.4 : 1.6) + name_h + desc_h + (_compact ? 4 : 10);
     // a core's distribution sits inside the box, under the words, with the core's icon just left of it
     var _dist_h = has_core ? 55 + 8 : 0; // draw_dice_distribution at scale 1 is 55 tall
-    if (has_core) {
-	    _width = max(_width, padding * 2 + icon_space + 44 + _dice.dice_value * 17 + 10);
-	    _height += _dist_h;
+    if (has_core) _width = max(_width, padding * 2 + icon_space + 44 + _dice.dice_value * 17 + 10);
+    _width = max(_width, _force_w); // a stack of tooltips all runs the same length
+    var _inner_w = _width - padding * 2 - icon_space;
+    if (_inner_w > max_desc_w + 1) {
+        max_desc_w = _inner_w;
+        _mm = tooltip_paras_measure(_plain, max_desc_w, line_sep, para_gap);
+        desc_h = _mm.h;
     }
-
-	_width = max(_width, _force_w); // a stack of tooltips all runs the same length
+    var _height = padding * (_compact ? 1.4 : 1.6) + name_h + desc_h + (_compact ? 4 : 10) + _dist_h;
 	if (_measure_only) return { w: _width, h: _height };
 
     // background
@@ -1063,7 +1110,7 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
 	    draw_set_font(font_tip());
 	    draw_outline_text(colorcode_text(_paras[p], (is_struct(_dice) && variable_struct_exists(_dice, "action_type")) ? _dice.action_type : ""), c_black, c_white, 1, content_x, _py, 1, 1, 0, max_desc_w);
 	    draw_set_font(font_tip());
-	    _py += string_height_ext(_paras[p], line_sep, max_desc_w) + para_gap;
+	    _py += string_height_ext(_plain[p], line_sep, max_desc_w) + para_gap;
     }
 
 	if (has_core) {
@@ -2861,6 +2908,17 @@ function die_range_changed(_d, _out) {
 	return _out.min_roll != 1 || _out.max_roll != _d.dice_value;
 }
 
+/// @func die_shown_sides(_d, _out)
+/// @desc The size a die is drawn at on a card: its own, or, when an effect lifts its maximum roll (the Unholy die: the lower
+///       your alignment, the higher its max), the next real die size up to a d12, so the card previews what it will be
+///       (Jared, 2026-11-24). The range tag beside it still says the exact numbers.
+function die_shown_sides(_d, _out) {
+	if (!is_struct(_out) || _out.max_roll <= _d.dice_value) return _d.dice_value;
+	var _s = _out.max_roll;
+	if (_s mod 2 == 1) _s += 1;
+	return clamp(_s, _d.dice_value, 12);
+}
+
 /// @func card_hero_draw(_d, _out, _x1, _x2, _y1, _dy, _r, _alpha, _interactive, _layer, [_rule], [_kw_scale])
 /// @desc The top of a dice card (bag cards and the quartermaster's, layout C, F156): a thin ink-edged rule across the
 ///       card at _dy in the die's pigment (two halves for a multitype die), the die on it (radius _r) with its action
@@ -2884,7 +2942,7 @@ function card_hero_draw(_d, _out, _x1, _x2, _y1, _dy, _r, _alpha, _interactive, 
 	}
 	draw_rarity_gem(_x2 - 20, _y1 + 20, _d.rarity, 1, _alpha);
 
-	draw_die(_cx, _dy, _r, _d.dice_value, -1, _cols, 0, _alpha, _d);
+	draw_die(_cx, _dy, _r, die_shown_sides(_d, _out), -1, _cols, 0, _alpha, _d);
 	var _k = _r / 36;
 	if (global.action_icons) draw_action_type_icon(_d.action_type, _cx - 31 * _k, _dy + 31 * _k, 0.75 * _k, _alpha);
 

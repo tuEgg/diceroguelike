@@ -129,7 +129,7 @@ function define_items() {
 		sprite: sCores,
 		index: 7,
 		name: "Lodestone Core",
-		description: "Neutral alignment: only its lowest. Either extreme: only its highest. Even at 25 and 75.",
+		description: "Mostly low rolls at neutral alignment, mostly high at either extreme.",
 		type: "core",
 		dragging: false,
 		distribution: "lodestone",
@@ -207,7 +207,7 @@ function define_items() {
 		sprite: sConsumables,
 		index: 1,
 		name: "Bilge-Purge Flask",
-		description: "Empty a slot. Gain 3 plays this turn.",
+		description: "Switch off a slot this turn. Gain 2 plays.",
 		type: "consumable",
 		dragging: false,
 		distribution: "",
@@ -217,20 +217,20 @@ function define_items() {
 		effects: {
 			trigger: "on_item_played_to_slot",
 			flags: function(_context) {
-				var dice_exist = true;
-				if (ds_list_size(_context._slot.dice_list) == 0) {
-					dice_exist = false;
-					throw_error("This slot is empty", "Use it on a slot with dice in it.");
+				// any slot that isn't already off (Bind's or one a flask switched off) takes it
+				if (slot_is_locked(_context._ind)) {
+					throw_error("Already off", "That slot doesn't act this turn already.");
+					return false;
 				}
-				return dice_exist * oCombat.state == CombatState.PLAYER_INPUT;
+				return oCombat.state == CombatState.PLAYER_INPUT;
 			},
 			modify: function(_context) {
-				// eject dice in this slot
-				var num_dice = ds_list_size(_context._slot.dice_list);
-				eject_dice_in_slot(_context._slot, oCombat.slot_positions[| _context._ind], true);
-				oCombat.dice_allowed_this_turn_bonus += 3; // on top of any other bonus plays this turn
-				
-				particle_emit( device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", c_aqua);
+				// the slot stays where it is but doesn't act this turn (like Bind), and you get 2 more plays (Jared, 2026-11-24:
+				// it used to empty the slot and give 3)
+				array_push(oCombat.disabled_slots, _context._ind);
+				oCombat.dice_allowed_this_turn_bonus += 2; // on top of any other bonus plays this turn
+
+				particle_emit_later(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "burst", c_aqua);
 			}
 		},
 		price: 25

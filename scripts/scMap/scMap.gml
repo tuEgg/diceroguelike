@@ -2010,7 +2010,7 @@ function passage_heal_amount() {
 function map_sailing_to_sea() {
 	with (oWorldManager) {
 		if (is_struct(sea_buoy) && sea_buoy.sailing) return true;
-		if (is_struct(harbour) && harbour.chosen != -1 && !harbour.arrived) return true;
+		if (is_struct(harbour) && harbour.chosen && !harbour.arrived) return true;
 	}
 	return false;
 }
@@ -2060,63 +2060,58 @@ function page_passage_badge(_page, _x, _y, _scale, _alpha) {
 ///       Shipwright (refit); choose one, sail there, then on to the boss (map_node_blocked_reason waits for it).
 ///       _bp.harbour_done is saved with the page.
 function harbour_draw(_bp) {
+	// one standard Drop Anchor before the boss (Jared, 2026-11-24: it was two stops, rest and refit): sail there, then the same
+	// Rest or Workbench choice as any Drop Anchor (anchor_choice_draw)
 	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
-	var _hx = _gw * 0.36;
-	var _ids = ["calm", "workbench"], _names = ["Drop Anchor: rest", "Drop Anchor: workbench"];
-	var _ys = [_gh / 2 - 120, _gh / 2 + 120];
-	if (!is_struct(harbour) || harbour.chapter != chapter) harbour = { chapter: chapter, scales: [1, 1], chosen: -1, arrived: false, stamp: 0, healed: false, heal: 0 };
+	var _hx = _gw * 0.36, _hy = _gh / 2;
+	if (!is_struct(harbour) || harbour.chapter != chapter) harbour = { chapter: chapter, scale: 1, chosen: false, arrived: false, choosing: false, stamp: 0, healed: false, heal: 0, id: "anchor" };
 	var _h = harbour;
 	var _done = variable_struct_exists(_bp, "harbour_done") && _bp.harbour_done;
 	var _bn = (ds_list_size(_bp.nodes) > 0) ? _bp.nodes[| 0] : undefined;
-	var _heal = passage_heal_amount();
-	for (var i = 0; i < 2; i++) {
-		var _sx = _hx + ((i == 0) ? -20 : 20), _sy = _ys[i];
-		var _mine = (_h.chosen == i);
-		var _a_route = _mine ? 0.85 : ((_h.chosen == -1 && !_done) ? 0.38 : 0.12);
-		route_draw(book_left_x, _gh / 2, _sx, _sy, _a_route);
-		if (_bn != undefined) route_draw(_sx, _sy, _bn.x, _bn.y, (_mine && _bn.cleared) ? 0.85 : _a_route);
+	var _a_route = _h.chosen ? 0.85 : (_done ? 0.12 : 0.5);
+	route_draw(book_left_x, _gh / 2, _hx, _hy, _a_route);
+	if (_bn != undefined) route_draw(_hx, _hy, _bn.x, _bn.y, (_h.chosen && _bn.cleared) ? 0.85 : _a_route);
+	var _info = strait_stop_info("anchor", passage_heal_amount());
+	var _can = !_done && !_h.chosen && world_state == WORLD_STATE.EXPLORING && node_to_move_to == undefined && !boat_data.entering;
+	var _hov = !_h.choosing && mouse_hovering(_hx, _hy, 64, 64, true, soSlotHover, noone);
+	var _breathe = _can ? 0.08 * (0.5 + 0.5 * sin(current_time / 220)) : 0;
+	_h.scale = lerp(_h.scale, _hov ? 1.25 : 1 + _breathe, 0.2);
+	sea_stop_draw("anchor", _hx, _hy, _h.scale, 1, true, _done && _h.arrived && !_h.choosing);
+	draw_set_font(font_tip());
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_top);
+	draw_outline_text("Drop Anchor", global.ui_col.paper_hi, global.ui_col.ink, 2, _hx, _hy + 36 * _h.scale, 1, 1, 0);
+	draw_set_halign(fa_left);
+	if (_done && _h.arrived && !_h.choosing) map_done_ring(_hx, _hy, 31 * _h.scale, 1);
+	if (_hov) {
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _info.name, _info.tip);
+		if (mouse_check_button_pressed(mb_left) && _can && global.ui_layer == UI_LAYER.BASE) _h.chosen = true;
 	}
-	for (var i = 0; i < 2; i++) {
-		var _id = _ids[i];
-		var _sx = _hx + ((i == 0) ? -20 : 20), _sy = _ys[i];
-		var _info = strait_stop_info(_id, _heal);
-		var _can = !_done && _h.chosen == -1 && world_state == WORLD_STATE.EXPLORING && node_to_move_to == undefined && !boat_data.entering;
-		var _hov = mouse_hovering(_sx, _sy, 64, 64, true, soSlotHover, noone);
-		var _alpha = (_h.chosen == -1 && !_done) ? 1 : ((_h.chosen == i) ? 1 : 0.35);
-		_h.scales[i] = lerp(_h.scales[i], _hov ? 1.25 : 1, 0.2);
-		sea_stop_draw(_id, _sx, _sy, _h.scales[i], _alpha, _info.ok || _done, _h.chosen == i && _h.arrived);
-		draw_set_font(font_tip());
+	if (_h.chosen && !_h.arrived) {
+		if (boat_sail_toward(_hx - 48, _hy + 24)) { // moored beside it, so the tick shows
+			_h.arrived = true;
+			_h.choosing = true;
+		}
+	}
+	if (_h.choosing) {
+		var _pick = anchor_choice_draw(_h, _hx, _hy);
+		if (_pick != "") {
+			_h.choosing = false;
+			_bp.harbour_done = true;
+			_h.id = (_pick == "rest") ? "calm" : "workbench";
+			if (passage_arrive(_h.id, _h, _hx, _hy)) return; // gone to the workbench
+		}
+	}
+	if (_h.stamp > 0) {
+		var _what = (_h.id == "calm") ? "Rested" : "Refitted";
+		if (_h.healed) _what += "  +" + string(_h.heal) + " HP";
+		draw_set_font(ftBig);
 		draw_set_halign(fa_center);
-		draw_set_valign(fa_top);
-		draw_outline_text(_names[i], global.ui_col.paper_hi, global.ui_col.ink, 2, _sx, _sy + 36 * _h.scales[i], 1, _alpha, 0);
+		draw_set_valign(fa_middle);
+		draw_outline_text(_what, c_black, make_color_rgb(242, 210, 74), 3, _hx, _hy - 56 - 20 * (1 - _h.stamp), 1, min(1, _h.stamp * 2), 0);
+		_h.stamp = max(0, _h.stamp - 1 / 70);
 		draw_set_halign(fa_left);
-		if (_h.chosen == i && _h.arrived) map_done_ring(_sx, _sy, 31 * _h.scales[i], 1);
-		if (_hov) {
-			var _tip = _info.ok ? _info.tip : _info.reason;
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _names[i], _tip);
-			if (mouse_check_button_pressed(mb_left) && _can && global.ui_layer == UI_LAYER.BASE) {
-				if (_info.ok) _h.chosen = i;
-				else throw_error("Not now", _info.reason);
-			}
-		}
-		if (_h.chosen == i && !_h.arrived) {
-			if (boat_sail_toward(_sx - 48, _sy + 24)) { // moored beside it, so the tick shows
-				_h.arrived = true;
-				_bp.harbour_done = true;
-				if (passage_arrive(_id, _h, _sx, _sy)) return; // gone to the workbench
-			}
-		}
-		if (_h.chosen == i && _h.stamp > 0) {
-			var _what = (_id == "calm") ? "Rested" : "Refitted";
-			if (_h.healed) _what += "  +" + string(_h.heal) + " HP";
-			draw_set_font(ftBig);
-			draw_set_halign(fa_center);
-			draw_set_valign(fa_middle);
-			draw_outline_text(_what, c_black, make_color_rgb(242, 210, 74), 3, _sx, _sy - 56 - 20 * (1 - _h.stamp), 1, min(1, _h.stamp * 2), 0);
-			_h.stamp = max(0, _h.stamp - 1 / 70);
-			draw_set_halign(fa_left);
-			draw_set_valign(fa_top);
-		}
+		draw_set_valign(fa_top);
 	}
 }
 

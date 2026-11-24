@@ -618,7 +618,7 @@ function slot_placement_check(_die_struct, _slot, _slot_i) {
 
 	// slots fill left to right: every slot before this one needs an action (a chained slot doesn't count)
 	for (var j = 0; j < _slot_i; j++) {
-		if (j == locked_slot) continue;
+		if (slot_is_locked(j)) continue;
 		if (!slot_has_action(action_queue[| j])) return _no("Slots fill in order: slot " + string(j + 1) + " needs an action first.");
 	}
 
@@ -1295,7 +1295,8 @@ function win_fight() {
 
 		// items on offer grow with the chapter (Jared, 2026-11-24): chapter 1 choose 1 of 2, chapter 2 choose 2 of 3,
 		// chapter 3 choose 2 of 4
-		var _item_ch = clamp(oWorldManager.chapter, 1, 3);
+		// a chapter's boss pays like the next chapter's fights (Jared, 2026-11-24): from the end of chapter 1, 3 options
+		var _item_ch = clamp(oWorldManager.chapter + ((oWorldManager.current_node_type == NODE_TYPE.BOSS) ? 1 : 0), 1, 3);
 		reward_item_picks = (_item_ch == 1) ? 1 : 2;
 		var _item_n = _item_ch + 1;
 				
@@ -1674,6 +1675,11 @@ function add_enemy_to_fight(_enemy) {
 	// (Shiny Scales, Stunned, used-up triggers) never reach other enemies or later fights
 	_enemy = enemy_copy_for_fight(_enemy);
 	enemy_apply_chapter_scaling(_enemy);
+	// an alignment fight's enemy has at least 30 HP (Jared, 2026-11-24): you choose to spare or kill what's left
+	if (instance_exists(oWorldManager) && oWorldManager.current_node_type == NODE_TYPE.ALIGNMENT && _enemy.max_hp < 30) {
+		_enemy.max_hp = 30;
+		_enemy.current_hp = 30;
+	}
 	
 	var _rand_move = irandom(ds_list_size(_enemy.moves) - 1);
 	
@@ -2734,12 +2740,12 @@ function workbench_drill_waits() {
 
 /// @func workbench_tool_used(_object)
 /// @desc A tool has crafted: it's used for this visit (it hangs back on the rack with a "Used" tag).
-function workbench_tool_used(_object) {
+function workbench_tool_used(_object, _cost = 1) {
 	if (!instance_exists(oWorkbenchManager)) return;
 	if (progress_get("workbench_hints_done") != true) progress_set("workbench_hints_done", true);
 	with (oWorkbenchManager) {
 		array_push(tools_used, _object);
-		actions_left = max(0, actions_left - 1); // 2026-11-24: actions, not "used" tools
+		actions_left = max(0, actions_left - _cost); // 2026-11-24: actions, not "used" tools; the Hammer and the Bin cost 2
 	}
 }
 
@@ -2801,7 +2807,7 @@ function slot_has_action(_slot) {
 /// @desc Every slot (but a chained one) has an action: only then can a new slot be built.
 function combat_all_slots_have_action() {
 	for (var j = 0; j < ds_list_size(oCombat.action_queue); j++) {
-		if (j == oCombat.locked_slot) continue;
+		if (slot_is_locked(j)) continue;
 		if (!slot_has_action(oCombat.action_queue[| j])) return false;
 	}
 	return true;
@@ -2986,7 +2992,7 @@ function combat_take_back_blocked(_slot_i, _index) {
 	var _list = _slot.dice_list;
 	for (var k = 0; k < ds_list_size(_list); k++) if (k != _index && _list[| k].possible_type != "None") return "";
 	for (var j = _slot_i + 1; j < ds_list_size(action_queue); j++) {
-		if (j != locked_slot && ds_list_size(action_queue[| j].dice_list) > 0) return "Take back later slots' dice first, or slot " + string(_slot_i + 1) + " loses its action.";
+		if (!slot_is_locked(j) && ds_list_size(action_queue[| j].dice_list) > 0) return "Take back later slots' dice first, or slot " + string(_slot_i + 1) + " loses its action.";
 	}
 	return "";
 }
@@ -3963,7 +3969,7 @@ function combat_timeline_draw(_ink = false) {
 			draw_set_color(global.ui_col.paper_hi);
 			draw_circle(_cx, _ty, 5, false);
 			var _lbl = string(k) + ((k == _last && _beyond) ? "+" : "");
-			var _bound = (locked_slot == k - 1) && !show_rewards;
+			var _bound = slot_is_locked(k - 1) && !show_rewards;
 			var _rot = (bound_slot == k - 1) && !show_rewards;
 			draw_outline_text(_lbl, global.ui_col.ink, _bound ? global.text_attack : (_rot ? global.text_heal : global.ui_col.paper_hi), 2, _cx, _ty - 8, 1, (_built || _bound || _rot) ? 1 : 0.6, 0);
 			// Rot: its place's number is green all turn; the ooze itself is drawn on the slot or the tile (oCombat Draw GUI)
@@ -4102,15 +4108,18 @@ function combat_timeline_draw(_ink = false) {
 	}
 }
 
+/// @func slot_is_locked(_i)
+/// @desc A place that doesn't act this turn: Bind's (locked_slot) or one a Bilge-Purge Flask switched off (disabled_slots).
+function slot_is_locked(_i) {
+	if (!instance_exists(oCombat)) return false;
+	return _i == oCombat.locked_slot || array_contains(oCombat.disabled_slots, _i);
+}
+
 /// @func combat_bind_pick()
-/// @desc Which place Bind chains (or Rot rots) this turn, picked as the turn starts so it shows while you plan (Jared, 2026-11-24):
-///       slot 1, 2 or 3 most of the time, slot 4 now and then. It holds that place whether or not the slot gets built.
+/// @desc Which place Bind chains (or Rot rots) this turn, picked as the turn starts so it shows while you plan: slot 1 or
+///       slot 2, evenly (Jared, 2026-11-24). It holds that place whether or not the slot gets built.
 function combat_bind_pick() {
-	var _r = irandom(99);
-	if (_r < 30) return 0;
-	if (_r < 60) return 1;
-	if (_r < 90) return 2;
-	return 3;
+	return irandom(1);
 }
 
 /// @func combat_pick_debuffed_slots()
