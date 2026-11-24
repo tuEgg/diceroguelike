@@ -30,7 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 41: Bind shown, coins, hand bonuses, buff tips | B167, B168, F257, F258 | `dev` | **Not yet play-tested.** Bind picks its slot (mostly 1-3) as the turn starts and shows it all turn; the Doubloon is a d2 and every coin loses Coin when upgraded; Calligrapher +1 per ink action; dice in hand show their bonus; every tooltip explains the buffs and debuffs it names. |
+| 41: Bind shown, coins, hand bonuses, buff tips | B167, B168, B169, F257, F258 | `dev` | **Not yet play-tested.** Bind and Rot pick their slot (mostly 1-3) as the turn starts and show it all turn; the Doubloon is a d2 and every coin loses Coin when upgraded; Calligrapher +1 per ink action; dice in hand show their bonus; every tooltip explains the buffs and debuffs it names. |
 | 40: Balanced, paper sounds, text colours | B166, F254, F255, F256 | `dev` | **Not yet play-tested.** Balanced gives Balance as it rolls; paper UI rustles on hover; reward cards explain their keywords; numbers in a die's text take its action colour, keywords are violet. |
 | 39: chapter events and F1 | F251, F252, F253 | `dev` | **Not yet play-tested.** Each chapter draws its own events (16 new for chapters 2 and 3, bigger effects and choices); four event options rebalanced; F1 can jump a chapter, re-show tips, add pool tokens and workbench actions. |
 | 38: fixes after batch 37 | B164, B165, F250 | `dev` | **Not yet play-tested.** Anchor icon the right way up; slot number is the full total; Tattooist anchor +2 min roll. |
@@ -39,6 +39,7 @@
 
 **Batch 41 test list (Bind shown, coins, hand bonuses, buff tips)**
 - B167 Get hit by Bind (Pirate Ruffian's move): from the start of your turn the bound slot's number on the timeline is red with a chain (hover: "Slot N doesn't act this turn."); if that slot isn't built yet the new-slot tile shows the chain when it's the one you'd build; once built the slot is chained and darkened. Mostly slots 1-3, slot 4 about one time in ten. Taking the slot apart doesn't free it.
+- B169 Rot works the same way: picked as the turn starts (mostly slots 1-3), its notch on the timeline is green and oozing (hover: "Slot N comes to half its total this turn."), the new-slot tile oozes when it builds that place, and the built slot shows its halved total while you plan.
 - B168 The Doubloon is a d2 coin (+1 for each other coin in its slot). Upgrade any coin (Hammer, events) and it loses Coin. A save with the old d4 Doubloon loads it without Coin.
 - F257 Calligrapher's die: "+1 for each ink action this turn" (a reroll costing 2 ink counts once). Dice in hand show a green +N / red -N on their corner for what they'd get wherever played: Calligrapher, Might on attack dice, Balance on block dice, keepsake bonuses. Slot bonuses still only show in the queue.
 - F258 Hover any reward (fight dice, item and keepsake cards, shop, treasure): buffs and debuffs it names (Might, Balance, Bind, Mock...) get their own box under the tooltip, as keywords do.

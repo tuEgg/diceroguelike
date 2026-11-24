@@ -3913,7 +3913,17 @@ function combat_timeline_draw(_ink = false) {
 			draw_circle(_cx, _ty, 5, false);
 			var _lbl = string(k) + ((k == _last && _beyond) ? "+" : "");
 			var _bound = (locked_slot == k - 1) && !show_rewards;
-			draw_outline_text(_lbl, global.ui_col.ink, _bound ? global.text_attack : global.ui_col.paper_hi, 2, _cx, _ty - 8, 1, (_built || _bound) ? 1 : 0.6, 0);
+			var _rot = (bound_slot == k - 1) && !show_rewards;
+			draw_outline_text(_lbl, global.ui_col.ink, _bound ? global.text_attack : (_rot ? global.text_heal : global.ui_col.paper_hi), 2, _cx, _ty - 8, 1, (_built || _bound || _rot) ? 1 : 0.6, 0);
+			// Rot: a green ooze on its place's notch all turn, as Bind's chain (2026-11-24)
+			if (_rot) {
+				draw_set_color(global.color_heal);
+				draw_circle(_cx, _ty, 9, false);
+				draw_circle(_cx - 6, _ty + 8, 3, false);
+				draw_circle(_cx + 5, _ty + 11, 2, false);
+				particle_emit(_cx, _ty, "constant", c_green, 1);
+				if (mouse_hovering(_cx, _ty - 12, 40, 44, true, noone, noone, true, _layer)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rot", "Slot " + string(k) + " comes to half its total this turn.");
+			}
 			// Bind: a chain on its place's notch all turn (2026-11-24); the slot itself is chained once built
 			if (_bound) {
 				draw_sprite_ext(sRewardChain, 0, _cx, _ty, 0.3, 0.3, 0, c_white, 1);
@@ -4046,7 +4056,7 @@ function combat_timeline_draw(_ink = false) {
 }
 
 /// @func combat_bind_pick()
-/// @desc Which place Bind chains this turn, picked as the turn starts so it shows while you plan (Jared, 2026-11-24):
+/// @desc Which place Bind chains (or Rot rots) this turn, picked as the turn starts so it shows while you plan (Jared, 2026-11-24):
 ///       slot 1, 2 or 3 most of the time, slot 4 now and then. It holds that place whether or not the slot gets built.
 function combat_bind_pick() {
 	var _r = irandom(99);

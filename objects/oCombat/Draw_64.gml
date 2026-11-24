@@ -361,6 +361,7 @@ for (var i = 0; i < aq_list_size; i++) {
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		draw_outline_text("pips", global.ui_col.ink, make_color_rgb(201, 187, 156), 2, _nc, last_y + last_h * 0.62, 1, 1, 0);
+		if (bound_slot == ds_list_size(action_queue) && !show_rewards) particle_emit(_nc, last_y + last_h / 2, "constant", c_green, 1); // Rot holds this place
 		if (locked_slot == ds_list_size(action_queue) && !show_rewards) draw_sprite_ext(sRewardChain, 0, _nc, last_y + last_h / 2, 0.75 * last_w / 140, 0.75 * last_w / 140, 0, c_white, 0.85); // Bind holds this place
 		if (!_filled) draw_padlock(_nc, last_y + last_h * 0.84, 0.9, make_color_rgb(190, 180, 160));
 		else { draw_set_font(ftDefault); draw_outline_text("New slot", global.ui_col.ink, make_color_rgb(170, 158, 132), 2, _nc, last_y + last_h * 0.84, 1, 1, 0); }
