@@ -101,31 +101,6 @@ if (DEBUG_TOOLS) {
 	if (key_map) {		
 		room_goto(rmMap);
 	}
-	
-	key_dice_list = keyboard_check_pressed(ord("Q"));
-	if (key_dice_list) {
-		show_dice_list = 1 - show_dice_list;
-		if (show_dice_list) {
-			if (!ds_safe_exists(filtered_list, ds_type_list)) filtered_list = ds_list_create();
-			
-			// Filter list
-			filter = "bag";
-			var _list = global.master_dice_list;
-			
-			switch (filter) {				
-				case "bag":
-					_list = global.dice_bag;
-				break;
-				
-			}
-			
-			for (var i = 0; i < ds_list_size(_list); i++) {
-				ds_list_add(filtered_list, _list[| i]);
-			}
-		} else {
-			if (ds_safe_exists(filtered_list, ds_type_list)) ds_list_destroy(filtered_list);
-		}
-	}
 }
 
 // oCombat only exists in combat, hp can also hit zero in events

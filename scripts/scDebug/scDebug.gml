@@ -445,7 +445,6 @@ function debug_menu_draw() {
 				["C / L / A",	"Go to a normal / elite / alignment fight"],
 				["S / E / B / T / W / X", "Shop / event / bounty / treasure / workbench / map"],
 				["G",			"Gain every keepsake"],
-				["Q",			"Show the dice in your bag"],
 			];
 			debug_label(cx, yy, "Hotkeys (only when run from GameMaker, with this menu closed)", c_yellow);
 			yy += row_h;
