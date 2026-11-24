@@ -894,15 +894,10 @@ function draw_die_tip(_tt) {
 }
 
 /// @func font_tip()
-/// @desc The font for tooltip and card descriptions: ftTip, a plain sans serif for quick reading (2026-11-24), when that
-///       asset exists in the project; otherwise ftDescriptions as before. Names stay in ftDefault.
+/// @desc The font for tooltip descriptions: ftTip, a plain sans serif for quick reading (2026-11-24). Named directly so the
+///       asset is always built into the game (a lookup by name can miss assets nothing references). Names stay ftDefault.
 function font_tip() {
-	static _f = undefined;
-	if (_f == undefined) {
-		var _i = asset_get_index("ftTip");
-		_f = (_i != -1 && font_exists(_i)) ? _i : ftDescriptions;
-	}
-	return _f;
+	return ftTip;
 }
 
 /// @func tooltip_cost_badge(_x, _y, _amount, _kind)

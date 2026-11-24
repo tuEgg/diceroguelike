@@ -42,7 +42,7 @@
 
 **Batch 44 test list (stacked die tips, one length, sans font)**
 - F261 Hover a die in hand with a keyword (Sticky, Coin...): the tip is the die's box with each keyword in its own box under it, all the same width, the pointer at the bottom of the stack. Near the top of the screen the keyword boxes stand in a column beside the tip. Any other tooltip with keywords: the boxes are all the same width too.
-- F261 Tooltip descriptions read in a plain sans serif (names stay as they were). **New font asset `ftTip` (Lato Regular, size 14):** open the project once so GameMaker builds its glyphs (regenerateBitmap is on); if the text looks wrong or the project complains, open Fonts > ftTip, check it shows Lato Regular, and press the regenerate/apply button. If `ftTip` is missing the game falls back to the old font (`font_tip()`).
+- F261 Tooltip descriptions read in a plain sans serif (names stay as they were). **New font asset `ftTip` (Lato Regular):** GameMaker didn't rebuild its glyph sheet when the project opened (the .png was still Charter's), so open Fonts > ftTip, change Size from 14 to 15 and press Apply; that forces a rebuild and the sample text should show Lato. Then commit fonts/ftTip. `font_tip()` names the asset directly.
 
 **Batch 43 test list (one tooltip style)**
 - F260 Hover anything with a keyword, buff or game word (a Sticky die in the bag, an event choice, a potion): the extra boxes look like the main one (same background, font and name colour) and stack straight under it at the same left edge. Near the right edge the whole stack moves to the left of the thing; near the bottom it slides up; a stack taller than the screen puts the extras in a column beside the main box. Die tips (the compact one above a die in hand) are unchanged.
