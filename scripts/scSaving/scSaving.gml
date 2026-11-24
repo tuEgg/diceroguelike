@@ -487,6 +487,7 @@ function progress_defaults() {
 		intro_seen: false,		// the intro cutscene has played once (B69)
 		tutorial_done: false,	// the guided first fight was finished or skipped
 		tips_seen: [],			// ids of one-time tips already shown
+		best_score: 0,			// the best voyage score so far (run_score)
 	};
 }
 

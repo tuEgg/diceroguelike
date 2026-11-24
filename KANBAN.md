@@ -30,7 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
-| 48: playtest feedback (Mac, 2026-11-24) | B172, B173, F266, F267, F268, F269, F270 | `dev` | **Not yet play-tested.** Dice and keepsake tweaks, the Rot hand-vanishing bug, the rarity ring on ink dice. More commits to come in this batch. |
+| 48: playtest feedback (Mac, 2026-11-24) | B172-B174, F266-F276 | `dev` | **Not yet play-tested.** Dice and keepsake tweaks, the Rot hand bug, ink ring, Tab ink view, rewards Back and Next delay and pick pips, map button in fights, no duplicate cores, "leg" for spread, a voyage score and timer, the click sound bug. |
 | 47: card polish | B171, F265 | `dev` | **Not yet play-tested.** The quartermaster's core text has proper line spacing; distribution numbers are Charter with more room; bars share one standard width (cored and plain) and get thinner on d10/d12. |
 | 46: Aleo for small text, standard dice cards | F263, F264, B170 | `dev` | **Not yet play-tested.** Small text everywhere is Aleo (ftTip); card descriptions too; dice cards share a height, every die shows its distribution (faint with no core); the abandon-voyage text is bigger. |
 | 45: place bonus in the corner | F262 | `dev` | **Not yet play-tested.** An empty slot, and the new-slot tile, show their place bonus as a small green +N at the bottom right; it clears once a die is in. |
@@ -51,6 +51,14 @@
 - F267 Anchor die: "Stowaway: Gain block equal to half its roll." Rounded up (a 5 gives 3). Heavy Rigging: dice d8 or bigger get +2.
 - F268 The Siren's Call: the ink and attack options say "Upgrade N ... dice at random."
 - F269 Pirate Captain's Command is permanent and stacks (Might +1, +2... rest of the fight) and can land on an ally or on him. The intent tooltip says "Gives an ally, or itself, Might +1 for the rest of the fight."
+- B174 Click sounds: hover a button that has no hover sound, then click empty space: no click sound. Buttons, cards and the bag still click.
+- F270 Tab in a fight opens and closes the ink view (like the inkwell, on your turn, not while Blotted). Outside fights Tab still pauses; in a fight only Escape does (the cog's tooltip says so).
+- F270 No "New slot" words under the pips on the new-slot tile. The kill/spare hover explanations show only until you've read the first-time note. Under each enemy's intent: Rewrite (quill) on the left, Reveal (eye) on the right.
+- F271 Rewards: Next is greyed for a moment on each page (so a late click can't skip the keepsake page); a Back button on the left from page 2 on revisits earlier pages (your picks stay as they were, nothing moves on by itself there); under each "Choose..." line, pips show how many you may take (filled once taken) and grey crossed pips what you give up (the other dice or keepsakes, the one item burnt).
+- F272 A map icon beside the cog in fights opens the book as it stands, view only (Close or Escape). Check it with a combat, an elite and the boss, and with the rewards screen up. Nothing on it should react to the mouse and the fight must be unchanged when you close it.
+- F273 You can't be offered a core you already carry in your item bar (rewards, shops, events, treasure); a bounty contract's own reward core can still be one you hold. If you hold every core of a rarity the owned ones come back rather than the offer failing.
+- F274 Players read "leg", not "spread": the draft note, the map's progress tooltips, the summary line, the sea tip ("Leg done...").
+- F275 The voyage clock (paused time and hidden tabs don't count) and a score on the end screen: Voyage (100 a fight, 150 more per elite, 500 per boss, 1500 for finishing), Damage (a point per 2 dealt), Clean fighting (dealt against taken, up to 1000) and Speed (180 s a fight is par, a point per second under, up to 60 a fight). Time and Tools rows added; best score saved in progress.json ("New best score!").
 
 **Batch 47 test list (card polish)**
 - B171 Quartermaster card: the core's description has the same roomy line spacing as the die's words.

@@ -43,7 +43,7 @@ The draft heading is a `ui_label`; Embark is `ui_primary` bottom right (the tip 
 
 ## Chapters
 
-`CHAPTER_SPREADS` (4; Q13 made it 3, Jared made it 4 on 2026-11-21) drafted spreads, then `place_boss_page()` lays a single boss page (not drafted). `CHAPTER_COUNT` (3). Boss win → `CHAPTER_END` screen → `start_new_chapter()` (fresh book, pools refilled, saves) or, after the last chapter, "Voyage complete" back to the menu. `enemy_apply_chapter_scaling` toughens enemies per chapter (`CHAPTER_ENEMY_HP_GROWTH`, `CHAPTER_ENEMY_BONUS_GROWTH`); from chapter 1 every attack move also gains `ENEMY_ATTACK_BOOST` (20%) of its average roll, at least +1 (Q11). The player starts on 60 HP. Only Calm water heals (`rest_amount` 30%, after `on_rest` keepsakes): as a page's sea stop or the harbour's rest (Q14, B+).
+Players read **"leg"** for what the code calls a spread (two facing pages: your two drafted islands and their sea stops); "page" stays for one page. `CHAPTER_SPREADS` (4; Q13 made it 3, Jared made it 4 on 2026-11-21) drafted spreads, then `place_boss_page()` lays a single boss page (not drafted). `CHAPTER_COUNT` (3). Boss win → `CHAPTER_END` screen → `start_new_chapter()` (fresh book, pools refilled, saves) or, after the last chapter, "Voyage complete" back to the menu. `enemy_apply_chapter_scaling` toughens enemies per chapter (`CHAPTER_ENEMY_HP_GROWTH`, `CHAPTER_ENEMY_BONUS_GROWTH`); from chapter 1 every attack move also gains `ENEMY_ATTACK_BOOST` (20%) of its average roll, at least +1 (Q11). The player starts on 60 HP. Only Calm water heals (`rest_amount` 30%, after `on_rest` keepsakes): as a page's sea stop or the harbour's rest (Q14, B+).
 
 ## Encounter pools
 

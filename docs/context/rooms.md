@@ -5,6 +5,7 @@ Each room has a manager object created by the room; most of its logic and clicks
 ## Shop: `oShopManager`, `scShop`
 
 - `stock_shop()` builds `shop_dice_options`, `shop_consumable_options`, `shop_keepsake_options`, `shop_tool_options` from `oWorldManager.current_node.shop_stock` (names) or rolls fresh (debug jumps). `roll_shop_stock()` rolls with shop odds and returns names.
+- `generate_item_rewards` leaves out a core already in your item bar (`item_core_owned`) unless `_allow_owned_cores` (a bounty contract's own reward core); with none of the wanted rarity left it puts them back.
 - Reward generators (also used by combat rewards, bounties, treasure): `generate_dice_rewards`, `generate_item_rewards` (both take `_for_room` to choose odds), `generate_keepsake_rewards` (skips owned and the bounty's keepsake), `generate_tool_rewards`. Each has a 500-attempt safety net.
 
 ## Events: `oEventManager`, `scEvents`

@@ -1,3 +1,7 @@
+// the voyage clock for the score's speed bonus: real time played, not while paused or after the voyage ended (a hidden
+// browser tab sends one huge frame: capped)
+if (!paused && run_over == undefined && room != rmMainMenu) run_stat_add("play_time", min(delta_time / 1000000, 0.25));
+
 // juice: queued particle bursts are made here (not in Draw GUI); the screen shake eases off
 particles_flush();
 if (variable_global_exists("shake")) global.shake = (global.shake < 0.4) ? 0 : global.shake * 0.82;
@@ -21,7 +25,11 @@ if (credits != credits_heard) {
 if (new_run_offering && global.ui_layer == UI_LAYER.BASE) global.ui_layer = UI_LAYER.POPUP;
 
 // Tab works like Escape: in a fullscreen web build the browser keeps Escape for itself (it leaves fullscreen)
-key_escape = keyboard_check_pressed(vk_escape) || keyboard_check_pressed(vk_tab);
+key_escape = keyboard_check_pressed(vk_escape) || (keyboard_check_pressed(vk_tab) && room != rmCombat); // in a fight Tab is the ink view (oCombat Step)
+
+// the map shown over a fight closes on Escape (or its Close button), before Escape can open the pause menu
+if (global.map_peek && key_escape) { global.map_peek = false; global.ui_layer = UI_LAYER.BASE; key_escape = false; }
+if (global.map_peek && room != rmCombat) global.map_peek = false;
 
 // Escape closes Settings (back to the pause menu), then the bag, then opens or closes the pause menu (F35)
 if (key_escape && global.ui_layer != UI_LAYER.DEBUG && run_over == undefined) {

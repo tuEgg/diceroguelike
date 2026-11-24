@@ -3,7 +3,7 @@ time++; // used for the boat wobble
 var gui_w = display_get_gui_width();
 var gui_h = display_get_gui_height();
 
-if (room == rmMap) {	
+if (room == rmMap || peek_now) {		
 	
 	// Rock the boat
 	boat_data.y += sin(time * 0.05) * 0.4;
@@ -142,9 +142,9 @@ if (room == rmMap) {
 		var tab_text;
 		if (c == chapter + 1) {
 			var spreads_to_boss = max(0, CHAPTER_SPREADS - spreads_cleared);
-			tab_text = "The boss is on this spread.";
-			if (spreads_to_boss == 1) tab_text = "1 more spread until the boss.";
-			if (spreads_to_boss > 1) tab_text = string(spreads_to_boss) + " more spreads until the boss.";
+			tab_text = "The boss is on this leg.";
+			if (spreads_to_boss == 1) tab_text = "1 more leg until the boss.";
+			if (spreads_to_boss > 1) tab_text = string(spreads_to_boss) + " more legs until the boss.";
 		} else {
 			tab_text = "Chapter " + string(c) + " of " + string(CHAPTER_COUNT) + ".";
 		}

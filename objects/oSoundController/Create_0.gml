@@ -13,6 +13,7 @@ global.is_hovering = noone;
 global.hovering_sound = noone;
 paper_hover_last = 0; // when the slots' paper hover last played (Draw GUI End: not again within 70 ms) //change to other sounds for certain objects
 global.clicking_sound = noone;
+global.clicking_sound_prev = noone;
 
 enum AUDIO_GROUP {
 	UI = 0,

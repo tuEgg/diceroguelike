@@ -1435,7 +1435,7 @@ function draw_voyage_progress(_cx, _y, _alpha) {
 			if (_is_boss) draw_diamond(_x, _y, _r); else draw_circle(_x, _y, _r, false);
 			
 			if (mouse_hovering(_x, _y, _spacing, _spacing, true)) {
-				var _what = _is_boss ? "Boss" : "Spread " + string(s + 1) + " of " + string(CHAPTER_SPREADS);
+				var _what = _is_boss ? "Boss" : "Leg " + string(s + 1) + " of " + string(CHAPTER_SPREADS);
 				var _when = _done ? "Done." : (_current ? "You are here." : "Still to come.");
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Chapter " + string(c) + ": " + _what, chapter_title(c) + ". " + _when);
 			}

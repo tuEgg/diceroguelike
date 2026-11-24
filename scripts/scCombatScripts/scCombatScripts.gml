@@ -2168,7 +2168,7 @@ function tutorial_map_notes() {
 		},
 		{
 			id: "map_draft", target: "pages",
-			text: "Each page is an island of stops, then a sea stop. Choose 2 pages for this spread. Your first choice locks one of the others away.",
+			text: "Each page is an island of stops, then a sea stop. Choose 2 pages for this leg. Your first choice locks one of the others away.",
 			when: function() { return oWorldManager.world_state == WORLD_STATE.DRAFTING && oWorldManager.pages_drafted < 2 && oWorldManager.pages_alpha > 0.5; },
 			done: function() { return oWorldManager.pages_drafted >= 2; },
 		},
@@ -2282,7 +2282,7 @@ function tips_list() {
 		},
 		{
 			id: "spread_done", room: rmMap, target: "",
-			text: "Spread done. Sail through this page's sea stop to turn the page.",
+			text: "Leg done. Sail through this page's sea stop to turn the page.",
 			when: function() { return instance_exists(oWorldManager) && oWorldManager.world_state == WORLD_STATE.STRAIT; },
 		},
 		{
@@ -3370,6 +3370,30 @@ function combat_redraw_die(_inst) {
 	is_dealing_dice = true;
 }
 
+/// @func reward_pick_pips(_cx, _y, _picks, _taken, [_lost])
+/// @desc How many you may take on a reward page, as pips under its "Choose..." line (Jared, 2026-11-24): a brass pip per
+///       pick, filled once taken; _lost grey crossed pips for what the picks cost you (the cards you won't get).
+function reward_pick_pips(_cx, _y, _picks, _taken, _lost = 0) {
+	var _gap = 30, _n = _picks + _lost;
+	var _x0 = _cx - (_n - 1) * _gap / 2;
+	for (var i = 0; i < _n; i++) {
+		var _x = _x0 + i * _gap;
+		draw_set_color(global.ui_col.ink);
+		draw_circle(_x, _y, 12, false);
+		if (i < _picks) {
+			draw_set_color(global.ui_col.brass);
+			draw_circle(_x, _y, 10, false);
+			if (i >= _taken) { draw_set_color(global.ui_col.ink); draw_circle(_x, _y, 6.5, false); } // still to take: hollow
+		} else {
+			draw_set_color(make_color_rgb(90, 86, 80));
+			draw_circle(_x, _y, 10, false);
+			draw_set_color(global.ui_col.ink);
+			draw_line_width(_x - 6, _y + 6, _x + 6, _y - 6, 2.5);
+		}
+	}
+	draw_set_color(c_white);
+}
+
 /// @func combat_insight_view_set(_open)
 /// @desc Opens or closes the insight phase. While it's open the rest of the screen ignores the mouse (UI_LAYER.POPUP).
 function combat_insight_view_set(_open) {
@@ -3504,8 +3528,8 @@ function combat_insight_view_draw() {
 		}
 		if (_ink_hov || _seal_hov) quill_over = true; // clickable: the normal pointer (cursor_draw)
 
-		// each intent: icon buttons under its tag (Jared, 2026-11-22: icons, like the dice's): Reveal (an eye: its exact
-		// number) and Rewrite (a quill: it picks a different move), side by side
+		// each intent: icon buttons under its tag (Jared, 2026-11-22: icons, like the dice's): Rewrite (a quill: it picks a
+		// different move) on the left and Reveal (an eye: its exact number) on the right (Jared, 2026-11-24)
 		for (var e = 0; e < ds_list_size(room_enemies); e++) {
 			var _en = room_enemies[| e];
 			if (_en.dead || !variable_struct_exists(_en, "intent_rect")) continue;
@@ -3517,18 +3541,18 @@ function combat_insight_view_draw() {
 			var _rcost = combat_reveal_cost();
 			var _bx = _ir.x - ((_n > 1) ? 30 : 0);
 			var _rb_hov = false, _wb_hov = false, _do_reveal = false, _do_rewrite = false;
-			if (_can_reveal) {
-				var _rb = ink_icon_button(_bx, _by, "reveal", _rcost, combat_insight_can(_rcost));
-				_rb_hov = _rb.hover;
-				if (_rb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reveal", "See exactly how much " + string(_en.data.name) + " will " + intent_verbs(_en.intent.move) + ".\nOr left-click the intent.", undefined, 0, undefined, _rcost, "ink");
-				if (_rb.click) _do_reveal = true;
-				_bx += 60;
-			}
 			if (_can_rewrite) {
 				var _wb = ink_icon_button(_bx, _by, "rewrite", INSIGHT_COST_QUILL, combat_insight_can(INSIGHT_COST_QUILL));
 				_wb_hov = _wb.hover;
 				if (_wb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rewrite", string(_en.data.name) + " picks a different move.\nOr right-click the intent.", undefined, 0, undefined, INSIGHT_COST_QUILL, "ink");
 				if (_wb.click) _do_rewrite = true;
+				_bx += 60;
+			}
+			if (_can_reveal) {
+				var _rb = ink_icon_button(_bx, _by, "reveal", _rcost, combat_insight_can(_rcost));
+				_rb_hov = _rb.hover;
+				if (_rb.hover) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Reveal", "See exactly how much " + string(_en.data.name) + " will " + intent_verbs(_en.intent.move) + ".\nOr left-click the intent.", undefined, 0, undefined, _rcost, "ink");
+				if (_rb.click) _do_reveal = true;
 			}
 			// the intent itself: left-click reveals, right-click rewrites, as a die's left and right clicks reroll and redraw
 			var _ihov = !_rb_hov && !_wb_hov && _n > 0 && mouse_hovering(_ir.x, _ir.y, _ir.w, _ir.h, true, noone, noone, true, UI_LAYER.POPUP);

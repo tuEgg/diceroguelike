@@ -563,6 +563,11 @@ if (insight_view) ink_pulse = 0;
 // Enter confirms (closes the log), like the button that stands in for End Turn (it can't be reopened until next turn)
 var _sealed_now = false;
 if (keyboard_check_pressed(vk_enter) && insight_view && insight_view_age > 0) { combat_insight_view_set(false); _sealed_now = true; }
+// Tab toggles the ink view, as clicking the inkwell does (Jared, 2026-11-24)
+if (keyboard_check_pressed(vk_tab) && !show_rewards && !global.all_input_disabled && !global.show_settings) {
+	if (insight_view) { if (insight_view_age > 0) combat_insight_view_set(false); }
+	else if (state == CombatState.PLAYER_INPUT && !intel_is_blotted() && global.ui_layer == UI_LAYER.BASE && !tutorial_active()) combat_insight_view_set(true);
+}
 if (insight_view && (state != CombatState.PLAYER_INPUT || show_rewards || intel_is_blotted())) combat_insight_view_set(false);
 
 if (keyboard_check_pressed(vk_enter) && !_sealed_now && state == CombatState.PLAYER_INPUT && !is_dealing_dice && !insight_view && tutorial_allows("end_turn")) {

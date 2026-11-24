@@ -6,6 +6,7 @@ bounty_nodes_this_voyage = 0;
 elite_nodes_this_voyage = 0;
 alignment_nodes_this_voyage = 0;
 
+peek_now = false; // the map drawn over a fight for viewing only (map_peek_draw performs the Draw GUI event with this on)
 nodes_cleared = 0; // how many nodes in the captains logbook have we cleared
 pages_cleared = 0; // how many pages have we cleared
 spreads_cleared = 0 // how many spreads have we cleared

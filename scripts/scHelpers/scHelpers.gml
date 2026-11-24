@@ -1929,7 +1929,44 @@ function run_stats_new() {
 		damage_taken: 0,	// in fights, after block
 		dice_played: 0,
 		gold_earned: 0,
+		play_time: 0,		// seconds of the voyage, for the score's speed bonus (oRunManager Step)
 	};
+}
+
+/// @func run_score(_won)
+/// @desc The voyage's score (2026-11-24), in four parts you can read off the summary:
+///       - Voyage: 100 a fight won, 150 more for each elite, 500 for each boss, 1500 for finishing the voyage
+///       - Damage: a point for every 2 damage dealt
+///       - Clean fighting: damage dealt against damage taken, (dealt / (taken + 20)) x 100, at most 1000: hurting them
+///         without being hurt
+///       - Speed: 180 seconds a fight is par; every second under it scores a point, at most 60 a fight
+///       Returns { voyage, damage, clean, speed, total }.
+function run_score(_won) {
+	var _s = oRunManager.run_stats;
+	var _voyage = _s.fights_won * 100 + _s.elites_won * 150 + _s.bosses_won * 500 + (_won ? 1500 : 0);
+	var _damage = floor(_s.damage_dealt / 2);
+	var _clean = round(min(10, _s.damage_dealt / (_s.damage_taken + 20)) * 100);
+	var _speed = clamp(round(_s.fights_won * 180 - _s.play_time), 0, _s.fights_won * 60);
+	return { voyage: _voyage, damage: _damage, clean: _clean, speed: _speed, total: _voyage + _damage + _clean + _speed };
+}
+
+/// @func format_thousands(_n)
+/// @desc 4820 -> "4,820"
+function format_thousands(_n) {
+	_n = floor(_n);
+	if (_n < 1000) return string(_n);
+	var _low = string(_n mod 1000);
+	while (string_length(_low) < 3) _low = "0" + _low;
+	return format_thousands(_n div 1000) + "," + _low;
+}
+
+/// @func format_time(_seconds)
+/// @desc 3725 -> "1:02:05", 725 -> "12:05"
+function format_time(_seconds) {
+	_seconds = floor(_seconds);
+	var _h = _seconds div 3600, _m = (_seconds mod 3600) div 60, _sec = _seconds mod 60;
+	var _ms = ((_m < 10 && _h > 0) ? "0" : "") + string(_m) + ":" + ((_sec < 10) ? "0" : "") + string(_sec);
+	return (_h > 0) ? string(_h) + ":" + _ms : _ms;
 }
 
 /// @func run_stat_add(_key, _amount)
@@ -1952,10 +1989,17 @@ function run_end(_won, _cause) {
 	if (oRunManager.run_over != undefined) return;
 	if (save_exists(1)) delete_save(1);
 	with (oRunManager) {
-		run_over = { won: _won, cause: _cause, alpha: 0, btn_scale: 1 };
+		run_over = { won: _won, cause: _cause, alpha: 0, btn_scale: 1, score: undefined, new_best: false, best: 0 };
 		paused = false;
 		show_bag_contents = false;
 	}
+	// the score, and whether it beats the best (progress.json)
+	var _sc = run_score(_won);
+	var _best = (variable_global_exists("progress") && is_struct(global.progress) && variable_struct_exists(global.progress, "best_score")) ? global.progress.best_score : 0;
+	oRunManager.run_over.score = _sc;
+	oRunManager.run_over.new_best = (_sc.total > _best);
+	oRunManager.run_over.best = max(_best, _sc.total);
+	if (_sc.total > _best && variable_global_exists("progress") && is_struct(global.progress)) { global.progress.best_score = _sc.total; progress_save(); }
 	global.show_settings = false;
 	global.ui_layer = UI_LAYER.POPUP;
 }
@@ -2055,7 +2099,7 @@ function run_summary_draw() {
 	// how far you got
 	var _where = "";
 	if (instance_exists(oWorldManager)) {
-		with (oWorldManager) _where = "Chapter " + string(chapter) + ", " + chapter_title(chapter) + "  -  spread " + string(min(spreads_cleared + 1, CHAPTER_SPREADS + 1)) + " of " + string(CHAPTER_SPREADS + 1);
+		with (oWorldManager) _where = "Chapter " + string(chapter) + ", " + chapter_title(chapter) + "  -  leg " + string(min(spreads_cleared + 1, CHAPTER_SPREADS + 1)) + " of " + string(CHAPTER_SPREADS + 1);
 	}
 	draw_set_font(ftDefault);
 	draw_outline_text(_where, c_black, c_white, 2, _gw / 2, _gh * 0.31, 1, _a, 0);
@@ -2072,9 +2116,22 @@ function run_summary_draw() {
 		["Gold earned", string(_s.gold_earned)],
 		["Dice in your bag", string(ds_list_size(global.dice_bag))],
 		["Keepsakes", string(ds_list_size(oRunManager.keepsakes))],
+		["Time", format_time(_s.play_time)],
+		["Tools", string(ds_list_size(oRunManager.tools))],
 	];
+	// the score, big, with where it came from (run_score) and the best so far
+	if (is_struct(_r.score)) {
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_set_font(ftHuge);
+		draw_outline_text(format_thousands(_r.score.total), c_black, _r.new_best ? global.color_gold : c_white, 3, _gw / 2, _gh * 0.395, 1, _a, 0);
+		draw_set_font(ftBig);
+		draw_outline_text(_r.new_best ? "New best score!" : "Score   (best " + format_thousands(_r.best) + ")", c_black, _r.new_best ? global.color_gold : c_ltgray, 2, _gw / 2, _gh * 0.452, 1, _a, 0);
+		draw_set_font(font_tip());
+		draw_outline_text("Voyage " + format_thousands(_r.score.voyage) + "   +   Damage " + format_thousands(_r.score.damage) + "   +   Clean fighting " + format_thousands(_r.score.clean) + "   +   Speed " + format_thousands(_r.score.speed), c_black, c_ltgray, 2, _gw / 2, _gh * 0.49, 1, _a, 0);
+	}
 	var _panel_w = 760, _row_h = 46;
-	var _px = _gw / 2 - _panel_w / 2, _py = _gh * 0.37;
+	var _px = _gw / 2 - _panel_w / 2, _py = _gh * 0.53;
 	var _panel_h = ceil(array_length(_rows) / 2) * _row_h + 30;
 	ui_panel(_px, _py, _px + _panel_w, _py + _panel_h, _a);
 	for (var i = 0; i < array_length(_rows); i++) {
@@ -2329,6 +2386,59 @@ function draw_action_type_icon(_type, _x, _y, _scale, _alpha = 1) {
 	draw_circle(_x, _y, _r, false);
 	ui_glyph(_type, _x, _y, _r * 1.35, global.ui_col.ink, _alpha); // the logbook glyphs (scUI)
 	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
+/// @func map_peek_draw()
+/// @desc The map shown over a fight, to look at (the top bar's map icon sets global.map_peek): the book is drawn by
+///       oWorldManager's own Draw GUI event, performed here with peek_now on. The layer is POPUP, so nothing on the map (or
+///       under it) answers the mouse; only Close and Escape do.
+function map_peek_draw() {
+	if (!global.map_peek) return;
+	if (room != rmCombat || !instance_exists(oWorldManager)) { global.map_peek = false; return; }
+	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+	draw_set_alpha(0.93);
+	draw_set_color(c_black);
+	draw_rectangle(0, ui_top_bar_h(), _gw, _gh, false);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+	with (oWorldManager) { peek_now = true; event_perform(ev_draw, ev_gui); peek_now = false; }
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_font(ftBigger);
+	draw_outline_text("Your map", c_black, c_white, 2, _gw / 2, ui_top_bar_h() + 40, 1, 1, 0);
+	var _close = ui_primary(_gw - 44 - 150, _gh - 40 - 52, 300, 104, "Close", true, "", UI_LAYER.POPUP);
+	if (_close.click) { global.map_peek = false; global.ui_layer = UI_LAYER.BASE; }
+}
+
+/// @func draw_map_icon(_x, _y, _r)
+/// @desc The top bar's map icon, drawn in code beside the cog: a folded chart with a dotted course and a cross. _r its half size.
+function draw_map_icon(_x, _y, _r) {
+	var _ink = make_color_rgb(40, 32, 24);
+	var _paper = make_color_rgb(240, 228, 196);
+	var _w = _r * 1.5, _h = _r * 1.15;
+	draw_set_alpha(1);
+	for (var _pass = 0; _pass < 2; _pass++) {
+		var _g = (_pass == 0) ? 2.5 : 0;
+		draw_set_color((_pass == 0) ? _ink : _paper);
+		// three panels, the middle one a touch lower, as a folded chart
+		draw_triangle(_x - _w - _g, _y - _h * 0.7 - _g, _x - _w / 3, _y - _h * 0.9 - _g, _x - _w - _g, _y + _h * 0.9 + _g, false);
+		draw_rectangle(_x - _w - _g, _y - _h * 0.8 - _g, _x - _w / 3 + _g, _y + _h * 0.8 + _g, false);
+		draw_rectangle(_x - _w / 3 - _g, _y - _h * 0.9 - _g, _x + _w / 3 + _g, _y + _h * 0.9 + _g, false);
+		draw_rectangle(_x + _w / 3 - _g, _y - _h * 0.8 - _g, _x + _w + _g, _y + _h * 0.8 + _g, false);
+	}
+	draw_set_color(_ink);
+	draw_line_width(_x - _w / 3, _y - _h * 0.9, _x - _w / 3, _y + _h * 0.9, 1.5);
+	draw_line_width(_x + _w / 3, _y - _h * 0.9, _x + _w / 3, _y + _h * 0.9, 1.5);
+	// a dotted course and a cross where it ends
+	draw_circle(_x - _w * 0.7, _y + _h * 0.35, 1.6, false);
+	draw_circle(_x - _w * 0.2, _y - _h * 0.1, 1.6, false);
+	draw_circle(_x + _w * 0.2, _y + _h * 0.25, 1.6, false);
+	draw_set_color(make_color_rgb(154, 46, 28));
+	draw_line_width(_x + _w * 0.5, _y - _h * 0.35, _x + _w * 0.82, _y - _h * 0.05, 2);
+	draw_line_width(_x + _w * 0.82, _y - _h * 0.35, _x + _w * 0.5, _y - _h * 0.05, 2);
 	draw_set_color(c_white);
 }
 

@@ -14,7 +14,9 @@ if (global.is_hovering != global.was_hovering) {
 }
 
 if (mouse_check_button_pressed(mb_left)) {
-	if (global.clicking_sound != noone) {
-		sfx_play(global.clicking_sound, AUDIO_GROUP.UI, random_range(0.01, 0.05));
+	// what is under the mouse now, or was a frame ago (things drawn after this event set theirs for the next frame)
+	var _click_snd = (global.clicking_sound != noone) ? global.clicking_sound : global.clicking_sound_prev;
+	if (_click_snd != noone) {
+		sfx_play(_click_snd, AUDIO_GROUP.UI, random_range(0.01, 0.05));
 	}
 }

@@ -201,6 +201,9 @@ enemy_target_index = 0; // by default the player is targeting enemy 1
 
 show_rewards = false;
 rewards_stage = 1;
+rewards_max_stage = 1;    // the furthest reward page reached: only that one moves on by itself once its pick lands (Back can revisit the others)
+reward_stage_t = 0;       // frames on this reward page: Next waits a moment so a late click can't skip the next page's pick
+reward_back_hover = 1.0;
 reward_list = ds_list_create();
 reward_dice_options = undefined;
 reward_consumable_options = undefined;

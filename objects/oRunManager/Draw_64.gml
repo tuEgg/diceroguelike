@@ -411,14 +411,29 @@ for (var k = 0; k < ds_list_size(keepsakes); k++) {
 var mx = device_mouse_x_to_gui(0);
 var my = device_mouse_y_to_gui(0);
 
-// the menu cog (far right): opens the pause menu, like Escape or Tab
+// the map (in a fight, beside the cog): the book as it stands, to look at; you can't sail from a fight
+if (room == rmCombat && run_over == undefined) {
+	var _mi_x = gui_w - 45 - 72, _mi_y = bar_half;
+	var _mi_hover = mouse_hovering(_mi_x, _mi_y, 56, 56, true);
+	map_icon_scale = lerp(map_icon_scale, _mi_hover ? 1.15 : 1.0, 0.25);
+	draw_map_icon(_mi_x, _mi_y, 18 * map_icon_scale);
+	if (_mi_hover) {
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Map", "See where you are. You can't sail from a fight.");
+		if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && !paused && oCutsceneManager.cutscene_state == CUTSCENE_STATE.FINISHED && !tutorial_active()) {
+			global.map_peek = true;
+			global.ui_layer = UI_LAYER.POPUP;
+		}
+	}
+}
+
+// the menu cog (far right): opens the pause menu, like Escape or Tab (not Tab in a fight: that is the ink view)
 var cog_x = gui_w - 45, cog_y = bar_half;
 var cog_hover = mouse_hovering(cog_x, cog_y, 56, 56, true);
 cog_scale = lerp(cog_scale, cog_hover ? 1.15 : 1.0, 0.25);
 cog_turn += cog_hover ? 2 : 0;
 draw_cog_icon(cog_x, cog_y, 18 * cog_scale, cog_turn);
 if (cog_hover) {
-	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Menu", "Pause, settings, save and quit. Also on Escape or Tab.");
+	queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Menu", "Pause, settings, save and quit. Also on " + ((room == rmCombat) ? "Escape." : "Escape or Tab."));
 	if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && run_over == undefined && oCutsceneManager.cutscene_state == CUTSCENE_STATE.FINISHED) pause_open();
 }
 

@@ -364,7 +364,6 @@ for (var i = 0; i < aq_list_size; i++) {
 		if (bound_slot == ds_list_size(action_queue) && !show_rewards) particle_emit_later(_nc, last_y + last_h / 2, "constant", c_green, 1); // Rot holds this place
 		if (locked_slot == ds_list_size(action_queue) && !show_rewards) draw_sprite_ext(sRewardChain, 0, _nc, last_y + last_h / 2, 0.75 * last_w / 140, 0.75 * last_w / 140, 0, c_white, 0.85); // Bind holds this place
 		if (!_filled) draw_padlock(_nc, last_y + last_h * 0.84, 0.9, make_color_rgb(190, 180, 160));
-		else { draw_set_font(ftDefault); draw_outline_text("New slot", global.ui_col.ink, make_color_rgb(170, 158, 132), 2, _nc, last_y + last_h * 0.84, 1, 1, 0); }
 		// what the slot it builds will add by its place (slot 2 +1, slot 3 +2...), small and green in the corner
 		if (ds_list_size(action_queue) > 0) ui_corner_bonus(last_x + last_w - 12, last_y + last_h - 10, "+" + string(ds_list_size(action_queue)), 0.9);
 		draw_set_halign(fa_center);
@@ -813,7 +812,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		var btn_2_hover = _spare.hover;
 
 		if (btn_1_hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Kill", "Lose 5 alignment. Gain its bounty in gold" + ((oWorldManager.current_node_type == NODE_TYPE.ELITE) ? ". Counts for a bounty contract." : "."));
+			if (!tip_seen("kill_or_spare")) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Kill", "Lose 5 alignment. Gain its bounty in gold" + ((oWorldManager.current_node_type == NODE_TYPE.ELITE) ? ". Counts for a bounty contract." : "."));
 			if (mouse_check_button_pressed(mb_left)) {
 				enemy.killed = true;
 				gain_alignment(-5);
@@ -823,7 +822,7 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 		}
 		
 		if (btn_2_hover) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Spare", "Gain 5 alignment and a third of its bounty in gold. Spare every enemy for a guaranteed item.");
+			if (!tip_seen("kill_or_spare")) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Spare", "Gain 5 alignment and a third of its bounty in gold. Spare every enemy for a guaranteed item.");
 			if (mouse_check_button_pressed(mb_left)) {
 				enemy.spared = true;
 				enemy.alignment_choices_shown = false;
@@ -1116,6 +1115,7 @@ if (show_rewards) {
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
 			draw_outline_text("Choose one keepsake", c_black, c_white, 2, gui_w/2, _kc_cy - _kc_h / 2 - 40, 1, 1, 0);
+			reward_pick_pips(gui_w / 2, _kc_cy - _kc_h / 2 - 12, 1, rewards_keepsake_taken ? 1 : 0, max(0, _kc_n - 1));
 			reward_keepsake_reveal_t++;
 
 			for (var r = 0; r < _kc_n; r++) {
@@ -1151,6 +1151,7 @@ if (show_rewards) {
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
 			draw_outline_text("Choose one die", c_black, c_white, 2, gui_w/2, _rc_cy - _rc_h / 2 - 40, 1, 1, 0);
+			reward_pick_pips(gui_w / 2, _rc_cy - _rc_h / 2 - 12, 1, rewards_dice_taken ? 1 : 0, max(0, ds_list_size(reward_dice_options) - 1));
 
 			// dealt face down, then each flips in turn and flashes its rarity (F145); a card can't be taken until it's turned
 			reward_reveal_t++;
@@ -1198,6 +1199,7 @@ if (show_rewards) {
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
 			draw_outline_text("Choose two items", c_black, c_white, 2, gui_w/2, _ic_cy - _ic_h / 2 - 40, 1, 1, 0);
+			reward_pick_pips(gui_w / 2, _ic_cy - _ic_h / 2 - 12, 2, ((rewards_consumables_first_taken != -1) ? 1 : 0) + (rewards_consumables_second_taken ? 1 : 0), max(0, _ic_n - 2));
 			reward_item_reveal_t++;
 
 			for (var r = 0; r < _ic_n; r++) {
@@ -1310,9 +1312,13 @@ if (show_rewards) {
 	
 	var next_hover = mouse_hovering(next_x, next_y, sprite_get_width(sButtonSmall), sprite_get_height(sButtonSmall), true, noone, soClick4, true, UI_LAYER.POPUP);
 	
+	// Next waits a moment on every page, so the click that followed the dice flying to the bag can't also skip the next
+	// page's pick (Jared, 2026-11-24)
+	reward_stage_t++;
+	var _next_ready = reward_stage_t > game_get_speed(gamespeed_fps) * 0.8;
 	var next_btn_col = c_lime;
 	if (rewards_stage == ds_list_size(reward_list)) next_btn_col = c_red;
-	if (instance_number(oDiceParticle) > 0) next_btn_col = c_dkgray;
+	if (instance_number(oDiceParticle) > 0 || !_next_ready) next_btn_col = c_dkgray;
 	
 	draw_sprite_ext(
 		sButtonSmall,
@@ -1331,16 +1337,35 @@ if (show_rewards) {
 	draw_set_font(ftBig);
 	draw_outline_text(rewards_stage == ds_list_size(reward_list) ? "Exit" : "Next", c_black, c_white, 2, next_x, next_y, reward_next_hover, 1.0, 0);
 
+	// Back: to the page before, to look at what you took (its picks stay as they were)
+	if (rewards_stage > 1) {
+		var _back_x = 300;
+		var _back_hover = mouse_hovering(_back_x, next_y, sprite_get_width(sButtonSmall), sprite_get_height(sButtonSmall), true, noone, soClick4, true, UI_LAYER.POPUP);
+		draw_sprite_ext(sButtonSmall, 0, _back_x, next_y, reward_back_hover * 0.65, reward_back_hover * 0.65, 0, ui_button_col(c_gray), 1.0);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_set_font(ftBig);
+		draw_outline_text("Back", c_black, c_white, 2, _back_x, next_y, reward_back_hover, 1.0, 0);
+		reward_back_hover = lerp(reward_back_hover, (_back_hover && !instance_exists(oDiceParticle)) ? 1.2 : 1.0, 0.2);
+		if (_back_hover && mouse_check_button_pressed(mb_left) && instance_number(oDiceParticle) == 0) {
+			rewards_stage--;
+			reward_stage_t = 0;
+			reward_auto_t = 0;
+			for (var s = 0; s < ds_list_size(reward_scale); s++) reward_scale[| s] = 0.1;
+		}
+	}
+
 	// Update animation
-	reward_next_hover = lerp(reward_next_hover, next_hover && !instance_exists(oDiceParticle) ? 1.2 : 1.0, 0.2);
+	reward_next_hover = lerp(reward_next_hover, next_hover && _next_ready && !instance_exists(oDiceParticle) ? 1.2 : 1.0, 0.2);
 	
 	// a die or keepsake taken: the page moves on by itself once it has flown to the bag (playtest, Jared 2026-11-22)
 	var _stage_kind = reward_list[| rewards_stage - 1];
 	var _taken_here = (_stage_kind == "dice" && rewards_dice_taken) || (_stage_kind == "keepsakes" && rewards_keepsake_taken);
-	reward_auto_t = (_taken_here && instance_number(oDiceParticle) == 0) ? reward_auto_t + 1 : 0;
+	reward_auto_t = (_taken_here && instance_number(oDiceParticle) == 0 && rewards_stage == rewards_max_stage) ? reward_auto_t + 1 : 0; // not on a page you went back to
 	var _auto_next = reward_auto_t > game_get_speed(gamespeed_fps) * 0.5;
-	if (((next_hover && mouse_check_button_pressed(mb_left)) || _auto_next) && instance_number(oDiceParticle) == 0) {
+	if (((next_hover && _next_ready && mouse_check_button_pressed(mb_left)) || _auto_next) && instance_number(oDiceParticle) == 0) {
 		reward_auto_t = 0;
+		reward_stage_t = 0;
 		if (rewards_stage < ds_list_size(reward_list)) {
 			if (reward_list[| rewards_stage-1 ] == "dice") {
 				rewards_dice_taken = true;
@@ -1351,7 +1376,8 @@ if (show_rewards) {
 			}
 			
 			rewards_stage++;
-			
+			rewards_max_stage = max(rewards_max_stage, rewards_stage);
+
 			for (var s = 0; s < ds_list_size(reward_scale); s++) {
 				reward_scale[| s] = 0.1;
 			}

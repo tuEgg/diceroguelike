@@ -254,28 +254,53 @@ function generate_dice_rewards(_reward_list, _item_list, _num, _rarity = "all", 
 }
 
 /// @param _for_room  roll with the odds of this room (the shop rolls its stock on the map, as you enter it)
-function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none", _rarity = "all", _for_room = room) {
+/// @func item_core_owned(_item)
+/// @desc Is this a core you already hold in your item bar?
+function item_core_owned(_item) {
+	if (!is_struct(_item) || !variable_struct_exists(_item, "type") || _item.type != "core") return false;
+	for (var i = 0; i < array_length(oRunManager.items); i++) {
+		var _it = oRunManager.items[i];
+		if (is_struct(_it) && variable_struct_exists(_it, "name") && _it.name == _item.name) return true;
+	}
+	return false;
+}
+
+function generate_item_rewards(_reward_list, _item_list, _num, _filter = "none", _rarity = "all", _for_room = room, _allow_owned_cores = false) {
 	show_debug_message("Generating item rewards");
 	var total_items = ds_list_size(_item_list);
 	var indices_items_common = ds_list_create();
 	var indices_items_uncommon = ds_list_create();
 	var indices_items_rare = ds_list_create();			
 			
-	// fill list with all possible indices
-	for (var i = 0; i < total_items; i++) {
-		switch (_item_list[| i].rarity) {
-			case "common":
-			ds_list_add(indices_items_common, clone_item(_item_list[| i]));
-			break;
-					
-			case "uncommon":
-			ds_list_add(indices_items_uncommon, clone_item(_item_list[| i]));
-			break;
-					
-			case "rare":
-			ds_list_add(indices_items_rare, clone_item(_item_list[| i]));
-			break;
+	// fill list with all possible indices. A core you already carry in your item bar is left out (Jared, 2026-11-24)
+	// unless the caller allows it (a bounty contract's own reward); if that leaves no core of the wanted rarity, the
+	// owned ones go back in, so asking for a core can never come back empty
+	var _skip_owned = !_allow_owned_cores;
+	for (var _pass = 0; _pass < 2; _pass++) {
+		ds_list_clear(indices_items_common);
+		ds_list_clear(indices_items_uncommon);
+		ds_list_clear(indices_items_rare);
+		var _cores_wanted = 0;
+		for (var i = 0; i < total_items; i++) {
+			var _cand = _item_list[| i];
+			if (_skip_owned && item_core_owned(_cand)) continue;
+			if (_cand.type == "core" && (_rarity == "all" || _cand.rarity == _rarity)) _cores_wanted++;
+			switch (_cand.rarity) {
+				case "common":
+				ds_list_add(indices_items_common, clone_item(_cand));
+				break;
+
+				case "uncommon":
+				ds_list_add(indices_items_uncommon, clone_item(_cand));
+				break;
+
+				case "rare":
+				ds_list_add(indices_items_rare, clone_item(_cand));
+				break;
+			}
 		}
+		if (!_skip_owned || _filter != "core" || _cores_wanted > 0) break;
+		_skip_owned = false;
 	}
 
 	// shuffle to randomize order
