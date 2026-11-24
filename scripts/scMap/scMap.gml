@@ -296,7 +296,11 @@ function enter_node(_node) {
 		var _has_event = variable_struct_exists(_memory_node, "event_name") && is_string(_memory_node.event_name) && _memory_node.event_name != "";
 		if (!_has_event) {
 			if (ds_list_size(global.master_event_list) == 0) define_events();
-			_memory_node.event_name = global.master_event_list[| irandom(ds_list_size(global.master_event_list) - 1)].name;
+			// island events on islands, sea events at sea (2026-11-24); any event if that pool has run dry
+			var _sea = variable_struct_exists(_memory_node, "sea") && _memory_node.sea;
+			var _fit = [];
+			for (var e = 0; e < ds_list_size(global.master_event_list); e++) if (event_is_sea(global.master_event_list[| e].name) == _sea) array_push(_fit, global.master_event_list[| e].name);
+			_memory_node.event_name = (array_length(_fit) > 0) ? _fit[irandom(array_length(_fit) - 1)] : global.master_event_list[| irandom(ds_list_size(global.master_event_list) - 1)].name;
 		}
 	}
 	
@@ -1489,6 +1493,8 @@ function spread_sea_spots() {
 /// @desc A sea stop's name and what it does: { name, tip, ok, reason }. Short: what it does, nothing more (Jared, 2026-11-21).
 function strait_stop_info(_id, _heal) {
 	switch (_id) {
+		case "anchor":    return { name: "Drop Anchor", tip: "Rest: heal " + ((_heal > 0) ? string(_heal) + " HP" : string(round(oWorldManager.rest_amount * 100)) + "% of your health") + ". Or go below to the workbench.", ok: true, reason: "" };
+		case "sea":       return { name: "Open water", tip: "An event at sea.", ok: true, reason: "" };
 		case "workbench": return { name: "Shipwright's buoy", tip: "Use your tools on your dice.", ok: workbench_useful(), reason: "No tool has work to do." };
 		case "calm":      return { name: "Calm water", tip: "Heal " + ((_heal > 0) ? string(_heal) + " HP." : string(round(oWorldManager.rest_amount * 100)) + "% of your health."), ok: true, reason: "" };
 		case "core":      return { name: "The wreck", tip: "Gain a core.", ok: true, reason: "" }; // full slots: delete an item for it, or sail past (pending_item_draw)
@@ -1533,6 +1539,25 @@ function sea_stop_draw(_id, _x, _y, _scale, _alpha, _ok, _done = false) {
 	}
 	draw_set_alpha(_alpha);
 	switch (_id) {
+		case "anchor": // an anchor: ring, shank, stock and two flukes
+			draw_set_color(_ink);
+			draw_circle(_x, _y - 13 * _s, 3.5 * _s, true);
+			draw_line_width(_x, _y - 10 * _s, _x, _y + 12 * _s, 3 * _s);
+			draw_line_width(_x - 7 * _s, _y - 6 * _s, _x + 7 * _s, _y - 6 * _s, 2.5 * _s);
+			draw_arc_thick_deg(_x, _y + 2 * _s, 9 * _s, 11.5 * _s, 200, 340, 10);
+			draw_triangle(_x - 12 * _s, _y + 2 * _s, _x - 8 * _s, _y - 2 * _s, _x - 6 * _s, _y + 4 * _s, false);
+			draw_triangle(_x + 12 * _s, _y + 2 * _s, _x + 8 * _s, _y - 2 * _s, _x + 6 * _s, _y + 4 * _s, false);
+			break;
+		case "sea": // a question mark on the waves
+			draw_set_font(ftBig);
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_set_color(_ink);
+			draw_text_transformed(_x, _y - 3 * _s, "?", _s, _s, 0);
+			draw_line_width(_x - 12 * _s, _y + 13 * _s, _x - 4 * _s, _y + 10 * _s, 2 * _s);
+			draw_line_width(_x - 4 * _s, _y + 10 * _s, _x + 4 * _s, _y + 13 * _s, 2 * _s);
+			draw_line_width(_x + 4 * _s, _y + 13 * _s, _x + 12 * _s, _y + 10 * _s, 2 * _s);
+			break;
 		case "workbench": draw_sprite_ext(sToolbag, 0, _x, _y + 2 * _s, 0.62 * _s, 0.62 * _s, 0, _blend, _alpha); break;
 		case "core":      draw_sprite_ext(sCores, 0, _x, _y, 0.5 * _s, 0.5 * _s, 0, _blend, _alpha); break;
 		case "trim":      draw_sprite_ext(sToolSilhouettes, 1, _x, _y, 0.46 * _s, 0.46 * _s, 0, _ink, _alpha); break;
@@ -1604,10 +1629,38 @@ function strait_draw(_ax, _ay) {
 			}
 		}
 
+		// Drop Anchor: rest here, or go below to the workbench
+		if (_taken && variable_struct_exists(strait, "choosing") && strait.choosing) {
+			var _pick = anchor_choice_draw(strait, _sx, _sy);
+			if (_pick == "rest") {
+				strait.choosing = false;
+				strait.arrived = true;
+				strait.ids[i] = "calm";
+				strait.healed = global.player_hp < global.player_max_hp;
+				if (strait.healed) spread_end_apply("heal", strait.heal);
+				strait.stamp = 1;
+			} else if (_pick == "workbench") {
+				world_state = WORLD_STATE.TURNING;
+				strait = undefined;
+				save_game(1);
+				room_goto(rmWorkbench);
+				return;
+			}
+			continue;
+		}
+
 		// sailing there
-		if (_taken && !strait.arrived) {
+		if (_taken && !strait.arrived && !(variable_struct_exists(strait, "moored") && strait.moored)) {
 			if (boat_sail_toward(_sx - 48, _sy + 24)) { // moored beside it, so the tick shows
 				strait.arrived = true;
+				// Drop Anchor asks first; a sea event goes to the event room (the page turns while you're there)
+				if (_id == "anchor") { strait.choosing = true; strait.arrived = false; strait.moored = true; continue; }
+				if (_id == "sea") {
+					world_state = WORLD_STATE.TURNING;
+					strait = undefined;
+					sea_event_enter();
+					return;
+				}
 				// only Calm water heals (Q14)
 				strait.healed = (_id == "calm") && (global.player_hp < global.player_max_hp);
 				if (strait.healed) spread_end_apply("heal", strait.heal);
@@ -1693,8 +1746,24 @@ function passage_left_draw(_bx, _by) {
 	if (_b.sailing) {
 		if (boat_sail_toward(_bx - 48, _by + 24)) { // moored beside it, so the tick shows
 			_b.sailing = false;
-			_l.passage_done = true;
 			oRunManager.can_visit_workbench = false;
+			if (_b.id == "anchor") _b.choosing = true; // Drop Anchor: rest or the workbench (anchor_choice_draw, below)
+			else if (_b.id == "sea") {
+				_l.passage_done = true;
+				sea_event_enter(); // the event room; back here after
+				return;
+			} else {
+				_l.passage_done = true;
+				if (passage_arrive(_b.id, _b, _bx, _by)) return; // gone to the workbench
+			}
+		}
+	}
+	if (variable_struct_exists(_b, "choosing") && _b.choosing) {
+		var _pick = anchor_choice_draw(_b, _bx, _by);
+		if (_pick != "") {
+			_b.choosing = false;
+			_l.passage_done = true;
+			_b.id = (_pick == "rest") ? "calm" : "workbench";
 			if (passage_arrive(_b.id, _b, _bx, _by)) return; // gone to the workbench
 		}
 	}
@@ -1732,12 +1801,47 @@ function passage_arrive(_id, _b, _x = -1, _y = -1) {
 	return false;
 }
 
+/// @func anchor_choice_draw(_st, _x, _y)
+/// @desc Drop Anchor (2026-11-24): moored at a sea stop, two paper buttons over it: Rest (heal) or Workbench (go
+///       below). Returns "rest", "workbench" or "" while you choose. _st keeps the buttons' scales.
+function anchor_choice_draw(_st, _x, _y) {
+	if (!variable_struct_exists(_st, "anchor_scales")) _st.anchor_scales = [1, 1];
+	var _heal = passage_heal_amount();
+	var _hurt = global.player_hp < global.player_max_hp;
+	var _bench = workbench_useful();
+	var _by = _y - 110;
+	draw_set_font(ftDescriptions);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_outline_text("Drop Anchor", global.ui_col.paper_hi, global.ui_col.ink, 2, _x, _by - 52, 1, 1, 0);
+	var _rest = ui_button(_x - 95, _by, 170, 56, _st.anchor_scales[0], _hurt ? "Rest  +" + string(_heal) + " HP" : "Rest", global.ui_neutral, true, "", UI_LAYER.BASE, 1, ftDefault);
+	_st.anchor_scales[0] = _rest.scale;
+	var _wb = ui_button(_x + 95, _by, 170, 56, _st.anchor_scales[1], "Workbench", global.ui_neutral, _bench, "No tool has work to do.", UI_LAYER.BASE, 1, ftDefault);
+	_st.anchor_scales[1] = _wb.scale;
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	if (_rest.click) return "rest";
+	if (_wb.click && _bench) return "workbench";
+	return "";
+}
+
+/// @func sea_event_enter()
+/// @desc A sea stop's event (2026-11-24): an event node drawn from the sea events (event_is_sea), entered like an
+///       island's (enter_node saves and opens the event room). It never turns into a fight or a shop.
+function sea_event_enter() {
+	var _node = clone_node_static(node_event);
+	_node.sea = true;
+	_node.event_roll = 100; // no chance of becoming a fight or a shop
+	enter_node(_node);
+}
+
 /// @func passage_pool()
 /// @desc The sea stops a page can bring, with how often (B+). Calm water is the only heal (Q14). Its odds follow your
 ///       health: 1 at full, up to 5 near death. The Shipwright's go up 2 for each core you hold, up to +4 (Q16).
 function passage_pool() {
-	var _calm = 1 + round(4 * (1 - clamp(global.player_hp / max(1, global.player_max_hp), 0, 1)));
-	return [["calm", _calm], ["workbench", 3 + min(4, 2 * passage_cores_held())], ["core", 2], ["whet", 2], ["gold", 2], ["trim", 1]];
+	// every sea stop is Drop Anchor (rest or the workbench), a sea event, the wreck or Flotsam (Jared, 2026-11-24).
+	// 5:3:2:2 gives about 3 Drop Anchors and 2 sea events a chapter (8 sea stops), near the 65/35 asked for
+	return [["anchor", 5], ["sea", 3], ["core", 2], ["gold", 2]];
 }
 
 /// @func passage_cores_held()
@@ -1758,11 +1862,11 @@ function pages_assign_passages() {
 	var _pool = passage_pool();
 	var _used = [];
 	for (var p = 0; p < ds_list_size(pages_shown); p++) {
+		// rolled by weight, repeats allowed (2026-11-24: with four pages, "all different" would force one of each)
 		var _total = 0;
-		for (var i = 0; i < array_length(_pool); i++) if (!array_contains(_used, _pool[i][0])) _total += _pool[i][1];
-		var _r = irandom_range(1, max(1, _total)), _pick = "calm";
+		for (var i = 0; i < array_length(_pool); i++) _total += _pool[i][1];
+		var _r = irandom_range(1, max(1, _total)), _pick = "anchor";
 		for (var i = 0; i < array_length(_pool); i++) {
-			if (array_contains(_used, _pool[i][0])) continue;
 			_r -= _pool[i][1];
 			if (_r <= 0) { _pick = _pool[i][0]; break; }
 		}
@@ -1770,25 +1874,7 @@ function pages_assign_passages() {
 		pages_shown[| p].passage = _pick;
 		pages_shown[| p].passage_done = false;
 	}
-	// a core held through two spreads with no Shipwright offered: this spread has one (Q16)
-	if (passage_cores_held() > 0 && oRunManager.shipwright_wait >= 2 && !array_contains(_used, "workbench") && ds_list_size(pages_shown) > 0) {
-		var _swap = -1;
-		for (var p = 0; p < ds_list_size(pages_shown); p++) if (pages_shown[| p].passage != "calm") { _swap = p; break; } // keep a Calm water
-		if (_swap == -1) _swap = irandom(ds_list_size(pages_shown) - 1);
-		_used[_swap] = "workbench";
-		pages_shown[| _swap].passage = "workbench";
-	}
-	// the guarantee: a safe stop on offer. At full health it's the Shipwright, if a tool has work
-	if (!array_contains(_used, "calm") && !array_contains(_used, "workbench") && ds_list_size(pages_shown) > 0) {
-		var _i = irandom(ds_list_size(pages_shown) - 1);
-		var _full = global.player_hp >= global.player_max_hp;
-		var _pick = workbench_useful() ? (_full ? "workbench" : choose("calm", "workbench")) : "calm";
-		_used[_i] = _pick;
-		pages_shown[| _i].passage = _pick;
-	}
-	// spreads in a row offered with a core in hand and no Shipwright
-	if (passage_cores_held() > 0 && !array_contains(_used, "workbench")) oRunManager.shipwright_wait++;
-	else oRunManager.shipwright_wait = 0;
+	// (2026-11-24: the Shipwright guarantees went with the Shipwright; Drop Anchor holds the workbench now)
 }
 
 /// @func page_passage(_page) / page_passage_done(_page) / page_nodes_cleared(_page)
@@ -1804,6 +1890,7 @@ function page_nodes_cleared(_page) {
 ///       a bag of 6 or fewer). The wreck stays itself with full item slots (pending_item_draw).
 function passage_resolve(_id) {
 	if (_id == "calm" || _id == "") return "calm";
+	if (_id == "anchor" || _id == "sea") return _id; // always usable (Drop Anchor's workbench half can be greyed)
 	return strait_stop_info(_id, 0).ok ? _id : "calm";
 }
 
@@ -1872,7 +1959,7 @@ function page_passage_badge(_page, _x, _y, _scale, _alpha) {
 function harbour_draw(_bp) {
 	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
 	var _hx = _gw * 0.36;
-	var _ids = ["calm", "workbench"], _names = ["Harbour: rest", "Harbour: refit"];
+	var _ids = ["calm", "workbench"], _names = ["Drop Anchor: rest", "Drop Anchor: workbench"];
 	var _ys = [_gh / 2 - 120, _gh / 2 + 120];
 	if (!is_struct(harbour) || harbour.chapter != chapter) harbour = { chapter: chapter, scales: [1, 1], chosen: -1, arrived: false, stamp: 0, healed: false, heal: 0 };
 	var _h = harbour;

@@ -1245,6 +1245,17 @@ function sirens_upgrade_count(_lean) {
 	return 0;
 }
 
+/// @func event_is_sea(_name)
+/// @desc Is this a sea event (drawn at sea stops) rather than an island one? (2026-11-24: the pools are split)
+function event_is_sea(_name) {
+	switch (_name) {
+		case "A Great Storm": case "Clear skies": case "Broken sails": case "A bird flies aboard": case "The Flying Dutchman":
+		case "Rough tides": case "The constellation": case "The Siren's Call": case "A floating crate":
+			return true;
+	}
+	return false;
+}
+
 /// @func event_terms(_text)
 /// @desc The game words an event choice uses, each { name, desc }, for its hover (oEventManager Draw GUI).
 function event_terms(_text) {
