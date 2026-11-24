@@ -135,12 +135,41 @@ function split_trailing_punct(_token) {
     return [core, punct];
 }
 
-function colorcode_text(_str) {
+/// @func is_numberish(_s)
+/// @desc A number as text reads it: "5", "+2", "-1", "5+", "50%", "x2", "1-6".
+function is_numberish(_s) {
+	if (_s == "") return false;
+	var _f = string_char_at(_s, 1);
+	if (_f == "+" || _f == "-" || _f == "x") _s = string_delete(_s, 1, 1);
+	var _l = string_char_at(_s, string_length(_s));
+	if (_l == "+" || _l == "%" || _l == "x") _s = string_delete(_s, string_length(_s), 1);
+	if (_s == "") return false;
+	var _parts = string_split(_s, "-");
+	if (array_length(_parts) > 2) return false;
+	for (var i = 0; i < array_length(_parts); i++) if (_parts[i] == "" || string_digits(_parts[i]) != _parts[i]) return false;
+	return true;
+}
+
+/// @func colorcode_text(_str, [_action_type])
+/// @desc Tags a description's words for draw_outline_text's colours (2026-11-24, one scheme for dice, rewards and
+///       tooltips): every keyword (global.keywords: Sticky, Coin, Might...) in the keyword colour; "3 block", "2 gold",
+///       "5 health"... in theirs; and, given a die's action type, every other number in that action's colour.
+function colorcode_text(_str, _action_type = "") {
 
     var words = string_split(_str, " ");
     var wc = array_length(words);
 
     var tags = array_create(wc, "def");
+
+    // --- keywords, all in one colour ---
+    var _kw_names = variable_global_exists("keywords") ? variable_struct_get_names(global.keywords) : [];
+    for (var i = 0; i < wc; i++) {
+        var _kp = split_trailing_punct(words[i]);
+        var _kc = clean_word(_kp[0]);
+        for (var k = 0; k < array_length(_kw_names); k++) {
+            if (_kc == string_lower(_kw_names[k])) { tags[i] = "keyword"; break; }
+        }
+    }
 
     // --- Generic rule: keyword (always colour keyword; colour number too if present) ---
     for (var i = 0; i < wc; i++) {
@@ -226,6 +255,21 @@ function colorcode_text(_str) {
         }
     }
 
+    // --- every other number in the die's action colour ---
+    var _num_tag = "";
+    switch (_action_type) {
+        case "ATK": _num_tag = "attack"; break;
+        case "BLK": _num_tag = "block"; break;
+        case "HEAL": _num_tag = "heal"; break;
+        case "INTEL": _num_tag = "intel"; break;
+    }
+    if (_num_tag != "") {
+        for (var i = 0; i < wc; i++) {
+            var _np = split_trailing_punct(words[i]);
+            if (tags[i] == "def" && is_numberish(_np[0])) tags[i] = _num_tag;
+        }
+    }
+
     // --- Rebuild: punctuation always [def], and no leading space ---
     var out = "";
     var current_tag = ""; // Start empty to force the first tag to write
@@ -299,6 +343,7 @@ function draw_outline_text(_string, _outline_col, _fill_col, _outline_width, _x,
 					case "attack":												col = global.text_attack;		break;
 					case "intel":												col = global.text_intel;		break; // ink, readable on dark
 					case "subtext":												col = c_gray;					break;
+					case "keyword":												col = global.text_keyword;		break; // every keyword (2026-11-24)
 					default:													col = _fill_col;
 				}
 				if (variable_global_exists("ui_on_paper") && global.ui_on_paper) col = ui_text_on_paper(col); // on paper: the dark versions
@@ -751,7 +796,7 @@ function draw_die_tip(_tt) {
 	var _sx = _x1 + _pad + _name_w + 8;
 	draw_outline_text(_tt.sub, c_black, make_color_rgb(185, 169, 136), 1, _sx, _y1 + _pad + 3, 1, 1, 0);
 	if (_mini_w > 0) draw_dist_mini(_d, _sx + _sub_w + 10, _y1 + _pad + _name_h - 3, 16);
-	draw_outline_text(colorcode_text(_desc), c_black, c_white, 1, _x1 + _pad, _y1 + _pad + _name_h + 4, 1, 1, 0, _max_w);
+	draw_outline_text(colorcode_text(_desc, _d.action_type), c_black, c_white, 1, _x1 + _pad, _y1 + _pad + _name_h + 4, 1, 1, 0, _max_w);
 	var _ty = _y1 + _pad + _name_h + 4 + _desc_h;
 	if (_terms_h > 0) {
 		draw_set_alpha(0.35);
@@ -916,7 +961,7 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     var _py = yy + padding + name_h + 2;
     for (var p = 0; p < array_length(_paras); p++) {
 	    draw_set_font(ftDescriptions);
-	    draw_outline_text(colorcode_text(_paras[p]), c_black, c_white, 1, content_x, _py, 1, 1, 0, max_desc_w);
+	    draw_outline_text(colorcode_text(_paras[p], (is_struct(_dice) && variable_struct_exists(_dice, "action_type")) ? _dice.action_type : ""), c_black, c_white, 1, content_x, _py, 1, 1, 0, max_desc_w);
 	    draw_set_font(ftDescriptions);
 	    _py += string_height_ext(_paras[p], line_sep, max_desc_w) + para_gap;
     }
@@ -2141,7 +2186,7 @@ function insight_rot(_x, _y, _lx, _ly, _scale) {
 ///       Returns { hover, click, scale }; keep .scale for next frame.
 function ui_button(_cx, _cy, _w, _h, _scale_ref, _text, _col, _active = true, _reason = "", _layer = UI_LAYER.BASE, _alpha = 1, _font = ftBig, _click_sound = soClick2) {
 	// a button still fading in can't be pressed yet; nothing can while a cutscene has input switched off
-	var _hover = (_alpha > 0.5) && mouse_hovering(_cx - _w / 2, _cy - _h / 2, _w, _h, false, soSlotHover, _active ? _click_sound : noone, !global.all_input_disabled, _layer, "button:" + string(round(_cx)) + "," + string(round(_cy)) + _text); // a steady id: its size can change
+	var _hover = (_alpha > 0.5) && mouse_hovering(_cx - _w / 2, _cy - _h / 2, _w, _h, false, soPaper5, _active ? _click_sound : noone, !global.all_input_disabled, _layer, "button:" + string(round(_cx)) + "," + string(round(_cy)) + _text); // a steady id: its size can change
 	var _scale = lerp(_scale_ref, (_hover && _active) ? 1.06 : 1, 0.25);
 	var _pressed = _hover && _active && mouse_check_button(mb_left);
 	var _w2 = _w * _scale / 2, _h2 = _h * _scale / 2;
@@ -2655,7 +2700,7 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected, _style =
 	draw_text_ext(_cx, _y1 + _lay.name_y, _d.name, -1, _w - 28);
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_center); // centred under the name (coloured text follows halign since B82)
-	ui_paper_text(colorcode_text(die_description(_d)), _cx, _y1 + _lay.text_y, _lay.text_w, _alpha);
+	ui_paper_text(colorcode_text(die_description(_d), _d.action_type), _cx, _y1 + _lay.text_y, _lay.text_w, _alpha);
 	draw_set_halign(fa_left);
 
 
@@ -2910,7 +2955,7 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	draw_text_ext(_cx, _y1 + _lay.name_y, _d.name, -1, _w - 36);
 	draw_set_font(ftDefault);
 	draw_set_halign(fa_center); // centred under the name (coloured text follows halign since B82)
-	ui_paper_text(colorcode_text(die_description(_d)), _cx, _y1 + _lay.text_y, _lay.text_w);
+	ui_paper_text(colorcode_text(die_description(_d), _d.action_type), _cx, _y1 + _lay.text_y, _lay.text_w);
 	draw_set_halign(fa_left);
 	if (mouse_hovering(_cx, _dy, 90, 90, true, noone, noone, true, UI_LAYER.POPUP)) queue_die_tip(_d, _cx, _dy - 46, die_stats_line(_d, _out));
 

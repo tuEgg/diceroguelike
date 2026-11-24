@@ -203,7 +203,7 @@ if (room == rmBounty) {
 			}
 		
 		// Check for hovering
-		var bounty_hover = mouse_hovering(bounty_x, bounty_y, sprite_get_width(sBountyContract) - 40, sprite_get_height(sBountyContract) + bounty_offset[b]*2, true);
+		var bounty_hover = mouse_hovering(bounty_x, bounty_y, sprite_get_width(sBountyContract) - 40, sprite_get_height(sBountyContract) + bounty_offset[b]*2, true, soPaper5);
 	
 		// Change scale based on hovering
 		bounty_scale[b] = lerp(bounty_scale[b], bounty_hover ? 1.0 : 1.0, 0.2);

@@ -55,7 +55,7 @@ if (chosen_event != undefined) {
 		var _desc_h = string_height_ext(_option_desc, font_get_size(draw_get_font()) * 1.2, _w);
 		var _h = _title_h + _desc_h + padding;
 		
-		options_hover[| i] = mouse_hovering(xx, yy - _h, _w + padding, _h, false); // the whole slip (it reaches _w + padding)
+		options_hover[| i] = mouse_hovering(xx, yy - _h, _w + padding, _h, false, soPaper5); // the whole slip (it reaches _w + padding)
 		options_scale[| i] = lerp(options_scale[| i], !event_selected * options_hover[| i] ? 1.1 : 1.0, 0.2);
 		
 		var _picked_hover = !event_selected && options_hover[| i];

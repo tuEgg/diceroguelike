@@ -917,16 +917,16 @@ function generate_dice_bag() {
 	
 	global.die_balanced = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Balanced die",
-	    "If it rolls {max}, gain 1 Balance next turn.",
+	    "If it rolls {max}, gain 1 Balance.",
 		"common",
 		30,
 	    [
 	        {
-	            trigger: "on_die_rolled", // when rolled; the Balance arrives next turn (oCombat balance_next_turn)
+	            trigger: "on_die_rolled", // the moment it rolls (Jared, 2026-11-24: it used to wait for next turn)
 	            modify: function(_context) {
-					if (_context.face == _context.max_roll) {
-						die_effect_popup(_context._die_struct, "Balance next turn", c_white);
-						oCombat.balance_next_turn += 1;
+					if (_context.face == _context.max_roll && instance_exists(oCombat)) {
+						die_effect_popup(_context._die_struct, "Balance", c_white);
+						apply_buff("player", oRunManager.buff_balance, 1, 1, false, { source: "player", index: -1 });
 					}
 	            }
 	        }

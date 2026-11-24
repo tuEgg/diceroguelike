@@ -30,10 +30,17 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 40: Balanced, paper sounds, text colours | B166, F254, F255, F256 | `dev` | **Not yet play-tested.** Balanced gives Balance as it rolls; paper UI rustles on hover; reward cards explain their keywords; numbers in a die's text take its action colour, keywords are violet. |
 | 39: chapter events and F1 | F251, F252, F253 | `dev` | **Not yet play-tested.** Each chapter draws its own events (16 new for chapters 2 and 3, bigger effects and choices); four event options rebalanced; F1 can jump a chapter, re-show tips, add pool tokens and workbench actions. |
 | 38: fixes after batch 37 | B164, B165, F250 | `dev` | **Not yet play-tested.** Anchor icon the right way up; slot number is the full total; Tattooist anchor +2 min roll. |
 | 37: map and economy (design brief 2026-11-24) | F244, F245, F246, F247, F248, F249 | `dev` | **Not yet play-tested.** Sea stops are Drop Anchor, sea events, the wreck or Flotsam; island and sea events split; workbench actions and the Bin; tools in every shop; 2-of-4 drafting; a chapter pool for stops; bounty help. |
 | 36: content pass | F242 | `dev` | **Not yet play-tested.** Free value repriced, rares lifted, healing on triggers, shop keepsakes, core-shape payoffs, 22 new dice and keepsakes for the seven archetypes (\`docs/design/content-pass.md\`). |
+
+**Batch 40 test list (Balanced, paper sounds, text colours)**
+- B166 Balanced die: roll its max and "Balance" pops over it straight away; block that turn gets +1. Its text reads "If it rolls 6, gain 1 Balance."
+- F254 Hovering paper things rustles (the slots' paper sound): fight reward cards (keepsake, dice, items), the slot you're about to build, paper buttons and the commit button bottom right, event choices, bounty contracts. Ink buttons, the end-turn seal and map stops keep their old sound.
+- F255 Hover an item or keepsake reward card: its keywords, buffs and debuffs are explained beside it, as event choices already do.
+- F256 One colour scheme everywhere text is colour-coded (bag and reward cards, tooltips, events, shop): every keyword (Sticky, Coin, Exclusive, Might, Overboard...) is violet; in a die's text every number takes its action colour (a block die's "rolls 5" has a blue 5); "3 gold", "5 health", "2 block" keep their own colours.
 
 **Batch 39 test list (chapter events and F1)**
 - F251 Events come from the chapter's own pool (island or sea as before); an earlier chapter's only once it runs dry. F1 > Events lists them as "Ch 1/2/3", this chapter's highlighted, so each can be played straight away. Chapter 2: The smugglers' cove, The master shipwright, The governor's ball, The old fortress; at sea A ghost ship, The whirlpool, A merchant convoy, The lighthouse keeper. Chapter 3: The Pirate King's hoard, The volcano forge, A duel at dawn, The cartographers' guild; at sea The kraken, Calypso's bargain, The edge of the map, Davy Jones' locker. Check each option does what it says, and that refusals (not enough gold, full item slots, bag at 6 dice) leave the choice open.

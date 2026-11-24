@@ -325,7 +325,7 @@ for (var i = 0; i < aq_list_size; i++) {
 	    var last_y = base_y + ((base_h - last_h) / 2);
 
 	    // Hover check basesd on *scaled* rectangle
-		last_hover = mouse_hovering(last_x, last_y, last_w, last_h, false, soSlotHover, noone, !show_rewards, UI_LAYER.BASE, string(lx)); // the slot to build: the old click (Jared, 2026-11-23); built slots rustle
+		last_hover = mouse_hovering(last_x, last_y, last_w, last_h, false, soPaper5, noone, !show_rewards, UI_LAYER.BASE, string(lx)); // the slot to build: the old click (Jared, 2026-11-23); built slots rustle
 		tut_last_tile = { x: last_x, y: last_y, w: last_w, h: last_h }; // the tutorial points here
 	    //last_hover = (mx > last_x && mx < last_x + last_w && my > last_y && my < last_y + last_h && !show_rewards);
 
@@ -1121,9 +1121,10 @@ if (show_rewards) {
 					reward_card_back(_kc_cx, _kc_cy + 23, _kc_w * _flip.squash, _kc_h - 46, r + 6);
 					continue;
 				}
-				var _kc_hover = !rewards_keepsake_taken && mouse_hovering(_kc_cx - _kc_w / 2, _kc_cy - _kc_h / 2, _kc_w, _kc_h, false, soSlotHover, noone, true, UI_LAYER.POPUP);
+				var _kc_hover = !rewards_keepsake_taken && mouse_hovering(_kc_cx - _kc_w / 2, _kc_cy - _kc_h / 2, _kc_w, _kc_h, false, soPaper5, noone, true, UI_LAYER.POPUP);
 				var alpha = rewards_keepsake_taken ? 0.35 : 1.0;
 				draw_item_card(_kc_cards[r], _kc_cx, _kc_cy - 14 * _flip.pop, _kc_w, _kc_h, alpha * _flip.fade_in, _kc_hover, false);
+				if (_kc_hover) queue_glossary_tooltip(_kc_cards[r].description); // its keywords, buffs and debuffs
 				if (_kc_hover && mouse_check_button_pressed(mb_left)) {
 					sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
 			        gain_keepsake(keepsake, global.rollable_keepsake_list);
@@ -1159,7 +1160,7 @@ if (show_rewards) {
 					reward_card_back(_rc_cx, _rc_cy + 27, _rc_w * _flip.squash, _rc_h - 54, r); // the paper's part (the die sits above it)
 					continue;
 				}
-				var _rc_hover = !rewards_dice_taken && mouse_hovering(_rc_cx - _rc_w / 2, _rc_cy - _rc_h / 2, _rc_w, _rc_h, false, soSlotHover, noone, true, UI_LAYER.POPUP);
+				var _rc_hover = !rewards_dice_taken && mouse_hovering(_rc_cx - _rc_w / 2, _rc_cy - _rc_h / 2, _rc_w, _rc_h, false, soPaper5, noone, true, UI_LAYER.POPUP);
 				var alpha = rewards_dice_taken ? 0.35 : 1.0;
 				draw_bag_card(die, _rc_cx, _rc_cy - 14 * _flip.pop, _rc_w, _rc_h, alpha * _flip.fade_in, _rc_hover, false, "reward");
 				reward_rarity_flash(die.rarity, _rc_cx, _rc_cy, _rc_w, _rc_h, _flip.since, alpha);
@@ -1221,13 +1222,14 @@ if (show_rewards) {
 					continue;
 				}
 				var _ic_open = !consumable.taken && !_ic_locked && !rewards_consumables_second_taken;
-				var _ic_hover = mouse_hovering(_ic_cx - _ic_w / 2, _ic_cy - _ic_h / 2, _ic_w, _ic_h, false, _ic_open ? soSlotHover : noone, noone, true, UI_LAYER.POPUP);
+				var _ic_hover = mouse_hovering(_ic_cx - _ic_w / 2, _ic_cy - _ic_h / 2, _ic_w, _ic_h, false, _ic_open ? soPaper5 : noone, noone, true, UI_LAYER.POPUP);
 				var alpha = consumable.taken ? 0.35 : 1.0;
 				draw_item_card(consumable, _ic_cx, _ic_cy - 14 * _flip.pop, _ic_w, _ic_h, alpha * _flip.fade_in, _ic_hover && _ic_open, _ic_locked);
 				reward_rarity_flash(variable_struct_exists(consumable, "rarity") ? consumable.rarity : "common", _ic_cx, _ic_cy, _ic_w, _ic_h, _flip.since, alpha);
 				var btn = { x: _ic_cx - _ic_w / 2, y: _ic_cy - _ic_h / 2, w: _ic_w, h: _ic_h, hover: _ic_hover, click: _ic_hover && _ic_open && mouse_check_button_pressed(mb_left), scale: 1 };
 				if (btn.click) sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);
 				if (_ic_hover && _ic_locked) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Locked", "Your first pick locked this one away.");
+				else if (_ic_hover && variable_struct_exists(consumable, "description")) queue_glossary_tooltip(string(consumable.description)); // its keywords, buffs and debuffs
 
 				// check for item free
 

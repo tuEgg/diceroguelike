@@ -121,15 +121,7 @@ global.COLOR_RULES = [
     { tag: "attack",		keyword: "ATK",				type: "num_keyword" },
     { tag: "intel",			keyword: "intel",			type: "num_keyword" },
     { tag: "intel",			keyword: "ink",			type: "num_keyword" }, // "Insight" is what the player reads; the code still says intel
-    { tag: "followthrough",	keyword: "followthrough",	type: "num_keyword" },
-    { tag: "multitype",		keyword: "multitype",		type: "num_keyword" },
-    { tag: "coin",			keyword: "coin",			type: "num_keyword" },
-    { tag: "stowaway",		keyword: "stowaway",		type: "num_keyword" },
-    { tag: "favourite",		keyword: "favourite",		type: "num_keyword" },
-    { tag: "exclusive",		keyword: "exclusive",		type: "num_keyword" },
-    { tag: "loose",			keyword: "loose",			type: "num_keyword" },
-    { tag: "sticky",		keyword: "sticky",			type: "num_keyword" },
-    { tag: "alignment",		keyword: "alignment",		type: "num_keyword" },
+    // (keywords such as Sticky or Coin are coloured by colorcode_text's keyword pass, 2026-11-24)
     // NOTE: "health" is handled as a special case below
 ];
 
