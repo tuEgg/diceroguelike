@@ -419,7 +419,7 @@ if (room == rmCombat && run_over == undefined) {
 	draw_map_icon(_mi_x, _mi_y, 18 * map_icon_scale);
 	if (_mi_hover) {
 		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Map", "See where you are. You can't sail from a fight.");
-		if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && !paused && oCutsceneManager.cutscene_state == CUTSCENE_STATE.FINISHED && !tutorial_active()) {
+		if (mouse_check_button_pressed(mb_left) && global.ui_layer == UI_LAYER.BASE && !paused && oCutsceneManager.cutscene_state == CUTSCENE_STATE.FINISHED && !tutorial_active() && !(instance_exists(oCombat) && oCombat.show_rewards)) {
 			global.map_peek = true;
 			global.ui_layer = UI_LAYER.POPUP;
 		}

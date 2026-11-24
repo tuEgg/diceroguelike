@@ -28,8 +28,8 @@ if (new_run_offering && global.ui_layer == UI_LAYER.BASE) global.ui_layer = UI_L
 key_escape = keyboard_check_pressed(vk_escape) || (keyboard_check_pressed(vk_tab) && room != rmCombat); // in a fight Tab is the ink view (oCombat Step)
 
 // the map shown over a fight closes on Escape (or its Close button), before Escape can open the pause menu
-if (global.map_peek && key_escape) { global.map_peek = false; global.ui_layer = UI_LAYER.BASE; key_escape = false; }
-if (global.map_peek && room != rmCombat) global.map_peek = false;
+if (global.map_peek && key_escape) { global.map_peek = false; if (run_over == undefined && !(instance_exists(oCombat) && oCombat.state == CombatState.PLAYER_DEAD)) global.ui_layer = UI_LAYER.BASE; key_escape = false; }
+if (global.map_peek && room != rmCombat) { global.map_peek = false; if (run_over == undefined && !paused) global.ui_layer = UI_LAYER.BASE; } // never leave the layer locked behind it
 
 // Escape closes Settings (back to the pause menu), then the bag, then opens or closes the pause menu (F35)
 if (key_escape && global.ui_layer != UI_LAYER.DEBUG && run_over == undefined) {

@@ -1,3 +1,9 @@
+// the fight's seed: the node's (saved with it, so a reload plays the same fight), or fresh for a debug fight. The
+// generator starts from it, and combat_seed_next restarts it at each point the fight rolls (2026-11-24)
+fight_seed = (instance_exists(oWorldManager) && is_struct(oWorldManager.current_node) && variable_struct_exists(oWorldManager.current_node, "fight_seed")) ? oWorldManager.current_node.fight_seed : irandom_range(1, 2147483000);
+seed_n = 0;
+random_set_seed(fight_seed);
+
 // Lets the F1 debug menu choose the enemies for this fight (does nothing otherwise)
 debug_apply_pending_fight();
 tutorial_begin(); // the guided first fight, until the tutorial is done (progress.json)

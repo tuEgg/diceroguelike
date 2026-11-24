@@ -18,6 +18,7 @@ dice_delay = dice_delay_base * combat_delay_scale();
 switch (state) {
     case CombatState.START_TURN:
 		turn_count++;
+		combat_seed_next(); // this turn's enemy moves roll from here
 		player_turn_done = false;
 		intel_rewrite_used = false;
 		insight_revealed = false; // what insight bought last turn is gone
@@ -225,6 +226,7 @@ switch (state) {
 					        var die = slot.dice_list[| dice_index];
 							if (current_action == "BLK" || current_action == "HEAL" || current_action == "INTEL") _target = _source;
 					
+							combat_seed_next();
 						    process_action(_target, die.dice_amount, die.dice_value, slot.bonus_amount, _source, undefined, current_action, action_index, die, dice_index);
 							
 							player_last_action_type = current_action;
@@ -570,7 +572,7 @@ if (keyboard_check_pressed(vk_tab) && !show_rewards && !global.all_input_disable
 }
 if (insight_view && (state != CombatState.PLAYER_INPUT || show_rewards || intel_is_blotted())) combat_insight_view_set(false);
 
-if (keyboard_check_pressed(vk_enter) && !_sealed_now && state == CombatState.PLAYER_INPUT && !is_dealing_dice && !insight_view && tutorial_allows("end_turn")) {
+if (keyboard_check_pressed(vk_enter) && !_sealed_now && state == CombatState.PLAYER_INPUT && !is_dealing_dice && !insight_view && !global.map_peek && tutorial_allows("end_turn")) {
     actions_submitted = true;
 }
 

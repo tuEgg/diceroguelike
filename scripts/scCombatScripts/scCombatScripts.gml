@@ -1908,7 +1908,7 @@ function tutorial_steps() {
 		},
 		{
 			id: "ink_more", target: "intent", allow: [],
-			text: "Ink works on the enemy too: click its number to see it exactly (2 ink), or its move to make it choose again (6 ink). Unspent ink carries over. Click Confirm to close the log.",
+			text: "Ink works on the enemy too: click its number to see it exactly (" + string(INSIGHT_COST_REVEAL) + " ink), or its move to make it choose again (" + string(INSIGHT_COST_QUILL) + " ink). Unspent ink carries over. Click Confirm to close the log.",
 			done: function() { return !oCombat.insight_view; },
 		},
 		{
@@ -3075,9 +3075,9 @@ function combat_insight_spend(_cost) {
 }
 
 /// @func combat_reveal_cost()
-/// @desc Seeing one enemy's exact values: 2 when it's alone, 1 each when there are several.
+/// @desc Seeing one enemy's exact values: always 1 ink (INSIGHT_COST_REVEAL).
 function combat_reveal_cost() {
-	return (combat_living_enemies() > 1) ? 1 : INSIGHT_COST_REVEAL;
+	return INSIGHT_COST_REVEAL;
 }
 
 /// @func enemy_intent_revealed(_enemy)
@@ -3132,6 +3132,7 @@ function combat_reroll_die(_inst) {
 	rerolls_used++;
 	if (tutorial_active()) global.tut.inked = true;
 	var _was = die_face_total(_inst.struct);
+	combat_seed_next();
 	die_roll_faces(_inst.struct);
 	float_text(_inst.x, _inst.y - 70, string(_was) + " to " + string(die_face_total(_inst.struct)), c_white); // what changed (Jared, 2026-11-22)
 	trigger_die_effects_single(_inst.struct, "on_die_inked", { _die_struct: _inst.struct, redrawn: false });
@@ -3392,6 +3393,18 @@ function reward_pick_pips(_cx, _y, _picks, _taken, _lost = 0) {
 		}
 	}
 	draw_set_color(c_white);
+}
+
+/// @func combat_seed_next()
+/// @desc The fight's random numbers, made repeatable (2026-11-24): oCombat.fight_seed comes from the node (saved with
+///       it), and at every point where the fight rolls something that matters (the start, each turn's enemy moves, each die
+///       dealt, each reroll or rewrite, each action resolving) the generator is restarted from that seed plus a running
+///       count. Cosmetic randomness (particles, sound pitch) can't then shift what the game rolls, so a reloaded fight, and
+///       the same choices in it, come out the same.
+function combat_seed_next() {
+	if (room != rmCombat || !instance_exists(oCombat) || !variable_instance_exists(oCombat, "fight_seed")) return;
+	oCombat.seed_n++;
+	random_set_seed((oCombat.fight_seed + oCombat.seed_n * 7919) mod 2147483647);
 }
 
 /// @func combat_insight_view_set(_open)
@@ -3834,6 +3847,7 @@ function combat_enemy_act(_e) {
 				if (enemy_target_index == e) enemy_target_index = irandom(max(0, ds_list_size(room_enemies) - 1));
 				else if (enemy_target_index > e) enemy_target_index--; // the list shifted down, keep pointing at the same enemy
 			} else {
+				combat_seed_next();
 				process_action(_target, enemy.intent.move.dice_amount, enemy.intent.move.dice_value, enemy.intent.move.bonus_amount, _source, e, intent_array[i]);
 			}
 			action_timer = action_delay;

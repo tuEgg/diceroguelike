@@ -502,6 +502,7 @@ function enemy_rewrite_options(_enemy) {
 /// @func enemy_rewrite_intent(_enemy)
 /// @desc Quill (top intel state): the enemy chooses again, a different move, rolled fresh..
 function enemy_rewrite_intent(_enemy) {
+	combat_seed_next();
 	var _options = enemy_rewrite_options(_enemy);
 	if (array_length(_options) == 0) return false;
 	var _index = _options[irandom(array_length(_options) - 1)];
@@ -514,7 +515,7 @@ function enemy_rewrite_intent(_enemy) {
 #macro INTEL_FADED 0
 #macro INTEL_LEGIBLE 1
 // what insight buys during your turn (combat_buy)
-#macro INSIGHT_COST_REVEAL 2 // see exact enemy intents this turn
+#macro INSIGHT_COST_REVEAL 1 // see exact enemy intents this turn: always 1 (Jared, 2026-11-24; it was 2 against a lone enemy)
 #macro INSIGHT_COST_REROLL ink_cost_reroll() // a reroll: 3, 2 with Sharpened Quill (F242)
 #macro INSIGHT_COST_REDRAW ink_cost_reroll() // a redraw: the same
 #macro INSIGHT_COST_PLAY 4   // one more play
@@ -570,7 +571,7 @@ function intel_state(_level) {
 ///       after slot 1 to ENEMY_POINT_ROLL_MAX. A point past the slots you build happens at the end.
 #macro ENEMY_POINT_LAST 99
 #macro ENEMY_POINT_ROLL_MAX 4
-#macro INK_COST_MOVE 4
+#macro INK_COST_MOVE 3 // moving an enemy's marker on the timeline (Jared, 2026-11-24: it was 4)
 function enemy_move_point(_move) {
 	if (variable_struct_exists(_move, "timing")) {
 		if (is_string(_move.timing) && _move.timing == "first") return 1;

@@ -341,6 +341,10 @@ function enter_node(_node) {
 	// on the way in, so quitting and pressing Continue brings back the same fight or event
 	var _memory_node = _node;
 	current_node = _node;
+	// the seed of everything random in this node's fight, kept on the node and saved with it (2026-11-24): quit and
+	// Continue and the fight starts from the same hand and the same enemy moves, and the same choices roll the same way
+	if (!variable_struct_exists(_node, "fight_seed")) _node.fight_seed = irandom_range(1, 2147483000);
+	random_set_seed(_node.fight_seed);
 	
 	if (_node.type == NODE_TYPE.EVENT) {
 		if (!variable_struct_exists(_node, "event_roll")) _node.event_roll = irandom_range(1, 100);
@@ -1027,6 +1031,7 @@ function serialise_page(_page) {
             x: _node.x,
             y: _node.y,
             encounter: variable_struct_exists(_node, "encounter") ? _node.encounter : "", // "" and -1 mean "not rolled yet" (JSON null would load back as pointer_null)
+            fight_seed: variable_struct_exists(_node, "fight_seed") ? _node.fight_seed : -1,
             event_roll: variable_struct_exists(_node, "event_roll") ? _node.event_roll : -1,
             event_name: variable_struct_exists(_node, "event_name") ? _node.event_name : "",
             shop_stock: (variable_struct_exists(_node, "shop_stock") && is_struct(_node.shop_stock)) ? _node.shop_stock : "",
@@ -1100,6 +1105,7 @@ function deserialise_page(_data) {
         if (variable_struct_exists(_saved_node, "shop_stock") && is_struct(_saved_node.shop_stock)) _node.shop_stock = _saved_node.shop_stock;
         if (variable_struct_exists(_saved_node, "treasure_keepsake") && is_string(_saved_node.treasure_keepsake) && _saved_node.treasure_keepsake != "") _node.treasure_keepsake = _saved_node.treasure_keepsake;
         if (variable_struct_exists(_saved_node, "pool_type") && is_real(_saved_node.pool_type)) _node.pool_type = _saved_node.pool_type;
+        if (variable_struct_exists(_saved_node, "fight_seed") && is_real(_saved_node.fight_seed) && _saved_node.fight_seed > 0) _node.fight_seed = _saved_node.fight_seed;
         ds_list_add(_page.nodes, _node);
     }
     

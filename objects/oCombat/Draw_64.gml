@@ -1419,7 +1419,7 @@ var disc_bag_y = _ds.y - sprite_get_yoffset(sDiceBag);
 disc_bag_hover = (mx > disc_bag_x && mx < disc_bag_x + disc_bag_w && my > disc_bag_y && my < disc_bag_y + disc_bag_h);
 
 if (disc_bag_hover) {
-    if (mouse_check_button_pressed(mb_left)) {
+    if (mouse_check_button_pressed(mb_left) && !global.map_peek) {
 		oRunManager.show_bag_contents = 1 - oRunManager.show_bag_contents;
 		oRunManager.bag_to_show = global.discard_pile;
 	}

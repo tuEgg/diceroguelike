@@ -30,6 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 49: seeded fights, cheaper ink | F277, F278 | `dev` | **Not yet play-tested.** A fight is seeded from its node, so quitting and continuing replays the same hand and the same rolls; moving a marker costs 3; Reveal always costs 1. |
 | 48: playtest feedback (Mac, 2026-11-24) | B172-B174, F266-F276 | `dev` | **Not yet play-tested.** Dice and keepsake tweaks, the Rot hand bug, ink ring, Tab ink view, rewards Back and Next delay and pick pips, map button in fights, no duplicate cores, "leg" for spread, a voyage score and timer, the click sound bug. |
 | 47: card polish | B171, F265 | `dev` | **Not yet play-tested.** The quartermaster's core text has proper line spacing; distribution numbers are Charter with more room; bars share one standard width (cored and plain) and get thinner on d10/d12. |
 | 46: Aleo for small text, standard dice cards | F263, F264, B170 | `dev` | **Not yet play-tested.** Small text everywhere is Aleo (ftTip); card descriptions too; dice cards share a height, every die shows its distribution (faint with no core); the abandon-voyage text is bigger. |
@@ -43,6 +44,11 @@
 | 38: fixes after batch 37 | B164, B165, F250 | `dev` | **Not yet play-tested.** Anchor icon the right way up; slot number is the full total; Tattooist anchor +2 min roll. |
 | 37: map and economy (design brief 2026-11-24) | F244, F245, F246, F247, F248, F249 | `dev` | **Not yet play-tested.** Sea stops are Drop Anchor, sea events, the wreck or Flotsam; island and sea events split; workbench actions and the Bin; tools in every shop; 2-of-4 drafting; a chapter pool for stops; bounty help. |
 | 36: content pass | F242 | `dev` | **Not yet play-tested.** Free value repriced, rares lifted, healing on triggers, shop keepsakes, core-shape payoffs, 22 new dice and keepsakes for the seven archetypes (\`docs/design/content-pass.md\`). |
+
+**Batch 49 test list (seeded fights, cheaper ink)**
+- F277 Start a fight, note your first hand and the enemies' moves, Save and quit, Continue and go into the same stop: the same hand, the same enemy moves. Play the same dice into the same slots and end the turn: the next hand and the enemy results come out the same. (Cosmetic randomness no longer matters; each deal, reroll, rewrite, action and turn restarts the generator from the fight's seed.) A new fight on a different stop rolls differently; the F1 debug fights get a fresh seed.
+- F278 Moving an enemy marker on the timeline costs 3 ink (was 4). Revealing an intent's exact value always costs 1 ink (was 2 against a lone enemy). The first-fight note shows the real costs.
+- F272 (review fixes) The map button does nothing while the rewards are up, and the map closes itself if the fight is won or lost while it is open; Enter and the discard bag ignore clicks while it is open; leaving combat with it open can't leave the map locked.
 
 **Batch 48 test list (playtest feedback)**
 - B172 Rot: with Rot on you, your hand is dealt and visible at the start of the turn. (The Rot slot's green glow made a particle every frame from Draw GUI, which makes the web build skip a frame; now queued.) Also check Bind and Rot together.

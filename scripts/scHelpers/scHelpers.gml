@@ -2396,6 +2396,10 @@ function draw_action_type_icon(_type, _x, _y, _scale, _alpha = 1) {
 function map_peek_draw() {
 	if (!global.map_peek) return;
 	if (room != rmCombat || !instance_exists(oWorldManager)) { global.map_peek = false; return; }
+	// the voyage ended or you fell: the summary holds the layer now, leave it alone
+	if (oRunManager.run_over != undefined || (instance_exists(oCombat) && oCombat.state == CombatState.PLAYER_DEAD)) { global.map_peek = false; return; }
+	// the fight was won with the map open: close it, the rewards need the layer
+	if (instance_exists(oCombat) && oCombat.show_rewards) { global.map_peek = false; global.ui_layer = UI_LAYER.BASE; return; }
 	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
 	draw_set_alpha(0.93);
 	draw_set_color(c_black);

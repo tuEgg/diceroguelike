@@ -3,6 +3,7 @@
 // https://help.yoyogames.com/hc/en-us/articles/360005277377 for more information
 /// @func deal_single_die( _can_discard_this_turn )
 function deal_single_die( _can_discard_this_turn = true) {
+	combat_seed_next(); // which die comes and what it rolls repeat on a reload (a no-op outside a fight)
 	// The F1 debug menu can ask for a specific die to be dealt next
 	var _debug_die = debug_take_next_die();
 	
