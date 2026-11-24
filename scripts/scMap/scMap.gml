@@ -1595,7 +1595,7 @@ function spread_sea_spots() {
 function strait_stop_info(_id, _heal) {
 	switch (_id) {
 		case "anchor":    return { name: "Drop Anchor", tip: "Rest: heal " + ((_heal > 0) ? string(_heal) + " HP" : string(round(oWorldManager.rest_amount * 100)) + "% of your health") + ". Or go below to the workbench.", ok: true, reason: "" };
-		case "sea":       return { name: "Open water", tip: "An event at sea.", ok: true, reason: "" };
+		case "sea":       return { name: "Event", tip: "An event at sea.", ok: true, reason: "" };
 		case "workbench": return { name: "Shipwright's buoy", tip: "Use your tools on your dice.", ok: workbench_useful(), reason: "No tool has work to do." };
 		case "calm":      return { name: "Calm water", tip: "Heal " + ((_heal > 0) ? string(_heal) + " HP." : string(round(oWorldManager.rest_amount * 100)) + "% of your health."), ok: true, reason: "" };
 		case "core":      return { name: "The wreck", tip: "Gain a core.", ok: true, reason: "" }; // full slots: delete an item for it, or sail past (pending_item_draw)
@@ -1976,6 +1976,8 @@ function pages_assign_passages() {
 		pages_shown[| p].passage_done = false;
 	}
 	// (2026-11-24: the Shipwright guarantees went with the Shipwright; Drop Anchor holds the workbench now)
+	// a draft always offers at least one Drop Anchor (Jared, 2026-11-24): if none rolled, a random page gets it
+	if (ds_list_size(pages_shown) > 0 && !array_contains(_used, "anchor")) pages_shown[| irandom(ds_list_size(pages_shown) - 1)].passage = "anchor";
 }
 
 /// @func page_passage(_page) / page_passage_done(_page) / page_nodes_cleared(_page)

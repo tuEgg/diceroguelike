@@ -78,7 +78,7 @@ if (chosen_event != undefined) {
 		draw_set_font(font_tip());
 		var colored_desc = colorcode_text(_option_desc);
 		global.ui_on_paper = true; // coloured words in their dark inks
-		draw_outline_text(colored_desc, global.ui_col.paper_hi, global.ui_col.ink_soft, 1, xx + padding/2, yy - _h + padding/2 - 1 + _title_h, 1, option_alpha, 0, _w);
+		draw_outline_text(colored_desc, global.ui_col.paper_hi, global.ui_col.ink, 1, xx + padding/2, yy - _h + padding/2 - 1 + _title_h, 1, option_alpha, 0, _w);
 		global.ui_on_paper = false;
 		
 		if (options_hover[| i]) {

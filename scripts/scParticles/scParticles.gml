@@ -48,6 +48,17 @@ function particle_emit( _x, _y, _type, _col, _amount = 30) {
 			p.life = 60;
 		}
 		
+		if (_type == "ghost") {
+			// a pale spirit drifting across the screen (the Dutchman, ghost_sweep_step): big, slow, see-through, level
+			p.x = _x + random_range(-30, 30);
+			p.y = _y + random_range(-30, 30);
+			p.speed = random_range(3, 5.5);
+			p.direction = random_range(-10, 10);
+			p.size = random_range(2.2, 4.2);
+			p.life = 95;
+			p.image_alpha = random_range(0.25, 0.5);
+		}
+
 		if (_type == "constant") {
 			p.x = _x + random_range(-80, 80);
 			p.y = _y + random_range(-80, 80);
@@ -135,6 +146,26 @@ function gain_alignment(_amount, _x = device_mouse_x_to_gui(0), _y = device_mous
 		alignment_popup_col = alignment_colour(_neg > 0 ? 90 : 5);
 		alignment_popup_t = 0;
 	}
+}
+
+/// @func ghost_sweep_start()
+/// @desc The Flying Dutchman sails through you (Jared, 2026-11-24): a wave of pale green spirits crosses the whole screen
+///       left to right over about two and a half seconds (ghost_sweep_step, oRunManager Step). Sounds still to add:
+///       bells chiming, ghostly voices, waves (KANBAN F293).
+function ghost_sweep_start() {
+	global.ghost_sweep = { t: 0, dur: 150 };
+}
+
+/// @func ghost_sweep_step()
+/// @desc oRunManager Step: while a sweep is on, each frame spirits appear in a band that travels across the screen.
+function ghost_sweep_step() {
+	if (!variable_global_exists("ghost_sweep") || !is_struct(global.ghost_sweep)) return;
+	var _g = global.ghost_sweep;
+	var _gw = display_get_gui_width(), _gh = display_get_gui_height();
+	var _x = lerp(-120, _gw + 120, _g.t / _g.dur);
+	repeat (7) particle_emit(_x + random_range(-150, 150), random_range(ui_top_bar_h() + 20, _gh - 20), "ghost", make_color_rgb(150, 235, 185), 1);
+	_g.t++;
+	if (_g.t >= _g.dur) global.ghost_sweep = undefined;
 }
 
 /// @func particle_emit_later(_x, _y, _type, _col, [_amount])

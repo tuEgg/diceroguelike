@@ -1292,7 +1292,13 @@ function win_fight() {
 		}
 			
 		repeat(3 + all_enemies_spared) ds_list_add(reward_scale, 0.1);
-		
+
+		// items on offer grow with the chapter (Jared, 2026-11-24): chapter 1 choose 1 of 2, chapter 2 choose 2 of 3,
+		// chapter 3 choose 2 of 4
+		var _item_ch = clamp(oWorldManager.chapter, 1, 3);
+		reward_item_picks = (_item_ch == 1) ? 1 : 2;
+		var _item_n = _item_ch + 1;
+				
 		if (oWorldManager.current_node_type == NODE_TYPE.ELITE || oWorldManager.current_node_type == NODE_TYPE.BOSS) {
 			// bosses pay out from their own keepsake list
 			var _keepsake_pool = (oWorldManager.current_node_type == NODE_TYPE.BOSS) ? global.boss_keepsake_list : global.rollable_keepsake_list;
@@ -1300,8 +1306,8 @@ function win_fight() {
 			ds_list_add(reward_list, "keepsakes");
 			ds_list_add(reward_list, "dice");
 			// a boss's items are rare cores; an elite's, any items
-			if (oWorldManager.current_node_type == NODE_TYPE.BOSS) generate_item_rewards(reward_consumable_options, global.master_item_list, 3, "core", "rare");
-			else generate_item_rewards(reward_consumable_options, global.master_item_list, 3);
+			if (oWorldManager.current_node_type == NODE_TYPE.BOSS) generate_item_rewards(reward_consumable_options, global.master_item_list, _item_n, "core", "rare");
+			else generate_item_rewards(reward_consumable_options, global.master_item_list, _item_n);
 			ds_list_add(reward_list, "consumables");
 		} else {
 			// Show dice every combat, show consumables at a 40% chance, gaining 10% chance every time they don't appear, losing 10% when they do.
@@ -1322,7 +1328,7 @@ function win_fight() {
 					}
 				}
 				
-				generate_item_rewards(reward_consumable_options, global.master_item_list, num_items);
+				generate_item_rewards(reward_consumable_options, global.master_item_list, _item_n);
 				ds_list_add(reward_list, "consumables");
 				oRunManager.show_consumables_chance = max(10, oRunManager.show_consumables_chance - 30);
 			} else {

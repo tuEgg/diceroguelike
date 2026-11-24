@@ -159,7 +159,7 @@ if (ds_list_size(oRunManager.tools) < 4) {
 		var tool = shop_tool_options[| t];
 		// side by side (2026-11-24: every tool you don't own is on sale), smaller than before
 		tx = tool_pos.x - (_tn - 1) * 75 + t * 150;
-		ty = tool_pos.y - 60;
+		ty = tool_pos.y - 140; // up from -60: the price row under the shadows ran off the bottom (Jared, 2026-11-24)
 		var width = shop_tool_scale[| t] * 110;
 		var height =  shop_tool_scale[| t] * 190;
 		var _price = tool_price();
@@ -189,7 +189,7 @@ if (ds_list_size(oRunManager.tools) < 4) {
 			var _cs = 0.6 * shop_tool_scale[| t];
 			var _coin_w = sprite_get_width(sCoin) * _cs;
 			var _row_w = _coin_w + 8 + string_width(_ps) * shop_tool_scale[| t];
-			var _row_x = tx - _row_w / 2, _row_y = _shadow_y + 44;
+			var _row_x = tx - _row_w / 2, _row_y = _shadow_y + 40;
 			draw_sprite_ext(sCoin, 0, _row_x + _coin_w / 2, _row_y, _cs, _cs, 0, c_white, 1.0);
 			draw_set_halign(fa_left);
 			draw_set_valign(fa_middle);

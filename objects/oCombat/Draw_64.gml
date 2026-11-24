@@ -517,8 +517,10 @@ for (var i = 0; i < aq_list_size; i++) {
 			else if (die_struct.forced_roll != -1) _shown_face = clamp(die_struct.forced_roll, _out.min_roll, _out.max_roll);
 			else if (die_has_faces(die_struct)) _shown_face = die_face_total(die_struct, _out.min_roll, _out.max_roll);
 			var _die_bonus = (die_struct.rolled_value != -1) ? 0 : slot.bonus_amount + (d == 0 ? slot.first_die_bonus : 0) + _out.keepsake_dice_bonus_amount;
-			// a bonus that takes the roll past 6 shows as the total digit (Riptide: an 8, not a 1 and a small +7), no badge
-			if (_shown_face >= 1 && _die_bonus > 0 && _shown_face + _die_bonus > 6) { _shown_face += _die_bonus; _die_bonus = 0; }
+			// the face shows the final total (a bonus that takes it past 6 is a digit), and the badge in the corner says how
+			// it got there: its roll and the bonus, "5+3" under an 8 (Jared, 2026-11-24)
+			var _roll_only = _shown_face;
+			if (_shown_face >= 1 && _die_bonus != 0) _shown_face = max(0, _shown_face + _die_bonus);
 			var _jig = die_jiggle_pose(die_struct); // its effect firing: a punch and a wobble (F40)
 			draw_die(xx_top, yy_top, 17 * this_dice_scale * _jig.scale, die_struct.dice_value, _shown_face, _col, _jig.angle, _acted ? 0.5 : 1, die_struct);
 			
@@ -535,10 +537,11 @@ for (var i = 0; i < aq_list_size; i++) {
 				var _old_halign = draw_get_halign(); // put the alignment back after, the rolled number below relies on it
 				var _old_valign = draw_get_valign();
 				draw_set_font(ftSmall);
-				draw_set_halign(fa_center);
+				draw_set_halign(fa_right);
 				draw_set_valign(fa_middle);
 				var _badge_col = _die_bonus > 0 ? c_lime : c_red;
-				draw_outline_text((_die_bonus > 0 ? "+" : "") + string(_die_bonus), c_black, _badge_col, 2, xx_top + 15, yy_top + 14, this_dice_scale, 1, 0);
+				var _badge_txt = ((_roll_only >= 1) ? string(_roll_only) : "") + ((_die_bonus > 0) ? "+" : "") + string(_die_bonus);
+				draw_outline_text(_badge_txt, c_black, _badge_col, 2, xx_top + 23 * this_dice_scale, yy_top + 15 * this_dice_scale, this_dice_scale, 1, 0);
 				draw_set_halign(_old_halign);
 				draw_set_valign(_old_valign);
 			}
@@ -1129,8 +1132,8 @@ if (show_rewards) {
 			draw_set_font(ftDefault);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
-			draw_outline_text("Choose one keepsake", c_black, c_white, 2, gui_w/2, _kc_cy - _kc_h / 2 - 40, 1, 1, 0);
-			reward_pick_pips(gui_w / 2, _kc_cy - _kc_h / 2 - 12, 1, rewards_keepsake_taken ? 1 : 0, max(0, _kc_n - 1));
+			draw_outline_text("Choose one keepsake", c_black, c_white, 2, gui_w/2, _kc_cy - _kc_h / 2 - 90, 1, 1, 0);
+			reward_pick_pips(gui_w / 2, _kc_cy - _kc_h / 2 - 58, 1, rewards_keepsake_taken ? 1 : 0);
 			reward_keepsake_reveal_t++;
 
 			for (var r = 0; r < _kc_n; r++) {
@@ -1165,8 +1168,8 @@ if (show_rewards) {
 			draw_set_font(ftDefault);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
-			draw_outline_text("Choose one die", c_black, c_white, 2, gui_w/2, _rc_cy - _rc_h / 2 - 40, 1, 1, 0);
-			reward_pick_pips(gui_w / 2, _rc_cy - _rc_h / 2 - 12, 1, rewards_dice_taken ? 1 : 0, max(0, ds_list_size(reward_dice_options) - 1));
+			draw_outline_text("Choose one die", c_black, c_white, 2, gui_w/2, _rc_cy - _rc_h / 2 - 90, 1, 1, 0);
+			reward_pick_pips(gui_w / 2, _rc_cy - _rc_h / 2 - 58, 1, rewards_dice_taken ? 1 : 0);
 
 			// dealt face down, then each flips in turn and flashes its rarity (F145); a card can't be taken until it's turned
 			reward_reveal_t++;
@@ -1204,7 +1207,7 @@ if (show_rewards) {
 		
 		case "consumables":
 			// the items on offer as paper cards in the dice rewards' design (draw_item_card, Jared 2026-11-21): dealt face
-			// down, then flipped in turn; take two (the first pick locks one of the others away)
+			// down, then flipped in turn; take one or two by chapter (the first pick locks one of the others away)
 			var _ic_w = 280, _ic_gap = 40;
 			var _ic_n = ds_list_size(reward_consumable_options);
 			var _ic_h = 150;
@@ -1213,8 +1216,8 @@ if (show_rewards) {
 			draw_set_font(ftDefault);
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
-			draw_outline_text("Choose two items", c_black, c_white, 2, gui_w/2, _ic_cy - _ic_h / 2 - 40, 1, 1, 0);
-			reward_pick_pips(gui_w / 2, _ic_cy - _ic_h / 2 - 12, 2, ((rewards_consumables_first_taken != -1) ? 1 : 0) + (rewards_consumables_second_taken ? 1 : 0), max(0, _ic_n - 2));
+			draw_outline_text((reward_item_picks <= 1) ? "Choose one item" : "Choose two items", c_black, c_white, 2, gui_w/2, _ic_cy - _ic_h / 2 - 90, 1, 1, 0);
+			reward_pick_pips(gui_w / 2, _ic_cy - _ic_h / 2 - 58, reward_item_picks, ((rewards_consumables_first_taken != -1) ? 1 : 0) + ((reward_item_picks > 1 && rewards_consumables_second_taken) ? 1 : 0));
 			reward_item_reveal_t++;
 
 			for (var r = 0; r < _ic_n; r++) {
@@ -1301,6 +1304,9 @@ if (show_rewards) {
 			    }
 			}
 				
+			// one pick only (chapter 1): taking it closes the rest
+			if (reward_item_picks <= 1 && rewards_consumables_first_taken != -1) rewards_consumables_second_taken = true;
+
 			// After taking the first consumable reward
 			if (rewards_consumables_first_taken != -1) {
 				

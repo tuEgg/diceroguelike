@@ -1,5 +1,6 @@
 // the map over a fight, view only (the top bar's map icon): above the fight, under the bag and the pause menu
 map_peek_draw();
+item_delete_popup_draw(); // the item bar's delete popup, above everything under it
 
 // frames the dice picker has been open (its opening click must not pick a die): counted every frame, so it resets while closed
 dice_selection_age = (dice_selection != false) ? dice_selection_age + 1 : 0;

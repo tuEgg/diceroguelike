@@ -815,9 +815,7 @@
 					}
 				}
 				
-				for (var i = 300; i < room_width - 300; i++) {
-					particle_emit(i, display_get_gui_height() - irandom(30), "rise", make_color_rgb(70, 180, 110), 1);
-				}
+				ghost_sweep_start(); // a wave of spirits crosses the screen (it was a row of particles at the bottom, laid out by room_width so it sat to the right, and made while drawing)
 				
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;

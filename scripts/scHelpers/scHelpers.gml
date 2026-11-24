@@ -2417,6 +2417,74 @@ function map_peek_draw() {
 	if (_close.click) { global.map_peek = false; global.ui_layer = UI_LAYER.BASE; }
 }
 
+/// @func item_delete_popup_draw()
+/// @desc The "Delete this item?" popup of an item in the top bar (right click it), drawn in oRunManager Draw GUI End so it
+///       sits above everything (the rewards screen darkens the room under the top bar's drop-down). Moved out of the item
+///       bar's loop in oRunManager Draw GUI; the item stores where its icon was (popup_x, popup_y).
+function item_delete_popup_draw() {
+	if (!instance_exists(oRunManager) || global.ui_layer != UI_LAYER.BASE) return;
+	with (oRunManager) {
+		for (var i = 0; i < array_length(items); i++) {
+			if (items[i] == undefined || !items[i].show_item_delete_confirmation || !variable_struct_exists(items[i], "popup_x")) continue;
+			var sprite_x = items[i].popup_x, sprite_y = items[i].popup_y;
+				{
+					var padding = 15;
+					
+					draw_set_font(ftDefault);
+					var _width = string_width_ext("Delete this item?", -1, 140) + (padding*2);
+					var _height = string_height_ext("Delete this item?", font_get_size(draw_get_font()) * 1.5, 140) + (padding*1.5);
+					
+					var xx = sprite_x - _width - 30;
+					var yy = sprite_y + 30;
+					
+					draw_set_alpha(0.8);
+				    draw_set_color(c_black);
+				    draw_roundrect(xx - 2, yy - 2, xx + _width + 2, yy + _height + 2, false);
+				    draw_set_color(global.color_bg);
+				    draw_roundrect(xx, yy, xx + _width, yy + _height, false);
+				    draw_set_alpha(1);
+					
+					draw_set_font(ftDefault);
+					draw_set_halign(fa_left);
+					draw_set_valign(fa_top);
+					draw_outline_text("Delete this item?", c_black, c_white, 2, xx + padding, yy + padding, 1, 1, 0, _width - (padding*2));
+					
+					var btn_x = xx + _width;
+					var btn_y = yy + _height;
+					
+					var confirm_hover = mouse_hovering(btn_x, btn_y, _width, _height, true);
+					
+					items[i].item_delete_confirmation_scale = lerp(items[i].item_delete_confirmation_scale, confirm_hover ? 1.2 : 1.0, 0.2);
+					
+					if (!items_hover[i] && !confirm_hover) {
+						if (mouse_check_button_pressed(mb_left) || mouse_check_button_pressed(mb_right)) {
+							items[i].show_item_delete_confirmation = false;
+						}
+					}
+					
+					draw_sprite_ext(sButtonSmall, 0, btn_x, btn_y, items[i].item_delete_confirmation_scale * 0.5, items[i].item_delete_confirmation_scale * 0.5, 0, c_white, 1.0);
+					draw_sprite_ext(sButtonSmall, 0, btn_x, btn_y, items[i].item_delete_confirmation_progress/30, items[i].item_delete_confirmation_scale * 0.5, 0, c_red, 1.0);
+					draw_set_font(ftDefault);
+					draw_set_halign(fa_center);
+					draw_set_valign(fa_middle);
+					draw_outline_text("Delete", c_black, c_white, 2, btn_x, btn_y, items[i].item_delete_confirmation_scale, 1, 0);
+					
+					if (confirm_hover && mouse_check_button(mb_left)) {
+						items[i].item_delete_confirmation_progress++;
+					} else {
+						items[i].item_delete_confirmation_progress = 0;
+					}
+					
+					if (items[i].item_delete_confirmation_progress >= game_get_speed(gamespeed_fps) * 0.3) {
+						items[i] = undefined;
+						holding_item = false;
+					}
+				}
+				
+		}
+	}
+}
+
 /// @func draw_map_icon(_x, _y, _r)
 /// @desc The top bar's map icon, drawn in code beside the cog: a folded chart with a dotted course and a cross. _r its half size.
 function draw_map_icon(_x, _y, _r) {

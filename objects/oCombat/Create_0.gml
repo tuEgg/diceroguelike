@@ -222,6 +222,7 @@ player_death_t = -1;             // when you went down (lose_run): the ship keel
 reward_reveal_t = 0;
 reward_keepsake_reveal_t = 0; // and the keepsake rewards (cards too, 2026-11-22)
 reward_item_reveal_t = 0; // the same for the item rewards (they get the dice rewards' card design)// frames the dice rewards have been on show: they're dealt face down and flip one by one (F145)
+reward_item_picks = 2; // how many of the item rewards you may take: 1 in chapter 1, else 2 (win_fight)
 rewards_consumables_first_taken = -1;
 rewards_consumables_second_taken = false;
 rewards_consumables_locked = -1;

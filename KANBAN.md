@@ -30,6 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 52: playtest feedback 4 (pre-0.3) | F293-F299 | `dev` | **Not yet play-tested.** The total on a die's face with roll+bonus in the corner, the Dutchman's ghosts, items by chapter, a Drop Anchor in every draft, and small fixes. |
 | 51: playtest feedback 3 (pre-0.3) | F287-F292 | `dev` | **Not yet play-tested.** Simpler alignment cores, Bind and Rot shown on the place itself, a stone sound for gaining a core, tidier shop tools, link badge at the top, the drill's notes stacked. |
 | 50: playtest feedback 2 (Mac, 2026-11-24) | B175-B178, F279-F286 | `dev` | **Not yet play-tested.** Overwhelm drains 6 ink as a move, digits above 6 on dice, Conch shell fixed, steadier queue, workbench look and tool hints, map icon toggles, ship rocking fixed, Lucky Coin reverted, touch and controller plan. |
 | 49: seeded fights, cheaper ink | F277, F278 | `dev` | **Not yet play-tested.** A fight is seeded from its node, so quitting and continuing replays the same hand and the same rolls; moving a marker costs 3; Reveal always costs 1. |
@@ -46,6 +47,15 @@
 | 38: fixes after batch 37 | B164, B165, F250 | `dev` | **Not yet play-tested.** Anchor icon the right way up; slot number is the full total; Tattooist anchor +2 min roll. |
 | 37: map and economy (design brief 2026-11-24) | F244, F245, F246, F247, F248, F249 | `dev` | **Not yet play-tested.** Sea stops are Drop Anchor, sea events, the wreck or Flotsam; island and sea events split; workbench actions and the Bin; tools in every shop; 2-of-4 drafting; a chapter pool for stops; bounty help. |
 | 36: content pass | F242 | `dev` | **Not yet play-tested.** Free value repriced, rares lifted, healing on triggers, shop keepsakes, core-shape payoffs, 22 new dice and keepsakes for the seven archetypes (\`docs/design/content-pass.md\`). |
+
+**Batch 52 test list (playtest feedback 4)**
+- F293 A die with a bonus, in hand or in a slot: its face shows the final total (pips up to 6, a digit above) and the bottom right says how it got there, "5+3" under an 8 (a negative one reads "5-2" under a 3). Resolved dice show what they did, no badge. **Sounds to add for the Dutchman (Jared): bells chiming, ghostly voices, waves**; the visual is `ghost_sweep_start` (scParticles).
+- F294 The Flying Dutchman, "Let the Dutchman sail through you": a wave of pale green, see-through spirits crosses the whole screen left to right over about 2.5 s (it was a row at the bottom, laid out by room_width so it sat to the right, and made while drawing).
+- F295 The map's sea stop that said "Open water" now says "Event".
+- F296 The shop's tools are higher (their prices under the shadows no longer run off the bottom).
+- F297 Item rewards by chapter (every fight, elites and bosses too): chapter 1 choose one of 2 (one pip), chapter 2 choose two of 3, chapter 3 choose two of 4. The "Choose..." line and its pips are higher, with one circle per pick and nothing crossed out; dice and keepsake pages moved up the same way. Check the first pick still burns another card, and that with one pick the rest close at once.
+- F298 Right-click an item in the top bar during the rewards: the "Delete this item?" popup is above the dark rewards screen (it now draws in Draw GUI End). Check it still deletes after holding Delete, and closes on a click elsewhere, in a shop, the workbench and a fight.
+- F299 Every draft of four pages offers at least one Drop Anchor. Event option text is darker (ink, not soft ink).
 
 **Batch 51 test list (playtest feedback 3)**
 - F287 The two alignment cores, the same in each direction (distance from neutral 50). **Compass Core**: "The further your alignment is from neutral, the more it rolls its lowest and highest." Even at neutral, full strength at 25 and 75. **Lodestone Core**: "Neutral alignment: only its lowest. Either extreme: only its highest. Even at 25 and 75." Test with the F1 alignment buttons: 50 (all 1s), 25 and 75 (even), 0 and 100 (all max), 38 in between. The bars on the card and the workbench follow live. (Cores you already hold keep their names; descriptions are new.)

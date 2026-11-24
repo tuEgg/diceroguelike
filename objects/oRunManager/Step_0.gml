@@ -4,6 +4,7 @@ if (!paused && run_over == undefined && room != rmMainMenu) run_stat_add("play_t
 
 // juice: queued particle bursts are made here (not in Draw GUI); the screen shake eases off
 particles_flush();
+ghost_sweep_step(); // the Dutchman's spirits, if he is passing
 if (variable_global_exists("shake")) global.shake = (global.shake < 0.4) ? 0 : global.shake * 0.82;
 
 // coins: spending jingles once; gold coming in is a trickle, a quiet clink for each coin as it lands, at most one every
