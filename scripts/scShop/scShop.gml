@@ -63,10 +63,8 @@ function roll_shop_stock() {
 	for (var i = 0; i < ds_list_size(_list); i++) array_push(_stock.keepsakes, _list[| i]._id);
 	ds_list_clear(_list);
 	
-	if (ds_list_size(global.master_tool_list) > 0) {
-		generate_tool_rewards(_list, global.master_tool_list, SHOP_NUM_TOOLS);
-		for (var i = 0; i < ds_list_size(_list); i++) array_push(_stock.tools, _list[| i].name);
-	}
+	// every tool you don't own yet (2026-11-24), at the escalating price (tool_price)
+	for (var i = 0; i < ds_list_size(global.master_tool_list); i++) array_push(_stock.tools, global.master_tool_list[| i].name);
 	
 	ds_list_destroy(_list);
 	return _stock;

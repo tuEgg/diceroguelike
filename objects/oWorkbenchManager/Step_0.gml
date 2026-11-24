@@ -148,8 +148,8 @@ if (_input && wb_held == undefined && mouse_check_button_pressed(mb_left)) {
 		var _t = wb_tools[i];
 		var _b = wb_tool_box(_t);
 		if (_mx < _b.x1 || _mx > _b.x2 || _my < _b.y1 || _my > _b.y2) continue;
-		if (_t.used) {
-			throw_error("Used", "Each tool works once per visit.");
+		if (actions_left <= 0) {
+			throw_error("No actions left", "Each visit gives 2.");
 		} else {
 			wb_held = { kind: "tool", ref: _t, ox: _t.hx - _mx, oy: _t.hy - _my };
 			_t.returning = false;
@@ -207,6 +207,9 @@ if (is_struct(wb_held) && !mouse_check_button(mb_left)) {
 				else if (_tg.pair != undefined) _job = { kind: "hammer_fail", pair: _tg.pair, die: undefined, text: _tg.text };
 				else if (_t.hx > table.x1 && _t.hx < table.x2 && _t.hy > table.y1 && _t.hy < table.y2) _job = { kind: "miss", pair: undefined, die: wb_die_at(_t.hx, _t.hy, undefined, 70), text: "" };
 				break;
+			case "bin":
+				if (_tg.ok) _job = { kind: "bin", die: _tg.die };
+				break;
 			default:
 				if (_tg.ok) _job = { kind: "cut", die: _tg.die };
 				else if (_tg.die != undefined) { float_text(_t.hx, _t.hy - 80, _tg.text, c_white); _t.wob = 1; }
@@ -263,7 +266,7 @@ if (is_struct(wb_job)) {
 				sfx_play(soShieldLight1, AUDIO_GROUP.SFX, 0.1, 0.8);
 				_t.core = undefined;
 				_t.core_slot = -1;
-				array_push(tools_used, oDrill); // the Drill works again, as long as you have cores (F237): it's never marked used
+				workbench_tool_used(oDrill); // an action spent
 			} else {
 				_t.hy -= 4; // lifts off
 				_t.frame = 0;
@@ -345,6 +348,29 @@ if (is_struct(wb_job)) {
 				}
 			}
 			if (_jt >= 30) { _t.returning = true; wb_job = undefined; }
+			break;
+
+		case "bin":
+			// over the die; it shrinks into the bin with a clang and a puff, and it's gone for good
+			var _d = _j.die;
+			if (_jt < 10) {
+				var _e = 1 - power(1 - _jt / 10, 3);
+				_t.hx = lerp(_j.x0, _d.x, _e);
+				_t.hy = lerp(_j.y0, _d.y, _e);
+			} else if (_jt < 22) {
+				_t.hx = _d.x; _t.hy = _d.y;
+				_d.scale = lerp(_d.scale, 0, 0.3);
+				_d.sv = 0;
+				_d.rot += 25;
+			} else if (_jt == 22) {
+				particle_emit(_d.x, _d.y, "burst", global.ui_col.paper_shade, 16);
+				screen_shake(5);
+				sfx_play(soShieldLight2, AUDIO_GROUP.SFX, 0.1, 0.8); // until there's a bin sound
+				float_text(_d.x, _d.y - 80, "Gone", c_white);
+				wb_remove_die(_d); // it was taken out of the bag when it came to the bench: it's gone for good
+				workbench_tool_used(noone);
+				_t.wob = 1;
+			} else if (_jt >= 30) { _t.returning = true; wb_job = undefined; }
 			break;
 
 		case "cut":

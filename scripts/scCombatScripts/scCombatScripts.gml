@@ -2248,7 +2248,7 @@ function tips_list() {
 		},
 		{
 			id: "workbench", room: rmWorkbench, target: "wb_rack",
-			text: "Drag a tool onto your dice. The Hammer and Cutters work once per visit.",
+			text: "Drag a tool onto your dice. Each visit gives 2 actions.",
 			when: function() { return instance_exists(oWorkbenchManager) && array_length(oWorkbenchManager.wb_dice) > 0 && oRunManager.dice_selection == false; },
 			done: function() { return instance_exists(oWorkbenchManager) && array_length(oWorkbenchManager.tools_used) > 0; },
 		},
@@ -2650,7 +2650,7 @@ function workbench_take_die(_die) {
 function workbench_drill_waits() {
 	if (!instance_exists(oWorkbenchManager)) return false;
 	var _t = oWorkbenchManager.wb_tool_of(oDrill);
-	if (_t == undefined || _t.used || _t.core != undefined) return false;
+	if (_t == undefined || oWorkbenchManager.actions_left <= 0 || _t.core != undefined) return false;
 	for (var i = 0; i < array_length(oRunManager.items); i++) {
 		var _it = oRunManager.items[i];
 		if (is_struct(_it) && variable_struct_exists(_it, "type") && _it.type == "core") return true;
@@ -2665,8 +2665,7 @@ function workbench_tool_used(_object) {
 	if (progress_get("workbench_hints_done") != true) progress_set("workbench_hints_done", true);
 	with (oWorkbenchManager) {
 		array_push(tools_used, _object);
-		var _t = wb_tool_of(_object);
-		if (_t != undefined) _t.used = true;
+		actions_left = max(0, actions_left - 1); // 2026-11-24: actions, not "used" tools
 	}
 }
 

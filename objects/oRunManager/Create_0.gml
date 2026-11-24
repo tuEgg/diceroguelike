@@ -271,7 +271,19 @@ tool_scissors = {
 	object: oScissors
 }
 
-ds_list_add(tools, tool_drill); // a run starts with only the Drill; the Hammer and Cutters are bought in shops (master_tool_list)
+// the Bin (2026-11-24): throws a die out of your bag for good. Drawn in code (draw_bin_icon) until Jared's sprite
+tool_bin = {
+	name: "The Bin",
+	desc: "Remove a die from your bag.",
+	index: -1, // no silhouette frame: drawn in code
+	sprite: -1,
+	price: 100,
+	object: noone,
+	kind: "bin"
+}
+tools_bought = 0; // tools bought in shops this run: the next costs 100, 150, 200 (tool_price; saved)
+
+ds_list_add(tools, tool_drill); // a run starts with only the Drill; the Hammer, Cutters and Bin are bought in shops (master_tool_list)
 
 tools_scale = ds_list_create();
 ds_list_add(tools_scale, 0.5);
@@ -282,6 +294,7 @@ toolbag_scale = 1.0;
 global.master_tool_list = ds_list_create();
 ds_list_add(global.master_tool_list, tool_hammer);
 ds_list_add(global.master_tool_list, tool_scissors);
+ds_list_add(global.master_tool_list, tool_bin);
 
 bag_clip_surf = -1;    // the bag view's cards, cut to its panel (Draw GUI End, F157)
 ink_scene = -1;        // the log's ink look (F118): the frame drawn into a surface while the log is open (Draw GUI Begin)

@@ -64,6 +64,24 @@ draw_set_color(c_black);
 draw_set_alpha(0.35);
 for (var _yy = rack.y1 + 30; _yy < rack.y2 - 10; _yy += 40) for (var _xx = rack.x1 + 25; _xx < rack.x2 - 10; _xx += 40) draw_circle(_xx, _yy, 4, false);
 draw_set_alpha(1);
+// the visit's actions: 2 pips over the rack, filled while left (2026-11-24)
+var _pcx = (rack.x1 + rack.x2) / 2, _pcy = rack.y1 - 34;
+draw_set_font(ftDescriptions);
+draw_set_halign(fa_center);
+draw_set_valign(fa_middle);
+draw_outline_text("Actions", global.ui_col.paper_hi, global.ui_col.ink, 2, _pcx - 70, _pcy, 1, 1, 0);
+for (var p = 0; p < 2; p++) {
+	var _px = _pcx + 10 + p * 40;
+	var _full = p < actions_left;
+	draw_set_color(global.ui_col.ink);
+	draw_circle(_px, _pcy, 14, false);
+	draw_set_color(_full ? global.ui_col.brass : make_color_rgb(70, 52, 36));
+	draw_circle(_px, _pcy, 11, false);
+	if (_full) {
+		draw_set_color(merge_colour(global.ui_col.brass, c_white, 0.4));
+		draw_circle(_px - 3, _pcy - 3, 4, false);
+	}
+}
 for (var i = 0; i < array_length(wb_tools); i++) {
 	var _t = wb_tools[i];
 	var _hb = wb_tool_box({ kind: _t.kind, hx: _t.home_x, hy: _t.home_y, ang: 0 });
@@ -127,7 +145,9 @@ for (var i = 0; i < array_length(wb_tools); i++) {
 		draw_ellipse(_t.hx - 46, _t.hy + 18 - 10, _t.hx + 46, _t.hy + 18 + 10, false);
 		draw_set_alpha(1);
 	}
-	draw_sprite_ext(_t.sprite, _t.frame, _o.x, _o.y, _k, _k, _ang, _t.used ? c_gray : c_white, _t.used ? 0.6 : 1);
+	var _rest = actions_left <= 0 && !is_struct(wb_job); // out of actions: the tools rest, greyed
+	if (_t.sprite >= 0) draw_sprite_ext(_t.sprite, _t.frame, _o.x, _o.y, _k, _k, _ang, _rest ? c_gray : c_white, _rest ? 0.6 : 1);
+	else draw_bin_icon(_o.x, _o.y, (1 + 0.06 * _t.lift), _rest ? 0.6 : 1, _rest ? c_gray : c_white);
 	// the drill's chuck: a loaded core glows in it; while you carry a core, an empty chuck shows where it goes
 	if (_t.kind == "drill") {
 		var _s = wb_socket(_t);
@@ -138,7 +158,7 @@ for (var i = 0; i < array_length(wb_tools); i++) {
 			draw_circle(_s.x, _s.y, 26 + 4 * _gl, false);
 			draw_set_alpha(1);
 			draw_sprite_ext(sCores, _t.core.index, _s.x, _s.y, 0.6, 0.6, 0, c_white, 1);
-		} else if (_core_dragged && !_t.used) {
+		} else if (_core_dragged) {
 			var _pl = 0.5 + 0.5 * sin(current_time / 120);
 			draw_set_color(global.ui_col.brass);
 			draw_set_alpha(0.5 + 0.5 * _pl);
@@ -146,26 +166,18 @@ for (var i = 0; i < array_length(wb_tools); i++) {
 			draw_set_alpha(1);
 		}
 	}
-	// a used tool wears a paper tag
-	if (_t.used && !_t.returning) {
-		var _b = wb_tool_box(_t);
-		var _gx = (_b.x1 + _b.x2) / 2, _gy = (_b.y1 + _b.y2) / 2;
-		draw_set_color(global.ui_col.ink);
-		draw_line_width(_gx, _gy - 30, _gx + 10, _gy - 4, 2);
-		ui_paper(_gx - 38, _gy - 6, _gx + 58, _gy + 30, 11 + i);
-		draw_set_font(ftDescriptions);
-		draw_set_halign(fa_center);
-		draw_set_valign(fa_middle);
-		draw_set_color(global.ui_col.ink);
-		draw_text(_gx + 10, _gy + 12, "Used");
-	}
+
 	// hover: what it does (or that it's used)
 	if (_input && wb_held == undefined) {
 		var _b = wb_tool_box(_t);
 		if (_mx > _b.x1 && _mx < _b.x2 && _my > _b.y1 && _my < _b.y2) {
-			var _what = (_t.kind == "drill") ? "Drill a core into a die." : ((_t.kind == "hammer") ? "Combine two dice of the same type." : "Cut a die down and get a coin.");
-			if (_t.kind == "drill" && _t.core != undefined && !_t.used) _what = "Loaded: " + string(_t.core.name) + ".\nDrill it into a die.";
-			queue_tooltip(_mx, _my, _t.name + (_t.used ? " (used)" : ""), _t.used ? "Once per visit." : _what);
+			var _what = "Cut a die down and get a coin.";
+			switch (_t.kind) {
+				case "drill": _what = (_t.core != undefined) ? "Loaded: " + string(_t.core.name) + ".\nDrill it into a die." : "Drill a core into a die."; break;
+				case "hammer": _what = "Combine two dice of the same type."; break;
+				case "bin": _what = "Remove a die from your bag."; break;
+			}
+			queue_tooltip(_mx, _my, _t.name, (actions_left <= 0) ? "No actions left." : _what);
 		}
 	}
 }

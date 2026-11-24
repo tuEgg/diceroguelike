@@ -153,11 +153,16 @@ for (var k = 0; k < ds_list_size(shop_keepsake_options); k++) {
 	kx += 130;
 }
 
-if (ds_list_size(oRunManager.tools) < 3) {
-	for (var t = 0; t < ds_list_size(shop_tool_options); t++) {
+if (ds_list_size(oRunManager.tools) < 4) {
+	var _tn = ds_list_size(shop_tool_options);
+	for (var t = 0; t < _tn; t++) {
 		var tool = shop_tool_options[| t];
-		var width = shop_tool_scale[| t] * sprite_get_width(sHammer) * 0.5;
-		var height =  shop_tool_scale[| t] * sprite_get_height(sHammer) * 0.5;
+		// side by side (2026-11-24: every tool you don't own is on sale), smaller than before
+		tx = tool_pos.x - (_tn - 1) * 75 + t * 150;
+		ty = tool_pos.y - 60;
+		var width = shop_tool_scale[| t] * 110;
+		var height =  shop_tool_scale[| t] * 190;
+		var _price = tool_price();
 	
 		if (tool != undefined) {
 			var hover_tool = mouse_hovering(tx, ty, width, height, true);
@@ -165,23 +170,26 @@ if (ds_list_size(oRunManager.tools) < 3) {
 	
 			draw_set_alpha(0.4);
 			draw_set_color(c_black);
-			draw_ellipse(tx - sprite_get_width(sHammer)/2, ty + sprite_get_height(sHammer)/2 - 15, tx + sprite_get_width(sHammer)/2, ty + sprite_get_height(sHammer)/2 - 3, false);
-			draw_sprite_ext(tool.sprite, 0, tx, ty, shop_tool_scale[| t] * 0.5, shop_tool_scale[| t] * 0.5, 0, c_white, 1.0);
+			draw_ellipse(tx - 55, ty + 85, tx + 55, ty + 100, false);
+			draw_set_alpha(1);
+			if (tool.sprite >= 0) draw_sprite_ext(tool.sprite, 0, tx, ty, shop_tool_scale[| t] * 0.28, shop_tool_scale[| t] * 0.28, 0, c_white, 1.0);
+			else draw_bin_icon(tx, ty, shop_tool_scale[| t] * 0.8, 1); // the Bin, drawn in code
 	
 			// Draw cost
 			draw_sprite_ext(sCoin, 0, tx + coin_offset_x, ty + coin_offset_y, shop_tool_scale[| t] * coin_scale, shop_tool_scale[| t] * coin_scale, 0, c_white, 1.0);
 			draw_set_halign(fa_left);
 			draw_set_valign(fa_middle);
 			draw_set_font(ftBig);
-			var cost_col = tool.price > oRunManager.credits ? c_red : c_white;
-			draw_outline_text(tool.price, c_black, cost_col, 2, tx, ty + coin_offset_y, shop_tool_scale[| t], 1.0, 0);
+			var cost_col = _price > oRunManager.credits ? c_red : c_white;
+			draw_outline_text(_price, c_black, cost_col, 2, tx, ty + coin_offset_y - 50, shop_tool_scale[| t], 1.0, 0);
 	
 			if (hover_tool) {
-				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc, undefined, 0, undefined, tool.price, "gold");
+				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc, undefined, 0, undefined, _price, "gold");
 		
-				if (mouse_check_button_pressed(mb_left) && oRunManager.credits < tool.price) throw_error("Not enough gold", "You need " + string(tool.price - oRunManager.credits) + " more gold.");
-				if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= tool.price) {
-					oRunManager.credits -= tool.price;
+				if (mouse_check_button_pressed(mb_left) && oRunManager.credits < _price) throw_error("Not enough gold", "You need " + string(_price - oRunManager.credits) + " more gold.");
+				if (mouse_check_button_pressed(mb_left) && oRunManager.credits >= _price) {
+					oRunManager.credits -= _price;
+					oRunManager.tools_bought++; // the next one costs 50 more (tool_price)
 				
 					ds_list_add(oRunManager.tools, tool);
 					ds_list_add(oRunManager.tools_scale, 0.5);

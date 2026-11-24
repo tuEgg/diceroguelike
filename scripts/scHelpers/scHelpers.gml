@@ -1415,10 +1415,42 @@ function deserialise_die(_data) {
     return _die;
 }
 
+/// @func tool_price()
+/// @desc What the next tool costs in a shop (2026-11-24): 100, then 150, then 200, by how many you've bought.
+function tool_price() {
+	return 100 + 50 * clamp(oRunManager.tools_bought, 0, 2);
+}
+
+/// @func draw_bin_icon(_x, _y, _scale, _alpha, _col)
+/// @desc The Bin, drawn in code until Jared's sprite: a tapered bucket, its lid line, ribs and a handle. Centred on _x, _y,
+///       about 90 x 100 px at scale 1.
+function draw_bin_icon(_x, _y, _scale = 1, _alpha = 1, _col = c_white) {
+	var _s = _scale;
+	var _ink = global.ui_col.ink;
+	var _body = merge_colour(make_color_rgb(150, 112, 74), _col, (_col == c_white) ? 0 : 0.5);
+	draw_set_alpha(_alpha);
+	// the body: a trapezoid, wider at the top
+	draw_set_color(_ink);
+	draw_triangle(_x - 40 * _s, _y - 34 * _s, _x + 40 * _s, _y - 34 * _s, _x - 30 * _s, _y + 46 * _s, false);
+	draw_triangle(_x + 40 * _s, _y - 34 * _s, _x + 30 * _s, _y + 46 * _s, _x - 30 * _s, _y + 46 * _s, false);
+	draw_set_color(_body);
+	draw_triangle(_x - 36 * _s, _y - 31 * _s, _x + 36 * _s, _y - 31 * _s, _x - 27 * _s, _y + 43 * _s, false);
+	draw_triangle(_x + 36 * _s, _y - 31 * _s, _x + 27 * _s, _y + 43 * _s, _x - 27 * _s, _y + 43 * _s, false);
+	// ribs
+	draw_set_color(_ink);
+	for (var r = -1; r <= 1; r++) draw_line_width(_x + r * 15 * _s, _y - 26 * _s, _x + r * 12 * _s, _y + 38 * _s, 2.5 * _s);
+	// the rim and the handle
+	draw_roundrect_ext(_x - 46 * _s, _y - 44 * _s, _x + 46 * _s, _y - 32 * _s, 6, 6, false);
+	draw_arc_thick_deg(_x, _y - 44 * _s, 10 * _s, 14 * _s, 0, 180, 10);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
 function get_tool_by_name(_name) {
     if (_name == "The Hammer") return tool_hammer;
     if (_name == "The Drill") return tool_drill;
     if (_name == "The Cutters") return tool_scissors;
+    if (_name == "The Bin") return tool_bin;
     return undefined;
 }
 

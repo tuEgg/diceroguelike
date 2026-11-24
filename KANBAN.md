@@ -35,6 +35,8 @@
 
 **Batch 37 test list (map and economy)**
 - F244 Sea stops (each page's) are now Drop Anchor (an anchor), Open water (a sea event, "?"), the wreck or Flotsam; no more Calm water, Squall, Whetstone reef or Shipwright's buoy. Drop Anchor: sail there and two buttons appear over it: Rest (+N HP) or Workbench (greyed if no tool has work). Open water opens an event from the sea pool. The harbour before the boss reads "Drop Anchor: rest / workbench". Old saves with the old stops still work.
+- F246 Workbench: two brass action pips over the rack ("Actions"). Each successful use of any tool spends one: drill twice, or drill and hammer, and so on (misses are free; loading a core is free). With none left the tools grey out and say "No actions left." The "Used" tag is gone. New tool, the Bin (drawn in code for now, a bucket): drag it onto a die and the die shrinks into it, "Gone": removed from your bag for good.
+- F247 Shops show every tool you don't own (Hammer, Cutters, Bin) side by side, all at the same price: 100 for your first, 150 for the second, 200 for the third. Saved with the run.
 - F245 Events: sea events (A Great Storm, Clear skies, Broken sails, A bird flies aboard, The Flying Dutchman, Rough tides, The constellation, The Siren's Call, A floating crate) only at sea; the other nine only on islands.
 
 **Batch 36 test list (content pass)** F1 gives dice and keepsakes; every change is in \`docs/design/content-pass.md\`.

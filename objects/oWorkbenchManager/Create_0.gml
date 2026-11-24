@@ -15,6 +15,7 @@ wb_job = undefined;      // a tool at work (an animation that ends in the craft)
 wb_scuffs = [];          // marks the hammer left on the table: { x, y, r, a }
 wb_rings = [];           // rings that spread from a craft: { x, y, col, t }
 wb_tool_k = 0.42;        // the tools' sprites are big; drawn at this scale
+actions_left = 2;         // each visit gives 2 actions; every successful use of a tool spends one (2026-11-24)
 tools_used = [];         // tool objects used this visit (the Hammer and Cutters work once per visit; the Drill any number of times)
 exiting = false;
 wb_target = undefined;   // what the tool in hand would do where it is (wb_tool_target), for the hover text and rings
@@ -24,10 +25,15 @@ wb_target = undefined;   // what the tool in hand would do where it is (wb_tool_
 wb_tools = [];
 for (var i = 0; i < ds_list_size(oRunManager.tools); i++) {
 	var _tl = oRunManager.tools[| i];
-	var _kind = (_tl.object == oDrill) ? "drill" : ((_tl.object == oHammer) ? "hammer" : "cutters");
-	var _home = (_kind == "drill") ? [1660, 560] : ((_kind == "hammer") ? [1800, 330] : [1730, 760]);
+	var _kind = variable_struct_exists(_tl, "kind") ? _tl.kind : ((_tl.object == oDrill) ? "drill" : ((_tl.object == oHammer) ? "hammer" : "cutters"));
+	var _home = [1660, 560];
+	switch (_kind) {
+		case "hammer": _home = [1800, 330]; break;
+		case "cutters": _home = [1770, 760]; break;
+		case "bin": _home = [1640, 800]; break;
+	}
 	array_push(wb_tools, {
-		kind: _kind, object: _tl.object, name: _tl.name, sprite: object_get_sprite(_tl.object),
+		kind: _kind, object: _tl.object, name: _tl.name, sprite: (_tl.object != noone) ? object_get_sprite(_tl.object) : -1, // the Bin is drawn in code
 		hx: _home[0], hy: _home[1], home_x: _home[0], home_y: _home[1],
 		ang: 0, frame: 0, used: false, lift: 0, wob: 0, core: undefined, core_slot: -1, returning: false, grab_t: 0,
 	});
@@ -41,6 +47,7 @@ wb_tool_vec = function(_kind) {
 	switch (_kind) {
 		case "drill": return { wx: 0, wy: 309, ox: 0, oy: 40 }; // just above the chuck (Jared, 2026-11-23)
 		case "hammer": return { wx: 2, wy: -450, ox: 5, oy: -47 };
+		case "bin": return { wx: 0, wy: 0, ox: 0, oy: 0 }; // held and working at its middle, drawn there (draw_bin_icon)
 		default: return { wx: 0, wy: 0, ox: 28, oy: 178 };
 	}
 }
@@ -78,6 +85,7 @@ wb_tool_box = function(_t) {
 	switch (_t.kind) {
 		case "drill": return { x1: _o.x - 210 * _k, y1: _o.y - 440 * _k, x2: _o.x + 40 * _k, y2: _o.y + 269 * _k };
 		case "hammer": return { x1: _o.x - 133 * _k, y1: _o.y - 553 * _k, x2: _o.x + 127 * _k, y2: _o.y + 136 * _k };
+		case "bin": return { x1: _o.x - 46, y1: _o.y - 58, x2: _o.x + 46, y2: _o.y + 48 };
 		default: return { x1: _o.x - 223 * _k, y1: _o.y - 423 * _k, x2: _o.x + 246 * _k, y2: _o.y + 92 * _k };
 	}
 }
@@ -194,6 +202,13 @@ wb_tool_target = function(_t) {
 				else if (_ca || _cb) _r.text += " It keeps the core.";
 			}
 			break;
+		case "bin":
+			var _bd = wb_die_at(_t.hx, _t.hy, undefined, 80);
+			if (_bd == undefined) return _r;
+			_r.die = _bd;
+			_r.ok = true;
+			_r.text = "Throw this die away for good.";
+			break;
 		default:
 			var _d = wb_die_at(_t.hx, _t.hy, undefined, 80);
 			if (_d == undefined) return _r;
@@ -212,7 +227,7 @@ wb_tool_target = function(_t) {
 ///       true when taken (the caller clears its top-bar slot).
 workbench_take_core = function(_core, _item_slot) {
 	var _t = wb_tool_of(oDrill);
-	if (_core.type != "core" || _t == undefined || _t.used || _t.core != undefined || wb_job != undefined) return false;
+	if (_core.type != "core" || _t == undefined || _t.core != undefined || wb_job != undefined) return false;
 	var _s = wb_socket(_t);
 	var _b = wb_tool_box(_t);
 	var _mx = device_mouse_x_to_gui(0), _my = device_mouse_y_to_gui(0);
