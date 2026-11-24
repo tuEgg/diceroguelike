@@ -247,13 +247,24 @@ function ui_ticket(_x, _y, _w, _h, _type, _label, _total, _bonus, _seed, _state 
 	// doesn't read as 5 (playtest, Jared 2026-11-22); a bonus with no total (nothing in the slot yet) sits in the middle
 	var _has_total = !_empty && string(_total) != "";
 	var _ny = _y + _band_h + (_h - _band_h) * 0.52;
-	var _bsize = min(30, _h * 0.2);
-	var _under = _has_total && _bonus != "";
-	if (_has_total) ui_numeral(_total, _x + _w / 2, _ny - (_under ? 10 : 0), 44, global.ui_col.ink, _alpha, fa_center);
-	if (_bonus != "") ui_numeral(_bonus, _x + _w / 2, _under ? _ny + 30 : _ny, _under ? min(22, _bsize) : _bsize, global.ui_col.bonus_ink, _alpha * (_has_total ? 1 : 0.85), fa_center);
+	if (_has_total) ui_numeral(_total, _x + _w / 2, _ny, 44, global.ui_col.ink, _alpha, fa_center);
+	// what its place adds, a small green +N in the bottom right while the slot is empty (Jared, 2026-11-24: the die carries
+	// it once one is in, so the corner clears)
+	if (_bonus != "") ui_corner_bonus(_x + _w - 12, _y + _h - 10, _bonus, _alpha);
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 	draw_set_color(c_white);
+}
+
+/// @func ui_corner_bonus(_x, _y, _text, [_alpha])
+/// @desc A small green "+1" written on paper, its bottom right corner at _x, _y (the slots' empty-place bonus).
+function ui_corner_bonus(_x, _y, _text, _alpha = 1) {
+	draw_set_font(ftDefault);
+	draw_set_halign(fa_right);
+	draw_set_valign(fa_bottom);
+	draw_outline_text(_text, global.ui_col.paper_hi, global.ui_col.bonus_ink, 2, _x, _y, 1, _alpha, 0);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
 }
 
 /// @func ui_tag(_cx, _cy, _w, _h, _seed, [_alpha])

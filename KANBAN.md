@@ -30,6 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 45: place bonus in the corner | F262 | `dev` | **Not yet play-tested.** An empty slot, and the new-slot tile, show their place bonus as a small green +N at the bottom right; it clears once a die is in. |
 | 44: stacked die tips, one length, sans font | F261 | `dev` | **Not yet play-tested.** Die tips stack their keyword/buff boxes like every tooltip; every box in a stack is as wide as the widest; tooltip descriptions use a new sans font (ftTip). |
 | 43: one tooltip style | F260 | `dev` | **Not yet play-tested.** Keyword, buff and game-word boxes are the main tooltip's style, stacked in one column. |
 | 42: tooltips everywhere | F259 | `dev` | **Not yet play-tested.** Quartermaster cards, bag-view cards and dice rewards explain their words; every tooltip explains keywords, buffs, debuffs and game words (core, ink, luck, alignment, upgrade, min roll, extra play...). |
@@ -39,6 +40,9 @@
 | 38: fixes after batch 37 | B164, B165, F250 | `dev` | **Not yet play-tested.** Anchor icon the right way up; slot number is the full total; Tattooist anchor +2 min roll. |
 | 37: map and economy (design brief 2026-11-24) | F244, F245, F246, F247, F248, F249 | `dev` | **Not yet play-tested.** Sea stops are Drop Anchor, sea events, the wreck or Flotsam; island and sea events split; workbench actions and the Bin; tools in every shop; 2-of-4 drafting; a chapter pool for stops; bounty help. |
 | 36: content pass | F242 | `dev` | **Not yet play-tested.** Free value repriced, rares lifted, healing on triggers, shop keepsakes, core-shape payoffs, 22 new dice and keepsakes for the seven archetypes (\`docs/design/content-pass.md\`). |
+
+**Batch 45 test list (place bonus in the corner)**
+- F262 Empty slot 2: a small green +1 bottom right of the ticket (slot 3 +2...). Play a die in: the corner clears and the die shows its +1 itself. The dashed new-slot tile shows the +N its slot will have in the same corner. Slot 1 shows nothing.
 
 **Batch 44 test list (stacked die tips, one length, sans font)**
 - F261 Hover a die in hand with a keyword (Sticky, Coin...): the tip is the die's box with each keyword in its own box under it, all the same width, the pointer at the bottom of the stack. Near the top of the screen the keyword boxes stand in a column beside the tip. Any other tooltip with keywords: the boxes are all the same width too.

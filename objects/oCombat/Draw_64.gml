@@ -365,6 +365,10 @@ for (var i = 0; i < aq_list_size; i++) {
 		if (locked_slot == ds_list_size(action_queue) && !show_rewards) draw_sprite_ext(sRewardChain, 0, _nc, last_y + last_h / 2, 0.75 * last_w / 140, 0.75 * last_w / 140, 0, c_white, 0.85); // Bind holds this place
 		if (!_filled) draw_padlock(_nc, last_y + last_h * 0.84, 0.9, make_color_rgb(190, 180, 160));
 		else { draw_set_font(ftDefault); draw_outline_text("New slot", global.ui_col.ink, make_color_rgb(170, 158, 132), 2, _nc, last_y + last_h * 0.84, 1, 1, 0); }
+		// what the slot it builds will add by its place (slot 2 +1, slot 3 +2...), small and green in the corner
+		if (ds_list_size(action_queue) > 0) ui_corner_bonus(last_x + last_w - 12, last_y + last_h - 10, "+" + string(ds_list_size(action_queue)), 0.9);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
 		// a generic die dragged over the tile: it can't build a slot (B36), so say why before it's dropped
 		if (last_hover && is_placing && !show_rewards) {
 			var _tile_drag = noone;
