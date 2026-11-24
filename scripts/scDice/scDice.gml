@@ -1902,6 +1902,12 @@ function draw_dice_history(_die, _x, _y, _centered = false) {
 
 /// @func core_alignment_lean()
 /// @desc Where the compass leans, for the alignment cores: -1 fully ruthless (alignment 0), 0 even (50), +1 fully merciful (100).
+function core_alignment_distance() {
+	return clamp(abs(global.player_alignment - 50) / 50, 0, 1); // how far from neutral, either way: 0 at 50, 1 at 0 or 100
+}
+
+/// @func core_alignment_lean()
+/// @desc (the old signed lean, kept for anything still reading it)
 function core_alignment_lean() {
 	return clamp((global.player_alignment - 50) / 20, -1, 1); // full lean at 30 and 70 (F242: it was 0 and 100, flat in a normal run)
 }
@@ -1910,15 +1916,31 @@ function core_alignment_lean() {
 function define_dice_distributions(_die_dist, _min_roll, _max_roll, _array) {
 	switch (_die_dist) {
 		case "compass":
-		case "lodestone":
-		// the alignment pair (F151): at 50 every face is even; ruthless (0) leans to the edges, merciful (100) to the middle.
-		// Lodestone leans all the way (at the extremes the other faces can't come up); Compass about two-thirds of the way.
-		var _lean = core_alignment_lean();
-		var _strength = (_die_dist == "lodestone") ? 1 : 0.65;
+		// the same either way (Jared, 2026-11-24): the further your alignment is from neutral, the more it rolls its lowest
+		// and highest faces. Neutral: every face even. Full strength at 25 and 75.
+		var _push = clamp(core_alignment_distance() / 0.5, 0, 1);
 		for (var d = _min_roll; d <= _max_roll; d++) {
 			var _p = (_max_roll > _min_roll) ? (d - _min_roll) / (_max_roll - _min_roll) : 0.5;
-			var _middle = 1 - abs(2 * _p - 1); // 1 in the middle, 0 at the edges
-			array_push(_array, max(0, round(10 + 10 * _strength * _lean * (2 * _middle - 1))));
+			var _edge = abs(2 * _p - 1); // 1 at the lowest and highest faces, 0 in the middle
+			array_push(_array, max(0, round(10 + 8 * _push * (2 * _edge - 1))));
+		}
+		break;
+
+		case "lodestone":
+		// only its lowest at neutral, every face even at 25 and 75, only its highest at 0 and 100, and a blend between
+		var _t = core_alignment_distance();
+		var _n_faces = _max_roll - _min_roll + 1;
+		for (var d = _min_roll; d <= _max_roll; d++) {
+			var _i = d - _min_roll;
+			var _w;
+			if (_t <= 0.5) {
+				var _s = _t / 0.5; // 0: all on the lowest, 1: even
+				_w = _s / _n_faces + ((_i == 0) ? (1 - _s) : 0);
+			} else {
+				var _s2 = (_t - 0.5) / 0.5; // 0: even, 1: all on the highest
+				_w = (1 - _s2) / _n_faces + ((_i == _n_faces - 1) ? _s2 : 0);
+			}
+			array_push(_array, round(_w * 100));
 		}
 		break;
 

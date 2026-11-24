@@ -165,23 +165,36 @@ if (ds_list_size(oRunManager.tools) < 4) {
 		var _price = tool_price();
 	
 		if (tool != undefined) {
-			var hover_tool = mouse_hovering(tx, ty, width, height, true);
+			var hover_tool = mouse_hovering(tx, ty + 20, width, height, true);
 			shop_tool_scale[| t] = lerp(shop_tool_scale[| t], hover_tool ? 1.2 : 1.0, 0.2);
-	
+
+			// the tool stands on its shadow (2026-11-24: it floated well above it): drawn from the sprite's own origin so its
+			// foot lands on the shadow, whichever way each sprite is anchored
+			var _sc = shop_tool_scale[| t] * 0.28, _shadow_y = ty + 92;
 			draw_set_alpha(0.4);
 			draw_set_color(c_black);
 			draw_ellipse(tx - 55, ty + 85, tx + 55, ty + 100, false);
 			draw_set_alpha(1);
-			if (tool.sprite >= 0) draw_sprite_ext(tool.sprite, 0, tx, ty, shop_tool_scale[| t] * 0.28, shop_tool_scale[| t] * 0.28, 0, c_white, 1.0);
-			else draw_bin_icon(tx, ty, shop_tool_scale[| t] * 0.8, 1); // the Bin, drawn in code
-	
-			// Draw cost
-			draw_sprite_ext(sCoin, 0, tx + coin_offset_x, ty + coin_offset_y, shop_tool_scale[| t] * coin_scale, shop_tool_scale[| t] * coin_scale, 0, c_white, 1.0);
+			if (tool.sprite >= 0) {
+				var _spr_w = sprite_get_width(tool.sprite), _spr_h = sprite_get_height(tool.sprite);
+				draw_sprite_ext(tool.sprite, 0, tx - (_spr_w / 2 - sprite_get_xoffset(tool.sprite)) * _sc, _shadow_y - (_spr_h - sprite_get_yoffset(tool.sprite)) * _sc, _sc, _sc, 0, c_white, 1.0);
+			} else {
+				var _bs = shop_tool_scale[| t] * 0.8;
+				draw_bin_icon(tx, _shadow_y - 46 * _bs, _bs, 1); // the Bin, drawn in code; its foot is 46 below its centre
+			}
+
+			// the price under the shadow: the coin and its number side by side, centred
+			draw_set_font(ftBig);
+			var _ps = string(_price);
+			var _cs = 0.6 * shop_tool_scale[| t];
+			var _coin_w = sprite_get_width(sCoin) * _cs;
+			var _row_w = _coin_w + 8 + string_width(_ps) * shop_tool_scale[| t];
+			var _row_x = tx - _row_w / 2, _row_y = _shadow_y + 44;
+			draw_sprite_ext(sCoin, 0, _row_x + _coin_w / 2, _row_y, _cs, _cs, 0, c_white, 1.0);
 			draw_set_halign(fa_left);
 			draw_set_valign(fa_middle);
-			draw_set_font(ftBig);
 			var cost_col = _price > oRunManager.credits ? c_red : c_white;
-			draw_outline_text(_price, c_black, cost_col, 2, tx, ty + coin_offset_y - 50, shop_tool_scale[| t], 1.0, 0);
+			draw_outline_text(_ps, c_black, cost_col, 2, _row_x + _coin_w + 8, _row_y, shop_tool_scale[| t], 1.0, 0);
 	
 			if (hover_tool) {
 				queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), tool.name, tool.desc, undefined, 0, undefined, _price, "gold");

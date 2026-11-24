@@ -287,6 +287,20 @@ function ui_drain_icon(_cx, _cy, _scale = 1, _alpha = 1) {
 	draw_set_color(c_white);
 }
 
+/// @func draw_rot_ooze(_cx, _cy, _scale, [_alpha])
+/// @desc Rot on a place in the queue that isn't built yet: a green ooze, over the tile.
+function draw_rot_ooze(_cx, _cy, _scale, _alpha = 0.9) {
+	var _s = _scale;
+	draw_set_alpha(_alpha);
+	draw_set_color(global.color_heal);
+	draw_circle(_cx, _cy, 22 * _s, false);
+	draw_circle(_cx - 20 * _s, _cy + 24 * _s, 8 * _s, false);
+	draw_circle(_cx + 18 * _s, _cy + 30 * _s, 5 * _s, false);
+	draw_circle(_cx + 24 * _s, _cy - 14 * _s, 6 * _s, false);
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
 /// @func ui_tag(_cx, _cy, _w, _h, _seed, [_alpha])
 /// @desc An intent's paper tag hung over an enemy: a short string up to a nail, then the paper (the icons and number go on
 ///       top, drawn by the caller in ink).

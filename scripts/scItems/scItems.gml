@@ -114,7 +114,7 @@ function define_items() {
 		sprite: sCores,
 		index: 6,
 		name: "Compass Core",
-		description: "The lower your alignment, the more it rolls its lowest or highest. The higher, the more it rolls its middle.",
+		description: "The further your alignment is from neutral, the more it rolls its lowest and highest.",
 		type: "core",
 		dragging: false,
 		distribution: "compass",
@@ -129,7 +129,7 @@ function define_items() {
 		sprite: sCores,
 		index: 7,
 		name: "Lodestone Core",
-		description: "The lower your alignment, the more it rolls its lowest or highest. At high alignment, never them.",
+		description: "Neutral alignment: only its lowest. Either extreme: only its highest. Even at 25 and 75.",
 		type: "core",
 		dragging: false,
 		distribution: "lodestone",
@@ -603,6 +603,8 @@ function gain_item(_consumable) {
 		oRunManager.items[first_free_slot] = clone_item(_consumable);
 		oRunManager.items_hover_scale[first_free_slot] = 1.2;
 		_consumable.taken = true;
+		// a core drops into the item bar with a handful of small stones (Jared, 2026-11-24: "pick a sound")
+		if (variable_struct_exists(_consumable, "type") && _consumable.type == "core") sfx_play(choose(soSmallRocks1, soSmallRocks2, soSmallRocks3, soSmallRocks4, soSmallRocks5), AUDIO_GROUP.SFX, 0.08, 0.9);
 	}
 	
 	return true;

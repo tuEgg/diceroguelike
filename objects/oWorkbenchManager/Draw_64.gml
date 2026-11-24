@@ -181,17 +181,7 @@ for (var i = 0; i < array_length(wb_tools); i++) {
 		}
 	}
 }
-// the tool in hand says what it would do here
-if (is_struct(wb_target) && wb_target.text != "") {
-	draw_set_font(font_tip());
-	var _tw = string_width(wb_target.text) + 30;
-	var _bx = clamp(_mx + 40, 20, gui_w - _tw - 20), _by = _my - 70;
-	ui_paper(_bx, _by - 22, _bx + _tw, _by + 22, 3, wb_target.ok ? global.ui_col.paper_hi : global.ui_col.paper_shade);
-	draw_set_halign(fa_left);
-	draw_set_valign(fa_middle);
-	draw_set_color(wb_target.ok ? global.ui_col.ink : global.ui_col.danger);
-	draw_text(_bx + 15, _by + 1, wb_target.text);
-}
+// (the tool in hand's notes, what it would do here and how to use it, are drawn together below)
 
 // and how to use it, while it is in your hand (Jared, 2026-11-24)
 if (is_struct(wb_held) && wb_held.kind == "tool" && wb_job == undefined) {
@@ -204,14 +194,24 @@ if (is_struct(wb_held) && wb_held.kind == "tool" && wb_job == undefined) {
 		case "bin": _how = "Release over a die to throw it away."; break;
 		default: _how = "Release over a die to use it.";
 	}
+	// two notes in a column under the cursor, left edges together (Jared, 2026-11-24): what it would do where it is,
+	// then how to use it
+	var _notes = [];
+	if (is_struct(wb_target) && wb_target.text != "") array_push(_notes, { text: wb_target.text, ok: wb_target.ok });
+	array_push(_notes, { text: _how, ok: true });
 	draw_set_font(font_tip());
-	var _hw = string_width(_how) + 36;
-	var _hx = clamp(_mx - _hw / 2, 20, gui_w - _hw - 20), _hy = _my + 84;
-	ui_paper(_hx, _hy - 22, _hx + _hw, _hy + 22, 9, global.ui_col.paper_hi);
-	draw_set_halign(fa_left);
-	draw_set_valign(fa_middle);
-	draw_set_color(global.ui_col.ink);
-	draw_text(_hx + 18, _hy + 1, _how);
+	var _col_w = 0;
+	for (var _ni = 0; _ni < array_length(_notes); _ni++) _col_w = max(_col_w, string_width(_notes[_ni].text) + 34);
+	var _hx = clamp(_mx - 20, 20, gui_w - _col_w - 20), _hy = _my + 70;
+	for (var _ni = 0; _ni < array_length(_notes); _ni++) {
+		var _nt = _notes[_ni];
+		ui_paper(_hx, _hy, _hx + _col_w, _hy + 44, 3 + _ni * 6, _nt.ok ? global.ui_col.paper_hi : global.ui_col.paper_shade);
+		draw_set_halign(fa_left);
+		draw_set_valign(fa_middle);
+		draw_set_color(_nt.ok ? global.ui_col.ink : global.ui_col.danger);
+		draw_text(_hx + 17, _hy + 23, _nt.text);
+		_hy += 52;
+	}
 }
 
 // the die in hand, over everything on the bench

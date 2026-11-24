@@ -30,6 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 51: playtest feedback 3 (pre-0.3) | F287-F292 | `dev` | **Not yet play-tested.** Simpler alignment cores, Bind and Rot shown on the place itself, a stone sound for gaining a core, tidier shop tools, link badge at the top, the drill's notes stacked. |
 | 50: playtest feedback 2 (Mac, 2026-11-24) | B175-B178, F279-F286 | `dev` | **Not yet play-tested.** Overwhelm drains 6 ink as a move, digits above 6 on dice, Conch shell fixed, steadier queue, workbench look and tool hints, map icon toggles, ship rocking fixed, Lucky Coin reverted, touch and controller plan. |
 | 49: seeded fights, cheaper ink | F277, F278 | `dev` | **Not yet play-tested.** A fight is seeded from its node, so quitting and continuing replays the same hand and the same rolls; moving a marker costs 3; Reveal always costs 1. |
 | 48: playtest feedback (Mac, 2026-11-24) | B172-B174, F266-F276 | `dev` | **Not yet play-tested.** Dice and keepsake tweaks, the Rot hand bug, ink ring, Tab ink view, rewards Back and Next delay and pick pips, map button in fights, no duplicate cores, "leg" for spread, a voyage score and timer, the click sound bug. |
@@ -45,6 +46,14 @@
 | 38: fixes after batch 37 | B164, B165, F250 | `dev` | **Not yet play-tested.** Anchor icon the right way up; slot number is the full total; Tattooist anchor +2 min roll. |
 | 37: map and economy (design brief 2026-11-24) | F244, F245, F246, F247, F248, F249 | `dev` | **Not yet play-tested.** Sea stops are Drop Anchor, sea events, the wreck or Flotsam; island and sea events split; workbench actions and the Bin; tools in every shop; 2-of-4 drafting; a chapter pool for stops; bounty help. |
 | 36: content pass | F242 | `dev` | **Not yet play-tested.** Free value repriced, rares lifted, healing on triggers, shop keepsakes, core-shape payoffs, 22 new dice and keepsakes for the seven archetypes (\`docs/design/content-pass.md\`). |
+
+**Batch 51 test list (playtest feedback 3)**
+- F287 The two alignment cores, the same in each direction (distance from neutral 50). **Compass Core**: "The further your alignment is from neutral, the more it rolls its lowest and highest." Even at neutral, full strength at 25 and 75. **Lodestone Core**: "Neutral alignment: only its lowest. Either extreme: only its highest. Even at 25 and 75." Test with the F1 alignment buttons: 50 (all 1s), 25 and 75 (even), 0 and 100 (all max), 38 in between. The bars on the card and the workbench follow live. (Cores you already hold keep their names; descriptions are new.)
+- F288 Bind: the chain is on the place itself, a locked placeholder or the new-slot tile, not on the timeline (the number there stays red, hover for the note). Rot: the green ooze on the place the same way, its number green.
+- F289 Gaining a core (a reward, a shop, an event) plays a handful of small stones (soSmallRocks 1 to 5; the slot-building rubble is unchanged). Say if you'd rather have rubble.
+- F290 Shop tools stand on their shadows (their foot on the shadow, whatever each sprite's anchor), the price is under the shadow with the coin next to the number.
+- F291 A linked stop on the draft has its chain badge on top of the ring, clear of the stop's name.
+- F292 Holding a tool at the workbench: its two notes (what it would do here, how to use it) sit one under the other under the cursor, left edges together.
 
 **Batch 50 test list (playtest feedback 2)**
 - F279 Drafting: no dashed lines between linked stops (the ring and chain badge stay). The map icon in a fight now closes the map when clicked again.

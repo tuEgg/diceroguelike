@@ -3970,19 +3970,12 @@ function combat_timeline_draw(_ink = false) {
 			var _bound = (locked_slot == k - 1) && !show_rewards;
 			var _rot = (bound_slot == k - 1) && !show_rewards;
 			draw_outline_text(_lbl, global.ui_col.ink, _bound ? global.text_attack : (_rot ? global.text_heal : global.ui_col.paper_hi), 2, _cx, _ty - 8, 1, (_built || _bound || _rot) ? 1 : 0.6, 0);
-			// Rot: a green ooze on its place's notch all turn, as Bind's chain (2026-11-24)
+			// Rot: its place's number is green all turn; the ooze itself is drawn on the slot or the tile (oCombat Draw GUI)
 			if (_rot) {
-				draw_set_color(global.color_heal);
-				draw_circle(_cx, _ty, 9, false);
-				draw_circle(_cx - 6, _ty + 8, 3, false);
-				draw_circle(_cx + 5, _ty + 11, 2, false);
-				draw_set_color(c_white);
-				particle_emit_later(_cx, _ty, "constant", c_green, 1); // queued: a particle made while drawing made the web build skip the frame (B108), the hand vanished
 				if (mouse_hovering(_cx, _ty - 12, 40, 44, true, noone, noone, true, _layer)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rot", "Slot " + string(k) + " comes to half its total this turn.");
 			}
-			// Bind: a chain on its place's notch all turn (2026-11-24); the slot itself is chained once built
+			// Bind: its place's number is red all turn; the chain is drawn on the slot or the tile, built or not (oCombat Draw GUI)
 			if (_bound) {
-				draw_sprite_ext(sRewardChain, 0, _cx, _ty, 0.3, 0.3, 0, c_white, 1);
 				if (mouse_hovering(_cx, _ty - 12, 40, 44, true, noone, noone, true, _layer)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Bind", "Slot " + string(k) + " doesn't act this turn.");
 			}
 		}

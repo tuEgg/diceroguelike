@@ -2437,7 +2437,7 @@ function map_node_icon_draw(_node, _scale, _alpha) {
 		draw_set_alpha(1);
 	}
 	map_node_icon_body(_node, _scale, _alpha);
-	if (_linked) map_link_badge(_node.x, _node.y + 33 * _scale, _scale, _alpha); // a chain link on the ring's bottom edge
+	if (_linked) map_link_badge(_node.x, _node.y - 33 * _scale, _scale, _alpha); // a chain link on the ring's top edge, clear of the stop's name below (Jared, 2026-11-24)
 }
 
 /// @func map_link_badge(_x, _y, _scale, _alpha)
