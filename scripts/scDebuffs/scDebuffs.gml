@@ -138,7 +138,7 @@ function define_buffs_and_debuffs() {
 	        {
 	            trigger: "on_turn_start",
 	            modify: function(_ctx) {
-				    oCombat.locked_slot = SLOT_PICK_AT_RESOLVE; // picked when your turn ends (combat_pick_debuffed_slots): you start with one slot now
+				    oCombat.locked_slot = combat_bind_pick(); // picked now and shown all turn, built or not (Jared, 2026-11-24)
 				}
 	        }
 	    ]

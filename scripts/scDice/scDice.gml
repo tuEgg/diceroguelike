@@ -1158,14 +1158,14 @@ function generate_dice_bag() {
 
 	global.die_calligrapher = make_die_struct(
 	    1, 6, "INTEL", "INTEL", "", "Calligrapher's die",
-	    "+1 for each ink you spent this turn.",
+	    "+1 for each ink action this turn.",
 		"uncommon",
 		50,
 	    [
 	        {
 	            trigger: "on_roll_die",
 	            modify: function(_context) {
-					if (instance_exists(oCombat)) _context._d_amount += oCombat.ink_spent_this_turn;
+					if (instance_exists(oCombat)) _context._d_amount += oCombat.ink_actions_this_turn;
 	            }
 	        }
 	    ]
@@ -1254,7 +1254,7 @@ function generate_dice_bag() {
 	ds_list_add(global.master_dice_list, clone_die(global.die_purser, ""));
 
 	global.die_doubloon = make_die_struct(
-	    1, 4, "ATK", "ATK", "", "Doubloon",
+	    1, 2, "ATK", "ATK", "", "Doubloon",
 	    "Coin. +1 for each other coin in its slot.",
 		"rare",
 		70,
@@ -1270,8 +1270,7 @@ function generate_dice_bag() {
 	        }
 	    ]
 	);
-	global.die_doubloon.keywords = ["Coin"]; // a d4 that doesn't use a play
-	global.die_doubloon.always_coin = true;
+	global.die_doubloon.keywords = ["Coin"]; // every coin is a d2 (Jared, 2026-11-24: it was a d4 that stayed a coin)
 	ds_list_add(global.master_dice_list, clone_die(global.die_doubloon, ""));
 
 	// --- Heavy hitters
@@ -2192,7 +2191,7 @@ function die_remove_keyword(_die, _keyword) {
 ///       Its description's numbers need nothing: die_description reads the size when shown.
 function die_size_changed(_die) {
 	if (_die.dice_value == 2) die_add_keyword(_die, "Coin");
-	else if (!(variable_struct_exists(_die, "always_coin") && _die.always_coin)) die_remove_keyword(_die, "Coin"); // a Doubloon stays a coin
+	else die_remove_keyword(_die, "Coin"); // upgraded past a d2, it's no longer a coin (the Doubloon too)
 }
 
 /// @func action_type_label(_type)

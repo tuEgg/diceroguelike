@@ -306,6 +306,7 @@ function load_game(_slot) {
     global.dice_bag = ds_list_create();
     for (var i = 0; i < array_length(_save.dice_bag); i++) {
         var _die = deserialise_die(_save.dice_bag[i]);
+        die_size_changed(_die); // (2026-11-24) a d4 Doubloon saved as a coin loses Coin: coins are d2s
         ds_list_add(global.dice_bag, _die);
     }
 	

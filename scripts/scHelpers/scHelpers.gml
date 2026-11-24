@@ -546,6 +546,16 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
                 current_ky += (_kw_name_h + _kw_desc_h + 25); // 25 is the gap between tooltips
             }
         }
+        // and every buff or debuff it names (Might, Bind, Mock...), on any tooltip: rewards, shop, treasure (2026-11-24)
+        if (is_string(_desc)) {
+            var _terms = glossary_terms(_desc);
+            for (var t = 0; t < array_length(_terms); t++) {
+                if (_terms[t].key != "" || _terms[t].name == _name) continue; // keywords are above; not the tip's own subject
+                array_push(global.tooltip_keywords, { x: _x + 10, y: _y + current_ky, name: _terms[t].name, desc: _terms[t].desc, icon: undefined, index: 0 });
+                draw_set_font(ftDescriptions);
+                current_ky += string_height_ext(_terms[t].desc, -1, 200) + 50;
+            }
+        }
         draw_set_font(_caller_font);
     }
 }

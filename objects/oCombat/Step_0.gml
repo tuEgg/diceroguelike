@@ -91,7 +91,7 @@ switch (state) {
 		dice_played = 0;
 		if (!block_carries) player_block_amount = 0; // Defensive coin: leftover Block carries over (F242)
 		block_carries = false;
-		ink_spent_this_turn = 0;
+		ink_actions_this_turn = 0;
 		min_rolls_this_turn = 0;
 		coins_played_this_turn = 0;
 		heal_on_full_block = 0;

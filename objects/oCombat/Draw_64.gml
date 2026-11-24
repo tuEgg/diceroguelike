@@ -361,6 +361,7 @@ for (var i = 0; i < aq_list_size; i++) {
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		draw_outline_text("pips", global.ui_col.ink, make_color_rgb(201, 187, 156), 2, _nc, last_y + last_h * 0.62, 1, 1, 0);
+		if (locked_slot == ds_list_size(action_queue) && !show_rewards) draw_sprite_ext(sRewardChain, 0, _nc, last_y + last_h / 2, 0.75 * last_w / 140, 0.75 * last_w / 140, 0, c_white, 0.85); // Bind holds this place
 		if (!_filled) draw_padlock(_nc, last_y + last_h * 0.84, 0.9, make_color_rgb(190, 180, 160));
 		else { draw_set_font(ftDefault); draw_outline_text("New slot", global.ui_col.ink, make_color_rgb(170, 158, 132), 2, _nc, last_y + last_h * 0.84, 1, 1, 0); }
 		// a generic die dragged over the tile: it can't build a slot (B36), so say why before it's dropped
@@ -1163,6 +1164,11 @@ if (show_rewards) {
 				var _rc_hover = !rewards_dice_taken && mouse_hovering(_rc_cx - _rc_w / 2, _rc_cy - _rc_h / 2, _rc_w, _rc_h, false, soPaper5, noone, true, UI_LAYER.POPUP);
 				var alpha = rewards_dice_taken ? 0.35 : 1.0;
 				draw_bag_card(die, _rc_cx, _rc_cy - 14 * _flip.pop, _rc_w, _rc_h, alpha * _flip.fade_in, _rc_hover, false, "reward");
+				if (_rc_hover) { // its keywords, buffs and debuffs explained beside it (2026-11-24)
+					var _rc_text = die_description(die);
+					if (variable_struct_exists(die, "keywords")) for (var _kw = 0; _kw < array_length(die.keywords); _kw++) _rc_text += " " + string(die.keywords[_kw]);
+					queue_glossary_tooltip(_rc_text);
+				}
 				reward_rarity_flash(die.rarity, _rc_cx, _rc_cy, _rc_w, _rc_h, _flip.since, alpha);
 				var btn = { x: _rc_cx - _rc_w / 2, y: _rc_cy - _rc_h / 2, w: _rc_w, h: _rc_h, hover: _rc_hover, click: _rc_hover && mouse_check_button_pressed(mb_left) };
 				if (btn.click) sfx_play(soClick4, AUDIO_GROUP.UI, random_range(0.01, 0.05), 1);

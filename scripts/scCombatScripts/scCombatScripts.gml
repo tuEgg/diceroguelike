@@ -2951,7 +2951,7 @@ function combat_unbuild_slot(_slot_i, _index) {
 		}
 	}
 	dice_allowed_this_turn_bonus -= variable_struct_exists(_slot, "draft_bonus") ? _slot.draft_bonus : 0;
-	if (locked_slot == _slot_i) locked_slot = -1;
+	// (Bind holds a place, not a slot: taking the slot apart doesn't free it, 2026-11-24)
 	ds_list_destroy(_slot.dice_list);
 	ds_list_delete(action_queue, _slot_i);
 	update_sacrificed_type_array();
@@ -3064,7 +3064,7 @@ function combat_insight_spend(_cost) {
 			return false;
 		}
 		player_intel -= _cost;
-		ink_spent_this_turn += _cost; // Calligrapher's die (F242)
+		ink_actions_this_turn += 1; // Calligrapher's die: one per ink action, not per ink (Jared, 2026-11-24)
 		var _num = spawn_floating_number("player", _cost, -1, global.text_intel, -1, -1, 0);
 		_num.x += 20;
 		_num.y -= 20;
@@ -3912,7 +3912,13 @@ function combat_timeline_draw(_ink = false) {
 			draw_set_color(global.ui_col.paper_hi);
 			draw_circle(_cx, _ty, 5, false);
 			var _lbl = string(k) + ((k == _last && _beyond) ? "+" : "");
-			draw_outline_text(_lbl, global.ui_col.ink, global.ui_col.paper_hi, 2, _cx, _ty - 8, 1, _built ? 1 : 0.6, 0);
+			var _bound = (locked_slot == k - 1) && !show_rewards;
+			draw_outline_text(_lbl, global.ui_col.ink, _bound ? global.text_attack : global.ui_col.paper_hi, 2, _cx, _ty - 8, 1, (_built || _bound) ? 1 : 0.6, 0);
+			// Bind: a chain on its place's notch all turn (2026-11-24); the slot itself is chained once built
+			if (_bound) {
+				draw_sprite_ext(sRewardChain, 0, _cx, _ty, 0.3, 0.3, 0, c_white, 1);
+				if (mouse_hovering(_cx, _ty - 12, 40, 44, true, noone, noone, true, _layer)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Bind", "Slot " + string(k) + " doesn't act this turn.");
+			}
 		}
 		draw_set_alpha(1);
 		// the markers, grouped by gap: where each sits first, then drawn top row first, so a lower marker covers the lines
@@ -4037,6 +4043,17 @@ function combat_timeline_draw(_ink = false) {
 		draw_set_valign(fa_top);
 		draw_set_color(c_white);
 	}
+}
+
+/// @func combat_bind_pick()
+/// @desc Which place Bind chains this turn, picked as the turn starts so it shows while you plan (Jared, 2026-11-24):
+///       slot 1, 2 or 3 most of the time, slot 4 now and then. It holds that place whether or not the slot gets built.
+function combat_bind_pick() {
+	var _r = irandom(99);
+	if (_r < 30) return 0;
+	if (_r < 60) return 1;
+	if (_r < 90) return 2;
+	return 3;
 }
 
 /// @func combat_pick_debuffed_slots()

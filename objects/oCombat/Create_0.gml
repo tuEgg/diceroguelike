@@ -43,7 +43,7 @@ redraws_used = 0;              // unused now: a redraw is paid as you discard (c
 overboard_dice = [];
 // F242 content pass: counted each turn (reset in START_TURN) or for the fight
 ink_max_bonus = 0;            // Inkpot dice played this fight: +2 max ink each (intel_max)
-ink_spent_this_turn = 0;      // Calligrapher's die
+ink_actions_this_turn = 0;    // Calligrapher's die: ink actions taken this turn
 min_rolls_this_turn = 0;      // dice that rolled their minimum this turn (die_roll_faces): Undertow die
 coins_played_this_turn = 0;   // Purser's die
 heal_on_full_block = 0;       // Tidepusher: heal this much each time your Block fully stops a hit this turn

@@ -13,6 +13,17 @@ if (_coded) {
 	var _cols = die_colours(struct.possible_type); // a multitype die is split diagonally in its colours
 	var _jig = die_jiggle_pose(struct); // its effect firing: a punch and a wobble (F40)
 	draw_die(x, y, _die_r * _jig.scale, dice_value, _face, over_discard ? colours_merge(_cols, c_black, 0.25) : _cols, tumble_angle + _wobble + _jig.angle, image_alpha, struct);
+	// in hand, what it gets on top of its roll wherever it's played (its own effect, keepsakes, Might...), as the queue's
+	// badge shows it (Jared, 2026-11-24: Calligrapher's ink bonus); slot bonuses only count once it's in a slot
+	if (room == rmCombat && !tumbling && instance_exists(oCombat) && !oCombat.show_rewards) {
+		var _hand_bonus = get_dice_output(struct, -1, -1, true, "player").keepsake_dice_bonus_amount; // read only
+		if (_hand_bonus != 0) {
+			draw_set_font(ftSmall);
+			draw_set_halign(fa_center);
+			draw_set_valign(fa_middle);
+			draw_outline_text((_hand_bonus > 0 ? "+" : "") + string(_hand_bonus), c_black, (_hand_bonus > 0) ? c_lime : c_red, 2, x + _die_r * 0.85, y + _die_r * 0.8, 1.6 * scale, image_alpha, 0);
+		}
+	}
 	// over the discard pile: letting go discards it (redraws are bought in the insight phase)
 	if (over_discard && instance_exists(oCombat)) {
 		var _can = true;
