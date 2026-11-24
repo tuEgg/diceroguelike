@@ -513,7 +513,7 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
         // 1. Measure the Main Tooltip height to find where the first keyword starts
         draw_set_font(ftDefault);
         var _h_name = string_height(_name);
-        draw_set_font(ftDescriptions);
+        draw_set_font(font_tip());
         var _h_desc = string_height_ext(_desc, -1, 300);
         var current_ky = _h_name + _h_desc + 65; // 30 is base padding/gap
 
@@ -540,7 +540,7 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
                 // This ensures they never overlap regardless of description length
                 draw_set_font(ftDefault);
                 var _kw_name_h = string_height(key);
-                draw_set_font(ftDescriptions);
+                draw_set_font(font_tip());
                 var _kw_desc_h = string_height_ext(data.desc, -1, 200);
                 
                 current_ky += (_kw_name_h + _kw_desc_h + 25); // 25 is the gap between tooltips
@@ -552,7 +552,7 @@ function queue_tooltip(_x, _y, _name, _desc, _icon = undefined, _index = 0, _dic
             for (var t = 0; t < array_length(_terms); t++) {
                 if (_terms[t].key != "" || _terms[t].name == _name) continue; // keywords are above; not the tip's own subject
                 array_push(global.tooltip_keywords, { x: _x + 10, y: _y + current_ky, name: _terms[t].name, desc: _terms[t].desc, icon: undefined, index: 0 });
-                draw_set_font(ftDescriptions);
+                draw_set_font(font_tip());
                 current_ky += string_height_ext(_terms[t].desc, -1, 200) + 50;
             }
         }
@@ -603,20 +603,21 @@ function draw_all_tooltips() {
 		if (yy + _total_h > _gui_h - 10) yy = _gui_h - _total_h - 10;
 		xx = max(10, xx); yy = max(10, yy);
 
-		draw_tooltip_box(xx, yy, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, false);
-		if (variable_struct_exists(tt, "cost") && tt.cost > 0) tooltip_cost_badge(xx + _main.w, yy, tt.cost, tt.cost_kind);
+		var _mw = _split ? _main.w : _max_w; // every box in the stack as wide as the widest
+		draw_tooltip_box(xx, yy, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, false, _mw);
+		if (variable_struct_exists(tt, "cost") && tt.cost > 0) tooltip_cost_badge(xx + _mw, yy, tt.cost, tt.cost_kind);
 		// a mouse hint just above the box, its right end lined up with the box's (at 0.6 the mouse is 20px wide)
 		if (variable_struct_exists(tt, "hint") && is_struct(tt.hint)) {
 			draw_set_font(ftDefault);
 			var _hw = 20 + 7 + string_width(tt.hint.text);
-			draw_mouse_hint(xx + _main.w - _hw + 10, yy - 22, tt.hint.button, tt.hint.text, 0.6, tt.hint.col, tt.hint.col);
+			draw_mouse_hint(xx + _mw - _hw + 10, yy - 22, tt.hint.button, tt.hint.text, 0.6, tt.hint.col, tt.hint.col);
 		}
 		// every other box stacked under it at the same edge, in the same style (a split stack: beside it, kept on screen)
 		var _kx = xx, _ky = yy + _main.h + _gap;
 		if (_split) { _kx = xx + _main.w + _gap * 3; _ky = clamp(yy, 10, max(10, _gui_h - _kw_h - 10)); }
 		for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
 			var kw = global.tooltip_keywords[i];
-			draw_tooltip_box(_kx, _ky, kw.name, kw.desc, kw.icon, kw.index, undefined, false, false);
+			draw_tooltip_box(_kx, _ky, kw.name, kw.desc, kw.icon, kw.index, undefined, false, false, _split ? _kw_w : _max_w);
 			_ky += _kw_sizes[i].h + _gap;
 		}
     }
@@ -788,53 +789,69 @@ function draw_dist_mini(_die, _x, _bottom, _h) {
 ///       kept on screen sideways.
 function draw_die_tip(_tt) {
 	var _d = _tt.dice;
-	var _pad = 14, _max_w = 260;
+	var _pad = 14, _max_w = 260, _gap = 4;
 	draw_set_font(ftDefault);
 	var _name_w = string_width(_d.name);
 	var _name_h = string_height(_d.name);
-	draw_set_font(ftDescriptions);
+	draw_set_font(font_tip());
 	var _sub_w = string_width(_tt.sub);
 	var _desc = die_description(_d);
-	var _line = font_get_size(ftDescriptions) * 1.5;
+	var _line = font_get_size(font_tip()) * 1.5;
 	var _desc_w = min(_max_w, string_width(_desc));
 	var _desc_h = string_height_ext(_desc, _line, _max_w);
 	var _extra = variable_struct_exists(_tt, "extra") ? _tt.extra : "";
 	var _extra_h = (_extra != "") ? 6 + string_height_ext(_extra, _line, _max_w) : 0;
-	// its keywords, buffs and debuffs, a line each under the effect (F137): "Sticky: stays in its slot..."
-	var _terms = die_glossary(_d);
-	var _term_txt = [], _term_h = [], _terms_h = 0;
-	for (var i = 0; i < array_length(_terms); i++) {
-		var _tx = _terms[i].name + ": " + _terms[i].desc;
-		array_push(_term_txt, _tx);
-		var _th = max(24, string_height_ext(_tx, _line, _max_w - 26));
-		array_push(_term_h, _th);
-		_terms_h += 6 + _th;
-		_desc_w = max(_desc_w, min(_max_w, 26 + string_width(_tx)));
-	}
-	if (_terms_h > 0) _terms_h += 4; // and a rule above them
 	if (_extra != "") _desc_w = max(_desc_w, min(_max_w, string_width(_extra)));
 	var _mini_w = (_d.distribution != "") ? _d.dice_value * 7 : 0; // about draw_dist_mini's width
-	var _w = _pad * 2 + max(_name_w + 8 + _sub_w + (_mini_w > 0 ? 10 + _mini_w : 0), _desc_w);
-	var _h = _pad * 2 + _name_h + 4 + _desc_h + _terms_h + _extra_h;
-	var _x1 = clamp(_tt.cx - _w / 2, 10, display_get_gui_width() - _w - 10);
-	var _y2 = _tt.bottom - 10; // room for the pointer
-	var _y1 = max(ui_top_bar_h() + 6, _y2 - _h);
+	var _w0 = _pad * 2 + max(_name_w + 8 + _sub_w + (_mini_w > 0 ? 10 + _mini_w : 0), _desc_w);
+	var _h0 = _pad * 2 + _name_h + 4 + _desc_h + _extra_h;
+
+	// its keywords, buffs, debuffs and game words (F137) as boxes of their own, the same style as every tooltip, stacked
+	// under it (2026-11-24: one style, one length)
+	var _terms = die_glossary(_d);
+	var _ts = [], _w = _w0, _terms_h = 0, _col_w = 0, _col_h = 0;
+	for (var i = 0; i < array_length(_terms); i++) {
+		var _icon = (_terms[i].key != "") ? sKeywordIcons : undefined;
+		var _index = (_terms[i].key != "") ? global.keywords[$ _terms[i].key].index : 0;
+		var _s = draw_tooltip_box(0, 0, _terms[i].name, _terms[i].desc, _icon, _index, undefined, false, true);
+		array_push(_ts, { w: _s.w, h: _s.h, icon: _icon, index: _index });
+		_w = max(_w, _s.w);
+		_col_w = max(_col_w, _s.w);
+		_terms_h += _gap + _s.h;
+		_col_h += _s.h + _gap;
+	}
+	var _gui_w = display_get_gui_width(), _gui_h = display_get_gui_height();
+	var _top = ui_top_bar_h() + 6;
+	var _bottom = _tt.bottom - 10; // room for the pointer
+	// a stack too tall to sit above the die splits: the tip stays above it, its extra boxes stand in a column beside
+	var _split = array_length(_terms) > 0 && (_h0 + _terms_h > _bottom - _top);
+	var _bw = _split ? _w0 : _w;
+	var _h = _split ? _h0 : _h0 + _terms_h;
+	var _x1 = clamp(_tt.cx - _bw / 2, 10, _gui_w - _bw - 10);
+	var _y2 = _bottom;
+	var _y1 = max(_top, _y2 - _h);
 	_y2 = _y1 + _h;
 
-	// the box, like the tooltips: dark ink, a cream rule; a pointer down to the die
+	// the box, as draw_tooltip_box: dark ink, a cream rule, diamonds at the corners
 	var _bg = (oRunManager.error_timer == 0) ? make_color_rgb(26, 30, 40) : global.color_error;
 	var _rule = make_color_rgb(226, 212, 176);
-	var _px = clamp(_tt.cx, _x1 + 16, _x1 + _w - 16);
-	draw_set_alpha(0.92);
+	var _bx2 = _x1 + _bw, _by2 = _y1 + _h0;
+	draw_set_alpha(0.85);
 	draw_set_color(c_black);
-	draw_roundrect(_x1 - 2, _y1 - 2, _x1 + _w + 2, _y2 + 2, false);
-	draw_triangle(_px - 10, _y2, _px + 10, _y2, _px, _y2 + 12, false);
+	draw_roundrect(_x1 - 2, _y1 - 2, _bx2 + 2, _by2 + 2, false);
 	draw_set_color(_bg);
-	draw_roundrect(_x1, _y1, _x1 + _w, _y2, false);
-	draw_triangle(_px - 8, _y2 - 1, _px + 8, _y2 - 1, _px, _y2 + 9, false);
+	draw_roundrect(_x1, _y1, _bx2, _by2, false);
 	draw_set_alpha(0.6);
 	draw_set_color(_rule);
-	draw_roundrect(_x1 + 4, _y1 + 4, _x1 + _w - 4, _y2 - 4, true);
+	draw_roundrect(_x1 + 4, _y1 + 4, _bx2 - 4, _by2 - 4, true);
+	draw_set_alpha(0.9);
+	var _dm = 4, _in = 4;
+	var _cxs = [_x1 + _in, _bx2 - _in, _x1 + _in, _bx2 - _in];
+	var _cys = [_y1 + _in, _y1 + _in, _by2 - _in, _by2 - _in];
+	for (var c = 0; c < 4; c++) {
+		draw_triangle(_cxs[c] - _dm, _cys[c], _cxs[c], _cys[c] - _dm, _cxs[c] + _dm, _cys[c], false);
+		draw_triangle(_cxs[c] - _dm, _cys[c], _cxs[c], _cys[c] + _dm, _cxs[c] + _dm, _cys[c], false);
+	}
 	draw_set_alpha(1);
 
 	// the name, what it rolled, the mini chart; then the effect
@@ -842,29 +859,50 @@ function draw_die_tip(_tt) {
 	draw_set_valign(fa_top);
 	draw_set_font(ftDefault);
 	draw_outline_text(_d.name, c_black, c_white, 2, _x1 + _pad, _y1 + _pad, 1, 1, 0);
-	draw_set_font(ftDescriptions);
+	draw_set_font(font_tip());
 	var _sx = _x1 + _pad + _name_w + 8;
 	draw_outline_text(_tt.sub, c_black, make_color_rgb(185, 169, 136), 1, _sx, _y1 + _pad + 3, 1, 1, 0);
 	if (_mini_w > 0) draw_dist_mini(_d, _sx + _sub_w + 10, _y1 + _pad + _name_h - 3, 16);
 	draw_outline_text(colorcode_text(_desc, _d.action_type), c_black, c_white, 1, _x1 + _pad, _y1 + _pad + _name_h + 4, 1, 1, 0, _max_w);
 	var _ty = _y1 + _pad + _name_h + 4 + _desc_h;
-	if (_terms_h > 0) {
-		draw_set_alpha(0.35);
-		draw_set_color(_rule);
-		draw_line(_x1 + _pad, _ty + 5, _x1 + _w - _pad, _ty + 5);
-		draw_set_alpha(1);
-		_ty += 4;
-		for (var i = 0; i < array_length(_terms); i++) {
-			_ty += 6;
-			if (_terms[i].key != "") draw_keyword_icon(_terms[i].key, _x1 + _pad + 10, _ty + 11, 0.7);
-			else { draw_set_color(_rule); draw_circle(_x1 + _pad + 10, _ty + 11, 4, false); } // a buff or debuff: a plain bullet
-			draw_outline_text(_term_txt[i], c_black, make_color_rgb(205, 192, 160), 1, _x1 + _pad + 26, _ty, 1, 1, 0, _max_w - 26);
-			_ty += _term_h[i];
-		}
-	}
 	if (_extra != "") draw_outline_text(_extra, c_black, make_color_rgb(185, 169, 136), 1, _x1 + _pad, _ty + 6, 1, 1, 0, _max_w);
-	if (variable_struct_exists(_tt, "cost") && _tt.cost > 0) tooltip_cost_badge(_x1 + _w, _y1, _tt.cost, _tt.cost_kind);
+	if (variable_struct_exists(_tt, "cost") && _tt.cost > 0) tooltip_cost_badge(_bx2, _y1, _tt.cost, _tt.cost_kind);
+
+	// the stack of boxes under it, all as wide as the widest (a split stack: a column beside, kept on screen)
+	var _kx = _x1, _ky = _by2 + _gap, _kw = _w;
+	if (_split) {
+		_kw = _col_w;
+		_kx = (_bx2 + _gap * 3 + _col_w > _gui_w - 10) ? _x1 - _gap * 3 - _col_w : _bx2 + _gap * 3;
+		_kx = max(10, _kx);
+		_ky = clamp(_y1, 10, max(10, _gui_h - _col_h - 10));
+	}
+	for (var i = 0; i < array_length(_terms); i++) {
+		draw_tooltip_box(_kx, _ky, _terms[i].name, _terms[i].desc, _ts[i].icon, _ts[i].index, undefined, false, false, _kw);
+		_ky += _ts[i].h + _gap;
+	}
+
+	// the pointer down to the die, under the whole stack (or the tip, when the extras stand beside it)
+	var _py = _split ? _by2 : (_ky - _gap);
+	var _px = clamp(_tt.cx, _x1 + 16, _x1 + _bw - 16);
+	draw_set_alpha(0.85);
+	draw_set_color(c_black);
+	draw_triangle(_px - 10, _py, _px + 10, _py, _px, _py + 12, false);
+	draw_set_color(_bg);
+	draw_triangle(_px - 8, _py - 1, _px + 8, _py - 1, _px, _py + 9, false);
+	draw_set_alpha(1);
 	draw_set_color(c_white);
+}
+
+/// @func font_tip()
+/// @desc The font for tooltip and card descriptions: ftTip, a plain sans serif for quick reading (2026-11-24), when that
+///       asset exists in the project; otherwise ftDescriptions as before. Names stay in ftDefault.
+function font_tip() {
+	static _f = undefined;
+	if (_f == undefined) {
+		var _i = asset_get_index("ftTip");
+		_f = (_i != -1 && font_exists(_i)) ? _i : ftDescriptions;
+	}
+	return _f;
 }
 
 /// @func tooltip_cost_badge(_x, _y, _amount, _kind)
@@ -904,10 +942,11 @@ function draw_single_tooltip(_x, _y, _name, _desc, _icon, _index, _dice = undefi
 	draw_tooltip_box(xx, yy, _name, _desc, _icon, _index, _dice, _is_keyword, false);
 }
 
-/// @func draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, _measure_only)
+/// @func draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, _measure_only, [_force_w])
 /// @desc Draws one tooltip box at its top-left, or only measures it. Returns { w, h }. _compact is the smaller box used
-///       for keywords under a main tooltip (tighter padding, narrower text).
-function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, _measure_only) {
+///       for keywords under a main tooltip (tighter padding, narrower text). _force_w: at least this wide (a stack
+///       draws every box at its widest's width).
+function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, _measure_only, _force_w = 0) {
     var padding = _compact ? 12 : 20; // clear of the inner rule
     var max_desc_w = _compact ? 260 : 300;
     var xx = _x;
@@ -920,11 +959,11 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
 
     // the description in paragraphs: a line break ("\n", or "\n\n") starts a new one, a little apart. The coloured
     // text drawing lays words out one by one and doesn't know about line breaks, so each paragraph is drawn on its own.
-    draw_set_font(ftDescriptions);
+    draw_set_font(font_tip());
     var _paras = [];
     var _raw = string_split(_desc, "\n");
     for (var p = 0; p < array_length(_raw); p++) if (string_trim(_raw[p]) != "") array_push(_paras, string_trim(_raw[p]));
-    var line_sep = font_get_size(ftDescriptions) * 1.5;
+    var line_sep = font_get_size(font_tip()) * 1.5;
     var para_gap = line_sep * 0.5;
 
     // the longest line the description wraps to, and its height
@@ -957,6 +996,7 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
 	    _height += _dist_h;
     }
 
+	_width = max(_width, _force_w); // a stack of tooltips all runs the same length
 	if (_measure_only) return { w: _width, h: _height };
 
     // background
@@ -1007,12 +1047,12 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
 	draw_outline_text(_name, c_black, _compact ? global.color_gold : c_white, 2, content_x, yy + padding, 1, 1, 0);
-    draw_set_font(ftDescriptions);
+    draw_set_font(font_tip());
     var _py = yy + padding + name_h + 2;
     for (var p = 0; p < array_length(_paras); p++) {
-	    draw_set_font(ftDescriptions);
+	    draw_set_font(font_tip());
 	    draw_outline_text(colorcode_text(_paras[p], (is_struct(_dice) && variable_struct_exists(_dice, "action_type")) ? _dice.action_type : ""), c_black, c_white, 1, content_x, _py, 1, 1, 0, max_desc_w);
-	    draw_set_font(ftDescriptions);
+	    draw_set_font(font_tip());
 	    _py += string_height_ext(_paras[p], line_sep, max_desc_w) + para_gap;
     }
 

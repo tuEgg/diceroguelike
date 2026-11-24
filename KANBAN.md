@@ -30,6 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 44: stacked die tips, one length, sans font | F261 | `dev` | **Not yet play-tested.** Die tips stack their keyword/buff boxes like every tooltip; every box in a stack is as wide as the widest; tooltip descriptions use a new sans font (ftTip). |
 | 43: one tooltip style | F260 | `dev` | **Not yet play-tested.** Keyword, buff and game-word boxes are the main tooltip's style, stacked in one column. |
 | 42: tooltips everywhere | F259 | `dev` | **Not yet play-tested.** Quartermaster cards, bag-view cards and dice rewards explain their words; every tooltip explains keywords, buffs, debuffs and game words (core, ink, luck, alignment, upgrade, min roll, extra play...). |
 | 41: Bind shown, coins, hand bonuses, buff tips | B167, B168, B169, F257, F258 | `dev` | **Not yet play-tested.** Bind and Rot pick their slot (mostly 1-3) as the turn starts and show it all turn; the Doubloon is a d2 and every coin loses Coin when upgraded; Calligrapher +1 per ink action; dice in hand show their bonus; every tooltip explains the buffs and debuffs it names. |
@@ -38,6 +39,10 @@
 | 38: fixes after batch 37 | B164, B165, F250 | `dev` | **Not yet play-tested.** Anchor icon the right way up; slot number is the full total; Tattooist anchor +2 min roll. |
 | 37: map and economy (design brief 2026-11-24) | F244, F245, F246, F247, F248, F249 | `dev` | **Not yet play-tested.** Sea stops are Drop Anchor, sea events, the wreck or Flotsam; island and sea events split; workbench actions and the Bin; tools in every shop; 2-of-4 drafting; a chapter pool for stops; bounty help. |
 | 36: content pass | F242 | `dev` | **Not yet play-tested.** Free value repriced, rares lifted, healing on triggers, shop keepsakes, core-shape payoffs, 22 new dice and keepsakes for the seven archetypes (\`docs/design/content-pass.md\`). |
+
+**Batch 44 test list (stacked die tips, one length, sans font)**
+- F261 Hover a die in hand with a keyword (Sticky, Coin...): the tip is the die's box with each keyword in its own box under it, all the same width, the pointer at the bottom of the stack. Near the top of the screen the keyword boxes stand in a column beside the tip. Any other tooltip with keywords: the boxes are all the same width too.
+- F261 Tooltip descriptions read in a plain sans serif (names stay as they were). **New font asset `ftTip` (Lato Regular, size 14):** open the project once so GameMaker builds its glyphs (regenerateBitmap is on); if the text looks wrong or the project complains, open Fonts > ftTip, check it shows Lato Regular, and press the regenerate/apply button. If `ftTip` is missing the game falls back to the old font (`font_tip()`).
 
 **Batch 43 test list (one tooltip style)**
 - F260 Hover anything with a keyword, buff or game word (a Sticky die in the bag, an event choice, a potion): the extra boxes look like the main one (same background, font and name colour) and stack straight under it at the same left edge. Near the right edge the whole stack moves to the left of the thing; near the bottom it slides up; a stack taller than the screen puts the extras in a column beside the main box. Die tips (the compact one above a die in hand) are unchanged.

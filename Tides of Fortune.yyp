@@ -54,6 +54,7 @@
     {"id":{"name":"ftNum48","path":"fonts/ftNum48/ftNum48.yy",},},
     {"id":{"name":"ftSmall","path":"fonts/ftSmall/ftSmall.yy",},},
     {"id":{"name":"ftTiny","path":"fonts/ftTiny/ftTiny.yy",},},
+    {"id":{"name":"ftTip","path":"fonts/ftTip/ftTip.yy",},},
     {"id":{"name":"ftTopBar","path":"fonts/ftTopBar/ftTopBar.yy",},},
     {"id":{"name":"oBackgrounds","path":"objects/oBackgrounds/oBackgrounds.yy",},},
     {"id":{"name":"oBountyController","path":"objects/oBountyController/oBountyController.yy",},},
