@@ -37,7 +37,9 @@ function apply_buff(_target, _template, _duration, _amount, _remove_next_turn, _
 			if (_kind == "amount") {
 				// an amount buff just grows (Might +1 and Might +1 is Might +2); a temporary one only merges with another
 				// that runs out at the same time, otherwise the newer one is its own icon
-				if (_existing.remove_next_turn != _remove_next_turn) continue;
+				// (the flag only decides when a temporary one expires: a permanent one never counts down, and START_TURN
+				// resets the flag on every buff, so ignoring it is what lets Command keep stacking from turn 2)
+				if (!_permanent && _existing.remove_next_turn != _remove_next_turn) continue;
 				_existing.amount += _amount;
 			} else {
 				// an effect buff or debuff doesn't stack: Bind on a Bind lasts the longer of the two, and if the new one
@@ -601,6 +603,7 @@ function buff_icon_draw(_x, _y, _inst, _list, _is_player) {
 		draw_circle(_cx, _cy, _w * 0.56, true);
 		draw_circle(_cx, _cy, _w * 0.56 + 1, true);
 		draw_set_alpha(1);
+		draw_set_color(c_white);
 	}
 	var _t = buff_icon_text(_inst);
 	if (_t.text != "") {
