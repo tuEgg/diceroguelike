@@ -30,6 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 53: buffs and debuffs (T02) | T02, F304, F305 | `dev` | **Not yet play-tested.** The agreed model (docs/design/buffs-plan.md): amount buffs vs effects, numbers on every icon for you and enemies, totals in tooltips and glossary boxes. |
 | 52: playtest feedback 4 (pre-0.3) | F293-F303 | `dev` | **Not yet play-tested.** The total on a die's face with roll+bonus in the corner, the Dutchman's ghosts, items by chapter, a Drop Anchor in every draft, and small fixes. |
 | 51: playtest feedback 3 (pre-0.3) | F287-F292 | `dev` | **Not yet play-tested.** Simpler alignment cores, Bind and Rot shown on the place itself, a stone sound for gaining a core, tidier shop tools, link badge at the top, the drill's notes stacked. |
 | 50: playtest feedback 2 (Mac, 2026-11-24) | B175-B178, F279-F286 | `dev` | **Not yet play-tested.** Overwhelm drains 6 ink as a move, digits above 6 on dice, Conch shell fixed, steadier queue, workbench look and tool hints, map icon toggles, ship rocking fixed, Lucky Coin reverted, touch and controller plan. |
@@ -47,6 +48,12 @@
 | 38: fixes after batch 37 | B164, B165, F250 | `dev` | **Not yet play-tested.** Anchor icon the right way up; slot number is the full total; Tattooist anchor +2 min roll. |
 | 37: map and economy (design brief 2026-11-24) | F244, F245, F246, F247, F248, F249 | `dev` | **Not yet play-tested.** Sea stops are Drop Anchor, sea events, the wreck or Flotsam; island and sea events split; workbench actions and the Bin; tools in every shop; 2-of-4 drafting; a chapter pool for stops; bounty help. |
 | 36: content pass | F242 | `dev` | **Not yet play-tested.** Free value repriced, rares lifted, healing on triggers, shop keepsakes, core-shape payoffs, 22 new dice and keepsakes for the seven archetypes (\`docs/design/content-pass.md\`). |
+
+**Batch 53 test list (buffs and debuffs)**
+- T02/F304 Amount buffs (Might, Balance, queued ink, kept dice): every icon shows its amount ("+3" green, "-2" red) and no turn count. Permanent ones (the Pirate Captain's Command) wear a brass ring and their amount grows each time; a temporary one is its own icon, one turn. Hover: "+3, Lasts all fight" or "+2, This turn only", and when you have both, "Total 5: 3 permanent, 2 this turn". Check the Captain buffing two enemies and himself over several turns, a Grit die and War Drum together, and Elizabeak's Might -2 on you.
+- T02/F304 Effects (Bind, Rot, Mock, Barnacle Bind, Stunned, Overwhelm's old debuff, the shells): no amount; the icon shows the turns left (nothing on a permanent one; the Conch's shell shows its layers). Putting Bind on a Bind lasts the longer of the two (it used to add them). Stunned twice in one turn is one Stunned.
+- F305 The glossary boxes (Might, Balance, Bind, Rot, Mock, Reserve, Stunned...) add what you have right now at the end ("You have 3 (1 permanent, 2 this turn)." / "You have it: 1 turn left.") whenever the word is hovered on a die, event choice or reward.
+- Enemies' rows use the same icons and numbers, over their health bars.
 
 **Batch 52 test list (playtest feedback 4)**
 - F293 A die with a bonus, in hand or in a slot: its face shows the final total (pips up to 6, a digit above) and the bottom right says how it got there, "5+3" under an 8 (a negative one reads "5-2" under a 3). Resolved dice show what they did, no badge. **Sounds to add for the Dutchman (Jared): bells chiming, ghostly voices, waves**; the visual is `ghost_sweep_start` (scParticles).
@@ -211,7 +218,7 @@ All known P0 bugs are fixed, see DONE.
 
 | ID | Refactor | Fixes | Size |
 |---|---|---|---|
-| T02 | **Buff system v2**: instances keyed by (id, permanent); a buff scales *either* stacks *or* duration (the GDD already plans this); tick once per event, outside the effect loop; source-tagged slot modifiers instead of `bonus_amount` | B21, B22, B29, B30 | M |
+| T02 | ~~**Buff system v2**~~ built 2026-11-24 (batch 53, in testing): instances keyed by (id, permanent); a buff scales *either* stacks *or* duration (the GDD already plans this); tick once per event, outside the effect loop; source-tagged slot modifiers instead of `bonus_amount` | B21, B22, B29, B30 | M |
 | T03 | **One effect dispatcher**: dice, keepsakes, items and debuffs register `handlers[$ event]`; the dispatcher does the `owner_only` uid check; fresh uid on clone | B26, B27, B43, perf | M |
 | T05 | **`run` struct**: one object owns gold, HP, bag, keepsakes, items, tools, alignment and pools; `new_run()`/`end_run()` create and free everything; the save serialises this one struct with a version + RNG state | B70–72, leaks, 130 globals | L |
 | T06 | **Split input/state from Draw GUI** (update in Step, render in Draw). The code currently relies on draw order for clicks and on positions computed a frame late | B63, ordering bugs | L (incremental, room by room) |

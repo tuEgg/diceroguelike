@@ -678,7 +678,7 @@ function glossary_terms(_text) {
 	if (variable_global_exists("status_glossary")) {
 		for (var s = 0; s < array_length(global.status_glossary); s++) {
 			var _b = global.status_glossary[s];
-			array_push(_found, { name: _b.name, desc: _b.desc, key: "" });
+			array_push(_found, { name: _b.name, desc: string(_b.desc) + buff_status_line(_b.name), key: "" }); // + what you have of it now
 		}
 	}
 	// the game's own words that aren't obvious (2026-11-24: explained wherever they're hovered, not just in events)

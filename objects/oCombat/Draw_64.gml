@@ -922,32 +922,9 @@ for (var e = 0; e < ds_list_size(room_enemies); e++) {
 	var d_padding = 15;
 
 	for (var d = 0; d < ds_list_size(enemy.debuffs); d++) {
-		var _debuff = enemy.debuffs[| d];
-		
-		var col = _debuff.template.color;
-		draw_sprite_ext(sDebuffIcon, _debuff.template.icon_index, e_bar_x + d_x + sprite_get_width(sDebuffIcon)/2, d_y + sprite_get_height(sDebuffIcon)/2, 1, 1, 0, col, 1.0);
-		draw_set_font(ftDefault);
-		draw_set_halign(fa_center);
-		draw_set_valign(fa_middle);
-		
-		var debuff_remaining_text = string(_debuff.remaining);
-		
-		if (!_debuff.permanent) {
-			if (_debuff.remaining > 0) {
-				debuff_remaining_text = string(_debuff.remaining);
-			} else {
-				debuff_remaining_text = "";
-			}
-		}
-		
-		draw_outline_text(debuff_remaining_text, c_black, c_white, 2, e_bar_x + d_x + sprite_get_width(sDebuffIcon), d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
-		if (_debuff.amount != 0) draw_outline_text(string(_debuff.amount), c_black, c_red, 2, e_bar_x + d_x, d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
-	
-		if (mouse_hovering(e_bar_x + d_x, d_y, sprite_get_width(sDebuffIcon), sprite_get_height(sDebuffIcon), false)) {
-			queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _debuff.template.name, buff_tooltip_text(_debuff), undefined, 0, undefined);
-		}
-	
-		d_x += sprite_get_width(sDebuffIcon) + d_padding;
+		// the icon, its number (amount or turns left) and its tooltip: buff_icon_draw (scDebuffs, docs/design/buffs-plan.md)
+		var _bw = buff_icon_draw(e_bar_x + d_x, d_y, enemy.debuffs[| d], enemy.debuffs, false);
+		d_x += _bw + d_padding;
 	}
 
 }
@@ -996,22 +973,8 @@ var d_y = p_bar_y + p_bar_h + 5;
 var d_padding = 22;
 
 for (var d = 0; d < ds_list_size(global.player_debuffs); d++) {
-	var _debuff = global.player_debuffs[| d];
-	var col = _debuff.template.color;
-	// ink coming: the inkwell, as you click for the ink view (Jared, 2026-11-22)
-	if (_debuff.template._id == "intel" || _debuff.template._id == "intel_lasting") draw_inkwell(p_bar_x + d_x + sprite_get_width(sDebuffIcon)/2, d_y + sprite_get_height(sDebuffIcon)/2, 0.7, 1, false);
-	else draw_sprite_ext(sDebuffIcon, _debuff.template.icon_index, p_bar_x + d_x + sprite_get_width(sDebuffIcon)/2, d_y + sprite_get_height(sDebuffIcon)/2, 1, 1, 0, col, 1.0);
-	draw_set_font(ftDefault);
-	draw_set_halign(fa_center);
-	draw_set_valign(fa_middle);
-	if (!_debuff.permanent) draw_outline_text(string(_debuff.remaining), c_black, c_white, 2, p_bar_x + d_x + sprite_get_width(sDebuffIcon), d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
-	if (_debuff.amount != 0) draw_outline_text(string(_debuff.amount), c_black, c_red, 2, p_bar_x + d_x, d_y + sprite_get_height(sDebuffIcon)/1.2, 1, 1, 0);
-
-	if (mouse_hovering(p_bar_x + d_x, d_y, sprite_get_width(sDebuffIcon), sprite_get_height(sDebuffIcon), false)) {
-		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _debuff.template.name, buff_tooltip_text(_debuff), undefined, 0, undefined);
-	}
-	
-	d_x += sprite_get_width(sDebuffIcon) + d_padding;
+	var _bw = buff_icon_draw(p_bar_x + d_x, d_y, global.player_debuffs[| d], global.player_debuffs, true);
+	d_x += _bw + d_padding;
 }
 
 // Draw player block

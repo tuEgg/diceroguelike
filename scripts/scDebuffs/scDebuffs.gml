@@ -26,21 +26,24 @@ function apply_buff(_target, _template, _duration, _amount, _remove_next_turn, _
 	}
 	
 	
-	// see if this debuff already exists and extend it if so
+	// see if this buff already exists and merge into it (docs/design/buffs-plan.md, 2026-11-24). Permanent and temporary
+	// copies are always kept apart, so one can never change how long the other lasts.
+	var _kind = buff_kind(_template);
 	if (ds_list_size(_target_list) > 0) {
 		for (var d = 0; d < ds_list_size(_target_list); d++) {
 			var _existing = _target_list[| d];
-
-			// Permanent and temporary versions of the same buff are kept apart, so one can never change how long the other lasts
 			if (_existing.template._id != _template._id || _existing.permanent != _permanent) continue;
 
-			if (_template.stackable) {
-				// Stacks only merge when they will run out together, otherwise the new stack is tracked on its own
+			if (_kind == "amount") {
+				// an amount buff just grows (Might +1 and Might +1 is Might +2); a temporary one only merges with another
+				// that runs out at the same time, otherwise the newer one is its own icon
 				if (_existing.remove_next_turn != _remove_next_turn) continue;
-
 				_existing.amount += _amount;
 			} else {
-				_existing.remaining += _duration;
+				// an effect buff or debuff doesn't stack: Bind on a Bind lasts the longer of the two, and if the new one
+				// should last through your next turn, so does the merged one (it used to add the durations)
+				_existing.remaining = max(_existing.remaining, _duration);
+				_existing.remove_next_turn = _existing.remove_next_turn || _remove_next_turn;
 			}
 			return;
 		}
@@ -546,17 +549,112 @@ function draw_mock_mark(_x, _y, _scale = 1) {
 	return { x1: _x - _w / 2, y1: _y - _h / 2, x2: _x + _w / 2, y2: _y + _h / 2 };
 }
 
-/// @func buff_tooltip_text(_inst)
-/// @desc A buff or debuff's tooltip text: its description, then how long it lasts and its strength, only when they
-///       mean something ("2 turns left", "Lasts all fight", "Strength 3").
-function buff_tooltip_text(_inst) {
+/// @func buff_kind(_template)
+/// @desc "amount" or "effect" (docs/design/buffs-plan.md). An amount buff is a number that stacks and has no turn counter
+///       (Might, Balance, queued ink, kept dice): a permanent copy and a temporary one are separate icons, each with its
+///       amount. An effect has no amount, doesn't stack, and shows the turns it has left (Bind, Rot, Mock, Stunned...).
+function buff_kind(_template) {
+	switch (_template._id) {
+		case "might": case "balance": case "intel": case "reserve": return "amount";
+	}
+	return "effect";
+}
+
+/// @func buff_total(_list, _id)
+/// @desc { total, permanent, temporary }: the amounts of one buff across a target's list.
+function buff_total(_list, _id) {
+	var _t = { total: 0, permanent: 0, temporary: 0 };
+	for (var i = 0; i < ds_list_size(_list); i++) {
+		var _b = _list[| i];
+		if (_b.template._id != _id) continue;
+		if (_b.permanent) _t.permanent += _b.amount; else _t.temporary += _b.amount;
+		_t.total += _b.amount;
+	}
+	return _t;
+}
+
+/// @func buff_icon_text(_inst)
+/// @desc { text, col }: what a buff's icon says (2026-11-24). Amount buffs: their amount, "+3" green or "-2" red. Effects:
+///       the turns left, nothing when permanent (except a shell, which shows its layers).
+function buff_icon_text(_inst) {
+	if (buff_kind(_inst.template) == "amount") {
+		if (_inst.amount == 0) return { text: "", col: c_white };
+		return { text: ((_inst.amount > 0) ? "+" : "") + string(_inst.amount), col: (_inst.amount > 0) ? c_lime : c_red };
+	}
+	if (_inst.template._id == "conch_layers") return { text: string(max(0, _inst.remaining)), col: c_white }; // the layers left
+	if (_inst.permanent || _inst.remaining <= 0) return { text: "", col: c_white };
+	return { text: string(_inst.remaining), col: c_white };
+}
+
+/// @func buff_icon_draw(_x, _y, _inst, _list, _is_player)
+/// @desc One buff or debuff icon with its number and hover tooltip, at its top left; returns its width. Used for the
+///       player's row and for each enemy's (oCombat Draw GUI). A permanent one wears a brass ring.
+function buff_icon_draw(_x, _y, _inst, _list, _is_player) {
+	var _w = sprite_get_width(sDebuffIcon), _h = sprite_get_height(sDebuffIcon);
+	var _cx = _x + _w / 2, _cy = _y + _h / 2;
+	// ink coming: the inkwell, as you click for the ink view (Jared, 2026-11-22)
+	if (_is_player && (_inst.template._id == "intel" || _inst.template._id == "intel_lasting")) draw_inkwell(_cx, _cy, 0.7, 1, false);
+	else draw_sprite_ext(sDebuffIcon, _inst.template.icon_index, _cx, _cy, 1, 1, 0, _inst.template.color, 1.0);
+	if (_inst.permanent) {
+		draw_set_color(global.ui_col.brass);
+		draw_set_alpha(0.9);
+		draw_circle(_cx, _cy, _w * 0.56, true);
+		draw_circle(_cx, _cy, _w * 0.56 + 1, true);
+		draw_set_alpha(1);
+	}
+	var _t = buff_icon_text(_inst);
+	if (_t.text != "") {
+		draw_set_font(ftDefault);
+		draw_set_halign(fa_center);
+		draw_set_valign(fa_middle);
+		draw_outline_text(_t.text, c_black, _t.col, 2, _x + _w, _y + _h / 1.2, 1, 1, 0);
+	}
+	if (mouse_hovering(_x, _y, _w, _h, false)) {
+		queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), _inst.template.name, buff_tooltip_text(_inst, _list), undefined, 0, undefined);
+	}
+	return _w;
+}
+
+/// @func buff_status_line(_name)
+/// @desc What you currently have of a buff or debuff, for its glossary box: "" if nothing, else "\nYou have: ...".
+function buff_status_line(_name) {
+	if (!variable_global_exists("player_debuffs") || !ds_safe_exists(global.player_debuffs, ds_type_list)) return "";
+	var _line = "";
+	for (var i = 0; i < ds_list_size(global.player_debuffs); i++) {
+		var _b = global.player_debuffs[| i];
+		if (_b.template.name != _name) continue;
+		if (buff_kind(_b.template) == "amount") {
+			var _t = buff_total(global.player_debuffs, _b.template._id);
+			_line = "\nYou have " + string(_t.total) + ((_t.permanent != 0 && _t.temporary != 0) ? " (" + string(_t.permanent) + " permanent, " + string(_t.temporary) + " this turn)." : ((_t.permanent != 0) ? ", all fight." : ", this turn only."));
+		} else {
+			_line = "\nYou have it" + ((_b.permanent || _b.remaining <= 0) ? ", all fight." : ((_b.remaining == 1) ? ": 1 turn left." : ": " + string(_b.remaining) + " turns left."));
+		}
+		break;
+	}
+	return _line;
+}
+
+/// @func buff_tooltip_text(_inst, [_list])
+/// @desc A buff or debuff's tooltip text: its description, then (2026-11-24) for an amount buff its amount, whether it
+///       lasts all fight or this turn only and, with _list, the total across its permanent and temporary copies; for an
+///       effect the turns it has left.
+function buff_tooltip_text(_inst, _list = undefined) {
 	var _desc = string(_inst.template.desc);
 	if (string_char_at(_desc, string_length(_desc)) != ".") _desc += ".";
 	var _bits = [];
-	if (_inst.permanent) array_push(_bits, "Lasts all fight");
-	else if (_inst.remaining == 1) array_push(_bits, "1 turn left");
-	else if (_inst.remaining > 1) array_push(_bits, string(_inst.remaining) + " turns left");
-	if (_inst.amount != 0) array_push(_bits, "Strength " + string(_inst.amount));
+	if (buff_kind(_inst.template) == "amount") {
+		if (_inst.amount != 0) array_push(_bits, ((_inst.amount > 0) ? "+" : "") + string(_inst.amount));
+		array_push(_bits, _inst.permanent ? "Lasts all fight" : "This turn only");
+		if (ds_safe_exists(_list, ds_type_list)) {
+			var _t = buff_total(_list, _inst.template._id);
+			if (_t.permanent != 0 && _t.temporary != 0) array_push(_bits, "Total " + string(_t.total) + ": " + string(_t.permanent) + " permanent, " + string(_t.temporary) + " this turn");
+		}
+	} else {
+		if (_inst.template._id == "conch_layers") array_push(_bits, string(max(0, _inst.remaining)) + ((_inst.remaining == 1) ? " layer left" : " layers left"));
+		else if (_inst.permanent) array_push(_bits, "Lasts all fight");
+		else if (_inst.remaining == 1) array_push(_bits, "1 turn left");
+		else if (_inst.remaining > 1) array_push(_bits, string(_inst.remaining) + " turns left");
+	}
 	if (array_length(_bits) == 0) return _desc;
 	var _line = _bits[0];
 	for (var i = 1; i < array_length(_bits); i++) _line += ", " + _bits[i];
