@@ -72,7 +72,7 @@ Starter keepsake: Looking Glass. Starting tool: the Drill. 50 gold, 60 HP, 3 ite
 | Lookout die | d6 | INTEL | common (40) | Stowaway | Unused: 3 ink next turn | on_not_used | unused, ink |
 | Bouncing Die | d4 | ATK | common (40) | - | Attacking: switch to a random target | on_roll_die | aoe |
 | Guerrilla Coin | d2 | INTEL | common (40) | Coin | Builds a slot: half your ink as damage to a random enemy | on_sacrifice_die | coin, build, ink, dmg, aoe |
-| Radar die | d6 | INTEL | common (40) | - | Builds a slot: 3 ink next turn and the turn after | on_sacrifice_die | build, ink |
+| Radar die | d6 | INTEL | common (40) | - | When played: ink equal to its roll, now | on_dice_played_to_slot | ink |
 | Offhand die | d6 | ATK | common (30) | - | Rolls {min}: 1 Might this turn | on_die_rolled | min-roll, buff |
 | Balanced die | d6 | BLK | common (30) | - | Rolls {max}: 1 Balance | on_die_rolled | max-roll, buff |
 | Ninja die | d4 | BLK | common (40) | Followthrough | +2 if slot before is ink | on_roll_die | followthrough, ink |

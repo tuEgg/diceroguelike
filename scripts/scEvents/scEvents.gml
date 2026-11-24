@@ -1733,7 +1733,7 @@ function event_is_sea(_name) {
 function sirens_option_text(_type_word, _count) {
 	var _rule = (_type_word == "ink") ? "More the higher your alignment." : "More the lower your alignment.";
 	if (_count <= 0) return "Nothing at your alignment. " + _rule;
-	return "Upgrade " + string(_count) + " " + _type_word + ((_count == 1) ? " die" : " dice") + ". " + _rule;
+	return "Upgrade " + string(_count) + " " + _type_word + ((_count == 1) ? " die" : " dice") + " at random. " + _rule;
 }
 
 /// @func sirens_upgrade(_type, _count, _col)

@@ -162,7 +162,7 @@ function define_enemies() {
 	
 	// Elite that buffs others and summons minions to the fight.
 	var pirate_captain_moves = [
-	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Command", timing: "first", debuff: buff_might, weight: 20, use_trigger: "FIRST", target: "other", amount: 1, duration: 1 }, // Command
+	    { dice_amount: 1, dice_value: 1, action_type: "BUFF", bonus_amount: 0, move_name: "Command", timing: "first", debuff: buff_might, weight: 20, use_trigger: "FIRST", target: "other", include_self: true, amount: 1, duration: -1 }, // Command: stacks for the rest of the fight, on an ally or himself
 	    { dice_amount: 3, dice_value: 4, action_type: "ATK", bonus_amount: 6, move_name: "Pistol Shot", weight: 40 }, // Take Cover
 	    { dice_amount: 3, dice_value: 2, action_type: "BLK", bonus_amount: 8, move_name: "Take Cover", weight: 40 }, // Pistol Shot
 	    { dice_amount: 1, dice_value: 1, action_type: "SUMMON", bonus_amount: 0, move_name: "Open Barrel", timing: "last", weight: 0, summon: "Barrel o' Fish", use_trigger: "HEALTH 50" } // Pistol Shot
@@ -336,6 +336,7 @@ function intent_status_text(_move) {
 	if (_amount != 1 || _b.stackable) _name += " " + ((_amount > 0) ? "+" : "") + string(_amount); // "Might +1", "Might -2"
 	var _who;
 	if (_move.action_type == "DEBUFF") _who = "Puts " + _name + " on you";
+	else if (variable_struct_exists(_move, "include_self") && _move.include_self) _who = "Gives an ally, or itself, " + _name;
 	else if (variable_struct_exists(_move, "target") && _move.target == "other") _who = "Gives its allies " + _name;
 	else _who = "Gives itself " + _name;
 	var _desc = string(_b.desc);

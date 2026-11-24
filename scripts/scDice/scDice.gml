@@ -248,15 +248,19 @@ function generate_dice_bag() {
 	// Anchor Die: Gain +3 block if not used
 	global.die_anchor = make_die_struct(
 	    1, 6, "BLK", "BLK", "", "Anchor die",
-	    "Stowaway: Gain 5 block.",
+	    "Stowaway: Gain block equal to half its roll.",
 		"uncommon", // free value is never common (F242)
 		30,
 	    [
 	        {
 	            trigger: "on_not_used",
 	            modify: function(_context) {
+					// half its rolled number, rounded up (every halved value in the game rounds up, Jared 2026-11-24)
+					var _src = _context._die_struct_source;
+					var _roll = die_face_total(_src);
+					if (_roll == -1) _roll = ceil(_src.dice_value / 2); // never rolled: its average-ish
 					with (oCombat) {
-						process_action("player", 0, 5, 0, "player", undefined, "BLK");
+						process_action("player", 0, ceil(_roll / 2), 0, "player", undefined, "BLK");
 					}
 	            }
 	        }
@@ -878,16 +882,20 @@ function generate_dice_bag() {
 	
 	global.die_radar = make_die_struct(
 	    1, 6, "INTEL", "INTEL", "", "Radar die",
-	    "When it builds a slot: gain 3 ink next turn and the turn after.",
+	    "When played: gain ink equal to its roll.",
 		"common",
 		40,
 	    [
 	        {
-	            trigger: "on_sacrifice_die",
+	            trigger: "on_dice_played_to_slot", // the ink arrives now, not next turn (Jared, 2026-11-24)
 	            modify: function(_context) {
-					var amount = 3;
-	                apply_buff("player", oRunManager.buff_intel_lasting, 2, amount, oRunManager.buff_intel_lasting.remove_next_turn, { source: "player", index: -1 });
-					var num = spawn_floating_number("player", amount, -1, global.text_intel, 1, -1, 0);
+					if (_context._d_struct.uid != _context._die_struct_source.uid || !instance_exists(oCombat)) return;
+					var _roll = die_face_total(_context._d_struct);
+					if (_roll == -1) _roll = ceil(_context._d_struct.dice_value / 2);
+					var _gain = min(_roll, max(0, intel_max() - oCombat.player_intel));
+					oCombat.player_intel += _gain;
+					die_effect_popup(_context._d_struct, "+" + string(_roll) + " ink", global.text_intel);
+					var num = spawn_floating_number("player", _gain, -1, global.text_intel, 1, -1, 0);
 					num.x += 20;
 					num.y -= 20;
 	            }
@@ -2371,20 +2379,20 @@ function die_slosh(_die, _x, _y) {
 	return _s;
 }
 
-/// @func die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die)
-/// @desc An ink die's wet edge: an ink rim, rippling, bulging out behind as it moves (the ink sloshing), a few drops
-///       trailing when it's quick. Drawn over the black outline, under the body.
-function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
-	var _sl = die_slosh(_die, _x, _y);
+/// @func die_ink_blob(_x, _y, _r, _sides, _angle, _alpha, _die, _sl, _mul, _col)
+/// @desc The ink die's wet outline as a filled blob at _mul times its radius (1.12 the rim): points round the shape, each
+///       pushed out by a ripple and by the slosh (_sl, die_slosh). The ink rim and the rarity ring both use it, so they
+///       swell and trail together (Jared, 2026-11-24: the ring used to sit still behind the ink).
+function die_ink_blob(_x, _y, _r, _sides, _angle, _alpha, _die, _sl, _mul, _col) {
 	var _sp = min(point_distance(0, 0, _sl.vx, _sl.vy), 40);
 	var _dx = (_sp > 0.01) ? -_sl.vx / _sp : 0, _dy = (_sp > 0.01) ? -_sl.vy / _sp : 0; // behind it
 	var _t = current_time / 1000;
 	var _seed = is_struct(_die) && variable_struct_exists(_die, "uid") ? _die.uid * 1.7 : 0;
 	// the outline, many points round it, each pushed out by a ripple and by the slosh
 	var _base = [];
-	if (_sides <= 2) { for (var i = 0; i < 24; i++) array_push(_base, [lengthdir_x(_r * 1.1, i * 15), lengthdir_y(_r * 1.1, i * 15)]); }
+	if (_sides <= 2) { for (var i = 0; i < 24; i++) array_push(_base, [lengthdir_x(_r * (_mul - 0.02), i * 15), lengthdir_y(_r * (_mul - 0.02), i * 15)]); }
 	else {
-		var _pts = die_shape_points(_sides, _r * 1.12), _n = array_length(_pts);
+		var _pts = die_shape_points(_sides, _r * _mul), _n = array_length(_pts);
 		for (var i = 0; i < _n; i++) {
 			var _p = _pts[i], _q = _pts[(i + 1) mod _n];
 			for (var k = 0; k < 6; k++) array_push(_base, [lerp(_p[0], _q[0], k / 6), lerp(_p[1], _q[1], k / 6)]);
@@ -2406,7 +2414,7 @@ function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
 	}
 	var _cx = die_rot_x(_x, 0, _cyo, _angle), _cy = die_rot_y(_y, 0, _cyo, _angle);
 	draw_set_alpha(_alpha);
-	draw_set_color(make_color_rgb(62, 70, 124)); // ink, lit a little: it shows against the black outline
+	draw_set_color(_col);
 	draw_primitive_begin(pr_trianglelist); // a list, not a fan: the web build is fussy about fans
 	for (var i = 0; i < _m; i++) {
 		var _q = _ring[(i + 1) mod _m];
@@ -2415,17 +2423,35 @@ function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die) {
 		draw_vertex(_q[0], _q[1]);
 	}
 	draw_primitive_end();
+	draw_set_alpha(1);
+	draw_set_color(c_white);
+}
+
+/// @func die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die, [_sl])
+/// @desc An ink die's wet edge: an ink rim, rippling, bulging out behind as it moves (the ink sloshing), a few drops
+///       trailing when it's quick. Drawn over the black outline, under the body. _sl: its slosh if draw_die already
+///       stepped it this frame (die_slosh moves it on each call).
+function die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die, _sl = undefined) {
+	if (_sl == undefined) _sl = die_slosh(_die, _x, _y);
+	die_ink_blob(_x, _y, _r, _sides, _angle, _alpha, _die, _sl, 1.12, make_color_rgb(62, 70, 124)); // ink, lit a little: it shows against the black outline
 	// drops thrown off behind it when it's quick
+	var _sp = min(point_distance(0, 0, _sl.vx, _sl.vy), 40);
 	if (_sp > 9) {
+		var _dx = -_sl.vx / _sp, _dy = -_sl.vy / _sp;
+		var _t = current_time / 1000;
+		var _seed = is_struct(_die) && variable_struct_exists(_die, "uid") ? _die.uid * 1.7 : 0;
+		var _cyo = die_shape_yoff(_sides, _r);
+		draw_set_alpha(_alpha);
+		draw_set_color(make_color_rgb(62, 70, 124));
 		var _drops = min(3, floor(_sp / 6));
 		for (var d = 1; d <= _drops; d++) {
 			var _dd = _r * (1.15 + d * 0.28);
 			var _wob = sin(_t * 6 + d * 2.1 + _seed) * _r * 0.12;
 			draw_circle(_x + _dx * _dd - _dy * _wob, _y + _dy * _dd + _dx * _wob + _cyo, max(1.5, _r * (0.13 - d * 0.03)), false);
 		}
+		draw_set_alpha(1);
+		draw_set_color(c_white);
 	}
-	draw_set_alpha(1);
-	draw_set_color(c_white);
 }
 
 /// @func die_rot_x(_x, _px, _py, _angle) / die_rot_y
@@ -2452,13 +2478,19 @@ function draw_die(_x, _y, _r, _sides, _face, _col, _angle = 0, _alpha = 1, _die 
 
 	// shadow, (a rarity ring,) outline, body, and a lighter inner face for a little depth
 	draw_die_shape(_x + _r * 0.08, _y + _r * 0.12, _r * 1.06, _sides, c_black, _angle, _alpha * 0.35);
+	var _ink_sl = (die_style(_die) == "ink") ? die_slosh(_die, _x, _y) : undefined; // stepped once a frame, shared by the ring and the rim
 	if (die_is_special(_die)) {
-		draw_die_shape(_x, _y, _r * 1.3, _sides, make_color_rgb(20, 20, 26), _angle, _a0);
-		draw_die_shape(_x, _y, _r * 1.22, _sides, rarity_colour(_die.rarity), _angle, _a0);
+		if (_ink_sl != undefined) { // an ink die: its ring swells and trails with the ink, not still behind it
+			die_ink_blob(_x, _y, _r, _sides, _angle, _a0, _die, _ink_sl, 1.3, make_color_rgb(20, 20, 26));
+			die_ink_blob(_x, _y, _r, _sides, _angle, _a0, _die, _ink_sl, 1.22, rarity_colour(_die.rarity));
+		} else {
+			draw_die_shape(_x, _y, _r * 1.3, _sides, make_color_rgb(20, 20, 26), _angle, _a0);
+			draw_die_shape(_x, _y, _r * 1.22, _sides, rarity_colour(_die.rarity), _angle, _a0);
+		}
 	}
 	draw_die_shape(_x, _y, _r * 1.07, _sides, make_color_rgb(20, 20, 26), _angle, (_look == "ghost") ? _a0 * 0.35 : _alpha);
 	// its style (die_style): over the outline, under the body, so it shows. Ink sloshes.
-	if (die_style(_die) == "ink") die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die);
+	if (_ink_sl != undefined) die_style_ink(_x, _y, _r, _sides, _angle, _alpha, _die, _ink_sl);
 	draw_die_shape(_x, _y, _r, _sides, colours_merge(_col, c_black, 0.18), _angle, _alpha);
 	draw_die_shape(_x, _y - _r * 0.04, _r * 0.86, _sides, _col, _angle, _alpha);
 	if (_look != "") die_look_draw(_look, _x, _y, _r, _sides, _col, _angle, _a0);

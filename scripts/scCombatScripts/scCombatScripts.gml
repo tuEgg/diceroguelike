@@ -3791,9 +3791,10 @@ function combat_enemy_act(_e) {
 			if (intent_array[i] == "MIMIC") intent_array[i] = player_last_action_type;
 			if (variable_struct_exists(enemy.intent.move, "target")) _target = enemy.intent.move.target;
 			if (_target == "other") {
-				// pick a living ally, or ourselves if there are none
+				// pick a living ally, or ourselves if there are none (include_self: any living enemy, himself too)
 				var _others = [];
-				for (var o = 0; o < ds_list_size(room_enemies); o++) if (o != e && !room_enemies[| o].dead) array_push(_others, o);
+				var _self_ok = variable_struct_exists(enemy.intent.move, "include_self") && enemy.intent.move.include_self;
+				for (var o = 0; o < ds_list_size(room_enemies); o++) if ((o != e || _self_ok) && !room_enemies[| o].dead) array_push(_others, o);
 				var _target_index = e;
 				if (array_length(_others) > 0) _target_index = _others[irandom(array_length(_others) - 1)];
 				_target = room_enemies[| _target_index];
@@ -3921,7 +3922,8 @@ function combat_timeline_draw(_ink = false) {
 				draw_circle(_cx, _ty, 9, false);
 				draw_circle(_cx - 6, _ty + 8, 3, false);
 				draw_circle(_cx + 5, _ty + 11, 2, false);
-				particle_emit(_cx, _ty, "constant", c_green, 1);
+				draw_set_color(c_white);
+				particle_emit_later(_cx, _ty, "constant", c_green, 1); // queued: a particle made while drawing made the web build skip the frame (B108), the hand vanished
 				if (mouse_hovering(_cx, _ty - 12, 40, 44, true, noone, noone, true, _layer)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Rot", "Slot " + string(k) + " comes to half its total this turn.");
 			}
 			// Bind: a chain on its place's notch all turn (2026-11-24); the slot itself is chained once built

@@ -1047,11 +1047,11 @@ function define_keepsakes() {
 	ks_heavy_rigging = {
 	    _id: "heavy_rigging",
 	    name: "Heavy Rigging",
-	    desc: "Dice d8 or bigger get +1.",
+	    desc: "Dice d8 or bigger get +2.",
 		sub_image: 26,
 	    trigger: function(event, data) {
 			if (event == "on_roll_die" && data.die.dice_value >= 8) {
-				data._d_amount += 1;
+				data._d_amount += 2;
 				if (!data.read_only) trigger_keepsake_visual();
 			}
 	    }

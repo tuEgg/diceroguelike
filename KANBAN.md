@@ -30,6 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 48: playtest feedback (Mac, 2026-11-24) | B172, B173, F266, F267, F268, F269, F270 | `dev` | **Not yet play-tested.** Dice and keepsake tweaks, the Rot hand-vanishing bug, the rarity ring on ink dice. More commits to come in this batch. |
 | 47: card polish | B171, F265 | `dev` | **Not yet play-tested.** The quartermaster's core text has proper line spacing; distribution numbers are Charter with more room; bars share one standard width (cored and plain) and get thinner on d10/d12. |
 | 46: Aleo for small text, standard dice cards | F263, F264, B170 | `dev` | **Not yet play-tested.** Small text everywhere is Aleo (ftTip); card descriptions too; dice cards share a height, every die shows its distribution (faint with no core); the abandon-voyage text is bigger. |
 | 45: place bonus in the corner | F262 | `dev` | **Not yet play-tested.** An empty slot, and the new-slot tile, show their place bonus as a small green +N at the bottom right; it clears once a die is in. |
@@ -42,6 +43,14 @@
 | 38: fixes after batch 37 | B164, B165, F250 | `dev` | **Not yet play-tested.** Anchor icon the right way up; slot number is the full total; Tattooist anchor +2 min roll. |
 | 37: map and economy (design brief 2026-11-24) | F244, F245, F246, F247, F248, F249 | `dev` | **Not yet play-tested.** Sea stops are Drop Anchor, sea events, the wreck or Flotsam; island and sea events split; workbench actions and the Bin; tools in every shop; 2-of-4 drafting; a chapter pool for stops; bounty help. |
 | 36: content pass | F242 | `dev` | **Not yet play-tested.** Free value repriced, rares lifted, healing on triggers, shop keepsakes, core-shape payoffs, 22 new dice and keepsakes for the seven archetypes (\`docs/design/content-pass.md\`). |
+
+**Batch 48 test list (playtest feedback)**
+- B172 Rot: with Rot on you, your hand is dealt and visible at the start of the turn. (The Rot slot's green glow made a particle every frame from Draw GUI, which makes the web build skip a frame; now queued.) Also check Bind and Rot together.
+- B173 Rarity ring on an ink die: swells and trails with the ink rim, no longer still behind it. Move one around; an uncommon or rare ink die is the test.
+- F266 Radar die: "When played: gain ink equal to its roll." Ink arrives at once (capped at your max), a "+N ink" pops on the die. It can't be taken back once played.
+- F267 Anchor die: "Stowaway: Gain block equal to half its roll." Rounded up (a 5 gives 3). Heavy Rigging: dice d8 or bigger get +2.
+- F268 The Siren's Call: the ink and attack options say "Upgrade N ... dice at random."
+- F269 Pirate Captain's Command is permanent and stacks (Might +1, +2... rest of the fight) and can land on an ally or on him. The intent tooltip says "Gives an ally, or itself, Might +1 for the rest of the fight."
 
 **Batch 47 test list (card polish)**
 - B171 Quartermaster card: the core's description has the same roomy line spacing as the die's words.
