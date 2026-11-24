@@ -581,17 +581,26 @@ function draw_all_tooltips() {
 		var _kw_sizes = [];
 		for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
 			var kw = global.tooltip_keywords[i];
-			var _s = draw_tooltip_box(0, 0, kw.name, kw.desc, kw.icon, kw.index, undefined, true, true);
+			var _s = draw_tooltip_box(0, 0, kw.name, kw.desc, kw.icon, kw.index, undefined, false, true); // the same style as the main box (2026-11-24)
 			array_push(_kw_sizes, _s);
 			_total_h += _gap + _s.h;
 			_max_w = max(_max_w, _s.w);
 		}
 
 		var xx = tt.x, yy = tt.y; // beside the hovered thing (queue_tooltip)
+		// a stack too tall for the screen splits: the main box stays, the rest stand in a column beside it
+		var _gui_w = display_get_gui_width(), _gui_h = display_get_gui_height();
+		var _split = (_total_h > _gui_h - 20) && array_length(global.tooltip_keywords) > 0;
+		var _kw_w = 0, _kw_h = 0;
+		if (_split) {
+			for (var i = 0; i < array_length(_kw_sizes); i++) { _kw_w = max(_kw_w, _kw_sizes[i].w); _kw_h += _kw_sizes[i].h + _gap; }
+			_total_h = _main.h;
+			_max_w = _main.w + _gap * 3 + _kw_w;
+		}
 		// no room on the right of the hovered thing: put it on its left instead
-		if (xx + _max_w > display_get_gui_width() - 10 && is_struct(tt.anchor)) xx = tt.anchor.x1 - 14 * global.ui_scale - _max_w;
-		if (xx + _max_w > display_get_gui_width() - 10) xx = display_get_gui_width() - _max_w - 10;
-		if (yy + _total_h > display_get_gui_height() - 10) yy = display_get_gui_height() - _total_h - 10;
+		if (xx + _max_w > _gui_w - 10 && is_struct(tt.anchor)) xx = tt.anchor.x1 - 14 * global.ui_scale - _max_w;
+		if (xx + _max_w > _gui_w - 10) xx = _gui_w - _max_w - 10;
+		if (yy + _total_h > _gui_h - 10) yy = _gui_h - _total_h - 10;
 		xx = max(10, xx); yy = max(10, yy);
 
 		draw_tooltip_box(xx, yy, tt.name, tt.desc, tt.icon, tt.index, tt.dice, false, false);
@@ -602,10 +611,12 @@ function draw_all_tooltips() {
 			var _hw = 20 + 7 + string_width(tt.hint.text);
 			draw_mouse_hint(xx + _main.w - _hw + 10, yy - 22, tt.hint.button, tt.hint.text, 0.6, tt.hint.col, tt.hint.col);
 		}
-		var _ky = yy + _main.h + _gap;
+		// every other box stacked under it at the same edge, in the same style (a split stack: beside it, kept on screen)
+		var _kx = xx, _ky = yy + _main.h + _gap;
+		if (_split) { _kx = xx + _main.w + _gap * 3; _ky = clamp(yy, 10, max(10, _gui_h - _kw_h - 10)); }
 		for (var i = 0; i < array_length(global.tooltip_keywords); i++) {
 			var kw = global.tooltip_keywords[i];
-			draw_tooltip_box(xx + 12, _ky, kw.name, kw.desc, kw.icon, kw.index, undefined, true, false);
+			draw_tooltip_box(_kx, _ky, kw.name, kw.desc, kw.icon, kw.index, undefined, false, false);
 			_ky += _kw_sizes[i].h + _gap;
 		}
     }

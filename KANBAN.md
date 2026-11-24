@@ -30,6 +30,7 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 43: one tooltip style | F260 | `dev` | **Not yet play-tested.** Keyword, buff and game-word boxes are the main tooltip's style, stacked in one column. |
 | 42: tooltips everywhere | F259 | `dev` | **Not yet play-tested.** Quartermaster cards, bag-view cards and dice rewards explain their words; every tooltip explains keywords, buffs, debuffs and game words (core, ink, luck, alignment, upgrade, min roll, extra play...). |
 | 41: Bind shown, coins, hand bonuses, buff tips | B167, B168, B169, F257, F258 | `dev` | **Not yet play-tested.** Bind and Rot pick their slot (mostly 1-3) as the turn starts and show it all turn; the Doubloon is a d2 and every coin loses Coin when upgraded; Calligrapher +1 per ink action; dice in hand show their bonus; every tooltip explains the buffs and debuffs it names. |
 | 40: Balanced, paper sounds, text colours | B166, F254, F255, F256 | `dev` | **Not yet play-tested.** Balanced gives Balance as it rolls; paper UI rustles on hover; reward cards explain their keywords; numbers in a die's text take its action colour, keywords are violet. |
@@ -37,6 +38,9 @@
 | 38: fixes after batch 37 | B164, B165, F250 | `dev` | **Not yet play-tested.** Anchor icon the right way up; slot number is the full total; Tattooist anchor +2 min roll. |
 | 37: map and economy (design brief 2026-11-24) | F244, F245, F246, F247, F248, F249 | `dev` | **Not yet play-tested.** Sea stops are Drop Anchor, sea events, the wreck or Flotsam; island and sea events split; workbench actions and the Bin; tools in every shop; 2-of-4 drafting; a chapter pool for stops; bounty help. |
 | 36: content pass | F242 | `dev` | **Not yet play-tested.** Free value repriced, rares lifted, healing on triggers, shop keepsakes, core-shape payoffs, 22 new dice and keepsakes for the seven archetypes (\`docs/design/content-pass.md\`). |
+
+**Batch 43 test list (one tooltip style)**
+- F260 Hover anything with a keyword, buff or game word (a Sticky die in the bag, an event choice, a potion): the extra boxes look like the main one (same background, font and name colour) and stack straight under it at the same left edge. Near the right edge the whole stack moves to the left of the thing; near the bottom it slides up; a stack taller than the screen puts the extras in a column beside the main box. Die tips (the compact one above a die in hand) are unchanged.
 
 **Batch 42 test list (tooltips everywhere)**
 - F259 Hover a quartermaster card (start of a run): its keywords, buffs and the core are explained beside it (the die itself still shows its own tip). Same for cards in the bag view and fight dice rewards. Any tooltip naming a game word gets a box for it: Core, Ink, Luck, Alignment, Max health, Shop keepsake, Upgrade, Min roll, Extra play (event choices, shop, treasure, keepsakes and items in the top bar...).
