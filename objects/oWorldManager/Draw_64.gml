@@ -237,7 +237,7 @@ if (room == rmMap) {
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBigger);
 		// one heading for one action (it used to have "What happened next?" over it as well)
-		if (pages_alpha > 0.02) ui_label(bg_w/2, gui_h * 0.25, (pages_drafted == 0) ? "Take a page. One is lost, the other is yours." : "One page is lost. The other is yours.", ftBigger, 41, pages_alpha); // say plainly how the draft works (Jared, 2026-11-21)
+		if (pages_alpha > 0.02) ui_label(bg_w/2, gui_h * 0.25, (pages_drafted == 0) ? "Take a page. One of the others is lost." : ((pages_drafted == 1) ? "Take another. The last is lost." : "Embark when ready."), ftBigger, 41, pages_alpha); // say plainly how the draft works (Jared, 2026-11-21)
 		draw_set_font(ftDefault);
 	
 		if (world_state == WORLD_STATE.OPENING) {		
@@ -289,11 +289,7 @@ if (room == rmMap) {
 	
 			// after the first pick one page burns away and the last is given to you (Jared, 2026-11-21): find it once,
 			// and take it when the burn has had its moment (auto_take_t frames)
-			if (pages_drafted == 1) {
-				if (auto_take_page == undefined) {
-					for (var ap = 0; ap < page_count; ap++) if (!pages_shown[| ap].chosen) { auto_take_page = pages_shown[| ap]; auto_take_t = page_has_morph(pages_shown[| ap]) ? 96 : 60; } // an icon changing gets its moment first
-				} else auto_take_t--;
-			} else auto_take_page = undefined;
+			auto_take_page = undefined; // (2026-11-24: draft 2 of 4: you pick both pages; nothing is given to you)
 
 			// treasure and elites that only one page can keep: linked across the cards until you pick (draft_links_mark)
 			draft_links_mark(page_count);
@@ -391,25 +387,25 @@ if (room == rmMap) {
 						nodes_til_drafting += page.num_nodes;
 						pages_drafted += 1;
 								
-						// Randomly remove one of the other options
+						// draft 2 of 4 (2026-11-24): after the first pick one of the other three burns (draft_choose_burn);
+						// after the second, the page left over sinks too
 						if (pages_drafted == 1) {
-							
 							// add the first pages number of nodes to nodes_til_page_cleared
 							nodes_til_page_cleared = page.num_nodes;
-							
-							var temp_list = ds_list_create();
-					
+							var removed_option = draft_choose_burn();
+							if (removed_option != undefined) {
+								removed_option.chosen = true;
+								removed_option.locked = true;
+								pool_return_page(removed_option); // its stops go back in the chapter pool
+							}
+						} else if (pages_drafted == 2) {
 							for (var i = 0; i < ds_list_size(pages_shown); i++) {
 								if (!pages_shown[| i].chosen) {
-									ds_list_add(temp_list, pages_shown[| i]);
+									pages_shown[| i].chosen = true;
+									pages_shown[| i].locked = true;
+									pool_return_page(pages_shown[| i]); // its stops go back in the chapter pool
 								}
 							}
-					
-							var removed_option = temp_list[| choose(0,1)];
-					
-							removed_option.chosen = true;
-							removed_option.locked = true;
-							ds_list_destroy(temp_list);
 						}
 						
 						// save each pick, so quitting mid-draft keeps it (and the page it locked)

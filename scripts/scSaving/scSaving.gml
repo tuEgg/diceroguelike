@@ -115,6 +115,11 @@ function save_game(_slot) {
 		bounty_nodes_this_voyage: oWorldManager.bounty_nodes_this_voyage,
 		elite_nodes_this_voyage: oWorldManager.elite_nodes_this_voyage,
 		alignment_nodes_this_voyage: oWorldManager.alignment_nodes_this_voyage,
+		stop_pool: oWorldManager.stop_pool,
+		elites_fought_chapter: oWorldManager.elites_fought_chapter,
+		alignment_fought_chapter: oWorldManager.alignment_fought_chapter,
+		bounty_seen_chapter: oWorldManager.bounty_seen_chapter,
+		elite_pity_active: oWorldManager.elite_pity_active,
 		combat_nodes_this_voyage: oWorldManager.combat_nodes_this_voyage,
 		event_nodes_this_voyage: oWorldManager.event_nodes_this_voyage,
 		shop_nodes_this_voyage: oWorldManager.shop_nodes_this_voyage,
@@ -218,6 +223,12 @@ function load_game(_slot) {
 	oWorldManager.bounty_nodes_this_voyage = _save.bounty_nodes_this_voyage;
 	oWorldManager.elite_nodes_this_voyage = _save.elite_nodes_this_voyage;
 	oWorldManager.alignment_nodes_this_voyage = _save.alignment_nodes_this_voyage;
+	// the chapter pool (2026-11-24); older saves start a fresh one at the next draft
+	oWorldManager.stop_pool = (variable_struct_exists(_save, "stop_pool") && is_struct(_save.stop_pool)) ? _save.stop_pool : undefined;
+	oWorldManager.elites_fought_chapter = variable_struct_exists(_save, "elites_fought_chapter") ? _save.elites_fought_chapter : 0;
+	oWorldManager.alignment_fought_chapter = variable_struct_exists(_save, "alignment_fought_chapter") ? _save.alignment_fought_chapter : 0;
+	oWorldManager.bounty_seen_chapter = variable_struct_exists(_save, "bounty_seen_chapter") ? _save.bounty_seen_chapter : false;
+	oWorldManager.elite_pity_active = variable_struct_exists(_save, "elite_pity_active") ? _save.elite_pity_active : false;
 	oWorldManager.combat_nodes_this_voyage = _save.combat_nodes_this_voyage;
 	oWorldManager.event_nodes_this_voyage = _save.event_nodes_this_voyage;
 	oWorldManager.shop_nodes_this_voyage = _save.shop_nodes_this_voyage;

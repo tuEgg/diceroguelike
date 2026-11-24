@@ -38,11 +38,13 @@ current_page_turn = 1;
 ds_list_add(page_scale, 1.0);
 ds_list_add(page_scale, 1.0);
 ds_list_add(page_scale, 1.0);
-// a little left of centre: each card has its sea stop to its right, laid out as it will be on the chart (B+)
-// three landscape cards (option A), each holding its island and its sea stop
-page_pos[0] = { x: display_get_gui_width() * 0.5 - 570, y: display_get_gui_height() * 0.56 }; // 500 wide, 70 apart
-page_pos[1] = { x: display_get_gui_width() * 0.5, y: display_get_gui_height() * 0.56 };
-page_pos[2] = { x: display_get_gui_width() * 0.5 + 570, y: display_get_gui_height() * 0.56 };
+ds_list_add(page_scale, 1.0);
+// four landscape cards (2026-11-24: draft 2 of 4), each holding its island and its sea stop, in a 2 x 2 grid under the
+// heading (500 x 330 cards, 40 apart)
+page_pos[0] = { x: display_get_gui_width() * 0.5 - 270, y: 470 };
+page_pos[1] = { x: display_get_gui_width() * 0.5 + 270, y: 470 };
+page_pos[2] = { x: display_get_gui_width() * 0.5 - 270, y: 835 };
+page_pos[3] = { x: display_get_gui_width() * 0.5 + 270, y: 835 };
 pages_alpha = 0; // used for fading out pages
 
 node_combat = {
@@ -217,7 +219,13 @@ rest_amount = 0.30; // Calm water at the strait heals this share of your health 
 strait = undefined;    // this spread end's sea stops (strait_build), while world_state is STRAIT
 sea_buoy = undefined;  // the left page's sea stop between a spread's pages: its look and stamp (passage_left_draw, B+)
 harbour = undefined;
-treasure_stop = undefined; // the treasure stop opening spread 3 (treasure_stop_draw): { page, node, scale, sailing }
+treasure_stop = undefined;
+// the chapter pool of stop tokens (2026-11-24, pool_new / pool_draw in scMap; saved)
+stop_pool = undefined;
+elites_fought_chapter = 0;
+alignment_fought_chapter = 0;
+bounty_seen_chapter = false;
+elite_pity_active = false; // the treasure stop opening spread 3 (treasure_stop_draw): { page, node, scale, sailing }
 map_waves = [];
 burn_surf = -1;          // the lost draft page, drawn here to burn it away through shBurn (page_burn_draw)
 auto_take_page = undefined; // the page given to you after the first pick (Draw GUI), and when

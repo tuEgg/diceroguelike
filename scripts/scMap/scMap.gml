@@ -5,6 +5,7 @@
 
 /// @func generate_pages
 function generate_pages() {
+	pool_refresh();
 	var num_combat = 0; // generate no more than 5 across all 3 pages
 	var num_event = 0; // generate no more than 3 across all 3 pages
 	var num_shop = 0; // generate no more than 2 across all 3 pages
@@ -12,8 +13,8 @@ function generate_pages() {
 	var num_elite = 0; // each page has an elite at the same time???
 	var num_alignment = 0; // generate no more than 1 across all 3 pages
 	
-	// Generate 3 pages
-	repeat (3) {
+	// Generate 4 pages (2026-11-24: draft 2 of 4)
+	repeat (4) {
 		var _index = irandom(5);
 		var _num_nodes = choose(1,2,2);
 		var _left = 0;
@@ -86,121 +87,184 @@ function generate_pages() {
 			default: _page.map_connection_in.x = sprite_get_height(sMapParchment)/2;
 		}
 		
-		// count the nodes per page
-		var page_num_combat = 0;
-		var page_num_event = 0;
-		var page_num_shop = 0; // generate no more than 1 per page
-		var page_num_bounty = 0;
-		var page_num_elite = 0;
-	
-		// add the nodes
-		do {
-			var chosen_node = node_combat;
-			var page_num = ds_list_size(pages_shown); // 0, 1 or 2
-			
-			var rand = irandom_range(1,100);
-			
-			// (treasures aren't forced onto pages any more: a fixed treasure stop opens spread 3, F240 / treasure_stop_draw)
-			{
-				if (rand <= combat_chance) {
-					if (num_combat < 5) {
-						num_combat++;
-						page_num_combat++;
-						chosen_node = node_combat;
-						combat_chance -= 5;
-					
-						var rand_inc = (irandom(1));
-					
-						switch (rand_inc) {
-							case 0: event_chance += 5; break;
-							case 1: shop_chance += 5; break;
-						}
-					
-					} else {
-						continue;
-					}
-				} else if (rand <= combat_chance + event_chance) {
-					if (num_event < 3) {
-						num_event++;
-						page_num_event++;
-						chosen_node = node_event;
-						event_chance -= 5;
-					
-						var rand_inc = (irandom(1));
-					
-						switch (rand_inc) {
-							case 0: combat_chance += 5; break;
-							case 1: shop_chance += 5; break;
-						}
-					} else {
-						continue;
-					}
-				} else if (rand <= combat_chance + event_chance + shop_chance) {
-					if (num_shop < 1) {
-						num_shop++;
-						page_num_shop++;
-						chosen_node = node_shop;
-						shop_chance -= 5;
-					
-						if (nodes_cleared < 5) {
-							combat_chance += 5;
-						} else if (oRunManager.active_bounty == undefined && bounty_nodes_this_voyage == 0) {
-							bounty_chance += 5;
-						} else {
-							combat_chance += 5;
-						}
-					} else {
-						continue;
-					}
-				} else if (rand <= combat_chance + event_chance + shop_chance + bounty_chance) {
-					if (num_bounty < 1 && page_num_bounty == 0) {
-						num_bounty++;
-						page_num_bounty++;
-						chosen_node = node_bounty;
-						var gap = bounty_chance;
-						bounty_chance = 0;
-						combat_chance += ceil(gap * (2/5));
-						event_chance += floor(gap * (2/5));
-						shop_chance += floor(gap * (1/5));
-					
-					} else {
-						continue;
-					}
-				} else if (rand <= combat_chance + event_chance + shop_chance + bounty_chance + elite_chance) {
-					if (num_elite < 2 && page_num_elite == 0) {
-						num_elite++;
-						page_num_elite++;
-						chosen_node = node_elite;
-						
-						var amount = round(elite_chance/2);
-						elite_chance -= amount;
-						combat_chance += ceil(amount * 2/5);
-						event_chance += floor(amount * 3/5);
-					} else {
-						continue;
-					}
-				} else if (rand <= combat_chance + event_chance + shop_chance + bounty_chance + elite_chance + alignment_chance) {
-					if (num_alignment < 1 && page_num_elite == 0) { // don't draft alignment and elites on the same page
-						num_alignment++;
-						chosen_node = node_alignment;
-					} else {
-						continue;
-					}
-				}
-			
-				// First node of each run is always combat
-				if (oWorldManager.nodes_cleared == 0) && (ds_list_size(_page.nodes) == 0) {
-					chosen_node = node_combat;
-				}
+		// the page's stops are drawn from the chapter's pool (2026-11-24, pool_draw): tokens on pages you don't take
+		// go back (pool_return_page), so what you sail to over a chapter converges on what's in the pool
+		repeat (_page.num_nodes) {
+			var _tpl = pool_draw(_page);
+			// the first stop of a run is always a fight
+			if (oWorldManager.nodes_cleared == 0 && ds_list_size(_page.nodes) == 0 && _tpl.type != NODE_TYPE.COMBAT) {
+				pool_give_back(_tpl.type);
+				pool_take(NODE_TYPE.COMBAT);
+				_tpl = node_combat;
 			}
-			
-			ds_list_add(_page.nodes, clone_node_static(chosen_node));
-		} until (ds_list_size(_page.nodes) == _page.num_nodes);
+			var _nd = clone_node_static(_tpl);
+			_nd.pool_type = _tpl.type;
+			ds_list_add(_page.nodes, _nd);
+		}
 	
 		ds_list_add(pages_shown, _page);
 	}
 	pages_ensure_fights();
+	pages_elite_pity();
 	pages_assign_passages(); // each page brings the sea stop after its island (B+, 2026-11-21)
+}
+
+// =====================================================================
+// THE CHAPTER POOL (2026-11-24, Jared's design brief): instead of every stop rolling its own chance, each chapter has a
+// pool of stop tokens. Pages draw their stops from it; tokens on pages you don't take (burned, or left over) go back, so
+// only the stops you sail to are used up. Rules on top: no elites in a chapter's first spread; the elite pity (spreads
+// 3-4, no elite fought yet: 2 of the 4 pages get one); crossroads tokens by alignment distance; one bounty token from
+// chapter 2 once you've fought an elite; the fight guarantee (pages_ensure_fights). Treasure is the fixed stop (F240).
+// Tune the counts in pool_new.
+// =====================================================================
+
+/// @func pool_key(_type)
+function pool_key(_type) {
+	switch (_type) {
+		case NODE_TYPE.COMBAT: return "combat";
+		case NODE_TYPE.EVENT: return "event";
+		case NODE_TYPE.SHOP: return "shop";
+		case NODE_TYPE.ELITE: return "elite";
+		case NODE_TYPE.ALIGNMENT: return "alignment";
+		case NODE_TYPE.BOUNTY: return "bounty";
+	}
+	return "";
+}
+
+/// @func pool_new()
+/// @desc A chapter's stop tokens. About 13 island stops are sailed to a chapter (4 spreads, 2 pages, 1-2 stops each),
+///       so most of these get used: roughly 5-10 fights, 1-3 elites, 2-3 island events (sea events add 2 or so), 2-3 shops.
+function pool_new() {
+	stop_pool = { combat: 9, event: 3, shop: 3, elite: 3, alignment: 0, bounty: 0 };
+	elites_fought_chapter = 0;
+	alignment_fought_chapter = 0;
+	bounty_seen_chapter = false;
+	pool_refresh();
+}
+
+/// @func pool_alignment_target()
+/// @desc Crossroads fights a chapter by how far alignment is from neutral: none at exactly 50, then 1, 2, 3, up to 4.
+function pool_alignment_target() {
+	var _d = abs(global.player_alignment - 50);
+	if (_d == 0) return 0;
+	if (_d <= 15) return 1;
+	if (_d <= 30) return 2;
+	if (_d <= 40) return 3;
+	return 4;
+}
+
+/// @func pool_refresh()
+/// @desc Before each draft: crossroads tokens follow your alignment now (less the ones fought this chapter), and the
+///       bounty token is in from chapter 2 once any elite has been fought this run (one a chapter, not while one's active).
+function pool_refresh() {
+	if (!is_struct(stop_pool)) { pool_new(); return; }
+	stop_pool.alignment = max(0, pool_alignment_target() - alignment_fought_chapter);
+	var _elites_run = (instance_exists(oRunManager) && is_struct(oRunManager.run_stats) && variable_struct_exists(oRunManager.run_stats, "elites_won")) ? oRunManager.run_stats.elites_won : 0;
+	stop_pool.bounty = (chapter >= 2 && _elites_run > 0 && !bounty_seen_chapter && oRunManager.active_bounty == undefined) ? 1 : 0;
+}
+
+/// @func pool_take(_type) / pool_give_back(_type)
+function pool_take(_type) {
+	var _k = pool_key(_type);
+	if (_k != "" && is_struct(stop_pool)) stop_pool[$ _k] = max(0, stop_pool[$ _k] - 1);
+}
+function pool_give_back(_type) {
+	var _k = pool_key(_type);
+	if (_k != "" && is_struct(stop_pool)) stop_pool[$ _k] += 1;
+}
+
+/// @func pool_draw(_page)
+/// @desc One stop for a page, drawn by weight from the pool (and taken from it). No elite in a chapter's first spread,
+///       and at most one elite, crossroads or bounty a page. An empty pool gives a fight.
+function pool_draw(_page) {
+	if (!is_struct(stop_pool)) pool_new();
+	var _has = {};
+	for (var n = 0; n < ds_list_size(_page.nodes); n++) _has[$ pool_key(_page.nodes[| n].type)] = true;
+	var _keys = ["combat", "event", "shop", "elite", "alignment", "bounty"];
+	var _tpls = [node_combat, node_event, node_shop, node_elite, node_alignment, node_bounty];
+	var _w = array_create(6, 0), _total = 0;
+	for (var i = 0; i < 6; i++) {
+		var _c = stop_pool[$ _keys[i]];
+		if (_keys[i] == "elite" && spreads_cleared == 0) _c = 0;
+		if (i >= 3 && variable_struct_exists(_has, _keys[i])) _c = 0; // one elite / crossroads / bounty a page
+		if (_keys[i] == "shop" && variable_struct_exists(_has, "shop")) _c = 0;
+		_w[i] = _c;
+		_total += _c;
+	}
+	if (_total <= 0) return node_combat;
+	var _r = irandom_range(1, _total);
+	for (var i = 0; i < 6; i++) {
+		_r -= _w[i];
+		if (_r <= 0) {
+			stop_pool[$ _keys[i]] -= 1;
+			return _tpls[i];
+		}
+	}
+	return node_combat;
+}
+
+/// @func pool_return_page(_page)
+/// @desc A page you didn't take (burned, or left over): its stops' tokens go back in the pool.
+function pool_return_page(_page) {
+	if (!is_struct(_page) || !ds_safe_exists(_page.nodes, ds_type_list)) return;
+	for (var n = 0; n < ds_list_size(_page.nodes); n++) {
+		var _nd = _page.nodes[| n];
+		pool_give_back(variable_struct_exists(_nd, "pool_type") ? _nd.pool_type : _nd.type);
+	}
+}
+
+/// @func pages_elite_pity()
+/// @desc Spreads 3 and 4 with no elite fought yet this chapter: make sure 2 of the 4 pages offer one (a page's first
+///       stop that isn't a fight or a treasure becomes an elite; if none, its first combat does). elite_pity_active keeps
+///       the burn from taking the last one (draft_choose_burn).
+function pages_elite_pity() {
+	elite_pity_active = (spreads_cleared >= 2 && elites_fought_chapter == 0);
+	if (!elite_pity_active) return;
+	var _with = 0;
+	for (var p = 0; p < ds_list_size(pages_shown); p++) {
+		var _pg = pages_shown[| p];
+		for (var n = 0; n < ds_list_size(_pg.nodes); n++) if (_pg.nodes[| n].type == NODE_TYPE.ELITE) { _with++; break; }
+	}
+	for (var p = 0; p < ds_list_size(pages_shown) && _with < 2; p++) {
+		var _pg = pages_shown[| p];
+		var _has = false;
+		for (var n = 0; n < ds_list_size(_pg.nodes); n++) if (_pg.nodes[| n].type == NODE_TYPE.ELITE) _has = true;
+		if (_has) continue;
+		var _at = -1;
+		for (var n = 0; n < ds_list_size(_pg.nodes) && _at == -1; n++) if (!node_is_fight(_pg.nodes[| n]) && _pg.nodes[| n].type != NODE_TYPE.TREASURE) _at = n;
+		for (var n = 0; n < ds_list_size(_pg.nodes) && _at == -1; n++) if (_pg.nodes[| n].type == NODE_TYPE.COMBAT) _at = n;
+		if (_at == -1) continue;
+		var _old = _pg.nodes[| _at];
+		pool_give_back(variable_struct_exists(_old, "pool_type") ? _old.pool_type : _old.type);
+		pool_take(NODE_TYPE.ELITE); // (an empty elite pool still gives one: the pity wins)
+		var _e = clone_node_static(node_elite);
+		_e.pool_type = NODE_TYPE.ELITE;
+		_pg.nodes[| _at] = _e;
+		_with++;
+	}
+}
+
+/// @func draft_choose_burn()
+/// @desc Draft 2 of 4 (2026-11-24): after your first pick one of the other pages burns. Random, with a guard: the pages left
+///       to choose from must still hold a fight (and, while the elite pity is on, an elite). One function, so in co-op or
+///       head-to-head the burn can become the other player's pick. Returns the page to burn.
+function draft_choose_burn() {
+	var _open = [];
+	for (var i = 0; i < ds_list_size(pages_shown); i++) if (!pages_shown[| i].chosen) array_push(_open, pages_shown[| i]);
+	if (array_length(_open) == 0) return undefined;
+	var _ok = [];
+	for (var i = 0; i < array_length(_open); i++) {
+		var _fight = false, _elite = false;
+		for (var j = 0; j < array_length(_open); j++) {
+			if (j == i) continue;
+			if (page_has_fight(_open[j])) _fight = true;
+			for (var n = 0; n < ds_list_size(_open[j].nodes); n++) if (_open[j].nodes[| n].type == NODE_TYPE.ELITE) _elite = true;
+		}
+		var _need_elite = variable_instance_exists(id, "elite_pity_active") && elite_pity_active;
+		if (_fight && (_elite || !_need_elite)) array_push(_ok, _open[i]);
+	}
+	if (array_length(_ok) == 0) _ok = _open;
+	return _ok[irandom(array_length(_ok) - 1)];
 }
 
 /// @func node_is_fight(_node)
@@ -222,7 +286,11 @@ function page_give_fight(_page) {
 	for (var n = 0; n < ds_list_size(_page.nodes); n++) {
 		var _nd = _page.nodes[| n];
 		if (_nd.type == NODE_TYPE.TREASURE) continue;
-		_page.nodes[| n] = clone_node_static(node_combat);
+		pool_give_back(variable_struct_exists(_nd, "pool_type") ? _nd.pool_type : _nd.type);
+		pool_take(NODE_TYPE.COMBAT);
+		var _c = clone_node_static(node_combat);
+		_c.pool_type = NODE_TYPE.COMBAT;
+		_page.nodes[| n] = _c;
 		return;
 	}
 }
@@ -288,6 +356,10 @@ function enter_node(_node) {
 	// stops since your last fight (pages_ensure_fights); counted once per stop, not again when a save reloads into it
 	if (!variable_struct_exists(_memory_node, "fight_counted")) {
 		_memory_node.fight_counted = true;
+		// what the chapter pool's rules count (2026-11-24)
+		if (_node.type == NODE_TYPE.ELITE) elites_fought_chapter++;
+		if (_node.type == NODE_TYPE.ALIGNMENT) alignment_fought_chapter++;
+		if (_node.type == NODE_TYPE.BOUNTY) bounty_seen_chapter = true;
 		oRunManager.rooms_since_fight = node_is_fight(_node) ? 0 : oRunManager.rooms_since_fight + 1;
 	}
 	
@@ -1144,6 +1216,7 @@ function start_new_chapter() {
 	elite_nodes_this_voyage = 0;
 	bounty_nodes_this_voyage = 0;
 	alignment_nodes_this_voyage = 0;
+	pool_new(); // the chapter pool (2026-11-24)
 	elite_chance = 0;
 	bounty_chance = 0;
 	alignment_chance = 0;
@@ -2312,6 +2385,7 @@ function node_morph_into(_old, _template) {
 	_new.morph_from = _old.subimg;
 	_new.morph_name = _old.name;
 	_new.morph_t = -62; // about the burn's length, then the change
+	if (variable_struct_exists(_old, "pool_type")) _new.pool_type = _old.pool_type; // the token it came from goes back if the page isn't taken
 	return _new;
 }
 

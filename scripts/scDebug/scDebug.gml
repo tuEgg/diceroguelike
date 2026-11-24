@@ -841,20 +841,15 @@ function debug_menu_draw() {
 			}			
 			// What the map will roll for the next draft (this used to be the Alt panel)
 			var odds_y = yy + (ceil(array_length(room_list) / 2) + 1) * row_h;
-			debug_label(cx, odds_y, "Next draft odds (nodes of this type so far)", c_yellow);
+			debug_label(cx, odds_y, "Chapter pool: tokens left (elites fought this chapter)", c_yellow);
 			odds_y += row_h;
 			with (oWorldManager) {
-				var odds = [
-					["Combat",		combat_chance,		combat_nodes_this_voyage],
-					["Event",		event_chance,		event_nodes_this_voyage],
-					["Shop",		shop_chance,		shop_nodes_this_voyage],
-					["Bounty",		bounty_chance,		bounty_nodes_this_voyage],
-					["Elite",		elite_chance,		elite_nodes_this_voyage],
-					["Alignment",	alignment_chance,	alignment_nodes_this_voyage],
-				];
-				for (var o = 0; o < array_length(odds); o++) {
-					debug_label(cx + half_w * (o mod 2), odds_y + (o div 2) * row_h, odds[o][0] + "  " + string(odds[o][1]) + "%  (" + string(odds[o][2]) + ")");
-				}
+				if (is_struct(stop_pool)) {
+					var _keys = ["combat", "event", "shop", "elite", "alignment", "bounty"];
+					for (var o = 0; o < array_length(_keys); o++) {
+						debug_label(cx + half_w * (o mod 2), odds_y + (o div 2) * row_h, _keys[o] + "  " + string(stop_pool[$ _keys[o]]) + ((_keys[o] == "elite") ? "  (" + string(elites_fought_chapter) + " fought)" : ""));
+					}
+				} else debug_label(cx, odds_y, "(made at the next draft)");
 			}
 
 		break;
