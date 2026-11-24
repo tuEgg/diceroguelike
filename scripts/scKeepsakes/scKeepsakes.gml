@@ -111,17 +111,18 @@ function define_keepsakes() {
 	ks_rum = {
 	    _id: "rum",
 	    name: "Rum",
-	    desc: "Attack dice get +1 max roll.",
+	    desc: "Attack dice rolls get -1, 0 or +1 at random.",
 	    sub_image: 30,
 		price: 110,
 	    trigger: function(event, data) {
-			if (event == "on_roll_die") {
-				if (data.die.action_type == "ATK") { // the die's own type, as dealt and as resolved (B163)
-					data.max_roll += 1; // F242: no minus any more (it was worth nothing on average)
-					
-					if (!data.read_only) {
-						trigger_keepsake_visual();
-					}
+			// rolled dice: as an Attack die is dealt, each face moves by -1, 0 or +1 (Jared, 2026-11-24: it was +1 max roll).
+			// Never below its minimum.
+			if (event == "on_die_rolled" && room == rmCombat && instance_exists(oCombat) && data._die_struct.action_type == "ATK") {
+				var _d = data._die_struct;
+				var _shift = irandom_range(-1, 1);
+				if (_shift != 0) {
+					for (var f = 0; f < array_length(_d.faces); f++) _d.faces[f] = max(data.min_roll, _d.faces[f] + _shift);
+					trigger_keepsake_visual();
 				}
 	        }
 	    }
@@ -212,14 +213,14 @@ function define_keepsakes() {
 	ks_deckhands_token = {
 	    _id: "deckhands_token",
 	    name: "Deckhand's Token",
-	    desc: "The first die in slot 1 gets +1.",
+	    desc: "The first die in slot 1 gets +2.",
 		sub_image: 8,
 	    trigger: function(event, data) {
 	        if (event == "on_roll_die") {
 	            if (data.slot_num == 0 && data.die == oCombat.action_queue[| data.slot_num].dice_list[| 0]) {
-					data._d_amount += 1; // a bonus, live in the slot (its roll is already made)
-				
-					if (!data.read_only) {				
+					data._d_amount += 2; // a bonus, live in the slot (its roll is already made)
+
+					if (!data.read_only) {
 						trigger_keepsake_visual();
 					}
 				}
@@ -231,21 +232,20 @@ function define_keepsakes() {
 	ks_starvers_efficiency = {
 	    _id: "starvers_efficiency",
 	    name: "Starver's Efficiency",
-	    desc: "The first Block die dealt each turn rolls twice and keeps the higher.",
+	    desc: "A lone Block die in a Block slot counts double.",
 		sub_image: 43,
-		state: { effect_used: false },
 	    trigger: function(event, data) {
-	        if (event == "on_roll_die") {
-	            if (!self.state.effect_used && data.action_type == "BLK" && variable_struct_exists(data, "on_deal") && data.on_deal) { // as it's dealt (die_roll_faces)
-					data.roll_twice = true;
-					self.state.effect_used = true;
-				
-					trigger_keepsake_visual();
+			// Jared, 2026-11-24: a Block die alone in the queue, in a slot set to Block, adds its roll once more
+			if (event == "on_roll_die" && data.slot_num >= 0 && data.action_type == "BLK" && data.die.action_type == "BLK" && instance_exists(oCombat)) {
+				var _blocks = 0;
+				for (var s = 0; s < ds_list_size(oCombat.action_queue); s++) {
+					var _sl = oCombat.action_queue[| s];
+					for (var k = 0; k < ds_list_size(_sl.dice_list); k++) if (_sl.dice_list[| k].action_type == "BLK") _blocks++;
 				}
-	        }
-			
-			if (event == "on_player_turn_end") {
-	            self.state.effect_used = false;
+				if (_blocks == 1 && die_has_faces(data.die)) {
+					data._d_amount += die_face_total(data.die);
+					if (!data.read_only) trigger_keepsake_visual();
+				}
 	        }
 	    }
 	};
@@ -281,16 +281,13 @@ function define_keepsakes() {
 	ks_shipwrights_draft = {
 	    _id: "shipwrights_draft",
 	    name: "Shipwright's Draft",
-	    desc: "The first slot you build each turn gives 1 play.",
+	    desc: "Building your third slot gives 1 play.",
 		sub_image: 10,
-		state: { used: false },
 	    trigger: function(event, data) {
-	        if (event == "on_new_slot_created" && !self.state.used) { // F242: every build was free
+	        if (event == "on_new_slot_created" && data.slot_index == 3) { // slot_index: the new slot's number (given back if it's taken apart)
 	            oCombat.dice_allowed_this_turn_bonus++;
-				self.state.used = true;
 				trigger_keepsake_visual();
 	        }
-			if (event == "on_turn_start") self.state.used = false;
 	    }
 	};
 	ds_list_add(global.master_keepsake_list, ks_shipwrights_draft);
@@ -378,14 +375,21 @@ function define_keepsakes() {
 	ks_repeater_rail = {
 	    _id: "repeater_rail",
 	    name: "Repeater Rail",
-	    desc: "Each die in a slot gets +1 for every die before it.",
+	    desc: "Each slot's first die gets +1 for every slot of the same type directly before it.",
 		sub_image: 12,
 		state: { },
 	    trigger: function(event, data) {
-			// Q15 (2026-11-19): rewards stacking one slot, now slots are scarce. A die's place in its slot (die_index) is its
-			// bonus; live in the slot's total (slot_get_total passes each die's index) and in the hover breakdown.
-			if (event == "on_roll_die" && data.slot_num >= 0 && is_real(data.die_index) && data.die_index > 0) {
-				data._d_amount += data.die_index;
+			// +1 for every slot of the same type directly before this one, worked out again whenever the queue changes
+			// (back to this, Jared 2026-11-24)
+			if (event == "on_dice_played_to_slot" || event == "after_new_slot_created" || event == "on_turn_start" || event == "after_change_current_action") {
+				var _last_type = "";
+				var _streak = 0;
+				for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
+					var _slot = oCombat.action_queue[| i];
+					_streak = (_slot.current_action_type == _last_type && _last_type != "None") ? _streak + 1 : 0;
+					slot_set_bonus(_slot, "Repeater Rail", _streak, "first"); // only the slot's first die, as its description says
+					_last_type = _slot.current_action_type;
+				}
 			}
 	    }
 	};
@@ -427,17 +431,22 @@ function define_keepsakes() {
 	ks_lantern_of_patience = {
 	    _id: "lantern_of_patience",
 	    name: "Lantern of Patience",
-	    desc: "Each unused die gives 1 block at end of turn.",
+	    desc: "Plays you leave unused carry over to the next turn.",
 	    sub_image: 4,
-		state: { },
-	    trigger: function(event, data) {			
-			if (event == "on_not_used") {
-				repeat (instance_number(oDice)) {
-					with (oCombat) process_action("player", 0, 1, 0, "player", undefined, "BLK"); // F242: was 2
+		state: { carry: 0 },
+		trigger: function(event, data) {
+			// the plays left at the end of your turn come back with the next one (Jared, 2026-11-24: it gave block per unused die)
+			if (event == "on_player_turn_end" && instance_exists(oCombat)) {
+				self.state.carry = max(0, oCombat.dice_allowed_per_turn - oCombat.dice_played);
+			}
+			if (event == "on_turn_start") {
+				if (data.turn_count <= 1) self.state.carry = 0; // a new fight
+				else if (self.state.carry > 0) {
+					data.bonus_dice += self.state.carry;
+					trigger_keepsake_visual();
 				}
-				
-				trigger_keepsake_visual();
-	        }
+				self.state.carry = 0;
+			}
 	    }
 	};
 	ds_list_add(global.master_keepsake_list, ks_lantern_of_patience);
@@ -530,21 +539,20 @@ function define_keepsakes() {
 	ks_nav_chart = {
 	    _id: "nav_chart",
 	    name: "Navigation Chart",
-	    desc: "When a die rolls its minimum, the next die you're dealt rolls twice and keeps the higher.",
+	    desc: "When a die rolls its minimum, give it +2.",
 	    sub_image: 19,
-		state: { next_twice: false },
-		is_armed: function() { return self.state.next_twice; }, // lit in the keepsake bar while waiting
 	    trigger: function(event, data) {
-			// rolled dice: a die rolls as it's dealt, so the minimum marks the next one dealt
-			if (event == "on_die_rolled" && data.min_roll < data.max_roll && data.face <= data.min_roll) { // B163: guard as Balancing Compass has
-				self.state.next_twice = true;
-				trigger_keepsake_visual();
+			// rolled dice: a die that lands on its lowest face is steered +2 as it's dealt (Jared, 2026-11-24: it armed the next die)
+			if (event == "on_die_rolled" && data.min_roll < data.max_roll) { // B163: guard as Balancing Compass has
+				var _d = data._die_struct, _low = false;
+				for (var f = 0; f < array_length(_d.faces); f++) {
+					if (_d.faces[f] <= data.min_roll) { _d.faces[f] += 2; _low = true; }
+				}
+				if (_low) {
+					die_effect_popup(_d, "Chart +2", global.color_gold);
+					trigger_keepsake_visual();
+				}
 			}
-			if (event == "on_roll_die" && self.state.next_twice && variable_struct_exists(data, "on_deal") && data.on_deal) {
-				data.roll_twice = true;
-				self.state.next_twice = false;
-			}
-			if (event == "on_player_turn_end") self.state.next_twice = false;
 	    }
 	};
 	ds_list_add(global.master_keepsake_list, ks_nav_chart);
@@ -945,11 +953,11 @@ function define_keepsakes() {
 	ks_spirit_level = {
 	    _id: "spirit_level",
 	    name: "Spirit Level",
-	    desc: "Dice that roll a middle face get +1.",
+	    desc: "Dice that roll a middle face get +2.",
 		sub_image: 21,
 	    trigger: function(event, data) {
 			if (event == "on_roll_die" && die_face_middle(die_face_total(data.die), data.min_roll, data.max_roll)) {
-				data._d_amount += 1;
+				data._d_amount += 2;
 				if (!data.read_only) trigger_keepsake_visual();
 			}
 	    }
@@ -960,12 +968,12 @@ function define_keepsakes() {
 	ks_sounding_line = {
 	    _id: "sounding_line",
 	    name: "Sounding Line",
-	    desc: "When a die rolls one below its max, draw a die.",
+	    desc: "When a die rolls one below its max, gain 1 ink and 1 block.",
 		sub_image: 17,
 	    trigger: function(event, data) {
 			if (event == "on_die_rolled" && data.max_roll - 1 > data.min_roll && data.face == data.max_roll - 1 && instance_exists(oCombat)) {
-				oCombat.dice_to_deal += 1;
-				oCombat.is_dealing_dice = true;
+				if (oCombat.player_intel < intel_max()) oCombat.player_intel += 1;
+				with (oCombat) process_action("player", 0, 1, 0, "player", undefined, "BLK");
 				trigger_keepsake_visual();
 			}
 	    }
@@ -997,25 +1005,12 @@ function define_keepsakes() {
 	ks_iron_grip = {
 	    _id: "iron_grip",
 	    name: "Iron Grip",
-	    desc: "While you have 10 or fewer dice, Might lasts until the end of the fight.",
+	    desc: "Each time you drink a potion, gain 3 Might this turn.",
 		sub_image: 40,
-		state: { might: 0 },
 	    trigger: function(event, data) {
-			// at the end of your turn, note your Might; it wears off at the round's end as usual, and comes back next turn
-			if (event == "on_player_turn_end") {
-				self.state.might = 0;
-				for (var i = 0; i < ds_list_size(global.player_debuffs); i++) {
-					var _b = global.player_debuffs[| i];
-					if (_b.template._id == oRunManager.buff_might._id) self.state.might += _b.amount;
-				}
-			}
-			if (event == "on_turn_start") {
-				if (data.turn_count <= 1) self.state.might = 0; // a new fight
-				else if (self.state.might > 0 && deck_size() <= 10) {
-					apply_buff("player", oRunManager.buff_might, 1, self.state.might, false, { source: "player", index: -1 });
-					trigger_keepsake_visual();
-				}
-				self.state.might = 0;
+			if (event == "on_consumable_used" && room == rmCombat && instance_exists(oCombat)) {
+				apply_buff("player", oRunManager.buff_might, 1, 3, false, { source: "player", index: -1 });
+				trigger_keepsake_visual();
 			}
 	    }
 	};
@@ -1025,15 +1020,24 @@ function define_keepsakes() {
 	ks_war_drum = {
 	    _id: "war_drum",
 	    name: "War Drum",
-	    desc: "Each turn, gain Might equal to 12 minus the dice you own.",
+	    desc: "If a slot holds 4 dice at the end of your turn, gain 3 Might next turn.",
 		sub_image: 11,
+		state: { slots: 0 },
 	    trigger: function(event, data) {
+			// each slot with 4 or more dice at the end of your turn pays 3 Might on the next one (Jared, 2026-11-24)
+			if (event == "on_player_turn_end" && instance_exists(oCombat)) {
+				self.state.slots = 0;
+				for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) {
+					if (ds_list_size(oCombat.action_queue[| i].dice_list) >= 4) self.state.slots++;
+				}
+			}
 			if (event == "on_turn_start") {
-				var _n = max(0, 12 - deck_size());
-				if (_n > 0) {
-					apply_buff("player", oRunManager.buff_might, 1, _n, false, { source: "player", index: -1 });
+				if (data.turn_count <= 1) self.state.slots = 0; // a new fight
+				else if (self.state.slots > 0) {
+					apply_buff("player", oRunManager.buff_might, 1, 3 * self.state.slots, false, { source: "player", index: -1 });
 					trigger_keepsake_visual();
 				}
+				self.state.slots = 0;
 			}
 	    }
 	};
@@ -1076,12 +1080,13 @@ function define_keepsakes() {
 	ks_weathervane = {
 	    _id: "weathervane",
 	    name: "Weathervane",
-	    desc: "While alignment is below 30 or above 70, every die gets +1.",
+	    desc: "If alignment is below 30 or above 70, start each combat with 3 Might and 3 Balance for the first turn.",
 		sub_image: 37,
 	    trigger: function(event, data) {
-			if (event == "on_roll_die" && (global.player_alignment < 30 || global.player_alignment > 70)) {
-				data._d_amount += 1;
-				if (!data.read_only) trigger_keepsake_visual();
+			if (event == "on_turn_start" && data.turn_count <= 1 && (global.player_alignment < 30 || global.player_alignment > 70)) {
+				apply_buff("player", oRunManager.buff_might, 1, 3, false, { source: "player", index: -1 });
+				apply_buff("player", oRunManager.buff_balance, 1, 3, false, { source: "player", index: -1 });
+				trigger_keepsake_visual();
 			}
 	    }
 	};
