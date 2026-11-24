@@ -46,7 +46,7 @@ if (room == rmBounty) {
 	var _tx = _cx1 + 150;
 	draw_set_font(ftDefault);
 	draw_outline_text(pot.name, c_black, c_white, 2, _tx, _cy1 + 78, 1, 1, 0, _cx2 - _tx - 20);
-	draw_set_font(ftDescriptions);
+	draw_set_font(font_tip());
 	draw_outline_text(colorcode_text(pot.description), c_black, make_color_rgb(225, 225, 235), 1, _tx, _cy1 + 108, 1, 1, 0, _cx2 - _tx - 20);
 	// take it (free), or a stamp once it's yours
 	if (!pot.taken) {
@@ -54,7 +54,7 @@ if (room == rmBounty) {
 		var _take = ui_primary(_cx2 - 110, _cy2 - 52, 170, 64, "Take it", _room, "Use or drop an item first.");
 		if (_take.click && _room) gain_item(pot); // free
 		if (!_room) {
-			draw_set_font(ftDescriptions);
+			draw_set_font(font_tip());
 			draw_set_halign(fa_left);
 			draw_outline_text("Item slots full", c_black, make_color_rgb(230, 120, 110), 1, _cx1 + 26, _cy2 - 62, 1, 1, 0);
 		}

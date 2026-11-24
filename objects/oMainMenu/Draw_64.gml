@@ -29,7 +29,8 @@ if (room == rmMainMenu && !global.all_input_disabled && !global.show_settings) {
 		// Draw warning text
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_top);
-		draw_outline_text(warning_txt, c_black, c_white, 2, bg_x, bg_y - gui_h / 14, 1, 1.0, 0, bg_w * 0.75);
+		draw_set_font(ftBigger); // (Jared, 2026-11-24: it was far too small)
+		draw_outline_text(warning_txt, c_black, c_white, 3, bg_x, bg_y - gui_h / 14 - 14, 1, 1.0, 0, bg_w * 1.1);
 		
 		// Draw buttons
 		var new_run_btn = draw_gui_button(bg_x - btn_w * 1.125, bg_y, btn_w, btn_h, proceed_new_scale, "Start anew", global.ui_danger, ftBig, true, true);

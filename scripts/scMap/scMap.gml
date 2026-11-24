@@ -930,7 +930,7 @@ function draw_page( _page, _x, _y, _index, _shadow, _locked) {
 			// a done stop: circled, with a tick (Jared, 2026-11-21: no fading, no green)
 			if (node.cleared) map_done_ring(node.x, node.y, 30 * node.scale, _alph); // its tick (the grey disc is under the icon)
 			// its name underneath, like the sea stops (in ink with a paper halo)
-			draw_set_font(ftDescriptions);
+			draw_set_font(font_tip());
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_top);
 			draw_outline_text((variable_struct_exists(node, "morph_t") && node.morph_t < 10) ? node.morph_name : node.name, global.ui_col.paper_hi, global.ui_col.ink, 2, node.x, node.y + 24 + 6 * node.scale, 1, _alph, 0);
@@ -1660,7 +1660,7 @@ function sea_stop_draw(_id, _x, _y, _scale, _alpha, _ok, _done = false) {
 		case "whet":
 			draw_die_shape(_x - 4 * _s, _y + 2 * _s, 14 * _s, 6, _ink, 0, _alpha);
 			draw_die_shape(_x - 4 * _s, _y + 2 * _s, 11 * _s, 6, _ok ? make_color_rgb(242, 210, 74) : c_gray, 0, _alpha);
-			draw_set_font(ftDescriptions);
+			draw_set_font(font_tip());
 			draw_set_halign(fa_center);
 			draw_set_valign(fa_middle);
 			draw_outline_text("+1", c_black, c_white, 2, _x + 10 * _s, _y - 10 * _s, _s, _alpha, 0);
@@ -1708,7 +1708,7 @@ function strait_draw(_ax, _ay) {
 		var _hov = mouse_hovering(_sx, _sy, 64, 64, true, soSlotHover, noone); // it grows under the mouse, like the island stops
 		strait.scales[i] = lerp(strait.scales[i], _hov ? 1.25 : 1, 0.2);
 		sea_stop_draw(_id, _sx, _sy, strait.scales[i], _alpha, _info.ok || !strait.active, _taken && strait.arrived);
-		draw_set_font(ftDescriptions);
+		draw_set_font(font_tip());
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_top);
 		draw_outline_text(_info.name, global.ui_col.paper_hi, (_info.ok || !strait.active) ? global.ui_col.ink : global.ui_col.ink_soft, 2, _sx, _sy + 36 * strait.scales[i], 1, _alpha, 0); // ink, like the chart
@@ -1823,7 +1823,7 @@ function passage_left_draw(_bx, _by) {
 	_b.scale = lerp(_b.scale, _hov ? 1.25 : 1 + _breathe, 0.2); // grows under the mouse, like the island stops
 	var _salpha = (_done || _b.active || _b.sailing) ? 1 : 0.85; // done: circled with a tick (map_done_ring), not faded
 	sea_stop_draw(_shown, _bx, _by, _b.scale, _salpha, true, _done && !_b.sailing);
-	draw_set_font(ftDescriptions);
+	draw_set_font(font_tip());
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
 	draw_outline_text(_info.name, global.ui_col.paper_hi, global.ui_col.ink, 2, _bx, _by + 36 * _b.scale, 1, max(_salpha, 0.6), 0); // ink, like the chart
@@ -1905,7 +1905,7 @@ function anchor_choice_draw(_st, _x, _y) {
 	var _hurt = global.player_hp < global.player_max_hp;
 	var _bench = workbench_useful();
 	var _by = _y - 110;
-	draw_set_font(ftDescriptions);
+	draw_set_font(font_tip());
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
 	draw_outline_text("Drop Anchor", global.ui_col.paper_hi, global.ui_col.ink, 2, _x, _by - 52, 1, 1, 0);
@@ -2039,7 +2039,7 @@ function page_passage_badge(_page, _x, _y, _scale, _alpha) {
 	var _info = strait_stop_info(_id, passage_heal_amount());
 	var _hov = (_alpha > 0.5) && mouse_hovering(_x, _y, 56 * _scale, 56 * _scale, true, noone, noone);
 	sea_stop_draw(_id, _x, _y, _scale * (_hov ? 1.12 : 1), _alpha, true);
-	draw_set_font(ftDescriptions);
+	draw_set_font(font_tip());
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
 	draw_outline_text(_info.name, global.ui_col.paper_hi, global.ui_col.ink, 2, _x, _y + 32 * _scale, 1, _alpha, 0);
@@ -2077,7 +2077,7 @@ function harbour_draw(_bp) {
 		var _alpha = (_h.chosen == -1 && !_done) ? 1 : ((_h.chosen == i) ? 1 : 0.35);
 		_h.scales[i] = lerp(_h.scales[i], _hov ? 1.25 : 1, 0.2);
 		sea_stop_draw(_id, _sx, _sy, _h.scales[i], _alpha, _info.ok || _done, _h.chosen == i && _h.arrived);
-		draw_set_font(ftDescriptions);
+		draw_set_font(font_tip());
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_top);
 		draw_outline_text(_names[i], global.ui_col.paper_hi, global.ui_col.ink, 2, _sx, _sy + 36 * _h.scales[i], 1, _alpha, 0);
@@ -2152,7 +2152,7 @@ function treasure_stop_draw(_lp) {
 	}
 	map_node_icon_draw(_ts.node, _ts.scale, 1);
 	if (_done) map_done_ring(_p.x, _p.y, 31, 1);
-	draw_set_font(ftDescriptions);
+	draw_set_font(font_tip());
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
 	draw_outline_text("Treasure", global.ui_col.paper_hi, global.ui_col.ink, 2, _p.x, _p.y + 36 * _ts.scale, 1, 1, 0);

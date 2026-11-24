@@ -50,7 +50,7 @@ draw_text(_lx, _ly - 14, "Shipwright's bench");
 draw_set_alpha(0.6);
 draw_line_width(_lx - 120, _ly + 8, _lx + 120, _ly + 8, 1.5);
 draw_set_alpha(1);
-draw_set_font(ftDescriptions);
+draw_set_font(font_tip());
 draw_text(_lx, _ly + 28, "Tools work where they land.");
 draw_set_color(global.ui_col.brass);
 draw_circle(_lx, _ly - 46, 6, false); // the pin
@@ -66,7 +66,7 @@ for (var _yy = rack.y1 + 30; _yy < rack.y2 - 10; _yy += 40) for (var _xx = rack.
 draw_set_alpha(1);
 // the visit's actions: 2 pips over the rack, filled while left (2026-11-24)
 var _pcx = (rack.x1 + rack.x2) / 2, _pcy = rack.y1 - 34;
-draw_set_font(ftDescriptions);
+draw_set_font(font_tip());
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
 draw_outline_text("Actions", global.ui_col.paper_hi, global.ui_col.ink, 2, _pcx - 70, _pcy, 1, 1, 0);
@@ -183,7 +183,7 @@ for (var i = 0; i < array_length(wb_tools); i++) {
 }
 // the tool in hand says what it would do here
 if (is_struct(wb_target) && wb_target.text != "") {
-	draw_set_font(ftDescriptions);
+	draw_set_font(font_tip());
 	var _tw = string_width(wb_target.text) + 30;
 	var _bx = clamp(_mx + 40, 20, gui_w - _tw - 20), _by = _my - 70;
 	ui_paper(_bx, _by - 22, _bx + _tw, _by + 22, 3, wb_target.ok ? global.ui_col.paper_hi : global.ui_col.paper_shade);

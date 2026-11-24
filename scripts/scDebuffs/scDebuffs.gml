@@ -528,7 +528,7 @@ function die_is_mocked(_die) {
 /// @func draw_mock_mark(_x, _y, _scale)
 /// @desc A Mocked die's mark (B133): a small red ink tag reading "Mock", tilted like a stamp. Returns its hover box.
 function draw_mock_mark(_x, _y, _scale = 1) {
-	draw_set_font(ftDescriptions);
+	draw_set_font(font_tip());
 	var _w = string_width("Mock") + 14 * _scale, _h = 24 * _scale;
 	draw_set_color(global.ui_col.ink);
 	draw_roundrect_ext(_x - _w / 2 - 2, _y - _h / 2 - 2, _x + _w / 2 + 2, _y + _h / 2 + 2, 8, 8, false);

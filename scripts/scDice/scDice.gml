@@ -1828,7 +1828,7 @@ function draw_dice_distribution(_die, _x, _y, _centered = false, _scale = 1, _pa
 		draw_set_alpha(1);
 	}
 
-	draw_set_font((_scale >= 1.4) ? ftDescriptions : ftTiny);
+	draw_set_font((_scale >= 1.4) ? font_tip() : ftTiny);
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
 	for (var i = 0; i < _n; i++) {

@@ -2466,7 +2466,7 @@ function insight_panel_draw() {
 		draw_set_halign(fa_right);
 		draw_set_color(player_intel < 0 ? c_red : global.color_intel);
 		draw_text(_x + _w - _pad, _y + _pad + 10, string(player_intel));
-		draw_set_font(ftDescriptions);
+		draw_set_font(font_tip());
 		draw_set_halign(fa_left);
 		draw_set_color(make_color_rgb(200, 200, 210));
 		draw_text(_x + _pad, _y + _pad + 38, intel_is_blotted() ? "Below 0 the page is smudged: enemy intents are hidden." : "Spend it this turn: it's gone at End Turn.");
@@ -2489,7 +2489,7 @@ function insight_panel_draw() {
 			draw_set_halign(fa_left);
 			draw_set_color(_row.done ? make_color_rgb(140, 200, 140) : (_ok ? c_white : make_color_rgb(150, 150, 160)));
 			draw_text(_x + _pad + 40, _mid - 9, _row.what);
-			draw_set_font(ftDescriptions);
+			draw_set_font(font_tip());
 			draw_set_color(make_color_rgb(170, 170, 180));
 			draw_text(_x + _pad + 40, _mid + 11, _row.how);
 			_ry += _row_h;
@@ -3640,13 +3640,13 @@ function combat_insight_view_draw() {
 /// @func ink_button_w(_label, _cost, _min_w)
 /// @desc How wide ink_button draws: never narrower than its words, the drop and the number.
 function ink_button_w(_label, _cost, _min_w) {
-	draw_set_font(ftDescriptions);
+	draw_set_font(font_tip());
 	return max(_min_w, string_width(_label) + string_width(string(_cost)) + 58);
 }
 
 function ink_button(_cx, _cy, _w, _h, _label, _cost, _ok) {
 	_w = ink_button_w(_label, _cost, _w); // they overlapped the drop when fixed width
-	draw_set_font(ftDescriptions);
+	draw_set_font(font_tip());
 	var _hov = mouse_hovering(_cx, _cy, _w, _h, true, soSlotHover, noone, true, UI_LAYER.POPUP);
 	var _s = (_hov && _ok) ? 1.08 : 1;
 	var _w2 = _w * _s / 2, _h2 = _h * _s / 2;
@@ -3657,7 +3657,7 @@ function ink_button(_cx, _cy, _w, _h, _label, _cost, _ok) {
 	draw_roundrect_ext(_cx - _w2 - 2, _cy - _h2 - 2, _cx + _w2 + 2, _cy + _h2 + 2, _h, _h, false);
 	draw_set_color(_hov && _ok ? global.ui_col.paper_hi : global.ui_col.paper);
 	draw_roundrect_ext(_cx - _w2, _cy - _h2, _cx + _w2, _cy + _h2, _h - 2, _h - 2, false);
-	draw_set_font(ftDescriptions);
+	draw_set_font(font_tip());
 	draw_set_valign(fa_middle);
 	draw_set_halign(fa_left);
 	draw_set_color(global.color_intel);
@@ -3854,7 +3854,7 @@ function combat_enemy_badge(_x, _y, _enemy, _scale = 1, _alpha = 1) {
 	draw_circle(_x, _y, 12 * _scale, false);
 	draw_set_color(combat_enemy_colour(_enemy));
 	draw_circle(_x, _y, 10 * _scale, false);
-	draw_set_font(ftDescriptions);
+	draw_set_font(font_tip());
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_middle);
 	draw_set_color(c_white);
@@ -3902,7 +3902,7 @@ function combat_timeline_draw(_ink = false) {
 		draw_set_color(global.ui_col.paper_hi);
 		draw_line_width(aq_x0 - 6, _ty, _x_end, _ty, 4);
 		// a notch and number over each slot and the tile
-		draw_set_font(ftDescriptions);
+		draw_set_font(font_tip());
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_bottom);
 		for (var k = 1; k <= _last; k++) {
@@ -3974,7 +3974,7 @@ function combat_timeline_draw(_ink = false) {
 			if (_ink && !_can && !_dragging) {
 				// nothing your ink can do with it: left as the log draws it (the frame under, through shInk), so only what
 				// you can afford stays in colour (Jared, 2026-11-22). It still says what it is
-				draw_set_font(ftDescriptions);
+				draw_set_font(font_tip());
 				var _num0 = intent_has_numbers(_en.intent.move) ? intent_number_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) : "";
 				var _w0 = 62 + ((_num0 != "") ? string_width(_num0) + 8 : 0);
 				if (ink_drag_enemy == undefined && mouse_hovering(_gx, _my, _w0, 34, true, noone, noone, true, _layer)) {
@@ -3993,7 +3993,7 @@ function combat_timeline_draw(_ink = false) {
 			} else draw_line_width(_gx, _my + 17, _gx, aq_y0 - 4 - _lift, 3);
 			// the marker: dark, edged in its colour; letter, icon, number
 			var _num = intent_has_numbers(_en.intent.move) ? intent_number_text(_en, enemy_intent_revealed(_en) ? INTEL_LEGIBLE : INTEL_FADED) : "";
-			draw_set_font(ftDescriptions);
+			draw_set_font(font_tip());
 			var _w = 62 + ((_num != "") ? string_width(_num) + 8 : 0) + (_movable ? 26 : 0); // room for the grip
 			if (_can) wet_ink_rect(_gx - _w / 2 - 3, _my - 20, _gx + _w / 2 + 3, _my + 20, 12); // the edge sloshes: it can be moved
 			draw_set_color(_col);
@@ -4706,7 +4706,7 @@ function ink_cost_pip(_x, _y, _cost, _ok) {
 /// @desc The ink view's costs (ink_cost_pip), 20% bigger than before.
 function ink_costs_draw() {
 	with (oCombat) {
-		draw_set_font(ftDescriptions);
+		draw_set_font(font_tip());
 		draw_set_halign(fa_center);
 		draw_set_valign(fa_middle);
 		for (var i = 0; i < array_length(ink_costs); i++) {

@@ -948,7 +948,7 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     var yy = _y;
 
     // name
-    draw_set_font(_compact ? ftDescriptions : ftDefault);
+    draw_set_font(_compact ? font_tip() : ftDefault);
     var name_w = string_width(_name);
     var name_h = string_height(_name);
 
@@ -1038,7 +1038,7 @@ function draw_tooltip_box(_x, _y, _name, _desc, _icon, _index, _dice, _compact, 
     }
 
     // name (one line; the box is already wide enough), then the description
-    draw_set_font(_compact ? ftDescriptions : ftDefault);
+    draw_set_font(_compact ? font_tip() : ftDefault);
     draw_set_halign(fa_left);
     draw_set_valign(fa_top);
 	draw_outline_text(_name, c_black, _compact ? global.color_gold : c_white, 2, content_x, yy + padding, 1, 1, 0);
@@ -2694,7 +2694,7 @@ function card_hero_draw(_d, _out, _x1, _x2, _y1, _dy, _r, _alpha, _interactive, 
 	// a changed range (a raised minimum: "2-6"), small, on a paper tag at the die's foot (Jared, 2026-11-20)
 	if (die_range_changed(_d, _out)) {
 		var _txt = string(_out.min_roll) + "-" + string(_out.max_roll);
-		draw_set_font(ftDescriptions);
+		draw_set_font(font_tip());
 		var _tw = string_width(_txt) + 12, _th = 24;
 		var _tx = _cx + 33 * _k, _ty = _dy + 31 * _k;
 		draw_set_alpha(_alpha);
@@ -2733,15 +2733,15 @@ function bag_card_layout(_d, _w) {
 	var _die_y = 54;                  // the die's centre, from the card's top
 	var _name_y = _die_y + 52;        // the name's top
 	draw_set_font(ftBig);
-	var _name_h = string_height_ext(_d.name, -1, _w - 28);
+	var _name_h = string_height("M"); // one line always: a long name shrinks to fit (draw_bag_card), so cards share a height
 	var _text_x = 16;
 	var _text_w = _w - _text_x * 2;
 	var _text_y = _name_y + _name_h + 8;
-	draw_set_font(ftDefault); // the effect at 16 px: more words a line (Molly)
-	var _line = font_get_size(ftDefault) * 1.5; // the line height coloured text wraps at (draw_outline_text)
-	var _desc_h = string_height_ext(die_description(_d), _line, _text_w);
+	draw_set_font(font_tip()); // the effect in the tooltip font (2026-11-24)
+	var _line = font_get_size(font_tip()) * 1.5; // the line height coloured text wraps at (draw_outline_text)
+	var _desc_h = max(string_height_ext(die_description(_d), _line, _text_w), 3 * _line); // room for three lines, more if it needs
 	var _info_bottom = _text_y + _desc_h + 14;
-	var _bars_h = (_d.distribution != "") ? (5 + 30 + 5 + 15) + 12 : 0; // draw_dice_distribution at scale 1, and a gap
+	var _bars_h = (5 + 30 + 5 + 15) + 12; // draw_dice_distribution at scale 1, and a gap: every die shows how it rolls
 	return { die_y: _die_y, name_y: _name_y, text_x: _text_x, text_w: _text_w, text_y: _text_y, bars_bottom: _info_bottom + _bars_h, h: _info_bottom + _bars_h };
 }
 
@@ -2782,8 +2782,9 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected, _style =
 	draw_set_halign(fa_center);
 	draw_set_valign(fa_top);
 	draw_set_color(global.ui_col.ink);
-	draw_text_ext(_cx, _y1 + _lay.name_y, _d.name, -1, _w - 28);
-	draw_set_font(ftDefault);
+	var _ns = min(1, (_w - 28) / max(1, string_width(_d.name))); // one line: shrunk to fit rather than wrapped
+	draw_text_transformed(_cx, _y1 + _lay.name_y, _d.name, _ns, _ns, 0);
+	draw_set_font(font_tip());
 	draw_set_halign(fa_center); // centred under the name (coloured text follows halign since B82)
 	ui_paper_text(colorcode_text(die_description(_d), _d.action_type), _cx, _y1 + _lay.text_y, _lay.text_w, _alpha);
 	draw_set_halign(fa_left);
@@ -2792,11 +2793,12 @@ function draw_bag_card(_d, _cx, _cy, _w, _h, _alpha, _hover, _selected, _style =
 	// its size, type and range on hovering the die
 	if (_hover && mouse_hovering(_dx, _dy, 80, 80, true, noone, noone, true, max(global.ui_layer, UI_LAYER.BAG))) queue_die_tip(_d, _dx, _dy - 40, die_stats_line(_d, _out));
 
-	// a fitted core: how it shapes this die's faces, across the card's full width under its words
-	if (_d.distribution != "") {
-		draw_set_alpha(_alpha);
-		draw_dice_distribution(_d, _cx, _y1 + _lay.bars_bottom - 12, true, 1, true, _w - 28);
-	}
+	// how it rolls, across the card under its words: a fitted core's shape in full ink, a plain die's flat bars faint
+	// (2026-11-24: every die has them, so every card is one height)
+	var _has_core = (_d.distribution != "");
+	draw_set_alpha(_alpha * (_has_core ? 1 : 0.4));
+	draw_dice_distribution(_d, _cx, _y1 + _lay.bars_bottom - 12, true, 1, true, _has_core ? _w - 28 : min(_w - 28, _d.dice_value * 40));
+	draw_set_alpha(1);
 
 	// picked (dice picker): a green tick stamped on the corner
 	if (_selected) {
@@ -3001,10 +3003,10 @@ function offering_card_layout(_off, _w) {
 	var _text_w = _w - 44;
 	var _text_y = _name_y + _name_h + 10;
 	var _core_w = _w - 80 - 18;           // beside the core icon
-	draw_set_font(ftDefault);
-	var _desc_h = string_height_ext(die_description(_off.dice), font_get_size(ftDefault) * 1.5, _text_w);
-	draw_set_font(ftDescriptions);
-	var _line = font_get_size(ftDescriptions) * 1.2;
+	draw_set_font(font_tip());
+	var _desc_h = string_height_ext(die_description(_off.dice), font_get_size(font_tip()) * 1.5, _text_w);
+	draw_set_font(font_tip());
+	var _line = font_get_size(font_tip()) * 1.2;
 	var _core_desc_h = string_height_ext(_off.core.description, _line, _core_w);
 	var _core_y = _text_y + _desc_h + 18;
 	var _bars_top = _core_y + 44 + _core_desc_h + 18;
@@ -3039,7 +3041,7 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	draw_set_valign(fa_top);
 	draw_set_color(global.ui_col.ink);
 	draw_text_ext(_cx, _y1 + _lay.name_y, _d.name, -1, _w - 36);
-	draw_set_font(ftDefault);
+	draw_set_font(font_tip());
 	draw_set_halign(fa_center); // centred under the name (coloured text follows halign since B82)
 	ui_paper_text(colorcode_text(die_description(_d), _d.action_type), _cx, _y1 + _lay.text_y, _lay.text_w);
 	draw_set_halign(fa_left);
@@ -3054,7 +3056,7 @@ function offering_card_draw(_off, _cx, _top, _w, _h, _hover, _chosen) {
 	draw_set_halign(fa_left);
 	draw_set_valign(fa_top);
 	draw_outline_text(_core.name, global.ui_col.paper_hi, global.ui_col.ink, 1, _x1 + 80, _cy + 16, 1, 1, 0);
-	draw_set_font(ftDescriptions);
+	draw_set_font(font_tip());
 	ui_paper_text(_core.description, _x1 + 80, _cy + 44, _lay.core_w);
 
 	// how this core shapes this die's faces, across the foot of the card (cards share a height, so the bars line up)
@@ -3246,8 +3248,8 @@ function item_card_layout(_it, _w) {
 	draw_set_font(ftBig);
 	var _name_h = string_height_ext(_it.name, -1, _w - 28);
 	var _desc_y = _name_y + _name_h + 8;
-	draw_set_font(ftDefault);
-	var _desc_h = string_height_ext(string(_it.description), font_get_size(ftDefault) * 1.5, _w - 32);
+	draw_set_font(font_tip());
+	var _desc_h = string_height_ext(string(_it.description), font_get_size(font_tip()) * 1.5, _w - 32);
 	var _bars = (variable_struct_exists(_it, "type") && _it.type == "core") ? (5 + 30 + 5 + 15) + 12 : 0;
 	return { icon_y: _icon_y, name_y: _name_y, desc_y: _desc_y, h: _desc_y + _desc_h + _bars + 20 };
 }
@@ -3322,7 +3324,7 @@ function draw_item_card(_it, _cx, _cy, _w, _h, _alpha, _hover, _locked) {
 	draw_set_valign(fa_top);
 	draw_set_color(global.ui_col.ink);
 	draw_text_ext(_cx, _y1 + _lay.name_y, _it.name, -1, _w - 28);
-	draw_set_font(ftDefault);
+	draw_set_font(font_tip());
 	ui_paper_text(colorcode_text(string(_it.description)), _cx, _y1 + _lay.desc_y, _w - 32, _alpha);
 	draw_set_halign(fa_left);
 
