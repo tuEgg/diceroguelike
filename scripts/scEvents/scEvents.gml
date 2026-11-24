@@ -1188,7 +1188,7 @@
 	}
 		event_tattooist_opt_1 = {
 			title: "An anchor (40 gold)",
-			description: "Lose 40 gold. Give a die +1 min roll.",
+			description: "Lose 40 gold. Give a die +2 min roll.", // (Jared, 2026-11-24: +1 for 40 gold was worse than the gunner's free Chainshot)
 			effect: function(_context) {
 				if (oRunManager.credits < 40) {
 					throw_error("Not enough gold", "You need 40 gold.");
@@ -1196,12 +1196,14 @@
 				}
 				oRunManager.credits -= 40;
 				oRunManager.dice_selection = 1;
-				oRunManager.dice_selection_message = "Choose a die to gain +1 min roll";
+				oRunManager.dice_selection_message = "Choose a die to gain +2 min roll";
 				oRunManager.dice_selection_filter = "min_room";
 				oRunManager.dice_selection_event = function(_die) {
-					_die.min_roll_bonus += 1;
+					// never past its highest roll: a d4 already at +2 only gains 1
+					var _gain = min(2, _die.dice_value - 1 - _die.min_roll_bonus);
+					_die.min_roll_bonus += _gain;
 					particle_emit(115, 1000, "rise", get_dice_color(_die.possible_type), 30);
-					spawn_floating_number("bag", 0, _die.name + " +1 min roll", _die.color, 0, -1, 0);
+					spawn_floating_number("bag", 0, _die.name + " +" + string(_gain) + " min roll", _die.color, 0, -1, 0);
 				}
 				oEventManager.event_complete = 0;
 				oEventManager.event_selected = true;

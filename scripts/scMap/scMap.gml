@@ -1624,9 +1624,9 @@ function sea_stop_draw(_id, _x, _y, _scale, _alpha, _ok, _done = false) {
 			draw_circle(_x, _y - 13 * _s, 3.5 * _s, true);
 			draw_line_width(_x, _y - 10 * _s, _x, _y + 12 * _s, 3 * _s);
 			draw_line_width(_x - 7 * _s, _y - 6 * _s, _x + 7 * _s, _y - 6 * _s, 2.5 * _s);
-			draw_arc_thick_deg(_x, _y + 2 * _s, 9 * _s, 11.5 * _s, 200, 340, 10);
-			draw_triangle(_x - 12 * _s, _y + 2 * _s, _x - 8 * _s, _y - 2 * _s, _x - 6 * _s, _y + 4 * _s, false);
-			draw_triangle(_x + 12 * _s, _y + 2 * _s, _x + 8 * _s, _y - 2 * _s, _x + 6 * _s, _y + 4 * _s, false);
+			draw_arc_thick_deg(_x, _y + 2 * _s, 9 * _s, 11.5 * _s, 20, 160, 10); // (this helper's angles run clockwise on screen: 90 is down)
+			draw_triangle(_x - 13 * _s, _y - 1 * _s, _x - 7 * _s, _y + 5 * _s, _x - 12 * _s, _y + 7 * _s, false); // flukes point up
+			draw_triangle(_x + 13 * _s, _y - 1 * _s, _x + 7 * _s, _y + 5 * _s, _x + 12 * _s, _y + 7 * _s, false);
 			break;
 		case "sea": // a question mark on the waves
 			draw_set_font(ftBig);

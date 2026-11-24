@@ -30,8 +30,14 @@
 
 | Batch | Cards | Branch / commit | Status |
 |---|---|---|---|
+| 38: fixes after batch 37 | B164, B165, F250 | `dev` | **Not yet play-tested.** Anchor icon the right way up; slot number is the full total; Tattooist anchor +2 min roll. |
 | 37: map and economy (design brief 2026-11-24) | F244, F245, F246, F247, F248, F249 | `dev` | **Not yet play-tested.** Sea stops are Drop Anchor, sea events, the wreck or Flotsam; island and sea events split; workbench actions and the Bin; tools in every shop; 2-of-4 drafting; a chapter pool for stops; bounty help. |
 | 36: content pass | F242 | `dev` | **Not yet play-tested.** Free value repriced, rares lifted, healing on triggers, shop keepsakes, core-shape payoffs, 22 new dice and keepsakes for the seven archetypes (\`docs/design/content-pass.md\`). |
+
+**Batch 38 test list (fixes)**
+- B164 The Drop Anchor icon: ring at the top, curve and flukes at the bottom.
+- B165 Play a 4 into slot 2 (+1 place bonus): the die shows +1 and the slot's big number reads 5. Empty slots still show the green "+1" beside the number.
+- F250 The tattooist: "An anchor (40 gold)" gives a die +2 min roll (a d4 already at +2 only gains 1).
 
 **Batch 37 test list (map and economy)**
 - F244 Sea stops (each page's) are now Drop Anchor (an anchor), Open water (a sea event, "?"), the wreck or Flotsam; no more Calm water, Squall, Whetstone reef or Shipwright's buoy. Drop Anchor: sail there and two buttons appear over it: Rest (+N HP) or Workbench (greyed if no tool has work). Open water opens an event from the sea pool. The harbour before the boss reads "Drop Anchor: rest / workbench". Old saves with the old stops still work.

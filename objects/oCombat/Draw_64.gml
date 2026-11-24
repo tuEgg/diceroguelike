@@ -178,10 +178,10 @@ for (var i = 0; i < aq_list_size; i++) {
 	// the slot as a paper ticket (ui_ticket, scUI): a band in its action's pigment with its glyph and name, the total
 	// huge in ink, and what its place adds (slot_set_position_bonus) inked beside it. Brass-edged while it acts.
 	var _pos_bonus = variable_struct_exists(action_queue[| i], "position_bonus") ? action_queue[| i].position_bonus : 0;
-	// the big number is what its dice come to; the place bonus shows on its first die, and in green only while it's
-	// empty (Jared, 2026-11-22: "4 +1" read as 5 when it was 3 + 1)
+	// the big number is exactly what the slot will do, every bonus in (Jared, 2026-11-24); the place bonus shows on its
+	// first die, and in green beside the number only while it's empty
 	var _slot_has_dice = ds_list_size(action_queue[| i].dice_list) > 0;
-	var _show_low = _low_roll - (_slot_has_dice ? _pos_bonus : 0), _show_high = _high_roll - (_slot_has_dice ? _pos_bonus : 0);
+	var _show_low = _low_roll, _show_high = _high_roll;
 	var _total_text = (label != "" && !(_low_roll == 0 && _high_roll == 0)) ? ((_show_low == _show_high) ? string(max(0, _show_low)) : string(_show_low) + "-" + string(_show_high)) : "";
 	var _t_state = "";
 	if (state == CombatState.RESOLVE_ROUND && !enemies_turn_done && i == draw_action_index) _t_state = "acting";
