@@ -44,10 +44,10 @@ ds_list_add(page_scale, 1.0);
 ds_list_add(page_scale, 1.0);
 // four landscape cards (2026-11-24: draft 2 of 4), each holding its island and its sea stop, in a 2 x 2 grid under the
 // heading (500 x 330 cards, 40 apart)
-page_pos[0] = { x: display_get_gui_width() * 0.5 - 270, y: 470 };
-page_pos[1] = { x: display_get_gui_width() * 0.5 + 270, y: 470 };
-page_pos[2] = { x: display_get_gui_width() * 0.5 - 270, y: 835 };
-page_pos[3] = { x: display_get_gui_width() * 0.5 + 270, y: 835 };
+page_pos[0] = { x: display_get_gui_width() * 0.5 - 270, y: 410 };
+page_pos[1] = { x: display_get_gui_width() * 0.5 + 270, y: 410 };
+page_pos[2] = { x: display_get_gui_width() * 0.5 - 270, y: 775 };
+page_pos[3] = { x: display_get_gui_width() * 0.5 + 270, y: 775 };
 pages_alpha = 0; // used for fading out pages
 
 node_combat = {

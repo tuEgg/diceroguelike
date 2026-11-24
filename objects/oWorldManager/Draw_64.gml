@@ -243,7 +243,7 @@ if (room == rmMap || peek_now) {
 		draw_set_valign(fa_middle);
 		draw_set_font(ftBigger);
 		// one heading for one action (it used to have "What happened next?" over it as well)
-		if (pages_alpha > 0.02) ui_label(bg_w/2, gui_h * 0.25, (pages_drafted == 0) ? "Take a page. One of the others is lost." : ((pages_drafted == 1) ? "Take another. The last is lost." : "Embark when ready."), ftBigger, 41, pages_alpha); // say plainly how the draft works (Jared, 2026-11-21)
+		if (pages_alpha > 0.02) ui_label(bg_w/2, 192, (pages_drafted == 0) ? "Take a page. One of the others is lost." : ((pages_drafted == 1) ? "Take another. The last is lost." : "Embark when ready."), ftBigger, 41, pages_alpha); // say plainly how the draft works (Jared, 2026-11-21)
 		draw_set_font(ftDefault);
 	
 		if (world_state == WORLD_STATE.OPENING) {		
