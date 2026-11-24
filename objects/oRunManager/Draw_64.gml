@@ -336,7 +336,7 @@ var bounty_description = "No bounty taken.";
 var bounty_col = c_dkgray;
 if (active_bounty != undefined) {
 	bounty_name = active_bounty.enemy_name;
-	bounty_description =  "Defeat " + string(active_bounty.enemy_name) + " " +active_bounty.condition.description;
+	bounty_description =  "Defeat " + string(active_bounty.enemy_name) + " " + active_bounty.condition.description + ".\nIt's the next elite you meet. Keep the rule to collect the contract's rewards.";
 	bounty_col = c_white;
 	if (active_bounty.condition.failed) {
 		bounty_description = "Bounty failed.";

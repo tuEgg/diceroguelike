@@ -13,7 +13,7 @@ if (room == rmBounty) {
 	draw_set_font(ftHuge);
 	draw_outline_text("Bounty\nHuntin'", c_black, c_white, 4, 50, 200, 1, 1, 0);
 	draw_set_font(ftBig);
-	draw_outline_text("Pick a boss to hunt. Meet its condition for a bigger reward.",
+	draw_outline_text("Take a contract on an elite. Win while keeping its rule to collect every reward on it.",
 		c_black, c_white, 2, 50, 370, 1, 1, 0, 400);
 	
 

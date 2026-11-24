@@ -349,6 +349,11 @@ function load_game(_slot) {
 			with (oRunManager) _tool = get_tool_by_name(_save.tool_pool[i]);
 			if (_tool != undefined) ds_list_add(global.master_tool_list, _tool);
 		}
+		// (2026-11-24) saves from before the Bin: put it in the pool unless it's owned
+		var _bin_known = false;
+		for (var i = 0; i < array_length(_save.tool_pool); i++) if (_save.tool_pool[i] == "The Bin") _bin_known = true;
+		for (var i = 0; i < ds_list_size(oRunManager.tools); i++) if (oRunManager.tools[| i].name == "The Bin") _bin_known = true;
+		if (!_bin_known) ds_list_add(global.master_tool_list, oRunManager.tool_bin);
 	}
 
 	// the end-of-voyage summary stats (older saves start from zero)

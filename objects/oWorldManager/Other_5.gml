@@ -7,7 +7,8 @@ if (room == rmMap) {
 	if (nodes_cleared > 100) {
 		oRunManager.voyage++;
 	} else {
-		if (room != rmWorkbench) {
+		var _sea_stop = is_struct(current_node) && variable_struct_exists(current_node, "sea") && current_node.sea; // an event at sea isn't an island stop
+		if (room != rmWorkbench && !_sea_stop) {
 			nodes_cleared++;
 			// (the workbench is now earned by finishing a page: see oWorldManager Step, "At sea")
 		}

@@ -2241,6 +2241,28 @@ function tips_list() {
 			when: function() { return instance_exists(oWorldManager) && is_struct(oWorldManager.sea_buoy) && oWorldManager.sea_buoy.active; },
 		},
 		{
+			id: "bounty_intro", room: rmBounty, target: "bounty_contracts",
+			text: "A bounty is a contract on an elite: it is the next elite you meet. Win while keeping the contract's rule to get every reward on it. Click one to take it.",
+		},
+		{
+			id: "bounty_house", room: rmBounty, target: "bounty_house",
+			text: "A free potion, if you have room for it.",
+		},
+		{
+			id: "bounty_reroll", room: rmBounty, target: "bounty_reroll",
+			text: "New contracts, for 10 gold.",
+		},
+		{
+			id: "bounty_bar", room: rmMap, target: "bounty_bar",
+			text: "Your contract. Hover it for its rule and target.",
+			when: function() { return instance_exists(oRunManager) && oRunManager.active_bounty != undefined && !oRunManager.active_bounty.complete; },
+		},
+		{
+			id: "bounty_fight", room: rmCombat, target: "bounty_banner",
+			text: "This fight is your contract's. Keep its rule until the end to collect.",
+			when: function() { return tips_combat_ready() && combat_is_bounty_fight(); },
+		},
+		{
 			id: "workbench_bag", room: rmWorkbench, target: "wb_pick",
 			text: "Take dice from your bag, as many as you like. The bag works any time here.",
 			when: function() { return instance_exists(oWorkbenchManager) && oWorkbenchManager.pick_pending; },
@@ -2329,6 +2351,17 @@ function tips_rect(_target) {
 			return { x: oWorldManager.sea_buoy.x - 40, y: oWorldManager.sea_buoy.y - 40, w: 80, h: 100 }; // the buoy
 		case "ink":
 			var _iw = combat_inkwell_pos(); return { x: _iw.x - 60, y: _iw.y - 65, w: 120, h: 120 };
+		case "bounty_contracts":
+			var _bw = sprite_get_width(sBountyContract), _bh = sprite_get_height(sBountyContract);
+			return { x: 900 - _bw / 2 - 10, y: display_get_gui_height() / 2 - 100 - _bh / 2 - 20, w: 2 * _bw + 50, h: _bh + 40 };
+		case "bounty_house":
+			return { x: 50, y: 600, w: 400, h: 260 };
+		case "bounty_reroll":
+			return { x: display_get_gui_width() / 2 + 230 - 90, y: display_get_gui_height() - 250 - 40, w: 180, h: 80 };
+		case "bounty_bar":
+			return { x: display_get_gui_width() - 360, y: 15, w: 280, h: 60 };
+		case "bounty_banner":
+			return { x: display_get_gui_width() / 2 - 300, y: 128, w: 600, h: 56 };
 		case "wb_pick":
 			if (!instance_exists(oWorkbenchManager)) return undefined;
 			with (oWorkbenchManager) return { x: (table.x1 + table.x2) / 2 - 260, y: (table.y1 + table.y2) / 2 - 80, w: 520, h: 160 }; // the note on the bench
@@ -2615,6 +2648,7 @@ function workbench_useful() {
 	for (var i = 0; i < ds_list_size(oRunManager.tools); i++) {
 		var _tool = oRunManager.tools[| i].object;
 		if (_tool == oHammer || _tool == oScissors) return true;
+		if (oRunManager.tools[| i].name == "The Bin" && ds_list_size(global.dice_bag) > 6) return true;
 		if (_tool == oDrill) _drill = true;
 	}
 	if (!_drill) return false;
@@ -2643,6 +2677,36 @@ function workbench_take_die(_die) {
 		var _d = wb_add_die(_struct, global.gui.bag_x_deal, global.gui.bag_y_deal);
 		_d.fly = { kind: "deal", tx: _spot[0], ty: _spot[1], spd: 0, delay: _flying * 6 };
 	}
+}
+
+/// @func combat_is_bounty_fight()
+/// @desc Is this fight your contract's? (an elite while a contract is active: the bounty's elite replaces the elite pool)
+function combat_is_bounty_fight() {
+	return room == rmCombat && instance_exists(oCombat) && instance_exists(oRunManager) && oRunManager.active_bounty != undefined
+		&& !oRunManager.active_bounty.complete && instance_exists(oWorldManager) && oWorldManager.current_node_type == NODE_TYPE.ELITE;
+}
+
+/// @func bounty_contract_status(_cond)
+/// @desc The contract's rule, live, for the banner in its fight: { text, level } (0 fine, 1 at the limit, 2 broken).
+function bounty_contract_status(_cond) {
+	if (_cond.failed) return { text: "Broken", level: 2 };
+	switch (_cond._id) {
+		case "condition_block":
+			var _b = oCombat.player_block_amount;
+			return { text: "Block " + string(_b) + " / 12", level: (_b >= 10) ? 1 : 0 };
+		case "condition_slots":
+			var _s = ds_list_size(oCombat.action_queue);
+			return { text: "Slots " + string(_s) + " / 4", level: (_s >= 4) ? 1 : 0 };
+		case "condition_dice":
+			var _m = 0;
+			for (var i = 0; i < ds_list_size(oCombat.action_queue); i++) _m = max(_m, ds_list_size(oCombat.action_queue[| i].dice_list));
+			return { text: "Most dice in a slot " + string(_m) + " / 3", level: (_m >= 3) ? 1 : 0 };
+		case "condition_potion":
+			return { text: "No potions", level: 0 };
+		case "condition_intel":
+			return { text: "No ink after turn 1", level: 0 };
+	}
+	return { text: "", level: 0 };
 }
 
 /// @func workbench_drill_waits()

@@ -11,7 +11,7 @@ bounty_condition_slots = {
 	scale: 0.5,
 	color: global.color_attack,
 	text: "<5", // undefined or a text/number to draw on the slot
-	description: "without making more than 4 slots.",
+	description: "without making more than 4 slots",
 	gold_reward: 35,
 	failed: false,
 	trigger: function(event, data) {

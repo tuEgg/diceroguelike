@@ -206,6 +206,7 @@ wb_tool_target = function(_t) {
 			var _bd = wb_die_at(_t.hx, _t.hy, undefined, 80);
 			if (_bd == undefined) return _r;
 			_r.die = _bd;
+			if (ds_list_size(global.dice_bag) + array_length(wb_dice) <= 6) { _r.text = "Your bag can't go below 6 dice."; break; }
 			_r.ok = true;
 			_r.text = "Throw this die away for good.";
 			break;

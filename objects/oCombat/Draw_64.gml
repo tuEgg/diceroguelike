@@ -1395,4 +1395,33 @@ if (disc_bag_hover) {
 // the timeline track over the queue (F193)
 if (!show_rewards) combat_timeline_draw();
 
+// the contract's fight (2026-11-24): its rule and how close you are to breaking it, at the top, under the bar
+if (!show_rewards && combat_is_bounty_fight()) {
+	var _cond = oRunManager.active_bounty.condition;
+	var _st = bounty_contract_status(_cond);
+	var _bx = gui_w / 2, _byy = 156;
+	var _rule = "Contract: " + _cond.description;
+	switch (_cond._id) {
+		case "condition_block": _rule = "Contract: never more than 12 block"; break;
+		case "condition_slots": _rule = "Contract: no more than 4 slots"; break;
+		case "condition_dice": _rule = "Contract: no more than 3 dice in a slot"; break;
+		case "condition_potion": _rule = "Contract: no potions"; break;
+		case "condition_intel": _rule = "Contract: no ink after turn 1"; break;
+	}
+	var _line = _rule + "   " + _st.text;
+	draw_set_font(ftDefault);
+	var _lw = string_width(_line) + 48;
+	var _pl = 0.5 + 0.5 * sin(current_time / 140);
+	var _fill = (_st.level == 2) ? make_color_rgb(180, 90, 80) : ((_st.level == 1) ? merge_colour(global.ui_col.paper_hi, make_color_rgb(235, 180, 90), 0.4 + 0.4 * _pl) : global.ui_col.paper_hi);
+	ui_paper(_bx - _lw / 2, _byy - 24, _bx + _lw / 2, _byy + 24, 23, _fill);
+	draw_set_halign(fa_center);
+	draw_set_valign(fa_middle);
+	draw_set_color((_st.level == 2) ? c_white : global.ui_col.ink);
+	draw_text(_bx, _byy + 1, _line);
+	draw_set_halign(fa_left);
+	draw_set_valign(fa_top);
+	draw_set_color(c_white);
+	if (mouse_hovering(_bx, _byy, _lw, 48, true)) queue_tooltip(device_mouse_x_to_gui(0), device_mouse_y_to_gui(0), "Bounty: " + string(oRunManager.active_bounty.enemy_name), (_st.level == 2) ? "The rule was broken: no bounty rewards this time." : ((_st.level == 1) ? "At the limit: one more and the contract breaks." : "Keep this rule until the fight is won to collect the rewards."));
+}
+
 tutorial_draw();

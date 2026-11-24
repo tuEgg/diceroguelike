@@ -91,14 +91,15 @@ function generate_pages() {
 		// go back (pool_return_page), so what you sail to over a chapter converges on what's in the pool
 		repeat (_page.num_nodes) {
 			var _tpl = pool_draw(_page);
+			var _took = pool_drew; // false: the pool was empty, so this stop holds no token
 			// the first stop of a run is always a fight
 			if (oWorldManager.nodes_cleared == 0 && ds_list_size(_page.nodes) == 0 && _tpl.type != NODE_TYPE.COMBAT) {
-				pool_give_back(_tpl.type);
-				pool_take(NODE_TYPE.COMBAT);
+				if (_took) pool_give_back(_tpl.type);
+				_took = pool_take(NODE_TYPE.COMBAT);
 				_tpl = node_combat;
 			}
 			var _nd = clone_node_static(_tpl);
-			_nd.pool_type = _tpl.type;
+			_nd.pool_type = _took ? _tpl.type : -1; // -1 gives nothing back (pool_key)
 			ds_list_add(_page.nodes, _nd);
 		}
 	
@@ -164,9 +165,13 @@ function pool_refresh() {
 }
 
 /// @func pool_take(_type) / pool_give_back(_type)
+/// @desc pool_take returns whether there was a token to take: a stop made without one gets pool_type -1, so it can't
+///       give one back that was never taken.
 function pool_take(_type) {
 	var _k = pool_key(_type);
-	if (_k != "" && is_struct(stop_pool)) stop_pool[$ _k] = max(0, stop_pool[$ _k] - 1);
+	if (_k == "" || !is_struct(stop_pool) || stop_pool[$ _k] <= 0) return false;
+	stop_pool[$ _k] -= 1;
+	return true;
 }
 function pool_give_back(_type) {
 	var _k = pool_key(_type);
@@ -177,6 +182,7 @@ function pool_give_back(_type) {
 /// @desc One stop for a page, drawn by weight from the pool (and taken from it). No elite in a chapter's first spread,
 ///       and at most one elite, crossroads or bounty a page. An empty pool gives a fight.
 function pool_draw(_page) {
+	pool_drew = false; // whether a token was taken (generate_pages reads it)
 	if (!is_struct(stop_pool)) pool_new();
 	var _has = {};
 	for (var n = 0; n < ds_list_size(_page.nodes); n++) _has[$ pool_key(_page.nodes[| n].type)] = true;
@@ -197,6 +203,7 @@ function pool_draw(_page) {
 		_r -= _w[i];
 		if (_r <= 0) {
 			stop_pool[$ _keys[i]] -= 1;
+			pool_drew = true;
 			return _tpls[i];
 		}
 	}
@@ -236,9 +243,8 @@ function pages_elite_pity() {
 		if (_at == -1) continue;
 		var _old = _pg.nodes[| _at];
 		pool_give_back(variable_struct_exists(_old, "pool_type") ? _old.pool_type : _old.type);
-		pool_take(NODE_TYPE.ELITE); // (an empty elite pool still gives one: the pity wins)
 		var _e = clone_node_static(node_elite);
-		_e.pool_type = NODE_TYPE.ELITE;
+		_e.pool_type = pool_take(NODE_TYPE.ELITE) ? NODE_TYPE.ELITE : -1; // an empty elite pool still gives one: the pity wins
 		_pg.nodes[| _at] = _e;
 		_with++;
 	}
@@ -287,9 +293,8 @@ function page_give_fight(_page) {
 		var _nd = _page.nodes[| n];
 		if (_nd.type == NODE_TYPE.TREASURE) continue;
 		pool_give_back(variable_struct_exists(_nd, "pool_type") ? _nd.pool_type : _nd.type);
-		pool_take(NODE_TYPE.COMBAT);
 		var _c = clone_node_static(node_combat);
-		_c.pool_type = NODE_TYPE.COMBAT;
+		_c.pool_type = pool_take(NODE_TYPE.COMBAT) ? NODE_TYPE.COMBAT : -1;
 		_page.nodes[| n] = _c;
 		return;
 	}
@@ -360,7 +365,7 @@ function enter_node(_node) {
 		if (_node.type == NODE_TYPE.ELITE) elites_fought_chapter++;
 		if (_node.type == NODE_TYPE.ALIGNMENT) alignment_fought_chapter++;
 		if (_node.type == NODE_TYPE.BOUNTY) bounty_seen_chapter = true;
-		oRunManager.rooms_since_fight = node_is_fight(_node) ? 0 : oRunManager.rooms_since_fight + 1;
+		if (!(variable_struct_exists(_memory_node, "sea") && _memory_node.sea)) oRunManager.rooms_since_fight = node_is_fight(_node) ? 0 : oRunManager.rooms_since_fight + 1;
 	}
 	
 	// an event node picks its event now (the event room shows it), so it can be saved with the node
@@ -1011,6 +1016,7 @@ function serialise_page(_page) {
             event_name: variable_struct_exists(_node, "event_name") ? _node.event_name : "",
             shop_stock: (variable_struct_exists(_node, "shop_stock") && is_struct(_node.shop_stock)) ? _node.shop_stock : "",
             treasure_keepsake: variable_struct_exists(_node, "treasure_keepsake") ? _node.treasure_keepsake : "",
+            pool_type: variable_struct_exists(_node, "pool_type") ? _node.pool_type : _node.type,
         });
     }
     return {
@@ -1078,6 +1084,7 @@ function deserialise_page(_data) {
         if (variable_struct_exists(_saved_node, "event_name") && is_string(_saved_node.event_name) && _saved_node.event_name != "") _node.event_name = _saved_node.event_name;
         if (variable_struct_exists(_saved_node, "shop_stock") && is_struct(_saved_node.shop_stock)) _node.shop_stock = _saved_node.shop_stock;
         if (variable_struct_exists(_saved_node, "treasure_keepsake") && is_string(_saved_node.treasure_keepsake) && _saved_node.treasure_keepsake != "") _node.treasure_keepsake = _saved_node.treasure_keepsake;
+        if (variable_struct_exists(_saved_node, "pool_type") && is_real(_saved_node.pool_type)) _node.pool_type = _saved_node.pool_type;
         ds_list_add(_page.nodes, _node);
     }
     

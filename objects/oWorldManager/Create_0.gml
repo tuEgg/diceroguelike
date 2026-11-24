@@ -225,6 +225,7 @@ stop_pool = undefined;
 elites_fought_chapter = 0;
 alignment_fought_chapter = 0;
 bounty_seen_chapter = false;
+pool_drew = false;          // did the last pool_draw take a token
 elite_pity_active = false; // the treasure stop opening spread 3 (treasure_stop_draw): { page, node, scale, sailing }
 map_waves = [];
 burn_surf = -1;          // the lost draft page, drawn here to burn it away through shBurn (page_burn_draw)
